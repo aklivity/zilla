@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -26,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
@@ -78,6 +80,8 @@ public class JsonModelPendingTest
 
     private EngineContext context;
     private int resumed;
+    private String schema = SCHEMA;
+    private boolean everyString;
 
     @Before
     public void init()
@@ -121,6 +125,36 @@ public class JsonModelPendingTest
     public void shouldResumeThenOverflowOutput()
     {
         shouldResume("{\"id\":\"A\",\"status\":\"OK\",\"tags\":[\"a\",\"wait\",\"bbbbbbbbbbbb\",\"cccccccccccc\"]}", 16, 1);
+    }
+
+    @Test
+    public void shouldResumeEveryStringInObjectWithTwoStrings()
+    {
+        shouldResumeEveryString(2, "{\"a\":\"x\",\"b\":\"y\"}");
+    }
+
+    @Test
+    public void shouldResumeEveryStringInArrayOfObjects()
+    {
+        shouldResumeEveryString(3, "{\"items\":[{\"s\":\"x\"},{\"s\":\"y\"},{\"s\":\"z\"}]}");
+    }
+
+    @Test
+    public void shouldResumeEveryStringInNestedObject()
+    {
+        shouldResumeEveryString(4, "{\"a\":\"x\",\"n\":{\"b\":\"y\",\"m\":{\"c\":\"z\"}},\"d\":\"w\"}");
+    }
+
+    @Test
+    public void shouldResumeEveryStringAcrossWindowBoundary()
+    {
+        String json = "{\"a\":\"xx\",\"n\":{\"b\":\"yy\"},\"d\":\"zz\"}";
+        for (int split = 1; split < json.length(); split++)
+        {
+            resumed = 0;
+            dispatch.clear();
+            shouldResumeEveryString(3, json.substring(0, split), json.substring(split));
+        }
     }
 
     @Test
@@ -186,6 +220,56 @@ public class JsonModelPendingTest
         assertTrue(bindingIds.stream().allMatch(id -> id == BINDING_ID));
     }
 
+    private void shouldResumeEveryString(
+        int strings,
+        String... fragments)
+    {
+        schema = "{ \"type\": \"object\" }";
+        everyString = true;
+        ModelPipeline pipeline = newPipeline();
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        String json = String.join("", fragments);
+
+        byte[] window = new byte[0];
+        int fragment = 0;
+        int flags = INIT;
+        int suspensions = 0;
+        ModelStatus status = ModelStatus.UNDERFLOW;
+        while (status != ModelStatus.COMPLETE)
+        {
+            if (status == ModelStatus.UNDERFLOW)
+            {
+                byte[] next = fragments[fragment++].getBytes(UTF_8);
+                byte[] joined = new byte[window.length + next.length];
+                System.arraycopy(window, 0, joined, 0, window.length);
+                System.arraycopy(next, 0, joined, window.length, next.length);
+                window = joined;
+                flags = (flags & INIT) | (fragment == fragments.length ? FIN : 0);
+            }
+
+            ModelPipelineResult result =
+                pipeline.transform(0L, BINDING_ID, 0L, flags, new UnsafeBufferEx(window), 0, window.length,
+                    dst, 0, dst.capacity());
+            flags &= ~INIT;
+            status = result.status();
+            assertTrue(status.name() + " " + json, status != ModelStatus.REJECTED);
+            byte[] chunk = new byte[result.produced()];
+            dst.getBytes(0, chunk);
+            out.writeBytes(chunk);
+            window = Arrays.copyOfRange(window, result.consumed(), window.length);
+            if (status == ModelStatus.SUSPENDED)
+            {
+                suspensions++;
+                dispatch.poll().run();
+            }
+        }
+
+        assertEquals(json, out.toString(UTF_8));
+        // a string value split across fragments is delivered, and so suspended on, once per fragment
+        assertTrue(json, fragments.length == 1 ? suspensions == strings : suspensions >= strings);
+    }
+
     private ModelPipeline newPipeline()
     {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
@@ -194,7 +278,7 @@ public class JsonModelPendingTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(SCHEMA)
+                .schema(schema)
                 .build()
             .build();
         JsonModelConfig model = JsonModelConfig.builder()
@@ -242,7 +326,7 @@ public class JsonModelPendingTest
             JsonSink sink)
         {
             Status status;
-            if (event == JsonEvent.VALUE_STRING && "wait".contentEquals(source.getStringView()))
+            if (event == JsonEvent.VALUE_STRING && (everyString || "wait".contentEquals(source.getStringView())))
             {
                 bindingIds.add(control.bindingId());
                 Runnable resumer = control.resumer();
