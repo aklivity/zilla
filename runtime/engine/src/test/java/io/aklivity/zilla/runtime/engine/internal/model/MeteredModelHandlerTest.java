@@ -113,13 +113,23 @@ public class MeteredModelHandlerTest
     {
         Scripted pipeline = new Scripted(ModelStatus.COMPLETE, null);
         pipeline.emit(ModelEvent.FIELD, ModelEvent.REPLACED, ModelEvent.REPLACED, ModelEvent.DECLINED);
-        ModelPipeline metered = decoder(pipeline, ModelTransform.NONE);
+        ModelPipeline metered = decoder(pipeline, new Passing());
 
         metered.transform(1L, BINDING_ID, AUTHORIZATION, INIT | FIN, src, 0, 4, dst, 0, 16);
 
         assertEquals(List.of(1L, 1L), recorded("model.fields.replaced").values);
         assertEquals(List.of(AUTHORIZATION, AUTHORIZATION), recorded("model.fields.replaced").authorizations);
         assertEquals(List.of(1L), recorded("model.fields.declined").values);
+    }
+
+    @Test
+    public void shouldSupplyNoneTransformUnwrapped()
+    {
+        Scripted pipeline = new Scripted(ModelStatus.COMPLETE, null);
+
+        decoder(pipeline, ModelTransform.NONE);
+
+        assertSame(ModelTransform.NONE, pipeline.transform);
     }
 
     @Test
