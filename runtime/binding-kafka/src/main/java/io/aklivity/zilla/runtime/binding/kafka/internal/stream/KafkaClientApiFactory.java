@@ -774,7 +774,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         private void onAppEnd(
             EndFW end)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
         }
 
         private void onAppAbort(
@@ -782,7 +782,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             if (!(client.pending.peek() == this && client.requestInFlight))
             {
@@ -821,7 +821,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             if (!(client.pending.peek() == this && client.requestInFlight))
             {
@@ -881,7 +881,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
@@ -1016,7 +1016,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
             else if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
             }
@@ -1027,7 +1027,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
@@ -1039,7 +1039,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, extension);
@@ -1709,7 +1709,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doNetEnd(traceId, authorization);
 
             if (KafkaState.closed(state))
@@ -1723,7 +1723,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doNetAbort(traceId);
 
             if (KafkaState.closed(state))
@@ -1737,7 +1737,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
             doNetReset(traceId);
 
             if (KafkaState.closed(state))
@@ -1772,7 +1772,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             final boolean notYetAttached = nextCorrelationId == 0;
 
-            state = KafkaState.openedInitial(state);
+            state = KafkaState.openInitial(state);
 
             if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
             {
@@ -1863,7 +1863,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -1885,7 +1885,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -1907,7 +1907,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
 
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1949,7 +1949,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
 
                 doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, minReplyPad);

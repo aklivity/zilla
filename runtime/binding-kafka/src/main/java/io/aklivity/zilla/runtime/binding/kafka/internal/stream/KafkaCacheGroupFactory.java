@@ -476,7 +476,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
             }
         }
 
@@ -488,7 +488,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
             }
         }
 
@@ -504,7 +504,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -529,7 +529,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = KafkaState.openedInitial(state);
+            state = KafkaState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -640,7 +640,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -658,7 +658,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -673,7 +673,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
             }
         }
 
@@ -837,7 +837,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -873,7 +873,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -886,7 +886,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
         {
             if (!KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -947,7 +947,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doGroupReplyAbort(
@@ -959,7 +959,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void onGroupReplyReset(
@@ -977,7 +977,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1005,7 +1005,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openReply(state);
 
             assert replyAck <= replySeq;
 

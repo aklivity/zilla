@@ -528,7 +528,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
         }
 
         private void doMetaFanoutInitialAbortIfNecessary(
@@ -546,7 +546,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
             doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
         }
 
         private void onMetaFanoutInitialReset(
@@ -554,7 +554,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             doMetaFanoutReplyResetIfNecessary(traceId);
 
@@ -568,7 +568,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
             {
                 final long traceId = window.traceId();
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -681,7 +681,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             doMetaFanoutInitialEndIfNecessary(traceId);
 
@@ -693,7 +693,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             doMetaFanoutInitialAbortIfNecessary(traceId);
 
@@ -715,7 +715,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doMetaFanoutReplyWindow(
@@ -732,7 +732,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, 0);
@@ -831,7 +831,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -843,7 +843,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -858,13 +858,13 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 doMetaInitialReset(traceId);
             }
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
         }
 
         private void doMetaInitialReset(
             long traceId)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -886,7 +886,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
@@ -946,13 +946,13 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 doMetaReplyEnd(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doMetaReplyEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -965,13 +965,13 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 doMetaReplyAbort(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doMetaReplyAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -981,7 +981,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -1011,7 +1011,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
 
             if (!KafkaState.replyOpened(state))
             {
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
 
                 final long traceId = window.traceId();
                 group.onMetaFanoutMemberOpened(traceId, this);
