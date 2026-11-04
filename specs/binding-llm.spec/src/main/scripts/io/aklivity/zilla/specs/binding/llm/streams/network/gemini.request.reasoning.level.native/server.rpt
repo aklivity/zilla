@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property model "model"
-
 accept "zilla://streams/net0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -26,10 +24,21 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
-                           .header(":path", "/v1/chat/completions")
+                           .header(":path", "/v1beta/models/gemini-3.6-flash:generateContent")
                            .header("content-type", "application/json")
                            .build()}
 
 connected
 
-read aborted
+read "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello\"}]}],\"generationConfig\":{\"thinkingConfig\":{\"thinkingLevel\":\"turbo\"}}}"
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "429")
+                            .header("content-type", "application/json")
+                            .build()}
+
+write "{\"error\":{\"code\":429,\"message\":\"Resource has been exhausted (e.g. check quota).\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
+write close

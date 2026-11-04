@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -201,6 +202,14 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         {
             onServiceTier(value);
         }
+        else if (matches(capturedMember(), MEMBER_EFFORT))
+        {
+            onReasoningEffort(value);
+        }
+        else if (matches(capturedMember(), MEMBER_BUDGET_TOKENS))
+        {
+            onThinkingBudget(value);
+        }
         else if (matches(capturedMember(), MEMBER_TYPE) && container == CONTAINER_THINKING)
         {
             onThinkingType(value);
@@ -291,10 +300,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else if (matches(key, MEMBER_EFFORT))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
-            target = MEMBER_SHARED_REASONING_EFFORT;
-            action = PASS_STRING_OR_DROP;
+            action = capture(key);
         }
         else
         {
@@ -317,10 +323,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else if (matches(key, MEMBER_BUDGET_TOKENS))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
-            thinkingType = TYPE_BUDGET;
-            action = rangeInteger(MEMBER_SHARED_THINKING_BUDGET, 0, Integer.MAX_VALUE);
+            action = capture(key);
         }
         else
         {
@@ -368,6 +371,55 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         {
             emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
             emitCaptured(value, 0);
+        }
+    }
+
+    private void onReasoningEffort(
+        LlmCapturedValue value)
+    {
+        final int effort = LlmReasoning.effortOf(value);
+
+        if (effort == LlmEffort.INVALID)
+        {
+            openResidue();
+            emit(JsonEvent.KEY_NAME, MEMBER_EFFORT);
+            emitCaptured(value, 0);
+        }
+        else
+        {
+            closeResidue();
+            output = OUTPUT_LIFTED;
+
+            if (effort != LlmEffort.ABSENT)
+            {
+                emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
+                emitCaptured(value, 0);
+            }
+        }
+    }
+
+    private void onThinkingBudget(
+        LlmCapturedValue value)
+    {
+        final int budget = LlmReasoning.budgetOf(value);
+
+        if (budget == LlmEffort.INVALID)
+        {
+            openResidue();
+            emit(JsonEvent.KEY_NAME, MEMBER_BUDGET_TOKENS);
+            emitCaptured(value, 0);
+        }
+        else
+        {
+            closeResidue();
+            output = OUTPUT_LIFTED;
+            thinkingType = TYPE_BUDGET;
+
+            if (budget != LlmEffort.ABSENT)
+            {
+                emit(JsonEvent.KEY_NAME, MEMBER_SHARED_THINKING_BUDGET);
+                emit(JsonEvent.VALUE_NUMBER, Integer.toString(budget));
+            }
         }
     }
 

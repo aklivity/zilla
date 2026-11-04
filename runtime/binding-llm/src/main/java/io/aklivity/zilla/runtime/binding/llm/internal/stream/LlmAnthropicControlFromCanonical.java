@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PREVIOUS_TURN_ID;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
@@ -193,6 +194,11 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
                     action = PASS_VALUE;
                 }
             }
+            else if (matches(key, PREVIOUS_TURN_ID))
+            {
+                target = null;
+                action = capture(key);
+            }
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
@@ -291,15 +297,31 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         final String member = capturedMember();
         Status status;
 
-        if (matches(member, REASONING_EFFORT))
+        if (matches(member, PREVIOUS_TURN_ID))
         {
-            effort = LlmReasoning.effortOf(value);
-            status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
+            status = unconvertible(value);
+        }
+        else if (matches(member, REASONING_EFFORT))
+        {
+            final int effortParsed = LlmReasoning.effortOf(value);
+
+            if (effortParsed != LlmEffort.INVALID)
+            {
+                effort = effortParsed;
+            }
+
+            status = Status.ADVANCED;
         }
         else if (matches(member, THINKING_BUDGET_TOKENS))
         {
-            budget = LlmReasoning.budgetOf(value);
-            status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
+            final int budgetParsed = LlmReasoning.budgetOf(value);
+
+            if (budgetParsed != LlmEffort.INVALID)
+            {
+                budget = budgetParsed;
+            }
+
+            status = Status.ADVANCED;
         }
         else
         {

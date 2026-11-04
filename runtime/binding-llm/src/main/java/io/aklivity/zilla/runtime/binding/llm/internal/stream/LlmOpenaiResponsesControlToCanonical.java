@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PREVIOUS_TURN_ID;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -26,6 +28,9 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     private static final String MEMBER_NATIVE_TOOL_CHOICE = DIALECT + ":tool_choice";
     private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
     private static final String MEMBER_NATIVE_TEXT = DIALECT + ":text";
+    private static final String MEMBER_PREVIOUS_RESPONSE_ID = "previous_response_id";
+    private static final String MEMBER_SHARED_PREVIOUS_TURN_ID = "x:" + PREVIOUS_TURN_ID;
+    private static final String MEMBER_NATIVE_PREVIOUS_RESPONSE_ID = DIALECT + ":" + MEMBER_PREVIOUS_RESPONSE_ID;
     private static final String MEMBER_REASONING = "reasoning";
     private static final String MEMBER_NATIVE_REASONING = DIALECT + ":reasoning";
     private static final String MEMBER_EFFORT = "effort";
@@ -87,7 +92,8 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && (matches(key, TOOL_CHOICE) || matches(key, SERVICE_TIER)))
+        if (depth == 1 &&
+            (matches(key, TOOL_CHOICE) || matches(key, SERVICE_TIER) || matches(key, MEMBER_PREVIOUS_RESPONSE_ID)))
         {
             action = capture(key);
         }
@@ -162,6 +168,17 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
                 emitCaptured(value, 0);
             }
         }
+        else if (matches(member, MEMBER_PREVIOUS_RESPONSE_ID))
+        {
+            emit(JsonEvent.KEY_NAME, value.event(0) == JsonEvent.VALUE_STRING
+                ? MEMBER_SHARED_PREVIOUS_TURN_ID
+                : MEMBER_NATIVE_PREVIOUS_RESPONSE_ID);
+            emitCaptured(value, 0);
+        }
+        else if (matches(member, MEMBER_EFFORT))
+        {
+            onReasoningEffort(value);
+        }
         else if (matches(member, MEMBER_TYPE))
         {
             status = onFormatType(value.string(0));
@@ -218,6 +235,30 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
     }
 
+    private void onReasoningEffort(
+        LlmCapturedValue value)
+    {
+        final int effort = LlmReasoning.effortOf(value);
+
+        if (effort == LlmEffort.INVALID)
+        {
+            openResidue();
+            emit(JsonEvent.KEY_NAME, MEMBER_EFFORT);
+            emitCaptured(value, 0);
+        }
+        else
+        {
+            closeResidue();
+            text = TEXT_LIFTED;
+
+            if (effort != LlmEffort.ABSENT)
+            {
+                emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
+                emitCaptured(value, 0);
+            }
+        }
+    }
+
     private int reasoningMember(
         CharSequence key)
     {
@@ -225,10 +266,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_EFFORT))
         {
-            closeResidue();
-            text = TEXT_LIFTED;
-            target = MEMBER_SHARED_REASONING_EFFORT;
-            action = PASS_STRING_OR_DROP;
+            action = capture(key);
         }
         else
         {

@@ -32,6 +32,7 @@ final class LlmSharedMembers
     static final String THINKING_BUDGET_TOKENS = "thinking_budget_tokens";
     static final String USER = "user";
     static final String SERVICE_TIER = "service_tier";
+    static final String PREVIOUS_TURN_ID = "previous_turn_id";
     static final String SIGNATURE = "signature";
     static final String REDACTED_DATA = "redacted_data";
 
@@ -47,7 +48,6 @@ final class LlmSharedMembers
         {TOOL_CHOICE, TOOL_CHOICE},
         {PARALLEL_TOOL_CALLS, PARALLEL_TOOL_CALLS},
         {RESPONSE_FORMAT, RESPONSE_FORMAT},
-        {REASONING_EFFORT, REASONING_EFFORT},
         {NATIVE_SAFETY_IDENTIFIER, USER}
     };
     private static final String[][] OPENAI_RESPONSES = {

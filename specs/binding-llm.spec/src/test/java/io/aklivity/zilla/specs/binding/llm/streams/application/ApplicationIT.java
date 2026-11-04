@@ -8175,24 +8175,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/transform.rejected.reasoning.effort/client",
-        "${app}/transform.rejected.reasoning.effort/server"})
-    public void shouldTransformRejectedReasoningEffort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/transform.rejected.reasoning.budget/client",
-        "${app}/transform.rejected.reasoning.budget/server"})
-    public void shouldTransformRejectedReasoningBudget() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.responses.request.reasoning.residue/client",
         "${app}/openai.responses.request.reasoning.residue/server"})
     public void shouldForwardOpenaiResponsesRequestReasoningResidue() throws Exception
@@ -9124,6 +9106,69 @@ public class ApplicationIT
         "${app}/openai.response.stalled/client",
         "${app}/openai.response.stalled/server"})
     public void shouldOpenaiResponseStalled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${app}/transform.request.prefixed.member/server"})
+    public void shouldTransformRequestPrefixedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.native/client",
+        "${app}/openai.request.reasoning.native/server"})
+    public void shouldForwardOpenaiRequestReasoningNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.native/client",
+        "${app}/openai.responses.request.reasoning.native/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.native/client",
+        "${app}/anthropic.request.reasoning.effort.native/server"})
+    public void shouldForwardAnthropicRequestReasoningEffortNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.native/client",
+        "${app}/anthropic.request.reasoning.budget.native/server"})
+    public void shouldForwardAnthropicRequestReasoningBudgetNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.level.native/client",
+        "${app}/gemini.request.reasoning.level.native/server"})
+    public void shouldForwardGeminiRequestReasoningLevelNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.native/client",
+        "${app}/gemini.request.reasoning.budget.native/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetNative() throws Exception
     {
         k3po.finish();
     }

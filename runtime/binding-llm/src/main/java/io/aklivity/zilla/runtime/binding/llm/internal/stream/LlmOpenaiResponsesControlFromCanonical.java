@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PREVIOUS_TURN_ID;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
@@ -41,6 +42,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     private static final String TYPE_JSON_OBJECT = "json_object";
     private static final String TYPE_TEXT = "text";
     private static final String MEMBER_SAFETY_IDENTIFIER = "safety_identifier";
+    private static final String MEMBER_PREVIOUS_RESPONSE_ID = "previous_response_id";
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final int SAFETY_IDENTIFIER_MAX = 128;
 
@@ -176,6 +178,11 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
                 target = name(key);
                 action = PASS_VALUE;
             }
+            else if (matches(key, PREVIOUS_TURN_ID))
+            {
+                target = null;
+                action = capture(key);
+            }
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
@@ -267,15 +274,31 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         {
             status = formatCaptured(value);
         }
+        else if (matches(capturedMember(), PREVIOUS_TURN_ID))
+        {
+            if (value.event(0) == JsonEvent.VALUE_STRING)
+            {
+                emit(JsonEvent.KEY_NAME, MEMBER_PREVIOUS_RESPONSE_ID);
+                emitCaptured(value, 0);
+            }
+        }
         else if (matches(capturedMember(), REASONING_EFFORT))
         {
-            effort = LlmReasoning.effortOf(value);
-            status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
+            final int effortParsed = LlmReasoning.effortOf(value);
+
+            if (effortParsed != LlmEffort.INVALID)
+            {
+                effort = effortParsed;
+            }
         }
         else if (matches(capturedMember(), THINKING_BUDGET_TOKENS))
         {
-            budget = LlmReasoning.budgetOf(value);
-            status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
+            final int budgetParsed = LlmReasoning.budgetOf(value);
+
+            if (budgetParsed != LlmEffort.INVALID)
+            {
+                budget = budgetParsed;
+            }
         }
         else if (choice.parseCanonical(value))
         {

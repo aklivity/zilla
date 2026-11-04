@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -28,6 +30,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
     private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
     private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
 
     private static final int REPLACING_NONE = 0;
     private static final int REPLACING_STREAM = 1;
@@ -36,6 +39,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final int REPLACING_OBFUSCATION = 4;
 
     private final String dialect;
+    private final String nativeReasoningEffort;
 
     private int replacing;
     private boolean streamSeen;
@@ -49,6 +53,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         String dialect)
     {
         this.dialect = dialect;
+        this.nativeReasoningEffort = dialect + ":" + REASONING_EFFORT;
     }
 
     boolean obfuscationDisabled()
@@ -125,7 +130,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             share(key);
             action = WRAP_STRING_AS_ELEMENT;
         }
-        else if (depth == 1 && matches(key, SERVICE_TIER))
+        else if (depth == 1 && (matches(key, SERVICE_TIER) || matches(key, REASONING_EFFORT)))
         {
             action = capture(key);
         }
@@ -141,6 +146,24 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     protected Status onCaptured(
         LlmCapturedValue value)
     {
+        if (matches(capturedMember(), REASONING_EFFORT))
+        {
+            emit(JsonEvent.KEY_NAME, LlmReasoning.effortOf(value) != LlmEffort.INVALID
+                ? MEMBER_SHARED_REASONING_EFFORT
+                : nativeReasoningEffort);
+            emitCaptured(value, 0);
+        }
+        else
+        {
+            onServiceTier(value);
+        }
+
+        return Status.ADVANCED;
+    }
+
+    private void onServiceTier(
+        LlmCapturedValue value)
+    {
         final String tier = LlmServiceTiers.canonicalOpenai(value.string(0));
 
         if (tier != null)
@@ -153,8 +176,6 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
             emitCaptured(value, 0);
         }
-
-        return Status.ADVANCED;
     }
 
     @Override

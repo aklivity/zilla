@@ -13,39 +13,42 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property source "source"
-property target "target"
-property model "model"
-property errorType "invalid_request_error"
-
 accept "zilla://streams/app0"
-       option zilla:window 0
+       option zilla:window 8192
        option zilla:transmission "half-duplex"
 
 accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect(source)
-                           .model(model)
+                           .dialect("gemini")
+                           .model("gemini-3.6-flash")
+                           .extension("generateContent")
                            .build()}
 
 connected
 
-read option zilla:window 8192
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"x:reasoning_effort\":\"turbo\"}"
+read "{\"gemini:thinkingConfig\":{\"thinkingBudget\":-2}}"
+
+read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
-                            .status(400)
-                            .type(errorType)
-                            .message("x:reasoning_effort cannot be converted from %s to %s".formatted(source, target))
+                            .status(429)
+                            .type("RESOURCE_EXHAUSTED")
+                            .message("Resource has been exhausted (e.g. check quota).")
                             .build()}
 
 read abort
