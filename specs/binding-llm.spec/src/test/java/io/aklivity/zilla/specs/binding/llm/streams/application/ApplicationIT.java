@@ -2163,6 +2163,51 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call/client",
+        "${app}/anthropic.section.assistant.server.tool.call/server"})
+    public void shouldAnthropicSectionAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result/client",
+        "${app}/anthropic.section.assistant.server.tool.result/server"})
+    public void shouldAnthropicSectionAssistantServerToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result.streaming/client",
+        "${app}/anthropic.section.assistant.server.tool.result.streaming/server"})
+    public void shouldAnthropicSectionAssistantServerToolResultStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call/client",
+        "${app}/anthropic.section.assistant.mcp.tool.call/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call.streaming/client",
+        "${app}/anthropic.section.assistant.mcp.tool.call.streaming/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.assistant.text.members/client",
         "${app}/anthropic.section.assistant.text.members/server"})
     public void shouldAnthropicResponseDecodeOptions() throws Exception
