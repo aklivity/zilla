@@ -715,6 +715,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.mcp.tool.definition.tools.filter/client",
         "${net}/openai.responses.section.mcp.tool.definition.tools.filter/server"})
@@ -724,6 +725,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.mcp.tool.definition.tools.empty/client",
         "${net}/openai.responses.section.mcp.tool.definition.tools.empty/server"})
@@ -733,6 +735,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.mcp.tool.definition.connector/client",
         "${net}/openai.responses.section.mcp.tool.definition.connector/server"})
@@ -742,6 +745,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.mcp.tool.definition.type.last/client",
         "${net}/openai.responses.section.mcp.tool.definition.type.last/server"})
@@ -751,6 +755,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.mcp.tool.definition/client",
         "${net}/openai.responses.section.mcp.tool.definition/server"})

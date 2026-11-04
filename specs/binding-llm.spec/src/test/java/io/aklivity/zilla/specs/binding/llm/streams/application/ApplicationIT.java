@@ -1524,6 +1524,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.rejected.server.tool.definition.type.beyond.window/client",
+        "${app}/anthropic.section.rejected.server.tool.definition.type.beyond.window/server"})
+    public void shouldAnthropicSectionRejectedServerToolDefinitionTypeBeyondWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.server.tool.definition.type.last/client",
         "${app}/anthropic.section.server.tool.definition.type.last/server"})
     public void shouldAnthropicSectionServerToolDefinitionTypeLast() throws Exception

@@ -213,6 +213,7 @@ public class LlmAnthropicClientIT
     }
 
     @Test
+    @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.section.server.tool.definition.type.middle/client",
         "${net}/anthropic.section.server.tool.definition.type.middle/server"})
@@ -222,6 +223,7 @@ public class LlmAnthropicClientIT
     }
 
     @Test
+    @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.section.server.tool.definition.type.last/client",
         "${net}/anthropic.section.server.tool.definition.type.last/server"})

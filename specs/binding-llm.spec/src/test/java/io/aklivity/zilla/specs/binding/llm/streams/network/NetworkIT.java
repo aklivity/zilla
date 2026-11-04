@@ -948,6 +948,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.rejected.server.tool.definition.type.beyond.window/client",
+        "${net}/anthropic.section.rejected.server.tool.definition.type.beyond.window/server"})
+    public void shouldAnthropicSectionRejectedServerToolDefinitionTypeBeyondWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.server.tool.definition.type.last/client",
         "${net}/anthropic.section.server.tool.definition.type.last/server"})
     public void shouldAnthropicSectionServerToolDefinitionTypeLast() throws Exception

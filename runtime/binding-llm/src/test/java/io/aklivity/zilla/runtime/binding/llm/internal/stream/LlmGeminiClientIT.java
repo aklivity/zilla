@@ -1074,6 +1074,7 @@ public class LlmGeminiClientIT
     }
 
     @Test
+    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.section.mcp.tool.definition/client",
         "${net}/gemini.section.mcp.tool.definition/server"})
@@ -1083,6 +1084,7 @@ public class LlmGeminiClientIT
     }
 
     @Test
+    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.section.mcp.tool.definition.members/client",
         "${net}/gemini.section.mcp.tool.definition.members/server"})
@@ -1092,6 +1094,7 @@ public class LlmGeminiClientIT
     }
 
     @Test
+    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.section.mcp.tool.definition.multiple/client",
         "${net}/gemini.section.mcp.tool.definition.multiple/server"})
