@@ -747,16 +747,6 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.responses.section.mcp.tool.definition.type.last/client",
-        "${net}/openai.responses.section.mcp.tool.definition.type.last/server"})
-    public void shouldOpenaiResponsesSectionMcpToolDefinitionTypeLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.responses.section.mcp.tool.definition/client",
         "${net}/openai.responses.section.mcp.tool.definition/server"})
     public void shouldOpenaiResponsesSectionMcpToolDefinition() throws Exception
@@ -911,7 +901,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"gemini\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.authorization.header/client",
@@ -922,7 +912,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.approval.never/client",
@@ -933,7 +923,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.approval/client",
@@ -944,7 +934,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.disabled/client",
@@ -955,7 +945,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.connector/client",
@@ -966,7 +956,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition.untooled/client",
@@ -977,7 +967,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.openai.responses.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.mcp.tool.definition/client",

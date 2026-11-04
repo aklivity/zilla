@@ -34,7 +34,7 @@ connected
 write "{\"model\":\"claude-3-opus-20240229\",\"tools\":[{\"name\":\"web_search\",\"description\":\""
       ${core:randomBase64(100000)}
       "\",\"type\":\"web_search_20250305\"}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}],\"max_tokens\":4096}"
-write close
+write aborted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))

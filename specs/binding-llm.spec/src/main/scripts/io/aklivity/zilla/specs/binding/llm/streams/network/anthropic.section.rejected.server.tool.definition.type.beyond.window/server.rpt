@@ -37,7 +37,7 @@ read "{\"model\":\"claude-3-opus-20240229\",\"tools\":[{\"name\":\"web_search\",
      ${core:randomBase64(100000)}
      "\",\"type\":\"web_search_20250305\"}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}],\"max_tokens\":4096}"
 
-read closed
+read abort
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
