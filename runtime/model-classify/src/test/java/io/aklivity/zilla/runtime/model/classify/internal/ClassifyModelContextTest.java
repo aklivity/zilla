@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfig;
 import io.aklivity.zilla.config.model.classify.ClassifyModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -38,7 +39,8 @@ public class ClassifyModelContextTest
     public void shouldSupplyHandler()
     {
         EngineContext engine = mock(EngineContext.class);
-        when(engine.supplyClassifier(anyLong())).thenReturn(new TestClassifierHandler(Runnable::run));
+        TestClassifierOptionsConfig options = TestClassifierOptionsConfig.builder().build();
+        when(engine.supplyClassifier(anyLong())).thenReturn(new TestClassifierHandler(Runnable::run, options));
 
         ModelContext context = new ClassifyModelContext(engine, new ClassifyModelConfiguration(new Configuration()));
         ModelConfig config = ClassifyModelConfig.builder()

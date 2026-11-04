@@ -30,6 +30,7 @@ import java.util.Queue;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.classifier.TestClassifierHandler;
 
 public class LocatorTest
@@ -57,7 +58,8 @@ public class LocatorTest
         }
     };
 
-    private final ClassifierHandler handler = new TestClassifierHandler(dispatched::add);
+    private final ClassifierHandler handler =
+        new TestClassifierHandler(dispatched::add, TestClassifierOptionsConfig.builder().build());
 
     @Test
     public void shouldReportSpansInOrder()
@@ -140,7 +142,65 @@ public class LocatorTest
         assertThat(handler.initLocator(List.of("secret")), instanceOf(Locator.class));
     }
 
+    @Test
+    public void shouldFailWhenConfiguredToFail()
+    {
+        ClassifierHandler failing = optioned(TestClassifierOptionsConfig.builder().failure(true).build());
+
+        locate(failing, List.of("secret"), "my secret", 0);
+
+        assertThat(spans, empty());
+        assertThat(outcomes, contains("failed:7:IllegalStateException"));
+    }
+
+    @Test
+    public void shouldFailOnlyWhenValueContainsFailureString()
+    {
+        ClassifierHandler failing = optioned(TestClassifierOptionsConfig.builder().failureOn("boom").build());
+
+        locate(failing, List.of("secret"), "my secret", 0);
+        locate(failing, List.of("secret"), "my secret boom", 0);
+
+        assertThat(spans, contains("secret:3:6"));
+        assertThat(outcomes, contains("completed:7", "failed:7:IllegalStateException"));
+    }
+
+    @Test
+    public void shouldDelayCompletionByConfiguredTicks()
+    {
+        ClassifierHandler delayed = optioned(TestClassifierOptionsConfig.builder().delay(2).build());
+        Locator locator = delayed.initLocator(List.of("secret"));
+        byte[] value = "my secret".getBytes(UTF_8);
+
+        locator.locate(1L, 2L, 7L, new UnsafeBuffer(value), 0, value.length, consumer, completion);
+
+        dispatched.remove().run();
+        assertThat(outcomes, empty());
+        dispatched.remove().run();
+        assertThat(outcomes, empty());
+        dispatched.remove().run();
+
+        assertThat(dispatched, empty());
+        assertThat(spans, contains("secret:3:6"));
+        assertThat(outcomes, contains("completed:7"));
+    }
+
+    private ClassifierHandler optioned(
+        TestClassifierOptionsConfig options)
+    {
+        return new TestClassifierHandler(dispatched::add, options);
+    }
+
     private void locate(
+        List<String> labels,
+        String text,
+        int index)
+    {
+        locate(handler, labels, text, index);
+    }
+
+    private void locate(
+        ClassifierHandler handler,
         List<String> labels,
         String text,
         int index)

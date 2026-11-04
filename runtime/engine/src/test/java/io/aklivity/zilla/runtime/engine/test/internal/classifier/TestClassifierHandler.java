@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfig;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
 import io.aklivity.zilla.runtime.engine.classifier.Locator;
@@ -32,11 +33,14 @@ import io.aklivity.zilla.runtime.engine.classifier.Locator;
 public final class TestClassifierHandler implements ClassifierHandler
 {
     private final Consumer<Runnable> dispatcher;
+    private final TestClassifierOptionsConfig options;
 
     public TestClassifierHandler(
-        Consumer<Runnable> dispatcher)
+        Consumer<Runnable> dispatcher,
+        TestClassifierOptionsConfig options)
     {
         this.dispatcher = dispatcher;
+        this.options = options;
     }
 
     @Override
@@ -74,7 +78,7 @@ public final class TestClassifierHandler implements ClassifierHandler
                 .decode(ByteBuffer.wrap(bytes))
                 .toString();
 
-            dispatcher.accept(() -> report(labels, contextId, value, index, spans, completion));
+            delayed(options.delay, () -> report(labels, contextId, value, index, spans, completion));
         }
         catch (CharacterCodingException ex)
         {
@@ -82,7 +86,14 @@ public final class TestClassifierHandler implements ClassifierHandler
         }
     }
 
-    private static void report(
+    private void delayed(
+        int ticks,
+        Runnable action)
+    {
+        dispatcher.accept(ticks > 0 ? () -> delayed(ticks - 1, action) : action);
+    }
+
+    private void report(
         List<String> labels,
         long contextId,
         String value,
@@ -92,6 +103,11 @@ public final class TestClassifierHandler implements ClassifierHandler
     {
         try
         {
+            if (options.failure || options.failureOn.stream().anyMatch(value::contains))
+            {
+                throw new IllegalStateException("locate failed");
+            }
+
             int position = 0;
             int offset = index;
 
