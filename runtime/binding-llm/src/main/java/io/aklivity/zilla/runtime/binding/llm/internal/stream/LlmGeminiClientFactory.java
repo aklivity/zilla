@@ -423,7 +423,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
         case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
         case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
-        case CITATIONS -> KIND_DROPPED;
+        case ASSISTANT_CITATIONS -> KIND_DROPPED;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
         case CONTROL -> KIND_CONTROL;

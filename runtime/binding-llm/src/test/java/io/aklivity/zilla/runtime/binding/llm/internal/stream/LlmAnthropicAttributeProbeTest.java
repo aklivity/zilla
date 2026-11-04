@@ -43,7 +43,7 @@ public class LlmAnthropicAttributeProbeTest
         assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.SYSTEM_INSTRUCTION), equalTo(false));
         assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
         assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.ASSISTANT_REASONING), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.CITATIONS), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.ASSISTANT_CITATIONS), equalTo(false));
         assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.TOOL_RESULT), equalTo(false));
         assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.CONTROL), equalTo(false));
     }

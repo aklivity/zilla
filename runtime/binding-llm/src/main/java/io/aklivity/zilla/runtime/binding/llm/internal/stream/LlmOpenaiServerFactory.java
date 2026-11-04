@@ -1007,7 +1007,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_ARRAY:
-                server.capture(LlmSectionType.CITATIONS, server.message, decodeMessage);
+                server.capture(LlmSectionType.ASSISTANT_CITATIONS, server.message, decodeMessage);
                 server.decoder = decodeAnnotations;
                 break;
             case VALUE_NULL:

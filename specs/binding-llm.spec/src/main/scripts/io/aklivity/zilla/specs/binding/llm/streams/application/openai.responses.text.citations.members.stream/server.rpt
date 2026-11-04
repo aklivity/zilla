@@ -79,7 +79,7 @@ write option zilla:flags "auto"
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CITATIONS")
+                          .type("ASSISTANT_CITATIONS")
                           .message(0)
                           .build()}
 write "[{\"type\":\"url_citation\",\"url_citation\":{\"end_index\":8,\"start_index\":0,\"title\":\"Sky colour\",\"url\":\"https://example.com/sky?utm_source=openai\"}},{\"openai/rs:type\":\"file_citation\",\"openai/rs:file_id\":\"file_1\",\"openai/rs:filename\":\"a.pdf\",\"openai/rs:index\":0},{\"openai/rs:type\":\"container_file_citation\",\"openai/rs:container_id\":\"cntr_1\",\"openai/rs:end_index\":5,\"openai/rs:file_id\":\"cfile_1\",\"openai/rs:filename\":\"b.png\",\"openai/rs:start_index\":1},{\"openai/rs:type\":\"file_path\",\"openai/rs:file_id\":\"file_2\",\"openai/rs:index\":3}]"

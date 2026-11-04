@@ -3524,7 +3524,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onDecodeAnnotations(
             LlmOpenaiResponsesServerDecoder then)
         {
-            onDecodeBlock(LlmSectionType.CITATIONS, itemMessage);
+            onDecodeBlock(LlmSectionType.ASSISTANT_CITATIONS, itemMessage);
             tail.release();
             sectionSink = holdSink;
             captureThen = then;
@@ -3548,7 +3548,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (tail.length() > EMPTY_ARRAY_LENGTH)
             {
-                beginTail(LlmSectionType.CITATIONS, decodeParts);
+                beginTail(LlmSectionType.ASSISTANT_CITATIONS, decodeParts);
             }
             else
             {
@@ -4071,7 +4071,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
                 pipeline = documentPipeline;
                 break;
-            case CITATIONS:
+            case ASSISTANT_CITATIONS:
                 if (citationsPipeline == null)
                 {
                     citationsPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsToCanonical.array(),
@@ -5824,7 +5824,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case ASSISTANT_TEXT -> KIND_TEXT;
             case ASSISTANT_REFUSAL -> KIND_REFUSAL;
             case ASSISTANT_REASONING -> NAME.equals(responseDialect) ? KIND_REASONING : KIND_SKIPPED;
-            case CITATIONS -> citable(message) ? KIND_CITATIONS : KIND_SKIPPED;
+            case ASSISTANT_CITATIONS -> citable(message) ? KIND_CITATIONS : KIND_SKIPPED;
             case TOOL_CALL -> KIND_CALL;
             case SERVER_TOOL_CALL -> providerCall(extension) ? KIND_PROVIDER : KIND_SKIPPED;
             case SERVER_TOOL_RESULT -> awaitingResult(extension) ? KIND_RESULT : KIND_SKIPPED;

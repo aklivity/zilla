@@ -43,7 +43,7 @@ read "{\"text\":\"The sky is blue.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
-                         .type("CITATIONS")
+                         .type("ASSISTANT_CITATIONS")
                          .message(1)
                          .build()}
 read "[{\"type\":\"url_citation\",\"url_citation\":{\"start_index\":0,\"end_index\":4,\"url\":\"https://example.com\",\"title\":\"Example\"},\"openai/rs:extra\":true}]"

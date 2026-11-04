@@ -521,7 +521,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         case USER_AUDIO -> KIND_USER_AUDIO;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case ASSISTANT_REASONING -> sameDialect ? KIND_ASSISTANT_REASONING : KIND_DROPPED;
-        case CITATIONS -> KIND_CITATIONS;
+        case ASSISTANT_CITATIONS -> KIND_CITATIONS;
         default -> 0;
         };
     }
@@ -4251,10 +4251,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     annotationAttributes.clear();
                     annotationPipeline().begin(annotationAttributes);
-                    openText(LlmSectionType.CITATIONS);
+                    openText(LlmSectionType.ASSISTANT_CITATIONS);
                 }
 
-                if (sectionOpen && sectionType == LlmSectionType.CITATIONS)
+                if (sectionOpen && sectionType == LlmSectionType.ASSISTANT_CITATIONS)
                 {
                     decoder = decodeCitations;
                 }

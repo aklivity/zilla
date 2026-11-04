@@ -804,6 +804,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/section.types.new/client",
+        "${app}/section.types.new/server"})
+    public void shouldCarrySectionTypesNew() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/canonical.user.video/client",
         "${app}/canonical.user.video/server"})
     public void shouldCanonicalUserVideo() throws Exception
