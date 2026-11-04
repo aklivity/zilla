@@ -4110,6 +4110,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmSectionPipeline toolBlock;
         private LlmSectionPipeline serverToolBlock;
         private LlmSectionPipeline citationsBlock;
+        private LlmSectionPipeline citationEvent;
+        private final LlmElementSplitter citationElements = new LlmElementSplitter(this::onCitationElement);
         private LlmSectionPipeline toolValue;
         private byte[] serverNameBytes = new byte[0];
         private final UnsafeBufferEx serverNameBuffer = new UnsafeBufferEx();
@@ -5005,12 +5007,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     ? kindOf(type, NAME.equals(responseDialect))
                     : KIND_SKIPPED;
 
-            if (kind == KIND_TEXT_BLOCK && next != KIND_CITATIONS)
+            final boolean joined = next == KIND_CITATIONS && kind == KIND_TEXT_BLOCK &&
+                (!server.streaming || NAME.equals(responseDialect));
+
+            if (kind == KIND_TEXT_BLOCK && !joined)
             {
                 closeTextBlock();
             }
 
-            kind = next == KIND_CITATIONS && kind != KIND_TEXT_BLOCK ? KIND_SKIPPED : next;
+            kind = next == KIND_CITATIONS && !joined ? KIND_SKIPPED : next;
             textSection = kind == KIND_TEXT;
             blockOpen = blockOpen && kind == KIND_CITATIONS;
 
@@ -5203,7 +5208,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (kind == KIND_CITATIONS)
             {
-                if (!citationsBlock.feed(payload, payloadOffset, payloadLength, fin, citationsOutput))
+                if (!(server.streaming
+                    ? citationElements.put(payload, payloadOffset, payloadLength)
+                    : citationsBlock.feed(payload, payloadOffset, payloadLength, fin, citationsOutput)))
                 {
                     server.cleanup(traceId);
                 }
@@ -5522,6 +5529,56 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void beginCitations()
         {
+            if (server.streaming)
+            {
+                if (citationEvent == null)
+                {
+                    citationEvent = new LlmSectionPipeline(
+                        new LlmAnthropicCitationsFromCanonical(true, LlmToolTransform.MODE_OBJECT),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                citationElements.begin();
+            }
+            else
+            {
+                beginCitationsBlock();
+            }
+        }
+
+        private boolean onCitationElement(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean init,
+            boolean last)
+        {
+            if (init)
+            {
+                eventBegin(generator.length(), EVENT_BLOCK_DELTA);
+                generator.writeStartObject()
+                    .write("type", EVENT_BLOCK_DELTA)
+                    .writeKey("index").write(blocks - 1)
+                    .writeStartObject("delta")
+                    .write("type", "citations_delta")
+                    .writeKey("citation");
+                citationEvent.begin(replyAttributes);
+            }
+
+            final boolean accepted = citationEvent.feed(buffer, offset, length, last, citationsOutput);
+
+            if (last)
+            {
+                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                generator.writeEnd().writeEnd();
+                eventEnd(generator.length());
+            }
+
+            return accepted;
+        }
+
+        private void beginCitationsBlock()
+        {
             if (citationsBlock == null)
             {
                 citationsBlock = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(NAME.equals(responseDialect)),
@@ -5534,9 +5591,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void closeCitations()
         {
-            generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
             kind = KIND_TEXT_BLOCK;
-            closeTextBlock();
+
+            if (!server.streaming)
+            {
+                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                closeTextBlock();
+            }
         }
 
         private void onCitations(

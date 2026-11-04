@@ -23,6 +23,8 @@ public class LlmAnthropicCitationsFromCanonicalTest
 {
     private final LlmAnthropicCitationsFromCanonical transform = new LlmAnthropicCitationsFromCanonical(true);
     private final LlmAnthropicCitationsFromCanonical foreign = new LlmAnthropicCitationsFromCanonical(false);
+    private final LlmAnthropicCitationsFromCanonical element =
+        new LlmAnthropicCitationsFromCanonical(true, LlmToolTransform.MODE_OBJECT);
 
     @Test
     public void shouldConvertUrlCitation()
@@ -81,5 +83,23 @@ public class LlmAnthropicCitationsFromCanonicalTest
         assertTransforms(foreign,
             json("[{'type':'url_citation','url_citation':{'url':'https://example.com'},'kept':true}]"),
             json("[{'type':'web_search_result_location','url':'https://example.com','kept':true}]"));
+    }
+
+    @Test
+    public void shouldRestoreOtherCitationElement()
+    {
+        assertTransforms(element,
+            json("{'anthropic:type':'char_location','anthropic:cited_text':'blue','anthropic:document_index':0}"),
+            json("{'type':'char_location','cited_text':'blue','document_index':0}"));
+    }
+
+    @Test
+    public void shouldConvertUrlCitationElement()
+    {
+        assertTransforms(element,
+            json("{'type':'url_citation','url_citation':{'start_index':0,'end_index':4," +
+                "'url':'https://example.com','title':'Example'},'anthropic:cited_text':'blue'}"),
+            json("{'type':'web_search_result_location','url':'https://example.com','title':'Example'," +
+                "'cited_text':'blue'}"));
     }
 }
