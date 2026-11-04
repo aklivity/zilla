@@ -103,6 +103,22 @@ public class LlmMemberSplitterTest
         assertThat(members, contains("{\"a\":1}", "{\"b\":2}"));
     }
 
+    @Test
+    public void shouldSplitMemberOfWrappedObject()
+    {
+        for (int window = 1; window <= 12; window++)
+        {
+            final List<String> members = new ArrayList<>();
+            final StringBuilder member = new StringBuilder();
+            final LlmMemberSplitter splitter = new LlmMemberSplitter(
+                (buffer, offset, length, init, last) -> collect(members, member, buffer, offset, length, last), true);
+
+            feed(splitter, " [{\"a\":1}] ", window);
+
+            assertThat("window " + window, members, contains("{\"a\":1}"));
+        }
+    }
+
     private static void assertSplits(
         String json,
         String... expected)
