@@ -39,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .attribute("tool-name", "mcp")
                           .build()}
-write "{\"type\":\"mcp\",\"server_label\":\"deepwiki\",\"server_url\":\"https://mcp.deepwiki.com/mcp\",\"require_approval\":\"never\"}"
+write "{\"type\":\"mcp\",\"label\":\"deepwiki\",\"url\":\"https://mcp.deepwiki.com/mcp\",\"openai/rs:require_approval\":\"never\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
