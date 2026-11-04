@@ -108,6 +108,12 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
     private final class Control implements StringController
     {
         @Override
+        public long bindingId()
+        {
+            return StringExtModelPipeline.this.bindingId();
+        }
+
+        @Override
         public long authorization()
         {
             return StringExtModelPipeline.this.authorization();

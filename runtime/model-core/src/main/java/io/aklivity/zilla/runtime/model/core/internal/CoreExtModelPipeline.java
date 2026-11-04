@@ -86,6 +86,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     private int reported;
     private String diagnostic;
     private boolean withheld;
+    private long bindingId;
     private long authorization;
 
     CoreExtModelPipeline(
@@ -131,6 +132,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
             return result.set(ModelStatus.SUSPENDED, 0, 0, null);
         }
 
+        this.bindingId = bindingId;
         this.authorization = authorization;
         target = dst;
         targetAt = dstIndex;
@@ -287,6 +289,11 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     protected final ModelEnvelope envelope()
     {
         return envelope;
+    }
+
+    protected final long bindingId()
+    {
+        return bindingId;
     }
 
     protected final long authorization()
