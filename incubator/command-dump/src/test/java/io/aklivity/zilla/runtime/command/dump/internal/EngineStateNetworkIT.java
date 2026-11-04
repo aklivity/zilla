@@ -35,8 +35,8 @@ public class EngineStateNetworkIT
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final DumpRule dump = new DumpRule()
-        .labels("test", "net0")
-        .bindings("test.net0");
+        .labels("test", "net0", "net", "server")
+        .bindings("test.net0", "test.net", "test.server", "test.0", "test.0");
 
     @Rule
     public final TestRule chain = outerRule(dump).around(k3po).around(timeout);
