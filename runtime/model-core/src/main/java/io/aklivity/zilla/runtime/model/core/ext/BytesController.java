@@ -59,7 +59,8 @@ public interface BytesController
     /**
      * Reports {@code sourceBytes} bytes of the current {@link BytesEvent#SEGMENT} consumed by a bounded
      * write, so the upstream advances past them and re-exposes the segment's unconsumed remainder when the
-     * event resumes. A stage reports this immediately before returning {@link ModelStatus#OVERFLOW}; on
+     * event resumes. A stage reports this immediately before returning {@link ModelStatus#OVERFLOW} or
+     * {@link ModelStatus#SUSPENDED}; on
      * any other status the whole segment is taken as consumed and no report is needed. The default does
      * nothing, for an upstream that forwards no value bytes.
      *
@@ -68,6 +69,33 @@ public interface BytesController
     default void consumed(
         int sourceBytes)
     {
+    }
+
+    /**
+     * Returns the callback a stage invokes when asynchronous work it started completes, after it reported
+     * {@link ModelStatus#SUSPENDED}.
+     * <p>
+     * A stage reports {@link ModelStatus#SUSPENDED} to wait for asynchronous completion, which is distinct
+     * from {@link ModelStatus#OVERFLOW} where the output is full and the caller resumes after draining.
+     * Invoking the callback tells the caller the pipeline is ready to be driven again; the caller then
+     * transforms with an empty source, and the pipeline re-enters the suspended stage through
+     * {@link BytesTransform#resume(BytesController, BytesSource, BytesEvent, BytesSink)} with the event that
+     * suspended it re-presented exactly once, together with any bytes of that event the stage has not
+     * reported consumed through {@link #consumed(int)}. A suspended pipeline accepts no new input.
+     * </p>
+     * <p>
+     * The callback is invoked on the I/O thread that drives the pipeline, so asynchronous work completes
+     * back onto that thread, for example through the engine's signaler, before invoking it. The default is a
+     * no-op, for a pipeline driven without a callback.
+     * </p>
+     *
+     * @return the callback to invoke when the asynchronous work completes
+     */
+    default Runnable resumer()
+    {
+        return () ->
+        {
+        };
     }
 
     /**
