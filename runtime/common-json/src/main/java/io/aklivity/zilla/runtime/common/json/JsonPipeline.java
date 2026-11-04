@@ -84,6 +84,19 @@ public interface JsonPipeline
     }
 
     /**
+     * Sets the namespaced identifier of the binding this pipeline is driven for, reached by any stage via
+     * {@link JsonController#bindingId()}. Supply it on every call to {@link #transform}, so it holds for the whole
+     * call, including one that re-enters a stage left {@link Status#PENDING}. The default does nothing, for a
+     * pipeline that never carries one.
+     *
+     * @param bindingId the identifier of the binding the pipeline is driven for
+     */
+    default void bindingId(
+        long bindingId)
+    {
+    }
+
+    /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
      * parser, transform stages, and terminal generator all being identity.
      */

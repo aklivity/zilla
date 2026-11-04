@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
@@ -70,7 +71,10 @@ public class JsonModelPendingTest
             "required": [ "id", "status" ]
         }""";
 
+    private static final long BINDING_ID = 0x0000_0001_0000_0007L;
+
     private final Deque<Runnable> dispatch = new ArrayDeque<>();
+    private final List<Long> bindingIds = new ArrayList<>();
 
     private EngineContext context;
     private int resumed;
@@ -157,7 +161,8 @@ public class JsonModelPendingTest
         ModelStatus status = null;
         while (status != ModelStatus.COMPLETE)
         {
-            ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags, src, index, in.length, dst, 0, dst.capacity());
+            ModelPipelineResult result =
+                pipeline.transform(0L, BINDING_ID, 0L, flags, src, index, in.length, dst, 0, dst.capacity());
             status = result.status();
             assertTrue(status.name(), status != ModelStatus.REJECTED && status != ModelStatus.UNDERFLOW);
             byte[] chunk = new byte[result.produced()];
@@ -177,6 +182,8 @@ public class JsonModelPendingTest
 
         assertEquals(waits, suspensions);
         assertEquals(json, out.toString(UTF_8));
+        assertEquals(waits * 2, bindingIds.size());
+        assertTrue(bindingIds.stream().allMatch(id -> id == BINDING_ID));
     }
 
     private ModelPipeline newPipeline()
@@ -237,6 +244,7 @@ public class JsonModelPendingTest
             Status status;
             if (event == JsonEvent.VALUE_STRING && "wait".contentEquals(source.getStringView()))
             {
+                bindingIds.add(control.bindingId());
                 Runnable resumer = control.resumer();
                 dispatch.add(() ->
                 {
@@ -269,6 +277,7 @@ public class JsonModelPendingTest
             {
                 awaiting = false;
                 completed = false;
+                bindingIds.add(control.bindingId());
                 status = sink.transform(control, source, event);
             }
             else

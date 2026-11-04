@@ -737,6 +737,12 @@ final class JsonModelFieldTransform implements JsonTransform
         }
 
         @Override
+        public long bindingId()
+        {
+            return upstream.bindingId();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {

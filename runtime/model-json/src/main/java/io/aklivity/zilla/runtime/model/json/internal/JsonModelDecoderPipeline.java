@@ -135,6 +135,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         else
         {
             boolean last = hasFin(flags);
+            active.bindingId(bindingId);
             JsonPipelineResult json =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(json.status());

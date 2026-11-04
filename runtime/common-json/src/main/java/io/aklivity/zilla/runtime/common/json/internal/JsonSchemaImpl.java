@@ -2619,6 +2619,12 @@ public final class JsonSchemaImpl implements JsonSchema
             }
 
             @Override
+            public long bindingId()
+            {
+                return upstreamControl.bindingId();
+            }
+
+            @Override
             public void consumed(
                 int sourceBytes)
             {

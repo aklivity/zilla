@@ -397,6 +397,12 @@ public final class JsonFlattenerImpl implements JsonTransform
         }
 
         @Override
+        public long bindingId()
+        {
+            return control.bindingId();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {
