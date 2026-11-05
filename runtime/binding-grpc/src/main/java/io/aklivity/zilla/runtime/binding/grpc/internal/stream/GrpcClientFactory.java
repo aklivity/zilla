@@ -529,8 +529,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long authorization,
             Flyweight extension)
         {
-            if (StreamState.replyOpening(state) &&
-                !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(state);
                 state = StreamState.closeReply(state);
