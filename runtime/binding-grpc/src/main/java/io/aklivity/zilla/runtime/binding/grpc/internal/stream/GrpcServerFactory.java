@@ -70,6 +70,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -316,6 +317,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         if (!isGrpcRequestMethod(httpBeginEx))
         {
             doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
+                StreamState.openingInitial(0),
                 HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR, null);
         }
         else
@@ -328,16 +330,19 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (method == null)
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
+                    StreamState.openingInitial(0),
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED, null);
             }
             else if (contentType == null)
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
+                    StreamState.openingInitial(0),
                     HEADER_VALUE_STATUS_415, null, null);
             }
             else if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
             {
                 doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
+                    StreamState.openingInitial(0),
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED, null);
             }
             else
@@ -392,6 +397,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         else
         {
             doRejectNet(network, originId, routedId, traceId, authorization, initialId, sequence, acknowledge,
+                StreamState.openingInitial(0),
                 HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED, null);
             newStream = (t, b, i, l) -> {};
         }
@@ -512,7 +518,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            state = GrpcState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doAppBegin(traceId, authorization, affinity);
 
@@ -596,7 +602,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -615,7 +621,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -644,11 +650,11 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             replyPad = padding;
             replyBud = budgetId;
 
-            state = GrpcState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
-            if (GrpcState.initialClosing(state) && status != null)
+            if (StreamState.initialClosing(state) && status != null)
             {
                 doGrpcWebNetStatus(traceId, authorization, status, message);
             }
@@ -674,7 +680,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = GrpcState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
             delegate.doAppReset(traceId, authorization);
@@ -704,8 +710,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             Array32FW<GrpcMetadataFW> metadata)
         {
             this.replySeq = replySeq;
+            state = StreamState.openingReply(state);
 
-            doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            doBegin(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
                 affinity, hs ->
                 {
                     hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))
@@ -737,8 +744,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                         });
                     }
                 });
-
-            state = GrpcState.openingReply(state);
         }
 
         private void doNetData(
@@ -751,7 +756,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             int offset,
             int length)
         {
-            doData(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, flags, reserved, buffer, offset, length);
 
             replySeq += reserved;
@@ -764,9 +769,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long authorization,
             int reserved)
         {
-            if (!GrpcState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = GrpcState.closingReply(state);
+                state = StreamState.closingReply(state);
 
                 contentType.doNetEnd(this, traceId, authorization, reserved);
 
@@ -780,10 +785,21 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (!GrpcState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = GrpcState.closingReply(state);
-                contentType.doNetAbort(this, traceId, authorization, status, message);
+                if (StreamState.replyOpening(state))
+                {
+                    state = StreamState.closingReply(state);
+                    contentType.doNetAbort(this, traceId, authorization, status, message);
+                }
+                else
+                {
+                    state = StreamState.abortingReply(state);
+                    state = StreamState.closeReply(state);
+
+                    doAbort(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                        traceId, authorization, EMPTY_OCTETS);
+                }
 
                 cleanupExpiringIfNecessary();
             }
@@ -796,7 +812,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW message)
         {
 
-            state = GrpcState.closingInitial(state);
+            state = StreamState.closingInitial(state);
             contentType.doNetReset(this, traceId, authorization, status, message);
 
             cleanupExpiringIfNecessary();
@@ -812,7 +828,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -822,12 +838,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (!GrpcState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doRejectNet(network, originId, routedId, traceId, authorization,  initialId, initialSeq, initialAck,
-                    HEADER_VALUE_STATUS_200, status, message);
+                    state, HEADER_VALUE_STATUS_200, status, message);
 
-                state = GrpcState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -838,7 +854,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (!GrpcState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 HttpEndExFW.Builder trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(httpTypeId)
@@ -849,10 +865,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                     trailer.trailersItem(t -> t.name(HEADER_NAME_GRPC_MESSAGE).value(message));
                 }
 
-                doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, replyBud, reserved, trailer.build());
+                state = StreamState.closeReply(state);
 
-                state = GrpcState.closeReply(state);
+                doEnd(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, replyBud, reserved, trailer.build());
             }
         }
 
@@ -862,7 +878,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (!GrpcState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 final MutableDirectBufferEx encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
@@ -890,10 +906,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                     doNetData(traceId, authorization, replyBud, reserved, COMPLETE,
                         encodeBuffer, encodeOffset, messageSize);
 
-                    doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, replyBud, replyPad, EMPTY_OCTETS);
+                    state = StreamState.closeReply(state);
 
-                    state = GrpcState.closeReply(state);
+                    doEnd(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                        traceId, authorization, replyBud, replyPad, EMPTY_OCTETS);
                 }
                 else
                 {
@@ -909,17 +925,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             expiringId = NO_CANCEL_ID;
 
-            if (GrpcState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
                 contentType.doNetAbort(this, traceId, authorization, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED, null);
             }
             else
             {
-                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, 0, 0, 0);
 
                 doHttpResponse(network, traceId, authorization, replyBud, affinity, originId,
-                    routedId, replyId, replySeq, replyAck, writeBuffer.capacity(), replyPad,
+                    routedId, replyId, replySeq, replyAck, state, writeBuffer.capacity(), replyPad,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED, null);
             }
             delegate.cleanup(traceId, 0L);
@@ -971,7 +987,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long authorization,
             long affinity)
         {
-            application = newGrpcStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck,
+            state = StreamState.openingInitial(state);
+
+            application = newGrpcStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state,
                 initialMax, traceId, authorization, affinity, delegate.method);
         }
 
@@ -987,7 +1005,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             Flyweight extension)
         {
 
-            doData(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
             initialSeq += reserved;
@@ -999,11 +1017,11 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = GrpcState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization,  0L, 0, EMPTY_OCTETS);
             }
         }
@@ -1020,7 +1038,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.replyAck = replyAck;
             this.replyMax = replyMax;
 
-            doWindow(application, originId, routedId, replyId, replySeq, this.replyAck, this.replyMax,
+            doWindow(application, originId, routedId, replyId, replySeq, this.replyAck, state, this.replyMax,
                 traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING, capabilities);
         }
 
@@ -1028,11 +1046,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = GrpcState.closeInitial(state);
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -1113,7 +1132,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert acknowledge >= initialAck;
             assert maximum >= initialMax;
 
-            state = GrpcState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             initialAck = acknowledge;
             initialMax = maximum;
@@ -1133,7 +1152,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             final GrpcBeginExFW grpcBeginEx = extension.get(grpcBeginExRO::tryWrap);
 
-            state = GrpcState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1141,7 +1160,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = GrpcState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doNetBegin(traceId, authorization, replySeq, replyAck, replyMax,
                 grpcBeginEx != null ? grpcBeginEx.metadata() : null);
@@ -1208,7 +1227,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             delegate.doNetEnd(traceId, authorization, reserved);
         }
@@ -1230,7 +1249,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1241,9 +1260,11 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.closeReply(state);
+
+                doReset(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -1264,6 +1285,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1276,6 +1298,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1293,6 +1316,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1303,8 +1327,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         int offset,
         int length)
     {
-        doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId, authorization, budgetId, flags,
-            reserved, payload, offset, length, EMPTY_OCTETS);
+        doData(receiver, originId, routedId, streamId, sequence, acknowledge, state, maximum, traceId, authorization, budgetId,
+            flags, reserved, payload, offset, length, EMPTY_OCTETS);
     }
 
     private void doData(
@@ -1314,6 +1338,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1331,6 +1356,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1351,6 +1377,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1364,6 +1391,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1382,6 +1410,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1393,6 +1422,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1409,6 +1439,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1422,6 +1453,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1440,6 +1472,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1451,6 +1484,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1469,11 +1503,15 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long initialId,
         long sequence,
         long acknowledge,
+        int state,
         String16FW httpStatus,
         String16FW grpcStatus,
         String16FW grpcMessage)
     {
-        doWindow(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
+        final int windowState = StreamState.openInitial(state);
+        final int resetState = StreamState.closeInitial(windowState);
+
+        doWindow(network, originId, routedId, initialId, sequence, acknowledge, windowState, 0, traceId, 0L, 0, 0, 0);
         HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
             .typeId(httpTypeId)
             .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus));
@@ -1487,7 +1525,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_MESSAGE).value(grpcMessage));
         }
 
-        doReset(network, originId, routedId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
+        doReset(network, originId, routedId, initialId, sequence, acknowledge, resetState, 0, traceId, authorization,
+            resetEx.build());
     }
 
     private Flyweight.Builder.Visitor visitHttpBeginEx(
@@ -1512,13 +1551,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long replyId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         int padding,
         String16FW httpStatus,
         String16FW grpcStatus,
         String16FW grpcMessage)
     {
-        doBegin(acceptReply, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+        final int beginState = StreamState.openingReply(state);
+        final int endState = StreamState.closeReply(beginState);
+
+        doBegin(acceptReply, originId, routedId, replyId, sequence, acknowledge, beginState, maximum, traceId,
             authorization, affinity, hs ->
             {
                 hs.item(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
@@ -1529,7 +1572,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                     hs.item(h -> h.name(HEADER_NAME_GRPC_MESSAGE).value(grpcMessage));
                 }
             });
-        doEnd(acceptReply, originId, routedId, replyId, sequence, acknowledge, maximum,
+        doEnd(acceptReply, originId, routedId, replyId, sequence, acknowledge, endState, maximum,
             traceId, authorization, budgetId, padding, EMPTY_OCTETS);
     }
 
@@ -1540,6 +1583,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1561,6 +1605,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
