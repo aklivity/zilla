@@ -389,4 +389,15 @@ public class MqttKafkaSessionProxyIT
     {
         return 1000L;
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
+        "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
+    public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
