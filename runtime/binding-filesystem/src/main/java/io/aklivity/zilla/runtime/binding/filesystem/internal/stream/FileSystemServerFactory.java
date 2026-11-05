@@ -628,7 +628,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck,
@@ -1168,7 +1168,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck,
