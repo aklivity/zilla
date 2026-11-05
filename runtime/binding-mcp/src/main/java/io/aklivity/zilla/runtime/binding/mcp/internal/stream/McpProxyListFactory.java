@@ -2032,7 +2032,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             doBegin(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, beginEx);
-            state = McpState.openReply(state);
+            state = McpState.openingReply(state);
         }
 
         private void doServerEnd(

@@ -604,7 +604,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doServerBeginDeferred(
             long traceId)
         {
-            if (!McpState.replyOpened(state) && !McpState.replyClosed(state))
+            if (!McpState.replyOpening(state) && !McpState.replyClosed(state))
             {
                 final int serverCapabilities = binding.serverCapabilities(authorization);
                 final String sid = sessionId;
@@ -723,7 +723,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, extension);
-            state = McpState.openReply(state);
+            state = McpState.openingReply(state);
         }
 
         private void doServerEnd(
@@ -809,7 +809,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             int kind,
             long traceId)
         {
-            if (!McpState.replyOpened(state) || McpState.replyClosed(state))
+            if (!McpState.replyOpening(state) || McpState.replyClosed(state))
             {
                 return;
             }
@@ -1074,7 +1074,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (McpState.replyOpened(state))
+            if (McpState.replyOpening(state))
             {
                 final McpChallengeExFW resumeEx = mcpChallengeExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1100,6 +1100,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long budgetId,
             int padding)
         {
+            state = McpState.openReply(state);
             doWindow(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, server.authorization,
                 budgetId, padding);
         }
@@ -1313,9 +1314,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 server.interactiveAuthRoutes.remove(routedId);
             }
 
+            state = McpState.openingReply(state);
             doClientWindow(traceId, 0L, 0);
-
-            state = McpState.openReply(state);
 
             resolved = true;
             settleLifecycle(traceId);
