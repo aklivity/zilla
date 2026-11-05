@@ -119,6 +119,8 @@ add_field("initial_id", ProtoField.uint64("zilla.initial_id", "Initial ID", base
 add_field("reply_id", ProtoField.uint64("zilla.reply_id", "Reply ID", base.HEX))
 add_field("sequence", ProtoField.int64("zilla.sequence", "Sequence", base.DEC))
 add_field("acknowledge", ProtoField.int64("zilla.acknowledge", "Acknowledge", base.DEC))
+add_field("state", ProtoField.uint32("zilla.state", "State", base.HEX))
+add_field("state_flags", ProtoField.string("zilla.state_flags", "State Flags", base.NONE))
 add_field("maximum", ProtoField.int32("zilla.maximum", "Maximum", base.DEC))
 add_field("timestamp", ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX))
 add_field("trace_id", ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX))
@@ -292,6 +294,32 @@ function handle_redirect_frame(buffer, offset, subtree, pinfo, info)
     local slice_affinity = buffer(offset, 8)
     subtree:add_le(fields.affinity, slice_affinity)
     handle_extension(buffer, subtree, pinfo, info, offset + 8, REDIRECT_ID)
+end
+
+local state_bits = {
+    { 0x0001, "REPLY_OPENING" },
+    { 0x0002, "REPLY_OPENED" },
+    { 0x0004, "REPLY_CLOSING" },
+    { 0x0008, "REPLY_CLOSED" },
+    { 0x0010, "INITIAL_OPENING" },
+    { 0x0020, "INITIAL_OPENED" },
+    { 0x0040, "INITIAL_CLOSING" },
+    { 0x0080, "INITIAL_CLOSED" },
+    { 0x0100, "INITIAL_ABORTING" },
+    { 0x0200, "REPLY_ABORTING" },
+}
+
+local function describe_state(state)
+    local names = {}
+    for _, bit in ipairs(state_bits) do
+        if math.floor(state / bit[1]) % 2 == 1 then
+            table.insert(names, bit[2])
+        end
+    end
+    if #names == 0 then
+        return "UNKNOWN"
+    end
+    return table.concat(names, "|")
 end
 
 function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type,
@@ -571,19 +599,23 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     local sequence = slice_sequence:le_int64();
     local slice_acknowledge = buffer(frame_offset + 36, 8)
     local acknowledge = slice_acknowledge:le_int64();
-    local slice_maximum = buffer(frame_offset + 44, 4)
+    local slice_state = buffer(frame_offset + 44, 4)
+    local state = slice_state:le_uint();
+    local slice_maximum = buffer(frame_offset + 48, 4)
     local maximum = slice_maximum:le_int();
-    local slice_timestamp = buffer(frame_offset + 48, 8)
-    local slice_trace_id = buffer(frame_offset + 56, 8)
-    local slice_authorization = buffer(frame_offset + 64, 8)
+    local slice_timestamp = buffer(frame_offset + 52, 8)
+    local slice_trace_id = buffer(frame_offset + 60, 8)
+    local slice_authorization = buffer(frame_offset + 68, 8)
     subtree:add_le(fields.sequence, slice_sequence)
     subtree:add_le(fields.acknowledge, slice_acknowledge)
+    subtree:add_le(fields.state, slice_state)
+    subtree:add(fields.state_flags, describe_state(state))
     subtree:add_le(fields.maximum, slice_maximum)
     subtree:add_le(fields.timestamp, slice_timestamp)
     local trace_id_subtree = subtree:add(zilla_protocol, slice_trace_id, "Trace ID")
     trace_id_subtree:add_le(fields.trace_id, slice_trace_id)
-    trace_id_subtree:add_le(fields.trace_id_node, buffer(frame_offset + 62, 1))
-    trace_id_subtree:add_le(fields.trace_id_worker, buffer(frame_offset + 63, 1))
+    trace_id_subtree:add_le(fields.trace_id_node, buffer(frame_offset + 66, 1))
+    trace_id_subtree:add_le(fields.trace_id_worker, buffer(frame_offset + 67, 1))
     subtree:add_le(fields.authorization, slice_authorization)
 
     pinfo.cols.protocol = zilla_protocol.name
@@ -593,7 +625,7 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     end
     pinfo.cols.info:set(info)
 
-    local next_offset = frame_offset + 72
+    local next_offset = frame_offset + 76
     if frame_type_id == BEGIN_ID then
         handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == DATA_ID then
