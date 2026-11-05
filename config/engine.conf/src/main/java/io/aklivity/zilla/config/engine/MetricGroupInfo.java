@@ -15,10 +15,21 @@
 package io.aklivity.zilla.config.engine;
 
 import java.net.URL;
+import java.util.List;
+import java.util.ServiceLoader;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 
 public interface MetricGroupInfo extends FactorySpi
 {
     URL schema();
+
+    default List<MetricGroupExtInfo> extensions()
+    {
+        return Factory.instantiate(ServiceLoader.load(MetricGroupExtInfo.class))
+            .stream()
+            .filter(info -> info.type().equals(type()))
+            .toList();
+    }
 }

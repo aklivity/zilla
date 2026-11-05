@@ -15,16 +15,20 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import org.agrona.collections.Int2ObjectHashMap;
+
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 
 final class BindingRegistry
 {
     private final BindingConfig binding;
     private final BindingContext context;
+    private final Int2ObjectHashMap<MetricRecorder> metricRecordersById;
 
     private BindingHandler attached;
     private MessageConsumer sentOriginMetricHandler = MessageConsumer.NOOP;
@@ -38,6 +42,7 @@ final class BindingRegistry
     {
         this.binding = binding;
         this.context = context;
+        this.metricRecordersById = new Int2ObjectHashMap<>();
     }
 
     public BindingConfig config()
@@ -103,6 +108,19 @@ final class BindingRegistry
     public MessageConsumer receivedRoutedMetricHandler()
     {
         return receivedRoutedMetricHandler;
+    }
+
+    public void metricRecorder(
+        int metricId,
+        MetricRecorder metricRecorder)
+    {
+        metricRecordersById.put(metricId, metricRecorder);
+    }
+
+    public MetricRecorder metricRecorder(
+        int metricId)
+    {
+        return metricRecordersById.getOrDefault(metricId, MetricRecorder.NOOP);
     }
 
     public KindConfig kind()

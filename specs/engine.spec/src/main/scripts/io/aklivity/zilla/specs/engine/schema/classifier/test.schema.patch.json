@@ -30,6 +30,26 @@
                     "options":
                     {
                         "type": "object",
+                        "properties":
+                        {
+                            "failure":
+                            {
+                                "type": "boolean"
+                            },
+                            "failure-on":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "delay":
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        },
                         "additionalProperties": false
                     }
                 },

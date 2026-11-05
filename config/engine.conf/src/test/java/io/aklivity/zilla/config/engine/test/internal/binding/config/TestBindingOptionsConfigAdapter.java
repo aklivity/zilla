@@ -70,6 +70,8 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String VAULT_SECRETKEY_NAME = "secretKey";
     private static final String VAULT_WRAP_NAME = "wrap";
     private static final String METRICS_NAME = "metrics";
+    private static final String RECORDERS_NAME = "recorders";
+    private static final String GUARD_NAME = "guard";
     private static final String NAME_NAME = "name";
     private static final String KIND_NAME = "kind";
     private static final String VALUES_NAME = "values";
@@ -499,6 +501,19 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                         .toArray();
 
                     testOptions.metric(m0.getString(NAME_NAME), m0.getString(KIND_NAME), values);
+                }
+            }
+
+            if (object.containsKey(RECORDERS_NAME))
+            {
+                for (JsonValue r : object.getJsonArray(RECORDERS_NAME))
+                {
+                    JsonObject r0 = r.asJsonObject();
+
+                    testOptions.recorder(
+                        r0.getString(NAME_NAME),
+                        r0.getString(GUARD_NAME, null),
+                        r0.getJsonNumber(VALUE_NAME).longValue());
                 }
             }
 
