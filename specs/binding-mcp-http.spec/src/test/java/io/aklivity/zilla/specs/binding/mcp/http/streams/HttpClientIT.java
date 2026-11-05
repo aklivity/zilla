@@ -164,6 +164,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/create.pr.client.aborted/client",
+        "${http}/create.pr.client.aborted/server"})
+    public void shouldAbortCreatePrFromHttpClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/create.pr.credentials/client",
         "${http}/create.pr.credentials/server"})
     public void shouldProxyCreatePrWithCredentialsToHttp() throws Exception

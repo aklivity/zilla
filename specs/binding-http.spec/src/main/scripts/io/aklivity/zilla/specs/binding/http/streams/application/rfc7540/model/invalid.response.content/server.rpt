@@ -36,4 +36,5 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 
 read abort
+write flush
 write abort

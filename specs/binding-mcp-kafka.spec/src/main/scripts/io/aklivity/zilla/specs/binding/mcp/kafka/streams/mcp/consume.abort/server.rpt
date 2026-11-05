@@ -54,4 +54,5 @@ connected
 
 read '{"name":"consume_messages","arguments":{"topic":"orders","limit":5}}'
 
+write flush
 write abort
