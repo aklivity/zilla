@@ -37,4 +37,5 @@ write zilla:begin.ext ${http:beginEx()
                              .header("content-type", "text/plain")
                              .build()}
 
+write flush
 write abort
