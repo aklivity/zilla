@@ -40,6 +40,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -249,6 +250,7 @@ public final class ZillaStreamFactory
             channel.sourceAck(acknowledge);
             channel.sourceId(streamId);
             channel.sourceAuth(begin.authorization());
+            channel.stateOpeningRead();
 
             channel.beginInputFuture().setSuccess();
 
@@ -387,6 +389,8 @@ public final class ZillaStreamFactory
                 channel.readExtBuffer(END, false).writeBytes(endExtCopy);
             }
 
+            channel.stateCloseRead();
+
             if (channel.setReadClosed())
             {
                 fireInputShutdown(channel);
@@ -430,7 +434,13 @@ public final class ZillaStreamFactory
                 channel.readExtBuffer(ABORT, false).writeBytes(abortExtCopy);
             }
 
-            if (channel.setReadAborted())
+            channel.stateAbortRead();
+
+            if (channel.getConfig().getTransmission() == ZillaTransmission.DUPLEX && !beginFuture.isDone())
+            {
+                beginFuture.setFailure(new ChannelException("reply aborted before begin"));
+            }
+            else if (channel.setReadAborted())
             {
                 if (channel.setReadClosed())
                 {
