@@ -32,4 +32,3 @@ connected
 write "{\"model\":\"claude-3-opus-20240229\""
 
 read aborted
-write abort

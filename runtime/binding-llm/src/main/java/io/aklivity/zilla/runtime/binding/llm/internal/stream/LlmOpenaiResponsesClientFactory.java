@@ -6076,7 +6076,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doAppBeginSections(traceId);
+                if (servedModel() != null || id() != null)
+                {
+                    doAppBeginSections(traceId);
+                }
 
                 state = StreamState.closeReply(state);
 
