@@ -21,4 +21,6 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-write aborted
+read abort
+
+write close
