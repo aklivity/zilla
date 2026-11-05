@@ -28,4 +28,5 @@ read zilla:begin.ext ${http:beginEx()
 
 connected
 
+write flush
 write abort

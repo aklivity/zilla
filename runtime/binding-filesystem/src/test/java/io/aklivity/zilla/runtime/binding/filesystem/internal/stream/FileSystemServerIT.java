@@ -468,4 +468,13 @@ public class FileSystemServerIT
 
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/client.write.abort.before.begin.not.modified/client"})
+    public void shouldReceiveClientWriteAbortBeforeBeginNotModified() throws Exception
+    {
+        k3po.finish();
+    }
 }

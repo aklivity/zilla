@@ -100,4 +100,14 @@ public class GrpcKafkaFetchProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("fetch.proxy.rpc.yaml")
+    @Specification({
+        "${grpc}/server.sent.write.abort.before.begin.unary.rpc/client",
+        "${kafka}/server.sent.write.abort.before.begin.unary.rpc/server"})
+    public void shouldAbortOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -56,4 +56,14 @@ public class AsyncapiHttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${asyncapi}/http/create.pet.reply.abort.before.begin/client",
+        "${asyncapi}/http/create.pet.reply.abort.before.begin/server"
+    })
+    public void shouldAbortReplyBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

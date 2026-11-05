@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -408,7 +409,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = SseState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
         }
@@ -420,7 +421,8 @@ public final class SseServerFactory implements SseStreamFactory
             final long acknowledge = data.acknowledge();
             final int maximum = data.maximum();
 
-            doReset(network, originId, routedId, initialId, sequence, acknowledge, maximum);
+            doReset(network, originId, routedId, initialId, sequence, acknowledge,
+                StreamState.closeInitial(StreamState.abortingInitial(state)), maximum);
         }
 
         private void onNetEnd(
@@ -435,7 +437,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -454,7 +456,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -475,7 +477,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             httpReplyAck = acknowledge;
             httpReplyMax = maximum;
-            state = SseState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -505,7 +507,7 @@ public final class SseServerFactory implements SseStreamFactory
             httpReplyPad = padding;
             httpReplyBud = budgetId;
             httpReplyAuth = authorization;
-            state = SseState.openedReply(state);
+            state = StreamState.openReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -626,11 +628,11 @@ public final class SseServerFactory implements SseStreamFactory
                 doNetWindow(authorization, traceId, 0L, 0, CHALLENGE_CAPABILITIES_MASK | FRAMING_CAPABILITIES_MASK);
             }
 
-            doHttpBegin(network, originId, routedId, replyId,
-                    httpReplySeq, httpReplyAck, httpReplyMax, traceId, authorization, affinity,
-                    setHttpResponseHeaders);
+            state = StreamState.openingReply(state);
 
-            state = SseState.openingReply(state);
+            doHttpBegin(network, originId, routedId, replyId,
+                    httpReplySeq, httpReplyAck, state, httpReplyMax, traceId, authorization, affinity,
+                    setHttpResponseHeaders);
 
             encodeNetwork(traceId);
         }
@@ -644,7 +646,7 @@ public final class SseServerFactory implements SseStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doHttpData(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+            doHttpData(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, state, httpReplyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             httpReplySeq += reserved;
@@ -658,7 +660,7 @@ public final class SseServerFactory implements SseStreamFactory
             long budgetId,
             int reserved)
         {
-            doHttpFlush(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+            doHttpFlush(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, state, httpReplyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -666,11 +668,12 @@ public final class SseServerFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseState.closedReply(state);
+                state = StreamState.closeReply(state);
 
-                doHttpAbort(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                doHttpAbort(network, originId, routedId, replyId, httpReplySeq, httpReplyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), httpReplyMax,
                         traceId, authorization);
 
                 cleanupNet();
@@ -681,11 +684,11 @@ public final class SseServerFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseState.closedReply(state);
+                state = StreamState.closeReply(state);
 
-                doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, state, httpReplyMax,
                         traceId, authorization);
 
                 cleanupNet();
@@ -701,18 +704,19 @@ public final class SseServerFactory implements SseStreamFactory
         {
             windowed = true;
 
-            doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
         private void doNetReset(
             long traceId)
         {
-            if (!SseState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = SseState.closedInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(network, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId);
             }
         }
 
@@ -732,7 +736,7 @@ public final class SseServerFactory implements SseStreamFactory
         private void flushNetwork(
             long traceId)
         {
-            if (SseState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
                 encodeNetwork(traceId);
             }
@@ -776,7 +780,8 @@ public final class SseServerFactory implements SseStreamFactory
                         {
                             final long authorization = data.authorization();
 
-                            doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                            doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck,
+                                StreamState.closeReply(state), httpReplyMax,
                                     data.traceId(), authorization);
                             cleanupNet();
                             deferredEnd = false;
@@ -827,7 +832,8 @@ public final class SseServerFactory implements SseStreamFactory
                 String16FW path,
                 String8FW lastId)
             {
-                application = newSseStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                application = newSseStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state,
+                        initialMax,
                         traceId, authorization, affinity, compositeId, scheme, authority, path, lastId);
             }
 
@@ -835,23 +841,23 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId,
                 long authorization)
             {
-                if (SseState.initialClosing(state))
+                if (StreamState.initialClosing(state))
                 {
                     doAppEnd(traceId, authorization);
                 }
 
-                state = SseState.closingInitial(state);
+                state = StreamState.closingInitial(state);
             }
 
             private void doAppEnd(
                 long traceId,
                 long authorization)
             {
-                if (!SseState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    state = SseState.closedInitial(state);
+                    state = StreamState.closeInitial(state);
 
-                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doEnd(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                             traceId, authorization);
                 }
             }
@@ -860,11 +866,12 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId,
                 long authorization)
             {
-                if (!SseState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    state = SseState.closedInitial(state);
+                    state = StreamState.closeInitial(state);
 
-                    doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doAbort(application, originId, routedId, initialId, initialSeq, initialAck,
+                        StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                             traceId, authorization);
                 }
             }
@@ -922,7 +929,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert acknowledge <= sseReplyAck;
 
                 sseReplySeq = sequence;
-                state = SseState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1005,7 +1012,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closedReply(state);
+                state = StreamState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1099,7 +1106,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closedReply(state);
+                state = StreamState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1151,11 +1158,12 @@ public final class SseServerFactory implements SseStreamFactory
             private void doAppReset(
                 long traceId)
             {
-                if (!SseState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
-                    state = SseState.closedReply(state);
+                    state = StreamState.closeReply(state);
 
-                    doReset(application, originId, routedId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
+                    doReset(application, originId, routedId, replyId, sseReplySeq, sseReplyAck,
+                        StreamState.closeReply(StreamState.abortingReply(state)), sseReplyMax,
                             traceId);
                 }
             }
@@ -1174,9 +1182,9 @@ public final class SseServerFactory implements SseStreamFactory
 
                     sseReplyMax = httpReplyMax;
 
-                    state = SseState.openedReply(state);
+                    state = StreamState.openReply(state);
 
-                    doWindow(application, originId, routedId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
+                    doWindow(application, originId, routedId, replyId, sseReplySeq, sseReplyAck, state, sseReplyMax,
                             traceId, httpReplyAuth, httpReplyBud, sseReplyPad, 0);
                 }
             }
@@ -1252,6 +1260,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1264,6 +1273,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1320,6 +1330,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1335,6 +1346,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1355,6 +1367,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1365,6 +1378,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1380,6 +1394,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1390,6 +1405,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1405,6 +1421,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1417,6 +1434,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1441,11 +1459,15 @@ public final class SseServerFactory implements SseStreamFactory
         final long affinity = begin.affinity();
         final long traceId = begin.traceId();
 
-        doWindow(acceptReply, originId, routedId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
-        doHttpBegin(acceptReply, originId, routedId, replyId, 0L, 0L, 0, traceId, 0L, affinity, hs ->
+        final int initialState = StreamState.openInitial(0);
+        final int replyOpeningState = StreamState.openingReply(initialState);
+        final int replyClosedState = StreamState.closeReply(replyOpeningState);
+
+        doWindow(acceptReply, originId, routedId, initialId, sequence, acknowledge, initialState, 0, traceId, 0L, 0, 0, 0);
+        doHttpBegin(acceptReply, originId, routedId, replyId, 0L, 0L, replyOpeningState, 0, traceId, 0L, affinity, hs ->
             hs.item(h -> h.name(HEADER_NAME_STATUS).value(status))
               .item(h -> h.name(HEADER_NAME_CONTENT_LENGTH).value(HEADER_VALUE_CONTENT_LENGTH_0)));
-        doHttpEnd(acceptReply, originId, routedId, replyId, 0L, 0L, 0, traceId, 0L);
+        doHttpEnd(acceptReply, originId, routedId, replyId, 0L, 0L, replyClosedState, 0, traceId, 0L);
     }
 
     private MessageConsumer newSseStream(
@@ -1455,6 +1477,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1480,6 +1503,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1502,6 +1526,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1513,6 +1538,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1528,6 +1554,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1538,6 +1565,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1553,6 +1581,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1566,6 +1595,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1584,6 +1614,7 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -1593,6 +1624,7 @@ public final class SseServerFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -1607,9 +1639,10 @@ public final class SseServerFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum)
     {
-        doReset(sender, originId, routedId, streamId, sequence, acknowledge, maximum, supplyTraceId.getAsLong());
+        doReset(sender, originId, routedId, streamId, sequence, acknowledge, state, maximum, supplyTraceId.getAsLong());
     }
 
     private static String16FW decodeLastEventId(
