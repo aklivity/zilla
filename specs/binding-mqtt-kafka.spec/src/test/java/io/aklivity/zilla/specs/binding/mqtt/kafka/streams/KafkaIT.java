@@ -1077,4 +1077,22 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.server.sent.abort.before.begin/client",
+        "${kafka}/publish.server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBeginPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.server.sent.abort.before.begin/client",
+        "${kafka}/subscribe.server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBeginSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
 }
