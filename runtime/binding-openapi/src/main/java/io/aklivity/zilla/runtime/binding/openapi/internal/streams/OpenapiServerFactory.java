@@ -479,7 +479,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, sequence, acknowledge,
-                    StreamState.closeInitial(state), maximum,
+                    StreamState.closeReply(state), maximum,
                     traceId, authorization, extension);
             }
 
@@ -495,7 +495,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, sequence, acknowledge,
-                    StreamState.closeInitial(StreamState.abortingInitial(state)), maximum,
+                    StreamState.closeReply(StreamState.abortingReply(state)), maximum,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
@@ -843,7 +843,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, sequence, acknowledge,
-                    StreamState.closeInitial(state), maximum,
+                    StreamState.closeReply(state), maximum,
                     traceId, authorization, EMPTY_OCTETS);
 
                 state = StreamState.closeReply(state);
@@ -859,6 +859,8 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             long budgetId,
             int padding)
         {
+            state = StreamState.openReply(state);
+
             doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, padding);
         }
