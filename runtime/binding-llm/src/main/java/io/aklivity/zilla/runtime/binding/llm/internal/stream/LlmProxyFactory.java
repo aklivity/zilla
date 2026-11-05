@@ -694,7 +694,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmRequestGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(routedId, initialId, DIRECTION_REQUEST, stages);
+                super(routedId, initialId, DIRECTION_REQUEST, initialId, stages);
             }
 
             @Override
@@ -1149,7 +1149,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmReplyGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(net.routedId, replyId, DIRECTION_RESPONSE, stages);
+                super(net.routedId, replyId, DIRECTION_RESPONSE, net.initialId, stages);
             }
 
             @Override
@@ -1333,6 +1333,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long routedId,
             long streamId,
             String direction,
+            long exchangeId,
             List<LlmGuardrailStage> stages)
         {
             this.routedId = routedId;
@@ -1347,7 +1348,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.sectionWriter = this::writeSection;
 
             final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
-            final ModelEnvelope envelope = new LlmGuardEnvelope(direction);
+            final ModelEnvelope envelope = new LlmGuardEnvelope(direction, exchangeId);
 
             for (LlmGuardrailStage stage : stages)
             {

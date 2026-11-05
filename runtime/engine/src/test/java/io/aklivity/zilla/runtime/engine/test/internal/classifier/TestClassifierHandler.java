@@ -15,20 +15,32 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.classifier;
 
+import static java.nio.charset.CodingErrorAction.REPORT;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfig;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
+import io.aklivity.zilla.runtime.engine.classifier.Locator;
 
 public final class TestClassifierHandler implements ClassifierHandler
 {
     private final Consumer<Runnable> dispatcher;
+    private final TestClassifierOptionsConfig options;
 
     public TestClassifierHandler(
-        Consumer<Runnable> dispatcher)
+        Consumer<Runnable> dispatcher,
+        TestClassifierOptionsConfig options)
     {
         this.dispatcher = dispatcher;
+        this.options = options;
     }
 
     @Override
@@ -37,6 +49,97 @@ public final class TestClassifierHandler implements ClassifierHandler
     {
         return (traceId, bindingId, contextId, value, completion) ->
             dispatcher.accept(() -> complete(labels, contextId, value, completion));
+    }
+
+    @Override
+    public Locator initLocator(
+        List<String> labels)
+    {
+        return (traceId, bindingId, contextId, data, index, length, spans, completion) ->
+            locate(labels, contextId, data, index, length, spans, completion);
+    }
+
+    private void locate(
+        List<String> labels,
+        long contextId,
+        DirectBuffer data,
+        int index,
+        int length,
+        Locator.SpanConsumer spans,
+        Locator.CompletionCallback completion)
+    {
+        final byte[] bytes = new byte[length];
+        data.getBytes(index, bytes);
+
+        try
+        {
+            final String value = UTF_8.newDecoder()
+                .onMalformedInput(REPORT)
+                .decode(ByteBuffer.wrap(bytes))
+                .toString();
+
+            delayed(options.delay, () -> report(labels, contextId, value, index, spans, completion));
+        }
+        catch (CharacterCodingException ex)
+        {
+            dispatcher.accept(() -> completion.failed(contextId, ex));
+        }
+    }
+
+    private void delayed(
+        int ticks,
+        Runnable action)
+    {
+        dispatcher.accept(ticks > 0 ? () -> delayed(ticks - 1, action) : action);
+    }
+
+    private void report(
+        List<String> labels,
+        long contextId,
+        String value,
+        int index,
+        Locator.SpanConsumer spans,
+        Locator.CompletionCallback completion)
+    {
+        try
+        {
+            if (options.failure || options.failureOn.stream().anyMatch(value::contains))
+            {
+                throw new IllegalStateException("locate failed");
+            }
+
+            int position = 0;
+            int offset = index;
+
+            while (position < value.length())
+            {
+                final int at = position;
+                final String label = labels.stream()
+                    .filter(candidate -> value.startsWith(candidate, at))
+                    .max((a, b) -> Integer.compare(a.length(), b.length()))
+                    .orElse(null);
+
+                if (label != null)
+                {
+                    final int span = label.getBytes(UTF_8).length;
+                    spans.span(label, offset, span);
+                    position += label.length();
+                    offset += span;
+                }
+                else
+                {
+                    final int next = value.offsetByCodePoints(position, 1);
+                    offset += value.substring(position, next).getBytes(UTF_8).length;
+                    position = next;
+                }
+            }
+
+            completion.completed(contextId);
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
     }
 
     private static void complete(

@@ -27,6 +27,13 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
  * {@code transform} returns {@link Status#SUSPENDED} with a complete, drainable region in the output buffer;
  * the caller drains it, re-targets the generator at a fresh region (preserving its structural context),
  * and calls {@code transform} again with the same frame to resume the in-flight value from where it paused.
+ * <p>
+ * A stage may instead return {@link Status#PENDING} to wait for asynchronous work. The pipeline holds the
+ * in-flight event, accepts no new input and consumes nothing from the window while pending; the stage signals
+ * completion by running {@link JsonController#resumer()}, which runs the {@link JsonStream#resuming(Runnable)}
+ * callback on the thread driving the pipeline, after which the caller calls {@code transform} again with the
+ * same window and the pipeline re-enters the pending stage.
+ * </p>
  */
 public interface JsonPipeline
 {
@@ -38,6 +45,13 @@ public interface JsonPipeline
         SUSPENDED,
         /** the input window was consumed mid-value: {@link #transform} the next window (input back-pressure) */
         STARVED,
+        /**
+         * a stage started asynchronous work and is waiting for it to complete: the output produced so far is
+         * drainable, no further input is accepted, and the pipeline resumes only once the stage signals completion
+         * through {@link JsonController#resumer()}; then {@link #transform} again, as after {@link #SUSPENDED}, and the
+         * pending stage is re-entered through {@link JsonTransform#resume} with the event that left it pending
+         */
+        PENDING,
         /** the current top-level value finished and was accepted */
         COMPLETED,
         /** the current top-level value was rejected (malformed or truncated); the output must be abandoned */
@@ -70,6 +84,19 @@ public interface JsonPipeline
     }
 
     /**
+     * Sets the namespaced identifier of the binding this pipeline is driven for, reached by any stage via
+     * {@link JsonController#bindingId()}. Supply it on every call to {@link #transform}, so it holds for the whole
+     * call, including one that re-enters a stage left {@link Status#PENDING}. The default does nothing, for a
+     * pipeline that never carries one.
+     *
+     * @param bindingId the identifier of the binding the pipeline is driven for
+     */
+    default void bindingId(
+        long bindingId)
+    {
+    }
+
+    /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
      * parser, transform stages, and terminal generator all being identity.
      */
@@ -98,8 +125,10 @@ public interface JsonPipeline
      * {@link Status#STARVED} when the window is consumed before the value completes (input back-pressure —
      * feed the next window), {@link Status#SUSPENDED} when the bounded output fills (output back-pressure —
      * drain and re-feed the same window), {@link Status#COMPLETED} on a clean value end, or
-     * {@link Status#REJECTED} on malformed or truncated input. {@code STARVED} is returned only when
-     * {@code last == false}; an incomplete value under {@code last == true} yields {@code REJECTED}.
+     * {@link Status#REJECTED} on malformed or truncated input, or {@link Status#PENDING} when a stage waits for
+     * asynchronous work (hold the window, accept nothing new, and re-drive once the resume callback runs).
+     * {@code STARVED} is returned only when {@code last == false}; an incomplete value under {@code last == true}
+     * yields {@code REJECTED}.
      */
     Status transform(
         DirectBufferEx buffer,
