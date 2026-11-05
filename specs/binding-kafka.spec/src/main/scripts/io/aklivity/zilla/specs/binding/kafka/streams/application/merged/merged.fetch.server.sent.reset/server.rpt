@@ -36,4 +36,5 @@ connected
 
 read abort
 
+write flush
 write abort

@@ -34,4 +34,5 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write flush
 write abort
