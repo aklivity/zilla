@@ -770,4 +770,14 @@ public class DuplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "server.sent.write.abort.before.begin/client",
+        "server.sent.write.abort.before.begin/server"
+    })
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

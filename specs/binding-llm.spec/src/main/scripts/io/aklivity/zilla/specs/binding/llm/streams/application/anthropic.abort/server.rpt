@@ -28,4 +28,5 @@ read zilla:begin.ext ${llm:matchBeginEx()
 connected
 
 read aborted
+write flush
 write abort
