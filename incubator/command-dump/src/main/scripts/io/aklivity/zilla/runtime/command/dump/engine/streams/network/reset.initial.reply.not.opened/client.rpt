@@ -14,9 +14,8 @@
 #
 
 connect "zilla://streams/net0"
+        option zilla:ephemeral "net0"
         option zilla:transmission "duplex"
         option zilla:timestamps "false"
-       option zilla:window 8192
-connected
-
-read abort
+        option zilla:window 8192
+connect aborted
