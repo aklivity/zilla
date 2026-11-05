@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -204,6 +205,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -216,6 +218,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -238,6 +241,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -250,6 +254,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -267,6 +272,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -283,6 +289,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -302,6 +309,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -313,6 +321,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -329,6 +338,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -340,6 +350,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -356,6 +367,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -369,6 +381,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -387,6 +400,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -399,6 +413,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -416,6 +431,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -426,6 +442,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -742,7 +759,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = TlsState.openInitial(state);
+            state = StreamState.openInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
             affinity = begin.affinity();
@@ -858,7 +875,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -896,7 +913,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -923,7 +940,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
 
-            state = TlsState.closeReply(state);
+            state = StreamState.closeReply(state);
             replyAck = acknowledge;
 
             assert replyAck <= replySeq;
@@ -951,7 +968,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            state = TlsState.openReply(state);
+            state = StreamState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBudgetId = budgetId;
@@ -1001,9 +1018,9 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetBegin(
             long traceId)
         {
-            doBegin(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            state = StreamState.openingReply(state);
+            doBegin(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
                     affinity, EMPTY_EXTENSION);
-            state = TlsState.openingReply(state);
         }
 
         private void doNetData(
@@ -1031,10 +1048,11 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetEnd(
             long traceId)
         {
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doEnd(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
+                doEnd(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    EMPTY_EXTENSION);
             }
 
             cleanupEncodeSlot();
@@ -1043,10 +1061,11 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetAbort(
             long traceId)
         {
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doAbort(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.abortingReply(StreamState.closeReply(state));
+                doAbort(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    EMPTY_EXTENSION);
             }
 
             cleanupEncodeSlot();
@@ -1058,18 +1077,18 @@ public final class TlsProxyFactory implements TlsStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved, extension);
         }
 
         private void doNetReset(
             long traceId)
         {
-            if (!TlsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
-                doReset(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
+                doReset(net, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
 
             cleanupDecodeSlot();
@@ -1083,7 +1102,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             int padding,
             int maximum)
         {
-            doWindow(net, originId, routedId, initialId, initialSeq, initialAck, maximum,
+            doWindow(net, originId, routedId, initialId, initialSeq, initialAck, state, maximum,
                     traceId, authorization, budgetId, padding);
         }
 
@@ -1121,7 +1140,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 final int reserved = length + replyPad;
 
-                doData(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                doData(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
                        budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 replySeq += reserved;
@@ -1153,7 +1172,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (TlsState.replyClosing(state))
+                if (StreamState.replyClosing(state))
                 {
                     doNetEnd(traceId);
                 }
@@ -1199,7 +1218,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (TlsState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     stream.ifPresent(s -> s.doAppAbort(traceId));
 
@@ -1400,7 +1419,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 doAppWindow(traceId);
             }
@@ -1478,7 +1497,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetEnd(traceId);
@@ -1499,7 +1518,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetAbort(traceId);
@@ -1529,7 +1548,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 flushNetWindow(traceId, budgetId, initialPad);
             }
@@ -1549,7 +1568,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetReset(traceId);
@@ -1567,9 +1586,9 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 initialAck = initialSeq;
 
                 stream = Optional.of(this);
-                state = TlsState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
-                app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity,
                     ex -> ex.set((b, o, l) -> beginExRW.wrap(b, o, l)
                                                           .typeId(proxyTypeId)
@@ -1636,7 +1655,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 assert reserved >= length + initialPad : String.format("%d >= %d", reserved, length + initialPad);
 
-                doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                doData(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
                         budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -1646,20 +1665,20 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
-                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
             }
 
             private void doAppAbort(
                 long traceId)
             {
-                if (!TlsState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.abortingInitial(StreamState.closeInitial(state));
                     stream = nullIfClosed(state, stream);
-                    doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doAbort(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
                 }
             }
@@ -1670,29 +1689,29 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 int reserved,
                 OctetsFW extension)
             {
-                doFlush(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doFlush(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, reserved, extension);
             }
 
             private void doAppReset(
                 long traceId)
             {
-                if (!TlsState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
-                    state = TlsState.closeReply(state);
+                    state = StreamState.closeReply(state);
                     stream = nullIfClosed(state, stream);
 
-                    doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                    doReset(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
                 }
             }
 
             private void doAppWindow(
                 long traceId)
             {
-                state = TlsState.openReply(state);
+                state = StreamState.openReply(state);
 
                 final int replyPad = TlsProxy.this.replyPad;
-                doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                doWindow(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId,
                          authorization, replyBudgetId, replyPad);
             }
 
@@ -1722,6 +1741,6 @@ public final class TlsProxyFactory implements TlsStreamFactory
         int state,
         Optional<TlsProxy.TlsStream> stream)
     {
-        return TlsState.initialClosed(state) && TlsState.replyClosed(state) ? NULL_STREAM : stream;
+        return StreamState.initialClosed(state) && StreamState.replyClosed(state) ? NULL_STREAM : stream;
     }
 }
