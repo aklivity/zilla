@@ -44,6 +44,7 @@ public class EngineRegistryTest
             .build();
 
         EngineRegistry registry = new EngineRegistry(
+            null,
             type -> new BindingContext()
             {
                 @Override

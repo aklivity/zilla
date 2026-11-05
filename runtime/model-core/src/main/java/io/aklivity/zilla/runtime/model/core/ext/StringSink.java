@@ -47,7 +47,8 @@ public interface StringSink
 
     /**
      * Continues the output in flight when the previous {@link #transform} returned
-     * {@link ModelStatus#OVERFLOW}, after the caller has drained the bounded destination. {@code event} is
+     * {@link ModelStatus#OVERFLOW}, after the caller has drained the bounded destination, or
+     * {@link ModelStatus#SUSPENDED}, after the asynchronous work completed. {@code event} is
      * the event that suspended, re-supplied by the pipeline so the sink keeps no resume state of its own,
      * and {@code source} exposes whatever of that event's bytes the sink has not reported consuming. The
      * default does nothing, since a sink that never suspends never sees this.

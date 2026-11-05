@@ -25,6 +25,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
@@ -58,8 +59,10 @@ public class EngineRegistry
     private final LongConsumer detachBinding;
     private final Collector collector;
     private final Consumer<NamespaceConfig> process;
+    private final EngineContext context;
 
     public EngineRegistry(
+        EngineContext context,
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
@@ -77,6 +80,7 @@ public class EngineRegistry
         Collector collector,
         Consumer<NamespaceConfig> process)
     {
+        this.context = context;
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
@@ -241,9 +245,10 @@ public class EngineRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, this::findNamespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
-                    embeddingsByType, classifiersByType, metricsByName, exportersByType, storesByType, supplyLabelId,
-                    this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder, detachBinding, collector);
+                new NamespaceRegistry(context, namespace, this::findNamespace, bindingsByType, guardsByType, vaultsByType,
+                    catalogsByType, embeddingsByType, classifiersByType, metricsByName, exportersByType, storesByType,
+                    supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder,
+                    detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

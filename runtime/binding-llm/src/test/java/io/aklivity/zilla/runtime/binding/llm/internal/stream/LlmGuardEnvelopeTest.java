@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class LlmGuardEnvelopeTest
     @Test
     public void shouldHoldRequestDirection()
     {
-        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request");
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request", 7L);
 
         assertThat(envelope.count("direction"), equalTo(1));
         assertThat(text(envelope.get("direction", 0)), equalTo("request"));
@@ -38,7 +39,7 @@ public class LlmGuardEnvelopeTest
     @Test
     public void shouldHoldResponseDirection()
     {
-        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("response");
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("response", 7L);
 
         assertThat(envelope.count("direction"), equalTo(1));
         assertThat(text(envelope.get("direction", 0)), equalTo("response"));
@@ -47,7 +48,7 @@ public class LlmGuardEnvelopeTest
     @Test
     public void shouldNotHoldOtherNamesOrIndexes()
     {
-        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("response");
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("response", 7L);
 
         assertThat(envelope.count("other"), equalTo(0));
         assertThat(envelope.get("other", 0), nullValue());
@@ -57,7 +58,7 @@ public class LlmGuardEnvelopeTest
     @Test
     public void shouldDiscardWrittenValues()
     {
-        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request");
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request", 7L);
 
         envelope.set("direction", new UnsafeBufferEx("response".getBytes(UTF_8)));
         envelope.set("other", new UnsafeBufferEx("value".getBytes(UTF_8)));
@@ -65,6 +66,37 @@ public class LlmGuardEnvelopeTest
         assertThat(envelope.count("direction"), equalTo(1));
         assertThat(text(envelope.get("direction", 0)), equalTo("request"));
         assertThat(envelope.count("other"), equalTo(0));
+    }
+
+    @Test
+    public void shouldHoldExchangeAsDecimalString()
+    {
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request", 4097L);
+
+        assertThat(envelope.count("exchange"), equalTo(1));
+        assertThat(text(envelope.get("exchange", 0)), equalTo("4097"));
+        assertThat(envelope.get("exchange", 1), nullValue());
+    }
+
+    @Test
+    public void shouldHoldSameExchangeAcrossDirectionsAndDistinctAcrossExchanges()
+    {
+        final LlmGuardEnvelope request = new LlmGuardEnvelope("request", 4097L);
+        final LlmGuardEnvelope response = new LlmGuardEnvelope("response", 4097L);
+        final LlmGuardEnvelope other = new LlmGuardEnvelope("request", 4099L);
+
+        assertThat(text(response.get("exchange", 0)), equalTo(text(request.get("exchange", 0))));
+        assertThat(text(other.get("exchange", 0)), not(equalTo(text(request.get("exchange", 0)))));
+    }
+
+    @Test
+    public void shouldDiscardWrittenExchange()
+    {
+        final LlmGuardEnvelope envelope = new LlmGuardEnvelope("request", 4097L);
+
+        envelope.set("exchange", new UnsafeBufferEx("1".getBytes(UTF_8)));
+
+        assertThat(text(envelope.get("exchange", 0)), equalTo("4097"));
     }
 
     private static String text(

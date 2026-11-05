@@ -50,25 +50,12 @@ public interface ClassifierHandler
         List<String> labels);
 
     /**
-     * Creates an {@link Anonymizer} that substitutes located labels with surrogates.
+     * Creates a {@link Locator} that reports where the labels are located in a value.
      *
-     * @param labels  the label aliases to substitute
-     * @return a new {@link Anonymizer}, or {@code null} if any label cannot be located
+     * @param labels  the label aliases to locate
+     * @return a new {@link Locator}, or {@code null} if this classifier cannot locate
      */
-    default Anonymizer initAnonymizer(
-        List<String> labels)
-    {
-        return null;
-    }
-
-    /**
-     * Creates a {@link Deanonymizer} that restores surrogates minted by an {@link Anonymizer}
-     * of this classifier.
-     *
-     * @param labels  the label aliases to restore
-     * @return a new {@link Deanonymizer}, or {@code null} if this classifier cannot restore
-     */
-    default Deanonymizer initDeanonymizer(
+    default Locator initLocator(
         List<String> labels)
     {
         return null;

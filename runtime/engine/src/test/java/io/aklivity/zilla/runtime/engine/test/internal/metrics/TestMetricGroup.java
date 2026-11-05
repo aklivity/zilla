@@ -28,7 +28,8 @@ public final class TestMetricGroup implements MetricGroup
     private final Map<String, Supplier<Metric>> testMetrics = Map.of(
         "test.counter", TestCounterMetric::new,
         "test.gauge", TestGaugeMetric::new,
-        "test.histogram", TestHistogramMetric::new
+        "test.histogram", TestHistogramMetric::new,
+        "test.recorded", TestRecordedMetric::new
     );
 
     public static final String NAME = "test";

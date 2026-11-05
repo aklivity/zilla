@@ -20,25 +20,33 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 
+// Attributes supplied to each guardrail stage model:
+//   direction  "request" or "response", the direction of the exchange the stage is applied to
+//   exchange   the exchange id as a UTF-8 decimal string, the initial id of the exchange stream, so the same for
+//              the request and the response of one exchange and distinct across exchanges
 final class LlmGuardEnvelope implements ModelEnvelope
 {
     static final String DIRECTION = "direction";
+    static final String EXCHANGE = "exchange";
     static final String DIRECTION_REQUEST = "request";
     static final String DIRECTION_RESPONSE = "response";
 
     private final DirectBufferEx direction;
+    private final DirectBufferEx exchange;
 
     LlmGuardEnvelope(
-        String direction)
+        String direction,
+        long exchangeId)
     {
         this.direction = new UnsafeBufferEx(direction.getBytes(UTF_8));
+        this.exchange = new UnsafeBufferEx(Long.toString(exchangeId).getBytes(UTF_8));
     }
 
     @Override
     public int count(
         String name)
     {
-        return DIRECTION.equals(name) ? 1 : 0;
+        return DIRECTION.equals(name) || EXCHANGE.equals(name) ? 1 : 0;
     }
 
     @Override
@@ -46,7 +54,21 @@ final class LlmGuardEnvelope implements ModelEnvelope
         String name,
         int index)
     {
-        return DIRECTION.equals(name) && index == 0 ? direction : null;
+        DirectBufferEx value = null;
+
+        if (index == 0)
+        {
+            if (DIRECTION.equals(name))
+            {
+                value = direction;
+            }
+            else if (EXCHANGE.equals(name))
+            {
+                value = exchange;
+            }
+        }
+
+        return value;
     }
 
     @Override

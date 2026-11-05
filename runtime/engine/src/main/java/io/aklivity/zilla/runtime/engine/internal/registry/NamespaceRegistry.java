@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.NONE;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
@@ -45,6 +46,7 @@ import io.aklivity.zilla.config.engine.MetricConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -54,6 +56,7 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.internal.metrics.GuardedMetricRecorder;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -73,6 +76,7 @@ public class NamespaceRegistry
     private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, EmbeddingContext> embeddingsByType;
     private final Function<String, ClassifierContext> classifiersByType;
+    private final EngineContext context;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final Function<String, StoreContext> storesByType;
@@ -96,6 +100,7 @@ public class NamespaceRegistry
     private final IntFunction<NamespaceRegistry> findNamespace;
 
     public NamespaceRegistry(
+        EngineContext context,
         NamespaceConfig namespace,
         IntFunction<NamespaceRegistry> findNamespace,
         Function<String, BindingContext> bindingsByType,
@@ -115,6 +120,7 @@ public class NamespaceRegistry
         LongConsumer detachBinding,
         Collector collector)
     {
+        this.context = context;
         this.namespace = namespace;
         this.findNamespace = findNamespace;
         this.bindingsByType = bindingsByType;
@@ -184,14 +190,45 @@ public class NamespaceRegistry
     private void attachBinding(
         BindingConfig config)
     {
-        BindingContext context = bindingsByType.apply(config.type);
-        assert context != null : "Missing binding type: " + config.type;
+        BindingContext bindingContext = bindingsByType.apply(config.type);
+        assert bindingContext != null : "Missing binding type: " + config.type;
 
         int bindingId = supplyLabelId.applyAsInt(config.name);
-        BindingRegistry registry = new BindingRegistry(config, context);
+        BindingRegistry registry = new BindingRegistry(config, bindingContext);
         bindingsById.put(bindingId, registry);
+        prepareMetricRecorders(registry, config);
         registry.attach();
         setMetricHandlers(registry, config);
+    }
+
+    private void prepareMetricRecorders(
+        BindingRegistry registry,
+        BindingConfig config)
+    {
+        if (config.metricIds != null)
+        {
+            for (long metricId : config.metricIds)
+            {
+                MetricRegistry metric = supplyMetric.apply(metricId);
+                if (metric.direction() == NONE)
+                {
+                    int localMetricId = NamespacedId.localId(metricId);
+                    IntFunction<LongConsumer> supplyWriter = attrId ->
+                        supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId, config.kind);
+                    registry.metricRecorder(localMetricId, new GuardedMetricRecorder(
+                        context, config.resolveId, bindingAttributes(config), supplyWriter,
+                        GuardedMetricRecorder.DEFAULT_CAPACITY));
+                }
+            }
+        }
+    }
+
+    private List<AttributeConfig> bindingAttributes(
+        BindingConfig config)
+    {
+        return config.telemetryRef != null && config.telemetryRef.attributes != null
+            ? config.telemetryRef.attributes
+            : Collections.emptyList();
     }
 
     private void setMetricHandlers(
@@ -205,56 +242,56 @@ public class NamespaceRegistry
         MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
         if (config.metricIds != null)
         {
-            List<AttributeConfig> bindingAttributes = config.telemetryRef != null &&
-                config.telemetryRef.attributes != null
-                ? config.telemetryRef.attributes
-                : Collections.emptyList();
+            List<AttributeConfig> bindingAttributes = bindingAttributes(config);
 
             for (long metricId : config.metricIds)
             {
                 MetricRegistry metric = supplyMetric.apply(metricId);
-                int localMetricId = NamespacedId.localId(metricId);
-                IntFunction<LongConsumer> recorderByAttrs = attrId ->
-                    supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId, registry.kind());
-                recorderByAttrs.apply(0);
-
-                MessageConsumer handler = bindingAttributes.isEmpty()
-                    ? metric.supplyHandler(recorderByAttrs.apply(0))
-                    : metric.supplyHandler(recorderByAttrs, bindingAttributes, config.resolveId);
-
-                int originTypeId = binding.originTypeId() != BindingHandler.STREAM_TYPE
-                    ? binding.originTypeId() : (int) config.originTypeId;
-                int routedTypeId = binding.routedTypeId() != BindingHandler.STREAM_TYPE
-                    ? binding.routedTypeId() : (int) config.routedTypeId;
-
-                MetricHandlerKind kind = resolveKind(originTypeId, routedTypeId, metric.group());
-                MetricContext.Direction direction = metric.direction();
-                if (kind == ROUTED)
+                if (metric.direction() != NONE)
                 {
-                    if (direction == SENT || direction == BOTH)
+                    int localMetricId = NamespacedId.localId(metricId);
+                    IntFunction<LongConsumer> recorderByAttrs = attrId ->
+                        supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId, registry.kind());
+                    recorderByAttrs.apply(0);
+
+                    MessageConsumer handler = bindingAttributes.isEmpty()
+                        ? metric.supplyHandler(recorderByAttrs.apply(0))
+                        : metric.supplyHandler(recorderByAttrs, bindingAttributes, config.resolveId);
+
+                    int originTypeId = binding.originTypeId() != BindingHandler.STREAM_TYPE
+                        ? binding.originTypeId() : (int) config.originTypeId;
+                    int routedTypeId = binding.routedTypeId() != BindingHandler.STREAM_TYPE
+                        ? binding.routedTypeId() : (int) config.routedTypeId;
+
+                    MetricHandlerKind kind = resolveKind(originTypeId, routedTypeId, metric.group());
+                    MetricContext.Direction direction = metric.direction();
+                    if (kind == ROUTED)
                     {
-                        sentRoutedMetricHandler = sentRoutedMetricHandler.andThen(handler);
+                        if (direction == SENT || direction == BOTH)
+                        {
+                            sentRoutedMetricHandler = sentRoutedMetricHandler.andThen(handler);
+                        }
+                        if (direction == RECEIVED || direction == BOTH)
+                        {
+                            receivedRoutedMetricHandler = receivedRoutedMetricHandler.andThen(handler);
+                        }
                     }
-                    if (direction == RECEIVED || direction == BOTH)
+                    else if (kind == ORIGIN)
                     {
-                        receivedRoutedMetricHandler = receivedRoutedMetricHandler.andThen(handler);
+                        if (direction == SENT || direction == BOTH)
+                        {
+                            sentOriginMetricHandler = sentOriginMetricHandler.andThen(handler);
+                        }
+                        if (direction == RECEIVED || direction == BOTH)
+                        {
+                            receivedOriginMetricHandler = receivedOriginMetricHandler.andThen(handler);
+                        }
                     }
-                }
-                else if (kind == ORIGIN)
-                {
-                    if (direction == SENT || direction == BOTH)
+                    else
                     {
-                        sentOriginMetricHandler = sentOriginMetricHandler.andThen(handler);
+                        assert kind == null;
+                        // no op
                     }
-                    if (direction == RECEIVED || direction == BOTH)
-                    {
-                        receivedOriginMetricHandler = receivedOriginMetricHandler.andThen(handler);
-                    }
-                }
-                else
-                {
-                    assert kind == null;
-                    // no op
                 }
             }
         }

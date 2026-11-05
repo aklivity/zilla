@@ -64,6 +64,7 @@
     <module>metrics-llm.spec</module>
     <module>metrics-grpc.spec</module>
     <module>metrics-mcp.spec</module>
+    <module>metrics-model.spec</module>
     <module>model-avro.spec</module>
     <module>model-classify.spec</module>
     <module>model-core.spec</module>

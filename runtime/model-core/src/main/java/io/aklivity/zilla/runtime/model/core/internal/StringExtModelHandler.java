@@ -34,6 +34,10 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 // this handler serves.
 final class StringExtModelHandler implements ModelHandler
 {
+    private static final Runnable NO_RESUME = () ->
+    {
+    };
+
     private final CoreModelHandler plain;
     private final Supplier<CoreModelValidator> supplier;
     private final boolean decodeLenient;
@@ -64,37 +68,31 @@ final class StringExtModelHandler implements ModelHandler
         ModelTransform transform,
         ModelCache cache)
     {
-        assert envelope != null;
-
-        CoreCache coreCache = extCache(cache);
-        StringTransformStream stream = new StringTransformStream();
-        for (StringModelExtHandler handler : handlers)
-        {
-            stream = handler.decode(stream, coreCache);
-        }
-
-        List<StringTransform> transforms = stream.transforms();
-
-        return transforms.isEmpty()
-            ? plain.supplyDecoder(envelope, transform, cache)
-            : new StringExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
+        return supplyDecoder(envelope, transform, cache, NO_RESUME);
     }
 
-    private static CoreCache extCache(
-        ModelCache cache)
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
     {
-        return switch (cache)
-        {
-        case WRITE -> CoreCache.WRITE;
-        case READ -> CoreCache.READ;
-        default -> CoreCache.NONE;
-        };
+        return supplyDecoder(envelope, transform, ModelCache.NONE, resumed);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
         ModelEnvelope envelope,
         ModelTransform transform)
+    {
+        return supplyEncoder(envelope, transform, NO_RESUME);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
     {
         assert envelope != null;
 
@@ -108,6 +106,39 @@ final class StringExtModelHandler implements ModelHandler
 
         return transforms.isEmpty()
             ? plain.supplyEncoder(envelope, transform)
-            : new StringExtModelPipeline(plain, supplier.get(), encodeLenient, transforms, envelope, encodePadding);
+            : new StringExtModelPipeline(plain, supplier.get(), encodeLenient, transforms, envelope, encodePadding, resumed);
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        ModelCache cache,
+        Runnable resumed)
+    {
+        assert envelope != null;
+
+        CoreCache coreCache = extCache(cache);
+        StringTransformStream stream = new StringTransformStream();
+        for (StringModelExtHandler handler : handlers)
+        {
+            stream = handler.decode(stream, coreCache);
+        }
+
+        List<StringTransform> transforms = stream.transforms();
+
+        return transforms.isEmpty()
+            ? plain.supplyDecoder(envelope, transform, cache)
+            : new StringExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding, resumed);
+    }
+
+    private static CoreCache extCache(
+        ModelCache cache)
+    {
+        return switch (cache)
+        {
+        case WRITE -> CoreCache.WRITE;
+        case READ -> CoreCache.READ;
+        default -> CoreCache.NONE;
+        };
     }
 }

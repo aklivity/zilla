@@ -167,6 +167,18 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public Runnable resumer()
+        {
+            return upstreamControl.resumer();
+        }
+
+        @Override
+        public long bindingId()
+        {
+            return upstreamControl.bindingId();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {
@@ -225,9 +237,9 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             status = Status.REJECTED;
         }
-        else if (downstream == Status.SUSPENDED)
+        else if (downstream == Status.SUSPENDED || downstream == Status.PENDING)
         {
-            status = Status.SUSPENDED;
+            status = downstream;
         }
         else if (downstream == Status.STARVED)
         {

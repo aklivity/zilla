@@ -84,6 +84,7 @@
     <module>metrics-http</module>
     <module>metrics-llm</module>
     <module>metrics-mcp</module>
+    <module>metrics-model</module>
     <module>metrics-stream</module>
     <module>model-avro</module>
     <module>model-classify</module>
@@ -295,6 +296,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-llm.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-model.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -665,6 +671,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-mcp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-model</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
