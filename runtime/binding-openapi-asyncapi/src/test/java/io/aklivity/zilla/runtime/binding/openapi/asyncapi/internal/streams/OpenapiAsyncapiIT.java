@@ -103,4 +103,15 @@ public class OpenapiAsyncapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${openapi}/create.pet.reply.abort.before.begin/client",
+        "${asyncapi}/create.pet.reply.abort.before.begin/server"
+    })
+    public void shouldAbortReplyBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
