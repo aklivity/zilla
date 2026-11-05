@@ -1603,7 +1603,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
-            .state(state)
+            .state(StreamState.openInitial(0))
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)

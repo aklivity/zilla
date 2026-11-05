@@ -954,7 +954,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
-            .state(state)
+            .state(StreamState.openInitial(0))
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
