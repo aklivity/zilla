@@ -736,6 +736,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -748,6 +749,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -770,6 +772,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -782,6 +785,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -799,6 +803,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -811,6 +816,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -828,6 +834,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -843,6 +850,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -863,6 +871,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -874,6 +883,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -890,6 +900,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -902,6 +913,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -920,6 +932,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -931,6 +944,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -947,6 +961,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -960,6 +975,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -978,6 +994,7 @@ public final class KafkaMergedFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -989,6 +1006,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1614,17 +1632,17 @@ public final class KafkaMergedFactory implements BindingHandler
 
             if (capabilities == FETCH_ONLY)
             {
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedFetchOnly()));
             }
             else if (capabilities == PRODUCE_ONLY)
             {
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedProduceOnly()));
             }
             else
             {
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, beginExToKafka(beginExToKafkaMergedProduceAndFetch()));
             }
 
@@ -1756,7 +1774,7 @@ public final class KafkaMergedFactory implements BindingHandler
                      .build();
             }
 
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, flags, payload, newKafkaDataEx);
 
             replySeq += reserved;
@@ -1770,7 +1788,7 @@ public final class KafkaMergedFactory implements BindingHandler
             assert !StreamState.replyClosed(state);
             state = StreamState.closeReply(state);
             cleanupBudgetCreditorIfNecessary();
-            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1778,9 +1796,9 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId)
         {
             assert !StreamState.replyClosed(state);
-            state = StreamState.closeReply(state);
+            state = StreamState.closeReply(StreamState.abortingReply(state));
             cleanupBudgetCreditorIfNecessary();
-            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1829,7 +1847,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 state = StreamState.openInitial(state);
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, maxInitialPad, DEFAULT_MINIMUM);
             }
         }
@@ -1841,7 +1859,7 @@ public final class KafkaMergedFactory implements BindingHandler
             assert !StreamState.initialClosed(state);
             state = StreamState.closeInitial(state);
 
-            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, extension);
         }
 
@@ -1875,7 +1893,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .merged(mc -> mc.consumer(c -> c.progress(partition).correlationId(correlationId)))
                 .build();
 
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, 0, kafkaFlushExFW);
         }
 
@@ -1893,7 +1911,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     .timestamp(timestamp)))
                 .build();
 
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, 0, kafkaFlushExFW);
         }
 
@@ -1927,7 +1945,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                     .latestOffset(initialLatestOffsetsById.get(p)))))))
                         .build();
 
-                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, reserved, kafkaFlushExFW);
 
                 replySeq += reserved;
@@ -2399,7 +2417,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onDescribeReply,
-                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -2433,7 +2451,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -2449,9 +2467,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -2599,7 +2617,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
             }
         }
@@ -2618,7 +2636,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
     }
@@ -2666,7 +2684,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onMetaReply,
-                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -2689,7 +2707,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -2705,9 +2723,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -2855,7 +2873,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
             }
         }
@@ -2874,7 +2892,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
     }
@@ -2926,7 +2944,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onConsumerReply,
-                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
@@ -2964,7 +2982,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 final int reserved = initialPad;
 
-                doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, reserved, kafkaFlushExFW);
             }
         }
@@ -2983,7 +3001,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -2999,9 +3017,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3207,7 +3225,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
             }
         }
@@ -3226,7 +3244,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
     }
@@ -3279,7 +3297,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onOffsetFetchReply,
-                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId,  merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                     .typeId(kafkaTypeId)
@@ -3309,7 +3327,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3325,9 +3343,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3476,7 +3494,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
             }
         }
@@ -3495,7 +3513,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3567,7 +3585,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onFetchReply,
-                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -3591,7 +3609,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 .fetch(f -> f.filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf)))))
                 .build();
 
-            doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, leaderId, kafkaFlushEx);
         }
 
@@ -3618,7 +3636,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3643,9 +3661,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3866,7 +3884,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                     state = StreamState.openReply(state);
 
-                    doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                    doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, merged.authorization, merged.mergedReplyBudgetId, merged.replyPad, merged.replyMin);
                 }
             }
@@ -3895,7 +3913,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -3969,7 +3987,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onProduceReply,
-                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+                merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -4051,7 +4069,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 }
             }
 
-            doData(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, budgetId, reserved, flags, payload, newKafkaDataEx);
 
             initialSeq += reserved;
@@ -4073,7 +4091,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 })
                 .build();
 
-            doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, merged.authorization, reserved, newKafkaFlushEx);
 
             initialSeq += reserved;
@@ -4095,7 +4113,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -4111,9 +4129,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialAbort(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
 
@@ -4305,7 +4323,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                     state = StreamState.openReply(state);
 
-                    doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+                    doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, merged.authorization, merged.mergedReplyBudgetId, merged.replyPad, DEFAULT_MINIMUM);
                 }
             }
@@ -4325,7 +4343,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
         }
     }

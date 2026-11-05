@@ -289,6 +289,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -301,6 +302,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -323,6 +325,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -335,6 +338,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -352,6 +356,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -365,6 +370,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -383,6 +389,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -394,6 +401,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -410,6 +418,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -421,6 +430,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -437,6 +447,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -449,6 +460,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -466,6 +478,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -477,6 +490,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -708,8 +722,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             this.partitionOffset = partition.nextOffset(defaultOffset);
 
+            state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onServerFanoutMessage,
-                originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -719,7 +734,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                                      .isolation(i -> i.set(KafkaIsolation.READ_UNCOMMITTED)))
                         .build()
                         .sizeof()));
-            state = StreamState.openingInitial(state);
         }
 
         private void doServerFanoutInitialEndIfNecessary(
@@ -734,10 +748,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerFanoutInitialEnd(
             long traceId)
         {
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(state);
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = StreamState.closeInitial(state);
         }
 
         private void doServerFanoutInitialAbortIfNecessary(
@@ -752,10 +766,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerFanoutInitialAbort(
             long traceId)
         {
-            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
+            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = StreamState.closeInitial(state);
         }
 
         private void onServerFanoutMessage(
@@ -1351,7 +1365,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         {
             state = StreamState.closeReply(state);
 
-            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
         }
 
@@ -1371,7 +1385,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, 0L, 0);
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, 0L, 0);
             }
         }
 
@@ -1537,7 +1552,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, extension);
         }
 
@@ -1559,7 +1574,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 state = StreamState.openInitial(state);
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -1580,7 +1595,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             this.partitionOffset = Math.max(partitionOffset, group.partitionOffset);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1611,7 +1626,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         {
             assert partitionOffset <= group.partitionOffset || latestOffset <= group.latestOffset;
 
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, 0L, reserved,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1646,7 +1661,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 long traceId)
         {
             state = StreamState.closeReply(state);
-            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1664,8 +1679,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void doServerReplyAbort(
                 long traceId)
         {
-            state = StreamState.closeReply(state);
-            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(StreamState.abortingReply(state));
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
