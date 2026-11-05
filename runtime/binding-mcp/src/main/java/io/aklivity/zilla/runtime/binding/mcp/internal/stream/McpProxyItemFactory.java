@@ -1132,7 +1132,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, extension);
-            state = StreamState.openReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doServerData(

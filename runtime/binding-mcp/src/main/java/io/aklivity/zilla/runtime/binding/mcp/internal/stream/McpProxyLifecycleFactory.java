@@ -605,7 +605,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doServerBeginDeferred(
             long traceId)
         {
-            if (!StreamState.replyOpened(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 final int serverCapabilities = binding.serverCapabilities(authorization);
                 final String sid = sessionId;
@@ -724,7 +724,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, extension);
-            state = StreamState.openReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doServerEnd(
@@ -810,7 +810,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             int kind,
             long traceId)
         {
-            if (!StreamState.replyOpened(state) || StreamState.replyClosed(state))
+            if (!StreamState.replyOpening(state) || StreamState.replyClosed(state))
             {
                 return;
             }
@@ -1075,7 +1075,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (StreamState.replyOpened(state))
+            if (StreamState.replyOpening(state))
             {
                 final McpChallengeExFW resumeEx = mcpChallengeExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1101,6 +1101,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long budgetId,
             int padding)
         {
+            state = StreamState.openReply(state);
             doWindow(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, server.authorization,
                 budgetId, padding);
         }
@@ -1314,9 +1315,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 server.interactiveAuthRoutes.remove(routedId);
             }
 
+            state = StreamState.openingReply(state);
             doClientWindow(traceId, 0L, 0);
-
-            state = StreamState.openReply(state);
 
             resolved = true;
             settleLifecycle(traceId);

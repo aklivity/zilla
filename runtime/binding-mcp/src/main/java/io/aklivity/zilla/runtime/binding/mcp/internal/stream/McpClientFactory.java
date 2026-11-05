@@ -5116,7 +5116,7 @@ public final class McpClientFactory implements McpStreamFactory
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
             replyMax = decodeMax;
-            state = StreamState.openReply(state);
+            state = StreamState.openingReply(state);
 
             final OctetsFW ext = begin.extension();
             final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
@@ -5290,6 +5290,7 @@ public final class McpClientFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = StreamState.openReply(state);
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
@@ -6199,13 +6200,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = StreamState.openReply(state);
+            state = StreamState.openingReply(state);
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = writeBuffer.capacity();
 
             assert replyAck <= replySeq;
 
+            state = StreamState.openReply(state);
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, 0);
@@ -6432,13 +6434,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = StreamState.openReply(state);
+            state = StreamState.openingReply(state);
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = writeBuffer.capacity();
 
             assert replyAck <= replySeq;
 
+            state = StreamState.openReply(state);
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, 0);
