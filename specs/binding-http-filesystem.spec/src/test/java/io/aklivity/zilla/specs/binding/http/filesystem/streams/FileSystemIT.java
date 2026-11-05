@@ -206,4 +206,13 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/server.sent.abort.before.begin/client",
+        "${filesystem}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

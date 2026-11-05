@@ -197,4 +197,13 @@ public class SseIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.abort.before.begin/client",
+        "${sse}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
