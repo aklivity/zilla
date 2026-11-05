@@ -1374,7 +1374,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = StreamState.openingInitial(state);
+            state = StreamState.openingReply(state);
 
             assert encodeCredit == null;
             this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
@@ -2143,14 +2143,14 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final long newReplyAck = Math.max(decodeSeq - minReplyNoAck, decodeAck);
 
-            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !StreamState.initialOpened(state))
+            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !StreamState.replyOpened(state))
             {
                 decodeAck = newReplyAck;
                 assert decodeAck <= decodeSeq;
 
                 decodeMax = minReplyMax;
 
-                state = StreamState.openInitial(state);
+                state = StreamState.openReply(state);
 
                 doWindow(network, originId, routedId, replyId, decodeSeq, decodeAck, state, decodeMax,
                     traceId, authorization, budgetId, padding);
