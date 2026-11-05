@@ -18,9 +18,6 @@ telemetry:
     - llm.time.to.first.token
     - llm.usage.incomplete
     - http.duration
-    - http.request.size
-    - http.response.size
-    - http.active.requests
   exporters:
     prometheus_exporter:
       type: prometheus
@@ -333,7 +330,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-        - http.*
+        - http.duration
       attributes:
         requested: ${llm.request.model}
         served: ${llm.response.model}

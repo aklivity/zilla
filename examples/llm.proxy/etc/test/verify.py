@@ -584,7 +584,7 @@ def scrape_http_status_counts(binding):
         text = resp.read().decode()
     counts = {}
     for line in text.splitlines():
-        match = re.match(r'^http_duration_count\{([^}]*)\} (\S+)$', line)
+        match = re.match(r'^http_duration_milliseconds_count\{([^}]*)\} (\S+)$', line)
         if match:
             labels = dict(re.findall(r'(\w+)="([^"]*)"', match.group(1)))
             if labels.get("binding") == binding and "status" in labels:
@@ -595,7 +595,7 @@ def scrape_http_status_counts(binding):
 def http_metric_lines():
     with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
         text = resp.read().decode()
-    return "\n".join(line for line in text.splitlines() if line.startswith("http_"))
+    return "\n".join(line for line in text.splitlines() if line.startswith("http_duration_milliseconds_count"))
 
 
 def await_status_count(binding, status, expected):
@@ -605,7 +605,7 @@ def await_status_count(binding, status, expected):
         time.sleep(0.25)
     raise AssertionError(
         f"{binding} http.duration count for {status} is {scrape_http_status_counts(binding).get(status, 0)}, "
-        f"not {expected}; http_* samples:\n{http_metric_lines()}")
+        f"not {expected}; http_duration samples:\n{http_metric_lines()}")
 
 
 # WHEN: an OpenAI SDK client asks for gpt-limited, whose server answers 429 with
