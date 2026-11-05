@@ -293,6 +293,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/exchange.value.pipeline.suspend.fragmented/client",
+        "${net}/exchange.value.pipeline.suspend.fragmented/server" })
+    public void shouldExchangeValuePipelineSuspendFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/exchange.value.pipeline.nondeterministic/client",
         "${net}/exchange.value.pipeline.nondeterministic/server" })
     public void shouldExchangeValuePipelineNondeterministic() throws Exception

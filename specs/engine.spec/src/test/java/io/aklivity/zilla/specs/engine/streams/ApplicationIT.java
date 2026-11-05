@@ -303,6 +303,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/exchange.value.pipeline.suspend.fragmented/client",
+        "${app}/exchange.value.pipeline.suspend.fragmented/server" })
+    public void shouldExchangeValuePipelineSuspendFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/exchange.value.pipeline.nondeterministic/client",
         "${app}/exchange.value.pipeline.nondeterministic/server" })
     public void shouldExchangeValuePipelineNondeterministic() throws Exception

@@ -418,6 +418,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.value.pipeline.suspend.fragmented.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.suspend.fragmented/client",
+        "${app}/exchange.value.pipeline.suspend.fragmented/server" })
+    public void shouldExchangeValuePipelineSuspendFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.value.pipeline.nondeterministic.yaml")
     @Specification({
         "${net}/exchange.value.pipeline.nondeterministic/client",
