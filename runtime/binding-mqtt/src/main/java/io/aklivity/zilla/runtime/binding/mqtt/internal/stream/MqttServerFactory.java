@@ -6033,11 +6033,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void onSessionAbort(
                 AbortFW abort)
             {
+                final boolean beforeBegin = !StreamState.replyOpening(state);
+
                 setReplyClosed();
 
                 final long traceId = abort.traceId();
+                final long authorization = abort.authorization();
 
                 cleanupAbort(traceId);
+
+                if (beforeBegin)
+                {
+                    cleanupNetwork(traceId, authorization);
+                }
             }
 
             private void doSessionBegin(
