@@ -130,4 +130,14 @@ public class KafkaGrpcRemoteServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/client.sent.write.abort.before.response.begin/server",
+        "${grpc}/client.sent.write.abort.before.response.begin/server"})
+    public void shouldProduceErrorOnGrpcAbortBeforeResponseBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

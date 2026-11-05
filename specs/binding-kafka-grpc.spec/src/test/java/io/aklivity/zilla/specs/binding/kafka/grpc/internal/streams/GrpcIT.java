@@ -98,4 +98,13 @@ public class GrpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/client.sent.write.abort.before.response.begin/client",
+        "${grpc}/client.sent.write.abort.before.response.begin/server"})
+    public void shouldProduceErrorOnGrpcAbortBeforeResponseBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
