@@ -127,6 +127,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final LlmDataExFW.Builder guardDataExRW = new LlmDataExFW.Builder();
     private final MutableDirectBufferEx guardrailBuffer;
     private final MutableDirectBufferEx transformBuffer;
+    private final ModelEnvelope requestEnvelope;
+    private final ModelEnvelope replyEnvelope;
     private final BufferPool heldPool;
     private final BufferPool runPool;
     private final LongUnaryOperator supplyInitialId;
@@ -144,6 +146,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.guardExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity() / 2]);
         this.guardrailBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.requestEnvelope = new LlmGuardEnvelope(DIRECTION_REQUEST);
+        this.replyEnvelope = new LlmGuardEnvelope(DIRECTION_RESPONSE);
         this.heldPool = context.bufferPool();
         this.runPool = context.bufferPool().duplicate();
         this.supplyInitialId = context::supplyInitialId;
@@ -694,7 +698,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmRequestGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(routedId, initialId, DIRECTION_REQUEST, stages);
+                super(routedId, initialId, requestEnvelope, stages);
             }
 
             @Override
@@ -1149,7 +1153,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmReplyGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(net.routedId, replyId, DIRECTION_RESPONSE, stages);
+                super(net.routedId, replyId, replyEnvelope, stages);
             }
 
             @Override
@@ -1300,9 +1304,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private final long routedId;
         private final long streamId;
         private final MutableDirectBufferEx sectionExtensionBuffer;
+        private final Map<LlmSectionType, ModelPipeline> chains;
         private final Map<LlmSectionType, LlmGuardPipeline> pipelines;
         private final Deque<LlmHeldFrame> held;
-        private final LlmSectionAttributes frameAttributes;
         private final LlmRangeQueue ranges;
         private final Array32FW<LlmAttributeFW> sectionAttributesRO;
         private final Consumer<LlmSectionTypeFW.Builder> sectionTypeWriter;
@@ -1311,7 +1315,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private LlmGuardPipeline sectionPipeline;
         private LlmSectionType sectionType;
         private int sectionMessage;
-        private String sectionToolCallId;
         private int sectionAttributesLength;
         private int sectionOctetsLength;
         private int outputValues;
@@ -1332,7 +1335,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private LlmSectionGuard(
             long routedId,
             long streamId,
-            String direction,
+            ModelEnvelope envelope,
             List<LlmGuardrailStage> stages)
         {
             this.routedId = routedId;
@@ -1340,14 +1343,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.heldSlot = NO_SLOT;
             this.sectionExtensionBuffer = new UnsafeBufferEx(new byte[SECTION_EXTENSION_CAPACITY]);
             this.held = new ArrayDeque<>();
-            this.frameAttributes = new LlmSectionAttributes();
             this.ranges = new LlmRangeQueue(guardExtBuffer.capacity() / 2);
             this.sectionAttributesRO = new Array32FW<>(new LlmAttributeFW());
             this.sectionTypeWriter = t -> t.set(sectionType);
             this.sectionWriter = this::writeSection;
 
             final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
-            final ModelEnvelope envelope = new LlmGuardEnvelope(direction);
 
             for (LlmGuardrailStage stage : stages)
             {
@@ -1356,8 +1357,23 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 stage.sections.forEach(section -> chains.merge(section, pipeline, ModelPipeline::andThen));
             }
 
+            this.chains = chains;
             this.pipelines = new EnumMap<>(LlmSectionType.class);
-            chains.forEach((section, chain) -> pipelines.put(section, guardPipeline(section, chain)));
+        }
+
+        private LlmGuardPipeline supplyPipeline(
+            LlmSectionType section)
+        {
+            LlmGuardPipeline pipeline = pipelines.get(section);
+            final ModelPipeline chain = pipeline == null ? chains.get(section) : null;
+
+            if (chain != null)
+            {
+                pipeline = guardPipeline(section, chain);
+                pipelines.put(section, pipeline);
+            }
+
+            return pipeline;
         }
 
         private LlmGuardPipeline guardPipeline(
@@ -1372,13 +1388,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
             case TOOL_CALL, SERVER_TOOL_CALL ->
                 new LlmMemberModelPipeline(chain, ARGUMENTS_MEMBER);
             case USER_IMAGE ->
-                new LlmMediaGuardPipeline(chain, "image_url", "url", true);
+                new LlmMediaGuardPipeline(chain, transformBuffer, "image_url", "url", true);
             case USER_DOCUMENT ->
-                new LlmMediaGuardPipeline(chain, "file", "file_data", true);
+                new LlmMediaGuardPipeline(chain, transformBuffer, "file", "file_data", true);
             case USER_AUDIO ->
-                new LlmMediaGuardPipeline(chain, "input_audio", "data", false);
+                new LlmMediaGuardPipeline(chain, transformBuffer, "input_audio", "data", false);
             case USER_VIDEO ->
-                new LlmMediaGuardPipeline(chain, "input_video", "data", false);
+                new LlmMediaGuardPipeline(chain, transformBuffer, "input_video", "data", false);
             default ->
                 new LlmRawGuardPipeline(chain);
             };
@@ -1594,12 +1610,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 final LlmSectionDataExFW section = llmDataEx.section();
 
-                frameAttributes.readFrom(section);
                 this.sectionType = section.type().get();
                 this.sectionMessage = section.message();
-                this.sectionToolCallId = frameAttributes.toolCallId();
 
-                final LlmGuardPipeline pipeline = pipelines.get(sectionType);
+                final LlmGuardPipeline pipeline = supplyPipeline(sectionType);
 
                 if (pipeline != null)
                 {
