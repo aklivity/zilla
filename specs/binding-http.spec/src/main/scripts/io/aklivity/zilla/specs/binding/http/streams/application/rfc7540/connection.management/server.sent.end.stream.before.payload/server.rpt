@@ -42,7 +42,6 @@ write zilla:begin.ext ${http:beginEx()
                               .header("content-length", "113")
                               .build()}
 
-write flush
 
 write flush
 write abort
