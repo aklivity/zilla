@@ -38,6 +38,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private List<CatalogedConfig> catalogs;
     private List<TestBindingOptionsConfig.Event> events;
     private List<TestBindingOptionsConfig.Metric> metrics;
+    private List<TestBindingOptionsConfig.Recorder> recorders;
     private List<TestBindingOptionsConfig.CatalogAssertions> catalogAssertions;
     private VaultAssertion vaultAssertion;
     private String store;
@@ -180,6 +181,19 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> recorder(
+        String name,
+        String guard,
+        long value)
+    {
+        if (this.recorders == null)
+        {
+            this.recorders = new LinkedList<>();
+        }
+        this.recorders.add(new TestBindingOptionsConfig.Recorder(name, guard, value));
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> catalogAssertions(
         String name,
         List<TestBindingOptionsConfig.CatalogAssertion> assertions)
@@ -299,7 +313,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
             values.forEach(v -> refs.addAll(v.refs()));
         }
         return mapper.apply(new TestBindingOptionsConfig(value, values, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, classifier, envelope,
+                metrics, recorders, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, classifier, envelope,
                 envelopeAssertions, pipelineAssertion, originType, refs));
     }
 }

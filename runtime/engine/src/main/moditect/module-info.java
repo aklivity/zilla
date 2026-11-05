@@ -74,6 +74,7 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupExtSpi;
     uses io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
     uses io.aklivity.zilla.runtime.engine.store.StoreFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;

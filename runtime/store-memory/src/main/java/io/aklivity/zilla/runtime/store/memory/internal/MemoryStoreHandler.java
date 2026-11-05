@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -116,6 +118,61 @@ final class MemoryStoreHandler implements StoreHandler
             notifyWatchers(key, null);
         }
         defer(() -> completion.accept(value));
+    }
+
+    @Override
+    public void increment(
+        String key,
+        long delta,
+        Duration ttl,
+        BiConsumer<String, Long> completion)
+    {
+        final long[] counter = new long[1];
+        final MemoryEntry updated = entries.compute(key, (k, existing) ->
+        {
+            final boolean live = existing != null && !existing.expired();
+            counter[0] = (live ? Long.parseLong(existing.value()) : 0L) + delta;
+            return new MemoryEntry(Long.toString(counter[0]), live ? existing.expiresAt() : expiresAt(ttl));
+        });
+        notifyWatchers(key, updated.value());
+        final long result = counter[0];
+        defer(() -> completion.accept(key, result));
+    }
+
+    @Override
+    public void get(
+        List<String> keys,
+        Consumer<List<String>> completion)
+    {
+        final String[] values = new String[keys.size()];
+        for (int index = 0; index < values.length; index++)
+        {
+            final MemoryEntry entry = entries.get(keys.get(index));
+            values[index] = entry != null && !entry.expired() ? entry.value() : null;
+        }
+        defer(() -> completion.accept(Arrays.asList(values)));
+    }
+
+    @Override
+    public void delete(
+        List<String> keys,
+        LongConsumer completion)
+    {
+        long removed = 0L;
+        for (String key : keys)
+        {
+            final MemoryEntry entry = entries.remove(key);
+            if (entry != null)
+            {
+                notifyWatchers(key, null);
+                if (!entry.expired())
+                {
+                    removed++;
+                }
+            }
+        }
+        final long count = removed;
+        defer(() -> completion.accept(count));
     }
 
     @Override

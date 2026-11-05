@@ -17,8 +17,12 @@ package io.aklivity.zilla.runtime.engine.store;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /**
  * Provides key-value state operations for streams passing through a binding backed by a store.
@@ -46,6 +50,11 @@ import java.util.function.Consumer;
  */
 public interface StoreHandler
 {
+    /**
+     * Lease duration of the lock taken by the default {@link #increment} implementation.
+     */
+    Duration INCREMENT_LOCK_TTL = Duration.ofSeconds(5);
+
     /**
      * Retrieves the value associated with the given key.
      *
@@ -95,6 +104,129 @@ public interface StoreHandler
     void delete(
         String key,
         Consumer<String> completion);
+
+    /**
+     * Atomically adds {@code delta} to the counter stored under the given key.
+     * <p>
+     * An absent or expired key is created at zero before the addition, with {@code ttl} applied
+     * on creation. The stored form is the decimal string of the counter, so {@link #get} observes
+     * the same value.
+     * </p>
+     * <p>
+     * The default implementation serializes callers with {@link #lock} around {@link #get} and
+     * {@link #put}, and applies {@code ttl} on every write because those operations cannot
+     * preserve a remaining lifetime. Implementations with a native atomic operation should
+     * override it.
+     * </p>
+     *
+     * @param key        the key of the counter
+     * @param delta      the amount to add, which may be negative
+     * @param ttl        the time-to-live applied when the key is created, or {@code null} for no expiry
+     * @param completion a callback that receives {@code (key, value)} where {@code value} is the
+     *                   counter after the addition
+     */
+    default void increment(
+        String key,
+        long delta,
+        Duration ttl,
+        BiConsumer<String, Long> completion)
+    {
+        lock(key, INCREMENT_LOCK_TTL, (k, token) -> onIncrementLock(key, delta, ttl, token, completion));
+    }
+
+    /**
+     * Retrieves the values associated with the given keys.
+     * <p>
+     * The default implementation issues one {@link #get} per key.
+     * </p>
+     *
+     * @param keys       the keys to look up, which must not be empty
+     * @param completion a callback that receives the values in key order;
+     *                   an element is {@code null} if its key is not present
+     */
+    default void get(
+        List<String> keys,
+        Consumer<List<String>> completion)
+    {
+        if (keys.isEmpty())
+        {
+            throw new IllegalArgumentException("keys must not be empty");
+        }
+
+        final String[] values = new String[keys.size()];
+        final AtomicInteger pending = new AtomicInteger(values.length);
+        for (int index = 0; index < values.length; index++)
+        {
+            final int slot = index;
+            get(keys.get(index), (k, value) ->
+            {
+                values[slot] = value;
+                if (pending.decrementAndGet() == 0)
+                {
+                    completion.accept(Arrays.asList(values));
+                }
+            });
+        }
+    }
+
+    /**
+     * Removes the entries for the given keys.
+     * <p>
+     * Removal is best-effort and not atomic across keys. The default implementation issues one
+     * {@link #getAndDelete} per key.
+     * </p>
+     *
+     * @param keys       the keys to remove, which must not be empty
+     * @param completion a callback that receives the number of keys that were present and removed
+     */
+    default void delete(
+        List<String> keys,
+        LongConsumer completion)
+    {
+        if (keys.isEmpty())
+        {
+            throw new IllegalArgumentException("keys must not be empty");
+        }
+
+        final AtomicInteger removed = new AtomicInteger();
+        final AtomicInteger pending = new AtomicInteger(keys.size());
+        for (String key : keys)
+        {
+            getAndDelete(key, value ->
+            {
+                if (value != null)
+                {
+                    removed.incrementAndGet();
+                }
+                if (pending.decrementAndGet() == 0)
+                {
+                    completion.accept(removed.get());
+                }
+            });
+        }
+    }
+
+    private void onIncrementLock(
+        String key,
+        long delta,
+        Duration ttl,
+        String token,
+        BiConsumer<String, Long> completion)
+    {
+        if (token == null)
+        {
+            increment(key, delta, ttl, completion);
+        }
+        else
+        {
+            get(key, (k, value) ->
+            {
+                final long counter = (value != null ? Long.parseLong(value) : 0L) + delta;
+                put(key, Long.toString(counter), ttl, v ->
+                    unlock(key, token, t -> completion.accept(key, counter)));
+            });
+        }
+    }
 
     /**
      * Atomically retrieves and removes the entry for the given key.
