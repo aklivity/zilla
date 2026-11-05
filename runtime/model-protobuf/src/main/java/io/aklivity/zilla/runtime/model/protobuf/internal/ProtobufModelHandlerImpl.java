@@ -55,6 +55,8 @@ import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 public final class ProtobufModelHandlerImpl extends ProtobufModelHandler implements ModelHandler
 {
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
+    private static final Runnable NO_RESUMER = ProtobufModelHandlerImpl::noResume;
+
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
@@ -90,8 +92,16 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ModelTransform transform,
         ModelCache cache)
     {
-        return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
-            requireNonNull(transform), cache);
+        return supplyDecoder(envelope, transform, cache, NO_RESUMER);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform, ModelCache.NONE, resumed);
     }
 
     @Override
@@ -99,7 +109,30 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new ProtobufModelEncoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)));
+        return supplyEncoder(envelope, transform, NO_RESUMER);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new ProtobufModelEncoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)), resumed);
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        ModelCache cache,
+        Runnable resumed)
+    {
+        return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
+            requireNonNull(transform), cache, resumed);
+    }
+
+    private static void noResume()
+    {
     }
 
     boolean decodeDeterministic(

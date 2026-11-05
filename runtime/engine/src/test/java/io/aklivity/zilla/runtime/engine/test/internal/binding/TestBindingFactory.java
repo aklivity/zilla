@@ -70,6 +70,7 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -99,6 +100,7 @@ final class TestBindingFactory implements BindingHandler
 {
     private static final int DATA_FRAME_HEADER_SIZE = 85;
     private static final List<String> EMPTY_ROLES = emptyList();
+    private static final String RECORDER_CREDENTIALS = "token";
 
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -360,6 +362,21 @@ final class TestBindingFactory implements BindingHandler
                         binding.id, metricId, attributesId, null);
 
                     writer.accept(metric.values[context.index()]);
+                }
+            }
+
+            if (options.recorders != null)
+            {
+                for (TestBindingOptionsConfig.Recorder recorder : options.recorders)
+                {
+                    MetricRecorder metricRecorder = context.supplyMetricRecorder(binding.id, recorder.name);
+                    long authorization = 0L;
+                    if (recorder.guard != null)
+                    {
+                        GuardHandler recorderGuard = context.supplyGuard(binding.resolveId.applyAsLong(recorder.guard));
+                        authorization = recorderGuard.reauthorize(0L, binding.id, 0L, RECORDER_CREDENTIALS);
+                    }
+                    metricRecorder.record(authorization, recorder.value);
                 }
             }
         }

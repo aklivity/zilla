@@ -65,6 +65,7 @@
     <module>metrics-http.conf</module>
     <module>metrics-llm.conf</module>
     <module>metrics-mcp.conf</module>
+    <module>metrics-model.conf</module>
     <module>metrics-stream.conf</module>
     <module>model-avro.conf</module>
     <module>model-classify.conf</module>

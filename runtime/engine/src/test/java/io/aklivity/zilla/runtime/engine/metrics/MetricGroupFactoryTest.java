@@ -15,13 +15,24 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestExtCounterMetric;
 import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroup;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroupExtSpi;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroupFactorySpi;
 
 public final class MetricGroupFactoryTest
 {
@@ -32,6 +43,54 @@ public final class MetricGroupFactoryTest
         MetricGroupFactory factory = MetricGroupFactory.instantiate();
         MetricGroup metricGroup = factory.create("test", config);
 
-        assertThat(metricGroup, instanceOf(TestMetricGroup.class));
+        assertThat(metricGroup.name(), equalTo(TestMetricGroup.NAME));
+    }
+
+    @Test
+    public void shouldExtendGroupWithContributedMetric()
+    {
+        Configuration config = new Configuration();
+        MetricGroupFactory factory = MetricGroupFactory.instantiate();
+        MetricGroup metricGroup = factory.create("test", config);
+
+        Collection<String> metricNames = metricGroup.metricNames();
+
+        assertThat(metricGroup.name(), equalTo("test"));
+        assertThat(metricNames, hasItems("test.counter", "test.gauge", "test.histogram", "test.ext.counter"));
+        assertThat(metricGroup.supply("test.ext.counter"), instanceOf(TestExtCounterMetric.class));
+        assertThat(metricGroup.supply("test.counter").name(), equalTo("test.counter"));
+        assertThat(metricGroup.supply("test.unknown"), nullValue());
+    }
+
+    @Test
+    public void shouldRejectContributionRedefiningGroupMetric()
+    {
+        MetricGroupExtSpi redefine = new TestMetricGroupExtSpi()
+        {
+            @Override
+            public Collection<String> metricNames()
+            {
+                return List.of("test.counter");
+            }
+        };
+        MetricGroupFactory factory = MetricGroupFactory.instantiate(
+            List.of(new TestMetricGroupFactorySpi()), List.of(redefine));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> factory.create("test", new Configuration()));
+
+        assertThat(ex.getMessage(), containsString("test.counter"));
+        assertThat(ex.getMessage(), containsString("test"));
+    }
+
+    @Test
+    public void shouldRejectContributionsRedefiningEachOther()
+    {
+        MetricGroupFactory factory = MetricGroupFactory.instantiate(
+            List.of(new TestMetricGroupFactorySpi()),
+            List.of(new TestMetricGroupExtSpi(), new TestMetricGroupExtSpi()));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> factory.create("test", new Configuration()));
+
+        assertThat(ex.getMessage(), containsString("test.ext.counter"));
     }
 }

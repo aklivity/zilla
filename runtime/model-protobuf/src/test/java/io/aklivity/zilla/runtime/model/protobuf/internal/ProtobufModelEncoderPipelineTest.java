@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,14 @@ import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogO
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
@@ -46,6 +55,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
 public class ProtobufModelEncoderPipelineTest
 {
@@ -107,6 +119,110 @@ public class ProtobufModelEncoderPipelineTest
         drain(dst, ra2.produced(), outA);
 
         assertArrayEquals(WIRE, outA.toByteArray());
+    }
+
+    @Test
+    public void shouldSuspendWhileExtensionTransformIsPendingThenComplete()
+    {
+        Pending transform = new Pending();
+        AtomicInteger resumed = new AtomicInteger();
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, resumed::incrementAndGet);
+
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        drain(dst, first.produced(), out);
+        int consumed = first.consumed();
+
+        assertEquals(ModelStatus.SUSPENDED, first.status());
+        assertEquals(0, resumed.get());
+
+        transform.complete();
+        assertEquals(1, resumed.get());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN, new UnsafeBufferEx(in), consumed, in.length,
+            dst, 0, dst.capacity());
+        drain(dst, second.produced(), out);
+
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        assertArrayEquals(WIRE, out.toByteArray());
+    }
+
+    @Test
+    public void shouldKeepTailWhenCallerRedrivesPendingWithEmptySource()
+    {
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        drain(dst, result.produced(), out);
+        assertEquals(in.length, result.consumed());
+        int guard = 0;
+        while (result.status() == ModelStatus.SUSPENDED && guard++ < 100)
+        {
+            transform.complete();
+            result = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+                dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(WIRE, out.toByteArray());
+    }
+
+    @Test
+    public void shouldRejectWhenReentrantTransformFailsAfterPending()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        Pending transform = new Pending(true);
+        transform.failing = true;
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, first.status());
+        transform.complete();
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, second.status());
+        transform.complete();
+        ModelPipelineResult rejected = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+            dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, rejected.status());
+
+        // the held input and output are discarded: the next value starts clean and encodes as a run that never suspends
+        transform.failing = false;
+        transform.resumes = 0;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ModelPipelineResult third = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        drain(dst, third.produced(), out);
+        int guard = 0;
+        while (third.status() == ModelStatus.SUSPENDED && guard++ < 100)
+        {
+            transform.complete();
+            third = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0, dst, 0, dst.capacity());
+            drain(dst, third.produced(), out);
+        }
+        assertEquals(ModelStatus.COMPLETE, third.status());
+        assertArrayEquals(WIRE, out.toByteArray());
     }
 
     @Test
@@ -174,6 +290,13 @@ public class ProtobufModelEncoderPipelineTest
     private ProtobufModelHandlerImpl newHandler(
         String record)
     {
+        return newHandler(record, List.of());
+    }
+
+    private ProtobufModelHandlerImpl newHandler(
+        String record,
+        List<ProtobufModelExtContext> exts)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
@@ -196,7 +319,90 @@ public class ProtobufModelEncoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context, List.of());
+        return new ProtobufModelHandlerImpl(model, context, exts);
+    }
+
+    private static ProtobufModelExtContext pending(
+        Pending transform)
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public <T extends ProtobufTransformable<T>> T decode(
+                T transformable,
+                ProtobufCache cache)
+            {
+                return transformable.transform(transform);
+            }
+
+            @Override
+            public <T extends ProtobufTransformable<T>> T encode(
+                T transformable)
+            {
+                return transformable.transform(transform);
+            }
+        };
+    }
+
+    // waits for the first string value it sees, completing only when the test runs the resumer it was handed
+    private static final class Pending implements ProtobufTransform
+    {
+        private final boolean every;
+        private boolean failing;
+        private int resumes;
+        private Runnable resumer;
+        private boolean released;
+        private boolean waited;
+
+        private Pending()
+        {
+            this(false);
+        }
+
+        private Pending(
+            boolean every)
+        {
+            this.every = every;
+        }
+
+        void complete()
+        {
+            released = true;
+            resumer.run();
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public ProtobufPipeline.Status transform(
+            ProtobufController control,
+            ProtobufSource source,
+            ProtobufEvent event,
+            ProtobufSink sink)
+        {
+            ProtobufPipeline.Status status;
+            if (event == ProtobufEvent.VALUE && (every || !waited))
+            {
+                if (released && failing && resumes++ > 0)
+                {
+                    throw new ProtobufException("failure after resume");
+                }
+
+                resumer = control.resumer();
+                waited = released;
+                status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
+                released &= !every;
+            }
+            else
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
     }
 
     private static byte[] concat(

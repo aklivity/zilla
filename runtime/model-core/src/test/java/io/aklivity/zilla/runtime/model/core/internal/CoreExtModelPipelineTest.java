@@ -149,7 +149,9 @@ public class CoreExtModelPipelineTest
         Validations validations = new Validations();
         StringExtModelPipeline pipeline = new StringExtModelPipeline(
             new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validations, false, false),
-            validations, false, List.of(new Substitute("0123456789")), ModelEnvelope.NONE, 10);
+            validations, false, List.of(new Substitute("0123456789")), ModelEnvelope.NONE, 10, () ->
+            {
+            });
 
         byte[] value = "abc".getBytes();
         UnsafeBufferEx src = new UnsafeBufferEx(value);
@@ -214,7 +216,9 @@ public class CoreExtModelPipelineTest
         Malformed validator = new Malformed();
         StringExtModelPipeline pipeline = new StringExtModelPipeline(
             new CoreModelHandler(engine(new ArrayList<>()), StringModel.NAME, () -> validator, false, false),
-            validator, false, List.of(), ModelEnvelope.NONE, 0);
+            validator, false, List.of(), ModelEnvelope.NONE, 0, () ->
+            {
+            });
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
         ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
@@ -328,11 +332,17 @@ public class CoreExtModelPipelineTest
             new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validations, false, false);
 
         StringExtModelPipeline substituted = new StringExtModelPipeline(
-            plain, validations, false, List.of(new Substitute("x")), ModelEnvelope.NONE, 1);
+            plain, validations, false, List.of(new Substitute("x")), ModelEnvelope.NONE, 1, () ->
+            {
+            });
         StringExtModelPipeline mixed = new StringExtModelPipeline(
-            plain, validations, false, List.of(new Substitute("x"), observingString()), ModelEnvelope.NONE, 1);
+            plain, validations, false, List.of(new Substitute("x"), observingString()), ModelEnvelope.NONE, 1, () ->
+            {
+            });
         StringExtModelPipeline watched = new StringExtModelPipeline(
-            plain, validations, false, List.of(observingString()), ModelEnvelope.NONE, 1);
+            plain, validations, false, List.of(observingString()), ModelEnvelope.NONE, 1, () ->
+            {
+            });
 
         assertTrue(substituted.deterministic());
         assertFalse(substituted.identity());

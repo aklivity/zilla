@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -28,7 +29,7 @@ public class PresidioSpansTest
     @Test
     public void shouldResolveNoFindings()
     {
-        assertThat(PresidioSpans.resolve(List.of(), 10), empty());
+        assertThat(PresidioSpans.resolve(List.of(), text(10)), empty());
     }
 
     @Test
@@ -37,7 +38,7 @@ public class PresidioSpansTest
         PresidioFinding later = new PresidioFinding("EMAIL_ADDRESS", 20, 30, 0.9);
         PresidioFinding earlier = new PresidioFinding("PERSON", 0, 4, 0.9);
 
-        assertThat(PresidioSpans.resolve(List.of(later, earlier), 40), contains(earlier, later));
+        assertThat(PresidioSpans.resolve(List.of(later, earlier), text(40)), contains(earlier, later));
     }
 
     @Test
@@ -46,7 +47,7 @@ public class PresidioSpansTest
         PresidioFinding first = new PresidioFinding("PERSON", 0, 4, 0.9);
         PresidioFinding second = new PresidioFinding("PERSON", 4, 8, 0.9);
 
-        assertThat(PresidioSpans.resolve(List.of(first, second), 8), contains(first, second));
+        assertThat(PresidioSpans.resolve(List.of(first, second), text(8)), contains(first, second));
     }
 
     @Test
@@ -55,7 +56,7 @@ public class PresidioSpansTest
         PresidioFinding shorter = new PresidioFinding("PERSON", 0, 4, 0.99);
         PresidioFinding longer = new PresidioFinding("PERSON", 0, 9, 0.50);
 
-        assertThat(PresidioSpans.resolve(List.of(shorter, longer), 10), contains(longer));
+        assertThat(PresidioSpans.resolve(List.of(shorter, longer), text(10)), contains(longer));
     }
 
     @Test
@@ -64,7 +65,7 @@ public class PresidioSpansTest
         PresidioFinding weaker = new PresidioFinding("PERSON", 0, 4, 0.50);
         PresidioFinding stronger = new PresidioFinding("LOCATION", 0, 4, 0.90);
 
-        assertThat(PresidioSpans.resolve(List.of(weaker, stronger), 10), contains(stronger));
+        assertThat(PresidioSpans.resolve(List.of(weaker, stronger), text(10)), contains(stronger));
     }
 
     @Test
@@ -73,7 +74,7 @@ public class PresidioSpansTest
         PresidioFinding outer = new PresidioFinding("PERSON", 0, 10, 0.80);
         PresidioFinding inner = new PresidioFinding("LOCATION", 2, 5, 0.99);
 
-        assertThat(PresidioSpans.resolve(List.of(inner, outer), 10), contains(outer));
+        assertThat(PresidioSpans.resolve(List.of(inner, outer), text(10)), contains(outer));
     }
 
     @Test
@@ -82,24 +83,54 @@ public class PresidioSpansTest
         PresidioFinding first = new PresidioFinding("PERSON", 0, 6, 0.80);
         PresidioFinding second = new PresidioFinding("LOCATION", 4, 9, 0.80);
 
-        assertThat(PresidioSpans.resolve(List.of(first, second), 10), contains(first));
+        assertThat(PresidioSpans.resolve(List.of(first, second), text(10)), contains(first));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectFindingBeyondText()
     {
-        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", 0, 11, 0.9)), 10);
+        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", 0, 11, 0.9)), text(10));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectNegativeStart()
     {
-        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", -1, 4, 0.9)), 10);
+        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", -1, 4, 0.9)), text(10));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectEmptyFinding()
     {
-        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", 4, 4, 0.9)), 10);
+        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", 4, 4, 0.9)), text(10));
+    }
+
+    @Test
+    public void shouldConvertCodePointOffsetsToUtf8ByteOffsets()
+    {
+        PresidioFinding finding = new PresidioFinding("PERSON", 8, 12, 0.9);
+
+        assertThat(PresidioSpans.resolve(List.of(finding), "héllo 😀 Jane smiled".getBytes(UTF_8)),
+            contains(new PresidioFinding("PERSON", 12, 16, 0.9)));
+    }
+
+    @Test
+    public void shouldConvertSpanContainingMultibyteCodePoints()
+    {
+        PresidioFinding finding = new PresidioFinding("PERSON", 0, 5, 0.9);
+
+        assertThat(PresidioSpans.resolve(List.of(finding), "Zoë 😀 went".getBytes(UTF_8)),
+            contains(new PresidioFinding("PERSON", 0, 9, 0.9)));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectFindingBeyondCodePointsOfMultibyteText()
+    {
+        PresidioSpans.resolve(List.of(new PresidioFinding("PERSON", 0, 7, 0.9)), "héllo".getBytes(UTF_8));
+    }
+
+    private static byte[] text(
+        int length)
+    {
+        return "x".repeat(length).getBytes(UTF_8);
     }
 }

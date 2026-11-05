@@ -41,6 +41,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private final AvroModelHandlerImpl handler;
     private final AvroTransform adapter;
     private final AvroEnvelope envelope;
+    private final Runnable resumed;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
     private final boolean deterministic;
@@ -53,9 +54,11 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     AvroModelEncoderPipeline(
         AvroModelHandlerImpl handler,
         AvroEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        Runnable resumed)
     {
         this.handler = handler;
+        this.resumed = resumed;
         this.envelope = envelope;
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
@@ -110,6 +113,8 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
+            active.bindingId(bindingId);
+            active.resumer(resumed);
             boolean last = hasFin(flags);
             AvroPipelineResult avro =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
@@ -201,6 +206,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;

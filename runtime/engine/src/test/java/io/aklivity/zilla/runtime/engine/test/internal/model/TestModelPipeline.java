@@ -253,8 +253,8 @@ final class TestModelPipeline implements ModelPipeline
             }
         }
 
-        return result.set(status, consumed, produced, status == ModelStatus.REJECTED && resolvedWithheld
-            ? ModelRejection.WITHHELD
+        return result.set(status, consumed, produced, status == ModelStatus.REJECTED
+            ? resolvedWithheld ? ModelRejection.WITHHELD : ModelRejection.INVALID
             : null);
     }
 

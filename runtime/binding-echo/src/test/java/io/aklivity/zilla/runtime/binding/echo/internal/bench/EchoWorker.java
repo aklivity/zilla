@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -420,6 +421,14 @@ public class EchoWorker implements EngineContext
         long exporterId)
     {
 
+    }
+
+    @Override
+    public MetricRecorder supplyMetricRecorder(
+        long namespacedId,
+        String metric)
+    {
+        return MetricRecorder.NOOP;
     }
 
     @Override
