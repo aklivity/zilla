@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.concurrent.RingBufferEx;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
@@ -53,6 +54,7 @@ final class ZillaPartition implements AutoCloseable
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
     private final FlushFW flushRO = new FlushFW();
+    private final AbortFW abortRO = new AbortFW();
     private final DataFW dataRO = new DataFW();
 
     private final Path streamsPath;
@@ -199,6 +201,10 @@ final class ZillaPartition implements AutoCloseable
         case FlushFW.TYPE_ID:
             final FlushFW flush = flushRO.wrap(buffer, index, index + length);
             handleFlush(flush, buffer);
+            break;
+        case AbortFW.TYPE_ID:
+            final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+            handleAbort(abort, buffer);
             break;
         }
     }
@@ -358,6 +364,38 @@ final class ZillaPartition implements AutoCloseable
         if ((streamId & 0x0000_0000_0000_0001L) == 0L)
         {
             handleFlushReply(flush, buffer);
+        }
+    }
+
+    private void handleAbort(
+        AbortFW abort,
+        MutableDirectBufferEx buffer)
+    {
+        final long streamId = abort.streamId();
+
+        if ((streamId & 0x0000_0000_0000_0001L) == 0L)
+        {
+            handleAbortReply(abort, buffer);
+        }
+    }
+
+    private void handleAbortReply(
+        final AbortFW abort,
+        final MutableDirectBufferEx buffer)
+    {
+        final long replyId = abort.streamId();
+        final ZillaCorrelation correlation = correlateEstablished.apply(replyId);
+        final ZillaTarget sender = supplySender.apply(replyId);
+
+        if (correlation != null)
+        {
+            final ChannelFuture beginFuture = correlation.correlatedFuture();
+            final ZillaClientChannel clientChannel = (ZillaClientChannel) beginFuture.getChannel();
+
+            final MessageHandlerEx newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
+            registerStream.accept(replyId, newStream);
+
+            newStream.onMessage(abort.typeId(), buffer, abort.offset(), abort.sizeof());
         }
     }
 
