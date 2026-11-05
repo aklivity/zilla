@@ -116,4 +116,15 @@ public class AsyncapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.http.yaml")
+    @Specification({
+        "${asyncapi}/http/create.pet.reply.abort.before.begin/client",
+        "${composite}/http/create.pet.reply.abort.before.begin/server"
+    })
+    public void shouldAbortReplyBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
