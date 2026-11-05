@@ -123,6 +123,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content block";
     private static final int BLOCK_BUFFER_MAX = 4096;
     private static final String BLOCK_TOOL_USE = "tool_use";
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -204,12 +206,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
     private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
+    private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
 
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
+    private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -276,6 +281,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
+        this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2395,8 +2401,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final Runnable deauthorize;
         private final JsonParserEx parser;
         private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
-        private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
 
         private LlmAnthropicStream stream;
         private LlmAnthropicServerDecoder decoder;
@@ -2528,7 +2532,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.contentType = contentType;
             this.beta = beta;
             this.deauthorize = deauthorize;
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.generator = JsonEx.createGenerator();
             this.probe = new LlmAnthropicAttributeProbe();
             this.partBreakpoint = new LlmBreakpointStash();
@@ -3304,7 +3308,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 controlTransform = new LlmAnthropicControlToCanonical();
-                controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;
@@ -3362,48 +3366,42 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case TOOL_DEFINITION:
                 if (toolPipeline == null)
                 {
-                    toolPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    toolPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionToCanonical(), transformBuffer);
                 }
                 pipeline = toolPipeline;
                 break;
             case TOOL_CALL, SERVER_TOOL_CALL:
                 if (toolUsePipeline == null)
                 {
-                    toolUsePipeline = new LlmSectionPipeline(new LlmAnthropicToolCallToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    toolUsePipeline = new LlmSectionPipeline(new LlmAnthropicToolCallToCanonical(), transformBuffer);
                 }
                 pipeline = toolUsePipeline;
                 break;
             case CITATIONS:
                 if (citationsPipeline == null)
                 {
-                    citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(), transformBuffer);
                 }
                 pipeline = citationsPipeline;
                 break;
             case ASSISTANT_REASONING:
                 if (reasoningPipeline == null)
                 {
-                    reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningToCanonical(), transformBuffer);
                 }
                 pipeline = reasoningPipeline;
                 break;
             case USER_IMAGE:
                 if (imagePipeline == null)
                 {
-                    imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.image(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.image(), transformBuffer);
                 }
                 pipeline = imagePipeline;
                 break;
             case USER_DOCUMENT:
                 if (documentPipeline == null)
                 {
-                    documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.document(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.document(), transformBuffer);
                 }
                 pipeline = documentPipeline;
                 break;
@@ -4099,9 +4097,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final LlmSectionPipeline.Output deltaOutput;
         private final LlmSectionPipeline.Output signatureOutput;
         private final LlmSectionPipeline.Output redactedOutput;
-        private final LlmTextPipeline sectionText;
-        private final LlmTextPipeline reasoningText;
 
+        private LlmTextPipeline sectionText;
+        private LlmTextPipeline reasoningText;
         private LlmTextPipeline textPipeline;
         private LlmSectionPipeline blockPipeline;
         private LlmSectionPipeline reasoningBlock;
@@ -4150,8 +4148,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.deltaOutput = (buffer, offset, length, last) -> onToolDelta(buffer, offset, length);
             this.signatureOutput = (buffer, offset, length, last) -> onReasoningSignature(buffer, offset, length);
             this.redactedOutput = (buffer, offset, length, last) -> onReasoningRedacted(buffer, offset, length);
-            this.sectionText = new LlmTextPipeline(this::onSectionText);
-            this.reasoningText = new LlmTextPipeline(this::onReasoningText, true);
         }
 
         private long initialAvailable()
@@ -5014,8 +5010,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (textSection)
             {
-                sectionText.begin();
-                textPipeline = sectionText;
+                textPipeline = sectionText();
+                textPipeline.begin();
             }
             else
             {
@@ -5042,14 +5038,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (reasoningSignature == null)
             {
                 reasoningSignatureTransform = LlmAnthropicReasoningToEvent.signature();
-                reasoningSignature = new LlmSectionPipeline(reasoningSignatureTransform,
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                reasoningSignature = new LlmSectionPipeline(reasoningSignatureTransform, transformBuffer);
                 reasoningRedactedTransform = LlmAnthropicReasoningToEvent.redacted();
-                reasoningRedacted = new LlmSectionPipeline(reasoningRedactedTransform,
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                reasoningRedacted = new LlmSectionPipeline(reasoningRedactedTransform, transformBuffer);
             }
 
-            reasoningText.begin();
+            reasoningText().begin();
             reasoningSignature.begin(replyAttributes);
             reasoningRedacted.begin(replyAttributes);
         }
@@ -5064,12 +5058,32 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             reasoningSignatureTransform.index(blockOpen ? blocks - 1 : blocks);
             reasoningRedactedTransform.index(blocks);
 
-            if (!reasoningText.feed(payload, payloadOffset, payloadLength, fin) ||
+            if (!reasoningText().feed(payload, payloadOffset, payloadLength, fin) ||
                 !reasoningSignature.feed(payload, payloadOffset, payloadLength, fin, signatureOutput) ||
                 !reasoningRedacted.feed(payload, payloadOffset, payloadLength, fin, redactedOutput))
             {
                 server.cleanup(traceId);
             }
+        }
+
+        private LlmTextPipeline sectionText()
+        {
+            if (sectionText == null)
+            {
+                sectionText = new LlmTextPipeline(this::onSectionText);
+            }
+
+            return sectionText;
+        }
+
+        private LlmTextPipeline reasoningText()
+        {
+            if (reasoningText == null)
+            {
+                reasoningText = new LlmTextPipeline(this::onReasoningText, true);
+            }
+
+            return reasoningText;
         }
 
         private void onReasoningText(
@@ -5204,7 +5218,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 toolBlock = new LlmSectionPipeline(
                     new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE, NAME.equals(responseDialect)),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    transformBuffer);
             }
 
             return toolBlock;
@@ -5214,7 +5228,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (toolValue == null)
             {
-                toolValue = new LlmSectionPipeline(new LlmToolCallToValue(), new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                toolValue = new LlmSectionPipeline(new LlmToolCallToValue(), transformBuffer);
             }
 
             return toolValue;
@@ -5225,7 +5239,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 controlTransform = new LlmAnthropicControlFromCanonical(NAME.equals(responseDialect));
-                controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;
@@ -5614,7 +5628,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     {
                         reasoningBlock = new LlmSectionPipeline(
                             new LlmAnthropicReasoningFromCanonical(true, NAME.equals(responseDialect)),
-                            new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                            transformBuffer);
                     }
 
                     blockPipeline = reasoningBlock;

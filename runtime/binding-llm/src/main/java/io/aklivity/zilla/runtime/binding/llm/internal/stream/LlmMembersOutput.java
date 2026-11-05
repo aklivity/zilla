@@ -71,6 +71,8 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
 
         if (remaining > 0)
         {
+            final int tail = buffer.getByte(from + remaining - 1);
+
             if (held != NONE)
             {
                 heldBytes[0] = (byte) held;
@@ -82,7 +84,7 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
                 members.put(buffer, from, remaining - 1);
             }
 
-            held = buffer.getByte(from + remaining - 1);
+            held = tail;
         }
 
         if (last)
