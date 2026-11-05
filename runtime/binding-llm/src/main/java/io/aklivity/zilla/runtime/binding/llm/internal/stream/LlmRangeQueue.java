@@ -32,6 +32,9 @@ final class LlmRangeQueue
     private static final int RANGE_OVERHEAD = 16;
     private static final int INITIAL_ENTRIES = 16;
     private static final int INITIAL_STORAGE = 1024;
+    private static final int[] NO_INTS = new int[0];
+    private static final boolean[] NO_FLAGS = new boolean[0];
+    private static final byte[] NO_BYTES = new byte[0];
 
     private final int budget;
     private final Consumer<LlmRangeFW> appender;
@@ -61,11 +64,11 @@ final class LlmRangeQueue
         this.writer = this::write;
         this.attributesRO = new Array32FW<>(new LlmAttributeFW());
         this.storageRO = new UnsafeBufferEx();
-        this.remaining = new int[INITIAL_ENTRIES];
-        this.closing = new boolean[INITIAL_ENTRIES];
-        this.attributesOffset = new int[INITIAL_ENTRIES];
-        this.attributesLength = new int[INITIAL_ENTRIES];
-        this.storage = new byte[INITIAL_STORAGE];
+        this.remaining = NO_INTS;
+        this.closing = NO_FLAGS;
+        this.attributesOffset = NO_INTS;
+        this.attributesLength = NO_INTS;
+        this.storage = NO_BYTES;
     }
 
     void begin()
@@ -194,7 +197,7 @@ final class LlmRangeQueue
 
         if (tail == remaining.length)
         {
-            final int capacity = tail << 1;
+            final int capacity = Math.max(tail << 1, INITIAL_ENTRIES);
 
             remaining = Arrays.copyOf(remaining, capacity);
             closing = Arrays.copyOf(closing, capacity);
@@ -204,7 +207,7 @@ final class LlmRangeQueue
 
         if (storageLimit + length > storage.length)
         {
-            storage = Arrays.copyOf(storage, Math.max(storage.length << 1, storageLimit + length));
+            storage = Arrays.copyOf(storage, Math.max(Math.max(storage.length << 1, INITIAL_STORAGE), storageLimit + length));
         }
 
         attributes.buffer().getBytes(attributes.offset(), storage, storageLimit, length);
