@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.classifier;
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.config.engine.ClassifierConfig;
+import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
@@ -36,6 +37,8 @@ public class TestClassifierContext implements ClassifierContext
     public ClassifierHandler attach(
         ClassifierConfig classifier)
     {
-        return new TestClassifierHandler(dispatcher);
+        return new TestClassifierHandler(dispatcher, classifier.options instanceof TestClassifierOptionsConfig options
+            ? options
+            : TestClassifierOptionsConfig.builder().build());
     }
 }

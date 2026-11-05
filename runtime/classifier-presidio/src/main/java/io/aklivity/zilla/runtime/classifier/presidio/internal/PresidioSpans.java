@@ -28,8 +28,9 @@ final class PresidioSpans
 
     static List<PresidioFinding> resolve(
         List<PresidioFinding> findings,
-        int length)
+        byte[] value)
     {
+        final int length = codePoints(value);
         findings.forEach(finding -> validate(finding, length));
 
         List<PresidioFinding> ordered = findings.stream()
@@ -48,7 +49,64 @@ final class PresidioSpans
             }
         }
 
-        return resolved;
+        return bytes(resolved, value);
+    }
+
+    private static List<PresidioFinding> bytes(
+        List<PresidioFinding> findings,
+        byte[] value)
+    {
+        List<PresidioFinding> converted = new ArrayList<>(findings.size());
+        int point = 0;
+        int position = 0;
+
+        for (PresidioFinding finding : findings)
+        {
+            final int start = skip(value, position, finding.start() - point);
+            final int end = skip(value, start, finding.end() - finding.start());
+
+            converted.add(new PresidioFinding(finding.entity(), start, end, finding.score()));
+            point = finding.end();
+            position = end;
+        }
+
+        return converted;
+    }
+
+    private static int codePoints(
+        byte[] value)
+    {
+        int count = 0;
+
+        for (byte octet : value)
+        {
+            if ((octet & 0xC0) != 0x80)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int skip(
+        byte[] value,
+        int from,
+        int points)
+    {
+        int position = from;
+
+        for (int i = 0; i < points; i++)
+        {
+            position++;
+
+            while (position < value.length && (value[position] & 0xC0) == 0x80)
+            {
+                position++;
+            }
+        }
+
+        return position;
     }
 
     private static void validate(
