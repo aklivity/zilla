@@ -24,6 +24,21 @@ package io.aklivity.zilla.runtime.engine.binding;
  * two can occur in either order, so neither implies the other.
  * <p>
  * Closing and closed always occur in that order in either direction, so the close methods set both.
+ * <p>
+ * The bit layout is fixed and stable, so a state value can be compared or recorded across versions:
+ * <ul>
+ * <li>{@code 0x001} reply opening</li>
+ * <li>{@code 0x002} reply opened</li>
+ * <li>{@code 0x004} reply closing</li>
+ * <li>{@code 0x008} reply closed</li>
+ * <li>{@code 0x010} initial opening</li>
+ * <li>{@code 0x020} initial opened</li>
+ * <li>{@code 0x040} initial closing</li>
+ * <li>{@code 0x080} initial closed</li>
+ * <li>{@code 0x100} initial aborting</li>
+ * <li>{@code 0x200} reply aborting</li>
+ * </ul>
+ * No bits are reserved for use by individual bindings.
  */
 public final class StreamState
 {
