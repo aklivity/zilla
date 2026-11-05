@@ -99,4 +99,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.abort.before.begin/client",
+        "${app}/server.sent.write.abort.before.begin/server"})
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
