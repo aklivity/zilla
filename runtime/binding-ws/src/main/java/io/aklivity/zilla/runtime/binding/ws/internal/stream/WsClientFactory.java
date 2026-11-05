@@ -67,6 +67,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -267,7 +268,7 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             long affinity)
         {
-            state = WsState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
@@ -275,6 +276,7 @@ public final class WsClientFactory implements WsStreamFactory
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -300,6 +302,7 @@ public final class WsClientFactory implements WsStreamFactory
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .budgetId(0L)
@@ -319,9 +322,9 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             short code)
         {
-            if (!WsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = WsState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -329,6 +332,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
+                        .state(state)
                         .maximum(replyMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -344,9 +348,9 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             short code)
         {
-            if (!WsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = WsState.closeReply(state);
+                state = StreamState.abortingReply(StreamState.closeReply(state));
 
                 // TODO: WsAbortEx
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -355,6 +359,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
+                        .state(state)
                         .maximum(replyMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -376,6 +381,7 @@ public final class WsClientFactory implements WsStreamFactory
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -390,9 +396,9 @@ public final class WsClientFactory implements WsStreamFactory
             long traceId,
             long authorization)
         {
-            if (!WsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = WsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -400,6 +406,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -420,6 +427,7 @@ public final class WsClientFactory implements WsStreamFactory
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -443,8 +451,6 @@ public final class WsClientFactory implements WsStreamFactory
                 initialMax = client.initialMax;
                 assert initialAck <= initialSeq;
 
-                state = WsState.openReply(state);
-
                 int initialPad = paddingMin + MAXIMUM_HEADER_SIZE;
 
                 final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -453,6 +459,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -525,7 +532,7 @@ public final class WsClientFactory implements WsStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = WsState.openingInitial(state);
+            state = StreamState.openInitial(state);
             protocol = beginEx != null ? beginEx.protocol().asString() : null;
 
             client.doNetBegin(traceId, authorization, affinity);
@@ -580,7 +587,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = WsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -603,7 +610,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = WsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -648,7 +655,7 @@ public final class WsClientFactory implements WsStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = WsState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -667,7 +674,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert acknowledge >= replyAck;
 
             replyAck = acknowledge;
-            state = WsState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -715,6 +722,8 @@ public final class WsClientFactory implements WsStreamFactory
             private long replyAck;
             private int replyMax;
 
+            private int state;
+
             private long decodeTraceId;
             private long decodeAuthorization;
             private DecoderState decodeState;
@@ -756,8 +765,9 @@ public final class WsClientFactory implements WsStreamFactory
                 long authorization,
                 long affinity)
             {
-                network = doHttpBegin(this::onNetMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, setHttpHeaders(scheme, authority, path, key, protocol));
+                state = StreamState.openingInitial(state);
+                network = doHttpBegin(this::onNetMessage, originId, routedId, initialId, initialSeq, initialAck, state,
+                        initialMax, traceId, authorization, affinity, setHttpHeaders(scheme, authority, path, key, protocol));
             }
 
             private void doNetData(
@@ -787,6 +797,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -808,12 +819,14 @@ public final class WsClientFactory implements WsStreamFactory
                 long traceId,
                 long authorization)
             {
+                state = StreamState.closeInitial(state);
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
                         .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -826,12 +839,14 @@ public final class WsClientFactory implements WsStreamFactory
                 long traceId,
                 long authorization)
             {
+                state = StreamState.abortingInitial(StreamState.closeInitial(state));
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
                         .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -852,6 +867,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -866,12 +882,14 @@ public final class WsClientFactory implements WsStreamFactory
                 long traceId,
                 long authorization)
             {
+                state = StreamState.closeReply(state);
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
                         .routedId(routedId)
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
+                        .state(state)
                         .maximum(replyMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -891,6 +909,7 @@ public final class WsClientFactory implements WsStreamFactory
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
+                        .state(state)
                         .maximum(replyMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -920,6 +939,7 @@ public final class WsClientFactory implements WsStreamFactory
                             .streamId(replyId)
                             .sequence(replySeq)
                             .acknowledge(replyAck)
+                            .state(state)
                             .maximum(replyMax)
                             .traceId(traceId)
                             .authorization(authorization)
@@ -981,6 +1001,7 @@ public final class WsClientFactory implements WsStreamFactory
             private void onNetBegin(
                 BeginFW begin)
             {
+                state = StreamState.openingReply(state);
                 final long sequence = begin.sequence();
                 final long acknowledge = begin.acknowledge();
                 final int maximum = begin.maximum();
@@ -1109,6 +1130,7 @@ public final class WsClientFactory implements WsStreamFactory
             private void onNetEnd(
                 EndFW end)
             {
+                state = StreamState.closeReply(state);
                 final long sequence = end.sequence();
                 final long acknowledge = end.acknowledge();
                 final long traceId = end.traceId();
@@ -1128,6 +1150,7 @@ public final class WsClientFactory implements WsStreamFactory
             private void onNetAbort(
                 AbortFW abort)
             {
+                state = StreamState.abortingReply(StreamState.closeReply(state));
                 final long sequence = abort.sequence();
                 final long acknowledge = abort.acknowledge();
                 final long traceId = abort.traceId();
@@ -1168,6 +1191,7 @@ public final class WsClientFactory implements WsStreamFactory
             private void onNetWindow(
                 WindowFW window)
             {
+                state = StreamState.openInitial(state);
                 final long sequence = window.sequence();
                 final long acknowledge = window.acknowledge();
                 final long traceId = window.traceId();
@@ -1194,6 +1218,7 @@ public final class WsClientFactory implements WsStreamFactory
             private void onNetReset(
                 ResetFW reset)
             {
+                state = StreamState.closeInitial(state);
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
 
@@ -1521,6 +1546,7 @@ public final class WsClientFactory implements WsStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1533,6 +1559,7 @@ public final class WsClientFactory implements WsStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

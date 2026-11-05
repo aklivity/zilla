@@ -295,4 +295,13 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.write.abort.before.begin.not.modified/client",
+        "${app}/client.write.abort.before.begin.not.modified/server"})
+    public void shouldWriteAbortBeforeBeginNotModified() throws Exception
+    {
+        k3po.finish();
+    }
 }
