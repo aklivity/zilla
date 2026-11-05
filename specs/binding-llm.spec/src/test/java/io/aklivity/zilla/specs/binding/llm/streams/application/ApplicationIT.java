@@ -57,6 +57,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.reply.abort.before.begin/client",
+        "${app}/openai.reply.abort.before.begin/server"})
+    public void shouldOpenaiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/begin.attributes/client",
         "${app}/begin.attributes/server"})
     public void shouldReceiveBeginAttributes() throws Exception
@@ -9058,9 +9067,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.reply.abort.before.begin/client",
+        "${app}/gemini.reply.abort.before.begin/server"})
+    public void shouldGeminiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.abort/client",
         "${app}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.reply.abort.before.begin/client",
+        "${app}/openai.responses.reply.abort.before.begin/server"})
+    public void shouldOpenaiResponsesReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }

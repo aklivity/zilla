@@ -66,6 +66,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.abort.before.begin/client",
+        "${net}/openai.reply.abort.before.begin/server"})
+    public void shouldOpenaiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.echo/client",
         "${net}/openai.echo/server"})
     public void shouldEncodeOpenaiRequest() throws Exception
@@ -9373,6 +9382,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.reply.abort.before.begin/client",
+        "${net}/gemini.reply.abort.before.begin/server"})
+    public void shouldGeminiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.mcp/client",
         "${net}/openai.responses.sorted.mcp/server"})
     public void shouldOpenaiSortedResponsesMcp() throws Exception
@@ -9592,6 +9610,15 @@ public class NetworkIT
         "${net}/openai.responses.abort/client",
         "${net}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.abort.before.begin/client",
+        "${net}/openai.responses.reply.abort.before.begin/server"})
+    public void shouldOpenaiResponsesReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }
