@@ -65,6 +65,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     private static final int MAX_DEPTH = 64;
+    private static final int SCRATCH_RETAINED = 1024;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
@@ -208,10 +209,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
     {
         this.maxValueSize = maxValueSize;
         this.quoted = quoted;
-        for (int i = 0; i < MAX_DEPTH; i++)
-        {
-            pathKeyChars[i] = new StringBuilder();
-        }
     }
 
     @Override
@@ -222,7 +219,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             mark.state = null;
         }
-        scratch.setLength(0);
+        clearScratch();
         scratchConsumed = 0;
         numberState = NumberState.START;
         stringVerbatim = false;
@@ -305,7 +302,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
             mark.frameKeySet = pathKeySet[frame];
             mark.frameIndex = pathIndex[frame];
             mark.frameKeyChars.setLength(0);
-            mark.frameKeyChars.append(pathKeyChars[frame]);
+            if (pathKeyChars[frame] != null)
+            {
+                mark.frameKeyChars.append(pathKeyChars[frame]);
+            }
         }
         mark.streamOffset = streamOffset;
         mark.valueStreamStart = valueStreamStart;
@@ -358,8 +358,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
             final int frame = pathDepth - 1;
             pathKeySet[frame] = mark.frameKeySet;
             pathIndex[frame] = mark.frameIndex;
-            pathKeyChars[frame].setLength(0);
-            pathKeyChars[frame].append(mark.frameKeyChars);
+            final StringBuilder keyChars = pathKeyChars(frame);
+            keyChars.setLength(0);
+            keyChars.append(mark.frameKeyChars);
         }
         state = mark.state;
         valueStreamStart = mark.valueStreamStart;
@@ -1101,7 +1102,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             fragmentStart = streamOffset - 1;
             valueLine = line;
             valueColumn = column - 1;
-            scratch.setLength(0);
+            clearScratch();
             resumeEscape = false;
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
@@ -1151,7 +1152,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 fragmentStart = streamOffset - 1;
                 valueLine = line;
                 valueColumn = column - 1;
-                scratch.setLength(0);
+                clearScratch();
                 scratchConsumed = 0;
                 numberState = NumberState.START;
                 appendScratch((char) c);
@@ -1181,7 +1182,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         fragmentStart = streamOffset - 1;
         valueLine = line;
         valueColumn = column - 1;
-        scratch.setLength(0);
+        clearScratch();
         resumeEscape = false;
         resumeUnicodePending = 0;
         resumeOp = ResumeOp.KEY_STRING;
@@ -1241,6 +1242,27 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
     }
 
+    private StringBuilder pathKeyChars(
+        int frame)
+    {
+        StringBuilder keyChars = pathKeyChars[frame];
+        if (keyChars == null)
+        {
+            keyChars = new StringBuilder();
+            pathKeyChars[frame] = keyChars;
+        }
+        return keyChars;
+    }
+
+    private void clearScratch()
+    {
+        scratch.setLength(0);
+        if (scratch.capacity() > SCRATCH_RETAINED)
+        {
+            scratch.trimToSize();
+        }
+    }
+
     // Keys are always deferred (left in scratch, materialized lazily by stringValue()), so a key that
     // is never read by a downstream stage allocates no String. The chars are mirrored into the
     // per-depth pathKeyChars slot so path matching and currentPath() can compare them as a
@@ -1251,7 +1273,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pendingString = null;
         if (pathDepth > 0 && !pathInArray[pathDepth - 1])
         {
-            final StringBuilder keyChars = pathKeyChars[pathDepth - 1];
+            final StringBuilder keyChars = pathKeyChars(pathDepth - 1);
             keyChars.setLength(0);
             keyChars.append(scratch);
             pathKeySet[pathDepth - 1] = true;

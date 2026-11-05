@@ -3820,7 +3820,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
-        private final LlmTextPipeline textPipeline;
+        private LlmTextPipeline textPipeline;
         private final LlmSectionPipeline.Output encodeArguments = (buffer, offset, length, last) ->
             onEncodeArguments(buffer, offset, length);
 
@@ -3855,7 +3855,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
-            this.textPipeline = new LlmTextPipeline(this::onReasoningText);
             this.delimiterBytes = new byte[64];
             this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
         }
@@ -4588,7 +4587,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (kind == KIND_TEXT || kind == KIND_REFUSAL)
             {
-                textPipeline.begin();
+                textPipeline().begin();
             }
         }
 
@@ -4601,7 +4600,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (kind == KIND_REASONING || kind == KIND_TEXT || kind == KIND_REFUSAL)
             {
-                textPipeline.feed(payload, payloadOffset, payloadLength, fin);
+                textPipeline().feed(payload, payloadOffset, payloadLength, fin);
             }
             else if (kind == KIND_TOOL_CALL &&
                 !argumentsPipeline.feed(payload, payloadOffset, payloadLength, fin, encodeArguments))
@@ -4671,6 +4670,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             onEncodeText(payload, offset, length);
         }
 
+        private LlmTextPipeline textPipeline()
+        {
+            if (textPipeline == null)
+            {
+                textPipeline = new LlmTextPipeline(this::onReasoningText);
+            }
+            return textPipeline;
+        }
+
         private void sectionReasoning(
             String tag)
         {
@@ -4682,7 +4690,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (kind != KIND_SKIPPED)
             {
                 kind = KIND_REASONING;
-                textPipeline.begin();
+                textPipeline().begin();
 
                 if (reasoningTag == null)
                 {
