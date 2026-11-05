@@ -60,6 +60,17 @@ public class CacheConsumerIT
     }
 
     @Test
+    @Configuration("cache.when.topic.yaml")
+    @Specification({
+        "${app}/partition.assignment.window.before.begin/client",
+        "${net}/partition.assignment/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPartitionAssignmentWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/reassign.new.topic/client",

@@ -153,4 +153,21 @@ public class KafkaProduceIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.oneway.write.abort.before.begin/client",
+        "${kafka}/unary.rpc.oneway.write.abort.before.begin/server"})
+    public void shouldAbortOnewayUnaryRpcOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.write.abort.before.begin/client",
+        "${kafka}/unary.rpc.write.abort.before.begin/server"})
+    public void shouldAbortUnaryRpcOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

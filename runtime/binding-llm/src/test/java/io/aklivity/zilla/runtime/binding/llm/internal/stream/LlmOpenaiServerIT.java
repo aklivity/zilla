@@ -1871,6 +1871,46 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.end.deferred/client",
+        "${app}/openai.request.end.deferred/server"})
+    public void shouldOpenaiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.end.deferred.reset/client",
+        "${app}/openai.request.end.deferred.reset/server"})
+    public void shouldOpenaiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.end.deferred/client",
+        "${app}/openai.response.end.deferred/server"})
+    public void shouldOpenaiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.end.deferred.reset/client",
+        "${app}/openai.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
     @Specification({

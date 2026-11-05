@@ -2280,6 +2280,46 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.request.end.deferred/client",
+        "${app}/openai.responses.request.end.deferred/server"})
+    public void shouldOpenaiResponsesRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.end.deferred.reset/client",
+        "${app}/openai.responses.request.end.deferred.reset/server"})
+    public void shouldOpenaiResponsesRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.end.deferred/client",
+        "${app}/openai.responses.response.end.deferred/server"})
+    public void shouldOpenaiResponsesResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.end.deferred.reset/client",
+        "${app}/openai.responses.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponsesResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.request.abort/client"})
     public void shouldOpenaiResponsesRequestAbort() throws Exception
     {
