@@ -247,6 +247,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final int llmTypeId;
     private final int httpTypeId;
 
+    private byte[] textBytes = new byte[1024];
+    private UnsafeBufferEx textBuffer = new UnsafeBufferEx(textBytes);
+    private byte[] pieceBytes = new byte[1024];
+    private UnsafeBufferEx pieceBuffer = new UnsafeBufferEx(pieceBytes);
+
     public LlmOpenaiClientFactory(
         EngineContext context)
     {
@@ -596,10 +601,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int scanChoice;
 
         private char highSurrogate;
-        private byte[] textBytes;
-        private UnsafeBufferEx textBuffer;
-        private byte[] pieceBytes;
-        private UnsafeBufferEx pieceBuffer;
         private final JsonGeneratorEx generator;
         private final JsonGeneratorEx controlGenerator;
         private byte[] controlBytes;
@@ -654,10 +655,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.usagePath = new StringBuilder();
             this.usageMark = new int[8];
-            this.textBytes = new byte[1024];
-            this.textBuffer = new UnsafeBufferEx(textBytes);
-            this.pieceBytes = new byte[1024];
-            this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
             this.generator = JsonEx.createGenerator();
             this.controlGenerator = JsonEx.createGenerator();
             this.controlBytes = new byte[CONTROL_HEADER];

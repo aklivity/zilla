@@ -452,7 +452,8 @@ class JsonParserMarkRewindTest
             {
                 fields.put("tokenizer.frame.keySet", ((boolean[]) get(tokenizer, "pathKeySet"))[depth - 1]);
                 fields.put("tokenizer.frame.index", ((int[]) get(tokenizer, "pathIndex"))[depth - 1]);
-                fields.put("tokenizer.frame.key", ((StringBuilder[]) get(tokenizer, "pathKeyChars"))[depth - 1].toString());
+                final StringBuilder key = ((StringBuilder[]) get(tokenizer, "pathKeyChars"))[depth - 1];
+                fields.put("tokenizer.frame.key", key != null ? key.toString() : "");
             }
         }
         catch (ReflectiveOperationException ex)
