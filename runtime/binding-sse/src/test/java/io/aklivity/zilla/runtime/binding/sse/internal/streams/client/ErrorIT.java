@@ -86,4 +86,14 @@ public class ErrorIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/server.abort.before.begin/client",
+        "${net}/server.abort.before.begin/response" })
+    public void shouldAbortResponseBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
