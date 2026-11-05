@@ -659,6 +659,230 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldDecodeLargeNestedValueWithoutSuspension()
+    {
+        assertLargeNestedValue(null, 4096, 1024);
+    }
+
+    @Test
+    public void shouldDecodeLargeNestedValueWithSuspension()
+    {
+        assertLargeNestedValue(new Pending(true), 4096, 1024);
+    }
+
+    @Test
+    public void shouldDecodeLargeNestedValueAcrossAwkwardFragments()
+    {
+        for (int fragment : new int[] {1, 7, 13, 100, 999, 4097, 20000})
+        {
+            assertLargeNestedValue(null, 4096, fragment);
+            assertLargeNestedValue(new Pending(true), 4096, fragment);
+        }
+    }
+
+    @Test
+    public void shouldDecodeLargeNestedValueWithSuspensionInOneFragment()
+    {
+        assertLargeNestedValue(new Pending(true), 4096, Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void shouldDecodeNestedValueLargerThanOneDestinationBuffer()
+    {
+        for (int fragment : new int[] {Integer.MAX_VALUE, 32000, 20000})
+        {
+            assertLargeNestedValue(null, 32000, fragment, 4000);
+            assertLargeNestedValue(new Pending(true), 32000, fragment, 4000);
+        }
+    }
+
+    private void assertLargeNestedValue(
+        Pending transform,
+        int dstCapacity,
+        int fragmentSize)
+    {
+        assertLargeNestedValue(transform, dstCapacity, fragmentSize, 1500);
+    }
+
+    private void assertLargeNestedValue(
+        Pending transform,
+        int dstCapacity,
+        int fragmentSize,
+        int count)
+    {
+        String schema = """
+                        syntax = "proto3";
+                        package io.aklivity.examples.clients.proto;
+                        message Outer {
+                            Middle middle = 1;
+                        }
+                        message Middle {
+                            Inner inner = 1;
+                        }
+                        message Inner {
+                            repeated string v = 1;
+                        }
+                        """;
+        ByteArrayOutputStream inner = new ByteArrayOutputStream();
+        for (int i = 0; i < count; i++)
+        {
+            byte[] value = "value-%04d".formatted(i).getBytes(UTF_8);
+            inner.write(0x0a);
+            inner.write(value.length);
+            inner.writeBytes(value);
+        }
+        byte[] innerBytes = inner.toByteArray();
+        ByteArrayOutputStream middle = new ByteArrayOutputStream();
+        middle.write(0x0a);
+        writeVarint(middle, innerBytes.length);
+        middle.writeBytes(innerBytes);
+        byte[] middleBytes = middle.toByteArray();
+        ByteArrayOutputStream outer = new ByteArrayOutputStream();
+        outer.write(0x00);
+        outer.write(0x0a);
+        writeVarint(outer, middleBytes.length);
+        outer.writeBytes(middleBytes);
+        byte[] wire = outer.toByteArray();
+
+        ProtobufModelHandlerImpl handler = newHandler(null,
+            transform != null ? List.of(pending(transform)) : List.of(), schema, "Outer");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+
+        byte[] decoded = driveLikeBinding(pipeline, transform, wire, dstCapacity, fragmentSize);
+
+        assertEquals(count, innerValues(decoded).size());
+        assertEquals("value-0000", innerValues(decoded).get(0));
+        assertEquals("value-%04d".formatted(count - 1), innerValues(decoded).get(count - 1));
+    }
+
+    private static void writeVarint(
+        ByteArrayOutputStream out,
+        int value)
+    {
+        int remaining = value;
+        while (remaining >= 0x80)
+        {
+            out.write((remaining & 0x7f) | 0x80);
+            remaining >>>= 7;
+        }
+        out.write(remaining);
+    }
+
+    // drives the pipeline as a binding does: fragments accumulate in a decode slot, the loop continues on OK or
+    // OVERFLOW, an UNDERFLOW leaves the unconsumed bytes in the slot, and a SUSPENDED waits for the callback and
+    // then re-drives with no input and no flags
+    private static byte[] driveLikeBinding(
+        ModelPipeline pipeline,
+        Pending transform,
+        byte[] wire,
+        int dstCapacity,
+        int fragmentSize)
+    {
+        MutableDirectBufferEx slot = new UnsafeBufferEx(new byte[wire.length]);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[dstCapacity]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int slotOffset = 0;
+        int fed = 0;
+        boolean suspended = false;
+        ModelStatus status = ModelStatus.OK;
+        int rounds = 0;
+        while (status != ModelStatus.COMPLETE && rounds++ < 100_000)
+        {
+            int flags;
+            int limit;
+            if (suspended)
+            {
+                transform.complete();
+                flags = 0;
+                limit = 0;
+            }
+            else
+            {
+                int fragment = (int) Math.min(fragmentSize, wire.length - fed);
+                slot.putBytes(slotOffset, wire, fed, fragment);
+                flags = (fed == 0 ? INIT : 0) | (fed + fragment == wire.length ? FIN : 0);
+                fed += fragment;
+                slotOffset += fragment;
+                limit = slotOffset;
+            }
+            suspended = false;
+            int srcAt = 0;
+            int stepFlags = flags;
+            do
+            {
+                ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, stepFlags, slot, srcAt, limit,
+                    dst, 0, dst.capacity());
+                status = result.status();
+                assertTrue("rejected", status != ModelStatus.REJECTED);
+                srcAt += result.consumed();
+                stepFlags &= ~INIT;
+                drain(dst, result.produced(), out);
+            }
+            while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+            if (status == ModelStatus.SUSPENDED)
+            {
+                suspended = true;
+            }
+            else if (status == ModelStatus.UNDERFLOW)
+            {
+                int remaining = limit - srcAt;
+                if (remaining > 0 && srcAt > 0)
+                {
+                    slot.putBytes(0, slot, srcAt, remaining);
+                }
+                slotOffset = remaining;
+            }
+        }
+        assertEquals(ModelStatus.COMPLETE, status);
+        return out.toByteArray();
+    }
+
+    private static List<String> innerValues(
+        byte[] message)
+    {
+        List<String> values = new ArrayList<>();
+        collectValues(message, 0, message.length, 0, values);
+        return values;
+    }
+
+    private static void collectValues(
+        byte[] message,
+        int from,
+        int to,
+        int depth,
+        List<String> values)
+    {
+        int at = from;
+        while (at < to)
+        {
+            int tag = message[at++] & 0xff;
+            int length = 0;
+            int shift = 0;
+            int b;
+            do
+            {
+                b = message[at++] & 0xff;
+                length |= (b & 0x7f) << shift;
+                shift += 7;
+            }
+            while ((b & 0x80) != 0);
+            if (depth < 2)
+            {
+                collectValues(message, at, at + length, depth + 1, values);
+            }
+            else
+            {
+                values.add(new String(message, at, length, UTF_8));
+            }
+            at += length;
+            assertEquals(0x0a, tag);
+        }
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
