@@ -3530,4 +3530,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.reply.abort.before.begin/client",
+        "${net}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

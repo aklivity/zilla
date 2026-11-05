@@ -9346,6 +9346,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.reply.abort.before.begin/client",
+        "${net}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.custom.tool.call.stream/client",
         "${net}/openai.responses.sorted.custom.tool.call.stream/server"})
     public void shouldOpenaiSortedResponsesCustomToolCallStream() throws Exception

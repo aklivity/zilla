@@ -9040,6 +9040,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.reply.abort.before.begin/client",
+        "${app}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.abort/client",
         "${app}/gemini.abort/server"})
     public void shouldGeminiAbort() throws Exception
