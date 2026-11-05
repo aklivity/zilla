@@ -134,6 +134,7 @@ public class HttpEventContext
     public void circuitOpened(
         long traceId,
         long bindingId,
+        long originId,
         long circuitId,
         HttpCircuitCause cause,
         long remaining)
@@ -142,6 +143,7 @@ public class HttpEventContext
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .circuitOpened(e -> e
                 .typeId(CIRCUIT_OPENED.value())
+                .originId(originId)
                 .circuitId(circuitId)
                 .cause(c -> c.set(cause))
                 .remaining(remaining)
@@ -153,6 +155,7 @@ public class HttpEventContext
     public void circuitHalfOpened(
         long traceId,
         long bindingId,
+        long originId,
         long circuitId,
         HttpCircuitCause cause,
         long remaining)
@@ -161,6 +164,7 @@ public class HttpEventContext
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .circuitHalfOpened(e -> e
                 .typeId(CIRCUIT_HALF_OPENED.value())
+                .originId(originId)
                 .circuitId(circuitId)
                 .cause(c -> c.set(cause))
                 .remaining(remaining)
@@ -172,6 +176,7 @@ public class HttpEventContext
     public void circuitClosed(
         long traceId,
         long bindingId,
+        long originId,
         long circuitId,
         HttpCircuitCause cause,
         long remaining)
@@ -180,6 +185,7 @@ public class HttpEventContext
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .circuitClosed(e -> e
                 .typeId(CIRCUIT_CLOSED.value())
+                .originId(originId)
                 .circuitId(circuitId)
                 .cause(c -> c.set(cause))
                 .remaining(remaining)
@@ -191,6 +197,7 @@ public class HttpEventContext
     public void circuitRejected(
         long traceId,
         long bindingId,
+        long originId,
         long circuitId,
         HttpCircuitCause cause,
         long remaining)
@@ -199,6 +206,7 @@ public class HttpEventContext
             .wrap(extensionBuffer, 0, extensionBuffer.capacity())
             .circuitRejected(e -> e
                 .typeId(CIRCUIT_REJECTED.value())
+                .originId(originId)
                 .circuitId(circuitId)
                 .cause(c -> c.set(cause))
                 .remaining(remaining)

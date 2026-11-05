@@ -561,7 +561,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final long circuitId = begin.circuitId();
             final long probe = circuitId != 0L
-                ? circuits.admit(begin.traceId(), bindingId, circuitId, clock.millis())
+                ? circuits.admit(begin.traceId(), bindingId, begin.originId(), circuitId, clock.millis())
                 : HttpCircuitTable.ADMIT;
 
             if (probe == HttpCircuitTable.REJECT)
@@ -5384,15 +5384,15 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (retryAfter > 0L)
             {
-                circuits.retryAfter(traceId, routedId, circuitId, probe, retryAfter, now);
+                circuits.retryAfter(traceId, routedId, originId, circuitId, probe, retryAfter, now);
             }
             else if (statusCode == 429 || statusCode >= 500)
             {
-                circuits.fail(traceId, routedId, circuitId, probe, now);
+                circuits.fail(traceId, routedId, originId, circuitId, probe, now);
             }
             else
             {
-                circuits.succeed(traceId, routedId, circuitId, probe, now);
+                circuits.succeed(traceId, routedId, originId, circuitId, probe, now);
             }
         }
 
@@ -7233,6 +7233,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private void onCircuitTransition(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         int transition,
         int cause,
@@ -7243,16 +7244,16 @@ public final class HttpClientFactory implements HttpStreamFactory
         switch (transition)
         {
         case HttpCircuitTable.TRANSITION_OPENED:
-            event.circuitOpened(traceId, routedId, circuitId, circuitCause, remaining);
+            event.circuitOpened(traceId, routedId, originId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_HALF_OPENED:
-            event.circuitHalfOpened(traceId, routedId, circuitId, circuitCause, remaining);
+            event.circuitHalfOpened(traceId, routedId, originId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_CLOSED:
-            event.circuitClosed(traceId, routedId, circuitId, circuitCause, remaining);
+            event.circuitClosed(traceId, routedId, originId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_REJECTED:
-            event.circuitRejected(traceId, routedId, circuitId, circuitCause, remaining);
+            event.circuitRejected(traceId, routedId, originId, circuitId, circuitCause, remaining);
             break;
         }
     }

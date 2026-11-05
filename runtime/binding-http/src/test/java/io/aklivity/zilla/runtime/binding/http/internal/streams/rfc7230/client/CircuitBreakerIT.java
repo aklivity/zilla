@@ -186,4 +186,15 @@ public class CircuitBreakerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME, value = "2")
+    @Specification({
+        "${app}/isolate.circuits.by.origin/client",
+        "${net}/isolate.circuits.by.origin/server" })
+    public void shouldIsolateCircuitsByOrigin() throws Exception
+    {
+        k3po.finish();
+    }
 }

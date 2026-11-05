@@ -147,4 +147,13 @@ public class CircuitBreakerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/isolate.circuits.by.origin/client",
+        "${app}/isolate.circuits.by.origin/server" })
+    public void shouldIsolateCircuitsByOrigin() throws Exception
+    {
+        k3po.finish();
+    }
 }

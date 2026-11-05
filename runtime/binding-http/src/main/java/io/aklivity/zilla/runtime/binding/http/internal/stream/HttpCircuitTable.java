@@ -49,13 +49,15 @@ final class HttpCircuitTable
         void onTransition(
             long traceId,
             long routedId,
+            long originId,
             long circuitId,
             int transition,
             int cause,
             long remaining);
     }
 
-    private final Long2ObjectHashMap<Long2ObjectHashMap<Circuit>> circuitsByRoutedId = new Long2ObjectHashMap<>();
+    private final Long2ObjectHashMap<Long2ObjectHashMap<Long2ObjectHashMap<Circuit>>> circuitsByRoutedId =
+        new Long2ObjectHashMap<>();
     private final Circuit[] pool;
     private final int[] free;
     private final int failureThreshold;
@@ -96,12 +98,13 @@ final class HttpCircuitTable
     long admit(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         long now)
     {
         long result = ADMIT;
 
-        final Circuit circuit = lookup(traceId, routedId, circuitId, now);
+        final Circuit circuit = lookup(traceId, routedId, originId, circuitId, now);
 
         if (circuit != null)
         {
@@ -133,11 +136,12 @@ final class HttpCircuitTable
     void succeed(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         long probe,
         long now)
     {
-        final Circuit circuit = lookup(traceId, routedId, circuitId, now);
+        final Circuit circuit = lookup(traceId, routedId, originId, circuitId, now);
 
         if (circuit != null)
         {
@@ -156,11 +160,12 @@ final class HttpCircuitTable
     void fail(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         long probe,
         long now)
     {
-        final Circuit circuit = lookupOrAcquire(traceId, routedId, circuitId, failureThreshold <= 1, now);
+        final Circuit circuit = lookupOrAcquire(traceId, routedId, originId, circuitId, failureThreshold <= 1, now);
 
         if (circuit != null)
         {
@@ -185,12 +190,13 @@ final class HttpCircuitTable
     void retryAfter(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         long probe,
         long retryAfter,
         long now)
     {
-        final Circuit circuit = lookupOrAcquire(traceId, routedId, circuitId, true, now);
+        final Circuit circuit = lookupOrAcquire(traceId, routedId, originId, circuitId, true, now);
 
         if (circuit != null)
         {
@@ -247,16 +253,18 @@ final class HttpCircuitTable
         int cause,
         long remaining)
     {
-        listener.onTransition(traceId, circuit.routedId, circuit.circuitId, transition, cause, remaining);
+        listener.onTransition(traceId, circuit.routedId, circuit.originId, circuit.circuitId, transition, cause, remaining);
     }
 
     private Circuit lookup(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         long now)
     {
-        final Long2ObjectHashMap<Circuit> circuits = circuitsByRoutedId.get(routedId);
+        final Long2ObjectHashMap<Long2ObjectHashMap<Circuit>> circuitsByOriginId = circuitsByRoutedId.get(routedId);
+        final Long2ObjectHashMap<Circuit> circuits = circuitsByOriginId != null ? circuitsByOriginId.get(originId) : null;
         Circuit circuit = circuits != null ? circuits.get(circuitId) : null;
 
         if (circuit != null && circuit.state == STATE_OPEN_RETRY_AFTER && now >= circuit.until)
@@ -272,15 +280,16 @@ final class HttpCircuitTable
     private Circuit lookupOrAcquire(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         boolean opens,
         long now)
     {
-        Circuit circuit = lookup(traceId, routedId, circuitId, now);
+        Circuit circuit = lookup(traceId, routedId, originId, circuitId, now);
 
         if (circuit == null)
         {
-            circuit = acquire(traceId, routedId, circuitId, opens, now);
+            circuit = acquire(traceId, routedId, originId, circuitId, opens, now);
         }
 
         return circuit;
@@ -289,6 +298,7 @@ final class HttpCircuitTable
     private Circuit acquire(
         long traceId,
         long routedId,
+        long originId,
         long circuitId,
         boolean opens,
         long now)
@@ -309,6 +319,7 @@ final class HttpCircuitTable
         {
             circuit = pool[free[--freeCount]];
             circuit.routedId = routedId;
+            circuit.originId = originId;
             circuit.circuitId = circuitId;
             circuit.state = STATE_CLOSED;
             circuit.failures = 0;
@@ -316,11 +327,17 @@ final class HttpCircuitTable
             circuit.probe = 0L;
             circuit.touched = ++touches;
 
-            Long2ObjectHashMap<Circuit> circuits = circuitsByRoutedId.get(routedId);
+            Long2ObjectHashMap<Long2ObjectHashMap<Circuit>> circuitsByOriginId = circuitsByRoutedId.get(routedId);
+            if (circuitsByOriginId == null)
+            {
+                circuitsByOriginId = new Long2ObjectHashMap<>();
+                circuitsByRoutedId.put(routedId, circuitsByOriginId);
+            }
+            Long2ObjectHashMap<Circuit> circuits = circuitsByOriginId.get(originId);
             if (circuits == null)
             {
                 circuits = new Long2ObjectHashMap<>();
-                circuitsByRoutedId.put(routedId, circuits);
+                circuitsByOriginId.put(originId, circuits);
             }
             circuits.put(circuitId, circuit);
         }
@@ -375,7 +392,7 @@ final class HttpCircuitTable
     private void release(
         Circuit circuit)
     {
-        circuitsByRoutedId.get(circuit.routedId).remove(circuit.circuitId);
+        circuitsByRoutedId.get(circuit.routedId).get(circuit.originId).remove(circuit.circuitId);
         circuit.state = STATE_FREE;
         free[freeCount++] = circuit.index;
     }
@@ -385,6 +402,7 @@ final class HttpCircuitTable
         private final int index;
 
         private long routedId;
+        private long originId;
         private long circuitId;
         private int state;
         private int failures;
