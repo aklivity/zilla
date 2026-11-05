@@ -234,4 +234,13 @@ public class HttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/server.sent.abort.before.begin/client",
+        "${http}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

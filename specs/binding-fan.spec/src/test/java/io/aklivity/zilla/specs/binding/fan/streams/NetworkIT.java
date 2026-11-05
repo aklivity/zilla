@@ -90,4 +90,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.and.received.data.window.before.begin/client",
+        "${net}/client.sent.and.received.data.window.before.begin/server"})
+    public void shouldEchoClientSentDataWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.write.abort.before.begin/client",
+        "${net}/server.sent.write.abort.before.begin/server"})
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

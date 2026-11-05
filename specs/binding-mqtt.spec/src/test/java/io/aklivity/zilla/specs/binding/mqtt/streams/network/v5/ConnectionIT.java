@@ -481,4 +481,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.abort.before.begin/client",
+        "${net}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

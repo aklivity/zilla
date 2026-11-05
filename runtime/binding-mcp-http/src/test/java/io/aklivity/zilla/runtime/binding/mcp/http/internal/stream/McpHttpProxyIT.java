@@ -493,6 +493,16 @@ public class McpHttpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/create.pr.client.aborted/client",
+        "${http}/create.pr.client.aborted/server"})
+    public void shouldAbortUpstreamWhenRequestAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/create.pr.reset/client",
         "${http}/create.pr.reset/server"})
     public void shouldAbortToolCreatePrWhenUpstreamResetsRequest() throws Exception
