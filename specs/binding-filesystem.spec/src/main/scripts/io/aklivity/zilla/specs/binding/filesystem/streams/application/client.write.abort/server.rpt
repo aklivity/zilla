@@ -26,4 +26,5 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
 connected
 
 read aborted
+write flush
 write abort

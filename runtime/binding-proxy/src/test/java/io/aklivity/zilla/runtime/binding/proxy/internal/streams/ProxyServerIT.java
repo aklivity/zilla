@@ -190,6 +190,16 @@ public class ProxyServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connected.local.server.sent.abort.before.begin/client",
+        "${app}/connected.local.server.sent.abort.before.begin/server"})
+    public void shouldConnectLocalServerSendsAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connected.local.server.sent.reset/client",
         "${app}/connected.local.server.sent.reset/server"})
     public void shouldConnectLocalServerSendsReset() throws Exception
