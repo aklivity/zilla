@@ -9064,8 +9064,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void advanceToDescribeGroups(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
-            doEnd(kafka, originId, resolvedId, kafkaInitialId, state, traceId, authorization);
+            doEnd(kafka, originId, resolvedId, kafkaInitialId, StreamState.closeInitial(state), traceId, authorization);
 
             stage = STAGE_DESCRIBE_GROUPS;
             requestSent = false;
@@ -9083,15 +9082,14 @@ public class McpKafkaProxyFactory implements BindingHandler
             kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
             kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
-                state,
+                StreamState.openingInitial(0),
                 traceId, authorization, affinity, kafkaBeginEx);
         }
 
         private void advanceToOffsetCommit(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
-            doEnd(kafka, originId, resolvedId, kafkaInitialId, state, traceId, authorization);
+            doEnd(kafka, originId, resolvedId, kafkaInitialId, StreamState.closeInitial(state), traceId, authorization);
 
             stage = STAGE_OFFSET_COMMIT;
             requestSent = false;
@@ -9109,7 +9107,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
             kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
-                state,
+                StreamState.openingInitial(0),
                 traceId, authorization, affinity, kafkaBeginEx);
         }
 
@@ -9691,8 +9689,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void advanceToListOffsets(
             long traceId)
         {
-            state = StreamState.closeInitial(state);
-            doEnd(kafka, originId, resolvedId, kafkaInitialId, state, traceId, authorization);
+            doEnd(kafka, originId, resolvedId, kafkaInitialId, StreamState.closeInitial(state), traceId, authorization);
 
             stage = STAGE_LIST_OFFSETS;
             requestSent = false;
@@ -9711,7 +9708,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
             kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
-                state,
+                StreamState.openingInitial(0),
                 traceId, authorization, affinity, kafkaBeginEx);
         }
 
