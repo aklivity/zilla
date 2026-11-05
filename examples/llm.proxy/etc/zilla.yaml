@@ -310,9 +310,11 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+        - http.duration
       attributes:
         requested: ${llm.request.model}
         served: ${llm.response.model}
+        status: ${http.response.status}
     exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to Anthropic -- no dialect translation happens on

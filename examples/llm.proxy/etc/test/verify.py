@@ -141,6 +141,13 @@
 #  35. a Responses SDK client asking for a gemini-* model is served by
 #      mock-gemini and parses a Response object translated from the native Gemini
 #      response, text and function calls, streamed or not
+#  36. a model whose server answers 429 with Retry-After opens its circuit: the
+#      first request for gpt-limited reaches the server once and is served by its
+#      fallback model, the second is served by the fallback without the server
+#      being dialed again, and a request for another model on the same
+#      south_llm_client_openai binding is still served, all read from the
+#      http.duration count of the binding by response status, scraped from the
+#      prometheus exporter
 
 import json
 import os
@@ -569,6 +576,55 @@ def check_anthropic_fallback_unreachable():
     resp = anthropic_message("claude-unreachable", streaming=False)
     assert "secondary anthropic-dialect deployment" in resp.content[0].text, resp
     assert resp.model == "claude-3-5-haiku-20241022", resp
+
+
+# Scrapes the http.duration samples of a binding into {status: count}.
+def scrape_http_status_counts(binding):
+    with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
+        text = resp.read().decode()
+    counts = {}
+    for line in text.splitlines():
+        match = re.match(r'^http_duration_count\{([^}]*)\} (\S+)$', line)
+        if match:
+            labels = dict(re.findall(r'(\w+)="([^"]*)"', match.group(1)))
+            if labels.get("binding") == binding and "status" in labels:
+                counts[labels["status"]] = counts.get(labels["status"], 0) + float(match.group(2))
+    return counts
+
+
+def await_status_count(binding, status, expected):
+    for _ in range(20):
+        if scrape_http_status_counts(binding).get(status, 0) == expected:
+            return
+        time.sleep(0.25)
+    raise AssertionError(
+        f"{binding} http.duration count for {status} is {scrape_http_status_counts(binding).get(status, 0)}, not {expected}")
+
+
+# WHEN: an OpenAI SDK client asks for gpt-limited, whose server answers 429 with
+#       Retry-After and lists gpt-4o as its fallback
+# THEN: the request is served by the fallback model and the server answered 429
+#       once; the 429 opened the circuit of gpt-limited on south_llm_client_openai
+#       for the Retry-After, so the next request is served by the fallback again
+#       without the server being dialed, which leaves the 429 count at one; a
+#       request for another model on the same binding is still served
+def check_openai_circuit_failover():
+    binding = "south_llm_client_openai"
+    before = scrape_http_status_counts(binding)
+
+    resp = openai_chat("gpt-limited", streaming=False)
+    assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
+    await_status_count(binding, "429", before.get("429", 0) + 1)
+
+    resp = openai_chat("gpt-limited", streaming=False)
+    assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
+    time.sleep(1)
+    assert scrape_http_status_counts(binding).get("429", 0) == before.get("429", 0) + 1, "open circuit dialed the server"
+
+    resp = openai_chat("gpt-4", streaming=False)
+    assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
+    await_status_count(binding, "200", before.get("200", 0) + 1)
+    assert scrape_http_status_counts(binding).get("429", 0) == before.get("429", 0) + 1, "429 count moved"
 
 
 # WHEN: a client sends a model that neither the claude-* nor the gpt-* route
@@ -1457,6 +1513,7 @@ run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
 run_check("anthropic_tools_secondary_streaming", check_anthropic_tools_secondary_streaming)
 run_check("anthropic_fallback_unreachable", check_anthropic_fallback_unreachable)
+run_check("openai_circuit_failover", check_openai_circuit_failover, attempts=1)
 run_check("openai_other_model_same_dialect", check_openai_other_model_same_dialect)
 run_check("anthropic_other_model_same_dialect", check_anthropic_other_model_same_dialect)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)
