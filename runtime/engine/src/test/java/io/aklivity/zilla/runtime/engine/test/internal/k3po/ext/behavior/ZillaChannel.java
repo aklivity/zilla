@@ -33,6 +33,7 @@ import org.jboss.netty.channel.MessageEvent;
 
 import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.AbstractChannel;
 import io.aklivity.k3po.runtime.driver.internal.netty.channel.ChannelAddress;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Capability;
@@ -75,6 +76,7 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
     private ChannelFuture beginInputFuture;
 
     private int capabilities;
+    private int state;
     private boolean flushable;
 
     private DefaultBudgetDebitor debitor;
@@ -126,6 +128,60 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
     }
 
     public abstract int getRemoteScope();
+
+    int state()
+    {
+        return state;
+    }
+
+    void stateOpeningWrite()
+    {
+        state = writesInitial() ? StreamState.openInitial(state) : StreamState.openingReply(state);
+    }
+
+    void stateOpenWrite()
+    {
+        state = writesInitial() ? StreamState.openInitial(state) : StreamState.openReply(state);
+    }
+
+    void stateCloseWrite()
+    {
+        state = writesInitial() ? StreamState.closeInitial(state) : StreamState.closeReply(state);
+    }
+
+    void stateAbortWrite()
+    {
+        state = writesInitial()
+            ? StreamState.closeInitial(StreamState.abortingInitial(state))
+            : StreamState.closeReply(StreamState.abortingReply(state));
+    }
+
+    void stateOpeningRead()
+    {
+        state = writesInitial() ? StreamState.openingReply(state) : StreamState.openInitial(state);
+    }
+
+    void stateOpenRead()
+    {
+        state = writesInitial() ? StreamState.openReply(state) : StreamState.openInitial(state);
+    }
+
+    void stateCloseRead()
+    {
+        state = writesInitial() ? StreamState.closeReply(state) : StreamState.closeInitial(state);
+    }
+
+    void stateAbortRead()
+    {
+        state = writesInitial()
+            ? StreamState.closeReply(StreamState.abortingReply(state))
+            : StreamState.closeInitial(StreamState.abortingInitial(state));
+    }
+
+    private boolean writesInitial()
+    {
+        return getParent() == null;
+    }
 
     @Override
     protected void setBound()

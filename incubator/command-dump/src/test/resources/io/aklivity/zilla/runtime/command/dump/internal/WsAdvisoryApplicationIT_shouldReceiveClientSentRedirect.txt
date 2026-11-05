@@ -1,7 +1,7 @@
-Frame 1: 257 bytes on wire (2056 bits), 257 bytes captured (2056 bits)
+Frame 1: 261 bytes on wire (2088 bits), 261 bytes captured (2088 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 183
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 187
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -21,6 +21,8 @@ Zilla Frame
     Direction: INI
     Sequence: 0
     Acknowledge: 0
+    State: 0x00000030
+    State Flags: INITIAL_OPENING|INITIAL_OPENED
     Maximum: 0
     Timestamp: 0x0000000000000000
     Trace ID
@@ -47,10 +49,10 @@ Zilla Frame
             Length: 5
             Path: /echo
 
-Frame 2: 218 bytes on wire (1744 bits), 218 bytes captured (1744 bits)
+Frame 2: 222 bytes on wire (1776 bits), 222 bytes captured (1776 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 184, Len: 144
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 188, Len: 148
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -70,6 +72,8 @@ Zilla Frame
     Direction: REP
     Sequence: 0
     Acknowledge: 0
+    State: 0x00000031
+    State Flags: REPLY_OPENING|INITIAL_OPENING|INITIAL_OPENED
     Maximum: 0
     Timestamp: 0x0000000000000000
     Trace ID
@@ -81,10 +85,10 @@ Zilla Frame
     Redirected ID: 0x0000000000000000
     Circuit ID: 0x0000000000000000
 
-Frame 3: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Frame 3: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 184, Ack: 145, Len: 137
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 188, Ack: 149, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
@@ -104,6 +108,8 @@ Zilla Frame
     Direction: INI
     Sequence: 0
     Acknowledge: 0
+    State: 0x00000031
+    State Flags: REPLY_OPENING|INITIAL_OPENING|INITIAL_OPENED
     Maximum: 8192
     Timestamp: 0x0000000000000000
     Trace ID
@@ -118,17 +124,17 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/8192
 
-Frame 4: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
+Frame 4: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 145, Ack: 321, Len: 137
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 149, Ack: 329, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000158
+    Offset: 0x00000160
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -141,6 +147,8 @@ Zilla Frame
     Direction: REP
     Sequence: 0
     Acknowledge: 0
+    State: 0x00000033
+    State Flags: REPLY_OPENING|REPLY_OPENED|INITIAL_OPENING|INITIAL_OPENED
     Maximum: 8192
     Timestamp: 0x0000000000000000
     Trace ID
@@ -155,17 +163,17 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/8192
 
-Frame 5: 241 bytes on wire (1928 bits), 241 bytes captured (1928 bits)
+Frame 5: 245 bytes on wire (1960 bits), 245 bytes captured (1960 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 321, Len: 167
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 329, Len: 171
 Zilla Frame
     Frame Type ID: 0x40000005
     Frame Type: REDIRECT
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000001b8
+    Offset: 0x000001c8
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -178,6 +186,8 @@ Zilla Frame
     Direction: INI
     Sequence: 0
     Acknowledge: 0
+    State: 0x00000033
+    State Flags: REPLY_OPENING|REPLY_OPENED|INITIAL_OPENING|INITIAL_OPENED
     Maximum: 8192
     Timestamp: 0x0000000000000000
     Trace ID
@@ -202,17 +212,17 @@ Zilla Frame
             Length: 5
             Path: /echo
 
-Frame 6: 194 bytes on wire (1552 bits), 194 bytes captured (1552 bits)
+Frame 6: 198 bytes on wire (1584 bits), 198 bytes captured (1584 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 282, Len: 120
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 290, Len: 124
 Zilla Frame
     Frame Type ID: 0x40000001
     Frame Type: RESET
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000238
+    Offset: 0x00000248
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -225,6 +235,8 @@ Zilla Frame
     Direction: REP
     Sequence: 0
     Acknowledge: 0
+    State: 0x0000023f
+    State Flags: REPLY_OPENING|REPLY_OPENED|REPLY_CLOSING|REPLY_CLOSED|INITIAL_OPENING|INITIAL_OPENED|REPLY_ABORTING
     Maximum: 8192
     Timestamp: 0x0000000000000000
     Trace ID
