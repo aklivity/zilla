@@ -141,13 +141,13 @@
 #  35. a Responses SDK client asking for a gemini-* model is served by
 #      mock-gemini and parses a Response object translated from the native Gemini
 #      response, text and function calls, streamed or not
-#  36. a model whose server answers 429 with Retry-After opens its circuit: the
-#      first request for gpt-limited reaches the server once and is served by its
-#      fallback model, the second is served by the fallback without the server
-#      being dialed again, and a request for another model on the same
-#      south_llm_client_openai binding is still served, all read from the
-#      http.duration count of the binding by response status, scraped from the
-#      prometheus exporter
+#  36. a model whose server answers 429 with Retry-After opens its circuit: every
+#      request for gpt-limited is served by its fallback model, each worker
+#      thread of the gateway opens its own circuit so the server answers 429 to
+#      a few requests, then the count stops rising, well below the requests
+#      sent, and a request for another model on the same south_llm_client_openai
+#      binding is still served, all read from the http.duration count of the
+#      binding by response status, scraped from the prometheus exporter
 
 import json
 import os
@@ -608,39 +608,46 @@ def await_status_count(binding, status, expected):
         f"not {expected}; http_duration samples:\n{http_metric_lines()}")
 
 
-# WHEN: an OpenAI SDK client asks for gpt-limited, whose server answers 429 with
-#       Retry-After and lists gpt-4o as its fallback
-# THEN: the request is served by the fallback model and the server answered 429
-#       once; the 429 opened the circuit of gpt-limited on south_llm_client_openai
-#       for the Retry-After, so the next request is served by the fallback again
-#       without the server being dialed, which leaves the 429 count at one; a
-#       request for another model on the same binding is still served
+# WHEN: an OpenAI SDK client asks for gpt-limited over and over, whose server
+#       answers 429 with Retry-After and whose route lists gpt-4o as its fallback
+# THEN: every request is served by the fallback model. Each worker thread of the
+#       gateway opens its own circuit for gpt-limited on south_llm_client_openai,
+#       so the first request each worker handles reaches the server and is
+#       answered 429, and once that worker's circuit is open its requests skip
+#       the server. The 429 count therefore rises for a few requests, stops
+#       rising, and ends well below the number of requests sent. A request for
+#       another model on the same binding is still served
+GPT_LIMITED_STABLE_REQUESTS = 8
+GPT_LIMITED_MAXIMUM_REQUESTS = 200
+
+
 def check_openai_circuit_failover():
     binding = "south_llm_client_openai"
     before = scrape_http_status_counts(binding)
+    base = before.get("429", 0)
 
-    resp = openai_chat("gpt-limited", streaming=False)
-    assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
-    await_status_count(binding, "429", before.get("429", 0) + 1)
+    sent = 0
+    stable = 0
+    last = base
+    progression = []
+    while stable < GPT_LIMITED_STABLE_REQUESTS and sent < GPT_LIMITED_MAXIMUM_REQUESTS:
+        resp = openai_chat("gpt-limited", streaming=False)
+        assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
+        sent += 1
+        time.sleep(0.3)
+        count = scrape_http_status_counts(binding).get("429", 0)
+        stable = stable + 1 if count == last else 0
+        last = count
+        progression.append(count - base)
 
-    resp = openai_chat("gpt-limited", streaming=False)
-    assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
-    time.sleep(1)
-    after_second = scrape_http_status_counts(binding).get("429", 0)
-    if after_second != before.get("429", 0) + 1:
-        progression = [after_second]
-        for _ in range(12):
-            openai_chat("gpt-limited", streaming=False)
-            time.sleep(0.5)
-            progression.append(scrape_http_status_counts(binding).get("429", 0))
-        raise AssertionError(
-            f"open circuit dialed the server: 429 count before={before.get('429', 0)} after request 2={after_second}; "
-            f"after 12 more requests={progression}\n{http_metric_lines()}")
+    assert last > base, f"the server never answered 429: {progression}"
+    assert stable >= GPT_LIMITED_STABLE_REQUESTS, f"429 count kept rising over {sent} requests: {progression}"
+    assert last - base < sent, f"every request reached the server: {progression}\n{http_metric_lines()}"
 
     resp = openai_chat("gpt-4", streaming=False)
     assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
     await_status_count(binding, "200", before.get("200", 0) + 1)
-    assert scrape_http_status_counts(binding).get("429", 0) == before.get("429", 0) + 1, "429 count moved"
+    assert scrape_http_status_counts(binding).get("429", 0) == last, f"429 count moved: {progression}"
 
 
 # WHEN: a client sends a model that neither the claude-* nor the gpt-* route

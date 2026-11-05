@@ -167,20 +167,22 @@ the client. Fallback entries are exact model names, not patterns.
 
 When a server answers `429 Too Many Requests` with a `Retry-After` header, that model is
 rate limited for the stated time. The `429` is relayed, so with a `fallback` listed on the route
-`llm(proxy)` retries on the next model before the caller sees any reply. For the rest of the
-`Retry-After`, further requests for that model are refused immediately, without contacting the
-server, and fall back at once. The limit applies per model: other models served through the same
-`llm(client)` binding are unaffected, and the model is tried again once the time has passed.
+`llm(proxy)` retries on the next model before the caller sees any reply. Each of the gateway's worker
+threads opens its own circuit, so a few requests may reach the rate limited server, one for each worker
+thread, before every worker skips it. From then on, for the rest of the `Retry-After`, requests for that
+model are refused without contacting the server and fall back at once. The limit applies per model: other
+models served through the same `llm(client)` binding are unaffected, and the model is tried again once
+the time has passed.
 
 In the mock-backed run, `gpt-limited` is a model whose server answers `429` with `Retry-After: 30`,
-and its route falls back to `gpt-4o`. The first request for `gpt-limited` reaches the server and is
-answered by `gpt-4o`; the second is answered by `gpt-4o` without reaching the server again, while a
-request for `gpt-4` is still served normally. `south_llm_client_openai` records
-`http.duration` by response status, so the Prometheus endpoint shows a single `status="429"`
-sample however many requests were rate limited:
+and its route falls back to `gpt-4o`. Every request for `gpt-limited` is answered by `gpt-4o`, while a
+request for `gpt-4` is still served normally. `south_llm_client_openai` records `http.duration` by
+response status, so the Prometheus endpoint shows how many requests actually reached the server: the
+`status="429"` count rises for the first few requests, one for each worker thread, then stops rising
+however many more are sent:
 
 ```bash
-curl -s http://localhost:7190/metrics | grep 'http_duration_count.*south_llm_client_openai'
+curl -s http://localhost:7190/metrics | grep 'http_duration_milliseconds_count.*south_llm_client_openai'
 ```
 
 ## Guardrails
@@ -649,9 +651,9 @@ and credential pass-through (read from the mock's own log), the guardrails of
 `gpt-4o` and `gpt-5`, the fallback of `claude-unreachable`, an unknown model, and
 the `llm.tokens.*` and `llm.interactions` metrics.
 
-A rate-limited model is covered too: `gpt-limited` is answered `429` with `Retry-After`, then
-served by its fallback, without the server being reached again, with the `429` counted once in
-`http.duration` and a request for another model through the same binding still served.
+A rate-limited model is covered too: `gpt-limited` is answered `429` with `Retry-After` and every request is
+served by its fallback, with the `429` count in `http.duration` rising for a few requests, then stopping, well
+below the requests sent, and a request for another model through the same binding still served.
 
 ## Teardown
 
