@@ -263,6 +263,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/create.pr.client.aborted/client",
+        "${mcp}/create.pr.client.aborted/server"})
+    public void shouldAbortToolCreatePrFromClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.pr.error.100k/client",
         "${mcp}/create.pr.error.100k/server"})
     public void shouldRejectToolCreatePr100k() throws Exception

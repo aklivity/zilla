@@ -211,6 +211,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.window.before.begin/client",
+        "${app}/message.value.window.before.begin/server"})
+    public void shouldMessageValueWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/messages.fragmented.crc/client",
         "${app}/messages.fragmented.crc/server"})
     public void shouldSendFragmentedMessagesWithCrc() throws Exception

@@ -1777,6 +1777,46 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gemini.request.end.deferred/client",
+        "${app}/gemini.request.end.deferred/server"})
+    public void shouldGeminiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.end.deferred.reset/client",
+        "${app}/gemini.request.end.deferred.reset/server"})
+    public void shouldGeminiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.end.deferred/client",
+        "${app}/gemini.response.end.deferred/server"})
+    public void shouldGeminiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.end.deferred.reset/client",
+        "${app}/gemini.response.end.deferred.reset/server"})
+    public void shouldGeminiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gemini.request.abort/client",
         "${app}/gemini.request.abort/server"})
     public void shouldGeminiRequestAbort() throws Exception

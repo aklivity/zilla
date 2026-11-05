@@ -392,6 +392,16 @@ public class ClientFetchIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/filter.none.window.before.begin/client",
+        "${net}/filter.none/server"})
+    public void shouldFilterNoneWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("TODO")
     @Test
     @Configuration("client.yaml")

@@ -80,4 +80,13 @@ public class GrpcFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/server.sent.write.abort.before.begin.unary.rpc/client",
+        "${grpc}/server.sent.write.abort.before.begin.unary.rpc/server"})
+    public void shouldAbortOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
