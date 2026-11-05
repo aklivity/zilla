@@ -7244,16 +7244,16 @@ public final class HttpClientFactory implements HttpStreamFactory
         switch (transition)
         {
         case HttpCircuitTable.TRANSITION_OPENED:
-            event.circuitOpened(traceId, routedId, originId, circuitId, circuitCause, remaining);
+            event.circuitOpened(traceId, routedId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_HALF_OPENED:
-            event.circuitHalfOpened(traceId, routedId, originId, circuitId, circuitCause, remaining);
+            event.circuitHalfOpened(traceId, routedId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_CLOSED:
-            event.circuitClosed(traceId, routedId, originId, circuitId, circuitCause, remaining);
+            event.circuitClosed(traceId, routedId, circuitId, circuitCause, remaining);
             break;
         case HttpCircuitTable.TRANSITION_REJECTED:
-            event.circuitRejected(traceId, routedId, originId, circuitId, circuitCause, remaining);
+            event.circuitRejected(traceId, routedId, circuitId, circuitCause, remaining);
             break;
         }
     }

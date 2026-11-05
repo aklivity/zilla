@@ -90,7 +90,6 @@ scope http
 
         struct HttpCircuitEx extends core::stream::Extension
         {
-            int64 originId;
             int64 circuitId;
             HttpCircuitCause cause;
             int64 remaining;
