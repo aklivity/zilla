@@ -626,7 +626,16 @@ def check_openai_circuit_failover():
     resp = openai_chat("gpt-limited", streaming=False)
     assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
     time.sleep(1)
-    assert scrape_http_status_counts(binding).get("429", 0) == before.get("429", 0) + 1, "open circuit dialed the server"
+    after_second = scrape_http_status_counts(binding).get("429", 0)
+    if after_second != before.get("429", 0) + 1:
+        progression = [after_second]
+        for _ in range(12):
+            openai_chat("gpt-limited", streaming=False)
+            time.sleep(0.5)
+            progression.append(scrape_http_status_counts(binding).get("429", 0))
+        raise AssertionError(
+            f"open circuit dialed the server: 429 count before={before.get('429', 0)} after request 2={after_second}; "
+            f"after 12 more requests={progression}\n{http_metric_lines()}")
 
     resp = openai_chat("gpt-4", streaming=False)
     assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
