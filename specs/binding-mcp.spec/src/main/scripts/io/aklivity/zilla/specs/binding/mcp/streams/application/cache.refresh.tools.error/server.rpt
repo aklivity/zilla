@@ -70,4 +70,5 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
+write flush
 write abort

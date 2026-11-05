@@ -119,6 +119,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -567,7 +568,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -837,7 +838,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -928,7 +929,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -978,7 +979,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1015,7 +1016,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
             final int capabilities = window.capabilities();
-            final boolean wasOpen = MqttKafkaState.replyOpened(state);
+            final boolean wasOpen = StreamState.replyOpened(state);
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
@@ -1025,7 +1026,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = MqttKafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1038,14 +1039,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long affinity,
             Flyweight extension)
         {
-            if (!MqttKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 replySeq = session.replySeq;
                 replyAck = session.replyAck;
                 replyMax = session.replyMax;
-                state = MqttKafkaState.openingReply(state);
+                state = StreamState.openingReply(state);
 
-                doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, extension);
             }
         }
@@ -1058,13 +1059,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int flags,
             MqttSessionStateFW sessionState)
         {
-            Flyweight state = sessionState == null ? EMPTY_OCTETS : sessionState;
-            final DirectBufferEx buffer = state.buffer();
-            final int offset = state.offset();
-            final int limit = state.limit();
+            Flyweight sessionStateData = sessionState == null ? EMPTY_OCTETS : sessionState;
+            final DirectBufferEx buffer = sessionStateData.buffer();
+            final int offset = sessionStateData.offset();
+            final int limit = sessionStateData.limit();
             final int length = limit - offset;
 
-            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, flags, reserved, buffer, offset, length, EMPTY_OCTETS);
 
             replySeq += reserved;
@@ -1080,7 +1081,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int flags,
             OctetsFW payload)
         {
-            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, flags, reserved, payload, EMPTY_OCTETS);
 
             replySeq += reserved;
@@ -1103,7 +1104,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .session(p -> p.packetId(packetId))
                         .build();
 
-                doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
                     budgetId, reserved, mqttFlushEx);
             }
         }
@@ -1112,12 +1113,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = session.replySeq;
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doAbort(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doAbort(mqtt, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, authorization);
             }
         }
 
@@ -1125,12 +1127,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = session.replySeq;
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doEnd(mqtt, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doEnd(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
 
@@ -1138,11 +1140,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             Flyweight extension)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doReset(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, extension);
+                doReset(mqtt, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, extension);
             }
         }
 
@@ -1156,7 +1159,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialAck = Math.min(mqttAck, initialSeq);
             initialMax = session.initialMax;
 
-            doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, willPadding, 0, capabilities);
         }
 
@@ -1530,7 +1533,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
             doKafkaWindow(traceId, authorization, 0, 0, 0);
@@ -1735,7 +1738,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1767,7 +1770,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1891,9 +1894,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             assert state == 0;
 
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
-            kafka = newSignalStream(this::onSignalMessage, originId, routedId, initialId, 0, 0, 0,
+            kafka = newSignalStream(this::onSignalMessage, originId, routedId, initialId, 0, 0, state, 0,
                 traceId, authorization, affinity, sessionsTopic);
         }
 
@@ -1901,13 +1904,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                if (MqttKafkaState.initialOpening(state))
+                if (StreamState.initialOpening(state))
                 {
-                    state = MqttKafkaState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
 
-                    doEnd(kafka, originId, routedId, initialId, 0, 0, 0, traceId, authorization);
+                    doEnd(kafka, originId, routedId, initialId, 0, 0, state, 0, traceId, authorization);
                 }
 
                 signaler.cancel(reconnectAt);
@@ -1919,22 +1922,24 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, 0, 0, 0, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, 0, 0,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), 0, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -1947,7 +1952,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             replyMax = 8192;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, 0, capabilities);
         }
 
@@ -1958,7 +1965,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight extension)
         {
 
-            doData(kafka, originId, routedId, initialId, 0, 0, 0,
+            doData(kafka, originId, routedId, initialId, 0, 0, state, 0,
                 traceId, authorization, 0, COMPLETE, 0, null, extension);
         }
     }
@@ -2062,7 +2069,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2191,7 +2198,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
         }
@@ -2257,11 +2264,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long affinity,
             String16FW lifetimeId)
         {
-            if (!MqttKafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
-                state = MqttKafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
-                kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
+                        initialMax,
                     traceId, authorization, affinity, clientId, lifetimeId, topic);
             }
         }
@@ -2270,11 +2278,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
                 delegate.willFetchers.remove(clientId);
             }
         }
@@ -2283,22 +2291,24 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (MqttKafkaState.initialOpened(state) && !MqttKafkaState.initialClosed(state))
+            if (StreamState.initialOpened(state) && !StreamState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (MqttKafkaState.initialOpened(state) && !MqttKafkaState.replyClosed(state))
+            if (StreamState.initialOpened(state) && !StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -2312,7 +2322,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replyAck = replySeq;
             replyMax = bufferPool.slotCapacity();
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
 
@@ -2428,7 +2440,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2485,7 +2497,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
-            final boolean wasOpen = MqttKafkaState.initialOpened(state);
+            final boolean wasOpen = StreamState.initialOpened(state);
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -2493,7 +2505,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -2520,9 +2532,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
-            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, affinity, kafkaTopic, qos);
         }
 
@@ -2540,7 +2552,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 willDeliverIds.remove(delegate.clientId);
             }
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -2552,11 +2564,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -2567,18 +2579,21 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -2886,7 +2901,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2961,7 +2976,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2993,7 +3008,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
         }
@@ -3003,7 +3018,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long affinity)
         {
-            if (!MqttKafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doKafkaBegin(traceId, authorization, affinity);
             }
@@ -3028,7 +3043,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (initialSeq + reserved - padding <= initialAck + initialMax)
             {
-                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
 
                 initialSeq += reserved;
@@ -3048,7 +3063,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (initialSeq + reserved <= initialAck + initialMax)
             {
-                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
                 initialSeq += reserved;
@@ -3074,7 +3089,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final int limit = payload.limit();
                 final int length = limit - offset;
 
-                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
                 initialSeq += reserved;
@@ -3090,7 +3105,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int reserved,
             Flyweight extension)
         {
-            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -3098,14 +3113,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (kafka != null && !MqttKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -3113,25 +3128,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (kafka != null && !MqttKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !MqttKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -3147,7 +3164,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 replyMax = delegate.replyMax;
                 replyPad = delegate.replyPad;
 
-                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.openReply(state);
+
+                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, replyPad, 0, capabilities);
             }
         }
@@ -3281,7 +3300,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -3385,7 +3404,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -3404,7 +3423,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
             final int capabilities = window.capabilities();
-            final boolean wasOpen = MqttKafkaState.initialOpened(state);
+            final boolean wasOpen = StreamState.initialOpened(state);
 
             assert acknowledge <= sequence;
             assert acknowledge >= initialAck;
@@ -3412,7 +3431,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = MqttKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3454,11 +3473,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
 
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             KafkaCapabilities capabilities = isSetWillFlag(delegate.sessionFlags) ?
                 KafkaCapabilities.PRODUCE_ONLY : KafkaCapabilities.PRODUCE_AND_FETCH;
-            kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
+                    initialMax,
                 traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId, capabilities);
         }
 
@@ -3472,7 +3492,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int replyMax)
         {
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, replyPad, 0, capabilities);
         }
 
@@ -3568,11 +3590,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long affinity)
         {
-            if (!MqttKafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
-                state = MqttKafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
-                kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                kafka = newKafkaStream(super::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
+                        initialMax,
                     traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientId);
             }
         }
@@ -3660,7 +3683,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -3693,7 +3716,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final KafkaMetaDataExFW kafkaMetaDataEx = kafkaDataEx.meta();
             final Array32FW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
 
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 delegate.onPartitionsFetched(traceId, authorization, topic, partitions, this);
                 doKafkaEnd(traceId, authorization);
@@ -3710,7 +3733,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
         }
@@ -3727,7 +3750,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -3754,9 +3777,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newMetaStream(this::onMetaMessage, originId, routedId, initialId, initialSeq, initialAck,
+                state,
                 initialMax, traceId, authorization, affinity, topic);
         }
 
@@ -3764,14 +3788,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -3779,25 +3803,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -3812,7 +3838,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replyMax = delegate.replyMax;
             replyPad = delegate.replyPad;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
     }
@@ -3901,7 +3929,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -3971,7 +3999,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
         }
@@ -3988,7 +4016,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4016,9 +4044,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newOffsetFetchStream(this::onOffsetFetchMessage, originId, routedId, initialId, initialSeq, initialAck,
+                state,
                 initialMax, traceId, authorization, affinity, delegate.sessionsTopic, delegate.clientIdOffsets);
         }
 
@@ -4026,14 +4055,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -4041,25 +4070,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -4072,7 +4103,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             replyMax = bufferPool.slotCapacity();
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
     }
@@ -4153,7 +4186,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4183,7 +4216,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
         }
@@ -4200,7 +4233,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4227,9 +4260,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newInitProducerStream(this::onInitProducerMessage, originId, routedId, initialId, initialSeq, initialAck,
+                state,
                 initialMax, traceId, authorization, affinity);
         }
 
@@ -4237,14 +4271,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -4252,25 +4286,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
 
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -4285,7 +4321,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replyMax = delegate.replyMax;
             replyPad = delegate.replyPad;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
     }
@@ -4371,7 +4409,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = MqttKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4388,7 +4426,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
         }
@@ -4405,7 +4443,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = MqttKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4434,7 +4472,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
             final int padding = window.padding();
-            final boolean wasOpen = MqttKafkaState.initialOpened(state);
+            final boolean wasOpen = StreamState.initialOpened(state);
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
@@ -4443,7 +4481,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialAck = acknowledge;
             initialMax = maximum;
             initialPad = padding;
-            state = MqttKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -4471,7 +4509,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final int length = limit - offset;
             final int reserved = length + initialPad;
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
             initialSeq += reserved;
@@ -4482,11 +4520,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void doKafkaReset(
             long traceId)
         {
-            if (!MqttKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, EMPTY_OCTETS);
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
         }
 
@@ -4501,7 +4540,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replyMax = delegate.replyMax;
             replyPad = delegate.replyPad;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
         }
 
@@ -4513,9 +4554,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = MqttKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newOffsetCommitStream(this::onOffsetCommitMessage, originId, routedId, initialId, initialSeq, initialAck,
+                state,
                 initialMax, traceId, authorization, affinity, delegate.sessionsTopic);
         }
 
@@ -4523,14 +4565,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -4538,14 +4580,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = MqttKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
         }
     }
@@ -4557,6 +4600,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4569,6 +4613,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4586,6 +4631,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4601,6 +4647,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4621,6 +4668,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4638,6 +4686,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4658,6 +4707,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -4668,6 +4718,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4683,6 +4734,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -4693,6 +4745,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4708,6 +4761,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4721,6 +4775,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4739,6 +4794,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4774,6 +4830,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4796,6 +4853,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4820,6 +4878,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4842,6 +4901,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4873,6 +4933,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4895,6 +4956,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4927,6 +4989,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -4950,6 +5013,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -4983,6 +5047,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5005,6 +5070,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -5024,6 +5090,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5046,6 +5113,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -5075,6 +5143,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5097,6 +5166,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -5116,6 +5186,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5138,6 +5209,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -5159,6 +5231,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5181,6 +5254,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -5195,6 +5269,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -5214,6 +5289,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         Flyweight extension)
@@ -5224,6 +5300,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())

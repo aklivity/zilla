@@ -30,4 +30,5 @@ read zilla:begin.ext ${grpc:matchBeginEx()
 connected
 
 read aborted
+write flush
 write abort

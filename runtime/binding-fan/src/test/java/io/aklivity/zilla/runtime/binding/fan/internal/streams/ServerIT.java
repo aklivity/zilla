@@ -134,4 +134,24 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.and.received.data.window.before.begin/client",
+        "${app}/client.sent.and.received.data.window.before.begin/server"})
+    public void shouldEchoClientSentDataWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.sent.write.abort.before.begin/client",
+        "${app}/server.sent.write.abort.before.begin/server"})
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
