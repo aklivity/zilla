@@ -409,8 +409,6 @@ public final class McpOpenapiClientFactory implements BindingHandler
             // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
             // opening the reply first, this abort is silently dropped and the real client hangs forever
             // waiting for any reply frame at all
-            doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
-
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(state);

@@ -394,8 +394,6 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            doMcpSchemaRegistryBegin(sequence, acknowledge, maximum, traceId, extension);
-
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(state);
