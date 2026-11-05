@@ -50,6 +50,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerClassifierOptions()
+    {
+        JsonObject config = schema.validate("server.classifier.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerMetrics()
     {
         JsonObject config = schema.validate("server.metrics.yaml");
