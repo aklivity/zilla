@@ -72,4 +72,13 @@ public class ErrorIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.abort.before.begin/request",
+        "${net}/server.abort.before.begin/response" })
+    public void shouldAbortResponseBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
