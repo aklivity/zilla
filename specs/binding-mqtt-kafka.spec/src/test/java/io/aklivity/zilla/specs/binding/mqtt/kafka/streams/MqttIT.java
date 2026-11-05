@@ -877,4 +877,22 @@ public class MqttIT
         k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.server.sent.abort.before.begin/client",
+        "${mqtt}/publish.server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBeginPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.server.sent.abort.before.begin/client",
+        "${mqtt}/subscribe.server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBeginSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
 }
