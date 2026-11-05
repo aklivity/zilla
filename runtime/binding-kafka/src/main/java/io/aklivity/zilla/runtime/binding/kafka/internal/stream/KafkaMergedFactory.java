@@ -107,6 +107,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class KafkaMergedFactory implements BindingHandler
@@ -1170,7 +1171,7 @@ public final class KafkaMergedFactory implements BindingHandler
             initialAck = acknowledge;
 
             assert state == 0;
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final OctetsFW extension = begin.extension();
             final DirectBufferEx buffer = extension.buffer();
@@ -1312,8 +1313,8 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            assert !KafkaState.initialClosed(state);
-            state = KafkaState.closeInitial(state);
+            assert !StreamState.initialClosed(state);
+            state = StreamState.closeInitial(state);
 
             describeStream.doDescribeInitialEndIfNecessary(traceId);
             metaStream.doMetaInitialEndIfNecessary(traceId);
@@ -1341,8 +1342,8 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            assert !KafkaState.initialClosed(state);
-            state = KafkaState.closeInitial(state);
+            assert !StreamState.initialClosed(state);
+            state = StreamState.closeInitial(state);
 
             describeStream.doDescribeInitialAbortIfNecessary(traceId);
             metaStream.doMetaInitialAbortIfNecessary(traceId);
@@ -1512,9 +1513,9 @@ public final class KafkaMergedFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (KafkaState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
                 if (mergedReplyBudgetId == NO_BUDGET_ID)
                 {
                     mergedReplyBudgetId = creditor.acquire(replyId, budgetId);
@@ -1532,7 +1533,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doUnmergedFetchReplyWindowsIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 final int fetchStreamCount = fetchStreams.size();
                 if (fetchStreamIndex >= fetchStreamCount)
@@ -1561,7 +1562,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
             nextOffsetsById.clear();
 
             describeStream.doDescribeReplyResetIfNecessary(traceId);
@@ -1588,7 +1589,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doMergedReplyBegin(traceId);
             }
@@ -1597,13 +1598,13 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyBegin(
             long traceId)
         {
-            assert !KafkaState.replyOpening(state);
-            state = KafkaState.openingReply(state);
+            assert !StreamState.replyOpening(state);
+            state = StreamState.openingReply(state);
 
             final int replyBudget = replyMax - (int)(replySeq - replyAck);
-            if (!KafkaState.replyOpened(state) && replyBudget > 0)
+            if (!StreamState.replyOpened(state) && replyBudget > 0)
             {
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
                 if (mergedReplyBudgetId == NO_BUDGET_ID)
                 {
                     mergedReplyBudgetId = creditor.acquire(replyId, replyBudgetId);
@@ -1766,8 +1767,8 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyEnd(
             long traceId)
         {
-            assert !KafkaState.replyClosed(state);
-            state = KafkaState.closeReply(state);
+            assert !StreamState.replyClosed(state);
+            state = StreamState.closeReply(state);
             cleanupBudgetCreditorIfNecessary();
             doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -1776,8 +1777,8 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyAbort(
             long traceId)
         {
-            assert !KafkaState.replyClosed(state);
-            state = KafkaState.closeReply(state);
+            assert !StreamState.replyClosed(state);
+            state = StreamState.closeReply(state);
             cleanupBudgetCreditorIfNecessary();
             doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -1819,14 +1820,14 @@ public final class KafkaMergedFactory implements BindingHandler
             final long newInitialAck = Math.max(initialSeq - maxInitialNoAck, initialAck);
 
             if (newInitialAck > initialAck || minInitialMax > initialMax ||
-                !KafkaState.initialOpened(state) && !hasProduceCapability(capabilities))
+                !StreamState.initialOpened(state) && !hasProduceCapability(capabilities))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, maxInitialPad, DEFAULT_MINIMUM);
@@ -1837,8 +1838,8 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             Consumer<OctetsFW.Builder> extension)
         {
-            assert !KafkaState.initialClosed(state);
-            state = KafkaState.closeInitial(state);
+            assert !StreamState.initialClosed(state);
+            state = StreamState.closeInitial(state);
 
             doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -1847,14 +1848,14 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) &&
-                !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
                 describeStream.doDescribeReplyResetIfNecessary(traceId);
                 metaStream.doMetaReplyResetIfNecessary(traceId);
                 produceStreams.forEach(f -> f.doProduceReplyResetIfNecessary(traceId));
 
-                state = KafkaState.closingReply(state);
+                state = StreamState.closingReply(state);
                 nextOffsetsById.clear();
                 fetchStreams.forEach(f -> f.doFetchInitialAbortIfNecessary(traceId));
                 if (fetchStreams.isEmpty())
@@ -1938,9 +1939,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMergedReplyAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                if (KafkaState.replyOpening(state))
+                if (StreamState.replyOpening(state))
                 {
                     doMergedReplyAbort(traceId);
                     describeStream.doDescribeReplyResetIfNecessary(traceId);
@@ -1959,14 +1960,14 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             Consumer<OctetsFW.Builder> extension)
         {
-            if (KafkaState.initialOpening(state) &&
-                !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) &&
+                !StreamState.initialClosed(state))
             {
                 describeStream.doDescribeInitialAbortIfNecessary(traceId);
                 metaStream.doMetaInitialAbortIfNecessary(traceId);
                 produceStreams.forEach(f -> f.doProduceInitialAbortIfNecessary(traceId));
 
-                state = KafkaState.closingInitial(state);
+                state = StreamState.closingInitial(state);
                 nextOffsetsById.clear();
                 fetchStreams.forEach(f -> f.doFetchReplyResetIfNecessary(traceId));
                 creditor.cleanupChild(mergedReplyBudgetId);
@@ -2178,7 +2179,7 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 doMergedReplyBeginIfNecessary(traceId);
 
-                if (KafkaState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     doMergedReplyEndIfNecessary(traceId);
                 }
@@ -2205,16 +2206,16 @@ public final class KafkaMergedFactory implements BindingHandler
                     fetchStreams.remove(leader);
                     if (fetchStreams.isEmpty())
                     {
-                        if (KafkaState.closed(state))
+                        if (StreamState.closed(state))
                         {
                             cleanupBudgetCreditorIfNecessary();
                         }
 
-                        if (KafkaState.initialClosing(state))
+                        if (StreamState.initialClosing(state))
                         {
                             doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
                         }
-                        if (KafkaState.replyClosing(state))
+                        if (StreamState.replyClosing(state))
                         {
                             doMergedReplyEndIfNecessary(traceId);
                         }
@@ -2224,7 +2225,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             else
             {
-                fetchStreams.removeIf(f -> KafkaState.closed(f.state));
+                fetchStreams.removeIf(f -> StreamState.closed(f.state));
 
                 doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
             }
@@ -2300,14 +2301,14 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             if (produceStreams.size() == leadersByAssignedId.size())
             {
-                if (!KafkaState.initialOpened(state))
+                if (!StreamState.initialOpened(state))
                 {
                     doMergedInitialWindow(traceId, 0L);
                 }
 
                 doMergedReplyBeginIfNecessary(traceId);
 
-                if (KafkaState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     doMergedReplyEndIfNecessary(traceId);
                 }
@@ -2393,7 +2394,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -2421,7 +2422,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doDescribeInitialEnd(traceId);
             }
@@ -2430,7 +2431,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2439,7 +2440,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doDescribeInitialAbort(traceId);
             }
@@ -2448,7 +2449,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2496,7 +2497,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doDescribeReplyWindow(traceId, 0, 8192);
         }
@@ -2537,7 +2538,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyBeginIfNecessary(traceId);
             merged.doMergedReplyEndIfNecessary(traceId);
@@ -2550,7 +2551,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
 
@@ -2562,7 +2563,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
@@ -2572,11 +2573,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onDescribeInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 final long traceId = window.traceId();
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 merged.doMergedInitialWindow(traceId, 0L);
             }
@@ -2589,14 +2590,14 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                         traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
@@ -2606,7 +2607,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doDescribeReplyReset(traceId);
             }
@@ -2615,7 +2616,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doDescribeReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2649,7 +2650,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doMetaInitialBegin(traceId);
             }
@@ -2660,7 +2661,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -2677,7 +2678,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doMetaInitialEnd(traceId);
             }
@@ -2686,7 +2687,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2695,7 +2696,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doMetaInitialAbort(traceId);
             }
@@ -2704,7 +2705,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2752,7 +2753,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doMetaReplyWindow(traceId, 0, 8192);
         }
@@ -2793,7 +2794,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyBeginIfNecessary(traceId);
             merged.doMergedReplyEndIfNecessary(traceId);
@@ -2806,7 +2807,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
 
@@ -2818,7 +2819,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
@@ -2828,11 +2829,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMetaInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 final long traceId = window.traceId();
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 merged.doMergedInitialWindow(traceId, 0L);
             }
@@ -2845,14 +2846,14 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                         traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
@@ -2862,7 +2863,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doMetaReplyReset(traceId);
             }
@@ -2871,7 +2872,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doMetaReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2909,7 +2910,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doConsumerInitialBegin(traceId);
             }
@@ -2920,7 +2921,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -2945,7 +2946,7 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             KafkaMergedConsumerFlushExFW consumer)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 final KafkaOffsetFW offsetAck = consumer.progress();
                 final KafkaPartitionOffset partitionOffset = merged.offsetsByPartitionId.get(offsetAck.partitionId());
@@ -2971,7 +2972,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doConsumerInitialEnd(traceId);
             }
@@ -2980,7 +2981,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -2989,7 +2990,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doConsumerInitialAbort(traceId);
             }
@@ -2998,7 +2999,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3051,7 +3052,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final ExtensionFW beginEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
             final KafkaBeginExFW kafkaBeginEx = beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::wrap) : null;
@@ -3126,7 +3127,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyBeginIfNecessary(traceId);
             merged.doMergedReplyEndIfNecessary(traceId);
@@ -3139,7 +3140,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
 
@@ -3155,7 +3156,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             merged.doMergedInitialResetIfNecessary(traceId, ex -> ex.set((b, o, l) -> kafkaResetExRW.wrap(b, o, l)
                 .typeId(kafkaTypeId)
@@ -3187,7 +3188,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
         }
 
         private void doConsumerReplyWindow(
@@ -3197,14 +3198,14 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
@@ -3214,7 +3215,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doConsumerReplyReset(traceId);
             }
@@ -3223,7 +3224,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doConsumerReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3257,7 +3258,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state) || KafkaState.closed(state))
+            if (!StreamState.initialOpening(state) || StreamState.closed(state))
             {
                 doOffsetFetchInitialBegin(traceId);
             }
@@ -3266,14 +3267,14 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialBegin(
             long traceId)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -3297,7 +3298,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doOffsetFetchInitialEnd(traceId);
             }
@@ -3306,7 +3307,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3315,7 +3316,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doOffsetFetchInitialAbort(traceId);
             }
@@ -3324,7 +3325,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3372,7 +3373,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doOffsetFetchReplyWindow(traceId, 0, 8192);
         }
@@ -3414,7 +3415,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyBeginIfNecessary(traceId);
             merged.doMergedReplyEndIfNecessary(traceId);
@@ -3427,7 +3428,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
 
@@ -3439,7 +3440,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             merged.doMergedInitialResetIfNecessary(traceId, EMPTY_EXTENSION);
 
@@ -3449,11 +3450,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onOffsetFetchInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 final long traceId = window.traceId();
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 merged.doMergedInitialWindow(traceId, 0L);
             }
@@ -3466,14 +3467,14 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, 0L, merged.replyPad, DEFAULT_MINIMUM);
@@ -3483,7 +3484,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doOffsetFetchReplyReset(traceId);
             }
@@ -3492,7 +3493,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doOffsetFetchReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                 traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3501,7 +3502,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void resetStreamIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state))
+            if (StreamState.initialOpening(state))
             {
                 doOffsetFetchInitialAbortIfNecessary(traceId);
                 doOffsetFetchReplyResetIfNecessary(traceId);
@@ -3544,7 +3545,7 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             long partitionOffset)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doFetchInitialBegin(traceId, partitionOffset);
             }
@@ -3554,14 +3555,14 @@ public final class KafkaMergedFactory implements BindingHandler
             long traceId,
             long partitionOffset)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -3597,7 +3598,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMergedInitialEnd(
             long traceId)
         {
-            if (!KafkaState.replyClosing(state))
+            if (!StreamState.replyClosing(state))
             {
                 doFetchInitialEndIfNecessary(traceId);
             }
@@ -3606,7 +3607,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doFetchInitialEnd(traceId);
             }
@@ -3615,7 +3616,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3624,7 +3625,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMergedInitialAbort(
             long traceId)
         {
-            if (!KafkaState.replyClosing(state))
+            if (!StreamState.replyClosing(state))
             {
                 doFetchInitialAbortIfNecessary(traceId);
             }
@@ -3633,7 +3634,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doFetchInitialAbort(traceId);
             }
@@ -3642,7 +3643,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3654,7 +3655,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
@@ -3665,7 +3666,7 @@ public final class KafkaMergedFactory implements BindingHandler
             }
             doFetchReplyResetIfNecessary(traceId);
 
-            assert KafkaState.closed(state);
+            assert StreamState.closed(state);
 
             merged.onFetchPartitionError(traceId, partitionId, error);
         }
@@ -3673,11 +3674,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onFetchInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 final long traceId = window.traceId();
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 merged.doMergedInitialWindow(traceId, 0L);
             }
@@ -3727,7 +3728,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onFetchReplyBegin(
             BeginFW begin)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final long traceId = begin.traceId();
 
@@ -3785,7 +3786,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             if (merged.maximumOffset != HISTORICAL)
             {
@@ -3837,7 +3838,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
             doFetchInitialAbortIfNecessary(traceId);
@@ -3848,22 +3849,22 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchReplyWindowIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpened(merged.state) &&
-                KafkaState.replyOpening(state) &&
-                !KafkaState.replyClosing(state))
+            if (StreamState.replyOpened(merged.state) &&
+                StreamState.replyOpening(state) &&
+                !StreamState.replyClosing(state))
             {
                 final int minReplyMax = merged.replyMax;
                 final int minReplyNoAck = (int)(merged.replySeq - merged.replyAck);
                 final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-                if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+                if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
                 {
                     replyAck = newReplyAck;
                     assert replyAck <= replySeq;
 
                     replyMax = minReplyMax;
 
-                    state = KafkaState.openReply(state);
+                    state = StreamState.openReply(state);
 
                     doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                             traceId, merged.authorization, merged.mergedReplyBudgetId, merged.replyPad, merged.replyMin);
@@ -3874,7 +3875,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMergedReplyReset(
             long traceId)
         {
-            if (!KafkaState.initialClosing(state))
+            if (!StreamState.initialClosing(state))
             {
                 doFetchReplyResetIfNecessary(traceId);
             }
@@ -3883,7 +3884,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doFetchReplyReset(traceId);
             }
@@ -3892,7 +3893,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doFetchReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -3947,7 +3948,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doProduceInitialBegin(traceId);
             }
@@ -3956,14 +3957,14 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialBegin(
             long traceId)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
             assert state == 0;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             this.initialId = supplyInitialId.applyAsLong(merged.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -4083,7 +4084,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doProduceInitialEnd(traceId);
             }
@@ -4092,7 +4093,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialEnd(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -4101,7 +4102,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doProduceInitialAbort(traceId);
             }
@@ -4110,7 +4111,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceInitialAbort(
             long traceId)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(receiver, merged.routedId, merged.resolvedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);
@@ -4122,14 +4123,14 @@ public final class KafkaMergedFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : ERROR_UNKNOWN;
 
             doProduceReplyResetIfNecessary(traceId);
 
-            assert KafkaState.closed(state);
+            assert StreamState.closed(state);
 
             merged.onProducePartitionLeaderError(traceId, partitionId, error);
         }
@@ -4156,7 +4157,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             merged.doMergedInitialWindow(traceId, initialBudgetId);
         }
@@ -4218,7 +4219,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onProduceReplyBegin(
             BeginFW begin)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final long traceId = begin.traceId();
 
@@ -4265,7 +4266,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyEndIfNecessary(traceId);
 
@@ -4277,7 +4278,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             merged.doMergedReplyAbortIfNecessary(traceId);
 
@@ -4287,22 +4288,22 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceReplyWindowIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpened(merged.state) &&
-                KafkaState.replyOpening(state) &&
-                !KafkaState.replyClosing(state))
+            if (StreamState.replyOpened(merged.state) &&
+                StreamState.replyOpening(state) &&
+                !StreamState.replyClosing(state))
             {
                 final int minReplyMax = merged.replyMax;
                 final int minReplyNoAck = (int)(merged.replySeq - merged.replyAck);
                 final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-                if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+                if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
                 {
                     replyAck = newReplyAck;
                     assert replyAck <= replySeq;
 
                     replyMax = minReplyMax;
 
-                    state = KafkaState.openReply(state);
+                    state = StreamState.openReply(state);
 
                     doWindow(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                             traceId, merged.authorization, merged.mergedReplyBudgetId, merged.replyPad, DEFAULT_MINIMUM);
@@ -4313,7 +4314,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doProduceReplyReset(traceId);
             }
@@ -4322,7 +4323,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private void doProduceReplyReset(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(receiver, merged.routedId, merged.resolvedId, replyId, replySeq, replyAck, replyMax,
                     traceId, merged.authorization, EMPTY_EXTENSION);

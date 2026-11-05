@@ -55,6 +55,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -492,12 +493,12 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             doConsumerFanInitialBeginIfNecessary(traceId);
 
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
                 member.doConsumerInitialWindow(authorization, traceId, 0, initialPad);
             }
 
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 member.doConsumerReplyBeginIfNecessary(traceId);
             }
@@ -552,12 +553,12 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerFanInitialBeginIfNecessary(
             long traceId)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 doConsumerFanInitialBegin(traceId);
             }
@@ -582,7 +583,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
                             .partitionIds(p -> partitions.forEach(tp -> p.item(np -> np.partitionId(tp.intValue())))))
                         .build()
                         .sizeof()));
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
         }
 
         private void doConsumerInitialFlush(
@@ -601,7 +602,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerFanInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doConsumerFanInitialEnd(traceId);
             }
@@ -613,13 +614,13 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doConsumerFanInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doConsumerFanInitialAbort(traceId);
             }
@@ -631,7 +632,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void onConsumerFanInitialReset(
@@ -640,7 +641,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doConsumerFanReplyResetIfNecessary(traceId);
 
@@ -669,7 +670,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             initialMax = maximum;
             initialBud = budgetId;
             initialPad = padding;
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -730,7 +731,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             host = kafkaConsumerBeginEx.host().asString();
             port = kafkaConsumerBeginEx.port();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             members.forEach(s -> s.doConsumerReplyBeginIfNecessary(traceId));
 
@@ -805,7 +806,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doConsumerFanInitialEndIfNecessary(traceId);
 
@@ -819,7 +820,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doConsumerFanInitialAbortIfNecessary(traceId);
 
@@ -831,7 +832,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerFanReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doConsumerFanReplyReset(traceId);
             }
@@ -843,7 +844,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doConsumerFanReplyWindow(
@@ -853,14 +854,14 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, 0);
@@ -953,7 +954,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             fan.onConsumerFanMemberOpening(traceId, this);
         }
@@ -972,7 +973,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             fan.onConsumerFanMemberClosed(traceId, this);
 
@@ -984,7 +985,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             fan.onConsumerFanMemberClosed(traceId, this);
 
@@ -995,19 +996,19 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doConsumerInitialReset(traceId, extension);
             }
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doConsumerInitialReset(
             long traceId,
             OctetsFW extension)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -1026,7 +1027,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerReplyBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doConsumerReplyBegin(traceId);
             }
@@ -1035,7 +1036,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerReplyBegin(
             long traceId)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
@@ -1054,7 +1055,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 doConsumerReplyData(traceId, extension);
             }
@@ -1085,18 +1086,18 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerReplyEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doConsumerReplyEnd(traceId);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doConsumerReplyEnd(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
             doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -1104,18 +1105,18 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerReplyAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doConsumerReplyAbort(traceId);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doConsumerReplyAbort(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
             doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -1125,7 +1126,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             fan.onConsumerFanMemberClosed(traceId, this);
 
@@ -1153,9 +1154,9 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (!KafkaState.replyOpened(state))
+            if (!StreamState.replyOpened(state))
             {
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 final long traceId = window.traceId();
                 fan.onConsumerFanMemberOpened(traceId, this);

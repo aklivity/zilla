@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -792,7 +793,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             assert (initialId & 0x0000_0000_0000_0001L) != 0L;
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doStreamBegin(authorization, traceId);
             doStreamWindow(authorization, traceId);
@@ -838,9 +839,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 connection.onStreamClosed(initialId);
             }
@@ -855,9 +856,9 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 connection.onStreamClosed(initialId);
             }
@@ -872,7 +873,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             // TODO: responseAckBytes == 0, remove if
             if (nextRequestId == nexResponseId &&
@@ -882,7 +883,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 flushStreamWindow(traceId);
             }
 
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 connection.onStreamClosed(initialId);
             }
@@ -908,7 +909,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             this.replyPad = padding;
             this.replyBud = budgetId;
 
-            state = KafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             flushStreamWindow(traceId);
         }
@@ -917,7 +918,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long traceId)
         {
-            if (KafkaState.initialOpened(connection.state))
+            if (StreamState.initialOpened(connection.state))
             {
                 final long initialSeqOffsetPeek = initialSeqOffsets.peekLong();
 
@@ -945,7 +946,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long traceId)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, connection.initialBudId, EMPTY_EXTENSION);
@@ -971,14 +972,14 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             responseBytes -= length;
             assert responseBytes >= 0;
 
-            if (!KafkaState.replyClosed(state) && !KafkaState.replyAborting(state))
+            if (!StreamState.replyClosed(state) && !StreamState.replyAborting(state))
             {
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
 
                 replySeq += reserved;
 
-                if (responseBytes == 0 && KafkaState.replyClosing(state))
+                if (responseBytes == 0 && StreamState.replyClosing(state))
                 {
                     doStreamEnd(traceId);
                 }
@@ -990,7 +991,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 // TODO: responseAckBytes == 0, remove if
                 if (responseBytes == 0)
                 {
-                    if (KafkaState.replyAborting(state))
+                    if (StreamState.replyAborting(state))
                     {
                         doStreamAbort(traceId);
                     }
@@ -1028,13 +1029,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamEnd(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = KafkaState.closingReply(state);
+                state = StreamState.closingReply(state);
 
                 if (nextRequestId == nexResponseId)
                 {
-                    state = KafkaState.closeReply(state);
+                    state = StreamState.closeReply(state);
 
                     doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
@@ -1045,7 +1046,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                         flushStreamWindow(traceId);
                     }
 
-                    if (KafkaState.closed(state))
+                    if (StreamState.closed(state))
                     {
                         connection.onStreamClosed(initialId);
                     }
@@ -1056,13 +1057,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamAbort(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = KafkaState.abortingReply(state);
+                state = StreamState.abortingReply(state);
 
                 if (nextRequestId == nexResponseId)
                 {
-                    state = KafkaState.closeReply(state);
+                    state = StreamState.closeReply(state);
 
                     doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
@@ -1073,7 +1074,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                         flushStreamWindow(traceId);
                     }
 
-                    if (KafkaState.closed(state))
+                    if (StreamState.closed(state))
                     {
                         connection.onStreamClosed(initialId);
                     }
@@ -1084,14 +1085,14 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamReset(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
                     traceId, authorization);
 
-                if (KafkaState.closed(state))
+                if (StreamState.closed(state))
                 {
                     connection.onStreamClosed(initialId);
                 }
@@ -1140,42 +1141,42 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             switch (signalId)
             {
             case SIGNAL_STREAM_BEGIN:
-                if (!KafkaState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     final BeginFW begin = beginRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamBegin(begin);
                 }
                 break;
             case SIGNAL_STREAM_DATA:
-                if (!KafkaState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     final DataFW data = dataRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamData(data);
                 }
                 break;
             case SIGNAL_STREAM_END:
-                if (!KafkaState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     final EndFW end = endRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamEnd(end);
                 }
                 break;
             case SIGNAL_STREAM_ABORT:
-                if (!KafkaState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     final AbortFW abort = abortRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamAbort(abort);
                 }
                 break;
             case SIGNAL_STREAM_WINDOW:
-                if (!KafkaState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     final WindowFW window = windowRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamWindow(window);
                 }
                 break;
             case SIGNAL_STREAM_RESET:
-                if (!KafkaState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     final ResetFW reset = resetRO.wrap(payload.value(), 0, payload.sizeof());
                     onStreamReset(reset);
@@ -1271,7 +1272,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long traceId,
             OctetsFW extension)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
                 initialAck = 0;
@@ -1287,14 +1288,14 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 this.decoder = decodeReject;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
 
-                state = KafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 this.receiver = newNetworkStream(this::onConnectionMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1362,12 +1363,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doConnectionEnd(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
 
             cleanupBudgetCreditorIfNecessary();
@@ -1378,12 +1379,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doConnectionAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
 
             cleanupBudgetCreditorIfNecessary();
@@ -1430,12 +1431,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doConnectionReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
 
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             deauthorizeGuardSession();
@@ -1473,7 +1474,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     }
                     maxReplyAck = stream.replyAckOffsets.removeLong();
 
-                    if (KafkaState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
+                    if (StreamState.closed(stream.state) && stream.replyAckOffsets.isEmpty())
                     {
                         streamsByInitialId.remove(responseAck);
                     }
@@ -1489,14 +1490,14 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             final long newReplyAck = Math.max(maxReplyAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, maxReplyPad);
@@ -1550,7 +1551,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             final long authorization = begin.authorization();
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doConnectionWindow(traceId, authorization, 0);
         }
@@ -1647,7 +1648,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1661,7 +1662,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doConnectionAbort(traceId);
 
@@ -1720,7 +1721,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doConnectionReset(traceId);
 
@@ -1760,7 +1761,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             assert replyAck <= replySeq;
 
-            if (KafkaState.initialOpening(state))
+            if (StreamState.initialOpening(state))
             {
                 if (initialBudId == NO_BUDGET_ID)
                 {
@@ -1768,7 +1769,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 }
             }
 
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             if (flushable)
             {
