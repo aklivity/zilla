@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonRefResolver;
+import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
@@ -69,6 +70,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.JsonViolation;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 /**
@@ -2287,6 +2289,11 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final StringBuilder pointer;
+        private final Violation violation = new Violation();
+
+        private JsonReporter detail;
+        private JsonSource value;
+        private int muted;
 
         private Trace(
             Consumer<JsonSchemaDiagnostic> reporter)
@@ -2343,7 +2350,57 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
+        private void detail(
+            JsonReporter detail)
+        {
+            this.detail = detail;
+        }
+
+        private void value(
+            JsonSource value)
+        {
+            this.value = value;
+        }
+
+        private void mute(
+            int delta)
+        {
+            muted += delta;
+        }
+
+        private void violate(
+            String keyword,
+            CharSequence member)
+        {
+            if (detail != null && muted == 0)
+            {
+                violation.keyword = keyword;
+                violation.pointer = pointer;
+                violation.member = member;
+                violation.value = value;
+                detail.violated(violation);
+            }
+        }
+
         private void report(
+            String keyword,
+            String message,
+            JsonSource parser)
+        {
+            report(keyword, message, parser, null);
+        }
+
+        private void report(
+            String keyword,
+            String message,
+            JsonSource parser,
+            CharSequence member)
+        {
+            diagnose(keyword, message, parser);
+            violate(keyword, member);
+        }
+
+        private void diagnose(
             String keyword,
             String message,
             JsonSource parser)
@@ -2364,6 +2421,38 @@ public final class JsonSchemaImpl implements JsonSchema
             String segment)
         {
             return segment.replace("~", "~0").replace("/", "~1");
+        }
+    }
+
+    private static final class Violation implements JsonViolation
+    {
+        private String keyword;
+        private CharSequence pointer;
+        private CharSequence member;
+        private JsonSource value;
+
+        @Override
+        public String keyword()
+        {
+            return keyword;
+        }
+
+        @Override
+        public CharSequence pointer()
+        {
+            return pointer;
+        }
+
+        @Override
+        public CharSequence member()
+        {
+            return member;
+        }
+
+        @Override
+        public JsonSource value()
+        {
+            return value;
         }
     }
 
@@ -2743,6 +2832,9 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             upstreamControl = control;
             Status status;
+            JsonReporter detail = control.detail();
+            boolean detailing = detail != JsonReporter.NONE;
+            trace.detail(detailing ? detail : null);
             boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
@@ -2765,7 +2857,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 status = downstream == Status.REJECTED ? Status.REJECTED
                     : downstream == Status.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
             }
-            else if (scalar && source.deferredBytes() && eval.needsContentNow())
+            else if (scalar && source.deferredBytes() && (detailing || eval.needsContentNow()))
             {
                 // Eval is not fragment-aware: a value spanning windows must be reassembled before it can be
                 // validated against any keyword. Decline the fragment (consumed(0), do not forward) so the
@@ -2790,7 +2882,9 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
                 // remainder the sink leaves after advancing the consumed cursor
+                trace.value(source);
                 Verdict verdict = eval.feed(toEvent(event), source);
+                trace.value(null);
                 if (verdict == Verdict.INVALID && !lenient)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2834,7 +2928,15 @@ public final class JsonSchemaImpl implements JsonSchema
                 // a key is captured before forwarding — see keyCapture's field comment — so Eval reads an
                 // intact view below regardless of what the sink does with the same live cursor
                 boolean keyName = event == JsonEvent.KEY_NAME;
-                if (keyName)
+                Verdict verdict = null;
+                if (detailing)
+                {
+                    // detailed reporting delivers a violation before the event that triggered it is forwarded, so a
+                    // downstream stage can still act on it: the key or structural event is evaluated first, while
+                    // the cursor is fresh
+                    verdict = eval.feed(toEvent(event), source);
+                }
+                else if (keyName)
                 {
                     keyCapture.setLength(0);
                     keyCapture.append(source.getStringView());
@@ -2842,7 +2944,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
                 Status downstream = sink.transform(decline, source, forward(event));
-                Verdict verdict = eval.feed(toEvent(event), keyName ? keySourceRO.wrap(source) : source);
+                if (!detailing)
+                {
+                    verdict = eval.feed(toEvent(event), keyName ? keySourceRO.wrap(source) : source);
+                }
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
                 if (verdict == Verdict.INVALID && !lenient)
@@ -3003,6 +3108,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private Verdict result;
         private int depth;
         private boolean directInvalid;
+        private boolean keyed;
         private boolean object;
         private boolean array;
         private Set<String> seen;
@@ -3080,6 +3186,7 @@ public final class JsonSchemaImpl implements JsonSchema
             result = null;
             depth = 0;
             directInvalid = false;
+            keyed = false;
             object = false;
             array = false;
             count = 0;
@@ -3337,7 +3444,15 @@ public final class JsonSchemaImpl implements JsonSchema
             if (deny)
             {
                 directInvalid = true;
-                trace.report("false", "subschema disallows all instances", parser);
+                if (keyed)
+                {
+                    keyed = false;
+                    trace.diagnose("false", "subschema disallows all instances", parser);
+                }
+                else
+                {
+                    trace.report("false", "subschema disallows all instances", parser);
+                }
             }
             switch (event)
             {
@@ -3630,7 +3745,11 @@ public final class JsonSchemaImpl implements JsonSchema
                     directInvalid = true;
                     Set<String> missing = new LinkedHashSet<>(required);
                     missing.removeAll(seen);
-                    trace.report("required", "missing required " + missing, parser);
+                    trace.diagnose("required", "missing required " + missing, parser);
+                    for (String name : missing)
+                    {
+                        trace.violate("required", name);
+                    }
                 }
                 if (minProperties >= 0 && count < minProperties)
                 {
@@ -3660,10 +3779,16 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     childTokens = new ArrayList<>();
                 }
-                if (propertyNames != null && propertyNames.eval(trace, dynScope).feed(VALUE_STRING, parser) != Verdict.VALID)
+                if (propertyNames != null)
                 {
-                    directInvalid = true;
-                    trace.report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
+                    trace.mute(1);
+                    Verdict named = propertyNames.eval(trace, dynScope).feed(VALUE_STRING, parser);
+                    trace.mute(-1);
+                    if (named != Verdict.VALID)
+                    {
+                        directInvalid = true;
+                        trace.report("propertyNames", "property name '" + key + "' violates propertyNames", parser, key);
+                    }
                 }
                 setApplicableFor(key);
             }
@@ -3699,6 +3824,10 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
             }
+            if (schema.deny)
+            {
+                trace.violate(matchedIndex >= 0 ? "false" : "additionalProperties", key);
+            }
             if (matchedIndex >= 0)
             {
                 // a declared property: the schema already owns this exact name, so the pointer segment
@@ -3717,6 +3846,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 directChildMark = 0;
             }
             directChild = propEvalFor(schema);
+            directChild.keyed = schema.deny && trace.detail != null;
             directChildren = null;
         }
 
@@ -3744,7 +3874,11 @@ public final class JsonSchemaImpl implements JsonSchema
                         names.add(requiredKeys[i]);
                     }
                 }
-                trace.report("required", "missing required " + names, parser);
+                trace.diagnose("required", "missing required " + names, parser);
+                for (String name : names)
+                {
+                    trace.violate("required", name);
+                }
             }
         }
 
@@ -3937,7 +4071,6 @@ public final class JsonSchemaImpl implements JsonSchema
         private void setApplicableFor(
             String key)
         {
-            directChildMark = trace.push(key);
             boolean matched;
             if (patternProperties == null)
             {
@@ -3947,7 +4080,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
                 }
+                if (schema.deny)
+                {
+                    trace.violate(matched ? "false" : "additionalProperties", key);
+                }
+                directChildMark = trace.push(key);
                 directChild = propEvalFor(schema);
+                directChild.keyed = schema.deny && trace.detail != null;
                 directChildren = null;
             }
             else
@@ -3969,9 +4108,19 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 if (!matched)
                 {
-                    applicable.add(additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE);
+                    JsonSchemaImpl fallback = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+                    if (fallback.deny)
+                    {
+                        trace.violate("additionalProperties", key);
+                    }
+                    applicable.add(fallback);
                 }
+                directChildMark = trace.push(key);
                 setApplicable(applicable);
+                if (directChild != null)
+                {
+                    directChild.keyed = applicable.get(0).deny && trace.detail != null && !matched;
+                }
             }
             if (annotate && (matched || hasAdditional))
             {
@@ -4262,7 +4411,7 @@ public final class JsonSchemaImpl implements JsonSchema
                     {
                         valid = false;
                         trace.report("unevaluatedProperties",
-                            "property '" + entry.getKey() + "' failed unevaluatedProperties", parser);
+                            "property '" + entry.getKey() + "' failed unevaluatedProperties", parser, entry.getKey());
                     }
                 }
             }

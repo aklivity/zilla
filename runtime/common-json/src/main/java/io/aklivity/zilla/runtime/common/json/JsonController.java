@@ -58,6 +58,18 @@ public interface JsonController
     }
 
     /**
+     * Returns the {@link JsonReporter} a validating stage delivers {@link JsonViolation} detail to, or
+     * {@link JsonReporter#NONE} when the pipeline did not opt in with {@link JsonStream#detailed(boolean)}.
+     * A mediating stage may supply its own to its downstream.
+     *
+     * @return the reporter to deliver violation detail to
+     */
+    default JsonReporter detail()
+    {
+        return JsonReporter.NONE;
+    }
+
+    /**
      * Asks the upstream to treat the string value that follows the current {@link JsonEvent#KEY_NAME} as a
      * stringified JSON document: the upstream parses the decoded content of the string and delivers
      * {@link JsonEvent#START_ESCAPED}, the events of that document, and {@link JsonEvent#END_ESCAPED} once the

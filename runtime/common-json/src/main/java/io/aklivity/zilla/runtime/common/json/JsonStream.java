@@ -47,6 +47,18 @@ public interface JsonStream extends JsonTransformable<JsonStream>
         JsonReporter reporter);
 
     /**
+     * Opts in to detailed schema-violation reporting. When {@code true}, a stage that validates against a
+     * schema delivers each violation to the attached {@link JsonReporter} as a {@link JsonViolation} via
+     * {@link JsonReporter#violated(JsonViolation)} before the event that triggered it is forwarded downstream:
+     * at a member key for a violation decided by the key, at a value for one decided by the value, and before
+     * the {@code END_OBJECT} that closes a container for one only decidable there, such as a missing
+     * required member. Off by default; when off nothing is delivered and nothing is allocated for it. The
+     * pipeline status is not affected by the reports.
+     */
+    JsonStream detailed(
+        boolean detailed);
+
+    /**
      * Binds the pipeline to the {@link JsonEnvelope} its stages read and write named metadata through,
      * reachable from any stage via {@link JsonController#envelope()}. The last bound envelope wins; the
      * default is {@link JsonEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
