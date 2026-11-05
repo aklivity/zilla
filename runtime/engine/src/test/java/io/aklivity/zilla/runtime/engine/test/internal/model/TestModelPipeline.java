@@ -76,6 +76,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // path always constructs its pipeline with `null` here too.
 final class TestModelPipeline implements ModelPipeline
 {
+    private static final int SIGNAL_RESUME = 1;
+    private static final long SUSPEND_MILLIS = 200L;
     private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
     private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
@@ -234,6 +236,16 @@ final class TestModelPipeline implements ModelPipeline
                     status = inner.status();
                     produced = inner.produced();
                 }
+            }
+            else if (suspend && hasInit(flags))
+            {
+                awaiting = true;
+                context.signaler().signalAt(context.clock().millis() + SUSPEND_MILLIS, SIGNAL_RESUME, signalId ->
+                {
+                    awaiting = false;
+                    resumed.run();
+                });
+                status = ModelStatus.SUSPENDED;
             }
             else
             {
