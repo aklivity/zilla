@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.rules.RuleChain.outerRule;
@@ -33,6 +34,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -241,5 +243,62 @@ public class EngineMetricsIT
         // THEN
         List<String> fetched = Arrays.stream(ids).map(Arrays::toString).toList();
         assertThat(fetched, hasItems("[3, 7, 1, -1]", "[2, 7, 0, -1]"));
+    }
+
+    @Test
+    @Configuration("server.metrics.recorder.with.attributes.yaml")
+    public void shouldRecordNonFrameMetricWithAttributes()
+    {
+        // WHEN
+        LongSupplier counter = recordedCounter("tenant=acme,user=alice");
+
+        // THEN
+        // the test binding records 7 on each of the 3 workers
+        assertThat(counter.getAsLong(), equalTo(21L));
+    }
+
+    @Test
+    @Configuration("server.metrics.recorder.without.authorization.yaml")
+    public void shouldRecordNonFrameMetricWithoutAuthorization()
+    {
+        // WHEN
+        LongSupplier counter = recordedCounter(null);
+
+        // THEN
+        assertThat(counter.getAsLong(), equalTo(21L));
+    }
+
+    @Test
+    @Configuration("server.metrics.recorder.without.attributes.yaml")
+    public void shouldRecordNonFrameMetricWithoutAttributes()
+    {
+        // WHEN
+        LongSupplier counter = recordedCounter(null);
+
+        // THEN
+        assertThat(counter.getAsLong(), equalTo(21L));
+    }
+
+    @Test
+    @Configuration("server.metrics.recorder.unselected.yaml")
+    public void shouldNotRecordUnselectedNonFrameMetric()
+    {
+        // WHEN
+        int metricId = engine.supplyLabelId("test.recorded");
+        List<long[]> recorded = Arrays.stream(engine.counterIds())
+            .filter(ids -> ids[1] == metricId)
+            .toList();
+
+        // THEN
+        assertThat(recorded, empty());
+    }
+
+    private LongSupplier recordedCounter(
+        String attributes)
+    {
+        long bindingId = NamespacedId.id(engine.supplyLabelId("test"), engine.supplyLabelId("net0"));
+        int metricId = engine.supplyLabelId("test.recorded");
+        int attributesId = attributes != null ? engine.supplyLabelId(attributes) : 0;
+        return engine.counter(bindingId, metricId, attributesId);
     }
 }
