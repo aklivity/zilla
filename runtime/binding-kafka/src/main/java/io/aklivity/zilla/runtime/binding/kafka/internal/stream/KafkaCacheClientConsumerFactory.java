@@ -1121,7 +1121,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         private void doConsumerReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doConsumerReplyAbort(traceId);
             }

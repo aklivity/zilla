@@ -790,7 +790,7 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
         private void doApplicationAbort(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(StreamState.abortingReply(state));
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,

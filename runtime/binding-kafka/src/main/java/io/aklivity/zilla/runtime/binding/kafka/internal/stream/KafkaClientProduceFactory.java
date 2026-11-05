@@ -1286,7 +1286,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         private void doApplicationAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doApplicationAbort(traceId);
             }
