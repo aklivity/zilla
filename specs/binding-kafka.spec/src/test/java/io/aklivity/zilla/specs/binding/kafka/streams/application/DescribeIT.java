@@ -66,6 +66,15 @@ public class DescribeIT
 
     @Test
     @Specification({
+        "${app}/topic.config.info.window.before.begin/client",
+        "${app}/topic.config.info.window.before.begin/server"})
+    public void shouldReceiveTopicConfigInfoWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.config.info.synonyms/client",
         "${app}/topic.config.info.synonyms/server"})
     public void shouldReceiveTopicConfigInfoWithSynonyms() throws Exception
@@ -91,6 +100,15 @@ public class DescribeIT
         k3po.start();
         k3po.awaitBarrier("RECEIVED_TOPIC_CONFIG");
         k3po.notifyBarrier("CHANGE_TOPIC_CONFIG");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.abort.before.begin/client",
+        "${app}/server.sent.abort.before.begin/server"})
+    public void shouldHandleServerSentAbortBeforeBegin() throws Exception
+    {
         k3po.finish();
     }
 }

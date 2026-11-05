@@ -33,4 +33,5 @@ connected
 read "{"
 
 read aborted
+write flush
 write abort

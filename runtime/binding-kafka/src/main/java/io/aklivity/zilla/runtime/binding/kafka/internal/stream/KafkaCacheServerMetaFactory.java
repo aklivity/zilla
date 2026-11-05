@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -208,6 +209,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -220,6 +222,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -242,6 +245,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -254,6 +258,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -271,6 +276,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -284,6 +290,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -302,6 +309,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -313,6 +321,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -329,6 +338,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -340,6 +350,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -356,6 +367,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -368,6 +380,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -385,6 +398,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -398,6 +412,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -416,6 +431,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -426,6 +442,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -486,12 +503,12 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             doMetaFanoutInitialBeginIfNecessary(traceId);
 
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
                 member.doMetaInitialWindow(traceId, 0L, 0, 0, 0);
             }
 
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 member.doMetaReplyBeginIfNecessary(traceId);
             }
@@ -535,12 +552,12 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutInitialBeginIfNecessary(
             long traceId)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 if (KafkaConfiguration.DEBUG)
                 {
@@ -558,21 +575,21 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onMetaFanoutMessage,
-                originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .meta(m -> m.topic(topic.name()))
                         .build()
                         .sizeof()));
-            state = KafkaState.openingInitial(state);
         }
 
         private void doMetaFanoutInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doMetaFanoutInitialEnd(traceId);
             }
@@ -581,16 +598,16 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutInitialEnd(
             long traceId)
         {
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(state);
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
         }
 
         private void doMetaFanoutInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doMetaFanoutInitialAbort(traceId);
             }
@@ -599,10 +616,10 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutInitialAbort(
             long traceId)
         {
-            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
+            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
         }
 
         private void onMetaFanoutInitialReset(
@@ -614,7 +631,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             doMetaFanoutReplyResetIfNecessary(traceId);
 
@@ -649,13 +666,13 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void onMetaFanoutInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 this.reconnectAttempt = 0;
 
                 final long traceId = window.traceId();
 
-                state = KafkaState.openedInitial(state);
+                state = StreamState.openInitial(state);
 
                 members.forEach(s -> s.doMetaInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -703,7 +720,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             members.forEach(s -> s.doMetaReplyBeginIfNecessary(traceId));
 
@@ -749,7 +766,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             doMetaFanoutInitialEndIfNecessary(traceId);
 
@@ -786,7 +803,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             doMetaFanoutInitialAbortIfNecessary(traceId);
 
@@ -834,9 +851,9 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutFlushIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
-                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, 0, EMPTY_EXTENSION);
             }
         }
@@ -844,7 +861,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doMetaFanoutReplyReset(traceId);
             }
@@ -853,10 +870,10 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaFanoutReplyReset(
             long traceId)
         {
-            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(state);
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization);
 
-            state = KafkaState.closedReply(state);
         }
 
         private void doMetaFanoutReplyWindow(
@@ -866,16 +883,16 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = StreamState.openReply(state);
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, 0L, 0);
             }
         }
@@ -962,7 +979,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             group.onMetaFanoutMemberOpening(traceId, this);
         }
@@ -972,7 +989,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -984,7 +1001,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -994,20 +1011,20 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaInitialResetIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doMetaInitialReset(traceId);
             }
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doMetaInitialReset(
             long traceId)
         {
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
-            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization);
         }
 
@@ -1020,16 +1037,16 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = StreamState.openInitial(state);
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -1037,7 +1054,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaReplyBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doMetaReplyBegin(traceId);
             }
@@ -1046,9 +1063,9 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaReplyBegin(
             long traceId)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1061,7 +1078,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
             long traceId,
             KafkaDataExFW extension)
         {
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 doMetaReplyData(traceId, extension);
             }
@@ -1073,7 +1090,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final int reserved = replyPad;
 
-            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -1082,38 +1099,38 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         private void doMetaReplyEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doMetaReplyEnd(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMetaReplyEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(state);
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
         private void doMetaReplyAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doMetaReplyAbort(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMetaReplyAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(StreamState.abortingReply(state));
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1122,7 +1139,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             group.onMetaFanoutMemberClosed(traceId, this);
 
@@ -1150,9 +1167,9 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (!KafkaState.replyOpened(state))
+            if (!StreamState.replyOpened(state))
             {
-                state = KafkaState.openedReply(state);
+                state = StreamState.openReply(state);
 
                 final long traceId = window.traceId();
                 group.onMetaFanoutMemberOpened(traceId, this);
