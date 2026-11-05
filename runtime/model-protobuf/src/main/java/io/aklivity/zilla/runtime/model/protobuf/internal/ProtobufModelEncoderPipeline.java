@@ -42,6 +42,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
+    private final Runnable resumed;
     private final boolean deterministic;
 
     private ProtobufPipeline active;
@@ -51,9 +52,11 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
 
     ProtobufModelEncoderPipeline(
         ProtobufModelHandlerImpl handler,
-        ProtobufEnvelope envelope)
+        ProtobufEnvelope envelope,
+        Runnable resumed)
     {
         this.envelope = envelope;
+        this.resumed = resumed;
         this.handler = handler;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
@@ -104,6 +107,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         }
         else
         {
+            active.bindingId(bindingId);
             active.authorization(authorization);
             boolean last = hasFin(flags);
             ProtobufPipelineResult proto =
@@ -192,6 +196,10 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         if (pipeline == null)
         {
             pipeline = handler.newPipeline(schemaId, handler.encodeLenient, messageName, this::onRejected, envelope);
+            if (pipeline != null)
+            {
+                pipeline.resumer(resumed);
+            }
             pipelines.put(messageName, pipeline);
         }
         return pipeline;
@@ -210,6 +218,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;

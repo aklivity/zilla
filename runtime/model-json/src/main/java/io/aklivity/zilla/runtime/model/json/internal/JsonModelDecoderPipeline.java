@@ -52,6 +52,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final Runnable resumed;
     private final boolean deterministic;
     private final boolean identity;
 
@@ -66,8 +67,10 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         JsonModelHandlerImpl handler,
         JsonEnvelope envelope,
         ModelTransform transform,
-        ModelCache cache)
+        ModelCache cache,
+        Runnable resumed)
     {
+        this.resumed = resumed;
         this.envelope = envelope;
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
@@ -132,6 +135,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         else
         {
             boolean last = hasFin(flags);
+            active.bindingId(bindingId);
             JsonPipelineResult json =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(json.status());
@@ -180,7 +184,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     {
         return pipelines.computeIfAbsent(schemaId,
             id -> handler.newPipeline(id, handler.decodeLenient, generator, fieldTransform, this::onRejected, envelope,
-                cache));
+                cache, resumed));
     }
 
     private void onRejected(
@@ -215,6 +219,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;

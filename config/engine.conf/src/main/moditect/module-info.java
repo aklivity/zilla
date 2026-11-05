@@ -36,5 +36,6 @@ module io.aklivity.zilla.config.engine
     uses io.aklivity.zilla.config.engine.ModelInfo;
     uses io.aklivity.zilla.config.engine.ModelExtInfo;
     uses io.aklivity.zilla.config.engine.StoreInfo;
+    uses io.aklivity.zilla.config.engine.MetricGroupExtInfo;
     uses io.aklivity.zilla.config.engine.MetricGroupInfo;
 }

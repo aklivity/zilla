@@ -40,6 +40,37 @@ public interface AvroController
     long authorization();
 
     /**
+     * Returns the namespaced identifier of the binding the pipeline is currently driven for.
+     * <p>
+     * It is the value the caller supplied for the current call, and holds for the whole call, including
+     * re-entry of a stage after {@link AvroPipeline.Status#PENDING}. A mediating stage that supplies its own
+     * controller to its downstream passes this through. The default is {@code 0L}, in force when no
+     * identifier was supplied to the pipeline.
+     * </p>
+     *
+     * @return the identifier of the binding the pipeline is driven for
+     */
+    default long bindingId()
+    {
+        return 0L;
+    }
+
+    /**
+     * Returns the callback a stage runs, on the pipeline's I/O thread, when the asynchronous work behind a
+     * {@link AvroPipeline.Status#PENDING} outcome completes, so the caller re-drives the pipeline and the
+     * pending stage is re-entered through {@link AvroTransform#resume}. The default does nothing, in force
+     * when no callback was supplied to the pipeline.
+     *
+     * @return the callback that signals the caller to re-drive the pipeline
+     */
+    default Runnable resumer()
+    {
+        return () ->
+        {
+        };
+    }
+
+    /**
      * Returns the metadata travelling alongside the datum being transformed, addressed by name rather than
      * by position within the datum. The default is {@link AvroEnvelope#NONE}, in force when no envelope was
      * supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A

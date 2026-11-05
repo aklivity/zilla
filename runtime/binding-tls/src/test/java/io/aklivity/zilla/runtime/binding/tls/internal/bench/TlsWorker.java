@@ -67,6 +67,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -489,6 +490,14 @@ public class TlsWorker implements EngineContext
         long exporterId)
     {
 
+    }
+
+    @Override
+    public MetricRecorder supplyMetricRecorder(
+        long namespacedId,
+        String metric)
+    {
+        return MetricRecorder.NOOP;
     }
 
     @Override
