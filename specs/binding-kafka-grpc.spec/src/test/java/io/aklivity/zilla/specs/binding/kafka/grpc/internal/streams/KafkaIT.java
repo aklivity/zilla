@@ -99,4 +99,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.write.abort.before.response.begin/client",
+        "${kafka}/client.sent.write.abort.before.response.begin/server"})
+    public void shouldProduceErrorOnGrpcAbortBeforeResponseBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

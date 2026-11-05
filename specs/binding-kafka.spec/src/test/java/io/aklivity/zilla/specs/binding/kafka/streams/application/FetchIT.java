@@ -365,6 +365,17 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.none.window.before.begin/client",
+        "${app}/filter.none.window.before.begin/server"})
+    public void shouldFilterNoneWindowBeforeBegin() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_MESSAGE_3");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.sync/client",
         "${app}/filter.sync/server"})
     public void shouldFetchFilterSync() throws Exception

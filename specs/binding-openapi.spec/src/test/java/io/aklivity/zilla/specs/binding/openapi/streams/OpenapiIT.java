@@ -76,4 +76,14 @@ public class OpenapiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${openapi}/create.pet.reply.abort.before.begin/client",
+        "${openapi}/create.pet.reply.abort.before.begin/server"
+    })
+    public void shouldAbortReplyBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

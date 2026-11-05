@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class KafkaCacheServerAddressFactory
@@ -144,9 +145,9 @@ public class KafkaCacheServerAddressFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
-            receiver = newStream(this::onKafkaReply, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            receiver = newStream(this::onKafkaReply, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -159,9 +160,9 @@ public class KafkaCacheServerAddressFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -176,21 +177,21 @@ public class KafkaCacheServerAddressFactory
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                state = KafkaState.openedReply(state);
+                state = StreamState.openReply(state);
                 doKafkaReplyWindow(traceId, 0);
                 break;
             case EndFW.TYPE_ID:
             case AbortFW.TYPE_ID:
-                assert KafkaState.initialClosed(state) : "reply closed unexpectedly";
-                state = KafkaState.closedReply(state);
+                assert StreamState.initialClosed(state) : "reply closed unexpectedly";
+                state = StreamState.closeReply(state);
                 break;
             case ResetFW.TYPE_ID:
-                assert KafkaState.replyClosing(state) : "initial closed unexpectedly";
-                state = KafkaState.closedInitial(state);
+                assert StreamState.replyClosing(state) : "initial closed unexpectedly";
+                state = StreamState.closeInitial(state);
                 doKafkaReplyReset(traceId);
                 break;
             case WindowFW.TYPE_ID:
-                state = KafkaState.openedInitial(state);
+                state = StreamState.openInitial(state);
                 break;
             }
         }
@@ -198,7 +199,8 @@ public class KafkaCacheServerAddressFactory
         private void doKafkaReplyReset(
             long traceId)
         {
-            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(state);
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization);
         }
 
@@ -206,7 +208,7 @@ public class KafkaCacheServerAddressFactory
             long traceId,
             int padding)
         {
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, StreamState.openReply(state), replyMax,
                     traceId, authorization, 0L, padding);
         }
     }
@@ -218,6 +220,7 @@ public class KafkaCacheServerAddressFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -230,6 +233,7 @@ public class KafkaCacheServerAddressFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -252,6 +256,7 @@ public class KafkaCacheServerAddressFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -263,6 +268,7 @@ public class KafkaCacheServerAddressFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -279,6 +285,7 @@ public class KafkaCacheServerAddressFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -289,6 +296,7 @@ public class KafkaCacheServerAddressFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -304,6 +312,7 @@ public class KafkaCacheServerAddressFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -316,6 +325,7 @@ public class KafkaCacheServerAddressFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

@@ -21,4 +21,5 @@ accept "zilla://streams/server#0"
 accepted
 connected
 
+write flush
 write abort

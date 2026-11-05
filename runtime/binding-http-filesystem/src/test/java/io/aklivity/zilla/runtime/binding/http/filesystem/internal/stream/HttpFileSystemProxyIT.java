@@ -332,4 +332,14 @@ public class HttpFileSystemProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.with.path.yaml")
+    @Specification({
+        "${http}/server.sent.abort.before.begin/client",
+        "${filesystem}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
