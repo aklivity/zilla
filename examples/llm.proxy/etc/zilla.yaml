@@ -310,7 +310,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-        - http.duration
+        - http.*
       attributes:
         requested: ${llm.request.model}
         served: ${llm.response.model}
