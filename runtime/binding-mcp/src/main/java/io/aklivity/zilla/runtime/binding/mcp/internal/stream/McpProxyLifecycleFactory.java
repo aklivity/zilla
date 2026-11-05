@@ -689,7 +689,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
         }
@@ -989,9 +988,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
                     })
                     .build();
 
-                state = StreamState.openingInitial(state);
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     initialSeq, initialAck, state, initialMax, traceId, authorization, server.affinity, beginEx);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -1079,7 +1078,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (StreamState.replyOpened(state))
+            if (StreamState.replyOpening(state))
             {
                 final McpChallengeExFW resumeEx = mcpChallengeExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1303,7 +1302,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
             replySeq = sequence;
             replyAck = acknowledge;
 
-            state = StreamState.openingReply(state);
             state = StreamState.openInitial(state);
 
             final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
@@ -1320,6 +1318,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 server.interactiveAuthRoutes.remove(routedId);
             }
 
+            state = StreamState.openingReply(state);
             doClientWindow(traceId, 0L, 0);
 
             resolved = true;

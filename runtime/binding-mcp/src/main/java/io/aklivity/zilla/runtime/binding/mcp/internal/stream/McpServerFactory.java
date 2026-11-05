@@ -1829,6 +1829,8 @@ public final class McpServerFactory implements McpStreamFactory
                 doBegin(net, originId, routedId, replyId,
                     replySeq, replyAck, state, replyMax, traceId, authorization, 0,
                     extension);
+
+                state = StreamState.openingReply(state);
             }
         }
 
@@ -2917,8 +2919,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (sseUpgrade)
             {
-                length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, replyPad,
-                    replyBud, traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
+                length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, replyPad, replyBud,
+                    traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
                 replySeq += eventReserved;
             }
             else
@@ -3182,6 +3184,8 @@ public final class McpServerFactory implements McpStreamFactory
                 doBegin(net, originId, routedId, replyId,
                     replySeq, replyAck, state, replyMax, traceId, authorization, 0,
                     extension);
+
+                state = StreamState.openingReply(state);
             }
         }
 
@@ -3274,9 +3278,8 @@ public final class McpServerFactory implements McpStreamFactory
             if (msgTypeId == BeginFW.TYPE_ID)
             {
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                final int state = StreamState.closeInitial(StreamState.openingInitial(0));
                 doReset(net, begin.originId(), begin.routedId(), begin.streamId(),
-                    begin.sequence(), begin.acknowledge(), state, 0,
+                    begin.sequence(), begin.acknowledge(), StreamState.closeInitial(StreamState.openingInitial(0)), 0,
                     begin.traceId(), begin.authorization(), httpResetExRW
                         .wrap(codecBuffer, 0, codecBuffer.capacity())
                         .typeId(httpTypeId)
@@ -3297,7 +3300,6 @@ public final class McpServerFactory implements McpStreamFactory
 
         private long initialSeq;
         private long initialAck;
-
         private int state;
 
         private McpBearerRejectHandler(
@@ -3388,6 +3390,7 @@ public final class McpServerFactory implements McpStreamFactory
             else
             {
                 initialAck = initialSeq;
+                state = StreamState.openInitial(state);
                 doWindow(net, originId, routedId, initialId, initialSeq, initialAck, state, decodeMax,
                     traceId, authorization, budgetId, 0);
             }
@@ -3398,7 +3401,6 @@ public final class McpServerFactory implements McpStreamFactory
         {
             initialSeq = end.sequence();
             initialAck = initialSeq;
-            state = StreamState.closeInitial(state);
         }
 
         private void onNetAbort(
@@ -3406,7 +3408,6 @@ public final class McpServerFactory implements McpStreamFactory
         {
             initialSeq = abort.sequence();
             initialAck = initialSeq;
-            state = StreamState.closeInitial(state);
         }
     }
 
@@ -3635,6 +3636,8 @@ public final class McpServerFactory implements McpStreamFactory
                 doBegin(net, originId, routedId, replyId,
                     replySeq, replyAck, state, replyMax, traceId, authorization, 0,
                     extension);
+
+                state = StreamState.openingReply(state);
             }
         }
 
@@ -4927,7 +4930,8 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final int maxLength = limit - offset;
             final int length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, state, replyMax, replyPad,
-                replyBud, traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
+                replyBud,
+                traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
 
             replySeq += eventReserved;
             assert replySeq <= replyAck + replyMax;

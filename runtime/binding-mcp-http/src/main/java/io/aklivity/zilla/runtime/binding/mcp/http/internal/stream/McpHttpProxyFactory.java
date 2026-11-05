@@ -622,8 +622,8 @@ public final class McpHttpProxyFactory implements BindingHandler
             doMcpBegin(traceId);
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.abortingReply(state);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
             cleanupEncodeSlot();
@@ -1903,7 +1903,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             state = StreamState.openingInitial(state);
 
             receiver = newStream(this::onHttpMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, mcp.authorization, mcp.affinity, httpBeginEx);
+                initialSeq, initialAck, state, initialMax, traceId, mcp.authorization, mcp.affinity, httpBeginEx);
         }
 
         private void doHttpEnd(
@@ -1923,8 +1923,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
-                state = StreamState.abortingInitial(state);
                 state = StreamState.closeInitial(state);
+                state = StreamState.abortingInitial(state);
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, mcp.authorization);
             }
@@ -2342,8 +2342,8 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.abortingReply(state);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
@@ -2897,6 +2897,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2909,6 +2910,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)

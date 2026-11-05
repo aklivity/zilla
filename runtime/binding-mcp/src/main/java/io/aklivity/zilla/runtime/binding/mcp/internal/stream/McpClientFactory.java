@@ -5938,8 +5938,8 @@ public final class McpClientFactory implements McpStreamFactory
 
         private MessageConsumer net;
         private int initialMax;
-        private boolean endSent;
         private int state;
+        private boolean endSent;
 
         HttpTerminateSession(
             McpStream mcp)
@@ -5971,7 +5971,6 @@ public final class McpClientFactory implements McpStreamFactory
             if (net != null && initialMax > 0)
             {
                 endSent = true;
-                state = StreamState.openInitial(state);
                 state = StreamState.closeInitial(state);
                 doEnd(net, mcp.routedId, mcp.resolvedId, initialId, state, traceId, authorization);
             }
@@ -6014,17 +6013,18 @@ public final class McpClientFactory implements McpStreamFactory
             state = StreamState.openingReply(state);
             state = StreamState.openReply(state);
             doWindow(net, mcp.routedId, mcp.resolvedId, replyId,
-                begin.traceId(), begin.authorization(), 0, state, writeBuffer.capacity(), 0);
+                state,
+                begin.traceId(), begin.authorization(), 0, writeBuffer.capacity(), 0);
         }
 
         private void onNetWindow(
             WindowFW window)
         {
             initialMax = window.maximum();
+            state = StreamState.openInitial(state);
             if (!endSent && initialMax > 0)
             {
                 endSent = true;
-                state = StreamState.openInitial(state);
                 state = StreamState.closeInitial(state);
                 doEnd(net, mcp.routedId, mcp.resolvedId, initialId,
                     state,
@@ -6853,10 +6853,10 @@ public final class McpClientFactory implements McpStreamFactory
         long originId,
         long routedId,
         long streamId,
+        int state,
         long traceId,
         long authorization,
         long budgetId,
-        int state,
         int credit,
         int padding)
     {

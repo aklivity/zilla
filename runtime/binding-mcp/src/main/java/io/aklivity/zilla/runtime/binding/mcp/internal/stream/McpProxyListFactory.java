@@ -397,9 +397,9 @@ abstract class McpProxyListFactory implements BindingHandler
                     .inject(b -> injectInitialBeginEx(b, sid))
                     .build();
 
-                state = StreamState.openingInitial(state);
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     initialSeq, initialAck, state, initialMax, traceId, server.authorization, server.affinity, beginEx);
+                state = StreamState.openingInitial(state);
             }
             else
             {
@@ -413,12 +413,13 @@ abstract class McpProxyListFactory implements BindingHandler
             if (!StreamState.initialClosed(state) &&
                 StreamState.replyClosed(state))
             {
-                state = StreamState.closeInitial(state);
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.closeInitial(state);
                     doEnd(sender, originId, routedId, initialId,
                         initialSeq, initialAck, state, initialMax, traceId, server.authorization);
                 }
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -427,13 +428,14 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                state = StreamState.closeInitial(state);
-                state = StreamState.abortingInitial(state);
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.abortingInitial(state);
+                    state = StreamState.closeInitial(state);
                     doAbort(sender, originId, routedId, initialId,
                         initialSeq, initialAck, state, initialMax, traceId, server.authorization);
                 }
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -442,12 +444,13 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.closeReply(state);
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.closeReply(state);
                     doReset(sender, originId, routedId, replyId,
                         replySeq, replyAck, state, replyMax, traceId, server.authorization, emptyRO);
                 }
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -2427,8 +2430,9 @@ abstract class McpProxyListFactory implements BindingHandler
             int padding)
         {
             state = StreamState.openInitial(state);
-            doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId,
-                initialSeq, initialAck, state, initialMax, traceId, authorization, budgetId, padding);
+            doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, state,
+                initialMax,
+                traceId, authorization, budgetId, padding);
         }
     }
 

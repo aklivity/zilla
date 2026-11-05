@@ -383,6 +383,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
                     traceId, authorization, extension);
             }
 
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpKafkaConnectAbort(
@@ -403,6 +404,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
                     traceId, authorization, extension);
             }
 
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpKafkaConnectReset(
@@ -618,7 +620,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
                 assert state == 0;
 
                 this.receiver = McpKafkaConnectClientFactory.this.newStream(this::onMcpOpenapiMessage, originId, routedId,
-                    initialId, sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
+                    initialId, sequence, acknowledge, state, maximum, traceId, authorization, affinity, extension);
                 state = StreamState.openingInitial(state);
             }
         }
@@ -668,6 +670,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
                     maximum,
                     traceId, authorization, extension);
 
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -680,12 +683,13 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                state = StreamState.closeInitial(state);
                 state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
                 McpKafkaConnectClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge,
                     state,
                     maximum, traceId, authorization, extension);
 
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -702,6 +706,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
                     maximum,
                     traceId, authorization);
 
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -728,6 +733,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -740,6 +746,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
