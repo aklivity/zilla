@@ -344,6 +344,35 @@
                                     "additionalProperties": false
                                 }
                             },
+                            "recorders":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "guard":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "value":
+                                        {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "name",
+                                        "value"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            },
                             "store":
                             {
                                 "type": "string"

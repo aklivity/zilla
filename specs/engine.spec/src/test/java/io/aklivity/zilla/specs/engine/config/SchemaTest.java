@@ -33,6 +33,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/metrics/test.ext.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
@@ -50,9 +51,33 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerClassifierOptions()
+    {
+        JsonObject config = schema.validate("server.classifier.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerMetrics()
     {
         JsonObject config = schema.validate("server.metrics.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerMetricsExtension()
+    {
+        JsonObject config = schema.validate("server.metrics.ext.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerMetricsRecorder()
+    {
+        JsonObject config = schema.validate("server.metrics.recorder.with.attributes.yaml");
 
         assertThat(config, not(nullValue()));
     }

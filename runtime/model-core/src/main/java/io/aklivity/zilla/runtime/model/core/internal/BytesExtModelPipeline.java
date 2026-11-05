@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 // pump's state, allocated once and reused for every event of every value this stream carries.
 final class BytesExtModelPipeline extends CoreExtModelPipeline
 {
+    private final Runnable resumed;
     private final BytesController control;
     private final BytesSource source;
     private final BytesSink head;
@@ -43,9 +44,11 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
         boolean lenient,
         List<BytesTransform> transforms,
         ModelEnvelope envelope,
-        int padding)
+        int padding,
+        Runnable resumed)
     {
         super(handler, validator, lenient, envelope, padding);
+        this.resumed = resumed;
         this.control = new Control();
         this.source = new Source();
 
@@ -105,6 +108,12 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
     private final class Control implements BytesController
     {
         @Override
+        public long bindingId()
+        {
+            return BytesExtModelPipeline.this.bindingId();
+        }
+
+        @Override
         public long authorization()
         {
             return BytesExtModelPipeline.this.authorization();
@@ -121,6 +130,12 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
             int sourceBytes)
         {
             BytesExtModelPipeline.this.consumed(sourceBytes);
+        }
+
+        @Override
+        public Runnable resumer()
+        {
+            return resumed;
         }
 
         @Override

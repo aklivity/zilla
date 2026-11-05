@@ -151,6 +151,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
+import io.aklivity.zilla.runtime.engine.internal.model.MeteredModelHandler;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -169,6 +170,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -885,7 +887,8 @@ public class EngineWorker implements EngineContext, Agent
         ModelConfig config)
     {
         ModelContext model = modelsByType.get(config.model);
-        return model != null ? model.supplyHandler(config) : null;
+        ModelHandler handler = model != null ? model.supplyHandler(config) : null;
+        return handler != null ? new MeteredModelHandler(handler, this) : null;
     }
 
     @Override
@@ -1167,7 +1170,7 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
+                this, bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
                 classifiersByType::get,
                 metricsByName::get, exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
@@ -2171,6 +2174,15 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int remoteIndex = serverIndex(streamId);
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
+    }
+
+    @Override
+    public MetricRecorder supplyMetricRecorder(
+        long namespacedId,
+        String metric)
+    {
+        BindingRegistry binding = registry.resolveBinding(namespacedId);
+        return binding != null ? binding.metricRecorder(supplyTypeId(metric)) : MetricRecorder.NOOP;
     }
 
     @Override
