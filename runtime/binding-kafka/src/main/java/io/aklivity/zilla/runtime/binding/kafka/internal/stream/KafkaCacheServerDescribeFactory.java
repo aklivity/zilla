@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -202,6 +203,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -214,6 +216,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -236,6 +239,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -248,6 +252,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -265,6 +270,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -278,6 +284,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -296,6 +303,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -307,6 +315,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -323,6 +332,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -334,6 +344,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -350,6 +361,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -362,6 +374,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -379,6 +392,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -389,6 +403,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -450,12 +465,12 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
 
             doDescribeFanoutInitialBeginIfNecessary(traceId);
 
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
                 member.doDescribeInitialWindow(traceId, 0L, 0, 0, 0);
             }
 
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 member.doDescribeReplyBeginIfNecessary(traceId);
             }
@@ -498,12 +513,12 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeFanoutInitialBeginIfNecessary(
             long traceId)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 if (KafkaConfiguration.DEBUG)
                 {
@@ -521,8 +536,9 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
 
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onDescribeFanoutMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -530,13 +546,12 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                                         .configs(cs -> configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
                         .build()
                         .sizeof()));
-            state = KafkaState.openingInitial(state);
         }
 
         private void doDescribeFanoutInitialEndIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doDescribeFanoutInitialEnd(traceId);
             }
@@ -545,16 +560,16 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeFanoutInitialEnd(
             long traceId)
         {
-            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(state);
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
         }
 
         private void doDescribeFanoutInitialAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doDescribeFanoutInitialAbort(traceId);
             }
@@ -563,10 +578,10 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeFanoutInitialAbort(
             long traceId)
         {
-            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
+            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-            state = KafkaState.closedInitial(state);
         }
 
         private void onDescribeFanoutInitialReset(
@@ -578,7 +593,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             doDescribeFanoutReplyResetIfNecessary(traceId);
 
@@ -625,13 +640,13 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void onDescribeFanoutInitialWindow(
             WindowFW window)
         {
-            if (!KafkaState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
                 this.reconnectAttempt = 0;
 
                 final long traceId = window.traceId();
 
-                state = KafkaState.openedInitial(state);
+                state = StreamState.openInitial(state);
 
                 members.forEach(s -> s.doDescribeInitialWindow(traceId, 0L, 0, 0, 0));
             }
@@ -679,7 +694,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             members.forEach(s -> s.doDescribeReplyBeginIfNecessary(traceId));
 
@@ -740,7 +755,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             doDescribeFanoutInitialEndIfNecessary(traceId);
 
@@ -777,7 +792,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             doDescribeFanoutInitialAbortIfNecessary(traceId);
 
@@ -812,7 +827,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeFanoutReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doDescribeFanoutReplyReset(traceId);
             }
@@ -821,10 +836,10 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeFanoutReplyReset(
             long traceId)
         {
-            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(state);
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization);
 
-            state = KafkaState.closedReply(state);
         }
 
         private void doDescribeFanoutReplyWindow(
@@ -834,16 +849,16 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = StreamState.openReply(state);
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, 0L, 0);
             }
         }
@@ -930,7 +945,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             group.onDescribeFanoutMemberOpening(traceId, this);
         }
@@ -940,7 +955,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             group.onDescribeFanoutMemberClosed(traceId, this);
 
@@ -952,7 +967,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
             group.onDescribeFanoutMemberClosed(traceId, this);
 
@@ -962,20 +977,20 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeInitialResetIfNecessary(
             long traceId)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
                 doDescribeInitialReset(traceId);
             }
 
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doDescribeInitialReset(
             long traceId)
         {
-            state = KafkaState.closedInitial(state);
+            state = StreamState.closeInitial(state);
 
-            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization);
         }
 
@@ -988,16 +1003,16 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = Math.max(initialMax, minInitialMax);
 
-                state = KafkaState.openedInitial(state);
+                state = StreamState.openInitial(state);
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -1005,7 +1020,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeReplyBeginIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doDescribeReplyBegin(traceId);
             }
@@ -1014,9 +1029,9 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeReplyBegin(
             long traceId)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1030,7 +1045,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
             long traceId,
             KafkaDataExFW extension)
         {
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 doDescribeReplyData(traceId, extension);
             }
@@ -1042,7 +1057,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final int reserved = replyPad;
 
-            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -1051,38 +1066,38 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         private void doDescribeReplyEndIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doDescribeReplyEnd(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doDescribeReplyEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(state);
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
         private void doDescribeReplyAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doDescribeReplyAbort(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doDescribeReplyAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
-            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(StreamState.abortingReply(state));
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1091,7 +1106,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = StreamState.closeReply(state);
 
             group.onDescribeFanoutMemberClosed(traceId, this);
 
@@ -1119,9 +1134,9 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            if (!KafkaState.replyOpened(state))
+            if (!StreamState.replyOpened(state))
             {
-                state = KafkaState.openedReply(state);
+                state = StreamState.openReply(state);
 
                 final long traceId = window.traceId();
                 group.onDescribeFanoutMemberOpened(traceId, this);

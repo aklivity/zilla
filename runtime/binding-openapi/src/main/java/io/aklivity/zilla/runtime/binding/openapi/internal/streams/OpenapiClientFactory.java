@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class OpenapiClientFactory implements OpenapiStreamFactory
@@ -336,7 +337,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             http.doHttpBegin(sequence, acknowledge, maximum, traceId, affinity, httpBeginEx);
         }
@@ -372,7 +373,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doHttpEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -404,7 +405,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doHttpAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -419,7 +420,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             http.doHttpReset(sequence, acknowledge, maximum, traceId);
         }
@@ -436,7 +437,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             http.doHttpWindow(sequence, acknowledge, maximum, traceId, acknowledge, budgetId, padding);
         }
@@ -448,7 +449,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            state = OpenapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final OpenapiBeginExFW openBeginEx = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -457,7 +458,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                 .extension(extension)
                 .build();
 
-            doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            doBegin(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, affinity, openBeginEx);
         }
 
@@ -472,7 +473,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            doData(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
 
             sequence += reserved;
@@ -487,7 +488,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            doFlush(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, replyBudgetId, reserved, extension);
         }
 
@@ -498,13 +499,14 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                doEnd(sender, originId, routedId, replyId, sequence, acknowledge,
+                    StreamState.closeReply(state), maximum,
                     traceId, authorization, extension);
             }
 
-            state = OpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doOpenapiAbort(
@@ -513,13 +515,14 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int maximum,
             long traceId)
         {
-            if (OpenapiState.replyOpening(state) && !OpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                doAbort(sender, originId, routedId, replyId, sequence, acknowledge,
+                    StreamState.closeReply(StreamState.abortingReply(state)), maximum,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
-            state = OpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doOpenapiReset(
@@ -528,11 +531,12 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int maximum,
             long traceId)
         {
-            if (!OpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = OpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+                doReset(sender, originId, routedId, initialId, sequence, acknowledge,
+                    StreamState.closeInitial(state), maximum,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -546,7 +550,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long budgetId,
             int padding)
         {
-            doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+            doWindow(sender, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -629,7 +633,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = OpenapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -680,7 +684,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -695,7 +699,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doOpenapiAbort(sequence, acknowledge, maximum, traceId);
         }
@@ -710,7 +714,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doOpenapiReset(sequence, acknowledge, maximum, traceId);
         }
@@ -728,7 +732,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = OpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doOpenapiWindow(sequence, acknowledge, maximum,
                 authorization, traceId, budgetId, padding);
@@ -742,13 +746,13 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long affinity,
             Flyweight extension)
         {
-            if (!OpenapiState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.receiver = newStream(this::onHttpMessage, originId, routedId, initialId, sequence,
                     acknowledge, maximum, traceId, authorization, affinity, extension);
-                state = OpenapiState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -764,7 +768,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            doData(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
@@ -777,7 +781,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, initialBud, reserved, extension);
 
             sequence += reserved;
@@ -792,12 +796,13 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                doEnd(receiver, originId, routedId, initialId, sequence, acknowledge,
+                    StreamState.closeInitial(state), maximum,
                     traceId, authorization, extension);
 
-                state = OpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -808,12 +813,13 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                doAbort(receiver, originId, routedId, initialId, sequence, acknowledge,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), maximum,
                     traceId, authorization, extension);
 
-                state = OpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -823,12 +829,13 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             int maximum,
             long traceId)
         {
-            if (!OpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                doReset(receiver, originId, routedId, replyId, sequence, acknowledge,
+                    StreamState.closeReply(state), maximum,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = OpenapiState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -841,7 +848,9 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             long budgetId,
             int padding)
         {
-            doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+            state = StreamState.openReply(state);
+
+            doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -865,6 +874,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(StreamState.openInitial(0))
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -887,6 +897,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -899,6 +910,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -916,6 +928,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -931,6 +944,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -951,6 +965,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -964,6 +979,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -982,6 +998,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -993,6 +1010,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1009,6 +1027,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1020,6 +1039,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1036,6 +1056,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1048,6 +1069,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1065,6 +1087,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1076,6 +1099,7 @@ public final class OpenapiClientFactory implements OpenapiStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)

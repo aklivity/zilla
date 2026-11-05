@@ -152,4 +152,22 @@ public class GrpcProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.oneway.write.abort.before.begin/client",
+        "${grpc}/unary.rpc.oneway.write.abort.before.begin/server"})
+    public void shouldAbortOnewayUnaryRpcOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.write.abort.before.begin/client",
+        "${grpc}/unary.rpc.write.abort.before.begin/server"})
+    public void shouldAbortUnaryRpcOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
