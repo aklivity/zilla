@@ -21,5 +21,6 @@ accept "zilla://streams/server#0"
 accepted
 connected
 
+write flush
 write zilla:abort.ext [0x12 0x34] [0x0c] "Hello, world"
 write abort
