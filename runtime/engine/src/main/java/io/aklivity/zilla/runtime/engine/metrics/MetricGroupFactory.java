@@ -18,18 +18,32 @@ package io.aklivity.zilla.runtime.engine.metrics;
 import static java.util.Objects.requireNonNull;
 import static java.util.ServiceLoader.load;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.internal.metrics.ExtendedMetricGroup;
 
 public final class MetricGroupFactory extends Factory
 {
     private final Map<String, MetricGroupFactorySpi> factorySpis;
+    private final Map<String, List<MetricGroupExtSpi>> extSpisByType;
 
     public static MetricGroupFactory instantiate()
     {
-        return instantiate(load(MetricGroupFactorySpi.class), MetricGroupFactory::new);
+        return instantiate(load(MetricGroupFactorySpi.class), load(MetricGroupExtSpi.class));
+    }
+
+    static MetricGroupFactory instantiate(
+        Iterable<MetricGroupFactorySpi> factorySpis,
+        Iterable<MetricGroupExtSpi> extSpis)
+    {
+        Map<String, List<MetricGroupExtSpi>> extSpisByType = instantiate(extSpis).stream()
+            .collect(Collectors.groupingBy(MetricGroupExtSpi::type));
+
+        return instantiate(factorySpis, factoriesByType -> new MetricGroupFactory(factoriesByType, extSpisByType));
     }
 
     public Iterable<String> names()
@@ -45,12 +59,17 @@ public final class MetricGroupFactory extends Factory
 
         MetricGroupFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized metrics type: " + type);
 
-        return factorySpi.create(config);
+        MetricGroup group = factorySpi.create(config);
+        List<MetricGroupExtSpi> extSpis = extSpisByType.get(type);
+
+        return extSpis != null ? new ExtendedMetricGroup(group, extSpis) : group;
     }
 
     private MetricGroupFactory(
-        Map<String, MetricGroupFactorySpi> factorySpis)
+        Map<String, MetricGroupFactorySpi> factorySpis,
+        Map<String, List<MetricGroupExtSpi>> extSpisByType)
     {
         this.factorySpis = factorySpis;
+        this.extSpisByType = extSpisByType;
     }
 }

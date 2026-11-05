@@ -14,29 +14,26 @@
  */
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
+import java.util.ArrayList;
+import java.util.List;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import io.aklivity.zilla.runtime.engine.classifier.Locator;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
-final class PresidioSurrogate
+final class RecordingSpans implements Locator.SpanConsumer
 {
-    final String alias;
-    final String original;
-    final String token;
-    final DirectBuffer originalBuffer;
-    final DirectBuffer tokenBuffer;
+    private final List<String> spans = new ArrayList<>();
 
-    PresidioSurrogate(
-        String alias,
-        String original,
-        String token)
+    @Override
+    public void span(
+        String label,
+        int offset,
+        int length)
     {
-        this.alias = alias;
-        this.original = original;
-        this.token = token;
-        this.originalBuffer = new UnsafeBuffer(original.getBytes(UTF_8));
-        this.tokenBuffer = new UnsafeBuffer(token.getBytes(UTF_8));
+        spans.add(label + ":" + offset + ":" + length);
+    }
+
+    List<String> spans()
+    {
+        return spans;
     }
 }
