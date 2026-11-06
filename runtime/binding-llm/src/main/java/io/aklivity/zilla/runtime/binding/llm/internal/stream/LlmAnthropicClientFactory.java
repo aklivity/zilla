@@ -256,6 +256,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String ROLE_NAME_ASSISTANT = "assistant";
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -266,6 +268,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
@@ -285,6 +288,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
     private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
 
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
@@ -717,7 +721,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.crossDialect = !NAME.equals(dialect);
             this.beta = crossDialect ? null : beta;
             this.http = new LlmAnthropicHttpStream(this);
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
             this.decoder = decodeLookahead;
@@ -3889,9 +3893,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
     private final class LlmAnthropicHttpStream
     {
-        private final HttpDataExFW httpDataExRO = new HttpDataExFW();
         private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
         private final LlmAnthropicStream stream;
         private final long originId;
         private final long routedId;
@@ -3926,7 +3928,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int region = REGION_NONE;
         private LlmTextPipeline encodeText;
         private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(BREAKPOINTS_MAX, BREAKPOINT_TTLS);
-        private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText, breakpoints);
+        private LlmTextPipeline sectionText;
         private LlmAnthropicMediaFromCanonical documentTransform;
         private boolean cited;
         private boolean structured;
@@ -4088,6 +4090,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             case KIND_CONTROL -> controlPipeline();
             default -> null;
             };
+        }
+
+        private LlmTextPipeline sectionText()
+        {
+            if (sectionText == null)
+            {
+                sectionText = new LlmTextPipeline(this::onSectionText, breakpoints);
+            }
+
+            return sectionText;
         }
 
         private LlmSectionPipeline imagePipeline()
@@ -4360,7 +4372,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText;
+                encodeText = sectionText();
                 encodeText.begin();
             }
         }

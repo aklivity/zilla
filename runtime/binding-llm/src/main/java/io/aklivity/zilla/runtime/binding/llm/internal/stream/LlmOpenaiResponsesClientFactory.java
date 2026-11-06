@@ -81,6 +81,8 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 {
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
     private static final String HTTP_TYPE_NAME = "http";
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_SCHEME = ":scheme";
@@ -338,6 +340,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
     private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
 
     private final EngineContext context;
@@ -827,7 +830,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             this.model = model;
             this.dialect = dialect;
             this.http = new LlmOpenaiResponsesHttpStream(this);
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.usagePath = new StringBuilder();
             this.usageMark = new int[8];
             this.textBytes = new byte[1024];
@@ -844,11 +847,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             this.items = new ResponseItem[ITEMS_MAX];
             this.itemBytes = new byte[ENCODE_SLACK];
             this.itemBuffer = new UnsafeBufferEx(itemBytes);
-
-            for (int index = 0; index < ITEMS_MAX; index++)
-            {
-                this.items[index] = new ResponseItem();
-            }
 
             this.decoder = decodeLookahead;
         }
@@ -1449,7 +1447,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
             else if (itemCount < ITEMS_MAX)
             {
-                item = items[itemCount++];
+                item = nextItem();
                 item.begin(itemSerial++, itemId, type, kind, mode);
                 toolCalls += kind == LlmOpenaiResponsesItems.KIND_FUNCTION_CALL ? 1 : 0;
             }
@@ -1458,6 +1456,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 item = null;
                 failItems();
             }
+        }
+
+        private ResponseItem nextItem()
+        {
+            if (items[itemCount] == null)
+            {
+                items[itemCount] = new ResponseItem();
+            }
+
+            return items[itemCount++];
         }
 
         private ResponseItem findItem(
@@ -6245,7 +6253,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     {
         private final HttpDataExFW httpDataExRO = new HttpDataExFW();
         private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
         private final LlmOpenaiResponsesStream stream;
         private final long originId;
         private final long routedId;
@@ -6313,8 +6320,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private int budget = LlmEffort.ABSENT;
         private int controlMessage;
         private LlmTextPipeline encodeText;
-        private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
-        private final LlmTextPipeline reasoningText = new LlmTextPipeline(this::onReasoningText, true);
+        private LlmTextPipeline sectionText;
+        private LlmTextPipeline reasoningText;
         private final LlmEdgeFilter reasoningMembers =
             new LlmEdgeFilter((buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length));
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
@@ -6757,7 +6764,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText;
+                encodeText = sectionText();
                 encodeText.begin();
             }
         }
@@ -6798,7 +6805,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 beginSectionStreaming(pipelineFor(kind), controlMessage == NONE ? controlOutput : discardOutput);
                 break;
             case KIND_ASSISTANT_REASONING:
-                reasoningText.begin();
+                reasoningText().begin();
                 reasoningPipeline().begin(sectionAttributes);
                 reasoningMembers.reset();
                 break;
@@ -7165,7 +7172,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (beginEncode(ENCODE_STRUCTURE))
             {
-                if (!reasoningText.feed(buffer, offset, length, fin) ||
+                if (!reasoningText().feed(buffer, offset, length, fin) ||
                     !reasoningPipeline.feed(buffer, offset, length, fin, reasoningMembers))
                 {
                     encodeFailed = true;
@@ -7173,6 +7180,26 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 endEncode();
             }
+        }
+
+        private LlmTextPipeline sectionText()
+        {
+            if (sectionText == null)
+            {
+                sectionText = new LlmTextPipeline(this::onSectionText);
+            }
+
+            return sectionText;
+        }
+
+        private LlmTextPipeline reasoningText()
+        {
+            if (reasoningText == null)
+            {
+                reasoningText = new LlmTextPipeline(this::onReasoningText, true);
+            }
+
+            return reasoningText;
         }
 
         private boolean streaming()

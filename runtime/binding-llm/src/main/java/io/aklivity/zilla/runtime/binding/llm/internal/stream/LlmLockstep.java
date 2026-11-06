@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 final class LlmLockstep
 {
     private static final int INITIAL_LAG = 256;
+    private static final byte[] NO_LAG = new byte[0];
 
     private final int capacity;
 
@@ -35,7 +36,7 @@ final class LlmLockstep
         int capacity)
     {
         this.capacity = capacity;
-        this.lag = new byte[Math.min(INITIAL_LAG, capacity)];
+        this.lag = NO_LAG;
     }
 
     void begin()
@@ -64,7 +65,9 @@ final class LlmLockstep
             {
                 if (lagLength + length > lag.length)
                 {
-                    lag = Arrays.copyOf(lag, Math.min(Math.max(lag.length << 1, lagLength + length), capacity));
+                    final int grown = Math.max(Math.max(lag.length << 1, INITIAL_LAG), lagLength + length);
+
+                    lag = Arrays.copyOf(lag, Math.min(grown, capacity));
                 }
 
                 buffer.getBytes(offset, lag, lagLength, length);

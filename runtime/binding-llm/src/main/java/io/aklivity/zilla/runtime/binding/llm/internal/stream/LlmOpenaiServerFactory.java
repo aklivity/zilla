@@ -120,6 +120,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "A content part attribute value is too large.";
     private static final int BLOCK_BUFFER_MAX = 4096;
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -175,6 +177,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
+    private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmChallengeExFW llmChallengeExRO = new LlmChallengeExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
@@ -191,6 +195,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
+    private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -253,6 +258,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
+        this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2196,8 +2202,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final Runnable deauthorize;
         private final JsonParserEx parser;
         private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
-        private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
 
         private LlmOpenaiStream stream;
         private LlmOpenaiServerDecoder decoder;
@@ -2306,7 +2310,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.initialAuthorization = authorization;
             this.contentType = contentType;
             this.deauthorize = deauthorize;
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.pieceBytes = new byte[1024];
             this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
@@ -3077,7 +3081,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 controlTransform = new LlmOpenaiControlToCanonical(NAME);
-                controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;
@@ -3092,8 +3096,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (toolCallPipeline == null)
                 {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(), transformBuffer);
                 }
 
                 pipeline = toolCallPipeline;
@@ -4620,7 +4623,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 controlTransform = new LlmOpenaiControlFromCanonical(NAME, NAME.equals(responseDialect));
-                controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;
@@ -4630,8 +4633,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (argumentsPipeline == null)
             {
-                argumentsPipeline = new LlmSectionPipeline(new LlmToolCallToValue(),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                argumentsPipeline = new LlmSectionPipeline(new LlmToolCallToValue(), transformBuffer);
             }
 
             return argumentsPipeline;
