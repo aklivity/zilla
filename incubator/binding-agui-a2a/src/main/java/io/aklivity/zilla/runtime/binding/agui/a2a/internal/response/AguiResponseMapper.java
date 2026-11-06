@@ -21,14 +21,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
@@ -119,6 +122,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private final byte[] digestBytes;
     private final Set<String> finished = new HashSet<>();
     private final Set<String> messageIds = new HashSet<>();
+    private final List<String> pendingToolCalls = new ArrayList<>();
     private final Map<String, Integer> artifacts = new HashMap<>();
     private final Runnable noop = () ->
     {
@@ -143,6 +147,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private Content resumeContent = ignoreContent;
     private TagContent tagContent = ignoreTag;
     private A2aPartTag tag;
+    private String tagCallId;
     private Runnable closing = noop;
     private Runnable leading = noop;
     private A2aEventKind kind;
@@ -474,6 +479,16 @@ public final class AguiResponseMapper implements A2aEventSink
             resumeContent = content;
             tagContent = content == ignoreContent ? ignoreTag : tagContentOf(tag);
             content = tagContent;
+
+            if (tagContent != ignoreTag && A2aPartTag.EVENT_TOOL_CALL.equals(tag.event))
+            {
+                tagCallId = tag.agentExecuted() ? tag.callId : host.toolCallHandle(taskId, tag.callId);
+
+                if (!tag.agentExecuted())
+                {
+                    pendingToolCalls.add(tagCallId);
+                }
+            }
         }
 
         @Override
@@ -1103,7 +1118,7 @@ public final class AguiResponseMapper implements A2aEventSink
             break;
         case A2aPartTag.EVENT_TOOL_CALL:
             builder.toolCall(c -> c.meta(this::meta)
-                .toolCallId(tag.callId)
+                .toolCallId(tagCallId)
                 .toolCallName(tag.callName)
                 .parentMessageId(tag.parentMessageId));
             break;
@@ -1223,7 +1238,14 @@ public final class AguiResponseMapper implements A2aEventSink
         switch (state)
         {
         case INPUT_REQUIRED:
-            interrupt(REASON_INPUT);
+            if (pendingToolCalls.isEmpty() || statusText != null)
+            {
+                interrupt(REASON_INPUT);
+            }
+            else
+            {
+                toolCallsPending();
+            }
             break;
         case AUTH_REQUIRED:
             interrupt(REASON_AUTHORIZATION);
@@ -1268,6 +1290,20 @@ public final class AguiResponseMapper implements A2aEventSink
 
         events = ended;
         sink.runFinished(AguiOutcomeType.INTERRUPT, detail);
+    }
+
+    private void toolCallsPending()
+    {
+        closing.run();
+        ensureSnapshot();
+
+        final JsonArrayBuilder handles = Json.createArrayBuilder();
+        pendingToolCalls.forEach(handles::add);
+
+        final String detail = Json.createObjectBuilder().add("pendingToolCallIds", handles).build().toString();
+
+        events = ended;
+        sink.runFinished(AguiOutcomeType.SUCCESS, detail);
     }
 
     private void runFinished(

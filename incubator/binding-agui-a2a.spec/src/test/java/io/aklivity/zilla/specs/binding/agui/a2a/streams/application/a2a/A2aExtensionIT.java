@@ -197,4 +197,67 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.declared/client",
+        "${app}/extension.tools.declared/server"})
+    public void shouldRunExtensionToolsDeclared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.disabled/client",
+        "${app}/extension.tools.disabled/server"})
+    public void shouldRunExtensionToolsDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.result/client",
+        "${app}/extension.tools.result/server"})
+    public void shouldRunExtensionToolsResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.handle.unknown/client",
+        "${app}/extension.tools.handle.unknown/server"})
+    public void shouldRunExtensionToolsHandleUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.call/client",
+        "${app}/extension.tools.call/server"})
+    public void shouldRunExtensionToolsCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.call.text/client",
+        "${app}/extension.tools.call.text/server"})
+    public void shouldRunExtensionToolsCallText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.round.trip/client",
+        "${app}/extension.tools.round.trip/server"})
+    public void shouldRunExtensionToolsRoundTrip() throws Exception
+    {
+        k3po.finish();
+    }
 }
