@@ -258,6 +258,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.directory.fragmented/client",
+        "${app}/read.directory.fragmented/server",
+    })
+    public void shouldReadDirectoryFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.directory.empty/client",
         "${app}/read.directory.empty/server",
     })
