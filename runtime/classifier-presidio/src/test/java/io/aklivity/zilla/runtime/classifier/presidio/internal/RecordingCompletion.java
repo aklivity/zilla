@@ -15,23 +15,20 @@
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
 
-import io.aklivity.zilla.runtime.engine.classifier.Anonymizer;
+import io.aklivity.zilla.runtime.engine.classifier.Locator;
 
-final class RecordingCompletion implements Anonymizer.CompletionCallback
+final class RecordingCompletion implements Locator.CompletionCallback
 {
     private long contextId;
-    private int consumed;
     private Throwable failure;
     private int completions;
     private int failures;
 
     @Override
     public void completed(
-        long contextId,
-        int consumed)
+        long contextId)
     {
         this.contextId = contextId;
-        this.consumed = consumed;
         this.completions++;
     }
 
@@ -48,11 +45,6 @@ final class RecordingCompletion implements Anonymizer.CompletionCallback
     long contextId()
     {
         return contextId;
-    }
-
-    int consumed()
-    {
-        return consumed;
     }
 
     Throwable failure()
