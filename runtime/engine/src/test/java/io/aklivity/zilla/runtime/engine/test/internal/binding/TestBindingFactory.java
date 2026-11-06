@@ -688,6 +688,7 @@ final class TestBindingFactory implements BindingHandler
         private DirectBufferEx replyEnvelopeExt;
         private long suspendedTraceId;
         private long suspendedAuthorization;
+        private int resumeFlags;
         private boolean awaitingResume;
         private long pendingEndTraceId = -1L;
         private long pendingAbortTraceId = -1L;
@@ -720,8 +721,26 @@ final class TestBindingFactory implements BindingHandler
 
         private void onInitialResumed()
         {
-            transformInitial(suspendedTraceId, suspendedAuthorization, 0x00,
+            final int retained = decodeSlotOffset;
+            final int flags = resumeFlags;
+            resumeFlags = 0;
+            transformInitial(suspendedTraceId, suspendedAuthorization, NONE,
                 decodePool.buffer(decodeSlot), 0);
+
+            if (retained > 0 && decodeSlot != NO_SLOT)
+            {
+                decodeSlotOffset = retained;
+                if (awaitingResume)
+                {
+                    resumeFlags = flags;
+                }
+                else
+                {
+                    transformInitial(suspendedTraceId, suspendedAuthorization, flags,
+                        decodePool.buffer(decodeSlot), retained);
+                }
+            }
+
             flushInitialWindow(suspendedTraceId);
 
             if (!awaitingResume)
@@ -1374,7 +1393,14 @@ final class TestBindingFactory implements BindingHandler
                     decodeBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    transformInitial(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                    if (awaitingResume)
+                    {
+                        resumeFlags |= flags & FIN;
+                    }
+                    else
+                    {
+                        transformInitial(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                    }
                     flushInitialWindow(traceId);
                 }
             }
@@ -1428,6 +1454,12 @@ final class TestBindingFactory implements BindingHandler
 
             if (status == ModelStatus.SUSPENDED)
             {
+                final int remaining = limit - srcAt;
+                if (remaining > 0 && srcAt > 0)
+                {
+                    decodePool.buffer(decodeSlot).putBytes(0, buffer, srcAt, remaining);
+                }
+                decodeSlotOffset = remaining;
                 suspendedTraceId = traceId;
                 suspendedAuthorization = authorization;
                 awaitingResume = true;
@@ -1834,6 +1866,7 @@ final class TestBindingFactory implements BindingHandler
             private DirectBufferEx initialEnvelopeExt;
             private long suspendedTraceId;
             private long suspendedAuthorization;
+            private int resumeFlags;
             private boolean awaitingResume;
             private long pendingEndTraceId = -1L;
             private long pendingAbortTraceId = -1L;
@@ -1861,8 +1894,26 @@ final class TestBindingFactory implements BindingHandler
 
             private void onReplyResumed()
             {
-                transformReply(suspendedTraceId, suspendedAuthorization, 0x00,
+                final int retained = decodeSlotOffset;
+                final int flags = resumeFlags;
+                resumeFlags = 0;
+                transformReply(suspendedTraceId, suspendedAuthorization, NONE,
                     decodePool.buffer(decodeSlot), 0);
+
+                if (retained > 0 && decodeSlot != NO_SLOT)
+                {
+                    decodeSlotOffset = retained;
+                    if (awaitingResume)
+                    {
+                        resumeFlags = flags;
+                    }
+                    else
+                    {
+                        transformReply(suspendedTraceId, suspendedAuthorization, flags,
+                            decodePool.buffer(decodeSlot), retained);
+                    }
+                }
+
                 flushReplyWindow(suspendedTraceId);
 
                 if (!awaitingResume)
@@ -2022,7 +2073,14 @@ final class TestBindingFactory implements BindingHandler
                         decodeBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                         decodeSlotOffset += payload.sizeof();
 
-                        transformReply(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                        if (awaitingResume)
+                        {
+                            resumeFlags |= flags & FIN;
+                        }
+                        else
+                        {
+                            transformReply(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                        }
                         flushReplyWindow(traceId);
                     }
                 }
@@ -2076,6 +2134,12 @@ final class TestBindingFactory implements BindingHandler
 
                 if (status == ModelStatus.SUSPENDED)
                 {
+                    final int remaining = limit - srcAt;
+                    if (remaining > 0 && srcAt > 0)
+                    {
+                        decodePool.buffer(decodeSlot).putBytes(0, buffer, srcAt, remaining);
+                    }
+                    decodeSlotOffset = remaining;
                     suspendedTraceId = traceId;
                     suspendedAuthorization = authorization;
                     awaitingResume = true;
