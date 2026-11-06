@@ -29,7 +29,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
  * <p>
  * A stage sees the value as it flows, one {@link BytesEvent#SEGMENT} per fragment, so it never waits for
  * the whole value; it suspends against a bounded destination by returning {@link ModelStatus#OVERFLOW};
- * and it terminates a value through {@link BytesController#reject(String)} or
+ * it suspends to await asynchronous work by returning {@link ModelStatus#SUSPENDED} and later invoking
+ * {@link BytesController#resumer()}; and it terminates a value through {@link BytesController#reject(String)} or
  * {@link BytesController#withhold()}.
  * </p>
  * <p>
@@ -87,9 +88,10 @@ public interface BytesTransform
 
     /**
      * Resumes after a {@link ModelStatus#OVERFLOW} return, once the caller has drained the bounded
-     * destination. The default forwards to {@code sink}, so a stage that merely forwards events never
-     * re-sees them on resume; a stage that buffers or substitutes overrides this to continue its own
-     * emission before forwarding.
+     * destination, or after a {@link ModelStatus#SUSPENDED} return, once the asynchronous work completed.
+     * The default forwards to {@code sink}, so a stage that merely forwards events never re-sees them on
+     * resume; a stage that buffers, substitutes, or suspends overrides this to re-enter its own handling of
+     * the event, with the event that suspended re-presented exactly once, before forwarding.
      *
      * @param control  the control handle for the immediate upstream
      * @param source   the read-only view of the value bytes still to be consumed
