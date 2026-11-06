@@ -1144,7 +1144,6 @@ public final class A2aServerFactory implements A2aStreamFactory
             if (stream != null)
             {
                 stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
             }
         }
 
@@ -1213,8 +1212,8 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             if (stream != null)
             {
-                stream.doAppAbort(traceId, authorization);
                 stream.doAppReset(traceId, authorization);
+                stream.doAppEnd(traceId, authorization);
             }
 
             cleanupEncodeSlot();
@@ -2255,6 +2254,8 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             assert replyAck <= replySeq;
 
+            state = A2aState.openingReply(state);
+
             flushAppWindow(traceId, authorization, 0L, 0, 0, encodeMax);
         }
 
@@ -2332,8 +2333,6 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 server.doEncodeResponseAbort(traceId, authorization);
             }
-
-            doAppAbort(traceId, authorization);
         }
 
         private void onAppWindow(
@@ -2404,8 +2403,13 @@ public final class A2aServerFactory implements A2aStreamFactory
                 server.doEncodeResponseStatus(traceId, authorization, STATUS_502);
             }
 
-            state = A2aState.closedReply(state);
-            doAppAbort(traceId, authorization);
+            state = A2aState.closedInitial(state);
+
+            if (!A2aState.replyOpening(state))
+            {
+                state = A2aState.closedReply(state);
+                cleanupDecodeSlot();
+            }
         }
 
         private void cleanupDecodeSlot()

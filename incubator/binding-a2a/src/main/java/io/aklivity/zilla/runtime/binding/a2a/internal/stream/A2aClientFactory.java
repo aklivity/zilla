@@ -917,7 +917,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence;
-            state = A2aState.closedReply(A2aState.closedInitial(state));
+            state = A2aState.closedInitial(state);
 
             assert initialAck <= initialSeq;
 
