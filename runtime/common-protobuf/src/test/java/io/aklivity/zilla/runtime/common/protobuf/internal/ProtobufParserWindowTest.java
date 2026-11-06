@@ -56,15 +56,24 @@ public class ProtobufParserWindowTest
     @Test
     public void shouldParseNestedMessageLargerThanWindow()
     {
-        byte[] message = person(address("x".repeat(40), "Zion"));
+        byte[] address = address("x".repeat(40), "Zion");
+        byte[] message = person(address);
         List<String> expected = drain(Protobuf.parser(schema, "Person").wrap(new UnsafeBufferEx(message), 0, message.length));
 
         for (int slot : SLOTS)
         {
             List<String> events = new ArrayList<>();
             StringBuilder pending = new StringBuilder();
-            driveBounded(Protobuf.parser(schema, "Person"), message, slot, false,
-                (parser, event) -> record(parser, events, pending, event));
+            int[] depth = {0};
+            driveBounded(Protobuf.parser(schema, "Person"), message, slot, false, (parser, event) ->
+            {
+                record(parser, events, pending, event);
+                if (event == ProtobufEvent.START_MESSAGE && depth[0]++ > 0)
+                {
+                    assertTrue(parser.segment().capacity() <= parser.remaining(), "segment beyond window " + slot);
+                    assertEquals(address.length, parser.segment().capacity() + parser.deferredBytes(), "window " + slot);
+                }
+            });
 
             assertEquals(expected, events, "window " + slot);
         }
