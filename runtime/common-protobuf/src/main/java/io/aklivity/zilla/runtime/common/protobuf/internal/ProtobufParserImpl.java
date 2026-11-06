@@ -61,6 +61,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private static final int PHASE_LEAF = 4;
     private static final int PHASE_SEGMENT_LEN = 5;
     private static final int PHASE_SEGMENT_GROUP = 6;
+    private static final int PHASE_SKIP_GROUP = 7;
 
     private final ProtobufSchema schema;
     private final String messageName;
@@ -107,6 +108,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     private final int[] scanGroups = new int[MAX_DEPTH];
     private int scanDepth;
     private int scanRemaining;
+    private int scanEnd;
 
     public ProtobufParserImpl(
         ProtobufSchema schema,
@@ -488,7 +490,23 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         while (event == null && !starving)
         {
             Frame frame = frames.get(depth);
-            if (skipRemaining > 0)
+            if (phase == PHASE_SKIP_GROUP)
+            {
+                // discard an unknown group a window at a time, committing as we go
+                if (scanGroup())
+                {
+                    phase = PHASE_NONE;
+                }
+                else if (reader.last())
+                {
+                    throw new ProtobufParsingException("unterminated group " + fieldNumber);
+                }
+                else
+                {
+                    starving = true;
+                }
+            }
+            else if (skipRemaining > 0)
             {
                 // discard an unknown length-delimited field a window at a time, committing as we go
                 int available = reader.available();
@@ -617,9 +635,17 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
             event = null;
         }
+        else if (fld == null && wt == ProtobufWireType.SGROUP)
+        {
+            fieldNumber = number;
+            scanDepth = 0;
+            scanRemaining = 0;
+            phase = PHASE_SKIP_GROUP;
+            event = null;
+        }
         else if (fld == null)
         {
-            reader.skipField(number, wt);
+            reader.skipField(wt);
             event = null;
         }
         else if (fld.composite())
@@ -781,14 +807,41 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     // A group has no length prefix, so its end is found by scanning tags and lengths, resumably across windows:
-    // the open nested groups and the payload bytes still to pass are carried between chunks. Everything scanned
-    // so far is delivered as a chunk and committed; deferredBytes is nonzero until the chunk that ends just
-    // before the matching end-group tag, which may be empty.
+    // everything scanned so far is delivered as a chunk and committed, and deferredBytes is nonzero until the
+    // chunk that ends just before the matching end-group tag, which may be empty.
     private ProtobufEvent segmentGroup()
     {
         ProtobufEvent event;
         int bodyStart = reader.offset();
-        int bodyEnd = bodyStart;
+        if (scanGroup())
+        {
+            slice(reader.buffer(), bodyStart, scanEnd - bodyStart);
+            deferred = 0;
+            phase = PHASE_NONE;
+            event = ProtobufEvent.SEGMENT;
+        }
+        else if (reader.last())
+        {
+            throw new ProtobufParsingException("unterminated group " + fieldNumber);
+        }
+        else if (reader.offset() > bodyStart)
+        {
+            slice(reader.buffer(), bodyStart, reader.offset() - bodyStart);
+            deferred = 1;
+            event = ProtobufEvent.SEGMENT;
+        }
+        else
+        {
+            event = starve();
+        }
+        return event;
+    }
+
+    // Passes whole units of the group body, leaving the reader at the last unit boundary reached. The open nested
+    // groups and the payload bytes still to pass are carried across windows. Returns true once the end-group tag of
+    // the outermost group has been passed, with scanEnd at the offset of that tag.
+    private boolean scanGroup()
+    {
         boolean ended = false;
         boolean partial = false;
         reader.mark();
@@ -833,7 +886,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                         scanGroups[scanDepth++] = number;
                         break;
                     case EGROUP:
-                        int open = scanDepth > 0 ? scanGroups[scanDepth - 1] : compositeField.number();
+                        int open = scanDepth > 0 ? scanGroups[scanDepth - 1] : fieldNumber;
                         if (number != open)
                         {
                             throw new ProtobufParsingException("mismatched group end " + number + " for " + open);
@@ -845,7 +898,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                         else
                         {
                             ended = true;
-                            bodyEnd = tagOffset;
+                            scanEnd = tagOffset;
                         }
                         break;
                     }
@@ -861,30 +914,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 reader.mark();
             }
         }
-
-        if (ended)
-        {
-            slice(reader.buffer(), bodyStart, bodyEnd - bodyStart);
-            scanDepth = 0;
-            deferred = 0;
-            phase = PHASE_NONE;
-            event = ProtobufEvent.SEGMENT;
-        }
-        else if (reader.last())
-        {
-            throw new ProtobufParsingException("unterminated group " + compositeField.number());
-        }
-        else if (reader.offset() > bodyStart)
-        {
-            slice(reader.buffer(), bodyStart, reader.offset() - bodyStart);
-            deferred = 1;
-            event = ProtobufEvent.SEGMENT;
-        }
-        else
-        {
-            event = starve();
-        }
-        return event;
+        return ended;
     }
 
     private ProtobufEvent endFrame()

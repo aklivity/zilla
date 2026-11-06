@@ -125,6 +125,56 @@ public class ProtobufParserWindowTest
     }
 
     @Test
+    public void shouldSkipUnknownGroupLargerThanWindow()
+    {
+        // field 9 is not in the schema; its end-group tag is 0x4c, which also occurs inside a value
+        String blob = "ab" + (char) 0x4c + "cd" + "z".repeat(50);
+        byte[] message = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("Alice".getBytes(UTF_8));
+            w.writeTag(9, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes(blob.getBytes(UTF_8));
+            w.writeTag(10, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("inner".getBytes(UTF_8));
+            w.writeTag(10, ProtobufWireType.EGROUP);
+            w.writeTag(9, ProtobufWireType.EGROUP);
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes(address("x", "Zion"));
+        });
+        List<String> expected = drain(Protobuf.parser(schema, "Person").wrap(new UnsafeBufferEx(message), 0, message.length));
+
+        assertEquals(List.of("{", "F1", "VAlice", "F2", "{", "F1", "Vx", "F2", "VZion", "}", "}"), expected);
+        for (int slot : SLOTS)
+        {
+            List<String> events = new ArrayList<>();
+            StringBuilder pending = new StringBuilder();
+            driveBounded(Protobuf.parser(schema, "Person"), message, slot, false,
+                (parser, event) -> record(parser, events, pending, event));
+
+            assertEquals(expected, events, "window " + slot);
+        }
+    }
+
+    @Test
+    public void shouldRejectUnterminatedUnknownGroup()
+    {
+        byte[] message = wire(w ->
+        {
+            w.writeTag(9, ProtobufWireType.SGROUP);
+            w.writeTag(1, ProtobufWireType.LEN);
+            w.writeBytes("never closed".getBytes(UTF_8));
+        });
+
+        ProtobufParsingException ex = assertThrows(ProtobufParsingException.class, () ->
+            driveBounded(Protobuf.parser(schema, "Person"), message, 16, false, (parser, event) -> {}));
+
+        assertTrue(ex.getMessage().contains("unterminated group"), ex.getMessage());
+    }
+
+    @Test
     public void shouldStreamNestedMessageSegmentLargerThanWindow()
     {
         byte[] address = address("x".repeat(40), "Zion");
