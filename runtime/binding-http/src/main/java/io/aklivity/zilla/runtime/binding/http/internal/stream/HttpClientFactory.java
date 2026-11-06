@@ -105,6 +105,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.queue.HttpQueueEntryFW;
@@ -2610,6 +2611,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else if ((beginEx == null ||
                       !SCHEME_HTTPS.equals(scheme) &&
+                      beginEx.address().kind() != ProxyAddressFamily.NONE &&
                       beginEx.infos().matchFirst(i -> i.kind() == ALPN) == null) &&
                      pool.versions.contains(HTTP_1_1) &&
                      pool.versions.contains(HTTP_2))
