@@ -21,12 +21,15 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class AguiOptionsConfig extends OptionsConfig
 {
+    public final String server;
     public final AguiAuthorizationConfig authorization;
 
     AguiOptionsConfig(
+        String server,
         AguiAuthorizationConfig authorization)
     {
         super(null, List.of());
+        this.server = server;
         this.authorization = authorization;
     }
 
