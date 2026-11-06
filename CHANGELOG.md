@@ -47,6 +47,7 @@
 - fix\(binding-http\): h2c handover slot overrun and h2 client and server split reserved frames [\#2948](https://github.com/aklivity/zilla/pull/2948) ([ankitk-me](https://github.com/ankitk-me))
 - fix\(binding-http\): decline an h2c upgrade whose HTTP2-Settings are invalid and cover the upgrade fallback paths [\#2949](https://github.com/aklivity/zilla/pull/2949) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add circuitId to Begin frame [\#2951](https://github.com/aklivity/zilla/pull/2951) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): offer h2c upgrade on plain tcp client connections [\#3031](https://github.com/aklivity/zilla/pull/3031) ([ankitk-me](https://github.com/ankitk-me))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
