@@ -57,6 +57,7 @@ public final class A2aAgentCache implements A2aAgentCards
     private final List<Closeable> watches;
 
     private long authorization;
+    private long revision;
 
     public A2aAgentCache(
         BindingConfig config,
@@ -145,6 +146,35 @@ public final class A2aAgentCache implements A2aAgentCards
     }
 
     @Override
+    public long revision()
+    {
+        return revision;
+    }
+
+    @Override
+    public void ready(
+        Runnable ready)
+    {
+        final int[] remaining = { entries.size() };
+
+        if (remaining[0] == 0)
+        {
+            ready.run();
+        }
+
+        for (A2aAgentEntry entry : entries.values())
+        {
+            request(entry, () ->
+            {
+                if (--remaining[0] == 0)
+                {
+                    ready.run();
+                }
+            });
+        }
+    }
+
+    @Override
     public List<A2aCachedAgent> list(
         long authorization)
     {
@@ -188,7 +218,7 @@ public final class A2aAgentCache implements A2aAgentCards
     {
         if (card != null)
         {
-            entry.adopt(card);
+            adopt(entry, card);
             entry.attemptedAt = clock.millis();
 
             if (entry.hydration != null && entry.hydration.peer())
@@ -196,6 +226,14 @@ public final class A2aAgentCache implements A2aAgentCards
                 entry.hydration.finish();
             }
         }
+    }
+
+    private void adopt(
+        A2aAgentEntry entry,
+        String card)
+    {
+        entry.adopt(card);
+        revision++;
     }
 
     private void settle(
@@ -259,7 +297,7 @@ public final class A2aAgentCache implements A2aAgentCards
         public void onCard(
             String card)
         {
-            entry.adopt(card);
+            adopt(entry, card);
             store.put(entry.key, card, STORE_TTL_FOREVER, k -> finish());
         }
 
@@ -303,7 +341,7 @@ public final class A2aAgentCache implements A2aAgentCards
         {
             if (card != null)
             {
-                entry.adopt(card);
+                adopt(entry, card);
                 finish();
             }
             else

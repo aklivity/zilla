@@ -20,7 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 
-public final class A2aDiscoveryConfig extends Config
+public final class A2aDiscoveryConfig extends Config.Extensible
 {
     public final String agent;
     public final A2aDiscoverySearchConfig search;
@@ -40,6 +40,7 @@ public final class A2aDiscoveryConfig extends Config
         String agent,
         A2aDiscoverySearchConfig search)
     {
+        super(null, search != null ? search.refs() : null);
         this.agent = agent;
         this.search = search;
     }
