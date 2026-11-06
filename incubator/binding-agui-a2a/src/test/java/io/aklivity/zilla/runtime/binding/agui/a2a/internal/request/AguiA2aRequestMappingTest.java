@@ -169,14 +169,12 @@ public class AguiA2aRequestMappingTest
         final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[],\"resume\":[" +
             "{\"interruptId\":\"h-1\",\"status\":\"cancelled\"},{\"interruptId\":\"h-2\",\"status\":\"resolved\"}]}";
         final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r", null);
-        final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler();
-
         assertThat(decoder.status(), equalTo(Status.COMPLETE));
-        assertThat(assembler.resumeCount(decoder.retained()), equalTo(2));
-        assertThat(assembler.resumeInterruptId(decoder.retained(), 0), equalTo("h-1"));
-        assertThat(assembler.resumeInterruptId(decoder.retained(), 1), equalTo("h-2"));
-        assertThat(assembler.resumeStatus(decoder.retained(), 0), equalTo(ResumeStatus.CANCELLED));
-        assertThat(assembler.resumeStatus(decoder.retained(), 1), equalTo(ResumeStatus.RESOLVED));
+        assertThat(decoder.retained().resumeCount(), equalTo(2));
+        assertThat(decoder.retained().resumeInterruptId(0), equalTo("h-1"));
+        assertThat(decoder.retained().resumeInterruptId(1), equalTo("h-2"));
+        assertThat(decoder.retained().resumeStatus(0), equalTo(ResumeStatus.CANCELLED));
+        assertThat(decoder.retained().resumeStatus(1), equalTo(ResumeStatus.RESOLVED));
     }
 
     @Test

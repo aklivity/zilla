@@ -16,12 +16,15 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aText.matches;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import jakarta.json.JsonException;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aMessageAssembler.ResumeStatus;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Append;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Kind;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Resume;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -51,10 +54,31 @@ public final class AguiA2aRequestDecoder
         OTHER
     }
 
+    private enum PartType
+    {
+        NONE,
+        TEXT,
+        MEDIA
+    }
+
+    private enum SourceType
+    {
+        NONE,
+        DATA,
+        URL
+    }
+
     @FunctionalInterface
     private interface Decoder
     {
         void decode();
+    }
+
+    @FunctionalInterface
+    private interface Recorder
+    {
+        void record(
+            JsonEvent event);
     }
 
     private static final int TEXT_MAX = 256;
@@ -63,6 +87,24 @@ public final class AguiA2aRequestDecoder
     private static final int SEEN_RUN_ID = 2;
     private static final int SEEN_PARENT_RUN_ID = 4;
     private static final int SEEN_REQUIRED = SEEN_THREAD_ID | SEEN_RUN_ID;
+    private static final int ABSENT = -1;
+    private static final int STAGE_ENTRY = 3;
+
+    private static final int DEPTH_RESUME_ENTRIES = 1;
+    private static final int DEPTH_RESUME_ENTRY_MEMBERS = 2;
+    private static final int DEPTH_MESSAGE_MEMBERS = 1;
+    private static final int DEPTH_PARTS = 2;
+    private static final int DEPTH_PART_MEMBERS = 3;
+    private static final int DEPTH_SOURCE_MEMBERS = 4;
+
+    private static final int RANGE_TEXT = 0;
+    private static final int RANGE_METADATA = 1;
+    private static final int RANGE_VALUE = 2;
+    private static final int RANGE_MIME_TYPE = 3;
+    private static final int RANGE_ID = 4;
+    private static final int RANGE_PAYLOAD = 5;
+    private static final int RANGE_RESUME_METADATA = 6;
+    private static final int RANGE_COUNT = 7;
 
     private static final String KEY_THREAD_ID = "threadId";
     private static final String KEY_RUN_ID = "runId";
@@ -73,6 +115,18 @@ public final class AguiA2aRequestDecoder
     private static final String KEY_FORWARDED_PROPS = "forwardedProps";
     private static final String KEY_RESUME = "resume";
     private static final String KEY_ROLE = "role";
+    private static final String KEY_ID = "id";
+    private static final String KEY_CONTENT = "content";
+    private static final String KEY_TYPE = "type";
+    private static final String KEY_TEXT = "text";
+    private static final String KEY_METADATA = "metadata";
+    private static final String KEY_SOURCE = "source";
+    private static final String KEY_VALUE = "value";
+    private static final String KEY_MIME_TYPE = "mimeType";
+    private static final String KEY_INTERRUPT_ID = "interruptId";
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_PAYLOAD = "payload";
+    private static final String STATUS_CANCELLED = "cancelled";
     private static final String KEY_RESERVED = "agui";
     private static final String ROLE_USER = "user";
     private static final String ROLE_ASSISTANT = "assistant";
@@ -91,6 +145,22 @@ public final class AguiA2aRequestDecoder
     private final Decoder decodeReject = this::decodeReject;
     private final Decoder decodeIgnore = this::decodeIgnore;
 
+    private final Recorder recordNone = this::recordNone;
+    private final Recorder recordResume = this::recordResume;
+    private final Recorder recordResumeEntries = this::recordResumeEntries;
+    private final Recorder recordResumeEntry = this::recordResumeEntry;
+    private final Recorder recordResumeId = this::recordResumeId;
+    private final Recorder recordResumeStatus = this::recordResumeStatus;
+    private final Recorder recordMessageMember = this::recordMessageMember;
+    private final Recorder recordContent = this::recordContent;
+    private final Recorder recordParts = this::recordParts;
+    private final Recorder recordPart = this::recordPart;
+    private final Recorder recordPartType = this::recordPartType;
+    private final Recorder recordSourceStart = this::recordSourceStart;
+    private final Recorder recordSource = this::recordSource;
+    private final Recorder recordSourceType = this::recordSourceType;
+    private final Recorder recordRange = this::recordRange;
+
     private final JsonParserEx parser;
     private final String threadId;
     private final String runId;
@@ -99,9 +169,23 @@ public final class AguiA2aRequestDecoder
     private final AguiA2aRetained retained;
     private final int textMax;
     private final StringBuilder text;
+    private final int[] rangeStart = new int[RANGE_COUNT];
+    private final int[] rangeEnd = new int[RANGE_COUNT];
+    private final JsonEvent[] rangeEvent = new JsonEvent[RANGE_COUNT];
 
     private Decoder decoder = decodeStart;
     private Decoder messageDecoder = decodeMessageCapture;
+    private Recorder recorder = recordNone;
+    private Recorder rangeReturn = recordNone;
+    private int rangeTarget;
+    private int rangeDepth;
+    private int[] stage = new int[8 * STAGE_ENTRY];
+    private int stageCount;
+    private int contentStart;
+    private PartType partType = PartType.NONE;
+    private SourceType sourceType = SourceType.NONE;
+    private String entryId;
+    private ResumeStatus entryStatus = ResumeStatus.RESOLVED;
     private AguiA2aRejection rejection;
     private DirectBufferEx window;
     private int windowLimit;
@@ -283,6 +367,7 @@ public final class AguiA2aRequestDecoder
         depth = 0;
         captureEvents = 0;
         captureFirst = null;
+        recorder = kind == Kind.RESUME && retained.indexOf(Kind.RESUME) == ABSENT ? recordResume : recordNone;
         decoder = decodeCapture;
     }
 
@@ -365,6 +450,8 @@ public final class AguiA2aRequestDecoder
         default:
             break;
         }
+
+        recorder.record(event);
 
         if (decoder == decodeCapture && depth == 0 && event != JsonEvent.KEY_NAME && !parser.deferredBytes())
         {
@@ -455,6 +542,11 @@ public final class AguiA2aRequestDecoder
         messageMark = retained.mark();
         messageRole = Role.UNKNOWN;
         depth = 1;
+        stageCount = 0;
+        partType = PartType.NONE;
+        sourceType = SourceType.NONE;
+        resetRange(RANGE_ID);
+        recorder = recordMessageMember;
         decoder = decodeMessageCapture;
     }
 
@@ -481,10 +573,6 @@ public final class AguiA2aRequestDecoder
         case END_OBJECT:
         case END_ARRAY:
             depth--;
-            if (depth == 0)
-            {
-                decodeMessageEnd();
-            }
             break;
         case KEY_NAME:
             if (depth == 1)
@@ -499,6 +587,13 @@ public final class AguiA2aRequestDecoder
             break;
         default:
             break;
+        }
+
+        recorder.record(event);
+
+        if (depth == 0)
+        {
+            decodeMessageEnd();
         }
     }
 
@@ -529,6 +624,7 @@ public final class AguiA2aRequestDecoder
                     retained.truncate(messageMark, retained.count());
                 }
 
+                recorder = recordNone;
                 decoder = decodeMessageDrain;
             }
         }
@@ -546,14 +642,12 @@ public final class AguiA2aRequestDecoder
             }
             else
             {
-                if (result == Append.OK && messageRole == Role.USER)
-                {
-                    retained.entry(Kind.MESSAGE, messageMark);
-                }
-                else
+                final boolean kept = result == Append.OK && messageRole == Role.USER && commitMessage();
+
+                if (!kept)
                 {
                     retained.truncate(messageMark, retained.count());
-                    oversize += result == Append.FULL && messageRole == Role.USER ? 1 : 0;
+                    oversize += messageRole == Role.USER ? 1 : 0;
                 }
 
                 decoder = decodeMessageNext;
@@ -564,6 +658,29 @@ public final class AguiA2aRequestDecoder
             oversize += messageRole == Role.USER ? 1 : 0;
             decoder = decodeMessageNext;
         }
+    }
+
+    private boolean commitMessage()
+    {
+        final boolean identified = rangeEvent[RANGE_ID] == JsonEvent.VALUE_STRING && rangeEnd[RANGE_ID] != ABSENT;
+        final boolean fits = retained.accommodates(stageCount / STAGE_ENTRY + (identified ? 2 : 1));
+
+        if (fits)
+        {
+            for (int index = 0; index < stageCount; index += STAGE_ENTRY)
+            {
+                retained.range(Kind.values()[stage[index]], stage[index + 1], stage[index + 2]);
+            }
+
+            if (identified)
+            {
+                retained.range(Kind.MESSAGE_ID, rangeStart[RANGE_ID], rangeEnd[RANGE_ID]);
+            }
+
+            retained.entry(Kind.MESSAGE, messageMark);
+        }
+
+        return fits;
     }
 
     private void decodeFinish()
@@ -632,6 +749,7 @@ public final class AguiA2aRequestDecoder
                 else
                 {
                     retained.truncate(messageMark, retained.count());
+                    recorder = recordNone;
                     if (decoder == decodeMessageRole)
                     {
                         messageDecoder = decodeMessageDrain;
@@ -643,6 +761,296 @@ public final class AguiA2aRequestDecoder
                 }
             }
         }
+    }
+
+    private void recordNone(
+        JsonEvent event)
+    {
+    }
+
+    private void recordResume(
+        JsonEvent event)
+    {
+        recorder = event == JsonEvent.START_ARRAY ? recordResumeEntries : recordNone;
+    }
+
+    private void recordResumeEntries(
+        JsonEvent event)
+    {
+        if (event == JsonEvent.START_OBJECT && depth == DEPTH_RESUME_ENTRY_MEMBERS)
+        {
+            entryId = null;
+            entryStatus = ResumeStatus.RESOLVED;
+            resetRange(RANGE_PAYLOAD);
+            resetRange(RANGE_RESUME_METADATA);
+            recorder = recordResumeEntry;
+        }
+    }
+
+    private void recordResumeEntry(
+        JsonEvent event)
+    {
+        final CharSequence key = event == JsonEvent.KEY_NAME && depth == DEPTH_RESUME_ENTRY_MEMBERS ? current : null;
+
+        if (key != null && matches(key, KEY_INTERRUPT_ID))
+        {
+            recorder = recordResumeId;
+        }
+        else if (key != null && matches(key, KEY_STATUS))
+        {
+            recorder = recordResumeStatus;
+        }
+        else if (key != null && matches(key, KEY_PAYLOAD))
+        {
+            beginRange(RANGE_PAYLOAD, recordResumeEntry);
+        }
+        else if (key != null && matches(key, KEY_METADATA))
+        {
+            beginRange(RANGE_RESUME_METADATA, recordResumeEntry);
+        }
+        else if (event == JsonEvent.END_OBJECT && depth == DEPTH_RESUME_ENTRIES)
+        {
+            retained.resume(new Resume(entryId, entryStatus,
+                rangeStart[RANGE_PAYLOAD], rangeEnd[RANGE_PAYLOAD], rangeEvent[RANGE_PAYLOAD],
+                rangeStart[RANGE_RESUME_METADATA], rangeEnd[RANGE_RESUME_METADATA], rangeEvent[RANGE_RESUME_METADATA]));
+            recorder = recordResumeEntries;
+        }
+    }
+
+    private void recordResumeId(
+        JsonEvent event)
+    {
+        if (event != JsonEvent.VALUE_STRING || current != null)
+        {
+            entryId = event == JsonEvent.VALUE_STRING ? current.toString() : entryId;
+            recorder = recordResumeEntry;
+        }
+    }
+
+    private void recordResumeStatus(
+        JsonEvent event)
+    {
+        if (event != JsonEvent.VALUE_STRING || current != null)
+        {
+            entryStatus = event == JsonEvent.VALUE_STRING && matches(current, STATUS_CANCELLED) ?
+                ResumeStatus.CANCELLED : entryStatus;
+            recorder = recordResumeEntry;
+        }
+    }
+
+    private void recordMessageMember(
+        JsonEvent event)
+    {
+        final CharSequence key = event == JsonEvent.KEY_NAME && depth == DEPTH_MESSAGE_MEMBERS ? current : null;
+
+        if (key != null && matches(key, KEY_CONTENT))
+        {
+            contentStart = retainedAt(position());
+            recorder = recordContent;
+        }
+        else if (key != null && matches(key, KEY_ID))
+        {
+            beginRange(RANGE_ID, recordMessageMember);
+        }
+    }
+
+    private void recordContent(
+        JsonEvent event)
+    {
+        if (event == JsonEvent.START_ARRAY)
+        {
+            recorder = recordParts;
+        }
+        else if (event != JsonEvent.VALUE_STRING || !parser.deferredBytes())
+        {
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                stage(Kind.PART_TEXT, contentStart, retainedAt(position()));
+            }
+
+            recorder = recordMessageMember;
+        }
+    }
+
+    private void recordParts(
+        JsonEvent event)
+    {
+        if (event == JsonEvent.START_OBJECT && depth == DEPTH_PART_MEMBERS)
+        {
+            partType = PartType.NONE;
+            sourceType = SourceType.NONE;
+            resetRange(RANGE_TEXT);
+            resetRange(RANGE_METADATA);
+            resetRange(RANGE_VALUE);
+            resetRange(RANGE_MIME_TYPE);
+            recorder = recordPart;
+        }
+        else if (event == JsonEvent.END_ARRAY && depth == DEPTH_MESSAGE_MEMBERS)
+        {
+            recorder = recordMessageMember;
+        }
+    }
+
+    private void recordPart(
+        JsonEvent event)
+    {
+        final CharSequence key = event == JsonEvent.KEY_NAME && depth == DEPTH_PART_MEMBERS ? current : null;
+
+        if (key != null && matches(key, KEY_TYPE))
+        {
+            recorder = recordPartType;
+        }
+        else if (key != null && matches(key, KEY_TEXT))
+        {
+            beginRange(RANGE_TEXT, recordPart);
+        }
+        else if (key != null && matches(key, KEY_METADATA))
+        {
+            beginRange(RANGE_METADATA, recordPart);
+        }
+        else if (key != null && matches(key, KEY_SOURCE))
+        {
+            recorder = recordSourceStart;
+        }
+        else if (event == JsonEvent.END_OBJECT && depth == DEPTH_PARTS)
+        {
+            stagePart();
+            recorder = recordParts;
+        }
+    }
+
+    private void recordPartType(
+        JsonEvent event)
+    {
+        if (event != JsonEvent.VALUE_STRING || current != null)
+        {
+            partType = event == JsonEvent.VALUE_STRING ? partType(current) : partType;
+            recorder = recordPart;
+        }
+    }
+
+    private void recordSourceStart(
+        JsonEvent event)
+    {
+        recorder = event == JsonEvent.START_OBJECT ? recordSource : recordPart;
+    }
+
+    private void recordSource(
+        JsonEvent event)
+    {
+        final CharSequence key = event == JsonEvent.KEY_NAME && depth == DEPTH_SOURCE_MEMBERS ? current : null;
+
+        if (key != null && matches(key, KEY_TYPE))
+        {
+            recorder = recordSourceType;
+        }
+        else if (key != null && matches(key, KEY_VALUE))
+        {
+            beginRange(RANGE_VALUE, recordSource);
+        }
+        else if (key != null && matches(key, KEY_MIME_TYPE))
+        {
+            beginRange(RANGE_MIME_TYPE, recordSource);
+        }
+        else if (event == JsonEvent.END_OBJECT && depth == DEPTH_PART_MEMBERS)
+        {
+            recorder = recordPart;
+        }
+    }
+
+    private void recordSourceType(
+        JsonEvent event)
+    {
+        if (event != JsonEvent.VALUE_STRING || current != null)
+        {
+            sourceType = event == JsonEvent.VALUE_STRING ? sourceType(current) : sourceType;
+            recorder = recordSource;
+        }
+    }
+
+    private void recordRange(
+        JsonEvent event)
+    {
+        rangeEvent[rangeTarget] = rangeEvent[rangeTarget] == null ? event : rangeEvent[rangeTarget];
+
+        if (depth == rangeDepth && !parser.deferredBytes())
+        {
+            rangeEnd[rangeTarget] = retainedAt(position());
+            recorder = rangeReturn;
+        }
+    }
+
+    private void beginRange(
+        int range,
+        Recorder resume)
+    {
+        this.rangeTarget = range;
+        this.rangeDepth = depth;
+        this.rangeReturn = resume;
+        rangeStart[range] = retainedAt(position());
+        rangeEnd[range] = ABSENT;
+        rangeEvent[range] = null;
+        recorder = recordRange;
+    }
+
+    private void resetRange(
+        int range)
+    {
+        rangeStart[range] = ABSENT;
+        rangeEnd[range] = ABSENT;
+        rangeEvent[range] = null;
+    }
+
+    private boolean present(
+        int range)
+    {
+        return rangeEnd[range] != ABSENT;
+    }
+
+    private void stagePart()
+    {
+        if (partType == PartType.TEXT && present(RANGE_TEXT))
+        {
+            stageRange(Kind.PART_TEXT, RANGE_TEXT);
+            stageRange(Kind.PART_METADATA, RANGE_METADATA);
+        }
+        else if (partType == PartType.MEDIA && present(RANGE_VALUE) && sourceType != SourceType.NONE)
+        {
+            stageRange(sourceType == SourceType.DATA ? Kind.PART_RAW : Kind.PART_URL, RANGE_VALUE);
+            stageRange(Kind.PART_MIME, RANGE_MIME_TYPE);
+            stageRange(Kind.PART_METADATA, RANGE_METADATA);
+        }
+    }
+
+    private void stageRange(
+        Kind kind,
+        int range)
+    {
+        if (present(range))
+        {
+            stage(kind, rangeStart[range], rangeEnd[range]);
+        }
+    }
+
+    private void stage(
+        Kind kind,
+        int start,
+        int end)
+    {
+        if (stageCount + STAGE_ENTRY > stage.length)
+        {
+            stage = Arrays.copyOf(stage, stage.length << 1);
+        }
+
+        stage[stageCount++] = kind.ordinal();
+        stage[stageCount++] = start;
+        stage[stageCount++] = end;
+    }
+
+    private int retainedAt(
+        int position)
+    {
+        return retained.mark() + position - captureFrom;
     }
 
     private JsonEvent next()
@@ -685,6 +1093,20 @@ public final class AguiA2aRequestDecoder
         }
 
         return token;
+    }
+
+    private static PartType partType(
+        CharSequence view)
+    {
+        return matches(view, "text") ? PartType.TEXT :
+            matches(view, "image") || matches(view, "audio") || matches(view, "video") || matches(view, "document") ?
+                PartType.MEDIA : PartType.NONE;
+    }
+
+    private static SourceType sourceType(
+        CharSequence view)
+    {
+        return matches(view, "data") ? SourceType.DATA : matches(view, "url") ? SourceType.URL : SourceType.NONE;
     }
 
     private Append retain(
