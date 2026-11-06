@@ -99,6 +99,7 @@ AG-UI and A2A do not model the same things. What the proxy drops or approximates
 | `resume[].payload` | message parts (string to `text`, other JSON to `data`) | lossy for a status other than `resolved` |
 | `resume[].status: cancelled` | `CancelTask`, the run ends `CANCELLED`, no message is sent | none |
 | trailing `user` messages | one `Message`; earlier turns are not resent, the agent owns history through `contextId` | lossy |
+| earlier messages, when the agent declared the `history` feature of the AG-UI extension | one advisory `application/json` data part, only when a new A2A context starts (or on every run with `params.history` `always`); omitted whole when it does not fit | lossy, advisory |
 | `assistant`, `tool`, `activity`, `reasoning` messages | dropped | lossy |
 | `system`, `developer` messages | dropped; forwarding them would be prompt injection across a trust boundary | lossy |
 | text content | `text` part | none |
