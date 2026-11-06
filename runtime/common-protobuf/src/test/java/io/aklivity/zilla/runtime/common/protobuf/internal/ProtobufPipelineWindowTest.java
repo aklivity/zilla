@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  */
 public class ProtobufPipelineWindowTest
 {
-    private static final int[] SLOTS = {16, 24, 32, 40};
+    private static final int[] SLOTS = {8, 12, 16, 24, 32, 40};
 
     private final ProtobufSchema schema = newSchema();
 
