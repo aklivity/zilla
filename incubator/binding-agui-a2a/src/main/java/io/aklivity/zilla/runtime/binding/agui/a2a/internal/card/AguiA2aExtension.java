@@ -33,7 +33,11 @@ public record AguiA2aExtension(
     public static final String HISTORY_CONTEXT = "context";
     public static final String HISTORY_ALWAYS = "always";
 
+    public static final String A2UI_URI_V09 = "https://a2ui.org/a2a-extension/a2ui/v0.9";
+    public static final String A2UI_URI_V08 = "https://a2ui.org/a2a-extension/a2ui/v0.8";
+
     static final List<String> IMPLEMENTED = List.of(URI_V1);
+    static final List<String> A2UI_IMPLEMENTED = List.of(A2UI_URI_V09, A2UI_URI_V08);
     static final Set<String> FEATURES =
         Set.of("state", "tools", "history", "activity", "reasoning", "steps", "toolCalls", "subagents", "custom");
 

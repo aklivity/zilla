@@ -16,7 +16,11 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.card;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -252,6 +256,54 @@ public class AguiA2aAgentCardDecoderTest
         decoder.decode(input, 0, bytes.length, true);
 
         assertThat(decoder.failed(), is(true));
+    }
+
+    @Test
+    public void shouldSelectHighestA2uiVersionBothSupport()
+    {
+        final AguiA2aAgentCard card = parse(card(a2ui("v0.8", "v0.9"), "[\"text/plain\"]"));
+
+        assertThat(card.a2ui(Set.of("v0.8", "v0.9")), equalTo(AguiA2aExtension.A2UI_URI_V09));
+    }
+
+    @Test
+    public void shouldSelectA2uiVersionTheClientSupports()
+    {
+        final AguiA2aAgentCard card = parse(card(a2ui("v0.8", "v0.9"), "[\"text/plain\"]"));
+
+        assertThat(card.a2ui(Set.of("v0.8")), equalTo(AguiA2aExtension.A2UI_URI_V08));
+        assertThat(card.a2ui(Set.of("v0.9")), equalTo(AguiA2aExtension.A2UI_URI_V09));
+    }
+
+    @Test
+    public void shouldNotSelectA2uiWithoutOverlap()
+    {
+        final AguiA2aAgentCard card = parse(card(a2ui("v0.8"), "[\"text/plain\"]"));
+
+        assertThat(card.a2ui(Set.of("v0.9")), nullValue());
+        assertThat(card.a2ui(Set.of()), nullValue());
+    }
+
+    @Test
+    public void shouldNotSelectA2uiWhenCardDoesNotDeclareIt()
+    {
+        final AguiA2aAgentCard card = parse(card("{\"streaming\":true}", "[\"text/plain\"]"));
+
+        assertThat(card.a2ui(Set.of("v0.8", "v0.9")), nullValue());
+    }
+
+    private static String a2ui(
+        String... versions)
+    {
+        final StringBuilder extensions = new StringBuilder();
+
+        for (String version : versions)
+        {
+            extensions.append(extensions.length() > 0 ? "," : "")
+                .append("{\"uri\":\"https://a2ui.org/a2a-extension/a2ui/").append(version).append("\"}");
+        }
+
+        return "{\"streaming\":true,\"extensions\":[" + extensions + "]}";
     }
 
     private AguiA2aAgentCard parse(
