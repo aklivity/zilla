@@ -9118,4 +9118,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.circuit.other.model/client",
+        "${app}/openai.circuit.other.model/server"})
+    public void shouldEchoOpenaiOtherModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
