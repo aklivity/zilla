@@ -2075,6 +2075,7 @@
                     "title": "Type",
                     "type": "string",
                     "enum": [
+                        "a2a",
                         "amqp",
                         "asyncapi",
                         "echo",
@@ -2235,6 +2236,456 @@
                 }
             ],
             "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "a2a"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "type": {
+                                "const": "a2a"
+                            },
+                            "kind": {
+                                "enum": [
+                                    "server",
+                                    "client",
+                                    "proxy"
+                                ]
+                            },
+                            "catalog": false,
+                            "vault": false,
+                            "entry": false
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "server"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "url": {
+                                                    "title": "URL",
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "pattern": "^https?://"
+                                                },
+                                                "versions": {
+                                                    "title": "Versions",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "1.0",
+                                                            "0.3"
+                                                        ]
+                                                    },
+                                                    "minItems": 1,
+                                                    "uniqueItems": true,
+                                                    "default": [
+                                                        "1.0",
+                                                        "0.3"
+                                                    ]
+                                                },
+                                                "push": {
+                                                    "title": "Push",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "url": {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "format": "uri",
+                                                            "pattern": "^https?://"
+                                                        },
+                                                        "path": {
+                                                            "title": "Path",
+                                                            "type": "string",
+                                                            "pattern": "^/"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                },
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "pattern": ".*\\{credentials\\}.*",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "routes": false
+                                    },
+                                    "required": [
+                                        "exit"
+                                    ]
+                                }
+                            },
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "client"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "server": {
+                                                    "title": "Server",
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "pattern": "^https?://"
+                                                },
+                                                "versions": {
+                                                    "title": "Versions",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "1.0",
+                                                            "0.3"
+                                                        ]
+                                                    },
+                                                    "minItems": 1,
+                                                    "uniqueItems": true,
+                                                    "default": [
+                                                        "1.0",
+                                                        "0.3"
+                                                    ]
+                                                },
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "routes": {
+                                            "title": "Routes",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "when": {
+                                                        "title": "When",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "skill": {
+                                                                    "title": "Skill",
+                                                                    "oneOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "skill"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "anyOf": [
+                                        {
+                                            "required": [
+                                                "exit"
+                                            ]
+                                        },
+                                        {
+                                            "required": [
+                                                "routes"
+                                            ],
+                                            "properties": {
+                                                "routes": {
+                                                    "contains": {
+                                                        "required": [
+                                                            "exit"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "proxy"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "cache": {
+                                                    "title": "Cache",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "store": {
+                                                            "title": "Store",
+                                                            "type": "string"
+                                                        },
+                                                        "ttl": {
+                                                            "title": "Refresh TTL",
+                                                            "type": "string",
+                                                            "format": "duration",
+                                                            "default": "PT5M"
+                                                        },
+                                                        "authorization": {
+                                                            "title": "Authorization",
+                                                            "type": "object",
+                                                            "patternProperties": {
+                                                                "^[A-Za-z0-9_-]+$": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "credentials": {
+                                                                            "title": "Credentials",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                }
+                                                            },
+                                                            "additionalProperties": false,
+                                                            "maxProperties": 1
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "store"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "discovery": {
+                                                    "title": "Discovery",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "agent": {
+                                                            "title": "Agent",
+                                                            "type": "string",
+                                                            "default": "discovery"
+                                                        },
+                                                        "search": {
+                                                            "title": "Search",
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "limit": {
+                                                                    "title": "Limit",
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "default": 5
+                                                                },
+                                                                "fields": {
+                                                                    "title": "Fields",
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "enum": [
+                                                                            "name",
+                                                                            "description",
+                                                                            "skills"
+                                                                        ]
+                                                                    },
+                                                                    "default": [
+                                                                        "name",
+                                                                        "description",
+                                                                        "skills"
+                                                                    ]
+                                                                },
+                                                                "weights": {
+                                                                    "title": "Weights",
+                                                                    "type": "object",
+                                                                    "patternProperties": {
+                                                                        "^[a-zA-Z0-9_-]+$": {
+                                                                            "type": "number"
+                                                                        }
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                },
+                                                                "type": {
+                                                                    "title": "Type",
+                                                                    "$ref": "#/$defs/binding-ext/a2a/indexes/flat"
+                                                                },
+                                                                "index": {
+                                                                    "title": "Index",
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "$ref": "#/$defs/binding-ext/a2a/indexes"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "not": {
+                                                                "required": [
+                                                                    "type",
+                                                                    "index"
+                                                                ]
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                },
+                                                "push": {
+                                                    "title": "Push",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "vault": {
+                                                            "title": "Vault",
+                                                            "type": "string"
+                                                        },
+                                                        "key": {
+                                                            "title": "Key",
+                                                            "type": "string"
+                                                        },
+                                                        "ttl": {
+                                                            "title": "Time To Live",
+                                                            "type": "string",
+                                                            "format": "duration",
+                                                            "default": "PT24H"
+                                                        },
+                                                        "maxLength": {
+                                                            "title": "Maximum Length",
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "default": 2048
+                                                        },
+                                                        "allow": {
+                                                            "title": "Allow",
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "minItems": 1
+                                                        },
+                                                        "exit": {
+                                                            "title": "Exit",
+                                                            "type": "string"
+                                                        },
+                                                        "authorization": {
+                                                            "title": "Authorization",
+                                                            "type": "object",
+                                                            "patternProperties": {
+                                                                "^[A-Za-z0-9_-]+$": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "credentials": {
+                                                                            "title": "Credentials",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                }
+                                                            },
+                                                            "additionalProperties": false,
+                                                            "maxProperties": 1
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "vault",
+                                                        "key",
+                                                        "exit"
+                                                    ],
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "routes": {
+                                            "title": "Routes",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "when": {
+                                                        "title": "When",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "agent": {
+                                                                    "title": "Agent",
+                                                                    "oneOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "agent"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
                 {
                     "if": {
                         "properties": {
@@ -7878,6 +8329,49 @@
             ]
         },
         "binding-ext": {
+            "a2a": {
+                "indexes": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "title": "Type",
+                            "type": "string",
+                            "enum": [
+                                "keyword"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "type"
+                    ],
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "keyword"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "type": {
+                                        "const": "keyword"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    ],
+                    "flat": {
+                        "title": "Type",
+                        "type": "string",
+                        "enum": [
+                            "keyword"
+                        ]
+                    }
+                }
+            },
             "llm": {
                 "dialect": {
                     "title": "Dialect",
