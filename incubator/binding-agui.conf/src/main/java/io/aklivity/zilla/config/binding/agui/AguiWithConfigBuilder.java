@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.agui;
 
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
+
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
@@ -23,13 +25,28 @@ public final class AguiWithConfigBuilder<T> extends ConfigBuilder<T, AguiWithCon
 {
     private final Function<WithConfig, T> mapper;
 
+    private long compositeId = NO_COMPOSITE_ID;
     private String agent;
     private String path;
 
-    public AguiWithConfigBuilder(
+    AguiWithConfigBuilder(
         Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<AguiWithConfigBuilder<T>> thisType()
+    {
+        return (Class<AguiWithConfigBuilder<T>>) getClass();
+    }
+
+    public AguiWithConfigBuilder<T> compositeId(
+        long compositeId)
+    {
+        this.compositeId = compositeId;
+        return this;
     }
 
     public AguiWithConfigBuilder<T> agent(
@@ -47,15 +64,8 @@ public final class AguiWithConfigBuilder<T> extends ConfigBuilder<T, AguiWithCon
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected Class<AguiWithConfigBuilder<T>> thisType()
-    {
-        return (Class<AguiWithConfigBuilder<T>>) getClass();
-    }
-
-    @Override
     public T build()
     {
-        return mapper.apply(new AguiWithConfig(agent, path));
+        return mapper.apply(new AguiWithConfig(compositeId, agent, path));
     }
 }
