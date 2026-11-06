@@ -102,6 +102,28 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.exchange.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldSupplyExchangeToGuardedSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.exchange.tool.call.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldSupplyExchangeToGuardedToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.control/client",
