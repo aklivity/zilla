@@ -488,7 +488,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = AguiA2aState.closeInitial(state);
-            cleanup(traceId);
+            cancelTask(traceId);
         }
 
         private void onAguiWindow(
@@ -509,7 +509,26 @@ public final class AguiA2aProxyFactory implements BindingHandler
             final long traceId = reset.traceId();
 
             state = AguiA2aState.closeReply(state);
+            cancelTask(traceId);
+        }
+
+        private void cancelTask(
+            long traceId)
+        {
+            String taskId = null;
+
+            for (int index = 0; taskId == null && index < a2aStreams.size(); index++)
+            {
+                taskId = a2aStreams.get(index).cancelableTaskId();
+            }
+
             cleanup(traceId);
+
+            if (taskId != null)
+            {
+                final A2aCancelAbort cancel = new A2aCancelAbort(this, taskId);
+                cancel.doA2aBegin(traceId);
+            }
         }
 
         private void decodeAgui(
@@ -1100,6 +1119,11 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
         abstract int replyBacklog();
 
+        String cancelableTaskId()
+        {
+            return null;
+        }
+
         void doA2aBegin(
             long traceId)
         {
@@ -1271,15 +1295,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
-        void onA2aBegin(
-            BeginFW begin)
-        {
-            super.onA2aBegin(begin);
-
-            doA2aEnd(begin.traceId());
-        }
-
-        @Override
         void flushInitial(
             long traceId)
         {
@@ -1316,6 +1331,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             replySeq = end.sequence();
             state = AguiA2aState.closeReply(state);
+
+            doA2aEnd(traceId);
 
             decodeCard(traceId, emptyRO, 0, 0);
             cleanupDecodeSlot();
@@ -1426,14 +1443,18 @@ public final class AguiA2aProxyFactory implements BindingHandler
             proxy.doAguiBegin(begin.traceId());
 
             super.onA2aBegin(begin);
-
-            flushInitial(begin.traceId());
         }
 
         @Override
         int replyBacklog()
         {
             return proxy.encodeSlotOffset;
+        }
+
+        @Override
+        String cancelableTaskId()
+        {
+            return proxy.mapper.terminal() ? null : proxy.mapper.taskId();
         }
 
         @Override
@@ -1468,6 +1489,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             replySeq = end.sequence();
             state = AguiA2aState.closeReply(state);
             proxy.eventTraceId = traceId;
+
+            doA2aEnd(traceId);
 
             proxy.eventDecoder.finish();
             proxy.mapper.streamEnded(error);
@@ -1541,11 +1564,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
             if (proxy.assembler.emitted())
             {
                 proxy.onRequestSent();
-
-                if (AguiA2aState.replyOpened(state))
-                {
-                    doA2aEnd(traceId);
-                }
             }
         }
     }
@@ -1568,13 +1586,85 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
+        String cancelableTaskId()
+        {
+            return null;
+        }
+
+        @Override
         void flushInitial(
             long traceId)
         {
-            if (AguiA2aState.replyOpened(state))
-            {
-                doA2aEnd(traceId);
-            }
+        }
+    }
+
+    private final class A2aCancelAbort extends A2aStream
+    {
+        private final String taskId;
+
+        private A2aCancelAbort(
+            AguiProxy proxy,
+            String taskId)
+        {
+            super(proxy);
+            this.taskId = taskId;
+        }
+
+        @Override
+        Flyweight beginEx()
+        {
+            return a2aBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(a2aTypeId)
+                .tasksCancel(t -> t.agent(proxy.agent).taskId(taskId))
+                .build();
+        }
+
+        @Override
+        void flushInitial(
+            long traceId)
+        {
+        }
+
+        @Override
+        int replyBacklog()
+        {
+            return 0;
+        }
+
+        @Override
+        void onA2aReply(
+            DataFW data)
+        {
+            replySeq = data.sequence() + data.reserved();
+
+            doA2aWindow(data.traceId());
+        }
+
+        @Override
+        void onA2aReplyEnd(
+            EndFW end)
+        {
+            replySeq = end.sequence();
+            state = AguiA2aState.closeReply(state);
+
+            doA2aEnd(end.traceId());
+        }
+
+        @Override
+        void onA2aReplyAbort(
+            AbortFW abort)
+        {
+            state = AguiA2aState.closeReply(state);
+
+            cleanup(abort.traceId());
+        }
+
+        @Override
+        void onA2aReset(
+            ResetFW reset)
+        {
+            cleanup(reset.traceId());
+            state = AguiA2aState.closeInitial(state);
         }
     }
 
