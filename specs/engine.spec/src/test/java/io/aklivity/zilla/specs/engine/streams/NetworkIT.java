@@ -176,6 +176,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/exchange.value.pipeline.binding.id/client",
+        "${net}/exchange.value.pipeline.binding.id/server" })
+    public void shouldExchangeValuePipelineBindingId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/exchange.value.pipeline.transform.identity/client",
         "${net}/exchange.value.pipeline.transform.identity/server" })
     public void shouldExchangeValuePipelineTransformIdentity() throws Exception
