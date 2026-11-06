@@ -53,6 +53,19 @@ public class A2aStateTest
     }
 
     @Test
+    public void shouldTrackReplyAbortAndFraming()
+    {
+        int state = 0;
+
+        assertThat(A2aState.replyAborting(state), equalTo(false));
+        assertThat(A2aState.replyFraming(state), equalTo(false));
+        state = A2aState.abortingReply(state);
+        assertThat(A2aState.replyAborting(state), equalTo(true));
+        state = A2aState.framingReply(state);
+        assertThat(A2aState.replyFraming(state), equalTo(true));
+    }
+
+    @Test
     public void shouldCloseWhenInitialAndReplyClosed()
     {
         int state = A2aState.closedReply(A2aState.closedInitial(0));
