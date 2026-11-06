@@ -382,20 +382,7 @@ public final class EngineRule implements TestRule
                     }
                 };
 
-                FileSystem fs = null;
-
-                final URI configURI = config.configURI();
-
-                switch (configURI.getScheme())
-                {
-                case "jar":
-                    String jarLocation = Path.of(
-                            configURI.toString().replace("jar:file:", "").split("!")[0]
-                            ).toUri().toString();
-                    URI jarURI = new URI("jar", jarLocation, null);
-                    fs = FileSystems.newFileSystem(jarURI, Map.of());
-                    break;
-                }
+                final FileSystem fs = openConfigFileSystem(config.configURI());
 
                 engine = builder.config(config)
                                 .errorHandler(errorHandler)
@@ -489,6 +476,25 @@ public final class EngineRule implements TestRule
                 }
             }
         };
+    }
+
+    static FileSystem openConfigFileSystem(
+        URI configURI) throws Exception
+    {
+        FileSystem fs = null;
+
+        switch (configURI.getScheme())
+        {
+        case "jar":
+            String jarLocation = Path.of(
+                    configURI.toString().replace("jar:file:", "").split("!")[0]
+                    ).toUri().toString();
+            URI jarURI = new URI("jar", jarLocation, null);
+            fs = FileSystems.newFileSystem(jarURI, Map.of());
+            break;
+        }
+
+        return fs;
     }
 
     private void cleanup() throws IOException
