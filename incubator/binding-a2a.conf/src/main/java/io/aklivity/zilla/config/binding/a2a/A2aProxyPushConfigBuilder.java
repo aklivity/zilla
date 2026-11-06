@@ -24,6 +24,7 @@ public final class A2aProxyPushConfigBuilder<T> extends ConfigBuilder<T, A2aProx
 {
     private final Function<A2aProxyPushConfig, T> mapper;
 
+    private String url;
     private String vault;
     private String key;
     private Duration ttl;
@@ -43,6 +44,13 @@ public final class A2aProxyPushConfigBuilder<T> extends ConfigBuilder<T, A2aProx
     protected Class<A2aProxyPushConfigBuilder<T>> thisType()
     {
         return (Class<A2aProxyPushConfigBuilder<T>>) getClass();
+    }
+
+    public A2aProxyPushConfigBuilder<T> url(
+        String url)
+    {
+        this.url = url;
+        return this;
     }
 
     public A2aProxyPushConfigBuilder<T> vault(
@@ -102,6 +110,6 @@ public final class A2aProxyPushConfigBuilder<T> extends ConfigBuilder<T, A2aProx
     @Override
     public T build()
     {
-        return mapper.apply(new A2aProxyPushConfig(vault, key, ttl, maxLength, allow, exit, authorization));
+        return mapper.apply(new A2aProxyPushConfig(url, vault, key, ttl, maxLength, allow, exit, authorization));
     }
 }

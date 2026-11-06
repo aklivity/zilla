@@ -24,6 +24,7 @@ import io.aklivity.zilla.config.engine.Config;
 
 public final class A2aProxyPushConfig extends Config
 {
+    public final String url;
     public final String vault;
     public final String key;
     public final Duration ttl;
@@ -44,6 +45,7 @@ public final class A2aProxyPushConfig extends Config
     }
 
     A2aProxyPushConfig(
+        String url,
         String vault,
         String key,
         Duration ttl,
@@ -52,6 +54,7 @@ public final class A2aProxyPushConfig extends Config
         String exit,
         A2aAuthorizationConfig authorization)
     {
+        this.url = url;
         this.vault = vault;
         this.key = key;
         this.ttl = ttl;
