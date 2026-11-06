@@ -2079,6 +2079,7 @@
                         "a2a-http",
                         "a2a-openapi",
                         "agui",
+                        "agui-a2a",
                         "amqp",
                         "asyncapi",
                         "echo",
@@ -3580,6 +3581,75 @@
                                 }
                             }
                         ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "agui-a2a"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "type": {
+                                "const": "agui-a2a"
+                            },
+                            "kind": {
+                                "enum": [
+                                    "proxy"
+                                ]
+                            },
+                            "catalog": false,
+                            "vault": false,
+                            "entry": false,
+                            "options": false,
+                            "routes": {
+                                "title": "Routes",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "when": {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "agent": {
+                                                        "title": "Agent",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "agent"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "with": {
+                                            "title": "With",
+                                            "type": "object",
+                                            "properties": {
+                                                "agent": {
+                                                    "title": "Agent",
+                                                    "type": "string"
+                                                },
+                                                "identity": {
+                                                    "title": "Identity",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "exit"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 },
                 {
