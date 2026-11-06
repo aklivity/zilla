@@ -14,11 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.internal.codec;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.Map;
+
+import jakarta.json.JsonException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 
 public final class AguiRunInputEncoder
 {
@@ -30,50 +36,43 @@ public final class AguiRunInputEncoder
         MALFORMED
     }
 
-    private enum State
-    {
-        START,
-        FIRST_MEMBER,
-        MEMBER,
-        KEY,
-        COLON,
-        VALUE,
-        VALUE_BODY,
-        SEPARATOR,
-        DONE,
-        MISMATCHED,
-        MALFORMED
-    }
-
     private enum Identifier
     {
-        NONE,
         THREAD_ID,
         RUN_ID,
         PARENT_RUN_ID
     }
 
-    private static final int KEY_MAX = 16;
-    private static final int CAPTURE_MAX = 256;
-    private static final byte[] KEY_THREAD_ID = "threadId".getBytes(UTF_8);
-    private static final byte[] KEY_RUN_ID = "runId".getBytes(UTF_8);
-    private static final byte[] KEY_PARENT_RUN_ID = "parentRunId".getBytes(UTF_8);
-    private static final byte[] NULL = "null".getBytes(UTF_8);
+    @FunctionalInterface
+    private interface AguiRunInputDecoder
+    {
+        int decode();
+    }
+
+    private static final int IDENTIFIER_MAX = 256;
+    private static final int WINDOW_MAX = 1024;
+
+    private final AguiRunInputDecoder decodeStart = this::decodeStart;
+    private final AguiRunInputDecoder decodeObjectStart = this::decodeObjectStart;
+    private final AguiRunInputDecoder decodeMember = this::decodeMember;
+    private final AguiRunInputDecoder decodeIdentifier = this::decodeIdentifier;
+    private final AguiRunInputDecoder decodeEnd = this::decodeEnd;
+    private final AguiRunInputDecoder decodeMismatched = this::decodeMismatched;
+    private final AguiRunInputDecoder decodeMalformed = this::decodeMalformed;
 
     private final String threadId;
     private final String runId;
     private final String parentRunId;
-    private final AguiValueExtent extent = new AguiValueExtent();
-    private final MutableDirectBufferEx keyBuffer = new UnsafeBufferEx(new byte[KEY_MAX]);
-    private final MutableDirectBufferEx captureBuffer = new UnsafeBufferEx(new byte[CAPTURE_MAX]);
-    private final MutableDirectBufferEx valueBuffer = new UnsafeBufferEx(new byte[CAPTURE_MAX]);
+    private final JsonParserEx parser =
+        JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+    private final MutableDirectBufferEx windowBuffer = new UnsafeBufferEx(new byte[WINDOW_MAX]);
 
-    private State state = State.START;
-    private Identifier capture = Identifier.NONE;
-    private int keyLength;
-    private boolean keyEscaped;
-    private int captureLength;
-    private int captureTotal;
+    private final StringBuilder identified = new StringBuilder();
+
+    private AguiRunInputDecoder decoder = decodeStart;
+    private Identifier identifier;
+    private int carryLength;
+    private int windowLimit;
     private int seenThreadId;
     private int seenRunId;
     private int seenParentRunId;
@@ -95,16 +94,13 @@ public final class AguiRunInputEncoder
     {
         int progress = offset;
 
-        while (progress < limit && state != State.MISMATCHED && state != State.MALFORMED)
+        while (progress < limit && decoder != decodeMismatched && decoder != decodeMalformed)
         {
-            if (state == State.VALUE_BODY)
-            {
-                progress += encodeValue(buffer, progress, limit);
-            }
-            else
-            {
-                progress += encodeStructure(buffer.getByte(progress));
-            }
+            final int copied = Math.min(WINDOW_MAX - carryLength, limit - progress);
+            windowBuffer.putBytes(carryLength, buffer, progress, copied);
+            progress += copied;
+
+            decodeWindow(carryLength + copied);
         }
 
         return status();
@@ -112,287 +108,225 @@ public final class AguiRunInputEncoder
 
     public Status finish()
     {
-        if (state == State.DONE)
+        if (decoder == decodeEnd)
         {
             final boolean identified = seenThreadId == 1 && seenRunId == 1;
             final boolean parented = parentRunId == null || seenParentRunId == 1;
 
-            state = identified && parented ? State.DONE : State.MISMATCHED;
+            decoder = identified && parented ? decodeEnd : decodeMismatched;
         }
-        else if (state != State.MISMATCHED)
+        else if (decoder != decodeMismatched)
         {
-            state = State.MALFORMED;
+            decoder = decodeMalformed;
         }
 
-        return state == State.DONE ? Status.VALID : status();
+        return decoder == decodeEnd ? Status.VALID : status();
     }
 
     private Status status()
     {
-        final Status status;
-
-        switch (state)
-        {
-        case MISMATCHED:
-            status = Status.MISMATCHED;
-            break;
-        case MALFORMED:
-            status = Status.MALFORMED;
-            break;
-        default:
-            status = Status.PENDING;
-            break;
-        }
-
-        return status;
+        return decoder == decodeMismatched ? Status.MISMATCHED : decoder == decodeMalformed ? Status.MALFORMED : Status.PENDING;
     }
 
-    private int encodeStructure(
-        byte octet)
+    private void decodeWindow(
+        int limit)
     {
-        int consumed = 1;
+        windowLimit = limit;
+        parser.wrap(windowBuffer, 0, limit, false);
 
-        switch (state)
+        int position = 0;
+
+        try
         {
-        case START:
-            if (octet == '{')
+            int previous;
+            AguiRunInputDecoder previousDecoder;
+
+            do
             {
-                state = State.FIRST_MEMBER;
+                previous = position;
+                previousDecoder = decoder;
+                position = decoder.decode();
             }
-            else if (!isWhitespace(octet))
+            while (position != previous || decoder != previousDecoder);
+        }
+        catch (JsonException ex)
+        {
+            decoder = decodeMalformed;
+        }
+
+        carryLength = windowLimit - position;
+        System.arraycopy(windowBuffer.byteArray(), position, windowBuffer.byteArray(), 0, carryLength);
+    }
+
+    private int position()
+    {
+        return windowLimit - parser.remaining();
+    }
+
+    private int decodeStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            decoder = parser.nextEvent() == JsonEvent.START_DOCUMENT ? decodeObjectStart : decodeMalformed;
+        }
+
+        return position();
+    }
+
+    private int decodeObjectStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            decoder = parser.nextEvent() == JsonEvent.START_OBJECT ? decodeMember : decodeMalformed;
+        }
+
+        return position();
+    }
+
+    private int decodeMember()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
             {
-                state = State.MALFORMED;
+            case KEY_NAME:
+                decodeKey();
+                break;
+            case END_OBJECT:
+                decoder = decodeEnd;
+                break;
+            default:
+                decoder = decodeMalformed;
+                break;
             }
-            break;
-        case FIRST_MEMBER:
-            if (octet == '}')
+        }
+
+        return position();
+    }
+
+    private void decodeKey()
+    {
+        if (parser.deferredBytes())
+        {
+            parser.consumed(0);
+        }
+        else
+        {
+            final CharSequence key = parser.getStringView();
+
+            if ("threadId".contentEquals(key))
             {
-                state = State.DONE;
+                identifier = Identifier.THREAD_ID;
+                decoder = decodeIdentifier;
+            }
+            else if ("runId".contentEquals(key))
+            {
+                identifier = Identifier.RUN_ID;
+                decoder = decodeIdentifier;
+            }
+            else if ("parentRunId".contentEquals(key))
+            {
+                identifier = Identifier.PARENT_RUN_ID;
+                decoder = decodeIdentifier;
             }
             else
             {
-                encodeMember(octet);
+                parser.skipValue();
             }
-            break;
-        case MEMBER:
-            encodeMember(octet);
-            break;
-        case KEY:
-            encodeKey(octet);
-            break;
-        case COLON:
-            if (octet == ':')
-            {
-                state = State.VALUE;
-            }
-            else if (!isWhitespace(octet))
-            {
-                state = State.MALFORMED;
-            }
-            break;
-        case VALUE:
-            if (!isWhitespace(octet))
-            {
-                extent.reset();
-                capture = identifier();
-                captureLength = 0;
-                captureTotal = 0;
-                state = State.VALUE_BODY;
-                consumed = 0;
-            }
-            break;
-        case SEPARATOR:
-            if (octet == ',')
-            {
-                state = State.MEMBER;
-            }
-            else if (octet == '}')
-            {
-                state = State.DONE;
-            }
-            else if (!isWhitespace(octet))
-            {
-                state = State.MALFORMED;
-            }
-            break;
-        default:
-            if (!isWhitespace(octet))
-            {
-                state = State.MALFORMED;
-            }
-            break;
-        }
-
-        return consumed;
-    }
-
-    private void encodeMember(
-        byte octet)
-    {
-        if (octet == '"')
-        {
-            keyLength = 0;
-            keyEscaped = false;
-            state = State.KEY;
-        }
-        else if (!isWhitespace(octet))
-        {
-            state = State.MALFORMED;
         }
     }
 
-    private void encodeKey(
-        byte octet)
+    private int decodeIdentifier()
     {
-        if (!keyEscaped && octet == '"')
+        if (parser.hasNextEvent())
         {
-            state = State.COLON;
-        }
-        else
-        {
-            keyEscaped = !keyEscaped && octet == '\\';
+            final JsonEvent event = parser.nextEvent();
 
-            if (keyLength < KEY_MAX)
+            if (event == JsonEvent.VALUE_STRING)
             {
-                keyBuffer.putByte(keyLength, octet);
-            }
+                final CharSequence fragment = parser.getStringView();
+                final int length = fragment.length();
+                final boolean deferred = parser.deferredBytes();
 
-            keyLength++;
-        }
-    }
+                identified.append(fragment);
 
-    private int encodeValue(
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        final int consumed = extent.advance(buffer, offset, limit);
-
-        if (consumed == AguiValueExtent.MALFORMED)
-        {
-            state = State.MALFORMED;
-        }
-        else
-        {
-            if (capture != Identifier.NONE)
-            {
-                final int length = Math.min(consumed, CAPTURE_MAX - captureLength);
-                captureBuffer.putBytes(captureLength, buffer, offset, length);
-                captureLength += length;
-                captureTotal += consumed;
-            }
-
-            if (extent.complete())
-            {
-                encodeIdentifier();
-                state = state == State.VALUE_BODY ? State.SEPARATOR : state;
-            }
-        }
-
-        return Math.max(consumed, 0);
-    }
-
-    private void encodeIdentifier()
-    {
-        if (capture != Identifier.NONE && captureTotal > CAPTURE_MAX)
-        {
-            state = State.MISMATCHED;
-        }
-        else if (capture != Identifier.NONE)
-        {
-            final String value = identified();
-
-            if (state != State.MALFORMED)
-            {
-                switch (capture)
+                if (identified.length() > IDENTIFIER_MAX)
                 {
-                case THREAD_ID:
-                    state = threadId.equals(value) ? state : State.MISMATCHED;
-                    seenThreadId = 1;
-                    break;
-                case RUN_ID:
-                    state = runId.equals(value) ? state : State.MISMATCHED;
-                    seenRunId = 1;
-                    break;
-                default:
-                    state = (parentRunId == null ? value == null : parentRunId.equals(value)) ? state : State.MISMATCHED;
-                    seenParentRunId = value != null ? 1 : 0;
-                    break;
+                    decoder = decodeMismatched;
+                }
+                else if (deferred)
+                {
+                    parser.consumed(length);
+                }
+                else
+                {
+                    decodeIdentified(identified.toString());
                 }
             }
+            else if (event == JsonEvent.VALUE_NULL && identifier == Identifier.PARENT_RUN_ID)
+            {
+                decodeIdentified(null);
+            }
+            else
+            {
+                decoder = decodeMalformed;
+            }
         }
+
+        return position();
     }
 
-    private String identified()
+    private void decodeIdentified(
+        String value)
     {
-        String value = null;
+        final boolean matched;
 
-        if (extent.string())
+        switch (identifier)
         {
-            final int length = AguiJsonUnescape.unescape(captureBuffer, 1, captureLength - 1, valueBuffer, 0);
-
-            value = valueBuffer.getStringWithoutLengthUtf8(0, length);
+        case THREAD_ID:
+            matched = threadId.equals(value);
+            seenThreadId = 1;
+            break;
+        case RUN_ID:
+            matched = runId.equals(value);
+            seenRunId = 1;
+            break;
+        default:
+            matched = parentRunId == null ? value == null : parentRunId.equals(value);
+            seenParentRunId = value != null ? 1 : 0;
+            break;
         }
-        else if (capture != Identifier.PARENT_RUN_ID || !isNull())
-        {
-            state = State.MALFORMED;
-        }
 
-        return value;
+        identified.setLength(0);
+        decoder = matched ? decodeMember : decodeMismatched;
     }
 
-    private boolean isNull()
+    private int decodeEnd()
     {
-        boolean matches = captureLength == NULL.length;
-
-        for (int index = 0; matches && index < NULL.length; index++)
+        for (int index = position(); index < windowLimit; index++)
         {
-            matches = captureBuffer.getByte(index) == NULL[index];
+            if (!isWhitespace(windowBuffer.getByte(index)))
+            {
+                decoder = decodeMalformed;
+            }
         }
 
-        return matches;
-    }
-
-    private Identifier identifier()
-    {
-        final Identifier identifier;
-
-        if (keyLength == KEY_THREAD_ID.length && keyEquals(KEY_THREAD_ID))
-        {
-            identifier = Identifier.THREAD_ID;
-        }
-        else if (keyLength == KEY_RUN_ID.length && keyEquals(KEY_RUN_ID))
-        {
-            identifier = Identifier.RUN_ID;
-        }
-        else if (keyLength == KEY_PARENT_RUN_ID.length && keyEquals(KEY_PARENT_RUN_ID))
-        {
-            identifier = Identifier.PARENT_RUN_ID;
-        }
-        else
-        {
-            identifier = Identifier.NONE;
-        }
-
-        return identifier;
-    }
-
-    private boolean keyEquals(
-        byte[] name)
-    {
-        boolean equal = true;
-
-        for (int index = 0; equal && index < name.length; index++)
-        {
-            equal = keyBuffer.getByte(index) == name[index];
-        }
-
-        return equal;
+        return windowLimit;
     }
 
     private static boolean isWhitespace(
         byte octet)
     {
         return octet == ' ' || octet == '\n' || octet == '\r' || octet == '\t';
+    }
+
+    private int decodeMismatched()
+    {
+        return windowLimit;
+    }
+
+    private int decodeMalformed()
+    {
+        return windowLimit;
     }
 }
