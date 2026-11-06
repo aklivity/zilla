@@ -1,0 +1,237 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope a2a
+{
+    enum A2aTaskState (uint8)
+    {
+        UNSPECIFIED(0),
+        SUBMITTED(1),
+        WORKING(2),
+        COMPLETED(3),
+        FAILED(4),
+        CANCELED(5),
+        INPUT_REQUIRED(6),
+        REJECTED(7),
+        AUTH_REQUIRED(8)
+    }
+
+    scope stream
+    {
+        union A2aBeginEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: a2a::stream::A2aAgentCardBeginEx agentCard;
+            case 1: a2a::stream::A2aMessageSendBeginEx messageSend;
+            case 2: a2a::stream::A2aMessageStreamBeginEx messageStream;
+            case 3: a2a::stream::A2aTasksGetBeginEx tasksGet;
+            case 4: a2a::stream::A2aTasksListBeginEx tasksList;
+            case 5: a2a::stream::A2aTasksCancelBeginEx tasksCancel;
+            case 6: a2a::stream::A2aTasksSubscribeBeginEx tasksSubscribe;
+            case 7: a2a::stream::A2aPushConfigCreateBeginEx pushConfigCreate;
+            case 8: a2a::stream::A2aPushConfigGetBeginEx pushConfigGet;
+            case 9: a2a::stream::A2aPushConfigListBeginEx pushConfigList;
+            case 10: a2a::stream::A2aPushConfigDeleteBeginEx pushConfigDelete;
+            case 11: a2a::stream::A2aExtendedAgentCardBeginEx extendedAgentCard;
+            case 12: a2a::stream::A2aPushNotifyBeginEx pushNotify;
+        }
+
+        union A2aDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: a2a::stream::A2aTaskDataEx task;
+            case 1: a2a::stream::A2aMessageDataEx message;
+            case 2: a2a::stream::A2aStatusUpdateDataEx statusUpdate;
+            case 3: a2a::stream::A2aArtifactUpdateDataEx artifactUpdate;
+        }
+
+        union A2aResetEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: a2a::stream::A2aBearerResetEx bearer;
+            case 1: a2a::stream::A2aErrorResetEx error;
+        }
+
+        struct A2aAgentCardBeginEx
+        {
+            string16 agent = null;
+            int64 timeout = 0;
+        }
+
+        struct A2aMessageSendBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aMessageStreamBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aTasksGetBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            int32 historyLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aTasksListBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 contextId = null;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aTasksCancelBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            int64 timeout = 0;
+        }
+
+        struct A2aTasksSubscribeBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            int64 timeout = 0;
+        }
+
+        struct A2aPushConfigCreateBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aPushConfigGetBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            string16 configId;
+            int64 timeout = 0;
+        }
+
+        struct A2aPushConfigListBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            int64 timeout = 0;
+        }
+
+        struct A2aPushConfigDeleteBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            string16 taskId;
+            string16 configId;
+            int64 timeout = 0;
+        }
+
+        struct A2aExtendedAgentCardBeginEx
+        {
+            string16 agent = null;
+            string16 extensions = null;
+            int64 timeout = 0;
+        }
+
+        struct A2aPushNotifyBeginEx
+        {
+            string16 agent = null;
+            string16 configId = null;
+            string16 taskId = null;
+            string16 url = null;
+            string16 token = null;
+            string16 scheme = null;
+            string16 credentials = null;
+            int32 contentLength = -1;
+            int64 timeout = 0;
+        }
+
+        struct A2aTaskDataEx
+        {
+            string16 taskId;
+            string16 contextId = null;
+            A2aTaskState state = UNSPECIFIED;
+        }
+
+        struct A2aMessageDataEx
+        {
+            string16 taskId = null;
+            string16 contextId = null;
+        }
+
+        struct A2aStatusUpdateDataEx
+        {
+            string16 taskId;
+            string16 contextId = null;
+            A2aTaskState state = UNSPECIFIED;
+        }
+
+        struct A2aArtifactUpdateDataEx
+        {
+            string16 taskId;
+            string16 contextId = null;
+            string16 artifactId = null;
+        }
+
+        enum A2aBearerError (uint8)
+        {
+            INVALID_REQUEST(0),
+            INVALID_TOKEN(1),
+            INSUFFICIENT_SCOPE(2)
+        }
+
+        struct A2aBearerResetEx
+        {
+            string16 realm = null;
+            string16 scopes = null;
+            A2aBearerError error;
+        }
+
+        struct A2aErrorResetEx
+        {
+            int32 code;
+            string16 message = null;
+        }
+
+        struct A2aAbortEx extends core::stream::Extension
+        {
+            string16 reason = null;
+        }
+
+        enum A2aOutcome (uint8)
+        {
+            OK(0),
+            ERROR(1)
+        }
+
+        struct A2aEndEx extends core::stream::Extension
+        {
+            A2aOutcome outcome = OK;
+        }
+    }
+}
