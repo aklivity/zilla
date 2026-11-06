@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderF
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressProtocol.STREAM;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
@@ -104,6 +105,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.queue.HttpQueueEntryFW;
@@ -192,6 +194,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String PATH = ":path";
     private static final String AUTHORITY = ":authority";
     private static final String SCHEME = ":scheme";
+    private static final String SCHEME_HTTPS = "https";
     private static final String CACHE_CONTROL = "cache-control";
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
@@ -2606,7 +2609,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
             }
-            else if (beginEx == null &&
+            else if ((beginEx == null ||
+                      !SCHEME_HTTPS.equals(scheme) &&
+                      beginEx.address().kind() != ProxyAddressFamily.NONE &&
+                      beginEx.infos().matchFirst(i -> i.kind() == ALPN) == null) &&
                      pool.versions.contains(HTTP_1_1) &&
                      pool.versions.contains(HTTP_2))
             {
