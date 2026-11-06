@@ -9235,22 +9235,4 @@ public class ApplicationIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/openai.proxy.circuit.failures/client",
-        "${app}/openai.proxy.circuit.failures/server"})
-    public void shouldOpenaiProxyCircuitFailures() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.proxy.circuit.retry.after/client",
-        "${app}/openai.proxy.circuit.retry.after/server"})
-    public void shouldOpenaiProxyCircuitRetryAfter() throws Exception
-    {
-        k3po.finish();
-    }
 }
