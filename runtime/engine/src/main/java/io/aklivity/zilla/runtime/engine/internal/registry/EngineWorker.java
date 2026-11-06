@@ -151,6 +151,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
+import io.aklivity.zilla.runtime.engine.internal.model.MeteredModelHandler;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -886,7 +887,8 @@ public class EngineWorker implements EngineContext, Agent
         ModelConfig config)
     {
         ModelContext model = modelsByType.get(config.model);
-        return model != null ? model.supplyHandler(config) : null;
+        ModelHandler handler = model != null ? model.supplyHandler(config) : null;
+        return handler != null ? new MeteredModelHandler(handler, this) : null;
     }
 
     @Override

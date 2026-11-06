@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "model.fields.replaced"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "model.fields.declined"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "model.rejected.invalid"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "model.rejected.withheld"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "model.transform.duration"
+    }
+]
