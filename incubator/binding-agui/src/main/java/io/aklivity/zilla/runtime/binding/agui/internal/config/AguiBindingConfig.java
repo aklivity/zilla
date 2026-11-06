@@ -80,12 +80,19 @@ public final class AguiBindingConfig
     }
 
     public AguiRouteConfig resolve(
-        long authorization)
+        long authorization,
+        CharSequence path)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization))
+            .filter(r -> r.matches(path) && r.authorized(authorization))
             .findFirst()
             .orElse(null);
+    }
+
+    public boolean matches(
+        CharSequence path)
+    {
+        return routes.stream().anyMatch(r -> r.matches(path));
     }
 
     public AguiAuthorizationResult authorize(
