@@ -177,7 +177,7 @@ public class AguiResponseMapperTest
     }
 
     @Test
-    public void shouldDiscardWorkingReplyWhenFailed()
+    public void shouldEmitWorkingMessageAsActivityAndAbortWhenFailed()
     {
         final ResponseHarness harness = new ResponseHarness(MAXIMUM);
 
@@ -185,10 +185,49 @@ public class AguiResponseMapperTest
         harness.event(status("FAILED", "m-3", "Broken"), 4096);
         harness.mapper.streamEnded(false);
 
-        assertEquals(0, harness.frames.size());
+        assertEquals(List.of("activity(SNAPSHOT,m-2,status)={\"text\":\"Looking\"}"), harness.logical());
         assertEquals(502, harness.errorStatus);
         assertEquals("agent_failed", harness.errorCode);
         assertEquals("Broken", harness.errorMessage);
+    }
+
+    @Test
+    public void shouldReplaceWorkingActivityUnderOneMessageId()
+    {
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM);
+
+        harness.event(status("WORKING", "m-2", "one"), 4096);
+        harness.event(status("WORKING", "m-3", "two \\\"quoted\\\""), 4096);
+
+        assertEquals(List.of(
+            "activity(SNAPSHOT,m-2,status)={\"text\":\"one\"}",
+            "activity(SNAPSHOT,m-2,status)={\"text\":\"two \\\"quoted\\\"\"}"), harness.logical());
+    }
+
+    @Test
+    public void shouldNotEmitWorkingMessageAsTranscriptTextWhenCompleted()
+    {
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM);
+
+        harness.event(status("WORKING", "m-2", "Looking"), 4096);
+        harness.event(COMPLETED, 4096);
+        harness.mapper.streamEnded(false);
+
+        assertEquals(List.of("activity(SNAPSHOT,m-2,status)={\"text\":\"Looking\"}"), harness.logical());
+        assertEquals("SUCCESS", harness.outcome);
+    }
+
+    @Test
+    public void shouldCloseOpenTextBeforeWorkingActivity()
+    {
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM);
+
+        harness.event(SUBMITTED, 4096);
+        harness.event(artifact("a-1", "one", false, false), 4096);
+        harness.event(status("WORKING", "m-2", "Looking"), 4096);
+
+        assertEquals(List.of("text(a-1,ASSISTANT)=one|fin", "activity(SNAPSHOT,m-2,status)={\"text\":\"Looking\"}"),
+            harness.logical());
     }
 
     @Test
