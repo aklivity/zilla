@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.specs.binding.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.A2aTaskState;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.stream.A2aAbortExFW;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.stream.A2aBearerError;
@@ -1199,6 +1200,77 @@ public class A2aFunctionsTest
             .build();
 
         matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateMessageIdDataEx()
+    {
+        byte[] task = A2aFunctions.dataEx().typeId(0).task().taskId("t-1").messageId("m-1").build().build();
+        byte[] message = A2aFunctions.dataEx().typeId(0).message().taskId("t-1").messageId("m-2").build().build();
+        byte[] status = A2aFunctions.dataEx().typeId(0).statusUpdate().taskId("t-1").messageId("m-3").build().build();
+
+        assertEquals("m-1", new A2aDataExFW().wrap(new UnsafeBufferEx(task), 0, task.length).task().messageId().asString());
+        assertEquals("m-2", new A2aDataExFW().wrap(new UnsafeBufferEx(message), 0, message.length)
+            .message().messageId().asString());
+        assertEquals("m-3", new A2aDataExFW().wrap(new UnsafeBufferEx(status), 0, status.length)
+            .statusUpdate().messageId().asString());
+    }
+
+    @Test
+    public void shouldMatchMessageIdDataEx() throws Exception
+    {
+        BytesMatcher matcher = A2aFunctions.matchDataEx().typeId(0).message().messageId("m-2").build().build();
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new A2aDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .message(b -> b.taskId("t-1").messageId("m-2"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchMessageIdDataEx() throws Exception
+    {
+        BytesMatcher matcher = A2aFunctions.matchDataEx().typeId(0).task().messageId("m-1").build().build();
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new A2aDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .task(b -> b.taskId("t-1").messageId("m-other"))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateAndMatchArtifactFlagsDataEx() throws Exception
+    {
+        byte[] bytes = A2aFunctions.dataEx()
+            .typeId(0)
+            .artifactUpdate()
+                .taskId("t-1")
+                .append(true)
+                .lastChunk(false)
+                .build()
+            .build();
+
+        A2aDataExFW dataEx = new A2aDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(A2aFlag.TRUE, dataEx.artifactUpdate().append().get());
+        assertEquals(A2aFlag.FALSE, dataEx.artifactUpdate().lastChunk().get());
+
+        BytesMatcher matcher = A2aFunctions.matchDataEx()
+            .typeId(0)
+            .artifactUpdate()
+                .append(true)
+                .lastChunk(false)
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
     }
 
     @Test
