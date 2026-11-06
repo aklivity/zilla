@@ -15,9 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.test;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_SELECT_MILLIS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_SPINS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTED_DELAY_MILLIS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 import static java.util.Objects.requireNonNull;
@@ -26,6 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -68,11 +73,12 @@ public final class EngineBench implements AutoCloseable
     private static final String DEFAULT_NAMESPACE = "test";
     private static final int EXTERNAL_INDEX = Long.SIZE - 1;
     private static final long EXTERNAL_AFFINITY_MASK = 1L << EXTERNAL_INDEX;
+    private static final long ROUTED_DELAY_MILLIS = 500L;
     private static final int WORKER_INDEX = 0;
     private static final long INITIAL_ID_PREFIX = ((long) EXTERNAL_INDEX << 56) | ((long) WORKER_INDEX << 48);
     private static final long THROTTLE_ID_MASK = 0x0000_0000_7fff_fffeL;
     private static final int THROTTLE_TYPE_MASK = 0x4000_0000;
-    private static final int WRITE_BUFFER_CAPACITY = 8 * 1024;
+    private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
     private static final DirectBufferEx EMPTY_EXTENSION = new UnsafeBufferEx(new byte[0]);
@@ -98,6 +104,7 @@ public final class EngineBench implements AutoCloseable
     private final MessageConsumer sender = this::write;
     private final MessageHandlerEx dispatcher = this::dispatch;
 
+    private FileSystem configFileSystem;
     private Engine engine;
     private StreamsLayout externalLayout;
     private StreamsLayout workerLayout;
@@ -116,6 +123,14 @@ public final class EngineBench implements AutoCloseable
         T value)
     {
         properties.setProperty(property.name(), requireNonNull(value).toString());
+        return this;
+    }
+
+    public EngineBench configure(
+        String name,
+        String value)
+    {
+        properties.setProperty(name, requireNonNull(value));
         return this;
     }
 
@@ -141,9 +156,15 @@ public final class EngineBench implements AutoCloseable
         configure(ENGINE_CONFIG_URL, configURL);
         configure(ENGINE_WORKERS, 1);
         configure(ENGINE_DRAIN_ON_CLOSE, true);
+        configure(ENGINE_SYNTHETIC_ABORT, true);
+        configure(ENGINE_ROUTED_DELAY_MILLIS, ROUTED_DELAY_MILLIS);
+        properties.putIfAbsent(ENGINE_BACKOFF_MAX_SPINS.name(), Integer.toString(Integer.MAX_VALUE));
+        properties.putIfAbsent(ENGINE_BACKOFF_MAX_SELECT_MILLIS.name(), Integer.toString(0));
 
         final EngineConfiguration config = new EngineConfiguration(properties);
         clean(config.directory());
+
+        configFileSystem = EngineRule.openConfigFileSystem(config.configURI());
 
         engine = builder.config(config)
                         .errorHandler(this::onError)
@@ -163,6 +184,12 @@ public final class EngineBench implements AutoCloseable
         workerStreams = workerLayout.streamsBuffer();
 
         return this;
+    }
+
+    public int labelId(
+        String label)
+    {
+        return engine.supplyLabelId(label);
     }
 
     public long bindingId(
@@ -267,6 +294,11 @@ public final class EngineBench implements AutoCloseable
             if (workerLayout != null)
             {
                 workerLayout.close();
+            }
+
+            if (configFileSystem != null)
+            {
+                configFileSystem.close();
             }
         }
 
@@ -539,6 +571,18 @@ public final class EngineBench implements AutoCloseable
                 .build();
 
             accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+
+            final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
+                .build();
+
+            write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+            close(REPLY_CLOSED);
         }
 
         public void replyWindow(
