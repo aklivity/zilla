@@ -835,4 +835,202 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.active/client",
+        "${agent}/extension.active/server"})
+    public void shouldRunExtensionActive() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.echo.absent/client",
+        "${agent}/extension.echo.absent/server"})
+    public void shouldRunExtensionEchoAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.versions/client",
+        "${agent}/extension.versions/server"})
+    public void shouldRunExtensionVersions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.required.unsupported/client",
+        "${agent}/extension.required.unsupported/server"})
+    public void shouldRunExtensionRequiredUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.cancel/client",
+        "${agent}/extension.cancel/server"})
+    public void shouldRunExtensionCancel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.state/client",
+        "${agent}/extension.tag.state/server"})
+    public void shouldRunExtensionTagState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.activity/client",
+        "${agent}/extension.tag.activity/server"})
+    public void shouldRunExtensionTagActivity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.reasoning/client",
+        "${agent}/extension.tag.reasoning/server"})
+    public void shouldRunExtensionTagReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.step/client",
+        "${agent}/extension.tag.step/server"})
+    public void shouldRunExtensionTagStep() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.tool.call/client",
+        "${agent}/extension.tag.tool.call/server"})
+    public void shouldRunExtensionTagToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.custom/client",
+        "${agent}/extension.tag.custom/server"})
+    public void shouldRunExtensionTagCustom() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.disabled/client",
+        "${agent}/extension.tag.disabled/server"})
+    public void shouldRunExtensionTagDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.echo.absent/client",
+        "${agent}/extension.tag.echo.absent/server"})
+    public void shouldRunExtensionTagEchoAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.dropped/client",
+        "${agent}/extension.tag.dropped/server"})
+    public void shouldRunExtensionTagDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tag.malformed/client",
+        "${agent}/extension.tag.malformed/server"})
+    public void shouldRunExtensionTagMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.messages.reset/client",
+        "${agent}/extension.messages.reset/server"})
+    public void shouldRunExtensionMessagesReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.request.state/client",
+        "${agent}/extension.request.state/server"})
+    public void shouldRunExtensionRequestState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.request.state.only/client",
+        "${agent}/extension.request.state.only/server"})
+    public void shouldRunExtensionRequestStateOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }
