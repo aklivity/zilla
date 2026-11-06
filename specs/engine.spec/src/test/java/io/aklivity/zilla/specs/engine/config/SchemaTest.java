@@ -66,6 +66,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerMetricsRecorder()
+    {
+        JsonObject config = schema.validate("server.metrics.recorder.with.attributes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateGuardInject()
     {
         JsonObject config = schema.validate("server.guard.inject.yaml");

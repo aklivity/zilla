@@ -13,5 +13,10 @@
         "op": "add",
         "path": "/$defs/telemetry/metrics/items/enum/-",
         "value": "test.histogram"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "test.recorded"
     }
 ]

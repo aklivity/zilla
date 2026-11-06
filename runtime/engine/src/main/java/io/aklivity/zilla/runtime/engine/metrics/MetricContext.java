@@ -46,7 +46,9 @@ public interface MetricContext
         /** Metric is recorded on outbound (sent) frames only. */
         SENT,
         /** Metric is recorded on frames in both directions. */
-        BOTH
+        BOTH,
+        /** Metric is not derived from stream frames, so the engine composes no frame handler for it. */
+        NONE
     }
 
     /**
