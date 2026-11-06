@@ -408,7 +408,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             onAppEnded(end.traceId(), end.authorization(), end.extension());
         }
@@ -428,7 +428,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = A2aState.closedReply(A2aState.closedInitial(state));
+            state = A2aState.closeReply(A2aState.closeInitial(state));
 
             onAppAborted(abort.traceId(), abort.authorization(), abort.extension());
         }
@@ -451,7 +451,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
             assert acknowledge >= replyAck;
             assert maximum + acknowledge >= replyMax + replyAck;
 
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBud = window.budgetId();
@@ -478,7 +478,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
             assert reset.sequence() <= replySeq;
             assert reset.acknowledge() >= replyAck;
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             onAppResetted(reset.traceId(), reset.authorization(), reset.extension());
         }
@@ -536,7 +536,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -547,7 +547,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (A2aState.replyOpening(state) && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -559,7 +559,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
@@ -946,7 +946,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
             }
         }
@@ -958,7 +958,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
             }
         }
@@ -1073,7 +1073,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     extension);
             }
@@ -1086,7 +1086,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     extension);
             }
@@ -1115,7 +1115,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
             }
         }
@@ -1130,7 +1130,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                state = A2aState.openedReply(state);
+                state = A2aState.openReply(state);
                 server.onNetBegin(begin.traceId(), begin.authorization(), begin.extension());
                 break;
             case DataFW.TYPE_ID:
@@ -1145,12 +1145,12 @@ public final class A2aProxyFactory implements A2aStreamFactory
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 server.onNetEnd(end.traceId(), end.authorization(), end.extension());
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 server.onNetAbort(abort.traceId(), abort.authorization(), abort.extension());
                 break;
             case WindowFW.TYPE_ID:
@@ -1162,7 +1162,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 server.onNetReset(reset.traceId(), reset.authorization(), reset.extension());
                 break;
             default:
@@ -1275,7 +1275,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         private void onNetBegin(
             BeginFW begin)
         {
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
             decodeSlot = decodePool.acquire(replyId);
 
             if (decodeSlot == NO_SLOT)
@@ -1310,10 +1310,10 @@ public final class A2aProxyFactory implements A2aStreamFactory
             final long traceId = end.traceId();
             final String card = new String(slotBytes(), StandardCharsets.UTF_8);
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             cleanupDecodeSlot();
 
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
             doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, null);
 
             sink.onCard(card);
@@ -1329,7 +1329,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         private void onNetAbort(
             AbortFW abort)
         {
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             cleanup(abort.traceId(), null);
         }
 
@@ -1344,7 +1344,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
                 extension.buffer().getBytes(extension.offset(), failure);
             }
 
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
             cleanup(reset.traceId(), failure);
         }
 
@@ -1356,13 +1356,13 @@ public final class A2aProxyFactory implements A2aStreamFactory
 
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, null);
             }
 
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
 

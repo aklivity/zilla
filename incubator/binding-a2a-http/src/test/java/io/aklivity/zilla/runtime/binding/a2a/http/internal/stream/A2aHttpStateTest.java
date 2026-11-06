@@ -31,14 +31,14 @@ public class A2aHttpStateTest
         assertTrue(A2aHttpState.initialOpening(state));
         assertFalse(A2aHttpState.initialOpened(state));
 
-        state = A2aHttpState.openedInitial(state);
+        state = A2aHttpState.openInitial(state);
         assertTrue(A2aHttpState.initialOpened(state));
 
         state = A2aHttpState.closingInitial(state);
         assertTrue(A2aHttpState.initialClosing(state));
         assertFalse(A2aHttpState.initialClosed(state));
 
-        state = A2aHttpState.closedInitial(state);
+        state = A2aHttpState.closeInitial(state);
         assertTrue(A2aHttpState.initialClosed(state));
     }
 
@@ -48,7 +48,7 @@ public class A2aHttpStateTest
         int state = 0;
         assertFalse(A2aHttpState.replyOpening(state));
 
-        state = A2aHttpState.openedReply(state);
+        state = A2aHttpState.openReply(state);
         assertTrue(A2aHttpState.replyOpening(state));
         assertTrue(A2aHttpState.replyOpened(state));
 
@@ -56,7 +56,7 @@ public class A2aHttpStateTest
         assertTrue(A2aHttpState.replyClosing(state));
         assertFalse(A2aHttpState.replyClosed(state));
 
-        state = A2aHttpState.closedReply(state);
+        state = A2aHttpState.closeReply(state);
         assertTrue(A2aHttpState.replyClosed(state));
     }
 }

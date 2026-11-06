@@ -95,6 +95,7 @@ final class A2aProxyPushFactory
     private final long affinity;
     private final int a2aTypeId;
     private final int decodeMax;
+    private final DirectBufferEx emptyBuffer = new UnsafeBufferEx(new byte[0]);
 
     private final A2aPushNotifyDecoder decodeNotifyTaskId = this::decodeNotifyTaskId;
     private final A2aPushNotifyDecoder decodeNotifyForward = this::decodeNotifyForward;
@@ -247,18 +248,18 @@ final class A2aProxyPushFactory
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 initialSeq = end.sequence();
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 onAppEnded(end.traceId(), end.authorization());
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 initialSeq = abort.sequence();
-                state = A2aState.closedReply(A2aState.closedInitial(state));
+                state = A2aState.closeReply(A2aState.closeInitial(state));
                 cleanup(abort.traceId(), abort.authorization());
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                state = A2aState.openedReply(state);
+                state = A2aState.openReply(state);
                 replyAck = window.acknowledge();
                 replyMax = window.maximum();
                 replyBud = window.budgetId();
@@ -268,7 +269,7 @@ final class A2aProxyPushFactory
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 cleanup(reset.traceId(), reset.authorization());
                 break;
             default:
@@ -450,7 +451,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     extension);
             }
@@ -463,7 +464,7 @@ final class A2aProxyPushFactory
         {
             if (A2aState.replyOpening(state) && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     extension);
             }
@@ -476,7 +477,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
@@ -933,10 +934,13 @@ final class A2aProxyPushFactory
     @FunctionalInterface
     private interface A2aPushNotifyDecoder
     {
-        void decode(
+        int decode(
             A2aPushNotify notify,
             long traceId,
-            long authorization);
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
     }
 
     private final class A2aPushNotify extends A2aPushStream
@@ -980,7 +984,7 @@ final class A2aProxyPushFactory
 
                 initialMax = decodeMax;
                 doAppWindow(traceId, authorization);
-                decoder.decode(this, traceId, authorization);
+                decodeNet(traceId, authorization);
             }
         }
 
@@ -997,7 +1001,7 @@ final class A2aProxyPushFactory
                 decodeSlotOffset += payload.sizeof();
             }
 
-            decoder.decode(this, traceId, authorization);
+            decodeNet(traceId, authorization);
         }
 
         @Override
@@ -1007,7 +1011,7 @@ final class A2aProxyPushFactory
         {
             if (decoder != null)
             {
-                decoder.decode(this, traceId, authorization);
+                decodeNet(traceId, authorization);
             }
         }
 
@@ -1035,7 +1039,31 @@ final class A2aProxyPushFactory
             int padding,
             int capabilities)
         {
-            decoder.decode(this, traceId, authorization);
+            decodeNet(traceId, authorization);
+        }
+
+        private void decodeNet(
+            long traceId,
+            long authorization)
+        {
+            final boolean buffered = decodeSlot != NO_SLOT;
+            final DirectBufferEx buffer = buffered ? decodePool.buffer(decodeSlot) : emptyBuffer;
+            final int limit = buffered ? decodeSlotOffset : 0;
+
+            A2aPushNotifyDecoder previous = null;
+            int progress = 0;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, buffer, progress, limit);
+            }
+
+            if (progress > 0 && decodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(0, slot, progress, limit - progress);
+                decodeSlotOffset = limit - progress;
+            }
         }
 
         private boolean authorized(
@@ -1084,14 +1112,17 @@ final class A2aProxyPushFactory
         }
     }
 
-    private void decodeNotifyTaskId(
+    private int decodeNotifyTaskId(
         A2aPushNotify notify,
         long traceId,
-        long authorization)
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
     {
         final boolean last = notify.initialSeq >= notify.contentLength;
 
-        switch (scanner.scan(decodePool.buffer(notify.decodeSlot), 0, notify.decodeSlotOffset, last))
+        switch (scanner.scan(buffer, offset, limit, last))
         {
         case FOUND:
             notify.taskId = scanner.taskId();
@@ -1106,7 +1137,7 @@ final class A2aProxyPushFactory
             }
             break;
         case INCOMPLETE:
-            if (notify.decodeSlotOffset >= decodeMax)
+            if (limit >= decodeMax)
             {
                 notify.decoder = decodeNotifyReject;
             }
@@ -1116,44 +1147,48 @@ final class A2aProxyPushFactory
             break;
         }
 
-        if (notify.decoder != decodeNotifyTaskId)
-        {
-            notify.decoder.decode(notify, traceId, authorization);
-        }
+        return offset;
     }
 
-    private void decodeNotifyForward(
+    private int decodeNotifyForward(
         A2aPushNotify notify,
         long traceId,
-        long authorization)
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
     {
         final A2aPushClient client = notify.client;
 
+        int progress = offset;
+
         if (notify.decodeSlot != NO_SLOT)
         {
-            final MutableDirectBufferEx slot = decodePool.buffer(notify.decodeSlot);
-            final int progress = client.doNetData(traceId, authorization, slot, 0, notify.decodeSlotOffset);
+            progress = client.doNetData(traceId, authorization, buffer, offset, limit);
 
-            if (progress > 0)
+            if (progress > offset)
             {
-                slot.putBytes(0, slot, progress, notify.decodeSlotOffset - progress);
-                notify.decodeSlotOffset -= progress;
-                notify.initialAck = notify.initialSeq - notify.decodeSlotOffset;
+                notify.initialAck = notify.initialSeq - (limit - progress);
                 notify.doAppWindow(traceId, authorization);
             }
         }
 
-        if (notify.decodeSlotOffset == 0 && A2aState.initialClosed(notify.state))
+        if (progress == limit && A2aState.initialClosed(notify.state))
         {
             notify.cleanupDecodeSlot();
             client.doNetEnd(traceId, authorization);
         }
+
+        return progress;
     }
 
-    private void decodeNotifyReject(
+    private int decodeNotifyReject(
         A2aPushNotify notify,
         long traceId,
-        long authorization)
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
     {
         notify.cleanupDecodeSlot();
         notify.initialAck = notify.initialSeq;
@@ -1167,6 +1202,8 @@ final class A2aProxyPushFactory
         {
             notify.doAppResetError(traceId, authorization, ERROR_CODE_NOT_FOUND, ERROR_MESSAGE_NOT_FOUND);
         }
+
+        return limit;
     }
 
     private final class A2aPushClient
@@ -1253,7 +1290,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     null);
             }
@@ -1265,7 +1302,7 @@ final class A2aProxyPushFactory
         {
             if (net != null && !A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     null);
             }
@@ -1293,7 +1330,7 @@ final class A2aProxyPushFactory
         {
             if (net != null && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -1308,7 +1345,7 @@ final class A2aProxyPushFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                state = A2aState.openedReply(state);
+                state = A2aState.openReply(state);
                 owner.onNetBegin(begin.traceId(), begin.authorization(), begin.extension());
                 break;
             case DataFW.TYPE_ID:
@@ -1323,12 +1360,12 @@ final class A2aProxyPushFactory
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 owner.onNetEnd(end.traceId(), end.authorization(), end.extension());
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 owner.onNetAbort(abort.traceId(), abort.authorization(), abort.extension());
                 break;
             case WindowFW.TYPE_ID:
@@ -1341,7 +1378,7 @@ final class A2aProxyPushFactory
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 owner.onNetReset(reset.traceId(), reset.authorization(), reset.extension());
                 break;
             default:
