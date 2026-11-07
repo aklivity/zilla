@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -598,12 +599,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             doConsumerInitialBegin(traceId, stream);
 
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
                 stream.doConsumerInitialWindow(authorization, traceId, initialBud, initialPad);
             }
 
-            if (KafkaState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
                 stream.doConsumerReplyBegin(traceId);
             }
@@ -634,12 +635,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             KafkaCacheServerConsumerStream stream)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -665,7 +666,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                             .metadataLen(metadata.sizeof())
                             .metadata(metadata.buffer(), 0, metadata.sizeof()))
                         .build().sizeof()));
-                state = KafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
             else if (!assignments.containsKey(stream.topic))
             {
@@ -728,24 +729,24 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doConsumerInitialEnd(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
         private void doConsumerInitialAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -761,7 +762,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert acknowledge >= this.initialAck;
 
             this.initialAck = acknowledge;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert this.initialAck <= this.initialSeq;
 
@@ -792,7 +793,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             initialMax = maximum;
             initialBud = budgetId;
             initialPad = padding;
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -854,7 +855,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             host = kafkaGroupBeginEx.host().asString();
             port = kafkaGroupBeginEx.port();
 
-            state = KafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             streams.forEach(m -> m.doConsumerReplyBegin(traceId));
         }
@@ -993,7 +994,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1014,7 +1015,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1028,12 +1029,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doConsumerReplyReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -1250,7 +1251,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1289,7 +1290,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1309,7 +1310,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1336,7 +1337,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1347,15 +1348,15 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doConsumerInitialWindow(
@@ -1371,7 +1372,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doConsumerReplyBegin(
             long traceId)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
@@ -1402,25 +1403,25 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doConsumerReplyEnd(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doConsumerReplyAbort(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doConsumerReplyFlush(
@@ -1446,7 +1447,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1481,9 +1482,9 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             fanout.replyMax = replyMax;
             fanout.doConsumerReplyWindow(traceId, authorizationId, budgetId, padding);
 
-            if (!KafkaState.replyOpened(state))
+            if (!StreamState.replyOpened(state))
             {
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 fanout.onConsumerFanoutMemberOpened(traceId, this);
             }
@@ -1549,7 +1550,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             long affinity)
         {
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
@@ -1566,7 +1567,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                             .host(delegate.fanout.host)
                             .port(delegate.fanout.port))
                         .build().sizeof()));
-                state = KafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -1590,12 +1591,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doOffsetCommitInitialAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -1611,7 +1612,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -1639,7 +1640,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             initialMax = maximum;
             initialBud = budgetId;
             initialPad = padding;
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1689,7 +1690,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void onOffsetCommitReplyData(
@@ -1719,7 +1720,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1737,7 +1738,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1747,12 +1748,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         private void doOffsetCommitReplyReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -1802,7 +1803,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (KafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
                 //TODO: find better way to handle flow control
                 final int recordSize = OFFSET_COMMIT_REQUEST_RECORD_MAX + initialPad;

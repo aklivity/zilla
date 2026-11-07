@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -656,7 +657,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             client.doNetworkBegin(traceId, authorization, affinity);
 
@@ -677,7 +678,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -687,7 +688,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             client.doNetworkAbort(traceId);
         }
@@ -719,14 +720,14 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             client.doNetworkReset(traceId);
         }
 
         private boolean isApplicationReplyOpen()
         {
-            return KafkaState.replyOpening(state);
+            return StreamState.replyOpening(state);
         }
 
         private void doApplicationBegin(
@@ -735,9 +736,9 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             int throttle,
             List<AlterConfigsResponseInfo> topics)
         {
-            if (!KafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
-                state = KafkaState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity,
@@ -762,7 +763,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
             doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
@@ -770,9 +771,9 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         private void doApplicationAbort(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
             }
@@ -787,14 +788,14 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
@@ -805,9 +806,9 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             long traceId,
             Flyweight extension)
         {
-            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, extension);
@@ -938,7 +939,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             final long traceId = begin.traceId();
 
             authorization = begin.authorization();
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
         }
@@ -1000,7 +1001,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlotIfNecessary();
 
@@ -1019,7 +1020,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupNetwork(traceId);
         }
@@ -1029,7 +1030,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupNetwork(traceId);
         }
@@ -1060,7 +1061,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
 
             this.authorization = window.authorization();
 
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
             {
@@ -1104,7 +1105,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             long affinity)
         {
             saslAuthorization = authorization;
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
@@ -1153,7 +1154,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization)
         {
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
@@ -1167,11 +1168,11 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         private void doNetworkAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -1183,11 +1184,11 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         private void doNetworkReset(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -1204,14 +1205,14 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
         {
             final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !StreamState.replyOpened(state))
             {
                 replyAck = newReplyAck;
                 assert replyAck <= replySeq;
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
@@ -1406,7 +1407,7 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
             {
                 cleanupDecodeSlotIfNecessary();
 
-                if (KafkaState.replyClosing(state))
+                if (StreamState.replyClosing(state))
                 {
                     delegate.doApplicationEnd(traceId);
                 }
