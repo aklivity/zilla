@@ -182,6 +182,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/connected.tcp4.client.sent.10k.message/client",
+        "${app}/connected.tcp4.client.sent.10k.message/server"})
+    public void shouldConnectTcp4ClientSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connected.tcp4.client.sent.100k.message/client",
+        "${app}/connected.tcp4.client.sent.100k.message/server"})
+    public void shouldConnectTcp4ClientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connected.tcp4.server.sent.10k.message/client",
+        "${app}/connected.tcp4.server.sent.10k.message/server"})
+    public void shouldConnectTcp4ServerSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connected.tcp4.server.sent.100k.message/client",
+        "${app}/connected.tcp4.server.sent.100k.message/server"})
+    public void shouldConnectTcp4ServerSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/connected.tcp4.alpn/client",
         "${app}/connected.tcp4.alpn/server"})
     public void shouldConnectTcp4WithAlpn() throws Exception
