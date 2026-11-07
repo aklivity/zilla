@@ -143,6 +143,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -2133,7 +2134,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doWindow(mcp, originId, routedId, initialId, traceId, authorization, 0L, writeBuffer.capacity(), 0);
             doLifecycleReply(traceId);
@@ -2142,21 +2143,21 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void onMcpEnd(
             EndFW end)
         {
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             doReplyEnd(end.traceId());
         }
 
         private void onMcpAbort(
             AbortFW abort)
         {
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             doReplyAbort(abort.traceId());
         }
 
         private void onMcpReset(
             ResetFW reset)
         {
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doLifecycleReply(
@@ -2174,26 +2175,26 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
 
             doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, lifecycleEx);
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doReplyEnd(
             long traceId)
         {
-            if (!McpKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doEnd(mcp, originId, routedId, replyId, traceId, authorization);
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
         private void doReplyAbort(
             long traceId)
         {
-            if (!McpKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(mcp, originId, routedId, replyId, traceId, authorization);
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
     }
@@ -2279,7 +2280,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doWindow(mcp, originId, routedId, initialId, traceId, authorization, 0L, writeBuffer.capacity(), 0);
             doToolsListReplyBegin(traceId);
@@ -2288,13 +2289,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void onMcpEnd(
             EndFW end)
         {
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void onMcpAbort(
             AbortFW abort)
         {
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void onMcpWindow(
@@ -2313,13 +2314,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void onMcpReset(
             ResetFW reset)
         {
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doToolsListReplyBegin(
             long traceId)
         {
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
             doBegin(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
                 emptyRO);
         }
@@ -2352,7 +2353,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (last)
                 {
                     doEnd(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                    state = McpKafkaState.closeReply(state);
+                    state = StreamState.closeReply(state);
                 }
             }
         }
@@ -2458,7 +2459,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             if (awaitingArgs)
             {
@@ -2578,7 +2579,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             if (awaitingArgs && kafka == null)
             {
@@ -2596,7 +2597,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
 
@@ -2625,7 +2626,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             if (kafka != null)
             {
@@ -2662,7 +2663,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final DirectBufferEx buffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyDecodeRO;
-            final boolean last = McpKafkaState.initialClosed(state);
+            final boolean last = StreamState.initialClosed(state);
             final Status status = argsPipeline.transform(buffer, 0, decodeSlotOffset, last);
 
             final int consumed = decodeSlotOffset - argsPipeline.remaining();
@@ -3144,9 +3145,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doMcpBegin(
             long traceId)
         {
-            if (!McpKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpKafkaState.openingReply(state);
+                state = StreamState.openingReply(state);
                 doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, emptyRO);
             }
         }
@@ -3208,9 +3209,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            if (!McpKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doEnd(mcp, originId, routedId, replyId, traceId, authorization, extension);
             }
         }
@@ -3218,9 +3219,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doMcpAbort(
             long traceId)
         {
-            if (!McpKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doAbort(mcp, originId, routedId, replyId, traceId, authorization);
             }
         }
@@ -3244,9 +3245,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            if (!McpKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doReset(mcp, originId, routedId, initialId, traceId, authorization, extension);
             }
         }
@@ -3385,7 +3386,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -3471,7 +3472,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             if (produce)
             {
@@ -3486,7 +3487,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             if (consume)
             {
@@ -3542,7 +3543,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             }
             else
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 peer.doMcpReset(traceId);
             }
         }
@@ -3831,7 +3832,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             KafkaBeginExFW extension,
             McpKafkaToolArgs args)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
             kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
                 traceId, authorization, affinity, extension);
 
@@ -3908,9 +3909,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -3919,9 +3920,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -3943,9 +3944,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -4067,7 +4068,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -4197,7 +4198,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -4207,7 +4208,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -4268,7 +4269,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -4296,7 +4297,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -4315,9 +4316,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -4326,9 +4327,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -4350,9 +4351,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -4474,7 +4475,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -4601,7 +4602,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -4611,7 +4612,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -4672,7 +4673,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -4700,7 +4701,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -4719,9 +4720,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -4730,9 +4731,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -4754,9 +4755,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -4878,7 +4879,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -5021,7 +5022,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -5031,7 +5032,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -5092,7 +5093,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -5120,7 +5121,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -5139,9 +5140,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5150,9 +5151,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5174,9 +5175,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -5298,7 +5299,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -5415,7 +5416,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -5425,7 +5426,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -5486,7 +5487,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -5514,7 +5515,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -5533,9 +5534,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5544,9 +5545,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5568,9 +5569,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -5692,7 +5693,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -5842,7 +5843,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -5852,7 +5853,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -5913,7 +5914,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -5941,7 +5942,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -5960,9 +5961,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5971,9 +5972,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -5995,9 +5996,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -6119,7 +6120,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -6252,7 +6253,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -6262,7 +6263,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -6323,7 +6324,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -6351,7 +6352,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -6370,9 +6371,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -6381,9 +6382,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -6405,9 +6406,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -6529,7 +6530,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -6689,7 +6690,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -6699,7 +6700,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -6760,7 +6761,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -6788,7 +6789,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -6807,9 +6808,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -6818,9 +6819,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -6842,9 +6843,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -6977,7 +6978,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -7252,7 +7253,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -7262,7 +7263,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -7323,7 +7324,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -7351,7 +7352,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -7370,9 +7371,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -7381,9 +7382,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -7405,9 +7406,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -7536,7 +7537,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -7708,7 +7709,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -7718,7 +7719,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -7779,7 +7780,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -7807,7 +7808,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -7826,9 +7827,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -7837,9 +7838,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -7861,9 +7862,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -7982,7 +7983,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -8101,7 +8102,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -8111,7 +8112,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -8172,7 +8173,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -8200,7 +8201,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -8219,9 +8220,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -8230,9 +8231,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -8254,9 +8255,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -8380,7 +8381,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             peer.doMcpBegin(traceId);
             doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
@@ -8565,7 +8566,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             peer.doMcpEnd(traceId);
         }
@@ -8575,7 +8576,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -8636,7 +8637,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -8664,7 +8665,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -8683,9 +8684,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -8694,9 +8695,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -8718,9 +8719,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -8861,7 +8862,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (stage == STAGE_OFFSET_COMMIT)
             {
-                state = McpKafkaState.openingReply(state);
+                state = StreamState.openingReply(state);
                 emitResult(traceId, true, null);
             }
             else
@@ -8875,7 +8876,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     ? kafkaBeginEx.apiResponse().length()
                     : -1;
 
-                state = McpKafkaState.openingReply(state);
+                state = StreamState.openingReply(state);
             }
 
             if (!mcpBegun)
@@ -9053,7 +9054,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (end.streamId() == kafkaReplyId)
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 if (stage == STAGE_OFFSET_COMMIT && mcpBegun)
                 {
@@ -9067,7 +9068,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -9189,7 +9190,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
 
@@ -9280,7 +9281,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -9301,9 +9302,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -9312,9 +9313,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -9336,9 +9337,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }
@@ -9469,7 +9470,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 ? kafkaBeginEx.apiResponse().length()
                 : -1;
 
-            state = McpKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             if (!mcpBegun)
             {
@@ -9650,7 +9651,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (end.streamId() == kafkaReplyId)
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 if (mcpBegun)
                 {
@@ -9664,7 +9665,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = McpKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupDecodeSlot();
             peer.doMcpAbort(traceId);
@@ -9763,7 +9764,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = McpKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
             peer.doMcpReset(traceId);
@@ -9870,7 +9871,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void doKafkaBegin(
             long traceId)
         {
-            state = McpKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -9891,9 +9892,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaEnd(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -9902,9 +9903,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaAbort(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.initialClosed(state))
+            if (kafka != null && !StreamState.initialClosed(state))
             {
-                state = McpKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
             }
         }
@@ -9926,9 +9927,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         public void doKafkaReset(
             long traceId)
         {
-            if (kafka != null && !McpKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
-                state = McpKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
         }

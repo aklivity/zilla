@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class McpOpenapiClientFactory implements BindingHandler
@@ -240,7 +241,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpOpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             http.doMcpHttpBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
         }
@@ -272,7 +273,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doMcpHttpEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -300,7 +301,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doMcpHttpAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -314,7 +315,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             http.doMcpHttpReset(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -339,9 +340,9 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
-                state = McpOpenapiState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, affinity, extension);
@@ -387,13 +388,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpOpenapiAbort below
             doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
 
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpOpenapiAbort(
@@ -409,13 +410,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             // waiting for any reply frame at all
             doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
 
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpOpenapiReset(
@@ -425,9 +426,9 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
@@ -524,7 +525,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpOpenapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -569,7 +570,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpOpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -583,7 +584,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpOpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -597,7 +598,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -612,7 +613,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            state = McpOpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doMcpOpenapiWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
         }
@@ -625,13 +626,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long affinity,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.receiver = McpOpenapiClientFactory.this.newStream(this::onMcpHttpMessage, originId, routedId, initialId,
                     sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
-                state = McpOpenapiState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -671,12 +672,12 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 McpOpenapiClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -687,12 +688,12 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 McpOpenapiClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -703,12 +704,12 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
