@@ -445,6 +445,7 @@ public final class EngineBench implements AutoCloseable
         private static final int REPLY_CLOSED = 2;
         private static final int CLOSED = INITIAL_CLOSED | REPLY_CLOSED;
         private static final int FAILED = 4;
+        private static final int REPLY_OPENED = 8;
 
         private final MessageConsumer inbound = this::onInbound;
         private final DataFW dataRO = new DataFW();
@@ -628,7 +629,10 @@ public final class EngineBench implements AutoCloseable
             replyMax = maximum;
             replyAck = replySeq;
 
-            doReplyWindow();
+            if ((state & REPLY_OPENED) != 0)
+            {
+                doReplyWindow();
+            }
         }
 
         @Override
@@ -688,6 +692,9 @@ public final class EngineBench implements AutoCloseable
         {
             switch (msgTypeId)
             {
+            case BeginFW.TYPE_ID:
+                state |= REPLY_OPENED;
+                break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 initialAck = window.acknowledge();
@@ -705,6 +712,12 @@ public final class EngineBench implements AutoCloseable
 
             switch (msgTypeId)
             {
+            case BeginFW.TYPE_ID:
+                if (replyMax != 0)
+                {
+                    doReplyWindow();
+                }
+                break;
             case DataFW.TYPE_ID:
                 replyAck = replySeq;
                 if (replyMax != 0)
