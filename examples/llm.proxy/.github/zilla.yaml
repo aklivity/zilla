@@ -17,6 +17,7 @@ telemetry:
     - llm.interactions
     - llm.time.to.first.token
     - llm.usage.incomplete
+    - http.duration
   exporters:
     prometheus_exporter:
       type: prometheus
@@ -262,6 +263,11 @@ bindings:
         with:
           fallback: [ claude-3-5-haiku-20241022 ]
       - when:
+          - model: [ gpt-limited ]
+        exit: south_llm_client_openai
+        with:
+          fallback: [ gpt-4o ]
+      - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
       - when:
@@ -324,9 +330,11 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+        - http.duration
       attributes:
         requested: ${llm.request.model}
         served: ${llm.response.model}
+        status: ${http.response.status}
     exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to mock-anthropic -- no dialect translation happens
