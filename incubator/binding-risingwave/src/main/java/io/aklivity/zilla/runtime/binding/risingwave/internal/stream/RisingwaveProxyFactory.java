@@ -88,6 +88,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -376,7 +377,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             this.affinity = begin.affinity();
 
-            state = RisingwaveState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             systemClientsByRouteId.values().forEach(c -> c.doAppBegin(traceId, authorization, affinity));
             userClient.doAppBegin(traceId, authorization, affinity);
@@ -460,7 +461,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = RisingwaveState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAppEnd(traceId, authorization);
 
@@ -473,7 +474,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = RisingwaveState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
         }
 
@@ -483,7 +484,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = RisingwaveState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanup(traceId, authorization);
         }
@@ -512,7 +513,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = RisingwaveState.openReply(state);
+            state = StreamState.openReply(state);
 
             if (responses.isEmpty())
             {
@@ -581,7 +582,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, EMPTY_OCTETS);
 
-            state = RisingwaveState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private <T> void doAppData(
@@ -611,9 +612,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = RisingwaveState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -625,9 +626,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = RisingwaveState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -638,9 +639,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -661,12 +662,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - parserSlotOffset, initialAck);
 
-            if (newInitialAck > initialAck || !RisingwaveState.initialOpened(state))
+            if (newInitialAck > initialAck || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                state = RisingwaveState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, initialBudgetId, initialPad);
@@ -1051,7 +1052,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = RisingwaveState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doAppWindow(traceId, authorization);
         }
@@ -1145,7 +1146,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = RisingwaveState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doAppEnd(traceId, authorization);
         }
@@ -1156,7 +1157,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = RisingwaveState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             server.cleanup(traceId, authorization);
         }
@@ -1167,7 +1168,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = RisingwaveState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             server.cleanup(traceId, authorization);
         }
@@ -1194,7 +1195,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = RisingwaveState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             server.doParseQuery(traceId, authorization);
         }
@@ -1238,12 +1239,12 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long authorization,
             long affinity)
         {
-            if (RisingwaveState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!RisingwaveState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -1263,7 +1264,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     }))
                     .build().sizeof());
 
-                state = RisingwaveState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -1307,9 +1308,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpening(state))
+            if (StreamState.initialOpening(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1320,9 +1321,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
-                state = RisingwaveState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1333,9 +1334,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpened(state))
+            if (StreamState.replyOpened(state))
             {
-                state = RisingwaveState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1354,9 +1355,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = RisingwaveState.openReply(state);
+                state = StreamState.openReply(state);
 
                 replyAck = Math.max(replySeq, server.replyAck);
                 replyMax = server.replyMax;
@@ -1377,8 +1378,8 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final int initialWin = Math.max(initialMax - (int)(initialSeq - initialAck), 0);
             final int lengthMax = Math.min(initialWin - initialPad, remaining);
 
-            if (RisingwaveState.initialOpened(state) &&
-                !RisingwaveState.initialClosing(state) &&
+            if (StreamState.initialOpened(state) &&
+                !StreamState.initialClosing(state) &&
                 lengthMax > 0 && remaining > 0)
             {
                 final int deferred = remaining - length;

@@ -69,6 +69,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -345,7 +346,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            state = PgsqlState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doNetworkWindow(traceId, authorization, 0L, 0, 0);
             doNetworkBegin(traceId, authorization, affinity);
@@ -403,7 +404,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = PgsqlState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlotIfNecessary();
 
@@ -416,7 +417,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = PgsqlState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             stream.doApplicationAbort(traceId, authorization);
         }
@@ -427,7 +428,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = PgsqlState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             stream.doApplicationReset(traceId, authorization);
         }
@@ -455,7 +456,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = PgsqlState.openReply(state);
+            state = StreamState.openReply(state);
 
             stream.doApplicationWindow(traceId, authorization, budgetId, (int)(replySeq - replyAck), replyPad);
         }
@@ -468,7 +469,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
 
-            state = PgsqlState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doNetworkData(
@@ -506,7 +507,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 initialPadding = paddingMin;
                 assert initialAck <= initialSeq;
 
-                state = PgsqlState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, initialPadding);
@@ -525,7 +526,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long traceId,
             long authorization)
         {
-            state = PgsqlState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, EMPTY_OCTETS);
@@ -535,7 +536,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long traceId,
             long authorization)
         {
-            state = PgsqlState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, EMPTY_OCTETS);
@@ -545,7 +546,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long traceId,
             long authorization)
         {
-            state = PgsqlState.closingInitial(state);
+            state = StreamState.closingInitial(state);
 
             doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_OCTETS);
@@ -594,7 +595,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 cleanupDecodeSlotIfNecessary();
             }
 
-            if (!PgsqlState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, initialPadding);
             }
@@ -837,7 +838,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = PgsqlState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doApplicationWindow(traceId, authorization, server.replyBudgetId, 0, 0);
         }
@@ -944,11 +945,11 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            if (!PgsqlState.closed(server.state))
+            if (!StreamState.closed(server.state))
             {
                 doEncodeTerminate(traceId, authorization);
 
-                state = PgsqlState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 server.doNetworkEnd(traceId, authorization);
             }
@@ -960,7 +961,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = PgsqlState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             server.doNetworkAbort(traceId, authorization);
         }
@@ -971,7 +972,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = PgsqlState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             server.doNetworkReset(traceId, authorization);
         }
@@ -1006,7 +1007,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization,
             Consumer<OctetsFW.Builder> extension)
         {
-            state = PgsqlState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
@@ -1063,14 +1064,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_OCTETS);
 
-            state = PgsqlState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doApplicationAbort(
             long traceId,
             long authorization)
         {
-            state = PgsqlState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_OCTETS);
@@ -1080,7 +1081,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long traceId,
             long authorization)
         {
-            state = PgsqlState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, EMPTY_OCTETS);
@@ -1102,14 +1103,14 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             int paddingMin)
         {
             final long replyAckMax = Math.max(replySeq - pendingAck, replyAck);
-            if (PgsqlState.replyOpening(state) &&
+            if (StreamState.replyOpening(state) &&
                 (replyAckMax > replyAck || server.replyMax > replyMax))
             {
                 replyAck = replyAckMax;
                 replyMax = server.replyMax;
                 assert replyAck <= replySeq;
 
-                state = PgsqlState.openReply(state);
+                state = StreamState.openReply(state);
 
                 doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, paddingMin);

@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -326,7 +327,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = PgsqlKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doAppWindow(traceId, authorization);
 
@@ -398,7 +399,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = PgsqlKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doAppEnd(traceId, authorization);
 
@@ -411,7 +412,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = PgsqlKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanup(traceId, authorization);
         }
@@ -422,7 +423,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = PgsqlKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanup(traceId, authorization);
         }
@@ -449,7 +450,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = PgsqlKafkaState.openReply(state);
+            state = StreamState.openReply(state);
         }
 
         private void onCommandCompleted(
@@ -536,16 +537,16 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, EMPTY_OCTETS);
 
-            state = PgsqlKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doAppEnd(
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = PgsqlKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -556,9 +557,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
-                state = PgsqlKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -569,9 +570,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.initialOpened(state))
+            if (StreamState.initialOpened(state))
             {
-                state = PgsqlKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -592,12 +593,12 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - parserSlotOffset, initialAck);
 
-            if (newInitialAck > initialAck || !PgsqlKafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                state = PgsqlKafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, initialBudgetId, initialPad);
@@ -815,7 +816,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = PgsqlKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -834,7 +835,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = PgsqlKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -857,7 +858,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = PgsqlKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -876,7 +877,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = PgsqlKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -896,13 +897,13 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.initialOpening(state) &&
-                !PgsqlKafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) &&
+                !StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = PgsqlKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -913,10 +914,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.initialOpening(state) &&
-                !PgsqlKafkaState.initialClosed(state))
+            if (StreamState.initialOpening(state) &&
+                !StreamState.initialClosed(state))
             {
-                state = PgsqlKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -927,10 +928,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.replyOpening(state) &&
-                !PgsqlKafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
-                state = PgsqlKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -976,7 +977,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = PgsqlKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final int partitionCount = config.kafkaCreateTopicsPartitionCount();
 
@@ -1017,7 +1018,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = PgsqlKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1059,7 +1060,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = PgsqlKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final KafkaBeginExFW kafkaBeginEx =
                     kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1091,7 +1092,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = PgsqlKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
