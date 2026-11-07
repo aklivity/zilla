@@ -102,6 +102,22 @@ app.post("/v1/chat/completions", (req, res) =>
     logReceived(
         "/v1/chat/completions", req, lastUser === undefined ? "" : promptText([lastUser]), (messages ?? []).map(m => m.role));
 
+    // a rate-limited model: 429 with Retry-After before any reply, which opens
+    // the circuit of this model on the llm client for that duration
+    if (model === "gpt-limited")
+    {
+        res.status(429).set("Retry-After", "30").set("Content-Type", "application/json");
+        res.send(JSON.stringify({
+            error: {
+                message: "Rate limit reached for gpt-limited.",
+                type: "requests",
+                param: null,
+                code: "rate_limit_exceeded"
+            }
+        }));
+        return;
+    }
+
     const message = Array.isArray(tools) && tools.length > 0
         ? {
             role: "assistant",

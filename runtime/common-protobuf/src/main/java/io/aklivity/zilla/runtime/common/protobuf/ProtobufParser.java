@@ -152,15 +152,19 @@ public interface ProtobufParser
 
     /**
      * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, of the current value
-     * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
-     * its {@code [0, capacity())} is the slice. Valid on-stack only.
+     * chunk, of the current segment slice, or of the bytes of the message resident in the current window at a
+     * {@link ProtobufEvent#START_MESSAGE}; its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
     DirectBufferEx segment();
 
     /**
      * For a chunked value — a leaf {@code string}/{@code bytes} {@link ProtobufEvent#VALUE} or a
      * {@link ProtobufEvent#SEGMENT} — the number of bytes of the value still to come after this slice;
-     * {@code 0} on the last (or only) piece, and {@code 0} for every other event.
+     * {@code 0} on the last (or only) piece, and {@code 0} for every other event except a nested
+     * {@link ProtobufEvent#START_MESSAGE}, where it is the part of the declared body length not yet resident in the
+     * window, so {@link #segment()} plus this is the declared length. A group segment has no
+     * declared length, so it reports a nonzero value, of unspecified magnitude, until its last piece, which may
+     * be empty.
      */
     int deferredBytes();
 

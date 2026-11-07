@@ -100,6 +100,16 @@ public class StartingIT
 
     @Test
     @Specification({
+        "${net}/upgrade.h2c.with.proxy.address/client",
+        "${net}/upgrade.h2c.with.proxy.address/server",
+    })
+    public void shouldUpgradeViaH2CWithProxyAddress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/upgrade.pri.with.no.tls/client",
         "${net}/upgrade.pri.with.no.tls/server",
     })
