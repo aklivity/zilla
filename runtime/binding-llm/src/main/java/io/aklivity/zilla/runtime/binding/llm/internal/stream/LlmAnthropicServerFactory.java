@@ -2582,8 +2582,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final long traceId = end.traceId();
 
             initialSeq = end.sequence();
-            state = LlmState.closeInitial(state);
-            state = LlmState.deferInitialEnd(state);
+            state = LlmState.closingInitial(state);
 
             if (decodeSlot != NO_SLOT)
             {
@@ -2676,7 +2675,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int progress = offset;
 
             decodedInput = buffer;
-            decodedLast = LlmState.initialClosed(state);
+            decodedLast = LlmState.initialClosing(state);
 
             if (decoder == decodeEnd || decoder == decodeIgnore)
             {
@@ -2757,10 +2756,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void flushNetEnd(
             long traceId)
         {
-            if (LlmState.initialEndDeferred(state) && decodeSlot == NO_SLOT && decoder != decodeIgnore &&
+            if (LlmState.initialClosing(state) && !LlmState.initialClosed(state) &&
+                decodeSlot == NO_SLOT && decoder != decodeIgnore &&
                 (stream == null || stream.encodeSlot == NO_SLOT))
             {
-                state = LlmState.clearInitialEndDeferred(state);
+                state = LlmState.closeInitial(state);
                 onDecodeEnd(traceId);
             }
         }
@@ -3572,7 +3572,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (encodeSlot != NO_SLOT)
             {
-                state = LlmState.deferReplyEnd(state);
+                state = LlmState.closingReply(state);
                 pendingReplyEndTraceId = traceId;
                 pendingReplyEndAuthorization = authorization;
             }
@@ -3917,9 +3917,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 stream.ackReply(traceId);
             }
 
-            if (LlmState.replyEndDeferred(state) && encodeSlot == NO_SLOT)
+            if (LlmState.replyClosing(state) && !LlmState.replyClosed(state) && encodeSlot == NO_SLOT)
             {
-                state = LlmState.clearReplyEndDeferred(state);
                 doNetEnd(pendingReplyEndTraceId, pendingReplyEndAuthorization, EMPTY_OCTETS);
             }
         }
@@ -3978,8 +3977,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     .extension(extension)
                     .build();
 
-                network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                 state = LlmState.closeReply(state);
+                network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
 
                 if (!deauthorized)
                 {
@@ -4046,7 +4045,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void doNetReset(
             long traceId)
         {
-            if (!LlmState.initialClosed(state))
+            if (!LlmState.initialClosing(state))
             {
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
@@ -4423,7 +4422,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (server.encodeSlot != NO_SLOT)
             {
-                server.state = LlmState.deferReplyEnd(server.state);
+                server.state = LlmState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
                 server.pendingReplyEndAuthorization = authorization;
             }
@@ -4463,7 +4462,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
                 if (server.encodeSlot != NO_SLOT)
                 {
-                    server.state = LlmState.deferReplyEnd(server.state);
+                    server.state = LlmState.closingReply(server.state);
                     server.pendingReplyEndTraceId = traceId;
                     server.pendingReplyEndAuthorization = authorization;
                 }

@@ -647,9 +647,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (LlmState.initialReplaying(app.state))
+            if (app.replaying())
             {
-                app.state = LlmState.deferInitialEnd(app.state);
+                app.state = LlmState.closingInitial(app.state);
             }
             else
             {
@@ -787,7 +787,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.guardrail = requestedGuardrail;
             this.requestGuard = null;
             this.app = new LlmClient(this);
-            app.state = LlmState.replayInitial(app.state);
             retention.rewind();
             app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
 
@@ -1190,7 +1189,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialMinimum = minimum;
             this.initialCapabilities = capabilities;
 
-            if (LlmState.initialReplaying(state))
+            if (replaying())
             {
                 doReplay(traceId, authorization);
             }
@@ -1242,6 +1241,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             net.doNetChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 
+        private boolean replaying()
+        {
+            return net.app == this && net.retention != null && net.retention.hasRecord();
+        }
+
         private void doReplay(
             long traceId,
             long authorization)
@@ -1256,15 +1260,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     : doReplayData(traceId, authorization, retention);
             }
 
-            if (!retention.hasRecord())
+            if (!retention.hasRecord() && LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                this.state = LlmState.clearInitialReplaying(state);
-
-                if (LlmState.initialEndDeferred(state))
-                {
-                    this.state = LlmState.clearInitialEndDeferred(state);
-                    doAppEnd(traceId, authorization, EMPTY_OCTETS);
-                }
+                doAppEnd(traceId, authorization, EMPTY_OCTETS);
             }
         }
 
