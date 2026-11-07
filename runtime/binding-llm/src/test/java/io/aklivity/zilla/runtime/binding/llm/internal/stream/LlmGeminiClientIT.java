@@ -2701,4 +2701,14 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini/client",
+        "${net}/gemini.circuit/server"})
+    public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
