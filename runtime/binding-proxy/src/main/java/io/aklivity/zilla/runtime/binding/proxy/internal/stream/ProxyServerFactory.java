@@ -532,7 +532,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(StreamState.closeReply(state));
                 doAbort(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
