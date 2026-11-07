@@ -41,6 +41,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 write flush
 
+write await ROUTED_BROKER_CLIENT_META_OPENED
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .meta()
