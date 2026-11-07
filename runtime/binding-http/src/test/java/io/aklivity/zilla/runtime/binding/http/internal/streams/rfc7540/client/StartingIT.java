@@ -81,6 +81,18 @@ public class StartingIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/upgrade.http/client",
+        "${net}/upgrade.h2c.with.proxy.address/server"})
+    @Configure(name = HTTP_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldUpgradeViaH2cWithProxyAddress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/upgrade.multiple.requests.pipelined/client",
         "${net}/upgrade.h2c.with.multiple.requests.pipelined/server"})
     public void shouldRejectViaH2cWithMultipleRequestsPipelined() throws Exception
