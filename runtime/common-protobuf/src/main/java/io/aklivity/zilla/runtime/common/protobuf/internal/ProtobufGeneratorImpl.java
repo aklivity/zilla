@@ -90,13 +90,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
         }
         this.limit = limit;
         writer.wrap(buffer, offset, offset + limit);
-        if (flushed)
-        {
-            // continuation: the committed levels stay open (reopened lazily on the next field) and any
-            // in-flight segment keeps streaming — nothing is re-emitted here
-            flushed = false;
-        }
-        else
+        if (!flushed)
         {
             depth = 0;
             segmentRemaining = 0;
@@ -512,6 +506,10 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
 
     private void reopen()
     {
+        // a wrap after flush() continues the message: the committed levels stay open (reopened lazily on the next
+        // field) and any in-flight segment keeps streaming, until a write is made, so a continuation that wrote
+        // nothing still continues on the following wrap
+        flushed = false;
         if (needsReopen && segmentRemaining == 0)
         {
             for (int level = 0; level < depth; level++)
