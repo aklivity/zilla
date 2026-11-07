@@ -147,6 +147,18 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.circuit.id.mismatch/client",
+        "handshake.circuit.id.mismatch/server"
+    })
+    public void shouldRejectHandshakeWithMismatchedCircuitId() throws Exception
+    {
+        thrown.expect(anyOf(isA(ComparisonFailure.class),
+                            hasProperty("failures", hasItem(isA(ComparisonFailure.class)))));
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.budget.id/client",
         "handshake.budget.id/server"
     })
