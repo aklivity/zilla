@@ -145,14 +145,14 @@ public final class ProtobufTypedSinkImpl implements ProtobufSink
         boolean root = depth < 0;
         boolean nested = !root && scope(depth).active && pending != null && pending.composite();
         ProtobufPipeline.Status status = nested
-            ? reserve(tagSize(pending.number()) + varintSize(source.segment().capacity()))
+            ? reserve(tagSize(pending.number()) + varintSize(source.segment().capacity() + source.deferredBytes()))
             : ProtobufPipeline.Status.ADVANCED;
         if (status == ProtobufPipeline.Status.ADVANCED && nested)
         {
             // reserve() sizes against the binary wire tag + length varint; a rendering generator (e.g. JSON)
             // may need more for its own structural bytes (a brace, a field key), so the write itself is the
             // authoritative check — false means it wrote nothing at all, safe to suspend and retry as-is
-            status = generator.startMessage(pending.number(), source.segment().capacity())
+            status = generator.startMessage(pending.number(), source.segment().capacity() + source.deferredBytes())
                 ? ProtobufPipeline.Status.ADVANCED
                 : suspendOrReject();
         }

@@ -183,6 +183,28 @@ public class ProtobufGeneratorTest
         assertThrows(ProtobufException.class, generator::endMessage);
     }
 
+    @Test
+    public void shouldContinueAcrossWrapThatWroteNothing()
+    {
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[64]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        generator.startMessage(10, 8);
+        generator.writeInt32(1, 9);
+        generator.flush();
+        byte[] first = bytes(out, generator.length());
+
+        generator.wrap(out, 0, out.capacity());
+        int idle = generator.length();
+        generator.wrap(out, 0, out.capacity());
+        generator.writeInt32(1, 7);
+        generator.endMessage();
+        byte[] second = bytes(out, generator.length());
+
+        assertArrayEquals(new byte[] {0x52, 0x02, 0x08, 0x09}, first);
+        assertEquals(0, idle);
+        assertArrayEquals(new byte[] {0x52, 0x02, 0x08, 0x07}, second);
+    }
+
     private static byte[] bytes(
         MutableDirectBufferEx buffer,
         int length)

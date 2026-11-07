@@ -4,9 +4,16 @@
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.6.0...HEAD)
 
+**Fixed bugs:**
+
+- common-protobuf: parser needs the whole nested message, packed block or segment resident in one input window [\#3032](https://github.com/aklivity/zilla/issues/3032) ([jfallows](https://github.com/jfallows))
+
 **Closed issues:**
 
 - Engine worker crash: KafkaCacheClientProduceFan credits a released budget slot \(IndexOutOfBoundsException index=-56 in DefaultBudgetCreditor.credit\) — FLUSH path lacks \#1303's guard [\#2179](https://github.com/aklivity/zilla/issues/2179) ([joelmsanto](https://github.com/joelmsanto))
+- binding-llm: llm\(client\) conveys the model as the circuit scope to http\(client\) [\#2722](https://github.com/aklivity/zilla/issues/2722) ([jfallows](https://github.com/jfallows))
+- binding-llm: proxy fallback for complete requests [\#2800](https://github.com/aklivity/zilla/issues/2800) ([jfallows](https://github.com/jfallows))
+- binding-http: circuit breaker and Retry-After handling in http\(client\) [\#2801](https://github.com/aklivity/zilla/issues/2801) ([jfallows](https://github.com/jfallows))
 - engine: typed structured configuration properties via JsonPropertyDef [\#2806](https://github.com/aklivity/zilla/issues/2806) ([jfallows](https://github.com/jfallows))
 - binding-llm: llm\(server\) resolves its route by dialect and model, as llm\(proxy\) does [\#2807](https://github.com/aklivity/zilla/issues/2807) ([jfallows](https://github.com/jfallows))
 
@@ -47,6 +54,11 @@
 - fix\(binding-http\): h2c handover slot overrun and h2 client and server split reserved frames [\#2948](https://github.com/aklivity/zilla/pull/2948) ([ankitk-me](https://github.com/ankitk-me))
 - fix\(binding-http\): decline an h2c upgrade whose HTTP2-Settings are invalid and cover the upgrade fallback paths [\#2949](https://github.com/aklivity/zilla/pull/2949) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add circuitId to Begin frame [\#2951](https://github.com/aklivity/zilla/pull/2951) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): circuit breaker and Retry-After handling in http client [\#2993](https://github.com/aklivity/zilla/pull/2993) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): proxy fallback for complete requests [\#3002](https://github.com/aklivity/zilla/pull/3002) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): scope the circuit of llm\(client\) exit streams to the model [\#3016](https://github.com/aklivity/zilla/pull/3016) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): offer h2c upgrade on plain tcp client connections [\#3031](https://github.com/aklivity/zilla/pull/3031) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(common-protobuf\): consume nested messages, packed blocks and segments across input windows [\#3033](https://github.com/aklivity/zilla/pull/3033) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 

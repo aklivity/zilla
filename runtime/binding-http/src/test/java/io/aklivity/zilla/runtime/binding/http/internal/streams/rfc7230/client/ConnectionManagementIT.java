@@ -286,6 +286,16 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("client.versions.yaml")
+    @Specification({
+        "${app}/request.connection.refused/client",
+        "${net}/request.connection.refused/server" })
+    public void shouldRejectRequestWhenConnectionRefused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/concurrent.requests.and.reuse/client",
