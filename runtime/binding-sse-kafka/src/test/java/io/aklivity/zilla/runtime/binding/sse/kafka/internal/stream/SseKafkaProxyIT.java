@@ -274,4 +274,14 @@ public class SseKafkaProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.with.topic.yaml")
+    @Specification({
+        "${sse}/server.sent.abort.before.begin/client",
+        "${kafka}/server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
