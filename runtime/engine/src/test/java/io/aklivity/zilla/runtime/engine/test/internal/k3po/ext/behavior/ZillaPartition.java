@@ -269,6 +269,7 @@ final class ZillaPartition implements AutoCloseable
                 childChannel.readExtBuffer(BEGIN, false).writeBytes(beginExtCopy);
             }
 
+            childChannel.stateOpeningRead();
             childChannel.setWriteClosed();
 
             fireChannelBound(childChannel, childChannel.getLocalAddress());
