@@ -48,6 +48,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.sent.text.pending/client",
+        "${app}/client.sent.text.pending/server"
+    })
+    public void shouldOpenStreamWhileTextPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.sent.text.rejected/client",
         "${app}/client.sent.text.rejected/server"
     })
