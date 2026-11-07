@@ -66,6 +66,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.abort.before.begin/client",
+        "${net}/openai.reply.abort.before.begin/server"})
+    public void shouldOpenaiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.echo/client",
         "${net}/openai.echo/server"})
     public void shouldEncodeOpenaiRequest() throws Exception
@@ -9490,6 +9499,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.reply.abort.before.begin/client",
+        "${net}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.custom.tool.call.stream/client",
         "${net}/openai.responses.sorted.custom.tool.call.stream/server"})
     public void shouldOpenaiSortedResponsesCustomToolCallStream() throws Exception
@@ -9502,6 +9520,15 @@ public class NetworkIT
         "${net}/gemini.abort/client",
         "${net}/gemini.abort/server"})
     public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.reply.abort.before.begin/client",
+        "${net}/gemini.reply.abort.before.begin/server"})
+    public void shouldGeminiReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }
@@ -9727,6 +9754,15 @@ public class NetworkIT
         "${net}/openai.responses.abort/client",
         "${net}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.abort.before.begin/client",
+        "${net}/openai.responses.reply.abort.before.begin/server"})
+    public void shouldOpenaiResponsesReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }
