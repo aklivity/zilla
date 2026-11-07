@@ -534,10 +534,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0L, EMPTY_OCTETS);
-
             state = StreamState.openingReply(state);
+
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
+                traceId, authorization, 0L, EMPTY_OCTETS);
         }
 
         private void doAppEnd(
@@ -548,7 +548,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -559,9 +559,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             if (StreamState.replyOpening(state))
             {
+                state = StreamState.abortingReply(state);
                 state = StreamState.closeReply(state);
 
-                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -574,7 +575,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -600,7 +601,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
 
                 state = StreamState.openInitial(state);
 
-                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, initialBudgetId, initialPad);
             }
         }
@@ -612,7 +613,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         {
             int reserved = (int) replySeq;
 
-            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state, traceId,
                     authorization, replyBudgetId, reserved, extension);
         }
 
@@ -905,7 +906,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -917,9 +918,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             if (StreamState.initialOpening(state) &&
                 !StreamState.initialClosed(state))
             {
+                state = StreamState.abortingInitial(state);
                 state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -933,7 +935,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -945,7 +947,9 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             replyAck = Math.max(delegate.replyAck - replyPad, 0);
             replyMax = delegate.replyMax;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                 traceId, authorization, delegate.replyBudgetId,  replyPad);
         }
 
@@ -998,8 +1002,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                             ))
                         .build();
 
+            state = StreamState.openingInitial(state);
+
             kafka = newKafkaConsumer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0, kafkaBeginEx);
+                state, traceId, authorization, 0, kafkaBeginEx);
         }
 
         @Override
@@ -1072,8 +1078,10 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                             .timeout(config.kafkaTopicRequestTimeoutMs())))
                         .build();
 
+            state = StreamState.openingInitial(state);
+
             kafka = newKafkaConsumer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, 0, kafkaBeginEx);
+                state, traceId, authorization, 0, kafkaBeginEx);
         }
 
         @Override
@@ -1124,6 +1132,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final long affinity,
@@ -1135,6 +1144,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1153,6 +1163,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final long budgetId,
@@ -1165,6 +1176,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1184,6 +1196,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1194,6 +1207,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1211,6 +1225,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1221,6 +1236,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1238,6 +1254,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1248,6 +1265,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1265,6 +1283,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         long authorization,
         final long budgetId,
@@ -1276,6 +1295,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1294,6 +1314,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
         long sequence,
         long acknowledge,
         int maximum,
+        int state,
         long traceId,
         long authorization,
         long affinity,
@@ -1305,6 +1326,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
