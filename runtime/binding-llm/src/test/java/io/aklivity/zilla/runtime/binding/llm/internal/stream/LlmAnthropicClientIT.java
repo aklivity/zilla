@@ -3530,4 +3530,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic/client",
+        "${net}/anthropic.circuit/server"})
+    public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
 }

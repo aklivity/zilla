@@ -314,6 +314,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/request.connection.refused/client",
+        "${app}/request.connection.refused/server",
+    })
+    public void shouldRejectRequestWhenConnectionRefused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.response/client",
         "${app}/request.response/server" })
     public void requestAndResponse() throws Exception

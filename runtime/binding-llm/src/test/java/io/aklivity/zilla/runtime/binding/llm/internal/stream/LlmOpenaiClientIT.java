@@ -2932,4 +2932,24 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai/client",
+        "${net}/openai.circuit/server"})
+    public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.circuit.other.model/client",
+        "${net}/openai.circuit.other.model/server"})
+    public void shouldScopeCircuitToOtherModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
