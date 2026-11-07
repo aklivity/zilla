@@ -239,12 +239,13 @@ public interface ProtobufGenerator
     /**
      * Closes the current chunk's records so it can be drained: each open message's slot is filled with the
      * body present in this record plus the bytes still deferred by an in-flight {@link #writeSegment}, and
-     * each open group is end-tagged. The records are reopened lazily — re-emitted on the next field write —
-     * so the levels stay logically open across the drain; after the caller drains
+     * each open group that does not enclose such a value is end-tagged. The records are reopened lazily —
+     * re-emitted on the next field write — so the levels stay logically open across the drain; after the caller drains
      * {@code [wrapOffset, wrapOffset + length())} and calls {@link #wrap(MutableDirectBuffer, int, int)}
      * again, writing resumes where it left off and the per-record fragments merge on decode. Used by a
-     * bounded driver before draining when the next write will not fit. A group may not enclose a value being
-     * fragmented across a chunk (it cannot be end-tagged mid-value); attempting it throws.
+     * bounded driver before draining when the next write will not fit. A group enclosing a value being
+     * fragmented across a chunk is not end-tagged until the value completes: its end tag is deferred, counted
+     * in the length of each enclosing message, and written right after the value's last byte.
      * <p>
      * Returns {@code true} once every open level is fully closed, or {@code false} if the output filled
      * before that — the caller drains the bytes written so far and calls {@link #flush()} again to
