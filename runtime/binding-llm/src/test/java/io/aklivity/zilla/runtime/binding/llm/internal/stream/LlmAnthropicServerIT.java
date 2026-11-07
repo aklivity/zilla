@@ -2223,6 +2223,46 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.request.end.deferred/client",
+        "${app}/anthropic.request.end.deferred/server"})
+    public void shouldAnthropicRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.end.deferred.reset/client",
+        "${app}/anthropic.request.end.deferred.reset/server"})
+    public void shouldAnthropicRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.end.deferred/client",
+        "${app}/anthropic.response.end.deferred/server"})
+    public void shouldAnthropicResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.end.deferred.reset/client",
+        "${app}/anthropic.response.end.deferred.reset/server"})
+    public void shouldAnthropicResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.request.abort/client"})
     public void shouldAnthropicRequestAbort() throws Exception
     {
