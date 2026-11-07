@@ -916,7 +916,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         private void doDescribeReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doDescribeReplyAbort(traceId);
             }

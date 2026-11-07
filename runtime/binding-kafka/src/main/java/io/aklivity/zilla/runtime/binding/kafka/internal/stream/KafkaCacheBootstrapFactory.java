@@ -645,7 +645,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
         private void doBootstrapReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doBootstrapReplyAbort(traceId);
                 describeStream.doDescribeReplyResetIfNecessary(traceId);

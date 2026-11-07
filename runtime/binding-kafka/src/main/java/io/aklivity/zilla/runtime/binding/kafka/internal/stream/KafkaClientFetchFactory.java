@@ -2130,7 +2130,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doApplicationAbort(traceId);
             }

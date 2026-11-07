@@ -878,7 +878,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
         private void doOffsetCommitReplyAbort(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck,
                     StreamState.closeReply(StreamState.abortingReply(state)), replyMax,

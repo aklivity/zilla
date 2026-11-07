@@ -1028,7 +1028,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         private void doApplicationAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doApplicationAbort(traceId);
             }

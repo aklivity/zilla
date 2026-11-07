@@ -1648,7 +1648,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void doClientReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doClientReplyAbort(traceId);
             }

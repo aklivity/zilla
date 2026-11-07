@@ -111,4 +111,13 @@ public class MetaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.abort.before.begin/client",
+        "${app}/server.sent.abort.before.begin/server"})
+    public void shouldHandleServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
