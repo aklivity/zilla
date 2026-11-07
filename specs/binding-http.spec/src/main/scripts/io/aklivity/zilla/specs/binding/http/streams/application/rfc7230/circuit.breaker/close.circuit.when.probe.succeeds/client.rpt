@@ -1,0 +1,199 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request1")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "500")
+                             .build()}
+
+read closed
+read notify REQUEST_1_COMPLETED
+
+connect await REQUEST_1_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request2")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "500")
+                             .build()}
+
+read closed
+read notify REQUEST_2_COMPLETED
+
+connect await REQUEST_2_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request3")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connect aborted
+write notify REQUEST_3_COMPLETED
+
+connect await COOLDOWN_ELAPSED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request4")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+write notify PROBE_ADMITTED
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .build()}
+
+read closed
+read notify REQUEST_4_COMPLETED
+
+connect await PROBE_ADMITTED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request5")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connect aborted
+write notify REQUEST_5_COMPLETED
+write notify RELEASE_PROBE
+
+connect await REQUEST_4_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request6")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .build()}
+
+read closed
+read notify REQUEST_6_COMPLETED
+
+connect await REQUEST_6_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request7")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "500")
+                             .build()}
+
+read closed
+read notify REQUEST_7_COMPLETED
+
+connect await REQUEST_7_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:circuitId 42L
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/request8")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .build()}
+
+read closed
+read notify REQUEST_8_COMPLETED
