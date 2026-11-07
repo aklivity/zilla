@@ -255,6 +255,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -267,6 +268,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -289,6 +291,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -301,6 +304,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -318,6 +322,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -334,6 +339,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -353,6 +359,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -368,6 +375,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -388,6 +396,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -405,6 +414,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -425,6 +435,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -436,6 +447,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -452,6 +464,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -463,6 +476,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -508,6 +522,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -520,6 +535,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -537,6 +553,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -547,6 +564,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -937,7 +955,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     }
                 }
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, connection.initialMax,
                     traceId, authorization, connection.initialBudId, connection.initialPad);
             }
         }
@@ -948,7 +966,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             state = StreamState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, connection.initialBudId, EMPTY_EXTENSION);
         }
 
@@ -974,7 +992,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
             if (!StreamState.replyClosed(state) && !StreamState.replyAborting(state))
             {
-                doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, flags, replyBud, reserved, payload, offset, length, extension);
 
                 replySeq += reserved;
@@ -1037,7 +1055,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 {
                     state = StreamState.closeReply(state);
 
-                    doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
 
                     if (responseBytes == 0)
@@ -1065,7 +1083,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 {
                     state = StreamState.closeReply(state);
 
-                    doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
 
                     if (responseBytes == 0)
@@ -1089,7 +1107,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, connection.initialMax,
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, connection.initialMax,
                     traceId, authorization);
 
                 if (StreamState.closed(state))
@@ -1298,7 +1316,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 state = StreamState.openingInitial(state);
 
                 this.receiver = newNetworkStream(this::onConnectionMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, 0L, extension);
             }
         }
@@ -1342,7 +1360,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 encodeBuffer.putBytes(progress, buffer, requestHeader.limit(), remaining);
 
                 final int length = progress + remaining;
-                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, flags, budgetId, reserved, encodeBuffer, 0, length, extension);
 
                 requestBytes -= length;
@@ -1350,7 +1368,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
             else
             {
-                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, flags, budgetId, reserved, payload, extension);
                 requestBytes -= payload.sizeof();
             }
@@ -1365,10 +1383,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (!StreamState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(state);
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = StreamState.closeInitial(state);
             }
 
             cleanupBudgetCreditorIfNecessary();
@@ -1381,10 +1399,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = StreamState.closeInitial(state);
             }
 
             cleanupBudgetCreditorIfNecessary();
@@ -1433,10 +1451,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.closeReply(state);
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization);
 
-                state = StreamState.closeReply(state);
             }
 
             deauthorizeGuardSession();
@@ -1499,7 +1517,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                 state = StreamState.openReply(state);
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, maxReplyPad);
             }
         }
@@ -1946,7 +1964,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
                 final int reserved = length + initialPad;
 
-                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;

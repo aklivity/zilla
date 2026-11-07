@@ -208,6 +208,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -220,6 +221,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -242,6 +244,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -254,6 +257,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -271,6 +275,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -287,6 +292,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -306,6 +312,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -322,6 +329,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -341,6 +349,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -352,6 +361,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -368,6 +378,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -379,6 +390,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -395,6 +407,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -407,6 +420,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -424,6 +438,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -435,6 +450,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -706,7 +722,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             state = StreamState.openingReply(state);
 
-            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -714,15 +730,15 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             long traceId)
         {
             state = StreamState.closeReply(state);
-            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
 
         private void doApplicationAbort(
             long traceId)
         {
-            state = StreamState.closeReply(state);
-            doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.closeReply(StreamState.abortingReply(state));
+            doAbort(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
 
@@ -744,7 +760,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
                 state = StreamState.openInitial(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
             }
         }
@@ -755,7 +771,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             state = StreamState.closeInitial(state);
 
-            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, client.authorization, extension);
         }
 
@@ -1091,7 +1107,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                                                                   .sizeof());
             }
 
-            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -1127,7 +1143,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
 
-            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
 
             deauthorizeGuardSession();
@@ -1138,9 +1154,9 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -1154,9 +1170,9 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
                 state = StreamState.closeReply(state);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -1182,7 +1198,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -1273,7 +1289,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;

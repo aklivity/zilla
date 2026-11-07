@@ -625,6 +625,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -637,6 +638,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -884,7 +886,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 state = StreamState.openInitial(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -897,7 +899,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 state = StreamState.openingReply(state);
 
-                doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity,
                     ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                                                             .typeId(kafkaTypeId)
@@ -947,7 +949,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                     break flush;
                 }
 
-                doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doData(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, NO_BUDGET_ID, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 replySeq += reserved;
@@ -1018,7 +1020,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             else if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, EMPTY_EXTENSION);
             }
         }
@@ -1028,8 +1030,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                state = StreamState.closeReply(state);
-                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.closeReply(StreamState.abortingReply(state));
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
         }
@@ -1042,7 +1044,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, extension);
             }
         }
@@ -1059,9 +1061,9 @@ public final class KafkaClientApiFactory implements BindingHandler
                         .apiChallenge(c -> c.versions(v -> v.min(minVersion).max(maxVersion)))
                         .build();
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, 0);
-                doChallenge(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doChallenge(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, kafkaChallengeEx);
             }
         }
@@ -1833,7 +1835,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 }
 
                 network = KafkaClientApiFactory.this.newStream(this::onNet, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+                        initialSeq, initialAck, state, initialMax, traceId, authorization, affinity, extension);
             }
         }
 
@@ -1866,7 +1868,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -1886,9 +1888,9 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                state = StreamState.closeInitial(state);
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -1910,7 +1912,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 state = StreamState.closeReply(state);
 
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
@@ -1952,7 +1954,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -1987,7 +1989,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -2418,6 +2420,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2430,6 +2433,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2447,6 +2451,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2463,6 +2468,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2482,6 +2488,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2493,6 +2500,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2509,6 +2517,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2520,6 +2529,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2536,6 +2546,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2548,6 +2559,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2565,6 +2577,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2576,6 +2589,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2592,6 +2606,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2603,6 +2618,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

@@ -447,6 +447,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -459,6 +460,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -482,6 +484,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -494,6 +497,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -511,6 +515,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -527,6 +532,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -546,6 +552,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -559,6 +566,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -578,6 +586,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -591,6 +600,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -609,6 +619,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -620,6 +631,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -636,6 +648,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -647,6 +660,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -663,6 +677,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -675,6 +690,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -692,6 +708,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -703,6 +720,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1610,7 +1628,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                         .timeout(timeout))
                     .build();
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, kafkaBeginEx);
         }
 
@@ -1625,12 +1643,12 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             if (length > 0)
             {
-                doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
             }
             else
             {
-                doDataEmpty(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doDataEmpty(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, EMPTY_EXTENSION);
             }
 
@@ -1648,7 +1666,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 final int reserved = replyPad;
 
-                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
             }
         }
@@ -1659,7 +1677,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, 0, EMPTY_EXTENSION);
             }
         }
@@ -1669,8 +1687,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.closeReply(state);
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.closeReply(StreamState.abortingReply(state));
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, 0, EMPTY_EXTENSION);
             }
         }
@@ -1691,7 +1709,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 state = StreamState.openInitial(state);
 
-                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, cluster.authorization, 0L, GROUP_RECORD_FRAME_MAX_SIZE);
             }
         }
@@ -1702,7 +1720,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             state = StreamState.closeInitial(state);
 
-            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, cluster.authorization, extension);
         }
 
@@ -2116,7 +2134,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+                    initialSeq, initialAck, state, initialMax, traceId, authorization, affinity, extension);
             }
         }
 
@@ -2150,7 +2168,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -2166,9 +2184,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -2183,9 +2201,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
                 state = StreamState.closeReply(state);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -2211,7 +2229,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -2320,7 +2338,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -2893,7 +2911,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+                initialSeq, initialAck, state, initialMax, traceId, authorization, affinity, extension);
         }
 
         @Override
@@ -2928,7 +2946,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
 
-            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
 
             deauthorizeGuardSession();
@@ -2940,9 +2958,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
             {
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -2957,9 +2975,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
                 state = StreamState.closeReply(state);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -2985,7 +3003,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -3113,7 +3131,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -3658,7 +3676,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .sizeof());
 
                 network = newStream(this::onNetwork, rebalanceDelay, originId, routedId, initialId, initialSeq,
-                    initialAck, initialMax, traceId, authorization, affinity, extension);
+                    initialAck, state, initialMax, traceId, authorization, affinity, extension);
             }
         }
 
@@ -3693,7 +3711,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -3710,9 +3728,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             if (StreamState.initialOpening(state) &&
                 !StreamState.initialClosed(state))
             {
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -3727,9 +3745,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
                 state = StreamState.closeReply(state);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -3755,7 +3773,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -3984,7 +4002,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -4617,7 +4635,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     .sizeof());
 
                 network = newStream(this::onNetwork, NO_DELAY, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, authorization, affinity, extension);
+                    initialSeq, initialAck, state, initialMax, traceId, authorization, affinity, extension);
             }
         }
 
@@ -4654,7 +4672,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -4673,9 +4691,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             if (StreamState.initialOpening(state) &&
                 !StreamState.initialClosed(state))
             {
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = StreamState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -4690,9 +4708,9 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, EMPTY_OCTETS);
                 state = StreamState.closeReply(state);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -4718,7 +4736,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
                 state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, minReplyPad);
             }
         }
@@ -5095,7 +5113,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     break flush;
                 }
 
-                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
