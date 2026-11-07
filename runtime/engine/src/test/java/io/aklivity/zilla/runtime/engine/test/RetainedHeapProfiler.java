@@ -30,7 +30,8 @@ import org.openjdk.jmh.results.ScalarResult;
  * Reports the heap retained by each benchmark operation as {@code retained.heap.norm} in B/op.
  * <p>
  * The used heap is measured after two full collections before and after every iteration, and the
- * difference is divided by the operations measured in that iteration. A benchmark method whose operation
+ * difference is divided by the operations executed in that iteration, including those a worker runs while
+ * it waits to start and stop measuring. A benchmark method whose operation
  * leaves state live across the iteration reports the size of that state per operation; any other method
  * reports approximately zero.
  * <p>
@@ -65,7 +66,7 @@ public final class RetainedHeapProfiler implements InternalProfiler
         IterationResult result)
     {
         final long retained = usedAfterCollections() - usedBefore;
-        final long operations = result.getMetadata().getMeasuredOps();
+        final long operations = result.getMetadata().getAllOps();
         final double perOperation = operations != 0L ? (double) retained / operations : 0.0;
 
         return List.of(new ScalarResult(RETAINED_HEAP, perOperation, UNIT, AggregationPolicy.MAX));
