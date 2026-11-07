@@ -107,6 +107,9 @@ services:
       KARAPACE_TOPIC_NAME: _schemas
       KARAPACE_LOG_LEVEL: WARNING
       KARAPACE_COMPATIBILITY: BACKWARD
+      # aiohttp's default C parser drops the body of a request that offers an `Upgrade: h2c` it
+      # then declines, which zilla's http client sends on POSTs; the pure Python parser serves it
+      AIOHTTP_NO_EXTENSIONS: "1"
     # the image ships neither curl, wget nor nc, only the venv's python
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/subjects', timeout=3).status == 200 else 1)"]

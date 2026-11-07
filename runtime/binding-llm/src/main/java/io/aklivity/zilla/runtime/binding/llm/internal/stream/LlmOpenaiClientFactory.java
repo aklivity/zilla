@@ -4127,6 +4127,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .authorization(stream.authorization)
                 .affinity(stream.affinity)
+                .circuitId(LlmCircuitId.of(stream.model))
                 .extension(httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof())
                 .build();
 
