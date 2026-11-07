@@ -58,12 +58,9 @@ public class EngineBenchTest
             final Client client = bench.newClient("net0", replies);
 
             client.begin();
-            assertThat(bench.pollUntil(() -> client.initialCredit() >= PAYLOAD_LENGTH), equalTo(true));
-
-            client.data(payload, 0, PAYLOAD_LENGTH);
+            client.send(payload, 0, PAYLOAD_LENGTH);
             client.end();
-
-            assertThat(bench.pollUntil(() -> server.counter().ends() == 1 && replies.ends() == 1), equalTo(true));
+            client.awaitReplyEnd();
         }
 
         assertThat(server.counter().begins(), equalTo(1));

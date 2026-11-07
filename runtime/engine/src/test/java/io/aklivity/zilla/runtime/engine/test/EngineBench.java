@@ -443,6 +443,8 @@ public final class EngineBench implements AutoCloseable
     {
         private static final int INITIAL_CLOSED = 1;
         private static final int REPLY_CLOSED = 2;
+        private static final int CLOSED = INITIAL_CLOSED | REPLY_CLOSED;
+        private static final int FAILED = 4;
 
         private final MessageConsumer inbound = this::onInbound;
         private final DataFW dataRO = new DataFW();
@@ -490,6 +492,43 @@ public final class EngineBench implements AutoCloseable
         public void begin()
         {
             begin(EMPTY_EXTENSION, 0, 0);
+        }
+
+        public void send(
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            int sent = 0;
+            while (sent < length)
+            {
+                poll();
+
+                final int credit = initialCredit() - initialPad;
+                if (credit > 0)
+                {
+                    final int fragment = Math.min(credit, length - sent);
+                    data(payload, offset + sent, fragment);
+                    sent += fragment;
+                }
+
+                checkProgress(deadline);
+            }
+        }
+
+        public void awaitReplyEnd()
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while ((state & REPLY_CLOSED) == 0)
+            {
+                poll();
+                checkProgress(deadline);
+            }
+
+            checkProgress(deadline);
         }
 
         public void begin(
@@ -674,14 +713,32 @@ public final class EngineBench implements AutoCloseable
                 }
                 break;
             case EndFW.TYPE_ID:
+                close(REPLY_CLOSED);
+                break;
             case AbortFW.TYPE_ID:
+                state |= FAILED;
                 close(REPLY_CLOSED);
                 break;
             case ResetFW.TYPE_ID:
-                close(INITIAL_CLOSED | REPLY_CLOSED);
+                state |= FAILED;
+                close(CLOSED);
                 break;
             default:
                 break;
+            }
+        }
+
+        private void checkProgress(
+            long deadline)
+        {
+            if ((state & FAILED) != 0)
+            {
+                throw new IllegalStateException("stream rejected by engine");
+            }
+
+            if (System.nanoTime() > deadline)
+            {
+                throw new IllegalStateException("stream timed out");
             }
         }
 
@@ -704,9 +761,10 @@ public final class EngineBench implements AutoCloseable
         private void close(
             int closed)
         {
+            final int opened = state;
             state |= closed;
 
-            if (state == (INITIAL_CLOSED | REPLY_CLOSED))
+            if ((opened & CLOSED) != CLOSED && (state & CLOSED) == CLOSED)
             {
                 streamsById.remove(replyId);
                 throttlesById.remove(initialId);
