@@ -107,6 +107,77 @@ public class EngineBenchTest
         assertThat(reassembler.payload.toString(), equalTo("abcdefghijklmnopqrstuvwxy"));
     }
 
+    @Test
+    public void shouldReflectFramesWithinCreditInBothDirections() throws Exception
+    {
+        final String text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN";
+        final byte[] bytes = text.getBytes();
+        final Reflector server = new Reflector();
+        final Reassembler reassembler = new Reassembler();
+        final MutableDirectBufferEx payload = new UnsafeBufferEx(bytes);
+
+        try (EngineBench bench = new EngineBench()
+            .directory("target/zilla-bench-test")
+            .external("app0")
+            .start(CONFIGURATION))
+        {
+            bench.newServer("app0", server);
+
+            final Client client = bench.newClient("net0", reassembler);
+
+            client.begin();
+            client.replyWindow(8);
+            client.send(payload, 0, bytes.length);
+            client.awaitReplyBytes(bytes.length);
+
+            assertThat(client.replyBytes(), equalTo((long) bytes.length));
+
+            client.end();
+            client.awaitReplyEnd();
+        }
+
+        assertThat(server.counter().begins(), equalTo(1));
+        assertThat(server.counter().dataBytes(), equalTo((long) bytes.length));
+        assertThat(server.counter().datas(), greaterThan(1));
+        assertThat(server.counter().ends(), equalTo(1));
+        assertThat(reassembler.counter.dataBytes(), equalTo((long) bytes.length));
+        assertThat(reassembler.counter.ends(), equalTo(1));
+        assertThat(reassembler.payload.toString(), equalTo(text));
+    }
+
+    @Test
+    public void shouldReflectManyMessagesOnOneStream() throws Exception
+    {
+        final int messages = 1_000;
+        final Reflector server = new Reflector();
+        final MutableDirectBufferEx payload = new UnsafeBufferEx(new byte[300]);
+
+        try (EngineBench bench = new EngineBench()
+            .directory("target/zilla-bench-test")
+            .external("app0")
+            .start(CONFIGURATION))
+        {
+            bench.newServer("app0", server);
+
+            final Client client = bench.newClient("net0", MessageConsumer.NOOP);
+
+            client.begin();
+            client.replyWindow(1024);
+
+            for (int message = 0; message < messages; message++)
+            {
+                client.send(payload, 0, payload.capacity());
+            }
+
+            client.awaitReplyBytes((long) messages * payload.capacity());
+            client.end();
+            client.awaitReplyEnd();
+        }
+
+        assertThat(server.counter().begins(), equalTo(1));
+        assertThat(server.counter().dataBytes(), equalTo((long) messages * payload.capacity()));
+    }
+
     private static final class Reassembler implements MessageConsumer
     {
         private final FrameCounter counter = new FrameCounter();

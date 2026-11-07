@@ -532,6 +532,23 @@ public final class EngineBench implements AutoCloseable
             checkProgress(deadline);
         }
 
+        public long replyBytes()
+        {
+            return replySeq;
+        }
+
+        public void awaitReplyBytes(
+            long bytes)
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (replySeq < bytes)
+            {
+                poll();
+                checkProgress(deadline);
+            }
+        }
+
         public void begin(
             DirectBufferEx extension,
             int offset,
