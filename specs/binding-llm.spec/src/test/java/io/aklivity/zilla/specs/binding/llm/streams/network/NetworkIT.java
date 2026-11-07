@@ -9883,4 +9883,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.circuit/client",
+        "${net}/openai.circuit/server"})
+    public void shouldScopeOpenaiCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.circuit.other.model/client",
+        "${net}/openai.circuit.other.model/server"})
+    public void shouldScopeOpenaiCircuitToOtherModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.circuit/client",
+        "${net}/anthropic.circuit/server"})
+    public void shouldScopeAnthropicCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.circuit/client",
+        "${net}/gemini.circuit/server"})
+    public void shouldScopeGeminiCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.circuit/client",
+        "${net}/openai.responses.circuit/server"})
+    public void shouldScopeOpenaiResponsesCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
 }

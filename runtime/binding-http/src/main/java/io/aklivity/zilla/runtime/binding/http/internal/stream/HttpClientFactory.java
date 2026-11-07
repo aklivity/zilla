@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderF
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressProtocol.STREAM;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
@@ -40,6 +41,10 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 
+import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -76,6 +81,7 @@ import io.aklivity.zilla.config.binding.http.HttpVersion;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
+import io.aklivity.zilla.runtime.binding.http.internal.HttpEventContext;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
@@ -104,8 +110,10 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressFamily;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpCircuitCause;
 import io.aklivity.zilla.runtime.binding.http.internal.types.queue.HttpQueueEntryFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
@@ -193,6 +201,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String PATH = ":path";
     private static final String AUTHORITY = ":authority";
     private static final String SCHEME = ":scheme";
+    private static final String SCHEME_HTTPS = "https";
     private static final String CACHE_CONTROL = "cache-control";
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
@@ -205,6 +214,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
     private static final String8FW HEADER_STATUS = new String8FW(":status");
+    private static final String8FW HEADER_RETRY_AFTER = new String8FW("retry-after");
+    private static final long MAXIMUM_RETRY_AFTER_SECONDS = Integer.MAX_VALUE;
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
     private static final String8FW HEADER_EVENT_TYPE = new String8FW("type");
@@ -424,6 +435,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyPromiseId;
     private final LongFunction<MessageConsumer> supplySender;
     private final LongSupplier supplyTraceId;
+    private final Clock clock;
+    private final HttpEventContext event;
+    private final HttpCircuitTable circuits;
     private final LongSupplier supplyBudgetId;
     private final MessageConsumer droppedHandler;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
@@ -467,6 +481,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.supplyPromiseId = context::supplyPromiseId;
         this.supplySender = context::supplySender;
         this.supplyTraceId = context::supplyTraceId;
+        this.clock = context.clock();
+        this.event = new HttpEventContext(context);
+        this.circuits = new HttpCircuitTable(config.clientBreakerCircuitsMaximum(), config.clientBreakerFailureThreshold(),
+            config.clientBreakerCooldown().toMillis(), config.clientBreakerRetryAfterMaximum().toMillis(),
+            this::onCircuitTransition);
         this.supplyBudgetId = context::supplyBudgetId;
         this.droppedHandler = context.droppedFrameHandler();
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
@@ -544,17 +563,40 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         if (route != null)
         {
-            final long resolvedId = route.id;
-            final Map<String8FW, String16FW> overrides =
-                binding.overrides != null ? binding.overrides : EMPTY_OVERRIDES;
+            final long circuitId = begin.circuitId();
+            final long probe = circuitId != 0L
+                ? circuits.admit(begin.traceId(), bindingId, begin.originId(), circuitId, clock.millis())
+                : HttpCircuitTable.ADMIT;
 
-            // TODO: store client pools on HttpBindingConfig ?
-            final HttpClientPool clientPool =
-                    clientPools.computeIfAbsent(resolvedId, r -> new HttpClientPool(bindingId, r));
-            newStream = clientPool.newStream(begin, application, overrides, binding.versions());
+            if (probe == HttpCircuitTable.REJECT)
+            {
+                newStream = rejectWithReset(application, begin);
+            }
+            else
+            {
+                final long resolvedId = route.id;
+                final Map<String8FW, String16FW> overrides =
+                    binding.overrides != null ? binding.overrides : EMPTY_OVERRIDES;
+
+                // TODO: store client pools on HttpBindingConfig ?
+                final HttpClientPool clientPool =
+                        clientPools.computeIfAbsent(resolvedId, r -> new HttpClientPool(bindingId, r));
+                newStream = clientPool.newStream(begin, application, overrides, binding.versions(), probe);
+            }
         }
 
         return newStream;
+    }
+
+    private MessageConsumer rejectWithReset(
+        MessageConsumer sender,
+        BeginFW begin)
+    {
+        doReset(sender, begin.originId(), begin.routedId(), begin.streamId(), begin.sequence(), begin.acknowledge(),
+            StreamState.closeInitial(0), begin.maximum(), begin.traceId(), begin.authorization());
+
+        // ignore DATA, FLUSH, END, ABORT
+        return (t, b, i, l) -> {};
     }
 
     private MessageConsumer newStream(
@@ -2256,7 +2298,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             BeginFW begin,
             MessageConsumer sender,
             Map<String8FW, String16FW> overrides,
-            SortedSet<HttpVersion> versions)
+            SortedSet<HttpVersion> versions,
+            long probe)
         {
             this.versions = versions;
 
@@ -2307,7 +2350,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     final int nextStreamId = client.nextStreamId();
                     final HttpExchange exchange = client.newExchange(sender, originId, routedId, initialId, authorization,
-                            overrides, nextStreamId);
+                            overrides, nextStreamId, begin.circuitId(), probe);
                     client.exchanges.put(nextStreamId, exchange);
                     newStream = exchange::onApplication;
                 }
@@ -2536,9 +2579,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             long initialId,
             long authorization,
             Map<String8FW, String16FW> overrides,
-            int streamId)
+            int streamId,
+            long circuitId,
+            long probe)
         {
-            return new HttpExchange(this, sender, originId, routedId, initialId, authorization, overrides, streamId);
+            return new HttpExchange(this, sender, originId, routedId, initialId, authorization, overrides, streamId,
+                circuitId, probe);
         }
 
         private void addNewPromise(
@@ -2631,7 +2677,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
             }
-            else if (beginEx == null &&
+            else if ((beginEx == null ||
+                      !SCHEME_HTTPS.equals(scheme) &&
+                      beginEx.address().kind() != ProxyAddressFamily.NONE &&
+                      beginEx.infos().matchFirst(i -> i.kind() == ALPN) == null) &&
                      pool.versions.contains(HTTP_1_1) &&
                      pool.versions.contains(HTTP_2))
             {
@@ -3824,7 +3873,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 final HttpExchange promisedExchange =
                        new HttpExchange(this, sender, exchange.originId, exchange.routedId, promiseId, exchange.sessionId,
-                               EMPTY_OVERRIDES, promisedStreamId);
+                               EMPTY_OVERRIDES, promisedStreamId, 0L, HttpCircuitTable.ADMIT);
                 exchanges.put(promisedStreamId, promisedExchange);
 
 
@@ -4871,6 +4920,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long requestId;
         private final long responseId;
         private final long sessionId;
+        private final long circuitId;
+        private final long probe;
         private int requestContentLength;
         private int requestContentObserved;
 
@@ -4936,7 +4987,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             long requestId,
             long authorization,
             Map<String8FW, String16FW> overrides,
-            int streamId)
+            int streamId,
+            long circuitId,
+            long probe)
         {
             this.client = client;
             this.application = application;
@@ -4944,6 +4997,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.routedId = routedId;
             this.requestId = requestId;
             this.sessionId = authorization;
+            this.circuitId = circuitId;
+            this.probe = probe;
             this.responseId = supplyReplyId.applyAsLong(requestId);
             this.overrides = overrides;
             this.streamId = streamId;
@@ -5336,6 +5391,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             state = StreamState.openingReply(state);
 
+            if (circuitId != 0L)
+            {
+                onCircuitOutcome(traceId, beginEx.headers());
+            }
+
             responseEventStream = isEventStream(beginEx);
 
             doBegin(application, originId, routedId, responseId, responseSeq, responseAck, state, responseMax,
@@ -5344,6 +5404,29 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (responseEventStream && responseWindowed)
             {
                 decideResponseFraming();
+            }
+        }
+
+        private void onCircuitOutcome(
+            long traceId,
+            Array32FW<HttpHeaderFW> headers)
+        {
+            final long now = clock.millis();
+            final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
+            final int statusCode = status != null ? parseStatusCode(status.value().value()) : 0;
+            final long retryAfter = statusCode == 429 || statusCode == 503 ? parseRetryAfter(headers, now) : 0L;
+
+            if (retryAfter > 0L)
+            {
+                circuits.retryAfter(traceId, routedId, originId, circuitId, probe, retryAfter, now);
+            }
+            else if (statusCode == 429 || statusCode >= 500)
+            {
+                circuits.fail(traceId, routedId, originId, circuitId, probe, now);
+            }
+            else
+            {
+                circuits.succeed(traceId, routedId, originId, circuitId, probe, now);
             }
         }
 
@@ -7180,6 +7263,92 @@ public final class HttpClientFactory implements HttpStreamFactory
         TYPE,
         RETRY,
         IGNORE
+    }
+
+    private void onCircuitTransition(
+        long traceId,
+        long routedId,
+        long originId,
+        long circuitId,
+        int transition,
+        int cause,
+        long remaining)
+    {
+        final HttpCircuitCause circuitCause = HttpCircuitCause.valueOf(cause);
+
+        switch (transition)
+        {
+        case HttpCircuitTable.TRANSITION_OPENED:
+            event.circuitOpened(traceId, routedId, circuitId, circuitCause, remaining);
+            break;
+        case HttpCircuitTable.TRANSITION_HALF_OPENED:
+            event.circuitHalfOpened(traceId, routedId, circuitId, circuitCause, remaining);
+            break;
+        case HttpCircuitTable.TRANSITION_CLOSED:
+            event.circuitClosed(traceId, routedId, circuitId, circuitCause, remaining);
+            break;
+        case HttpCircuitTable.TRANSITION_REJECTED:
+            event.circuitRejected(traceId, routedId, circuitId, circuitCause, remaining);
+            break;
+        }
+    }
+
+    private static int parseStatusCode(
+        DirectBufferEx value)
+    {
+        int statusCode = 0;
+
+        for (int i = 0; value != null && statusCode >= 0 && i < value.capacity(); i++)
+        {
+            final int digit = value.getByte(i) - '0';
+            statusCode = digit >= 0 && digit <= 9 ? statusCode * 10 + digit : -1;
+        }
+
+        return Math.max(statusCode, 0);
+    }
+
+    private static long parseRetryAfter(
+        Array32FW<HttpHeaderFW> headers,
+        long now)
+    {
+        final HttpHeaderFW header = headers.matchFirst(h -> HEADER_RETRY_AFTER.equals(h.name()));
+        final DirectBufferEx value = header != null ? header.value().value() : null;
+
+        long retryAfter = 0L;
+
+        if (value != null && value.capacity() > 0)
+        {
+            long seconds = 0L;
+
+            for (int i = 0; seconds >= 0L && i < value.capacity(); i++)
+            {
+                final int digit = value.getByte(i) - '0';
+                seconds = digit >= 0 && digit <= 9 ? Math.min(seconds * 10L + digit, MAXIMUM_RETRY_AFTER_SECONDS) : -1L;
+            }
+
+            retryAfter = seconds >= 0L ? seconds * 1000L : parseRetryAfterDate(header.value().asString(), now);
+        }
+
+        return retryAfter;
+    }
+
+    private static long parseRetryAfterDate(
+        String date,
+        long now)
+    {
+        long retryAfter = 0L;
+
+        try
+        {
+            final ZonedDateTime retryAt = DateTimeFormatter.RFC_1123_DATE_TIME.parse(date, ZonedDateTime::from);
+            retryAfter = Math.max(retryAt.toInstant().toEpochMilli() - now, 0L);
+        }
+        catch (DateTimeException ex)
+        {
+            // not a valid Retry-After date, so ignored
+        }
+
+        return retryAfter;
     }
 
     private static boolean isEventStream(

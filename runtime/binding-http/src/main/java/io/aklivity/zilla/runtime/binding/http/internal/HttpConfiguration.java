@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.http.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 
+import java.time.Duration;
+
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -41,6 +43,10 @@ public class HttpConfiguration extends Configuration
     public static final BooleanPropertyDef HTTP_SSE_INITIAL_COMMENT_ENABLED;
     public static final IntPropertyDef HTTP_SSE_MAXIMUM_IDLE_TIME;
     public static final BooleanPropertyDef HTTP_VERBOSE;
+    public static final IntPropertyDef HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD;
+    public static final PropertyDef<Duration> HTTP_CLIENT_BREAKER_COOLDOWN;
+    public static final PropertyDef<Duration> HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM;
+    public static final IntPropertyDef HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM;
 
     private static final ConfigurationDef HTTP_CONFIG;
 
@@ -65,6 +71,12 @@ public class HttpConfiguration extends Configuration
         HTTP_SSE_INITIAL_COMMENT_ENABLED = config.property("sse.initial.comment.enabled", sseInitialCommentEnabled::getAsBoolean);
         HTTP_SSE_MAXIMUM_IDLE_TIME = config.property("sse.maximum.idle.time", sseMaximumIdleTime::getAsInt);
         HTTP_VERBOSE = config.property("verbose", HttpConfiguration::verboseDefault);
+        HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD = config.property("client.breaker.failure.threshold", 5);
+        HTTP_CLIENT_BREAKER_COOLDOWN = config.property(Duration.class, "client.breaker.cooldown",
+            (c, v) -> Duration.parse(v), "PT30S");
+        HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM = config.property(Duration.class, "client.breaker.retry.after.maximum",
+            (c, v) -> Duration.parse(v), "PT1M");
+        HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM = config.property("client.breaker.circuits.maximum", 1024);
         HTTP_CONFIG = config;
     }
 
@@ -129,6 +141,26 @@ public class HttpConfiguration extends Configuration
     public int maxConcurrentApplicationHeaders()
     {
         return HTTP_MAX_CONCURRENT_APPLICATION_HEADERS.getAsInt(this);
+    }
+
+    public int clientBreakerFailureThreshold()
+    {
+        return HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD.getAsInt(this);
+    }
+
+    public Duration clientBreakerCooldown()
+    {
+        return HTTP_CLIENT_BREAKER_COOLDOWN.get(this);
+    }
+
+    public Duration clientBreakerRetryAfterMaximum()
+    {
+        return HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM.get(this);
+    }
+
+    public int clientBreakerCircuitsMaximum()
+    {
+        return HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM.getAsInt(this);
     }
 
     public String16FW serverHeader()

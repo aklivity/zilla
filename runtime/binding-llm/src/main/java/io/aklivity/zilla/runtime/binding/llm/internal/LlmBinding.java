@@ -18,6 +18,7 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmRetentionBudget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -27,12 +28,16 @@ public final class LlmBinding implements Binding
 
     private final LlmConfiguration config;
     private final Map<String, LlmDialect> dialects;
+    private final LlmRetentionBudget retentionBudget;
 
     LlmBinding(
         LlmConfiguration config)
     {
         this.config = config;
         this.dialects = new LlmDialectFactory(config).dialects();
+        this.retentionBudget = new LlmRetentionBudget(
+            config.fallbackRequestMemoryRetentionBytes(),
+            config.fallbackRequestRetentionBytes());
     }
 
     @Override
@@ -45,6 +50,6 @@ public final class LlmBinding implements Binding
     public LlmBindingContext supply(
         EngineContext context)
     {
-        return new LlmBindingContext(config, context, dialects);
+        return new LlmBindingContext(config, context, dialects, retentionBudget);
     }
 }
