@@ -2882,4 +2882,14 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text/client",
+        "${net}/openai.responses.circuit/server"})
+    public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
