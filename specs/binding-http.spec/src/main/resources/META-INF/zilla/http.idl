@@ -59,7 +59,24 @@ scope http
     {
         enum HttpEventType (uint8)
         {
-            REQUEST_ACCEPTED (1)
+            REQUEST_ACCEPTED (1),
+            CIRCUIT_OPENED (2),
+            CIRCUIT_HALF_OPENED (3),
+            CIRCUIT_CLOSED (4),
+            CIRCUIT_REJECTED (5)
+        }
+
+        enum HttpCircuitCause (uint8)
+        {
+            FAILURE_THRESHOLD (0),
+            RETRY_AFTER (1),
+            PROBE_FAILED (2),
+            COOLDOWN_ELAPSED (3),
+            PROBE_SUCCEEDED (4),
+            RETRY_AFTER_ELAPSED (5),
+            EVICTED (6),
+            CIRCUIT_OPEN (7),
+            PROBE_IN_FLIGHT (8)
         }
 
         struct HttpRequestAcceptedEx extends core::stream::Extension
@@ -71,9 +88,20 @@ scope http
             string16 path;
         }
 
+        struct HttpCircuitEx extends core::stream::Extension
+        {
+            int64 circuitId;
+            HttpCircuitCause cause;
+            int64 remaining;
+        }
+
         union HttpEventEx switch (HttpEventType)
         {
             case REQUEST_ACCEPTED: HttpRequestAcceptedEx requestAccepted;
+            case CIRCUIT_OPENED: HttpCircuitEx circuitOpened;
+            case CIRCUIT_HALF_OPENED: HttpCircuitEx circuitHalfOpened;
+            case CIRCUIT_CLOSED: HttpCircuitEx circuitClosed;
+            case CIRCUIT_REJECTED: HttpCircuitEx circuitRejected;
         }
     }
 }
