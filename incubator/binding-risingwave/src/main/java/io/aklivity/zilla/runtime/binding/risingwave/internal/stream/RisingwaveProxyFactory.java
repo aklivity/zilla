@@ -611,7 +611,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpened(state))
+            if (RisingwaveState.replyOpening(state))
             {
                 state = RisingwaveState.closeReply(state);
 
@@ -625,7 +625,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            if (RisingwaveState.replyOpened(state))
+            if (RisingwaveState.replyOpening(state))
             {
                 state = RisingwaveState.closeReply(state);
 
