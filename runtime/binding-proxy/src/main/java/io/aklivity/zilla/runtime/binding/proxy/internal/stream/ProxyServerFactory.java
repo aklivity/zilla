@@ -451,10 +451,10 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
             if (app != null)
             {
-                final int replyWin = replyMax - (int)(replySeq - replyAck);
-                if (replyWin > 0)
+                final int replyUnacked = (int)(replySeq - replyAck);
+                if (replyMax - replyUnacked > 0)
                 {
-                    app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, replyWin, replyPad, replyMax);
+                    app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, replyUnacked, replyPad, replyMax);
                 }
             }
         }
@@ -565,11 +565,11 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            int minInitialWin,
+            int initialUnacked,
             int minInitialPad,
             int minInitialMax)
         {
-            final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
+            final long newInitialAck = Math.max(initialSeq - initialUnacked, initialAck);
 
             if (newInitialAck > initialAck || minInitialMax > initialMax)
             {
@@ -886,11 +886,11 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            if (initialWin > 0)
+            final int initialUnacked = (int)(initialSeq - initialAck);
+            if (initialMax - initialUnacked > 0)
             {
                 net.decodeNet(traceId, authorization, budgetId);
-                net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialWin, initialPad, initialMax);
+                net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialUnacked, initialPad, initialMax);
             }
         }
 
@@ -991,11 +991,11 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            int minReplyWin,
+            int replyUnacked,
             int minReplyPad,
             int minReplyMax)
         {
-            final long newReplyAck = Math.max(replySeq - minReplyWin, replyAck);
+            final long newReplyAck = Math.max(replySeq - replyUnacked, replyAck);
 
             if (newReplyAck > replyAck || minReplyMax > replyMax)
             {

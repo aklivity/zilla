@@ -337,10 +337,10 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
             assert replyAck <= replySeq;
 
-            final int replyWin = replyMax - (int)(replySeq - replyAck);
-            if (replyWin > 0)
+            final int replyUnacked = (int)(replySeq - replyAck);
+            if (replyMax - replyUnacked > 0)
             {
-                net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, replyWin, replyPad, replyMax);
+                net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, replyUnacked, replyPad, replyMax);
             }
         }
 
@@ -428,11 +428,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            int minInitialWin,
+            int initialUnacked,
             int minInitialPad,
             int minInitialMax)
         {
-            final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
+            final long newInitialAck = Math.max(initialSeq - initialUnacked, initialAck);
 
             if (newInitialAck > initialAck || minInitialMax > initialMax)
             {
@@ -638,10 +638,10 @@ public final class ProxyClientFactory implements ProxyStreamFactory
                 encodeSlot = NO_SLOT;
             }
 
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            if (initialWin > 0)
+            final int initialUnacked = (int)(initialSeq - initialAck);
+            if (initialMax - initialUnacked > 0)
             {
-                app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, initialWin, initialPad, initialMax);
+                app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, initialUnacked, initialPad, initialMax);
             }
         }
 
@@ -753,11 +753,11 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            int minReplyWin,
+            int replyUnacked,
             int minReplyPad,
             int minReplyMax)
         {
-            final long newReplyAck = Math.max(replySeq - minReplyWin, replyAck);
+            final long newReplyAck = Math.max(replySeq - replyUnacked, replyAck);
 
             if (newReplyAck > replyAck || minReplyMax > replyMax)
             {
