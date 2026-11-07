@@ -332,7 +332,8 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             {
                 state = StreamState.openingReply(state);
 
-                McpSchemaRegistryClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                McpSchemaRegistryClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, state,
+                    maximum,
                     traceId, authorization, affinity, extension);
             }
         }
@@ -348,7 +349,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpSchemaRegistryClientFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpSchemaRegistryClientFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
@@ -361,7 +362,8 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpSchemaRegistryClientFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpSchemaRegistryClientFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, state,
+                maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -376,7 +378,9 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
 
             if (!StreamState.replyClosed(state))
             {
-                McpSchemaRegistryClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.closeReply(state);
+                McpSchemaRegistryClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, state,
+                    maximum,
                     traceId, authorization, extension);
             }
 
@@ -394,7 +398,10 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
 
             if (!StreamState.replyClosed(state))
             {
-                McpSchemaRegistryClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.abortingReply(state);
+                state = StreamState.closeReply(state);
+                McpSchemaRegistryClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, state,
+                    maximum,
                     traceId, authorization, extension);
             }
 
@@ -411,7 +418,8 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             {
                 state = StreamState.closeInitial(state);
 
-                McpSchemaRegistryClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+                McpSchemaRegistryClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge,
+                    state, maximum,
                     traceId, authorization);
             }
         }
@@ -424,7 +432,9 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpSchemaRegistryClientFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+            state = StreamState.openInitial(state);
+            McpSchemaRegistryClientFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, state,
+                maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -611,7 +621,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
                 assert state == 0;
 
                 this.receiver = McpSchemaRegistryClientFactory.this.newStream(this::onMcpOpenapiMessage, originId, routedId,
-                    initialId, sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
+                    initialId, sequence, acknowledge, state, maximum, traceId, authorization, affinity, extension);
                 state = StreamState.openingInitial(state);
             }
         }
@@ -628,7 +638,8 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpSchemaRegistryClientFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpSchemaRegistryClientFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, state,
+                maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
@@ -641,7 +652,8 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpSchemaRegistryClientFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpSchemaRegistryClientFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, state,
+                maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -654,7 +666,9 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                McpSchemaRegistryClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                state = StreamState.closeInitial(state);
+                McpSchemaRegistryClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge,
+                    state, maximum,
                     traceId, authorization, extension);
 
                 state = StreamState.closeInitial(state);
@@ -670,7 +684,10 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
                 McpSchemaRegistryClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge,
+                    state,
                     maximum, traceId, authorization, extension);
 
                 state = StreamState.closeInitial(state);
@@ -685,7 +702,9 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                McpSchemaRegistryClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.closeReply(state);
+                McpSchemaRegistryClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge,
+                    state, maximum,
                     traceId, authorization);
 
                 state = StreamState.closeReply(state);
@@ -701,7 +720,9 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpSchemaRegistryClientFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+            state = StreamState.openReply(state);
+            McpSchemaRegistryClientFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, state,
+                maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -713,6 +734,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -725,6 +747,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -747,6 +770,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -759,6 +783,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -776,6 +801,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -791,6 +817,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -811,6 +838,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -824,6 +852,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -842,6 +871,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -853,6 +883,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -869,6 +900,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -880,6 +912,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -896,6 +929,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -908,6 +942,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -925,6 +960,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -935,6 +971,7 @@ public final class McpSchemaRegistryClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
