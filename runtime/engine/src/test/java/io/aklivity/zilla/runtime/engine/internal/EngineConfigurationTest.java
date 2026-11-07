@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_SPINS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_YIELDS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MIN_PARK_NANOS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_POOL_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACERTS_STORE;
@@ -41,10 +45,39 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_SERVICE_HO
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Properties;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class EngineConfigurationTest
 {
+    @Test
+    public void shouldSumSpinsYieldsAndParksForMaxIdleCount()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_BACKOFF_MAX_SPINS.name(), "10");
+        properties.setProperty(ENGINE_BACKOFF_MAX_YIELDS.name(), "20");
+        properties.setProperty(ENGINE_BACKOFF_MIN_PARK_NANOS.name(), "1");
+        properties.setProperty(ENGINE_BACKOFF_MAX_PARK_NANOS_BEFORE_SELECT.name(), "8");
+
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        assertEquals(33, config.maxIdleCount());
+    }
+
+    @Test
+    public void shouldSaturateMaxIdleCountWhenSpinsAreUnbounded()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_BACKOFF_MAX_SPINS.name(), Integer.toString(Integer.MAX_VALUE));
+
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        assertEquals(Integer.MAX_VALUE, config.maxIdleCount());
+    }
+
     @Test
     public void shouldVerifyConstants() throws Exception
     {

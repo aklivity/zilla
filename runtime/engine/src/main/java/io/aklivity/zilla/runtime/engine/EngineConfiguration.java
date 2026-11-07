@@ -350,7 +350,7 @@ public class EngineConfiguration extends Configuration
     public int maxIdleCount()
     {
         int maxParks = (int)(Math.ceil(Math.log(maxParkNanosBeforeSelect() /  (double) minParkNanos()) / Math.log(2)));
-        return maxSpins() + maxYields() + maxParks;
+        return (int) Math.min(Integer.MAX_VALUE, (long) maxSpins() + maxYields() + maxParks);
     }
 
     public boolean detachOnClose()
