@@ -795,6 +795,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private final GrpcClient delegate;
 
         private int state;
+        private String grpcStatus;
+        private String grpcMessage;
 
         private long initialSeq;
         private long initialAck;
@@ -882,16 +884,32 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             if (StreamState.initialOpening(state) &&
                 !StreamState.initialClosed(state))
             {
-                initialSeq = delegate.replySeq;
-                initialAck = delegate.replyAck;
-                initialMax = delegate.replyMax;
-                doKafkaTombstone(traceId, authorization, status, message);
+                this.grpcStatus = status != null ? status.asString() : null;
+                this.grpcMessage = message != null ? message.asString() : null;
+                state = StreamState.closingInitial(state);
 
-                state = StreamState.closeInitial(StreamState.abortingInitial(state));
-
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, emptyRO);
+                if (StreamState.initialOpened(state))
+                {
+                    doKafkaAbortDeferred(traceId, authorization);
+                }
             }
+        }
+
+        private void doKafkaAbortDeferred(
+            long traceId,
+            long authorization)
+        {
+            initialSeq = delegate.replySeq;
+            initialAck = delegate.replyAck;
+            initialMax = delegate.replyMax;
+            doKafkaTombstone(traceId, authorization,
+                grpcStatus != null ? new String16FW(grpcStatus) : HEADER_VALUE_GRPC_INTERNAL_ERROR,
+                grpcMessage != null ? new String16FW(grpcMessage) : null);
+
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
+
+            doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                traceId, authorization, emptyRO);
         }
 
         private void onKafkaMessage(
@@ -1007,7 +1025,15 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert initialAck <= initialSeq;
 
-            delegate.onKafkaWindow(authorization, traceId, budgetId, padding, capabilities);
+            if (StreamState.initialClosing(state) &&
+                !StreamState.initialClosed(state))
+            {
+                doKafkaAbortDeferred(traceId, authorization);
+            }
+            else
+            {
+                delegate.onKafkaWindow(authorization, traceId, budgetId, padding, capabilities);
+            }
         }
 
         private void onKafkaReset(
@@ -1536,9 +1562,15 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
+
+            if (!StreamState.replyOpened(state))
+            {
+                correlater.doKafkaBegin(traceId, authorization, 0L);
+            }
+
+            state = StreamState.closeReply(state);
 
             final GrpcAbortExFW abortEx = extension != null ? extension.get(abortExRO::tryWrap) : null;
 
