@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -620,7 +621,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                             case CLOSED:
                                 assert bytesProduced == 0;
                                 client.onDecodeInboundClosed(traceId);
-                                client.decoder = TlsState.replyClosed(client.state) ? decodeIgnoreAll : decodeHandshake;
+                                client.decoder = StreamState.replyClosed(client.state) ? decodeIgnoreAll : decodeHandshake;
                                 progress += bytesConsumed;
                                 break;
                             }
@@ -657,7 +658,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                         client.decoder = decodeIgnoreAll;
                     }
                 }
-                else if (TlsState.replyClosed(client.state))
+                else if (StreamState.replyClosed(client.state))
                 {
                     client.decoder = decodeIgnoreAll;
                 }
@@ -780,7 +781,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                     switch (result.getStatus())
                     {
                     case BUFFER_UNDERFLOW:
-                        if (TlsState.replyClosed(client.state))
+                        if (StreamState.replyClosed(client.state))
                         {
                             client.decoder = decodeIgnoreAll;
                         }
@@ -992,7 +993,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = TlsState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             client.doNetBegin(traceId, affinity, proxyEx);
         }
@@ -1074,7 +1075,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             client.stream = nullIfClosed(state, client.stream);
 
             client.doEncodeCloseOutbound(traceId, budgetId);
@@ -1096,7 +1097,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             client.stream = nullIfClosed(state, client.stream);
 
             client.doNetAbort(traceId);
@@ -1125,7 +1126,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TlsState.openReply(state);
+            state = StreamState.openReply(state);
 
             client.flushNetWindow(traceId, budgetId, replyPad);
         }
@@ -1144,7 +1145,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TlsState.closeReply(state);
+            state = StreamState.closeReply(state);
             client.stream = nullIfClosed(state, client.stream);
 
             client.doNetReset(traceId);
@@ -1162,7 +1163,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             replySeq = client.replySeq;
             replyAck = replySeq;
 
-            state = TlsState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, client.replyAuth, affinity,
                 ex -> ex.set((b, o, l) -> tlsBeginExRW.wrap(b, o, l)
@@ -1214,10 +1215,10 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            if (TlsState.replyOpening(state) &&
-                !TlsState.replyClosed(state))
+            if (StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 client.stream = nullIfClosed(state, client.stream);
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, client.replyAuth, EMPTY_EXTENSION);
             }
@@ -1226,15 +1227,15 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (!TlsState.replyOpening(state) &&
-                !TlsState.replyClosed(state))
+            if (!StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
                 doAppBegin(traceId, 0L, null, null);
             }
 
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 client.stream = nullIfClosed(state, client.stream);
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck,
                         replyMax, traceId, client.replyAuth, EMPTY_EXTENSION);
@@ -1254,9 +1255,9 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppReset(
             long traceId)
         {
-            if (!TlsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 client.stream = nullIfClosed(state, client.stream);
 
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, client.initialMax, traceId, initialAuth);
@@ -1267,7 +1268,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             long traceId,
             long budgetId)
         {
-            state = TlsState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             final int initialPad = client.initialPad + initialPadAdjust;
             doWindow(app, originId, routedId, initialId, initialSeq, initialAck, client.initialMax, traceId,
@@ -1278,7 +1279,7 @@ public final class TlsClientFactory implements TlsStreamFactory
             long traceId,
             long budgetId)
         {
-            assert TlsState.initialOpened(state);
+            assert StreamState.initialOpened(state);
 
             long initialAckMax = initialSeq - client.initialPendingAck();
             if (initialAckMax > initialAck)
@@ -1427,7 +1428,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert sequence >= replySeq;
                 assert acknowledge >= replyAck;
 
-                state = TlsState.openReply(state);
+                state = StreamState.openReply(state);
                 replySeq = sequence;
                 replyAck = acknowledge;
                 replyAuth = authorization;
@@ -1533,7 +1534,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert sequence >= replySeq;
                 assert acknowledge <= replyAck;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 replySeq = sequence;
                 replyAuth = authorization;
 
@@ -1576,7 +1577,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert sequence >= replySeq;
                 assert acknowledge <= replyAck;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 replySeq = sequence;
                 replyAuth = authorization;
 
@@ -1605,7 +1606,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
 
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 initialAck = acknowledge;
 
                 assert initialAck <= initialSeq;
@@ -1635,7 +1636,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert acknowledge >= initialAck;
                 assert maximum + acknowledge >= initialMax + initialAck;
 
-                state = TlsState.openInitial(state);
+                state = StreamState.openInitial(state);
                 initialAck = acknowledge;
                 initialMax = maximum;
                 initialPad = padding;
@@ -1717,7 +1718,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 long affinity,
                 OctetsFW extension)
             {
-                state = TlsState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 net = newStream(this::onNetMessage, originId, routedId, initialId, initialSeq, initialAck,
                         initialMax, traceId, initialAuth, affinity, ex -> ex.set(extension));
@@ -1797,13 +1798,13 @@ public final class TlsClientFactory implements TlsStreamFactory
             private void doNetEnd(
                 long traceId)
             {
-                if (TlsState.initialOpening(state) &&
-                    !TlsState.initialClosed(state) &&
+                if (StreamState.initialOpening(state) &&
+                    !StreamState.initialClosed(state) &&
                     handshakeTaskFutureId == NO_CANCEL_ID)
                 {
                     doEnd(net, originId, routedId, initialId, initialSeq, initialAck,
                             initialMax, traceId, replyAuth, EMPTY_EXTENSION);
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                 }
 
                 cleanupEncodeSlot();
@@ -1812,11 +1813,11 @@ public final class TlsClientFactory implements TlsStreamFactory
             private void doNetAbort(
                 long traceId)
             {
-                if (!TlsState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     doAbort(net, originId, routedId, initialId, initialSeq, initialAck,
                             initialMax, traceId, replyAuth, EMPTY_EXTENSION);
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                 }
 
                 cleanupEncodeSlot();
@@ -1835,10 +1836,10 @@ public final class TlsClientFactory implements TlsStreamFactory
             private void doNetReset(
                 long traceId)
             {
-                if (!TlsState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     doReset(net, originId, routedId, replyId, replySeq, replyAck, initialMax, traceId, replyAuth);
-                    state = TlsState.closeReply(state);
+                    state = StreamState.closeReply(state);
                 }
 
                 cleanupDecodeSlot();
@@ -1921,7 +1922,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     cleanupEncodeSlot();
 
-                    if (TlsState.initialClosing(state) &&
+                    if (StreamState.initialClosing(state) &&
                         tlsEngine.isOutboundDone())
                     {
                         doNetEnd(traceId);
@@ -1968,7 +1969,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     cleanupDecodeSlot();
 
-                    if (TlsState.replyClosed(state))
+                    if (StreamState.replyClosed(state))
                     {
                         stream.ifPresent(s -> s.doAppAbort(traceId));
 
@@ -2122,7 +2123,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                             case CLOSED:
                                 assert bytesProduced > 0;
                                 doAppReset(traceId);
-                                state = TlsState.closingInitial(state);
+                                state = StreamState.closingInitial(state);
                                 break loop;
                             case OK:
                                 assert bytesProduced > 0 || tlsEngine.isInboundDone();
@@ -2177,7 +2178,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 long budgetId)
             {
                 tlsEngine.closeOutbound();
-                state = TlsState.closingInitial(state);
+                state = StreamState.closingInitial(state);
 
                 doEncodeWrapIfNecessary(traceId, budgetId);
             }
@@ -2225,7 +2226,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             private void cancelHandshakeTask()
             {
-                assert TlsState.closed(state);
+                assert StreamState.closed(state);
 
                 if (handshakeTaskFutureId != NO_CANCEL_ID)
                 {
@@ -2249,6 +2250,6 @@ public final class TlsClientFactory implements TlsStreamFactory
         int state,
         Optional<TlsStream> stream)
     {
-        return TlsState.closed(state) ? NULL_STREAM : stream;
+        return StreamState.closed(state) ? NULL_STREAM : stream;
     }
 }
