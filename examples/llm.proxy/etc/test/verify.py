@@ -141,6 +141,13 @@
 #  35. a Responses SDK client asking for a gemini-* model is served by
 #      mock-gemini and parses a Response object translated from the native Gemini
 #      response, text and function calls, streamed or not
+#  36. a model whose server answers 429 with Retry-After opens its circuit: every
+#      request for gpt-limited is served by its fallback model, each worker
+#      thread of the gateway opens its own circuit so the server answers 429 to
+#      a few requests, then the count stops rising, well below the requests
+#      sent, and a request for another model on the same south_llm_client_openai
+#      binding is still served, all read from the http.duration count of the
+#      binding by response status, scraped from the prometheus exporter
 
 import json
 import os
@@ -569,6 +576,78 @@ def check_anthropic_fallback_unreachable():
     resp = anthropic_message("claude-unreachable", streaming=False)
     assert "secondary anthropic-dialect deployment" in resp.content[0].text, resp
     assert resp.model == "claude-3-5-haiku-20241022", resp
+
+
+# Scrapes the http.duration samples of a binding into {status: count}.
+def scrape_http_status_counts(binding):
+    with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
+        text = resp.read().decode()
+    counts = {}
+    for line in text.splitlines():
+        match = re.match(r'^http_duration_milliseconds_count\{([^}]*)\} (\S+)$', line)
+        if match:
+            labels = dict(re.findall(r'(\w+)="([^"]*)"', match.group(1)))
+            if labels.get("binding") == binding and "status" in labels:
+                counts[labels["status"]] = counts.get(labels["status"], 0) + float(match.group(2))
+    return counts
+
+
+def http_metric_lines():
+    with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
+        text = resp.read().decode()
+    return "\n".join(line for line in text.splitlines() if line.startswith("http_duration_milliseconds_count"))
+
+
+def await_status_count(binding, status, expected):
+    for _ in range(20):
+        if scrape_http_status_counts(binding).get(status, 0) == expected:
+            return
+        time.sleep(0.25)
+    raise AssertionError(
+        f"{binding} http.duration count for {status} is {scrape_http_status_counts(binding).get(status, 0)}, "
+        f"not {expected}; http_duration samples:\n{http_metric_lines()}")
+
+
+# WHEN: an OpenAI SDK client asks for gpt-limited over and over, whose server
+#       answers 429 with Retry-After and whose route lists gpt-4o as its fallback
+# THEN: every request is served by the fallback model. Each worker thread of the
+#       gateway opens its own circuit for gpt-limited on south_llm_client_openai,
+#       so the first request each worker handles reaches the server and is
+#       answered 429, and once that worker's circuit is open its requests skip
+#       the server. The 429 count therefore rises for a few requests, stops
+#       rising, and ends well below the number of requests sent. A request for
+#       another model on the same binding is still served
+GPT_LIMITED_STABLE_REQUESTS = 8
+GPT_LIMITED_MAXIMUM_REQUESTS = 200
+
+
+def check_openai_circuit_failover():
+    binding = "south_llm_client_openai"
+    before = scrape_http_status_counts(binding)
+    base = before.get("429", 0)
+
+    sent = 0
+    stable = 0
+    last = base
+    progression = []
+    while stable < GPT_LIMITED_STABLE_REQUESTS and sent < GPT_LIMITED_MAXIMUM_REQUESTS:
+        resp = openai_chat("gpt-limited", streaming=False)
+        assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
+        sent += 1
+        time.sleep(0.3)
+        count = scrape_http_status_counts(binding).get("429", 0)
+        stable = stable + 1 if count == last else 0
+        last = count
+        progression.append(count - base)
+
+    assert last > base, f"the server never answered 429: {progression}"
+    assert stable >= GPT_LIMITED_STABLE_REQUESTS, f"429 count kept rising over {sent} requests: {progression}"
+    assert last - base < sent, f"every request reached the server: {progression}\n{http_metric_lines()}"
+
+    resp = openai_chat("gpt-4", streaming=False)
+    assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
+    await_status_count(binding, "200", before.get("200", 0) + 1)
+    assert scrape_http_status_counts(binding).get("429", 0) == last, f"429 count moved: {progression}"
 
 
 # WHEN: a client sends a model that neither the claude-* nor the gpt-* route
@@ -1457,6 +1536,7 @@ run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
 run_check("anthropic_tools_secondary_streaming", check_anthropic_tools_secondary_streaming)
 run_check("anthropic_fallback_unreachable", check_anthropic_fallback_unreachable)
+run_check("openai_circuit_failover", check_openai_circuit_failover, attempts=1)
 run_check("openai_other_model_same_dialect", check_openai_other_model_same_dialect)
 run_check("anthropic_other_model_same_dialect", check_anthropic_other_model_same_dialect)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)
