@@ -593,7 +593,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         BeginFW begin)
     {
         doReset(sender, begin.originId(), begin.routedId(), begin.streamId(), begin.sequence(), begin.acknowledge(),
-            begin.maximum(), begin.traceId(), begin.authorization());
+            StreamState.closeInitial(0), begin.maximum(), begin.traceId(), begin.authorization());
 
         // ignore DATA, FLUSH, END, ABORT
         return (t, b, i, l) -> {};
