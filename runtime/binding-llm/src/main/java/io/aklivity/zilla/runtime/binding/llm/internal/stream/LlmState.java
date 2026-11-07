@@ -26,6 +26,7 @@ final class LlmState
     private static final int REPLY_CLOSED = 0x08;
     private static final int INITIAL_END_DEFERRED = 0x100;
     private static final int REPLY_END_DEFERRED = 0x200;
+    private static final int INITIAL_REPLAYING = 0x400;
 
     static int openingInitial(
         int state)
@@ -154,6 +155,26 @@ final class LlmState
         int state)
     {
         return (state & REPLY_END_DEFERRED) != 0;
+    }
+
+    // Marks that the initial direction is being sent from the retained request rather than relayed from
+    // the sender, so an END that arrives meanwhile is deferred until the retained request has been sent.
+    static int replayInitial(
+        int state)
+    {
+        return state | INITIAL_REPLAYING;
+    }
+
+    static int clearInitialReplaying(
+        int state)
+    {
+        return state & ~INITIAL_REPLAYING;
+    }
+
+    static boolean initialReplaying(
+        int state)
+    {
+        return (state & INITIAL_REPLAYING) != 0;
     }
 
     private LlmState()

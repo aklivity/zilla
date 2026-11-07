@@ -214,14 +214,20 @@ public final class ProtobufReader
 
     public int readLength()
     {
-        int length = readVarint32();
+        int length = readLengthPrefix();
         if (!starved)
         {
-            if (length < 0)
-            {
-                throw new ProtobufParsingException("negative length " + length);
-            }
             require(length);
+        }
+        return length;
+    }
+
+    public int readLengthPrefix()
+    {
+        int length = readVarint32();
+        if (!starved && length < 0)
+        {
+            throw new ProtobufParsingException("negative length " + length);
         }
         return length;
     }

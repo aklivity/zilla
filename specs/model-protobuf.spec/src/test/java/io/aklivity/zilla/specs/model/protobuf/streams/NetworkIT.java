@@ -95,4 +95,14 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.protobuf.binary.nested.large/client",
+        "${net}/client.sent.protobuf.binary.nested.large/server"
+    })
+    public void shouldForwardProtobufBinaryNestedLargerThanSlot() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -27,6 +28,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ProtobufModelIT
 {
@@ -152,6 +154,18 @@ public class ProtobufModelIT
         "${app}/client.received.protobuf.json.ext.uppercase/server"
     })
     public void shouldDeclareExtendedPipelineWhenReceivedProtobufJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.binary.nested.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "64")
+    @Specification({
+        "${net}/client.sent.protobuf.binary.nested.large/client",
+        "${app}/client.sent.protobuf.binary.nested.large/server"
+    })
+    public void shouldForwardProtobufBinaryNestedLargerThanSlot() throws Exception
     {
         k3po.finish();
     }
