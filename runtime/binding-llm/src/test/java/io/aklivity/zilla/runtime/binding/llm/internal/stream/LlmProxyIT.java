@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmProxyIT
 {
@@ -504,6 +505,215 @@ public class LlmProxyIT
         "${app}/openai.proxy.fallback.refused/server",
         "${app}/openai.proxy.fallback.accepted/server"})
     public void shouldFallbackToNextModelWhenExitRefusesStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldFallbackWhenExitFailsAfterRequestSent503() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 429"})
+    public void shouldFallbackWhenExitFailsAfterRequestSent429() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 400"})
+    public void shouldNotFallbackWhenExitRejectsRequest400() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 401"})
+    public void shouldNotFallbackWhenExitRejectsRequest401() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 404"})
+    public void shouldNotFallbackWhenExitRejectsRequest404() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "shouldRetry 0"})
+    public void shouldNotFallbackWhenExitAdvisesNoRetry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed.reset/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    public void shouldFallbackWhenExitResetsWithoutStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.aborted/client",
+        "${app}/openai.proxy.fallback.complete.failed.aborted/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    public void shouldFallbackWhenExitAbortsAfterRequestSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.failed.fallback/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    public void shouldReturnLastErrorWhenEveryExitFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.incomplete/client",
+        "${app}/openai.proxy.fallback.incomplete/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    public void shouldNotFallbackWhenRequestIsIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.masked/client",
+        "${app}/openai.proxy.fallback.complete.failed.masked/server",
+        "${app}/openai.proxy.fallback.complete.replayed.masked/server"})
+    public void shouldNotRerunGuardrailStagesOnFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.replied.failed/client",
+        "${app}/openai.proxy.fallback.replied.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    public void shouldNotFallbackAfterReplyBegins() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Configure(name = "zilla.binding.llm.fallback.status", value = "500")
+    public void shouldNotFallbackWhenStatusIsNotConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @ScriptProperty({"status 418"})
+    @Configure(name = "zilla.binding.llm.fallback.status", value = "418")
+    public void shouldFallbackWhenStatusIsConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @Configure(name = "zilla.binding.llm.fallback.request.memory.max.bytes", value = "0")
+    public void shouldFallbackWithRequestSpilledToFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Configure(name = "zilla.binding.llm.fallback.request.max.bytes", value = "1")
+    public void shouldServeWithoutFallbackWhenRequestExceedsRequestBound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Configure(name = "zilla.binding.llm.fallback.request.memory.retention.bytes", value = "1")
+    public void shouldServeWithoutFallbackWhenRequestExceedsMemoryBound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Configure(name = "zilla.binding.llm.fallback.request.memory.max.bytes", value = "0")
+    @Configure(name = "zilla.binding.llm.fallback.request.retention.bytes", value = "1")
+    public void shouldServeWithoutFallbackWhenRequestExceedsDiskBound() throws Exception
     {
         k3po.finish();
     }

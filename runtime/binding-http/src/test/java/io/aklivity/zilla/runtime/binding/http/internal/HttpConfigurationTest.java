@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_BREAKER_COOLDOWN;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONNECTION_WINDOW;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
@@ -28,6 +32,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_USER_AGENT_HEADER;
 import static org.junit.Assert.assertEquals;
 
+import java.time.Duration;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -49,6 +54,11 @@ public class HttpConfigurationTest
     public static final String HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME =
         "zilla.binding.http.sse.initial.comment.enabled";
     public static final String HTTP_SSE_MAXIMUM_IDLE_TIME_NAME = "zilla.binding.http.sse.maximum.idle.time";
+    public static final String HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME = "zilla.binding.http.client.breaker.failure.threshold";
+    public static final String HTTP_CLIENT_BREAKER_COOLDOWN_NAME = "zilla.binding.http.client.breaker.cooldown";
+    public static final String HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM_NAME =
+        "zilla.binding.http.client.breaker.retry.after.maximum";
+    public static final String HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM_NAME = "zilla.binding.http.client.breaker.circuits.maximum";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -64,6 +74,38 @@ public class HttpConfigurationTest
         assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
         assertEquals(HTTP_SSE_INITIAL_COMMENT_ENABLED.name(), HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME);
         assertEquals(HTTP_SSE_MAXIMUM_IDLE_TIME.name(), HTTP_SSE_MAXIMUM_IDLE_TIME_NAME);
+        assertEquals(HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD.name(), HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME);
+        assertEquals(HTTP_CLIENT_BREAKER_COOLDOWN.name(), HTTP_CLIENT_BREAKER_COOLDOWN_NAME);
+        assertEquals(HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM.name(), HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM_NAME);
+        assertEquals(HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM.name(), HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM_NAME);
+    }
+
+    @Test
+    public void shouldDefaultClientBreakerProperties() throws Exception
+    {
+        final HttpConfiguration config = new HttpConfiguration(new Configuration());
+
+        assertEquals(5, config.clientBreakerFailureThreshold());
+        assertEquals(Duration.ofSeconds(30), config.clientBreakerCooldown());
+        assertEquals(Duration.ofMinutes(1), config.clientBreakerRetryAfterMaximum());
+        assertEquals(1024, config.clientBreakerCircuitsMaximum());
+    }
+
+    @Test
+    public void shouldParseClientBreakerDurations() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME, "3");
+        properties.setProperty(HTTP_CLIENT_BREAKER_COOLDOWN_NAME, "PT0.5S");
+        properties.setProperty(HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM_NAME, "PT2M");
+        properties.setProperty(HTTP_CLIENT_BREAKER_CIRCUITS_MAXIMUM_NAME, "16");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(3, config.clientBreakerFailureThreshold());
+        assertEquals(Duration.ofMillis(500), config.clientBreakerCooldown());
+        assertEquals(Duration.ofMinutes(2), config.clientBreakerRetryAfterMaximum());
+        assertEquals(16, config.clientBreakerCircuitsMaximum());
     }
 
     @Test
