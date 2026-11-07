@@ -64,18 +64,22 @@ public interface ProtobufSource
 
     /**
      * Non-owning view of the bytes of a {@code string} / {@code bytes} scalar, of the current value
-     * chunk, of the current segment slice, or of the whole message at a {@link ProtobufEvent#START_MESSAGE};
-     * its {@code [0, capacity())} is the slice. Valid on-stack only.
+     * chunk, of the current segment slice, or of the bytes of the message resident in the current window at a
+     * {@link ProtobufEvent#START_MESSAGE}; its {@code [0, capacity())} is the slice. Valid on-stack only.
      */
     DirectBufferEx segment();
 
     /**
      * The number of bytes of the current value still to come after this slice — {@code 0} on the last
-     * (or only) piece, and {@code 0} for every event that is not a value piece. A length-delimited value
+     * (or only) piece, and {@code 0} for every event that is not a value piece or a nested
+     * {@link ProtobufEvent#START_MESSAGE}. At a nested {@code START_MESSAGE} it is the part of the declared body
+     * length not yet resident in the window, so {@link #segment()} plus this is the declared length. A length-delimited value
      * larger than the input window arrives as repeated pieces with a decreasing {@code deferredBytes()},
      * mirroring the generator's {@code writeSegment(..., deferred)}: a leaf {@code string}/{@code bytes}
      * scalar streams as repeated {@link ProtobufEvent#VALUE}s, a raw composite as repeated
-     * {@link ProtobufEvent#SEGMENT}s.
+     * {@link ProtobufEvent#SEGMENT}s. A length-delimited composite reports the exact count; a group has no
+     * declared length, so it reports a nonzero value, of unspecified magnitude, on every segment but the last,
+     * and the last segment, which may be empty, reports {@code 0}.
      */
     int deferredBytes();
 }

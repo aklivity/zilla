@@ -419,6 +419,7 @@ final class ZillaPartition implements AutoCloseable
             childConfig.setThrottle(serverConfig.getThrottle());
             childConfig.setWindow(serverConfig.getWindow());
             childConfig.setBudgetId(serverConfig.getBudgetId());
+            childConfig.setCircuitId(serverConfig.getCircuitId());
             childConfig.setPadding(serverConfig.getPadding());
             childConfig.setAlignment(serverConfig.getAlignment());
             childConfig.setCapabilities(serverConfig.getCapabilities());
