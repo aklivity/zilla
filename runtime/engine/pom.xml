@@ -299,6 +299,8 @@
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineBench.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineBench$*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Responder.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Responder$*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/RetainedHeapProfiler.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/EngineTest*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/annotation/Configur*.class</include>
