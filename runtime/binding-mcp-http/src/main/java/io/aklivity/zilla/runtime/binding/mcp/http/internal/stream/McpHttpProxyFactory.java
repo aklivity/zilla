@@ -619,7 +619,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         void doMcpAbort(
             long traceId)
         {
-            doMcpBegin(traceId);
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);

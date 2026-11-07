@@ -393,8 +393,6 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            doMcpKafkaConnectBegin(sequence, acknowledge, maximum, traceId, extension);
-
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(state);
