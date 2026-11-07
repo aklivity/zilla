@@ -477,7 +477,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             replyMax = delegate.replyMax;
             state = StreamState.openingReply(state);
 
-            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -489,7 +489,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int flags,
             Flyweight payload)
         {
-            doData(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(http, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload);
 
             replySeq += reserved;
@@ -505,7 +505,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         {
             replySeq = delegate.replySeq;
 
-            doFlush(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(http, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -518,7 +518,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 replySeq = delegate.replySeq;
                 state = StreamState.closeReply(state);
 
-                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId, authorization);
             }
         }
@@ -532,7 +533,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 replySeq = delegate.replySeq;
                 state = StreamState.closeReply(state);
 
-                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                       traceId, authorization);
             }
         }
@@ -547,7 +548,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -593,7 +594,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"))
                     .build();
 
-                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, resetEx);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, resetEx);
             }
         }
     }
@@ -641,7 +643,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             state = StreamState.openingInitial(state);
 
             filesystem = newFileSystemStream(this::onFileSystemMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity, resolved);
         }
 
@@ -655,7 +657,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         {
             if (StreamState.initialOpening(state))
             {
-                doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, payload);
             }
         }
@@ -672,7 +674,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
-                doEnd(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(filesystem, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization);
             }
         }
@@ -688,7 +690,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
-                doAbort(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(filesystem, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                         traceId, authorization);
             }
         }
@@ -970,7 +973,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             {
                 state = StreamState.closeReply(state);
 
-                doReset(filesystem, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(filesystem, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId, EMPTY_EXTENSION);
             }
         }
@@ -987,7 +991,9 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 replyAck = delegate.replyAck;
                 replyMax = delegate.replyMax;
 
-                doWindow(filesystem, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.openReply(state);
+
+                doWindow(filesystem, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, budgetId, padding, capabilities);
             }
         }
@@ -1000,6 +1006,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1012,6 +1019,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1029,6 +1037,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1043,6 +1052,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1062,6 +1072,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1072,6 +1083,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1087,6 +1099,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1097,6 +1110,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1112,6 +1126,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1124,6 +1139,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1141,6 +1157,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1163,6 +1180,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1185,6 +1203,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1198,6 +1217,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1216,6 +1236,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         Flyweight extension)
@@ -1226,6 +1247,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
