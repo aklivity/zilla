@@ -443,8 +443,6 @@ public final class WsClientFactory implements WsStreamFactory
                 initialMax = client.initialMax;
                 assert initialAck <= initialSeq;
 
-                state = WsState.openReply(state);
-
                 int initialPad = paddingMin + MAXIMUM_HEADER_SIZE;
 
                 final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -525,7 +523,7 @@ public final class WsClientFactory implements WsStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = WsState.openingInitial(state);
+            state = WsState.openInitial(state);
             protocol = beginEx != null ? beginEx.protocol().asString() : null;
 
             client.doNetBegin(traceId, authorization, affinity);
