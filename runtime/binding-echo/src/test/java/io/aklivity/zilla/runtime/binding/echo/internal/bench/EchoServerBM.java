@@ -52,12 +52,18 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 /**
  * Drives an {@code echo} server through the real engine. The binding echoes the stream back, so no mock
  * provider is needed, and the result is the floor for engine, ring buffer and stream cost against which
- * other bindings are compared. Each {@code exchange} operation is one whole request: the body is sent and
- * echoed back to the end. Each {@code leave} operation opens one request, sends its body and leaves it
- * open, because the echo binding cannot withhold its reply.
- * <p>
- * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
- * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}.
+ * other bindings are compared. Echo is a raw full-duplex relay, so the benchmarks measure streams and
+ * frames, not requests:
+ * <ul>
+ * <li>{@code open} opens a stream and closes it without data, the cost of one stream's lifecycle.</li>
+ * <li>{@code stream} sends messages continuously on one long-lived stream while the echoed bytes flow back,
+ * so every operation is one message and data moves in both directions at once. The sender is paced only by
+ * the credit the binding grants.</li>
+ * <li>{@code leave} opens streams, sends a body on each and leaves them open, because the echo binding
+ * cannot withhold its reply.</li>
+ * </ul>
+ * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code open} and {@code stream},
+ * and {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -75,13 +81,20 @@ public class EchoServerBM
     private static final int LARGE_LENGTH = 10_000;
 
     @Benchmark
-    public void exchange(
+    public void open(
         Fixture fixture)
     {
-        final Client client = fixture.open();
+        final Client client = fixture.begin();
 
         client.end();
         client.awaitReplyEnd();
+    }
+
+    @Benchmark
+    public void stream(
+        Streaming fixture)
+    {
+        fixture.send();
     }
 
     @Benchmark
@@ -95,7 +108,7 @@ public class EchoServerBM
     {
         for (int request = 0; request < IN_FLIGHT; request++)
         {
-            fixture.inflight.add(fixture.open());
+            fixture.inflight.add(fixture.request());
         }
     }
 
@@ -107,9 +120,10 @@ public class EchoServerBM
 
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
+        UnsafeBufferEx body;
+
         private EngineBench bench;
         private long echoId;
-        private UnsafeBufferEx body;
 
         @Setup(Level.Trial)
         public void init() throws Exception
@@ -134,15 +148,48 @@ public class EchoServerBM
             bench.close();
         }
 
-        Client open()
+        Client begin()
         {
             final Client client = bench.newClient(echoId, MessageConsumer.NOOP);
 
             client.begin();
             client.replyWindow(WINDOW);
+
+            return client;
+        }
+
+        Client request()
+        {
+            final Client client = begin();
+
             client.send(body, 0, body.capacity());
 
             return client;
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Streaming extends Fixture
+    {
+        private Client client;
+        private long sent;
+
+        @Setup(Level.Trial)
+        public void connect()
+        {
+            client = begin();
+        }
+
+        void send()
+        {
+            client.send(body, 0, body.capacity());
+            sent += body.capacity();
+        }
+
+        @TearDown(Level.Iteration)
+        public void drain()
+        {
+            client.awaitReplyBytes(sent);
         }
     }
 

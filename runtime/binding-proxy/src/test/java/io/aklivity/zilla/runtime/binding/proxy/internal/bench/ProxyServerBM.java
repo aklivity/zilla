@@ -44,28 +44,36 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.test.EngineBench;
 import io.aklivity.zilla.runtime.engine.test.EngineBench.Client;
+import io.aklivity.zilla.runtime.engine.test.Reflector;
 import io.aklivity.zilla.runtime.engine.test.Responder;
 import io.aklivity.zilla.runtime.engine.test.Responder.Response;
 import io.aklivity.zilla.runtime.engine.test.Responder.Trigger;
 import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 
 /**
- * Drives a {@code proxy} server through the real engine, in front of a mock application that replays a
- * response of the request's size. The binding decodes a PROXY protocol v2 header from the network stream,
- * opens an application stream carrying the decoded address, and relays the payload in both directions, so
- * the result is a baseline with an application hop and a decode state machine. Each {@code exchange}
- * operation is one whole request: the header and body are sent and the response is received to its end.
- * Each {@code leave} operation opens one request, sends it completely and leaves it in flight while the
- * application withholds the response.
+ * Drives a {@code proxy} server through the real engine, in front of a mock application. The binding
+ * decodes a PROXY protocol v2 header from the network stream, opens an application stream carrying the
+ * decoded address, and relays the payload in both directions, so the result is a baseline with an
+ * application hop and a decode state machine. Proxy is a raw full-duplex relay, so the benchmarks measure
+ * streams and frames, not requests:
+ * <ul>
+ * <li>{@code open} sends the header, opens the application stream and closes both without data, the cost
+ * of one stream's lifecycle.</li>
+ * <li>{@code stream} sends messages continuously on one long-lived stream while the application reflects
+ * them back, so every operation is one message and data moves in both directions at once. The sender is
+ * paced only by the credit the binding grants.</li>
+ * <li>{@code leave} opens streams, sends the header and a body on each and leaves them in flight while the
+ * application withholds the reply.</li>
+ * </ul>
+ * Every stream has a credit window smaller than the 10k message, so each message is sent across several
+ * windows and the benchmark exercises credit replenishment in both directions.
  * <p>
- * Every stream has a credit window smaller than the 10k message, so each request and each reply is sent
- * across several windows and the benchmark exercises credit replenishment in both directions.
- * <p>
- * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
- * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}.
+ * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code open} and {@code stream},
+ * and {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -90,13 +98,20 @@ public class ProxyServerBM
     private static final int LARGE_LENGTH = 10_000;
 
     @Benchmark
-    public void exchange(
-        Replying fixture)
+    public void open(
+        Opening fixture)
     {
-        final Client client = fixture.open();
+        final Client client = fixture.begin();
 
         client.end();
         client.awaitReplyEnd();
+    }
+
+    @Benchmark
+    public void stream(
+        Streaming fixture)
+    {
+        fixture.send();
     }
 
     @Benchmark
@@ -110,7 +125,7 @@ public class ProxyServerBM
     {
         for (int request = 0; request < IN_FLIGHT; request++)
         {
-            final Client client = fixture.open();
+            final Client client = fixture.request();
 
             client.end();
             fixture.inflight.add(client);
@@ -125,17 +140,14 @@ public class ProxyServerBM
 
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
-        private final boolean respond;
+        UnsafeBufferEx header;
+        UnsafeBufferEx payload;
 
         private EngineBench bench;
         private long proxyId;
         private UnsafeBufferEx request;
 
-        Fixture(
-            boolean respond)
-        {
-            this.respond = respond;
-        }
+        abstract BindingHandler server();
 
         @Setup(Level.Trial)
         public void init() throws Exception
@@ -144,27 +156,23 @@ public class ProxyServerBM
             final byte[] random = new byte[length];
             new Random(0L).nextBytes(random);
             final String text = Base64.getEncoder().withoutPadding().encodeToString(random).substring(0, length);
-            final byte[] payload = text.getBytes(UTF_8);
+            final byte[] body = text.getBytes(UTF_8);
 
-            final byte[] message = new byte[HEADER.length + payload.length];
+            final byte[] message = new byte[HEADER.length + body.length];
             System.arraycopy(HEADER, 0, message, 0, HEADER.length);
-            System.arraycopy(payload, 0, message, HEADER.length, payload.length);
+            System.arraycopy(body, 0, message, HEADER.length, body.length);
 
             bench = new EngineBench()
                 .directory("target/zilla-bench")
                 .external("app0")
                 .start(CONFIGURATION);
 
+            header = new UnsafeBufferEx(HEADER);
+            payload = new UnsafeBufferEx(body);
             request = new UnsafeBufferEx(message);
             proxyId = bench.bindingId("net0");
 
-            final Response response = new Response(
-                new byte[0],
-                new byte[][] { new byte[0] },
-                new byte[][] { payload },
-                new byte[0],
-                0);
-            bench.newServer("app0", new Responder(WINDOW, Trigger.END, respond ? response : null));
+            bench.newServer("app0", server());
         }
 
         @TearDown(Level.Trial)
@@ -174,7 +182,18 @@ public class ProxyServerBM
             bench.close();
         }
 
-        Client open()
+        Client begin()
+        {
+            final Client client = bench.newClient(proxyId, MessageConsumer.NOOP);
+
+            client.begin();
+            client.replyWindow(WINDOW);
+            client.send(header, 0, header.capacity());
+
+            return client;
+        }
+
+        Client request()
         {
             final Client client = bench.newClient(proxyId, MessageConsumer.NOOP);
 
@@ -187,20 +206,53 @@ public class ProxyServerBM
     }
 
     @State(Scope.Benchmark)
-    public static class Replying extends Fixture
+    public static class Opening extends Fixture
     {
-        public Replying()
+        @Override
+        BindingHandler server()
         {
-            super(true);
+            return new Responder(WINDOW, Trigger.END, Response.EMPTY);
         }
     }
 
     @State(Scope.Benchmark)
     public static class Withholding extends Fixture
     {
-        public Withholding()
+        @Override
+        BindingHandler server()
         {
-            super(false);
+            return new Responder(WINDOW, Trigger.END, null);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Streaming extends Fixture
+    {
+        private Client client;
+        private long sent;
+
+        @Override
+        BindingHandler server()
+        {
+            return new Reflector();
+        }
+
+        @Setup(Level.Trial)
+        public void connect()
+        {
+            client = begin();
+        }
+
+        void send()
+        {
+            client.send(payload, 0, payload.capacity());
+            sent += payload.capacity();
+        }
+
+        @TearDown(Level.Iteration)
+        public void drain()
+        {
+            client.awaitReplyBytes(sent);
         }
     }
 
