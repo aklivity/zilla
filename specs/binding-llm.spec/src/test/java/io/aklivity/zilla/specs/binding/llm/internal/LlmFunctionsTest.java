@@ -911,6 +911,65 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateAndMatchResetExProviderAdvice() throws Exception
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .status(503)
+            .shouldRetry(0)
+            .retryAfter(30)
+            .build();
+
+        LlmResetExFW resetEx = new LlmResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(0, resetEx.error().shouldRetry());
+        assertEquals(30, resetEx.error().retryAfter());
+
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .shouldRetry(0)
+            .retryAfter(30)
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchAbortExProviderAdvice() throws Exception
+    {
+        byte[] bytes = LlmFunctions.abortEx()
+            .typeId(0)
+            .status(429)
+            .shouldRetry(1)
+            .retryAfter(5)
+            .build();
+
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .status(429)
+            .shouldRetry(1)
+            .retryAfter(5)
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailMatchResetExRetryAfterMismatch() throws Exception
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .status(503)
+            .retryAfter(30)
+            .build();
+
+        LlmFunctions.matchResetEx()
+            .typeId(0)
+            .retryAfter(31)
+            .build()
+            .match(ByteBuffer.wrap(bytes));
+    }
+
+    @Test
     public void shouldMatchResetExParamNull() throws Exception
     {
         BytesMatcher matcher = LlmFunctions.matchResetEx()
