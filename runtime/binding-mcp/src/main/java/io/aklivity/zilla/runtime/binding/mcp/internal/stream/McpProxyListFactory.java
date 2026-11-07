@@ -417,7 +417,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     doEnd(sender, originId, routedId, initialId,
                         initialSeq, initialAck, initialMax, traceId, server.authorization);
                 }
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
             }
         }
 
@@ -431,7 +431,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     doAbort(sender, originId, routedId, initialId,
                         initialSeq, initialAck, initialMax, traceId, server.authorization);
                 }
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
             }
         }
 
@@ -445,7 +445,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     doReset(sender, originId, routedId, replyId,
                         replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
                 }
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -456,7 +456,7 @@ abstract class McpProxyListFactory implements BindingHandler
         {
             if (McpState.initialOpening(state))
             {
-                state = McpState.openedReply(state);
+                state = McpState.openReply(state);
                 doWindow(sender, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
             }
@@ -527,7 +527,7 @@ abstract class McpProxyListFactory implements BindingHandler
             replySeq = sequence;
             replyAck = acknowledge;
 
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
 
             flushClientWindow(traceId, 0L, 0, 0L, decodeMax);
         }
@@ -560,7 +560,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 final MutableDirectBufferEx slot = bufferPool.buffer(replySlot);
                 if (replySlotOffset + (limit - offset) > slot.capacity())
                 {
-                    state = McpState.closedReply(state);
+                    state = McpState.closeReply(state);
                     server.onClientError(traceId);
                     return;
                 }
@@ -595,7 +595,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             cleanupClientSlot();
             doClientEnd(traceId);
             server.anySucceeded = true;
@@ -617,7 +617,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             cleanupClientSlot();
             server.onClientError(traceId);
         }
@@ -661,7 +661,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             doClientReset(traceId);
             server.onClientError(traceId);
         }
@@ -708,7 +708,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     replySlot = bufferPool.acquire(initialId);
                     if (replySlot == NO_SLOT)
                     {
-                        state = McpState.closedReply(state);
+                        state = McpState.closeReply(state);
                         server.onClientError(traceId);
                         return;
                     }
@@ -716,7 +716,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 final MutableDirectBufferEx slot = bufferPool.buffer(replySlot);
                 if (retained > slot.capacity())
                 {
-                    state = McpState.closedReply(state);
+                    state = McpState.closeReply(state);
                     server.onClientError(traceId);
                     return;
                 }
@@ -1681,7 +1681,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             if (client != null)
             {
@@ -1708,7 +1708,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             if (client != null)
             {
@@ -1769,7 +1769,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             cleanupEncodeSlot();
 
             if (client != null)
@@ -2032,7 +2032,7 @@ abstract class McpProxyListFactory implements BindingHandler
 
             doBegin(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, beginEx);
-            state = McpState.openedReply(state);
+            state = McpState.openingReply(state);
         }
 
         private void doServerEnd(
@@ -2042,7 +2042,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 doEnd(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 if (McpState.closed(state))
                 {
                     onClientClosed(traceId);
@@ -2057,7 +2057,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 doAbort(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 cleanupEncodeSlot();
                 if (McpState.closed(state))
                 {
@@ -2071,7 +2071,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             doWindow(sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
         }
@@ -2300,7 +2300,7 @@ abstract class McpProxyListFactory implements BindingHandler
             EndFW end)
         {
             initialSeq = end.sequence();
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             emitIfReady(end.traceId());
         }
 
@@ -2308,7 +2308,7 @@ abstract class McpProxyListFactory implements BindingHandler
             AbortFW abort)
         {
             initialSeq = abort.sequence();
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             doServerAbort(abort.traceId());
         }
 
@@ -2318,7 +2318,7 @@ abstract class McpProxyListFactory implements BindingHandler
             replyAck = window.acknowledge();
             replyMax = window.maximum();
             replyPad = window.padding();
-            state = McpState.openedReply(state);
+            state = McpState.openReply(state);
             emitIfReady(window.traceId());
         }
 
@@ -2326,7 +2326,7 @@ abstract class McpProxyListFactory implements BindingHandler
             ResetFW reset)
         {
             replyAck = reset.acknowledge();
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
         }
 
         private void emitIfReady(
@@ -2402,7 +2402,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 doEnd(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -2413,7 +2413,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 doAbort(lifecycle.sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -2422,7 +2422,7 @@ abstract class McpProxyListFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             doWindow(lifecycle.sender, lifecycle.originId, lifecycle.routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding);
         }
