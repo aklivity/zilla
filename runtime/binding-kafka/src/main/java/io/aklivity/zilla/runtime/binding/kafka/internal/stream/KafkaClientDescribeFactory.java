@@ -747,7 +747,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -757,7 +757,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -789,7 +789,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -856,7 +856,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 //client.stream = nullIfClosed(state, client.stream);
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
@@ -866,7 +866,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         private void doApplicationAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, client.authorization, EMPTY_EXTENSION);
@@ -888,7 +888,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
@@ -899,7 +899,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             long traceId,
             Flyweight extension)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -1144,7 +1144,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             {
                 final long traceId = end.traceId();
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
 
                 cleanupDecodeSlotIfNecessary();
 
@@ -1163,7 +1163,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             {
                 final long traceId = abort.traceId();
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
 
                 cleanupNetwork(traceId);
             }
@@ -1173,7 +1173,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             {
                 final long traceId = reset.traceId();
 
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 cleanupNetwork(traceId);
             }
@@ -1204,7 +1204,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 this.authorization = window.authorization();
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
                 {
@@ -1297,7 +1297,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 long traceId,
                 long authorization)
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 cleanupEncodeSlotIfNecessary();
                 cleanupBudgetIfNecessary();
@@ -1315,7 +1315,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 {
                     doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
-                    state = KafkaState.closedInitial(state);
+                    state = KafkaState.closeInitial(state);
                 }
 
                 cleanupEncodeSlotIfNecessary();
@@ -1331,7 +1331,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 {
                     doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, EMPTY_OCTETS);
-                    state = KafkaState.closedReply(state);
+                    state = KafkaState.closeReply(state);
                 }
 
                 cleanupDecodeSlotIfNecessary();
@@ -1355,7 +1355,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                     replyMax = minReplyMax;
 
-                    state = KafkaState.openedReply(state);
+                    state = KafkaState.openReply(state);
 
                     doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, budgetId, minReplyPad);

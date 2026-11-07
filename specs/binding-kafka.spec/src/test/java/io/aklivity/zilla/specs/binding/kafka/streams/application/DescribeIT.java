@@ -66,6 +66,15 @@ public class DescribeIT
 
     @Test
     @Specification({
+        "${app}/topic.config.info.window.before.begin/client",
+        "${app}/topic.config.info.window.before.begin/server"})
+    public void shouldReceiveTopicConfigInfoWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.config.info.synonyms/client",
         "${app}/topic.config.info.synonyms/server"})
     public void shouldReceiveTopicConfigInfoWithSynonyms() throws Exception

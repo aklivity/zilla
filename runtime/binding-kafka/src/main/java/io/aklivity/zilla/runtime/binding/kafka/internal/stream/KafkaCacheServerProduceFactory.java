@@ -595,7 +595,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 doServerFanInitialEndIfNecessary(traceId);
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
             }
         }
 
@@ -889,13 +889,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void onServerFanInitialOpened()
         {
             assert !KafkaState.initialOpened(state);
-            state = KafkaState.openedInitial(state);
+            state = KafkaState.openInitial(state);
         }
 
         private void onServerFanInitialClosed()
         {
             assert !KafkaState.initialClosed(state);
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             initialFlags = NONE;
             initialSeq = 0;
@@ -981,7 +981,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             doServerFanInitialEndIfNecessary(traceId);
 
@@ -1018,7 +1018,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             doServerFanInitialAbortIfNecessary(traceId);
 
@@ -1053,7 +1053,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doServerFanReplyReset(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1074,7 +1074,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
 
                 doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, minReplyPad);
@@ -1231,7 +1231,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             if (messageOffset == 0)
             {
@@ -1246,7 +1246,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             if (messageOffset == 0)
             {
@@ -1490,14 +1490,14 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerInitialReset(traceId, extension);
             }
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
         }
 
         private void doServerInitialReset(
             long traceId,
             Flyweight extension)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -1527,7 +1527,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, fan.creditorId, fan.initialPad);
@@ -1613,13 +1613,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerReplyEnd(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doServerReplyEnd(
                 long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -1632,13 +1632,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerReplyAbort(traceId);
             }
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
         }
 
         private void doServerReplyAbort(
                 long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
@@ -1656,7 +1656,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             assert budgetId == 0L;
             assert padding == 0;
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openReply(state);
             isProgressing = true;
             fan.doServerFanInitialDataIfNecessary(traceId);
         }
@@ -1666,7 +1666,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             if (messageOffset  == 0)
             {

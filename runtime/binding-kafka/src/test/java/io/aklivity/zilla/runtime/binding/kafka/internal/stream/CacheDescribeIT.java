@@ -78,6 +78,17 @@ public class CacheDescribeIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/topic.config.info.window.before.begin/client",
+        "${app}/topic.config.info.window.before.begin/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveTopicConfigInfoWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/topic.config.info.changed/client",
         "${app}/topic.config.info.changed/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

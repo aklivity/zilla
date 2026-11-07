@@ -87,6 +87,17 @@ public class CacheMetaIT
     @Test
     @Configuration("cache.when.topic.yaml")
     @Specification({
+        "${app}/topic.partition.info.window.before.begin/client",
+        "${app}/topic.partition.info/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldTopicPartitionInfoWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.when.topic.yaml")
+    @Specification({
         "${app}/topic.partition.info.changed/client",
         "${app}/topic.partition.info.changed/server"
         })

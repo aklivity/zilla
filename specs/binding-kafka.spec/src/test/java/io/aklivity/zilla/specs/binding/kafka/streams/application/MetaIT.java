@@ -75,6 +75,15 @@ public class MetaIT
 
     @Test
     @Specification({
+        "${app}/topic.partition.info.window.before.begin/client",
+        "${app}/topic.partition.info.window.before.begin/server"})
+    public void shouldTopicPartitionInfoWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.unknown/client",
         "${app}/topic.unknown/server"})
     public void shouldReceiveTopicPartitionInfoWhenTopicUnknown() throws Exception

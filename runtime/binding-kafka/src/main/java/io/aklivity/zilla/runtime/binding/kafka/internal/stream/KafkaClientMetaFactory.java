@@ -928,7 +928,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush);
 
             client.doNetworkEnd(traceId, authorization);
@@ -939,7 +939,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush);
 
             client.doNetworkAbortIfNecessary(traceId);
@@ -980,7 +980,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             client.doNetworkResetIfNecessary(traceId);
         }
@@ -1037,7 +1037,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             if (!KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 //client.stream = nullIfClosed(state, client.stream);
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, client.authorization, EMPTY_EXTENSION);
@@ -1047,7 +1047,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private void doApplicationAbort(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
@@ -1069,7 +1069,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
@@ -1080,7 +1080,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             long traceId,
             Flyweight extension)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush);
             //client.stream = nullIfClosed(state, client.stream);
 
@@ -1303,7 +1303,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 final long traceId = end.traceId();
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
 
                 cancelNextRequestSignal();
 
@@ -1322,7 +1322,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 final long traceId = abort.traceId();
 
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
 
                 cleanupNetwork(traceId);
             }
@@ -1332,7 +1332,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 final long traceId = reset.traceId();
 
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 cleanupNetwork(traceId);
             }
@@ -1363,7 +1363,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 this.authorization = window.authorization();
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
                 {
@@ -1459,7 +1459,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long authorization)
             {
                 cancelNextRequestSignal();
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
@@ -1478,7 +1478,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 {
                     doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
-                    state = KafkaState.closedInitial(state);
+                    state = KafkaState.closeInitial(state);
                 }
 
                 cleanupEncodeSlotIfNecessary();
@@ -1494,7 +1494,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 {
                     doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, EMPTY_OCTETS);
-                    state = KafkaState.closedReply(state);
+                    state = KafkaState.closeReply(state);
                 }
 
                 cleanupDecodeSlotIfNecessary();
@@ -1518,7 +1518,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                     replyMax = minReplyMax;
 
-                    state = KafkaState.openedReply(state);
+                    state = KafkaState.openReply(state);
 
                     doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, budgetId, minReplyPad);

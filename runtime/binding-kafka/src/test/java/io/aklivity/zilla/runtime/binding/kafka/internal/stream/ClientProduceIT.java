@@ -238,6 +238,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/message.value.window.before.begin/client",
+        "${net}/message.value/server"})
+    public void shouldMessageValueWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/message.empty.crc/client",
         "${net}/message.empty.crc/server"})
     public void shouldSendMessageEmptyWithCrc() throws Exception
