@@ -787,8 +787,19 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.closingReply(state);
-                contentType.doNetAbort(this, traceId, authorization, status, message);
+                if (StreamState.replyOpening(state))
+                {
+                    state = StreamState.closingReply(state);
+                    contentType.doNetAbort(this, traceId, authorization, status, message);
+                }
+                else
+                {
+                    state = StreamState.abortingReply(state);
+                    state = StreamState.closeReply(state);
+
+                    doAbort(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                        traceId, authorization, EMPTY_OCTETS);
+                }
 
                 cleanupExpiringIfNecessary();
             }
