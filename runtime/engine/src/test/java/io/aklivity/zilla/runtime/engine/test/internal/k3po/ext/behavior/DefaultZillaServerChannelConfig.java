@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CIRCUIT_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDABLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
@@ -303,6 +304,10 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
         else if (OPTION_BYTE_ORDER.getName().equals(key))
         {
             setBufferFactory(ZillaByteOrder.decode(Objects.toString(value, "native")).toBufferFactory());
+        }
+        else if (OPTION_CIRCUIT_ID.getName().equals(key))
+        {
+            setCircuitId(convertToLong(value));
         }
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {

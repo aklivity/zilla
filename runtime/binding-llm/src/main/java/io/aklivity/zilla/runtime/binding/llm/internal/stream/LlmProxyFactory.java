@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGuardEnve
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.EnumMap;
@@ -35,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrail;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrailStage;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
+import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -89,6 +91,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private static final DirectBufferEx EMPTY_SOURCE = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_SOURCE, 0, 0);
     private static final int STATUS_BAD_REQUEST = 400;
+    private static final int RETENTION_IO_CAPACITY = 64 * 1024;
+    private static final int RETENTION_EXTENSION_CAPACITY = 1024;
+    private static final int NO_ADVICE = -1;
+    private static final int ADVICE_NO_RETRY = 0;
     private static final int NO_USAGE = -1;
     private static final String ARGUMENTS_MEMBER = "arguments";
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
@@ -136,9 +142,24 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final int llmTypeId;
     private final EngineContext context;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
+    private final LlmConfiguration config;
+    private final LlmRetentionBudget retentionBudget;
+    private final int[] fallbackStatus;
+    private final ByteBuffer retentionIo;
+    private final MutableDirectBufferEx retentionIoBuffer;
+    private final UnsafeBufferEx retainPayloadRO = new UnsafeBufferEx();
+    private final UnsafeBufferEx retainExtensionRO = new UnsafeBufferEx();
+    private final MutableDirectBufferEx replayBuffer;
+    private final MutableDirectBufferEx replayExtensionBuffer;
+    private final OctetsFW replayPayloadRO = new OctetsFW();
+    private final OctetsFW replayExtensionRO = new OctetsFW();
+    private final LlmResetExFW llmResetExRO = new LlmResetExFW();
+    private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
 
     public LlmProxyFactory(
-        EngineContext context)
+        EngineContext context,
+        LlmConfiguration config,
+        LlmRetentionBudget retentionBudget)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -153,6 +174,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
+        this.config = config;
+        this.retentionBudget = retentionBudget;
+        this.fallbackStatus = config.fallbackStatus();
+        this.retentionIo = ByteBuffer.allocateDirect(RETENTION_IO_CAPACITY);
+        this.retentionIoBuffer = new UnsafeBufferEx(retentionIo);
+        this.replayBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity() / 2]);
+        this.replayExtensionBuffer = new UnsafeBufferEx(new byte[RETENTION_EXTENSION_CAPACITY]);
     }
 
     @Override
@@ -245,6 +273,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private long beginAffinity;
         private long beginAuthorization;
         private int fallbackIndex;
+        private LlmRequestRetention retention;
 
         private long replyBudgetId;
         private int replyPadding;
@@ -341,6 +370,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this.beginAuthorization = authorization;
             }
 
+            this.retention = fallback != null ? newRetention() : null;
             this.app = new LlmClient(this);
             app.doAppBegin(traceId, authorization, affinity, begin.extension());
         }
@@ -362,7 +392,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else
             {
-                app.doAppData(traceId, authorization, flags, budgetId, reserved, data.payload(), data.extension());
+                doAppData(traceId, authorization, flags, budgetId, reserved, data.payload(), data.extension());
             }
         }
 
@@ -381,7 +411,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else
             {
-                app.doAppEnd(traceId, authorization, end.extension());
+                doAppEnd(traceId, authorization, end.extension());
             }
         }
 
@@ -399,6 +429,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 requestGuard.close();
             }
 
+            releaseRetention();
             app.doAppAbort(traceId, authorization, abort.extension());
         }
 
@@ -412,7 +443,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else
             {
-                app.doAppFlush(flush.traceId(), flush.authorization(), flush.budgetId(), flush.reserved(), flush.extension());
+                doAppFlush(flush.traceId(), flush.authorization(), flush.budgetId(), flush.reserved(), flush.extension());
             }
         }
 
@@ -462,6 +493,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             this.state = StreamState.closeReply(state);
 
+            releaseRetention();
             app.doAppReset(reset.traceId(), reset.authorization(), reset.extension());
         }
 
@@ -477,9 +509,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long affinity,
             OctetsFW extension)
         {
-            doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, extension);
-            this.state = StreamState.openingReply(state);
+            if (!StreamState.replyOpening(state))
+            {
+                doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, affinity, extension);
+                this.state = StreamState.openingReply(state);
+            }
         }
 
         private void doNetData(
@@ -501,6 +536,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
+            releaseRetention();
+
             if (!StreamState.replyClosed(state))
             {
                 doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
@@ -513,6 +550,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
+            releaseRetention();
+
             if (!StreamState.replyClosed(state))
             {
                 doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
@@ -577,6 +616,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this.exitId = route.id;
                 this.guardrail = requestedGuardrail.then(binding.guardrails(model));
                 this.requestGuard = guardrail.request.isEmpty() ? null : new LlmRequestGuard(guardrail.request);
+                releaseRetention();
+                this.retention = newRetention();
                 this.app = new LlmClient(this);
                 app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
 
@@ -587,6 +628,173 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
 
             return route != null;
+        }
+
+        private void doAppData(
+            long traceId,
+            long authorization,
+            int flags,
+            long budgetId,
+            int reserved,
+            OctetsFW payload,
+            OctetsFW extension)
+        {
+            retain(LlmRequestRetention.KIND_DATA, flags, payload, extension);
+            app.doAppData(traceId, authorization, flags, budgetId, reserved, payload, extension);
+        }
+
+        private void doAppEnd(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            if (app.replaying())
+            {
+                app.state = StreamState.closingInitial(app.state);
+            }
+            else
+            {
+                app.doAppEnd(traceId, authorization, extension);
+            }
+        }
+
+        private void doAppFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            retain(LlmRequestRetention.KIND_FLUSH, 0, EMPTY_OCTETS, extension);
+            app.doAppFlush(traceId, authorization, budgetId, reserved, extension);
+        }
+
+        private void retain(
+            int kind,
+            int flags,
+            OctetsFW payload,
+            OctetsFW extension)
+        {
+            if (retention != null)
+            {
+                retainPayloadRO.wrap(payload.buffer(), payload.offset(), payload.sizeof());
+                retainExtensionRO.wrap(extension.buffer(), extension.offset(), extension.sizeof());
+
+                if (!retention.append(kind, flags, retainPayloadRO, retainExtensionRO))
+                {
+                    this.retention = null;
+                }
+            }
+        }
+
+        private LlmRequestRetention newRetention()
+        {
+            return new LlmRequestRetention(retentionBudget, config.fallbackRequestDirectory(),
+                config.fallbackRequestMaxBytes(), config.fallbackRequestMemoryMaxBytes(), retentionIo, retentionIoBuffer);
+        }
+
+        private void releaseRetention()
+        {
+            if (retention != null)
+            {
+                retention.close();
+                this.retention = null;
+            }
+        }
+
+        private boolean retriableReset(
+            OctetsFW extension)
+        {
+            final LlmResetExFW resetEx = extension.get(llmResetExRO::tryWrap);
+
+            return resetEx == null || resetEx.typeId() != llmTypeId
+                ? retriable(NO_ADVICE, NO_ADVICE)
+                : retriable(resetEx.error().status(), resetEx.error().shouldRetry());
+        }
+
+        private boolean retriableAbort(
+            OctetsFW extension)
+        {
+            final LlmAbortExFW abortEx = extension.get(llmAbortExRO::tryWrap);
+
+            return abortEx == null || abortEx.typeId() != llmTypeId
+                ? retriable(NO_ADVICE, NO_ADVICE)
+                : retriable(abortEx.error().status(), abortEx.error().shouldRetry());
+        }
+
+        private boolean retriable(
+            int status,
+            int shouldRetry)
+        {
+            boolean retriable = shouldRetry != ADVICE_NO_RETRY && status == NO_ADVICE;
+
+            for (int i = 0; !retriable && shouldRetry != ADVICE_NO_RETRY && i < fallbackStatus.length; i++)
+            {
+                retriable = fallbackStatus[i] == status;
+            }
+
+            return retriable;
+        }
+
+        private boolean doRetry(
+            LlmClient failed,
+            long traceId,
+            long authorization)
+        {
+            final boolean complete = retention != null && retention.lastKind() == LlmRequestRetention.KIND_FLUSH;
+            final String model = complete ? nextFallbackModel() : null;
+
+            if (model != null)
+            {
+                failed.doAppAbort(traceId, authorization, EMPTY_OCTETS);
+
+                if (StreamState.replyOpening(failed.state))
+                {
+                    failed.doAppReset(traceId, authorization, EMPTY_OCTETS);
+                }
+
+                doReplayTo(binding.resolve(beginAuthorization, dialect, model), model, traceId, authorization);
+            }
+
+            return model != null;
+        }
+
+        private String nextFallbackModel()
+        {
+            String model = null;
+            LlmRouteConfig route = null;
+
+            while (route == null && fallback != null && fallbackIndex < fallback.size())
+            {
+                model = fallback.get(fallbackIndex++);
+                route = binding.resolve(beginAuthorization, dialect, model);
+            }
+
+            return route != null ? model : null;
+        }
+
+        private void doReplayTo(
+            LlmRouteConfig route,
+            String model,
+            long traceId,
+            long authorization)
+        {
+            if (requestGuard != null)
+            {
+                requestGuard.close();
+            }
+
+            this.exitId = route.id;
+            this.guardrail = requestedGuardrail;
+            this.requestGuard = null;
+            this.app = new LlmClient(this);
+            retention.rewind();
+            app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
+
+            if (StreamState.replyOpened(state))
+            {
+                doAppReplyWindow(traceId, authorization);
+            }
         }
 
         private OctetsFW fallbackBeginEx(
@@ -665,6 +873,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
+            releaseRetention();
+
             if (!StreamState.initialClosed(state))
             {
                 doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
@@ -708,7 +918,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 OctetsFW payload,
                 OctetsFW extension)
             {
-                app.doAppData(traceId, authorization, flags, budgetId, reserved, payload, extension);
+                doAppData(traceId, authorization, flags, budgetId, reserved, payload, extension);
             }
 
             @Override
@@ -717,7 +927,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 long authorization,
                 OctetsFW extension)
             {
-                app.doAppEnd(traceId, authorization, extension);
+                doAppEnd(traceId, authorization, extension);
             }
 
             @Override
@@ -728,7 +938,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 int reserved,
                 OctetsFW extension)
             {
-                app.doAppFlush(traceId, authorization, budgetId, reserved, extension);
+                doAppFlush(traceId, authorization, budgetId, reserved, extension);
             }
 
             @Override
@@ -894,6 +1104,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.replySeq = data.sequence() + reserved;
 
+            net.releaseRetention();
+
             if (replyGuard != null)
             {
                 replyGuard.data(traceId, authorization, flags, budgetId, reserved, data.payload(), data.extension());
@@ -912,6 +1124,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.replySeq = end.sequence();
             this.state = StreamState.closeReply(state);
+
+            net.releaseRetention();
 
             if (replyGuard != null)
             {
@@ -937,7 +1151,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 replyGuard.close();
             }
 
-            net.doNetAbort(traceId, authorization, abort.extension());
+            if (!net.retriableAbort(abort.extension()) || !net.doRetry(this, traceId, authorization))
+            {
+                net.doNetAbort(traceId, authorization, abort.extension());
+            }
         }
 
         private void onAppFlush(
@@ -973,7 +1190,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialMinimum = minimum;
             this.initialCapabilities = capabilities;
 
-            if (net.requestGuard != null)
+            if (replaying())
+            {
+                doReplay(traceId, authorization);
+            }
+            else if (net.requestGuard != null)
             {
                 net.requestGuard.onCredit(traceId, authorization);
             }
@@ -999,13 +1220,19 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private void onAppReset(
             ResetFW reset)
         {
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
             final boolean refused = !StreamState.initialOpened(state);
+
+            final boolean retried = !refused &&
+                net.retriableReset(reset.extension()) &&
+                net.doRetry(this, traceId, authorization);
 
             this.state = StreamState.closeInitial(state);
 
-            if (!refused || !net.doFallback(reset.traceId(), reset.authorization()))
+            if (!retried && (!refused || !net.doFallback(traceId, authorization)))
             {
-                net.doNetReset(reset.traceId(), reset.authorization(), reset.extension());
+                net.doNetReset(traceId, authorization, reset.extension());
             }
         }
 
@@ -1013,6 +1240,79 @@ public final class LlmProxyFactory implements LlmStreamFactory
             ChallengeFW challenge)
         {
             net.doNetChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
+        }
+
+        private boolean replaying()
+        {
+            return net.app == this && net.retention != null && net.retention.hasRecord();
+        }
+
+        private void doReplay(
+            long traceId,
+            long authorization)
+        {
+            final LlmRequestRetention retention = net.retention;
+            boolean credited = true;
+
+            while (credited && retention.hasRecord())
+            {
+                credited = retention.kind() == LlmRequestRetention.KIND_FLUSH
+                    ? doReplayFlush(traceId, authorization, retention)
+                    : doReplayData(traceId, authorization, retention);
+            }
+
+            if (!retention.hasRecord() && StreamState.initialClosing(state) && !StreamState.initialClosed(state))
+            {
+                doAppEnd(traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private boolean doReplayFlush(
+            long traceId,
+            long authorization,
+            LlmRequestRetention retention)
+        {
+            final int extensionLength = retention.readExtension(replayExtensionBuffer, 0);
+
+            doAppFlush(traceId, authorization, initialBudgetId, 0,
+                replayExtensionRO.wrap(replayExtensionBuffer, 0, extensionLength));
+            retention.advance();
+
+            return true;
+        }
+
+        private boolean doReplayData(
+            long traceId,
+            long authorization,
+            LlmRequestRetention retention)
+        {
+            final int remaining = retention.payloadRemaining();
+            final int total = retention.payloadLength();
+            final int credit = initialMax - (int)(initialSeq - initialAck) - initialPadding;
+            final int length = Math.min(Math.min(remaining, credit), replayBuffer.capacity());
+            final boolean sendable = length > 0 || remaining == 0 && credit >= 0;
+
+            if (sendable)
+            {
+                final boolean first = remaining == total;
+                final boolean last = length == remaining;
+                final int recordFlags = retention.flags();
+                final int flags = (first ? recordFlags & Flags.INIT : 0) | (last ? recordFlags & Flags.FIN : 0);
+
+                final int extensionLength = first ? retention.readExtension(replayExtensionBuffer, 0) : 0;
+                retention.readPayload(replayBuffer, 0, length);
+
+                doAppData(traceId, authorization, flags, initialBudgetId, length + initialPadding,
+                    replayPayloadRO.wrap(replayBuffer, 0, length),
+                    replayExtensionRO.wrap(replayExtensionBuffer, 0, extensionLength));
+
+                if (last)
+                {
+                    retention.advance();
+                }
+            }
+
+            return sendable;
         }
 
         private void doAppData(
