@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmProxyFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmRetentionBudget;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmServerFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -40,7 +41,8 @@ final class LlmBindingContext implements BindingContext
     LlmBindingContext(
         LlmConfiguration config,
         EngineContext context,
-        Map<String, LlmDialect> dialects)
+        Map<String, LlmDialect> dialects,
+        LlmRetentionBudget retentionBudget)
     {
         final Map<String, LlmDialectContext> dialectContexts = new LinkedHashMap<>();
         dialects.forEach((name, dialect) -> dialectContexts.put(name, dialect.supply(context)));
@@ -48,7 +50,7 @@ final class LlmBindingContext implements BindingContext
         this.factories = Map.of(
             SERVER, new LlmServerFactory(context, dialectContexts),
             CLIENT, new LlmClientFactory(context, dialectContexts),
-            PROXY, new LlmProxyFactory(context));
+            PROXY, new LlmProxyFactory(context, config, retentionBudget));
     }
 
     @Override
