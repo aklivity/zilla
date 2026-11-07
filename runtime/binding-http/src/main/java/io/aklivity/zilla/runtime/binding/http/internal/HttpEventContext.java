@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.CIRCUIT_CLOSED;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.CIRCUIT_HALF_OPENED;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.CIRCUIT_OPENED;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.CIRCUIT_REJECTED;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventType.REQUEST_ACCEPTED;
 
 import java.nio.ByteBuffer;
@@ -25,6 +29,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpCircuitCause;
 import io.aklivity.zilla.runtime.binding.http.internal.types.event.HttpEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -46,6 +51,10 @@ public class HttpEventContext
     private final HttpEventExFW.Builder httpEventExRW = new HttpEventExFW.Builder();
     private final int httpTypeId;
     private final int requestAcceptedEventId;
+    private final int circuitOpenedEventId;
+    private final int circuitHalfOpenedEventId;
+    private final int circuitClosedEventId;
+    private final int circuitRejectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -54,6 +63,10 @@ public class HttpEventContext
     {
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.requestAcceptedEventId = context.supplyEventId("binding.http.request.accepted");
+        this.circuitOpenedEventId = context.supplyEventId("binding.http.circuit.opened");
+        this.circuitHalfOpenedEventId = context.supplyEventId("binding.http.circuit.half.opened");
+        this.circuitClosedEventId = context.supplyEventId("binding.http.circuit.closed");
+        this.circuitRejectedEventId = context.supplyEventId("binding.http.circuit.rejected");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -110,6 +123,99 @@ public class HttpEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(requestAcceptedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(httpTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void circuitOpened(
+        long traceId,
+        long bindingId,
+        long circuitId,
+        HttpCircuitCause cause,
+        long remaining)
+    {
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .circuitOpened(e -> e
+                .typeId(CIRCUIT_OPENED.value())
+                .circuitId(circuitId)
+                .cause(c -> c.set(cause))
+                .remaining(remaining)
+            )
+            .build();
+        publish(circuitOpenedEventId, traceId, bindingId, extension);
+    }
+
+    public void circuitHalfOpened(
+        long traceId,
+        long bindingId,
+        long circuitId,
+        HttpCircuitCause cause,
+        long remaining)
+    {
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .circuitHalfOpened(e -> e
+                .typeId(CIRCUIT_HALF_OPENED.value())
+                .circuitId(circuitId)
+                .cause(c -> c.set(cause))
+                .remaining(remaining)
+            )
+            .build();
+        publish(circuitHalfOpenedEventId, traceId, bindingId, extension);
+    }
+
+    public void circuitClosed(
+        long traceId,
+        long bindingId,
+        long circuitId,
+        HttpCircuitCause cause,
+        long remaining)
+    {
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .circuitClosed(e -> e
+                .typeId(CIRCUIT_CLOSED.value())
+                .circuitId(circuitId)
+                .cause(c -> c.set(cause))
+                .remaining(remaining)
+            )
+            .build();
+        publish(circuitClosedEventId, traceId, bindingId, extension);
+    }
+
+    public void circuitRejected(
+        long traceId,
+        long bindingId,
+        long circuitId,
+        HttpCircuitCause cause,
+        long remaining)
+    {
+        HttpEventExFW extension = httpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .circuitRejected(e -> e
+                .typeId(CIRCUIT_REJECTED.value())
+                .circuitId(circuitId)
+                .cause(c -> c.set(cause))
+                .remaining(remaining)
+            )
+            .build();
+        publish(circuitRejectedEventId, traceId, bindingId, extension);
+    }
+
+    private void publish(
+        int eventId,
+        long traceId,
+        long bindingId,
+        HttpEventExFW extension)
+    {
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(eventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
