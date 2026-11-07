@@ -1,0 +1,71 @@
+# Engine benchmarks
+
+`EngineBench`, in the engine test jar, runs the real engine with one worker and plays both ends of a binding
+from the JMH thread: a `Client` initiates streams into the binding under test and a `Responder` stands in for
+the external binding it routes to. Because the benchmark thread is allocation-free in steady state, the `gc`
+profiler measures the engine worker's own allocation.
+
+| Benchmark | Binding | Notes |
+| --- | --- | --- |
+| `EchoServerBM` | `binding-echo` | Floor for engine, ring buffer and stream cost; no application hop |
+| `ProxyServerBM` | `binding-proxy` | PROXY v2 header decode and an application hop |
+| `LlmOpenaiServerBM` | `binding-llm` | HTTP request in, mock provider response out |
+
+Each benchmark has two methods, both measured per whole request:
+
+- `exchange` sends a request and receives the response to its end. Read `gc.alloc.rate.norm` (B/op) from the
+  `gc` profiler.
+- `leave` opens requests and leaves them in flight (the mock application withholds the response; `echo`
+  cannot, so it leaves the request open). Read `retained.heap.norm` (B/op) from `RetainedHeapProfiler`. It
+  reports roughly zero for `exchange`, and the `gc` numbers for `leave` are not meaningful.
+
+`RetainedHeapProfiler` forces two full collections before and after every iteration, so it needs at least one
+warmup iteration, releases state only at trial teardown, and aggregates with the maximum to ignore the last
+iteration, which JMH profiles after trial teardown.
+
+## Run
+
+Benchmarks run over the module's resolved test classpath. Build and resolve it from the repository root
+(`clean` is required: omitting it fails in moditect), using the module under test, for example `binding-llm`:
+
+```sh
+mvn clean install -pl runtime/binding-llm -am -DskipTests -DskipITs -Dskip.checks=true
+mvn dependency:build-classpath -pl runtime/binding-llm -DincludeScope=test \
+  -Dmdep.outputFile=/tmp/cp.txt -q
+CP="runtime/binding-llm/target/classes:runtime/binding-llm/target/test-classes:$(cat /tmp/cp.txt)"
+JVM="--add-opens java.base/jdk.internal.misc=ALL-UNNAMED -Xms2g -Xmx2g"
+```
+
+Allocation per request:
+
+```sh
+java $JVM -cp "$CP" org.openjdk.jmh.Main LlmOpenaiServerBM.exchange \
+  -jvmArgsAppend "-Xms2g -Xmx2g" -prof gc
+```
+
+Retained heap per in-flight request (`leave` does not depend on `streaming`, so fix it):
+
+```sh
+java $JVM -cp "$CP" org.openjdk.jmh.Main LlmOpenaiServerBM.leave -p streaming=false \
+  -jvmArgsAppend "-Xms2g -Xmx2g" -prof io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler
+```
+
+Without escape analysis, which shows allocation the JIT would otherwise remove (pass the flag to both the
+harness JVM and the forks):
+
+```sh
+java $JVM -XX:-DoEscapeAnalysis -cp "$CP" org.openjdk.jmh.Main LlmOpenaiServerBM.exchange \
+  -jvmArgsAppend "-Xms2g -Xmx2g -XX:-DoEscapeAnalysis" -prof gc
+```
+
+For echo and proxy, use `runtime/binding-echo` or `runtime/binding-proxy` for the module and `EchoServerBM` or
+`ProxyServerBM` for the class. A quick smoke pass while iterating:
+
+```sh
+java $JVM -cp "$CP" org.openjdk.jmh.Main LlmOpenaiServerBM.exchange -p size=small -p streaming=false \
+  -f 1 -wi 2 -i 3 -w 1 -r 1 -prof gc
+```
+
+The `--add-opens` option is required on recent JDKs when Agrona accesses `jdk.internal.misc.Unsafe`. Parameters
+(`size` is `small` or `10k`, `streaming` is `false` or `true` for llm) apply to every method in the class, so a
+method that does not depend on one will repeat identical results across its values.
