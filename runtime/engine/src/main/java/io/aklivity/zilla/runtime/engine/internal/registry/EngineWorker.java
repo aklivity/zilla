@@ -1219,6 +1219,11 @@ public class EngineWorker implements EngineContext, Agent
                 handlers.forEach((id, handler) -> doSyntheticAbort(streamId(localIndex, senderIndex0, id), handler));
             }
 
+            final Long2ObjectHashMap<MessageConsumer> pending = new Long2ObjectHashMap<>();
+            pending.putAll(correlations);
+            correlations.clear();
+            pending.forEach(this::doSyntheticAbort);
+
             acquiredBuffers = bufferPool.acquiredSlots();
             acquiredCreditors = creditor.acquired();
             acquiredDebitors = debitorsByIndex.values()
