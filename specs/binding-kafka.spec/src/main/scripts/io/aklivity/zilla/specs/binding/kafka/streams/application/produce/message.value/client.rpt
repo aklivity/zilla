@@ -38,6 +38,8 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read notify ROUTED_BROKER_CLIENT_META_OPENED
+
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .meta()
