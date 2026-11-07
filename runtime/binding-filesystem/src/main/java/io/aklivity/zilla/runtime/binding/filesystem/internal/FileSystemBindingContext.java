@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -81,6 +82,15 @@ final class FileSystemBindingContext implements BindingContext
         if (--bindings == 0)
         {
             executor.shutdownNow();
+
+            try
+            {
+                executor.awaitTermination(5L, SECONDS);
+            }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
