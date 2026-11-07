@@ -105,7 +105,7 @@ public class FileSystemStateTest
         assertFalse(FileSystemState.initialOpened(state));
         assertFalse(FileSystemState.initialClosing(state));
         assertFalse(FileSystemState.initialClosed(state));
-        assertTrue(FileSystemState.replyOpening(state));
+        assertFalse(FileSystemState.replyOpening(state));
         assertTrue(FileSystemState.replyOpened(state));
         assertFalse(FileSystemState.replyClosing(state));
         assertFalse(FileSystemState.replyClosed(state));

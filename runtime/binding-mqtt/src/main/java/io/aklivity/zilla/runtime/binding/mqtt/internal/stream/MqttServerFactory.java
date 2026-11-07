@@ -2187,7 +2187,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == 0)
             {
-                if (!MqttState.replyOpened(server.session.state))
+                if (!MqttState.replyOpening(server.session.state))
                 {
                     //We don't know the server capabilities yet
                     break decode;
@@ -2237,7 +2237,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == 0)
             {
-                if (!MqttState.replyOpened(server.session.state))
+                if (!MqttState.replyOpening(server.session.state))
                 {
                     //We don't know the server capabilities yet
                     break decode;
@@ -5801,7 +5801,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void onSessionBegin(
                 BeginFW begin)
             {
-                state = MqttState.openReply(state);
+                state = MqttState.openingReply(state);
 
                 final long traceId = begin.traceId();
 
@@ -6152,7 +6152,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int minReplyNoAck,
                 int minReplyMax)
             {
-                if (MqttState.replyOpened(state))
+                if (MqttState.replyOpening(state))
                 {
                     final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
 
@@ -6162,6 +6162,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                         assert replyAck <= replySeq;
 
                         replyMax = minReplyMax;
+
+                        state = MqttState.openReply(state);
 
                         doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, sessionId, encodeBudgetId, PUBLISH_FRAMING);

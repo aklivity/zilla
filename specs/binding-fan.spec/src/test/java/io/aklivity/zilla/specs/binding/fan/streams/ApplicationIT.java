@@ -90,4 +90,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.and.received.data.window.before.begin/client",
+        "${app}/client.sent.and.received.data.window.before.begin/server"})
+    public void shouldEchoClientSentDataWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

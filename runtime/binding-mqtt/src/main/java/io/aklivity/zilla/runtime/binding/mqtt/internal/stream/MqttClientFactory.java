@@ -1043,7 +1043,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 client.decoder = decodeIgnoreAll;
             }
 
-            boolean canPublish = MqttState.replyOpened(subscriber.state);
+            boolean canPublish = MqttState.replyOpening(subscriber.state) && MqttState.replyOpened(subscriber.state);
 
             int reserved = payloadSize + subscriber.replyPad;
             canPublish &= subscriber.replySeq + reserved <= subscriber.replyAck + subscriber.replyMax;
