@@ -21,6 +21,9 @@ connected
 
 write "GET /request1 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
+write "Upgrade: h2c" "\r\n"
+write "Connection: Upgrade, HTTP2-Settings" "\r\n"
+write "Http2-Settings: AAN_____AAQAAAAA" "\r\n"
 write "\r\n"
 
 read "HTTP/1.1 200 OK\r\n"
