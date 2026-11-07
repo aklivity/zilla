@@ -1156,6 +1156,8 @@ public final class LlmFunctions
         private String param;
         private String message;
         private String code;
+        private int shouldRetry = -1;
+        private int retryAfter = -1;
 
         private LlmAbortExBuilder()
         {
@@ -1247,6 +1249,20 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExBuilder shouldRetry(
+            int shouldRetry)
+        {
+            this.shouldRetry = shouldRetry;
+            return this;
+        }
+
+        public LlmAbortExBuilder retryAfter(
+            int retryAfter)
+        {
+            this.retryAfter = retryAfter;
+            return this;
+        }
+
         public byte[] build()
         {
             abortExRW.usage(u ->
@@ -1258,7 +1274,8 @@ public final class LlmFunctions
                 u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
             });
-            abortExRW.error(e -> e.status(status).type(type).param(param).message(message).code(code));
+            abortExRW.error(e -> e.status(status).type(type).param(param).message(message).code(code)
+                .shouldRetry(shouldRetry).retryAfter(retryAfter));
             final LlmAbortExFW abortEx = abortExRW.build();
             final byte[] array = new byte[abortEx.sizeof()];
             abortEx.buffer().getBytes(abortEx.offset(), array);
@@ -1377,6 +1394,20 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExMatcherBuilder shouldRetry(
+            int shouldRetry)
+        {
+            error.shouldRetry = shouldRetry;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder retryAfter(
+            int retryAfter)
+        {
+            error.retryAfter = retryAfter;
+            return this;
+        }
+
         public LlmAbortExMatcherBuilder errorNone()
         {
             error.none = true;
@@ -1469,6 +1500,8 @@ public final class LlmFunctions
         private String param;
         private String message;
         private String code;
+        private int shouldRetry = -1;
+        private int retryAfter = -1;
 
         private LlmResetExBuilder()
         {
@@ -1518,10 +1551,25 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmResetExBuilder shouldRetry(
+            int shouldRetry)
+        {
+            this.shouldRetry = shouldRetry;
+            return this;
+        }
+
+        public LlmResetExBuilder retryAfter(
+            int retryAfter)
+        {
+            this.retryAfter = retryAfter;
+            return this;
+        }
+
         public byte[] build()
         {
             final LlmResetExFW resetEx = resetExRW
-                .error(e -> e.status(status).type(type).param(param).message(message).code(code))
+                .error(e -> e.status(status).type(type).param(param).message(message).code(code)
+                .shouldRetry(shouldRetry).retryAfter(retryAfter))
                 .build();
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetEx.offset(), array);
@@ -1599,6 +1647,20 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmResetExMatcherBuilder shouldRetry(
+            int shouldRetry)
+        {
+            error.shouldRetry = shouldRetry;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder retryAfter(
+            int retryAfter)
+        {
+            error.retryAfter = retryAfter;
+            return this;
+        }
+
         public LlmResetExMatcherBuilder messageNull()
         {
             error.messageNull = true;
@@ -1644,6 +1706,8 @@ public final class LlmFunctions
         private boolean messageNull;
         private String code;
         private boolean codeNull;
+        private Integer shouldRetry;
+        private Integer retryAfter;
         private boolean none;
 
         private boolean matches(
@@ -1656,12 +1720,14 @@ public final class LlmFunctions
 
             return none
                 ? error.status() == -1 && errorType == null && errorParam == null && errorMessage == null &&
-                    errorCode == null
+                    errorCode == null && error.shouldRetry() == -1 && error.retryAfter() == -1
                 : (status == null || status == error.status()) &&
                     (typeNull ? errorType == null : type == null || type.equals(errorType)) &&
                     (paramNull ? errorParam == null : param == null || param.equals(errorParam)) &&
                     (messageNull ? errorMessage == null : message == null || message.equals(errorMessage)) &&
-                    (codeNull ? errorCode == null : code == null || code.equals(errorCode));
+                    (codeNull ? errorCode == null : code == null || code.equals(errorCode)) &&
+                    (shouldRetry == null || shouldRetry == error.shouldRetry()) &&
+                    (retryAfter == null || retryAfter == error.retryAfter());
         }
     }
 
