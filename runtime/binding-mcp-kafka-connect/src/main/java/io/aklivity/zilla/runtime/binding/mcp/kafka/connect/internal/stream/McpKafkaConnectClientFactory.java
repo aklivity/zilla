@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class McpKafkaConnectClientFactory implements BindingHandler
@@ -229,7 +230,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpKafkaConnectState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             openapi.doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
         }
@@ -261,7 +262,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpKafkaConnectState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             openapi.doMcpOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -289,7 +290,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpKafkaConnectState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             openapi.doMcpOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -302,7 +303,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
 
-            state = McpKafkaConnectState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             openapi.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId);
         }
@@ -327,9 +328,9 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpKafkaConnectState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
-                state = McpKafkaConnectState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 McpKafkaConnectClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, affinity, extension);
@@ -373,13 +374,13 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
         {
             doMcpKafkaConnectBegin(sequence, acknowledge, maximum, traceId, extension);
 
-            if (!McpKafkaConnectState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpKafkaConnectClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpKafkaConnectState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpKafkaConnectAbort(
@@ -391,13 +392,13 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
         {
             doMcpKafkaConnectBegin(sequence, acknowledge, maximum, traceId, extension);
 
-            if (!McpKafkaConnectState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpKafkaConnectClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpKafkaConnectState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpKafkaConnectReset(
@@ -406,9 +407,9 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             int maximum,
             long traceId)
         {
-            if (!McpKafkaConnectState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpKafkaConnectState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 McpKafkaConnectClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization);
@@ -505,7 +506,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpKafkaConnectState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doMcpKafkaConnectBegin(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -550,7 +551,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpKafkaConnectState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpKafkaConnectEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -564,7 +565,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpKafkaConnectState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpKafkaConnectAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -577,7 +578,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
 
-            state = McpKafkaConnectState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doMcpKafkaConnectReset(sequence, acknowledge, maximum, traceId);
         }
@@ -592,7 +593,7 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            state = McpKafkaConnectState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doMcpKafkaConnectWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
         }
@@ -605,13 +606,13 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             long affinity,
             OctetsFW extension)
         {
-            if (!McpKafkaConnectState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.receiver = McpKafkaConnectClientFactory.this.newStream(this::onMcpOpenapiMessage, originId, routedId,
                     initialId, sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
-                state = McpKafkaConnectState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -651,12 +652,12 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpKafkaConnectState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 McpKafkaConnectClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
                     traceId, authorization, extension);
 
-                state = McpKafkaConnectState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -667,12 +668,12 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpKafkaConnectState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 McpKafkaConnectClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge,
                     maximum, traceId, authorization, extension);
 
-                state = McpKafkaConnectState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -682,12 +683,12 @@ public final class McpKafkaConnectClientFactory implements BindingHandler
             int maximum,
             long traceId)
         {
-            if (!McpKafkaConnectState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 McpKafkaConnectClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
                     traceId, authorization);
 
-                state = McpKafkaConnectState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 

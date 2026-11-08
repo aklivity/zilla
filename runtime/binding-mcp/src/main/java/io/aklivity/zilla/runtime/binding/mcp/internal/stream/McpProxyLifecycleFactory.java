@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -515,7 +516,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            state = McpState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doServerWindow(traceId, 0L, 0);
 
@@ -533,16 +534,16 @@ final class McpProxyLifecycleFactory implements BindingHandler
         void driveHydrationBegin(
             long traceId)
         {
-            state = McpState.openingInitial(state);
+            state = StreamState.openingInitial(state);
             doServerBeginDeferred(traceId);
         }
 
         void driveHydrationEnd(
             long traceId)
         {
-            if (!McpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 binding.sessions.remove(sessionId);
                 for (McpLifecycleClient client : clients.values())
                 {
@@ -554,9 +555,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
         void driveHydrationAbort(
             long traceId)
         {
-            if (!McpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 binding.sessions.remove(sessionId);
                 for (McpLifecycleClient client : clients.values())
                 {
@@ -585,7 +586,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (pendingClients > 0)
             {
                 pendingClients--;
-                if (pendingClients == 0 && !McpState.initialClosed(state) && !McpState.replyClosed(state))
+                if (pendingClients == 0 && !StreamState.initialClosed(state) && !StreamState.replyClosed(state))
                 {
                     doServerBeginDeferred(traceId);
                 }
@@ -604,7 +605,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doServerBeginDeferred(
             long traceId)
         {
-            if (!McpState.replyOpening(state) && !McpState.replyClosed(state))
+            if (!StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 final int serverCapabilities = binding.serverCapabilities(authorization);
                 final String sid = sessionId;
@@ -633,7 +634,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             binding.sessions.remove(sessionId);
 
@@ -660,7 +661,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             binding.sessions.remove(sessionId);
 
@@ -707,7 +708,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             binding.sessions.remove(sessionId);
 
@@ -723,26 +724,26 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, extension);
-            state = McpState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doServerEnd(
             long traceId)
         {
-            if (!McpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
         private void doServerAbort(
             long traceId)
         {
-            if (!McpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -756,11 +757,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization, extension);
-                state = McpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -809,7 +810,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             int kind,
             long traceId)
         {
-            if (!McpState.replyOpening(state) || McpState.replyClosed(state))
+            if (!StreamState.replyOpening(state) || StreamState.replyClosed(state))
             {
                 return;
             }
@@ -962,7 +963,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (!McpState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 if (server.hydration && server.binding.cache != null)
                 {
@@ -987,7 +988,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, server.affinity, beginEx);
-                state = McpState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -996,8 +997,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
             McpRouteRequest request)
         {
             if (settled ||
-                McpState.initialClosed(state) ||
-                McpState.replyClosed(state))
+                StreamState.initialClosed(state) ||
+                StreamState.replyClosed(state))
             {
                 request.onLifecycleSettled(traceId);
             }
@@ -1031,33 +1032,33 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private void doClientEnd(
             long traceId)
         {
-            if (!McpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization);
-                state = McpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
         private void doClientAbort(
             long traceId)
         {
-            if (!McpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization);
-                state = McpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
         private void doClientReset(
             long traceId)
         {
-            if (!McpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, emptyRO);
-                state = McpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -1074,7 +1075,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (McpState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
                 final McpChallengeExFW resumeEx = mcpChallengeExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1100,7 +1101,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            state = McpState.openReply(state);
+            state = StreamState.openReply(state);
             doWindow(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, server.authorization,
                 budgetId, padding);
         }
@@ -1298,7 +1299,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             replySeq = sequence;
             replyAck = acknowledge;
 
-            state = McpState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
             if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
@@ -1314,7 +1315,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 server.interactiveAuthRoutes.remove(routedId);
             }
 
-            state = McpState.openingReply(state);
+            state = StreamState.openingReply(state);
             doClientWindow(traceId, 0L, 0);
 
             resolved = true;
@@ -1343,7 +1344,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closeReply(state);
+            state = StreamState.closeReply(state);
             settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
@@ -1368,7 +1369,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closeReply(state);
+            state = StreamState.closeReply(state);
             resolved = true;
             settleRequests(traceId);
             doClientAbort(traceId);
@@ -1419,7 +1420,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             resolved = true;
             settleRequests(traceId);
             doClientReset(traceId);

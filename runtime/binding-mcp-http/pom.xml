@@ -210,7 +210,6 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/mcp/http/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/binding/mcp/http/internal/stream/McpHttpState.class</exclude>
           </excludes>
           <rules>
             <rule>
