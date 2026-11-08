@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -75,7 +76,6 @@ public class EchoServerBM
 {
     private static final String CONFIGURATION =
         "io/aklivity/zilla/runtime/binding/echo/internal/bench/EchoServerBM-server.yaml";
-    private static final int WINDOW = 8 * 1024;
     private static final int IN_FLIGHT = 5_000;
     private static final int SMALL_LENGTH = 400;
     private static final int LARGE_LENGTH = 10_000;
@@ -153,7 +153,7 @@ public class EchoServerBM
             final Client client = bench.newClient(echoId, MessageConsumer.NOOP);
 
             client.begin();
-            client.replyWindow(WINDOW);
+            client.replyWindow(DEFAULT_WINDOW);
 
             return client;
         }

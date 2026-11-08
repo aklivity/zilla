@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.bench;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -74,7 +75,6 @@ import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 public class LlmOpenaiServerBM
 {
     private static final String CONFIGURATION = "io/aklivity/zilla/specs/binding/llm/config/server.yaml";
-    private static final int WINDOW = 8 * 1024;
     private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
     private static final int STREAMING_FRAGMENT_LENGTH = 256;
     private static final int IN_FLIGHT = 5_000;
@@ -159,7 +159,7 @@ public class LlmOpenaiServerBM
             final Client client = bench.newClient(netId, MessageConsumer.NOOP);
 
             client.begin(beginEx, 0, beginEx.capacity());
-            client.replyWindow(WINDOW);
+            client.replyWindow(DEFAULT_WINDOW);
             client.send(requestBody, 0, requestBody.capacity());
             client.end();
 

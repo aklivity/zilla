@@ -87,7 +87,6 @@ public final class Responder implements BindingHandler
         }
     }
 
-    private static final int DEFAULT_WINDOW = 8 * 1024;
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
@@ -110,7 +109,7 @@ public final class Responder implements BindingHandler
         Trigger trigger,
         Response response)
     {
-        this(DEFAULT_WINDOW, trigger, response);
+        this(EngineBench.DEFAULT_WINDOW, trigger, response);
     }
 
     public Responder(

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.proxy.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -69,8 +70,8 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * <li>{@code leave} opens streams, sends the header and a body on each and leaves them in flight while the
  * application withholds the reply.</li>
  * </ul>
- * Every stream has a credit window smaller than the 10k message, so each message is sent across several
- * windows and the benchmark exercises credit replenishment in both directions.
+ * Streams use the engine's default 32 KB credit window and are driven as fast as the binding's flow
+ * control allows.
  * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code open} and {@code stream},
  * and {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}.
@@ -92,7 +93,6 @@ public class ProxyServerBM
         (byte) 0xc0, (byte) 0xa8, 0x00, (byte) 0xfe,
         (byte) 0x80, 0x00, 0x01, (byte) 0xbb
     };
-    private static final int WINDOW = 4 * 1024;
     private static final int IN_FLIGHT = 5_000;
     private static final int SMALL_LENGTH = 400;
     private static final int LARGE_LENGTH = 10_000;
@@ -187,7 +187,7 @@ public class ProxyServerBM
             final Client client = bench.newClient(proxyId, MessageConsumer.NOOP);
 
             client.begin();
-            client.replyWindow(WINDOW);
+            client.replyWindow(DEFAULT_WINDOW);
             client.send(header, 0, header.capacity());
 
             return client;
@@ -198,7 +198,7 @@ public class ProxyServerBM
             final Client client = bench.newClient(proxyId, MessageConsumer.NOOP);
 
             client.begin();
-            client.replyWindow(WINDOW);
+            client.replyWindow(DEFAULT_WINDOW);
             client.send(request, 0, request.capacity());
 
             return client;
@@ -211,7 +211,7 @@ public class ProxyServerBM
         @Override
         BindingHandler server()
         {
-            return new Responder(WINDOW, Trigger.END, Response.EMPTY);
+            return new Responder(Trigger.END, Response.EMPTY);
         }
     }
 
@@ -221,7 +221,7 @@ public class ProxyServerBM
         @Override
         BindingHandler server()
         {
-            return new Responder(WINDOW, Trigger.END, null);
+            return new Responder(Trigger.END, null);
         }
     }
 

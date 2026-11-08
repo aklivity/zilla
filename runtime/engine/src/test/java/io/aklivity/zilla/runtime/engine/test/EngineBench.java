@@ -68,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 public final class EngineBench implements AutoCloseable
 {
     public static final String WORKER_THREAD_NAME = "engine/worker#0";
+    public static final int DEFAULT_WINDOW = 32 * 1024;
 
     private static final String DEFAULT_NAMESPACE = "test";
     private static final int EXTERNAL_INDEX = Long.SIZE - 1;
