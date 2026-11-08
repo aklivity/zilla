@@ -18,12 +18,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
@@ -37,9 +41,14 @@ import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -64,6 +73,8 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler.CompletionCal
 
 public class OpenaiEmbeddingHandlerTest
 {
+    private static final long SLOW_DISPATCH_MILLIS = 250L;
+
     private HttpServer server;
     private String endpoint;
     private volatile int responseStatus;
@@ -72,7 +83,11 @@ public class OpenaiEmbeddingHandlerTest
     private volatile Function<String, Float> embeddingValue = text -> (float) text.length();
     private final List<Integer> requestSizes = new CopyOnWriteArrayList<>();
 
+    private volatile CountDownLatch requested;
+    private volatile CountDownLatch released;
+
     private EngineContext context;
+    private Signaler signaler;
     private HttpClient client;
 
     @Before
@@ -83,16 +98,15 @@ public class OpenaiEmbeddingHandlerTest
         server.start();
         endpoint = "http://localhost:" + server.getAddress().getPort() + "/v1/embeddings";
 
-        Signaler signaler = mock(Signaler.class);
-        when(signaler.signalAt(anyLong(), anyInt(), any(IntConsumer.class))).thenAnswer(invocation ->
-        {
-            IntConsumer task = invocation.getArgument(2);
-            task.accept(0);
-            return 1L;
-        });
+        signaler = mock(Signaler.class);
 
         context = mock(EngineContext.class);
         when(context.signaler()).thenReturn(signaler);
+        doAnswer(invocation ->
+        {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(context).dispatch(any());
 
         client = HttpClient.newHttpClient();
     }
@@ -100,6 +114,10 @@ public class OpenaiEmbeddingHandlerTest
     @After
     public void tearDown()
     {
+        if (released != null)
+        {
+            released.countDown();
+        }
         server.stop(0);
     }
 
@@ -256,6 +274,164 @@ public class OpenaiEmbeddingHandlerTest
             .build();
     }
 
+    @Test
+    public void shouldDispatchCompletionWithoutSignalingFromForeignThread() throws Exception
+    {
+        responseStatus = 200;
+        responseBody = "{\"data\":[{\"embedding\":[0.1,0.2],\"index\":0}]}";
+        Queue<Runnable> dispatched = new ConcurrentLinkedQueue<>();
+        doAnswer(invocation -> dispatched.add(invocation.getArgument(0))).when(context).dispatch(any());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
+
+        AtomicReference<float[][]> vectors = new AtomicReference<>();
+        handler.embed(0L, 0L, 0L, List.of("hello"), new CompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                float[][] results)
+            {
+                vectors.set(results);
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+            }
+        });
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5L);
+        while (dispatched.isEmpty() && System.currentTimeMillis() < deadline)
+        {
+            Thread.sleep(5L);
+        }
+        dispatched.forEach(Runnable::run);
+
+        verify(signaler, never()).signalAt(anyLong(), anyInt(), any(IntConsumer.class));
+        assertThat(vectors.get()[0], equalTo(new float[] { 0.1f, 0.2f }));
+    }
+
+    @Test
+    public void shouldNotDispatchAfterCloseReturnsWhenResponseCompletesOnForeignThread() throws Exception
+    {
+        responseStatus = 200;
+        responseBody = "{\"data\":[{\"embedding\":[0.1,0.2],\"index\":0}]}";
+        Thread worker = Thread.currentThread();
+        CountDownLatch dispatching = new CountDownLatch(1);
+        CountDownLatch dispatched = new CountDownLatch(1);
+        AtomicBoolean closeReturned = new AtomicBoolean();
+        AtomicBoolean dispatchedAfterClose = new AtomicBoolean();
+        doAnswer(invocation ->
+        {
+            if (Thread.currentThread() != worker)
+            {
+                dispatching.countDown();
+                sleep(SLOW_DISPATCH_MILLIS);
+            }
+            dispatchedAfterClose.set(closeReturned.get());
+            dispatched.countDown();
+            return null;
+        }).when(context).dispatch(any());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
+
+        handler.embed(0L, 0L, 0L, List.of("hello"), new CompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                float[][] results)
+            {
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+            }
+        });
+        assertThat(dispatching.await(5L, TimeUnit.SECONDS), is(true));
+        handler.close();
+        closeReturned.set(true);
+
+        assertThat(dispatched.await(5L, TimeUnit.SECONDS), is(true));
+        assertThat(dispatchedAfterClose.get(), is(false));
+    }
+
+    @Test
+    public void shouldFailInFlightRequestWhenClosed() throws Exception
+    {
+        requested = new CountDownLatch(1);
+        released = new CountDownLatch(1);
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
+
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        handler.embed(0L, 0L, 0L, List.of("hello"), new CompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                float[][] results)
+            {
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                failure.set(ex);
+            }
+        });
+        assertThat(requested.await(5L, TimeUnit.SECONDS), is(true));
+        handler.close();
+
+        assertThat(rootCause(failure.get()), instanceOf(CancellationException.class));
+    }
+
+    private static Throwable rootCause(
+        Throwable failure)
+    {
+        Throwable cause = failure;
+        while (cause instanceof CompletionException && cause.getCause() != null)
+        {
+            cause = cause.getCause();
+        }
+        return cause;
+    }
+
+    private void holdRequest()
+    {
+        CountDownLatch held = requested;
+        CountDownLatch release = released;
+        if (held != null)
+        {
+            held.countDown();
+            try
+            {
+                release.await(5L, TimeUnit.SECONDS);
+            }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private static void sleep(
+        long millis)
+    {
+        try
+        {
+            Thread.sleep(millis);
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private Result embed(
         OpenaiEmbeddingHandler handler,
         String text) throws InterruptedException
@@ -301,6 +477,7 @@ public class OpenaiEmbeddingHandlerTest
     private void respond(
         HttpExchange exchange) throws IOException
     {
+        holdRequest();
         int status = responseStatus;
         String body = responseBody;
         if (dynamicResponse)
