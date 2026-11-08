@@ -236,6 +236,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -248,6 +249,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -270,6 +272,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -282,6 +285,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -299,6 +303,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -315,6 +320,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -334,6 +340,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -347,6 +354,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -365,6 +373,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -376,6 +385,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -392,6 +402,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -403,6 +414,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -419,6 +431,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -431,6 +444,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -448,6 +462,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -459,6 +474,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1009,7 +1025,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             state = StreamState.openingReply(state);
 
-            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
@@ -1025,7 +1041,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final int reserved = replyPad;
 
-            doDataNull(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doDataNull(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -1040,7 +1056,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 state = StreamState.closeReply(state);
                 //client.stream = nullIfClosed(state, client.stream);
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, client.authorization, EMPTY_EXTENSION);
             }
         }
@@ -1048,9 +1064,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private void doApplicationAbort(
             long traceId)
         {
-            state = StreamState.closeReply(state);
+            state = StreamState.closeReply(StreamState.abortingReply(state));
             //client.stream = nullIfClosed(state, client.stream);
-            doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doAbort(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
 
@@ -1072,7 +1088,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 state = StreamState.openInitial(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
             }
         }
@@ -1085,7 +1101,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             clientRoute.unregisterMetaFlush(metaFlush);
             //client.stream = nullIfClosed(state, client.stream);
 
-            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doReset(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, client.authorization, extension);
         }
 
@@ -1428,7 +1444,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         .sizeof());
                 }
 
-                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, affinity, extension);
             }
 
@@ -1462,7 +1478,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 cancelNextRequestSignal();
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
 
                 cleanupEncodeSlotIfNecessary();
@@ -1477,9 +1493,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 cancelNextRequestSignal();
                 if (!StreamState.initialClosed(state))
                 {
-                    doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                    doAbort(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
-                    state = StreamState.closeInitial(state);
                 }
 
                 cleanupEncodeSlotIfNecessary();
@@ -1493,9 +1509,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 if (!StreamState.replyClosed(state))
                 {
-                    doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                            traceId, authorization, EMPTY_OCTETS);
                     state = StreamState.closeReply(state);
+                    doReset(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                            traceId, authorization, EMPTY_OCTETS);
                 }
 
                 cleanupDecodeSlotIfNecessary();
@@ -1521,7 +1537,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                     state = StreamState.openReply(state);
 
-                    doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, authorization, budgetId, minReplyPad);
                 }
             }
@@ -1626,7 +1642,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                         break flush;
                     }
 
-                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                     initialSeq += reserved;

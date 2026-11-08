@@ -144,6 +144,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -156,6 +157,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -178,6 +180,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -190,6 +193,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -207,6 +211,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -219,6 +224,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -236,6 +242,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -251,6 +258,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -271,6 +279,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -284,6 +293,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -302,6 +312,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -315,6 +326,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -333,6 +345,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -344,6 +357,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -360,6 +374,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -371,6 +386,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -387,6 +403,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -399,6 +416,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -416,6 +434,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -426,6 +445,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -487,10 +507,10 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.receiver = newStream(this::onOffsetFetchMessage,
-                    originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, this.authorization, affinity, extension);
                 state = StreamState.openingInitial(state);
+                this.receiver = newStream(this::onOffsetFetchMessage,
+                    originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                    traceId, this.authorization, affinity, extension);
             }
         }
 
@@ -503,7 +523,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -514,7 +534,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         private void doOffsetFetchInitialFlush(
             long traceId)
         {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, initialBud, 0, EMPTY_EXTENSION);
         }
 
@@ -523,10 +543,10 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(state);
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = StreamState.closeInitial(state);
             }
         }
 
@@ -535,10 +555,10 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.closeInitial(StreamState.abortingInitial(state));
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = StreamState.closeInitial(state);
             }
         }
 
@@ -698,10 +718,10 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.closeReply(state);
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization);
 
-                state = StreamState.closeReply(state);
             }
         }
 
@@ -714,7 +734,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             replyAck = Math.max(delegate.replyAck - replyPad, 0);
             replyMax = delegate.replyMax;
 
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, StreamState.openReply(state), replyMax,
                 traceId, authorization, budgetId, padding + replyPad);
         }
     }
@@ -911,7 +931,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization);
             }
 
@@ -927,7 +947,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             initialAck = offsetFetch.initialAck;
             initialMax = offsetFetch.initialMax;
 
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -937,7 +957,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             state = StreamState.openingReply(state);
 
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, affinity, extension);
         }
 
@@ -949,7 +969,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
             Flyweight extension)
         {
 
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, replyBudgetId, flag, reserved, payload, extension);
 
             replySeq += reserved;
@@ -960,7 +980,7 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, StreamState.closeReply(state), replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -972,11 +992,12 @@ public final class KafkaCacheOffsetFetchFactory implements BindingHandler
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = StreamState.closeReply(state);
+            state = StreamState.closeReply(StreamState.abortingReply(state));
         }
 
         private void onOffsetFetchReplyReset(
