@@ -1130,9 +1130,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                affinity, extension);
             state = StreamState.openingReply(state);
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                affinity, extension);
         }
 
         private void doServerData(
@@ -1144,7 +1144,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
                 flags, budgetId, reserved, payload, offset, length);
             replySeq += reserved;
         }
@@ -1155,9 +1155,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, extension);
                 state = StreamState.closeReply(state);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, extension);
             }
         }
 
@@ -1166,8 +1166,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
 
@@ -1178,7 +1179,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -1187,7 +1188,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doChallenge(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, extension);
         }
 
@@ -1197,7 +1198,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int padding)
         {
             state = StreamState.openInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
                 budgetId, padding);
         }
 
@@ -1240,9 +1241,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                    extension);
                 state = StreamState.closeInitial(state);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
+                    extension);
             }
         }
     }
@@ -1585,9 +1586,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void doServerBegin(
             long traceId)
         {
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, emptyRO);
             state = StreamState.openingReply(state);
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, affinity, emptyRO);
         }
 
         private void doServerData(
@@ -1599,7 +1600,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, flags, budgetId, reserved, payload, offset, length);
             replySeq += reserved;
         }
@@ -1609,9 +1610,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -1620,9 +1621,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -1632,7 +1634,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int padding)
         {
             state = StreamState.openInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -1660,9 +1662,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                    extension);
                 state = StreamState.closeInitial(state);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
+                    extension);
             }
         }
     }
@@ -1934,9 +1936,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void doServerBegin(
             long traceId)
         {
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, emptyRO);
             state = StreamState.openingReply(state);
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, affinity, emptyRO);
         }
 
         private void doServerData(
@@ -1948,7 +1950,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, flags, budgetId, reserved, payload, offset, length);
             replySeq += reserved;
         }
@@ -1958,9 +1960,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -1969,9 +1971,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -1981,7 +1984,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int padding)
         {
             state = StreamState.openInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -2009,9 +2012,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                    extension);
                 state = StreamState.closeInitial(state);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
+                    extension);
             }
         }
     }
@@ -2988,9 +2991,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void doServerBegin(
             long traceId)
         {
-            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity, emptyRO);
             state = StreamState.openingReply(state);
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, affinity, emptyRO);
         }
 
         private void doServerData(
@@ -3002,7 +3005,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, flags, budgetId, reserved, payload, offset, length);
             replySeq += reserved;
         }
@@ -3012,9 +3015,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -3023,9 +3026,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
                 state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(state);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization);
             }
         }
 
@@ -3035,7 +3039,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             int padding)
         {
             state = StreamState.openInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -3063,9 +3067,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                    extension);
                 state = StreamState.closeInitial(state);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
+                    extension);
             }
         }
     }
@@ -3140,7 +3144,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
+                    initialSeq, initialAck, state, initialMax, traceId, server.authorization, server.affinity, beginEx);
                 state = StreamState.openingInitial(state);
             }
             else if (lifecycle.resolved)
@@ -3176,7 +3180,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             if (!StreamState.closed(state))
             {
                 doData(sender, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, server.authorization,
+                    initialSeq, initialAck, state, initialMax, traceId, server.authorization,
                     flags, budgetId, reserved, payload, offset, length);
                 initialSeq += reserved;
             }
@@ -3190,7 +3194,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             OctetsFW extension)
         {
             doFlush(sender, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax,
+                initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -3201,8 +3205,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             {
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.closeInitial(state);
                     doEnd(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                        initialSeq, initialAck, state, initialMax, traceId, server.authorization);
                 }
                 state = StreamState.closeInitial(state);
             }
@@ -3215,8 +3220,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             {
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.abortingInitial(state);
+                    state = StreamState.closeInitial(state);
                     doAbort(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, server.authorization);
+                        initialSeq, initialAck, state, initialMax, traceId, server.authorization);
                 }
                 state = StreamState.closeInitial(state);
             }
@@ -3231,7 +3238,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             {
                 state = StreamState.openReply(state);
                 doWindow(sender, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
+                    replySeq, replyAck, state, replyMax, traceId, server.authorization, budgetId, padding);
             }
         }
 
@@ -3260,8 +3267,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             {
                 if (StreamState.initialOpening(state))
                 {
+                    state = StreamState.closeReply(state);
                     doReset(sender, originId, routedId, replyId,
-                        replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
+                        replySeq, replyAck, state, replyMax, traceId, server.authorization, emptyRO);
                 }
                 state = StreamState.closeReply(state);
             }
@@ -3273,7 +3281,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             Flyweight extension)
         {
             doChallenge(sender, originId, routedId, replyId,
-                replySeq, replyAck, replyMax, traceId, authorization, extension);
+                replySeq, replyAck, state, replyMax, traceId, authorization, extension);
         }
 
         private void onClientMessage(
@@ -3487,6 +3495,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3499,6 +3508,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3522,6 +3532,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3534,6 +3545,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3551,6 +3563,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3567,6 +3580,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3586,6 +3600,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -3596,6 +3611,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3611,6 +3627,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3622,6 +3639,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3638,6 +3656,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -3648,6 +3667,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3663,6 +3683,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3676,6 +3697,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3694,6 +3716,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3705,6 +3728,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3721,6 +3745,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3732,6 +3757,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -3748,6 +3774,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -3760,6 +3787,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
