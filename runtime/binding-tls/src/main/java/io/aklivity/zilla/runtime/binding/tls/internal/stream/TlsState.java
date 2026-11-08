@@ -83,17 +83,17 @@ public final class TlsState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENING) != 0;
     }
 
     static boolean replyOpened(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENED) != 0;
     }

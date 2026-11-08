@@ -32,7 +32,7 @@ public final class ProxyState
         return state | INITIAL_OPENING;
     }
 
-    static int openedInitial(
+    static int openInitial(
         int state)
     {
         return openingInitial(state) | INITIAL_OPENED;
@@ -56,7 +56,7 @@ public final class ProxyState
         return state | INITIAL_CLOSING;
     }
 
-    static int closedInitial(
+    static int closeInitial(
         int state)
     {
         return closingInitial(state) | INITIAL_CLOSED;
@@ -80,20 +80,20 @@ public final class ProxyState
         return state | REPLY_OPENING;
     }
 
-    static int openedReply(
+    static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENING) != 0;
     }
 
     static boolean replyOpened(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENED) != 0;
     }
@@ -104,7 +104,7 @@ public final class ProxyState
         return state | REPLY_CLOSING;
     }
 
-    static int closedReply(
+    static int closeReply(
         int state)
     {
         return closingReply(state) | REPLY_CLOSED;
@@ -126,12 +126,6 @@ public final class ProxyState
         int state)
     {
         return initialClosed(state) && replyClosed(state);
-    }
-
-    static boolean closing(
-        int state)
-    {
-        return initialClosing(state) && replyClosing(state);
     }
 
     private ProxyState()

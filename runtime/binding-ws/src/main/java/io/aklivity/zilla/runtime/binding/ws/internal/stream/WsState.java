@@ -83,17 +83,17 @@ public final class WsState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENING) != 0;
     }
 
     static boolean replyOpened(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENED) != 0;
     }
@@ -120,6 +120,12 @@ public final class WsState
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
     }
 
     private WsState()

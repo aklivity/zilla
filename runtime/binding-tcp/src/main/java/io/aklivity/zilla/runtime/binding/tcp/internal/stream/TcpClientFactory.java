@@ -354,7 +354,7 @@ public class TcpClientFactory implements TcpStreamFactory
             read:
             try
             {
-                if (!TcpState.opened(state))
+                if (!TcpState.initialOpened(state) || !TcpState.replyOpened(state))
                 {
                     break read;
                 }
