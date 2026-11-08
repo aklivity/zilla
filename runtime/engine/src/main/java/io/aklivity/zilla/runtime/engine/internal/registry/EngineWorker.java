@@ -2303,7 +2303,7 @@ public class EngineWorker implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, budgetHandles);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(
