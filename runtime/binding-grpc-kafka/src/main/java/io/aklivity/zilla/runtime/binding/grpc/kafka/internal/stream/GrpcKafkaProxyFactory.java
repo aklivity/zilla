@@ -564,11 +564,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!StreamState.replyOpening(state))
-            {
-                doGrpcBegin(traceId, authorization, 0L, emptyRO);
-            }
-
             cleanup(traceId, authorization);
         }
 
@@ -737,7 +732,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (StreamState.replyOpened(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = fetch.replySeq;
 
@@ -1393,11 +1388,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!StreamState.replyOpening(state))
-            {
-                doGrpcBegin(traceId, authorization, 0L, emptyRO);
-            }
-
             cleanup(traceId, authorization);
         }
 
@@ -1615,8 +1605,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (StreamState.replyOpening(state) &&
-                !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
 
@@ -1921,11 +1910,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!StreamState.replyOpening(state))
-            {
-                doGrpcBegin(traceId, authorization);
-            }
-
             cleanup(traceId, authorization);
         }
 
@@ -2010,8 +1994,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (StreamState.replyOpening(state) &&
-                !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 final GrpcAbortExFW.Builder grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
