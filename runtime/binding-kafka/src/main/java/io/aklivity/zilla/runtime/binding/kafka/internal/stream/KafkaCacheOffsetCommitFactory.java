@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
@@ -386,12 +387,12 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (KafkaState.closed(state))
+            if (StreamState.closed(state))
             {
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 if (KafkaConfiguration.DEBUG)
                 {
@@ -405,7 +406,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
                 this.receiver = newStream(this::onOffsetCommitMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, extension);
-                state = KafkaState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -429,24 +430,24 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
         private void doOffsetCommitInitialEnd(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
         private void doOffsetCommitInitialAbort(
             long traceId)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -462,7 +463,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -488,7 +489,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = KafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -537,7 +538,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doOffsetCommitReplyBegin(traceId, begin.extension());
         }
@@ -575,7 +576,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -593,7 +594,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -604,12 +605,12 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            if (!KafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, extension);
 
-                state = KafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -732,7 +733,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -773,7 +774,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -791,7 +792,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -802,9 +803,9 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
-            if (!KafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = KafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -828,7 +829,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            state = KafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -851,25 +852,25 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
         private void doOffsetCommitReplyEnd(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doOffsetCommitReplyAbort(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
             }
 
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void onOffsetCommitReplyReset(
@@ -887,7 +888,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = KafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -915,7 +916,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = KafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 

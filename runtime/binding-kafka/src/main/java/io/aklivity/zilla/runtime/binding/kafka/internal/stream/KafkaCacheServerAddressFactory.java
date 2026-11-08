@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class KafkaCacheServerAddressFactory
@@ -144,7 +145,7 @@ public class KafkaCacheServerAddressFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = KafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             receiver = newStream(this::onKafkaReply, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0,
@@ -159,7 +160,7 @@ public class KafkaCacheServerAddressFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = KafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -176,21 +177,21 @@ public class KafkaCacheServerAddressFactory
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                state = KafkaState.openReply(state);
+                state = StreamState.openReply(state);
                 doKafkaReplyWindow(traceId, 0);
                 break;
             case EndFW.TYPE_ID:
             case AbortFW.TYPE_ID:
-                assert KafkaState.initialClosed(state) : "reply closed unexpectedly";
-                state = KafkaState.closeReply(state);
+                assert StreamState.initialClosed(state) : "reply closed unexpectedly";
+                state = StreamState.closeReply(state);
                 break;
             case ResetFW.TYPE_ID:
-                assert KafkaState.replyClosing(state) : "initial closed unexpectedly";
-                state = KafkaState.closeInitial(state);
+                assert StreamState.replyClosing(state) : "initial closed unexpectedly";
+                state = StreamState.closeInitial(state);
                 doKafkaReplyReset(traceId);
                 break;
             case WindowFW.TYPE_ID:
-                state = KafkaState.openInitial(state);
+                state = StreamState.openInitial(state);
                 break;
             }
         }
