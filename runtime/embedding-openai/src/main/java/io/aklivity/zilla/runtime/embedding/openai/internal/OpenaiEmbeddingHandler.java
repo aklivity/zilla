@@ -24,6 +24,11 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -33,13 +38,11 @@ import jakarta.json.JsonWriter;
 
 import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 
 final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
 {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-    private static final int SIGNAL_ID = 1;
     // OpenAI's /v1/embeddings caps the `input` array at 2048 elements and the summed token
     // count of every input at 300,000 tokens per request, uniformly across embedding models.
     private static final int MAX_BATCH_SIZE = 2048;
@@ -49,22 +52,26 @@ final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
     // per text to stay conservative rather than exact.
     private static final int CHARS_PER_TOKEN_ESTIMATE = 4;
 
-    private final Signaler signaler;
+    private final Consumer<Runnable> dispatcher;
     private final HttpClient client;
     private final URI endpoint;
     private final String model;
     private final String apiKey;
+    private final Set<CompletableFuture<?>> fetching;
+    private final Set<CompletableFuture<?>> dispatching;
 
     OpenaiEmbeddingHandler(
         EngineContext context,
         HttpClient client,
         OpenaiOptionsConfig options)
     {
-        this.signaler = context.signaler();
+        this.dispatcher = context::dispatch;
         this.client = client;
         this.endpoint = URI.create(options.endpoint);
         this.model = options.model;
         this.apiKey = options.credentials.apiKey;
+        this.fetching = ConcurrentHashMap.newKeySet();
+        this.dispatching = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -93,8 +100,9 @@ final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
 
             int resultOffset = offset;
             int chunkSize = slice.size();
-            client.sendAsync(request, BodyHandlers.ofString())
-                .whenComplete((response, ex) -> dispatch(() -> onResponse(resultOffset, chunkSize, batch, response, ex)));
+            completeOnWorker(
+                client.sendAsync(request, BodyHandlers.ofString()),
+                (response, ex) -> onResponse(resultOffset, chunkSize, batch, response, ex));
             offset += chunkSize;
         }
     }
@@ -102,6 +110,10 @@ final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
     @Override
     public void close()
     {
+        final List<CompletableFuture<?>> inFlight = List.copyOf(fetching);
+        fetching.clear();
+        inFlight.forEach(request -> request.cancel(true));
+        dispatching.forEach(dispatched -> dispatched.exceptionally(error -> null).join());
     }
 
     private static List<List<String>> chunk(
@@ -135,10 +147,19 @@ final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
         return (text.length() + CHARS_PER_TOKEN_ESTIMATE - 1) / CHARS_PER_TOKEN_ESTIMATE;
     }
 
-    private void dispatch(
-        Runnable task)
+    private <T> void completeOnWorker(
+        CompletableFuture<T> source,
+        BiConsumer<T, Throwable> completion)
     {
-        signaler.signalAt(System.currentTimeMillis(), SIGNAL_ID, signalId -> task.run());
+        fetching.add(source);
+        final CompletableFuture<T> dispatched = source.whenComplete((result, ex) ->
+            dispatcher.accept(() ->
+            {
+                fetching.remove(source);
+                completion.accept(result, ex);
+            }));
+        dispatching.add(dispatched);
+        dispatched.whenComplete((result, ex) -> dispatching.remove(dispatched));
     }
 
     private void onResponse(
