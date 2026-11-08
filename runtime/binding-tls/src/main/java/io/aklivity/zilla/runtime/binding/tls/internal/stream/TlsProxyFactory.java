@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -742,7 +743,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = TlsState.openInitial(state);
+            state = StreamState.openInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
             affinity = begin.affinity();
@@ -858,7 +859,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -896,7 +897,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -923,7 +924,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
 
-            state = TlsState.closeReply(state);
+            state = StreamState.closeReply(state);
             replyAck = acknowledge;
 
             assert replyAck <= replySeq;
@@ -951,7 +952,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            state = TlsState.openReply(state);
+            state = StreamState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBudgetId = budgetId;
@@ -1003,7 +1004,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         {
             doBegin(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     affinity, EMPTY_EXTENSION);
-            state = TlsState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doNetData(
@@ -1031,10 +1032,10 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetEnd(
             long traceId)
         {
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doEnd(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             cleanupEncodeSlot();
@@ -1043,10 +1044,10 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetAbort(
             long traceId)
         {
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             cleanupEncodeSlot();
@@ -1065,11 +1066,11 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetReset(
             long traceId)
         {
-            if (!TlsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
                 doReset(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
 
             cleanupDecodeSlot();
@@ -1153,7 +1154,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (TlsState.replyClosing(state))
+                if (StreamState.replyClosing(state))
                 {
                     doNetEnd(traceId);
                 }
@@ -1199,7 +1200,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (TlsState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     stream.ifPresent(s -> s.doAppAbort(traceId));
 
@@ -1400,7 +1401,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 doAppWindow(traceId);
             }
@@ -1478,7 +1479,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetEnd(traceId);
@@ -1499,7 +1500,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetAbort(traceId);
@@ -1529,7 +1530,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 flushNetWindow(traceId, budgetId, initialPad);
             }
@@ -1549,7 +1550,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetReset(traceId);
@@ -1567,7 +1568,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 initialAck = initialSeq;
 
                 stream = Optional.of(this);
-                state = TlsState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity,
@@ -1646,7 +1647,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
                 doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
@@ -1655,9 +1656,9 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private void doAppAbort(
                 long traceId)
             {
-                if (!TlsState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
                     doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
@@ -1677,9 +1678,9 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private void doAppReset(
                 long traceId)
             {
-                if (!TlsState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
-                    state = TlsState.closeReply(state);
+                    state = StreamState.closeReply(state);
                     stream = nullIfClosed(state, stream);
 
                     doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
@@ -1689,7 +1690,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private void doAppWindow(
                 long traceId)
             {
-                state = TlsState.openReply(state);
+                state = StreamState.openReply(state);
 
                 final int replyPad = TlsProxy.this.replyPad;
                 doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
@@ -1722,6 +1723,6 @@ public final class TlsProxyFactory implements TlsStreamFactory
         int state,
         Optional<TlsProxy.TlsStream> stream)
     {
-        return TlsState.initialClosed(state) && TlsState.replyClosed(state) ? NULL_STREAM : stream;
+        return StreamState.initialClosed(state) && StreamState.replyClosed(state) ? NULL_STREAM : stream;
     }
 }

@@ -67,6 +67,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -267,7 +268,7 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             long affinity)
         {
-            state = WsState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
@@ -319,9 +320,9 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             short code)
         {
-            if (!WsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = WsState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -344,9 +345,9 @@ public final class WsClientFactory implements WsStreamFactory
             long authorization,
             short code)
         {
-            if (!WsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = WsState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 // TODO: WsAbortEx
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -390,9 +391,9 @@ public final class WsClientFactory implements WsStreamFactory
             long traceId,
             long authorization)
         {
-            if (!WsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = WsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -523,7 +524,7 @@ public final class WsClientFactory implements WsStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = WsState.openInitial(state);
+            state = StreamState.openInitial(state);
             protocol = beginEx != null ? beginEx.protocol().asString() : null;
 
             client.doNetBegin(traceId, authorization, affinity);
@@ -578,7 +579,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = WsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -601,7 +602,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = WsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -646,7 +647,7 @@ public final class WsClientFactory implements WsStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = WsState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -665,7 +666,7 @@ public final class WsClientFactory implements WsStreamFactory
             assert acknowledge >= replyAck;
 
             replyAck = acknowledge;
-            state = WsState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 

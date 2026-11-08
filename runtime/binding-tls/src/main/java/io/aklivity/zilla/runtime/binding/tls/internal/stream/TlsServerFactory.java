@@ -74,6 +74,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
@@ -677,7 +678,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                             case CLOSED:
                                 assert bytesProduced == 0;
                                 server.onDecodeInboundClosed(traceId);
-                                server.decoder = TlsState.initialClosed(server.state) ? decodeIgnoreAll : decodeHandshake;
+                                server.decoder = StreamState.initialClosed(server.state) ? decodeIgnoreAll : decodeHandshake;
                                 progress += bytesConsumed;
                                 break;
                             }
@@ -714,7 +715,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                         server.decoder = decodeIgnoreAll;
                     }
                 }
-                else if (TlsState.initialClosed(server.state))
+                else if (StreamState.initialClosed(server.state))
                 {
                     server.decoder = decodeIgnoreAll;
                 }
@@ -837,7 +838,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     switch (result.getStatus())
                     {
                     case BUFFER_UNDERFLOW:
-                        if (TlsState.initialClosed(server.state))
+                        if (StreamState.initialClosed(server.state))
                         {
                             server.decoder = decodeIgnoreAll;
                         }
@@ -1098,7 +1099,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = TlsState.openInitial(state);
+            state = StreamState.openInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
             affinity = begin.affinity();
@@ -1214,7 +1215,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -1255,7 +1256,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = TlsState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -1284,7 +1285,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
 
-            state = TlsState.closeReply(state);
+            state = StreamState.closeReply(state);
             replyAck = acknowledge;
 
             assert replyAck <= replySeq;
@@ -1314,7 +1315,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            state = TlsState.openReply(state);
+            state = StreamState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBudgetId = budgetId;
@@ -1395,7 +1396,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         {
             doBegin(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     affinity, EMPTY_EXTENSION);
-            state = TlsState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doNetData(
@@ -1423,11 +1424,11 @@ public final class TlsServerFactory implements TlsStreamFactory
         private void doNetEnd(
             long traceId)
         {
-            if (!TlsState.replyClosed(state) &&
+            if (!StreamState.replyClosed(state) &&
                 handshakeTaskFutureId == NO_CANCEL_ID)
             {
                 doEnd(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             cleanupEncodeSlot();
@@ -1436,10 +1437,10 @@ public final class TlsServerFactory implements TlsStreamFactory
         private void doNetAbort(
             long traceId)
         {
-            if (!TlsState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
 
             cleanupEncodeSlot();
@@ -1458,11 +1459,11 @@ public final class TlsServerFactory implements TlsStreamFactory
         private void doNetReset(
             long traceId)
         {
-            if (!TlsState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
                 doReset(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
 
             cleanupDecodeSlot();
@@ -1546,7 +1547,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (TlsState.replyClosing(state) &&
+                if (StreamState.replyClosing(state) &&
                     tlsEngine.isOutboundDone())
                 {
                     doNetEnd(traceId);
@@ -1593,7 +1594,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (TlsState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     stream.ifPresent(s -> s.doAppAbort(traceId));
 
@@ -1767,7 +1768,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                             assert bytesProduced > 0;
                             assert tlsEngine.isOutboundDone();
                             stream.ifPresent(s -> s.doAppResetLater(traceId));
-                            state = TlsState.closingReply(state);
+                            state = StreamState.closingReply(state);
                             break loop;
                         case OK:
                             assert bytesProduced > 0 || tlsEngine.isInboundDone();
@@ -1819,7 +1820,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long budgetId)
         {
             tlsEngine.closeOutbound();
-            state = TlsState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             doEncodeWrapIfNecessary(traceId, budgetId);
         }
@@ -1867,7 +1868,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         private void cancelHandshakeTask()
         {
-            assert TlsState.closed(state);
+            assert StreamState.closed(state);
 
             if (handshakeTaskFutureId != NO_CANCEL_ID)
             {
@@ -1983,7 +1984,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 doAppWindow(traceId);
             }
@@ -2003,7 +2004,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                if (TlsState.replyClosing(state))
+                if (StreamState.replyClosing(state))
                 {
                     doAppReset(traceId);
                 }
@@ -2066,7 +2067,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doEncodeCloseOutbound(traceId, budgetId);
@@ -2089,7 +2090,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                state = TlsState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetAbort(traceId);
@@ -2121,8 +2122,8 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.openInitial(state);
-                if (TlsState.initialClosing(state))
+                state = StreamState.openInitial(state);
+                if (StreamState.initialClosing(state))
                 {
                     doAppEnd(traceId);
                 }
@@ -2145,7 +2146,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
 
                 doNetReset(traceId);
@@ -2178,7 +2179,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 initialAck = initialSeq;
 
                 stream = Optional.of(this);
-                state = TlsState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity,
@@ -2270,17 +2271,17 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                if (TlsState.initialOpening(state) &&
-                    !TlsState.initialClosing(state))
+                if (StreamState.initialOpening(state) &&
+                    !StreamState.initialClosing(state))
                 {
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
                     doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
                 }
                 else
                 {
-                    state = TlsState.closingInitial(state);
+                    state = StreamState.closingInitial(state);
                 }
             }
 
@@ -2288,9 +2289,9 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppAbort(
                 long traceId)
             {
-                if (!TlsState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    state = TlsState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
                     doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
@@ -2310,9 +2311,9 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppReset(
                 long traceId)
             {
-                if (!TlsState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
-                    state = TlsState.closeReply(state);
+                    state = StreamState.closeReply(state);
                     stream = nullIfClosed(state, stream);
 
                     doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
@@ -2324,11 +2325,11 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppResetLater(
                 long traceId)
             {
-                if (!TlsState.replyClosing(state))
+                if (!StreamState.replyClosing(state))
                 {
-                    state = TlsState.closingReply(state);
+                    state = StreamState.closingReply(state);
 
-                    if (TlsState.initialClosing(state) &&
+                    if (StreamState.initialClosing(state) &&
                         awaitSyncCloseMillis > 0L)
                     {
                         final long signalAt = currentTimeMillis() + awaitSyncCloseMillis;
@@ -2345,7 +2346,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppWindow(
                 long traceId)
             {
-                state = TlsState.openReply(state);
+                state = StreamState.openReply(state);
 
                 final int replyPad = TlsServer.this.replyPad + replyPadAdjust;
                 doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
@@ -2387,7 +2388,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         int state,
         Optional<TlsServer.TlsStream> stream)
     {
-        return TlsState.closed(state) ? NULL_STREAM : stream;
+        return StreamState.closed(state) ? NULL_STREAM : stream;
     }
 
     private String getCommonName(
