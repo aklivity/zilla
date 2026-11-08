@@ -159,7 +159,7 @@ public class KafkaCacheServerAddressFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
@@ -176,21 +176,21 @@ public class KafkaCacheServerAddressFactory
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
                 doKafkaReplyWindow(traceId, 0);
                 break;
             case EndFW.TYPE_ID:
             case AbortFW.TYPE_ID:
                 assert KafkaState.initialClosed(state) : "reply closed unexpectedly";
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 break;
             case ResetFW.TYPE_ID:
                 assert KafkaState.replyClosing(state) : "initial closed unexpectedly";
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
                 doKafkaReplyReset(traceId);
                 break;
             case WindowFW.TYPE_ID:
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
                 break;
             }
         }

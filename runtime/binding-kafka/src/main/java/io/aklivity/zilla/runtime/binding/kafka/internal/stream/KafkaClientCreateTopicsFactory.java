@@ -726,7 +726,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -736,7 +736,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             client.doNetworkAbort(traceId);
         }
@@ -768,7 +768,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             client.doNetworkReset(traceId);
         }
@@ -834,7 +834,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         private void doApplicationEnd(
             long traceId)
         {
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
             doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
@@ -844,7 +844,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
             }
@@ -866,7 +866,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
                 initialMax = minInitialMax;
 
-                state = KafkaState.openedInitial(state);
+                state = KafkaState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
@@ -879,7 +879,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
             {
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, extension);
@@ -1072,7 +1072,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = end.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             cleanupDecodeSlotIfNecessary();
 
@@ -1091,7 +1091,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = abort.traceId();
 
-            state = KafkaState.closedReply(state);
+            state = KafkaState.closeReply(state);
 
             cleanupNetwork(traceId);
         }
@@ -1101,7 +1101,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
         {
             final long traceId = reset.traceId();
 
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             cleanupNetwork(traceId);
         }
@@ -1132,7 +1132,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
             this.authorization = window.authorization();
 
-            state = KafkaState.openedInitial(state);
+            state = KafkaState.openInitial(state);
 
             if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)
             {
@@ -1225,7 +1225,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             long traceId,
             long authorization)
         {
-            state = KafkaState.closedInitial(state);
+            state = KafkaState.closeInitial(state);
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
@@ -1243,7 +1243,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             {
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
-                state = KafkaState.closedInitial(state);
+                state = KafkaState.closeInitial(state);
             }
 
             cleanupEncodeSlotIfNecessary();
@@ -1259,7 +1259,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
             {
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
-                state = KafkaState.closedReply(state);
+                state = KafkaState.closeReply(state);
             }
 
             cleanupDecodeSlotIfNecessary();
@@ -1283,7 +1283,7 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
 
                 replyMax = minReplyMax;
 
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openReply(state);
 
                 doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, minReplyPad);

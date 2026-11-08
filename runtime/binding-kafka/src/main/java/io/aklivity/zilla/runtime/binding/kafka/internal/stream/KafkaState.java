@@ -17,15 +17,16 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 public final class KafkaState
 {
-    private static final int INITIAL_OPENING = 0x1000;
-    private static final int INITIAL_OPENED = 0x2000;
-    private static final int INITIAL_CLOSING = 0x4000;
-    private static final int INITIAL_CLOSED = 0x8000;
-    private static final int REPLY_OPENED = 0x0001;
-    private static final int REPLY_OPENING = 0x0002;
+    private static final int REPLY_OPENING = 0x0001;
+    private static final int REPLY_OPENED = 0x0002;
     private static final int REPLY_CLOSING = 0x0004;
     private static final int REPLY_CLOSED = 0x0008;
-    private static final int REPLY_ABORTING = 0x0010;
+    private static final int INITIAL_OPENING = 0x0010;
+    private static final int INITIAL_OPENED = 0x0020;
+    private static final int INITIAL_CLOSING = 0x0040;
+    private static final int INITIAL_CLOSED = 0x0080;
+    private static final int INITIAL_ABORTING = 0x0100;
+    private static final int REPLY_ABORTING = 0x0200;
 
     static int openingInitial(
         int state)
@@ -33,10 +34,16 @@ public final class KafkaState
         return state | INITIAL_OPENING;
     }
 
-    static int openedInitial(
+    static int openInitial(
         int state)
     {
         return openingInitial(state) | INITIAL_OPENED;
+    }
+
+    static int abortingInitial(
+        int state)
+    {
+        return state | INITIAL_ABORTING;
     }
 
     static boolean initialOpening(
@@ -57,7 +64,7 @@ public final class KafkaState
         return state | INITIAL_CLOSING;
     }
 
-    static int closedInitial(
+    static int closeInitial(
         int state)
     {
         return closingInitial(state) | INITIAL_CLOSED;
@@ -75,6 +82,12 @@ public final class KafkaState
         return (state & INITIAL_CLOSED) != 0;
     }
 
+    static boolean initialAborting(
+        int state)
+    {
+        return (state & INITIAL_ABORTING) != 0;
+    }
+
     static int openingReply(
         int state)
     {
@@ -87,20 +100,14 @@ public final class KafkaState
         return state | REPLY_OPENED;
     }
 
-    static int openedReply(
-        int state)
-    {
-        return openingReply(state) | REPLY_OPENED;
-    }
-
     static boolean replyOpening(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENING) != 0;
     }
 
     static boolean replyOpened(
-            int state)
+        int state)
     {
         return (state & REPLY_OPENED) != 0;
     }
@@ -117,7 +124,7 @@ public final class KafkaState
         return state | REPLY_ABORTING;
     }
 
-    static int closedReply(
+    static int closeReply(
         int state)
     {
         return closingReply(state) | REPLY_CLOSED;
@@ -145,12 +152,6 @@ public final class KafkaState
         int state)
     {
         return initialClosed(state) && replyClosed(state);
-    }
-
-    static boolean closing(
-        int state)
-    {
-        return initialClosing(state) && replyClosing(state);
     }
 
     private KafkaState()
