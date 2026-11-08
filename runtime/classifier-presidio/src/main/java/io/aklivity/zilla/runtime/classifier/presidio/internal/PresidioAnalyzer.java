@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.BiConsumer;
 
 final class PresidioAnalyzer
 {
@@ -37,6 +38,7 @@ final class PresidioAnalyzer
     private final Duration timeout;
     private final List<String> entities;
     private final Set<CompletableFuture<String>> pending;
+    private final Set<CompletableFuture<String>> dispatching;
 
     PresidioAnalyzer(
         HttpClient client,
@@ -46,7 +48,8 @@ final class PresidioAnalyzer
         double threshold,
         Duration timeout,
         List<String> entities,
-        Set<CompletableFuture<String>> pending)
+        Set<CompletableFuture<String>> pending,
+        Set<CompletableFuture<String>> dispatching)
     {
         this.client = client;
         this.analyze = analyze;
@@ -56,10 +59,12 @@ final class PresidioAnalyzer
         this.timeout = timeout;
         this.entities = entities;
         this.pending = pending;
+        this.dispatching = dispatching;
     }
 
-    CompletableFuture<String> analyze(
-        String value)
+    void analyze(
+        String value,
+        BiConsumer<String, Throwable> completion)
     {
         CompletableFuture<HttpResponse<String>> response;
 
@@ -74,9 +79,14 @@ final class PresidioAnalyzer
 
         final CompletableFuture<String> analyzed = response.thenApply(PresidioAnalyzer::body);
         pending.add(analyzed);
-        analyzed.whenComplete((body, failure) -> pending.remove(analyzed));
 
-        return analyzed;
+        final CompletableFuture<String> dispatched = analyzed.whenComplete(completion);
+        dispatching.add(dispatched);
+        dispatched.whenComplete((body, failure) ->
+        {
+            pending.remove(analyzed);
+            dispatching.remove(dispatched);
+        });
     }
 
     static Throwable cause(
