@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.engine.internal;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_LOCAL_CONFIG_URI_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.rules.RuleChain.outerRule;
 
 import org.junit.Rule;
@@ -481,5 +483,43 @@ public class EngineIT
     public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/exchange.closed/client",
+        "${app}/exchange.closed.authorized/server"})
+    public void shouldReleaseStreamIdWhenStreamEnds() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitStreamSetEmpty(), equalTo(0));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.write.abort/client",
+        "${app}/client.sent.write.abort.authorized/server"})
+    public void shouldReleaseStreamIdWhenStreamAborts() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitStreamSetEmpty(), equalTo(0));
+    }
+
+    private int awaitStreamSetEmpty() throws InterruptedException
+    {
+        final long deadline = System.nanoTime() + SECONDS.toNanos(5);
+
+        int size = engine.streamSetSize();
+        while (size != 0 && System.nanoTime() < deadline)
+        {
+            Thread.sleep(10);
+            size = engine.streamSetSize();
+        }
+
+        return size;
     }
 }

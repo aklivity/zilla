@@ -1659,11 +1659,13 @@ public class EngineWorker implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    removeStreamId(routedId, streamId);
                     break;
                 case AbortFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    removeStreamId(routedId, streamId);
                     break;
                 case FlushFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
@@ -1729,6 +1731,17 @@ public class EngineWorker implements EngineContext, Agent
                     break;
                 }
             }
+        }
+    }
+
+    private void removeStreamId(
+        long routedId,
+        long streamId)
+    {
+        final LongHashSet streamIdSet = streamSets.get(routedId);
+        if (streamIdSet != null)
+        {
+            streamIdSet.remove(streamId);
         }
     }
 

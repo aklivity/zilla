@@ -317,11 +317,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet streamIdSet = streamSets.get(routedId);
-                if (streamIdSet != null)
-                {
-                    streamIdSet.remove(streamId);
-                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -333,11 +328,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet redirectStreamIdSet = streamSets.get(routedId);
-                if (redirectStreamIdSet != null)
-                {
-                    redirectStreamIdSet.remove(streamId);
-                }
                 break;
             default:
                 handled = true;

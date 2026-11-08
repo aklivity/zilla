@@ -335,4 +335,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/exchange.closed/client",
+        "${net}/exchange.closed/server" })
+    public void shouldExchangeClosed() throws Exception
+    {
+        k3po.finish();
+    }
 }
