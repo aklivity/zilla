@@ -1376,9 +1376,6 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             state = StreamState.openingReply(state);
 
-            assert encodeCredit == null;
-            this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
-
             doNetworkWindow(traceId, authorization, 0, 0L, 0, bufferPool.slotCapacity());
         }
 
@@ -2023,6 +2020,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (!StreamState.initialOpening(state))
             {
                 state = StreamState.openingInitial(state);
+
+                assert encodeCredit == null;
+                this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
 
                 Flyweight extension = EMPTY_OCTETS;
 
