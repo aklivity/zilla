@@ -20,8 +20,8 @@ public final class AsyncapiState
     private static final int INITIAL_OPENED = 0x20;
     private static final int INITIAL_CLOSING = 0x40;
     private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
+    private static final int REPLY_OPENING = 0x01;
+    private static final int REPLY_OPENED = 0x02;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
 
@@ -82,7 +82,7 @@ public final class AsyncapiState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(
