@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamFactory
@@ -338,7 +339,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = OpenapiAsyncapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -381,7 +382,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -419,7 +420,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -429,9 +430,9 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private void doOpenapiReset(
             long traceId)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -455,7 +456,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             Flyweight extension)
         {
-            state = OpenapiAsyncapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -488,29 +489,29 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (OpenapiAsyncapiState.replyOpening(state) && !OpenapiAsyncapiState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, extension);
             }
 
-            state = OpenapiAsyncapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doOpenapiAbort(
             long traceId)
         {
-            if (OpenapiAsyncapiState.replyOpening(state) && !OpenapiAsyncapiState.replyClosed(state))
+            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
-            else if (!OpenapiAsyncapiState.replyOpening(state))
+            else if (!StreamState.replyOpening(state))
             {
                 context.detachSender(replyId);
             }
 
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void onOpenapiReset(
@@ -528,7 +529,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = OpenapiAsyncapiState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -557,7 +558,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = OpenapiAsyncapiState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -663,7 +664,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = OpenapiAsyncapiState.openReply(state);
+            state = StreamState.openReply(state);
 
             final OpenapiBeginExFW openapiBeginEx = openapiBeginExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
@@ -732,7 +733,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = OpenapiAsyncapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -750,7 +751,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = OpenapiAsyncapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -768,7 +769,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -795,7 +796,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = OpenapiAsyncapiState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -805,12 +806,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private void doCompositeReset(
             long traceId)
         {
-            if (!OpenapiAsyncapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = OpenapiAsyncapiState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -832,7 +833,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long affinity,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
@@ -841,7 +842,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                 this.receiver = newStream(this::onCompositeServerMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, extension);
-                state = OpenapiAsyncapiState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -875,12 +876,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -888,12 +889,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -1006,7 +1007,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             initialSeq = sequence;
             initialAck = acknowledge;
 
-            state = OpenapiAsyncapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doAsyncapiBegin(traceId, extension);
         }
@@ -1065,7 +1066,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1083,7 +1084,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1103,7 +1104,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
 
             replyAck = acknowledge;
 
-            state = OpenapiAsyncapiState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -1129,7 +1130,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = OpenapiAsyncapiState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1139,9 +1140,9 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private void doCompositeReset(
             long traceId)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -1168,7 +1169,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             replySeq = delegate.replySeq;
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
-            state = OpenapiAsyncapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -1204,10 +1205,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = delegate.replySeq;
-                state = OpenapiAsyncapiState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
             }
@@ -1217,10 +1218,10 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = delegate.replySeq;
-                state = OpenapiAsyncapiState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, extension);
@@ -1324,7 +1325,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = OpenapiAsyncapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final AsyncapiBeginExFW asyncapiBeginEx = extension.get(asyncapiBeginExRO::tryWrap);
             final OctetsFW asyncapiExtension = asyncapiBeginEx != null ? asyncapiBeginEx.extension() : EMPTY_OCTETS;
@@ -1388,7 +1389,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = OpenapiAsyncapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1406,7 +1407,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = OpenapiAsyncapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1424,7 +1425,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = OpenapiAsyncapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -1450,7 +1451,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = OpenapiAsyncapiState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1460,12 +1461,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private void doAsyncapiReset(
             long traceId)
         {
-            if (!OpenapiAsyncapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(asyncapi, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
 
-                state = OpenapiAsyncapiState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -1486,7 +1487,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
@@ -1503,7 +1504,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
                 this.asyncapi = newStream(this::onAsyncapiMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, asyncapiBeginEx);
-                state = OpenapiAsyncapiState.openingInitial(state);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -1537,12 +1538,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(asyncapi, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -1550,12 +1551,12 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
             long traceId,
             OctetsFW extension)
         {
-            if (!OpenapiAsyncapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(asyncapi, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
 
-                state = OpenapiAsyncapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
