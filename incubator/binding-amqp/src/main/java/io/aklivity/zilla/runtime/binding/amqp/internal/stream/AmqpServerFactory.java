@@ -3701,7 +3701,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    if (AmqpState.replyOpened(state) && role == SENDER)
+                    if (AmqpState.replyOpening(state) && role == SENDER)
                     {
                         this.remoteLinkCredit = (int) (Math.min(bufferPool.slotCapacity(), initialMax) /
                                                        Math.min(bufferPool.slotCapacity(), decodeMaxFrameSize));
@@ -3720,7 +3720,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     final long traceId = reset.traceId();
                     final long authorization = reset.authorization();
 
-                    if (!AmqpState.replyOpened(state))
+                    if (!AmqpState.replyOpening(state))
                     {
                         AmqpRole amqpRole = role == RECEIVER ? SENDER : RECEIVER;
                         if (amqpRole == RECEIVER)
@@ -3750,7 +3750,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                 private void onApplicationBegin(
                     BeginFW begin)
                 {
-                    state = AmqpState.openReply(state);
+                    state = AmqpState.openingReply(state);
 
                     final long sequence = begin.sequence();
                     final long acknowledge = begin.acknowledge();
@@ -4053,7 +4053,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     long traceId,
                     long authorization)
                 {
-                    if (AmqpState.replyOpened(state))
+                    if (AmqpState.replyOpening(state))
                     {
                         final int maxFrameSize = encodeMaxFrameSize;
                         final int slotCapacity = bufferPool.slotCapacity();
@@ -4070,6 +4070,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                             assert replyAck <= replySeq;
                             replyMax = replyBudgetMax;
                             assert replyMax >= 0;
+                            state = AmqpState.openReply(state);
                             doWindow(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                                     traceId, authorization, replySharedBudgetId, padding, maxFrameSize);
                         }
