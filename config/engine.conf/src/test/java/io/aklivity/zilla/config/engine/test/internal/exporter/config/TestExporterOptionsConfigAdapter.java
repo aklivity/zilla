@@ -20,10 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
@@ -35,6 +37,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String MODE_NAME = "mode";
+    private static final String FILTER_NAME = "filter";
+    private static final String EXCLUDE_NAME = "exclude";
     private static final String EVENTS_NAME = "events";
     private static final String QNAME_NAME = "qname";
     private static final String ID_NAME = "id";
@@ -48,6 +52,7 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
     private static final String COUNT_NAME = "count";
     private static final String BUCKETS_NAME = "buckets";
     private static final String LIMIT_NAME = "limit";
+    private static final Set<String> MATCHER_NAMES = Set.of(QNAME_NAME, ID_NAME, NAME_NAME, MESSAGE_NAME);
 
     @Override
     public JsonObject adaptToJson(
@@ -60,6 +65,11 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
         if (testOptions.mode != null)
         {
             object.add(MODE_NAME, testOptions.mode);
+        }
+
+        if (testOptions.filter != null)
+        {
+            object.add(FILTER_NAME, adaptFilterToJson(testOptions.filter));
         }
 
         if (testOptions.events != null)
@@ -107,6 +117,10 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
             {
                 testOptions.mode(object.getString(MODE_NAME));
             }
+            if (object.containsKey(FILTER_NAME))
+            {
+                adaptFilterFromJson(object.getJsonObject(FILTER_NAME), testOptions);
+            }
             if (object.containsKey(EVENTS_NAME))
             {
                 JsonArray events = object.getJsonArray(EVENTS_NAME);
@@ -135,6 +149,85 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
         }
 
         return testOptions.build();
+    }
+
+    private JsonObject adaptFilterToJson(
+        TestExporterOptionsConfig.Filter filter)
+    {
+        JsonArrayBuilder exclude = Json.createArrayBuilder();
+        filter.exclude.forEach(m -> exclude.add(adaptEventMatcherToJson(m)));
+
+        return Json.createObjectBuilder()
+            .add(EXCLUDE_NAME, exclude)
+            .build();
+    }
+
+    private JsonObject adaptEventMatcherToJson(
+        TestExporterOptionsConfig.EventMatcher matcher)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (matcher.qName != null)
+        {
+            object.add(QNAME_NAME, matcher.qName);
+        }
+
+        if (matcher.id != null)
+        {
+            object.add(ID_NAME, matcher.id);
+        }
+
+        if (matcher.name != null)
+        {
+            object.add(NAME_NAME, matcher.name);
+        }
+
+        if (matcher.message != null)
+        {
+            object.add(MESSAGE_NAME, matcher.message);
+        }
+
+        return object.build();
+    }
+
+    private void adaptFilterFromJson(
+        JsonObject filter,
+        TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> testOptions)
+    {
+        for (String key : filter.keySet())
+        {
+            if (!EXCLUDE_NAME.equals(key))
+            {
+                throw new JsonException(String.format("Unrecognized filter key: %s", key));
+            }
+        }
+
+        if (filter.containsKey(EXCLUDE_NAME))
+        {
+            for (JsonValue value : filter.getJsonArray(EXCLUDE_NAME))
+            {
+                JsonObject matcher = value.asJsonObject();
+
+                for (String key : matcher.keySet())
+                {
+                    if (!MATCHER_NAMES.contains(key))
+                    {
+                        throw new JsonException(String.format("Unrecognized event matcher key: %s", key));
+                    }
+                }
+
+                if (matcher.isEmpty())
+                {
+                    throw new JsonException("Event matcher requires at least one of: qname, id, name, message");
+                }
+
+                testOptions.exclude(
+                    matcher.getString(QNAME_NAME, null),
+                    matcher.getString(ID_NAME, null),
+                    matcher.getString(NAME_NAME, null),
+                    matcher.getString(MESSAGE_NAME, null));
+            }
+        }
     }
 
     private JsonObject adaptMetricToJson(

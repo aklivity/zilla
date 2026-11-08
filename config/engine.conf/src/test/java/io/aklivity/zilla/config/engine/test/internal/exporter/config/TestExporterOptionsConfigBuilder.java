@@ -28,6 +28,7 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
     private final Function<OptionsConfig, T> mapper;
 
     private String mode;
+    private List<TestExporterOptionsConfig.EventMatcher> exclude;
     private List<TestExporterOptionsConfig.Event> events;
     private List<TestExporterOptionsConfig.Metric> metrics;
     private Map<String, String> attributes;
@@ -49,6 +50,20 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
         String mode)
     {
         this.mode = mode;
+        return this;
+    }
+
+    public TestExporterOptionsConfigBuilder<T> exclude(
+        String qName,
+        String id,
+        String name,
+        String message)
+    {
+        if (this.exclude == null)
+        {
+            this.exclude = new LinkedList<>();
+        }
+        this.exclude.add(new TestExporterOptionsConfig.EventMatcher(qName, id, name, message));
         return this;
     }
 
@@ -92,6 +107,10 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
     @Override
     public T build()
     {
-        return mapper.apply(new TestExporterOptionsConfig(mode, events, metrics, attributes));
+        TestExporterOptionsConfig.Filter filter = exclude != null
+            ? new TestExporterOptionsConfig.Filter(exclude)
+            : null;
+
+        return mapper.apply(new TestExporterOptionsConfig(mode, filter, events, metrics, attributes));
     }
 }

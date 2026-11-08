@@ -20,9 +20,23 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
+/**
+ * Options of the {@code test} exporter, which asserts exported events in the order configured by
+ * {@code events} and exported metrics and attributes as configured.
+ * <p>
+ * The optional {@code filter} selects which exported events take part in that assertion. An event
+ * matching any {@code filter.exclude} matcher is skipped: it is not compared to {@code events}, does
+ * not advance the expected sequence and is never reported as unexpected. Without a {@code filter} every
+ * event is asserted in sequence.
+ * <p>
+ * An {@code include} list is reserved for later and is rejected until supported. Once supported, an event
+ * will be asserted only if it matches {@code include} (or {@code include} is absent) and does not match
+ * {@code exclude}, so {@code exclude} takes precedence over {@code include}.
+ */
 public final class TestExporterOptionsConfig extends OptionsConfig
 {
     public final String mode;
+    public final Filter filter;
     public final List<Event> events;
     public final List<Metric> metrics;
     public final Map<String, String> attributes;
@@ -40,12 +54,14 @@ public final class TestExporterOptionsConfig extends OptionsConfig
 
     TestExporterOptionsConfig(
         String mode,
+        Filter filter,
         List<Event> events,
         List<Metric> metrics,
         Map<String, String> attributes)
     {
         super(null, null);
         this.mode = mode;
+        this.filter = filter;
         this.events = events;
         this.metrics = metrics;
         this.attributes = attributes;
@@ -63,6 +79,37 @@ public final class TestExporterOptionsConfig extends OptionsConfig
                 String id,
                 String name,
                 String message)
+        {
+            this.qName = qName;
+            this.id = id;
+            this.name = name;
+            this.message = message;
+        }
+    }
+
+    public static final class Filter
+    {
+        public final List<EventMatcher> exclude;
+
+        public Filter(
+            List<EventMatcher> exclude)
+        {
+            this.exclude = exclude;
+        }
+    }
+
+    public static final class EventMatcher
+    {
+        public final String qName;
+        public final String id;
+        public final String name;
+        public final String message;
+
+        public EventMatcher(
+            String qName,
+            String id,
+            String name,
+            String message)
         {
             this.qName = qName;
             this.id = id;
