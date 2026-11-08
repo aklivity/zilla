@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 public final class MqttKafkaState
 {
+    private static final int REPLY_OPENING = 0x01;
+    private static final int REPLY_OPENED = 0x02;
+    private static final int REPLY_CLOSING = 0x04;
+    private static final int REPLY_CLOSED = 0x08;
     private static final int INITIAL_OPENING = 0x10;
     private static final int INITIAL_OPENED = 0x20;
     private static final int INITIAL_CLOSING = 0x40;
     private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
-    private static final int REPLY_CLOSING = 0x04;
-    private static final int REPLY_CLOSED = 0x08;
 
     static int openingInitial(
         int state)
@@ -37,18 +37,6 @@ public final class MqttKafkaState
         return openingInitial(state) | INITIAL_OPENED;
     }
 
-    static boolean initialOpening(
-        int state)
-    {
-        return (state & INITIAL_OPENING) != 0;
-    }
-
-    static boolean initialOpened(
-        int state)
-    {
-        return (state & INITIAL_OPENED) != 0;
-    }
-
     static int closingInitial(
         int state)
     {
@@ -59,6 +47,18 @@ public final class MqttKafkaState
         int state)
     {
         return closingInitial(state) | INITIAL_CLOSED;
+    }
+
+    static boolean initialOpening(
+        int state)
+    {
+        return (state & INITIAL_OPENING) != 0;
+    }
+
+    static boolean initialOpened(
+        int state)
+    {
+        return (state & INITIAL_OPENED) != 0;
     }
 
     static boolean initialClosing(
@@ -82,25 +82,7 @@ public final class MqttKafkaState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
-    }
-
-    static int openReplyOnly(
-        int state)
-    {
         return state | REPLY_OPENED;
-    }
-
-    static boolean replyOpening(
-        int state)
-    {
-        return (state & REPLY_OPENING) != 0;
-    }
-
-    static boolean replyOpened(
-        int state)
-    {
-        return (state & REPLY_OPENED) != 0;
     }
 
     static int closingReply(
@@ -115,6 +97,18 @@ public final class MqttKafkaState
         return closingReply(state) | REPLY_CLOSED;
     }
 
+    static boolean replyOpening(
+        int state)
+    {
+        return (state & REPLY_OPENING) != 0;
+    }
+
+    static boolean replyOpened(
+        int state)
+    {
+        return (state & REPLY_OPENED) != 0;
+    }
+
     static boolean replyClosing(
         int state)
     {
@@ -125,6 +119,12 @@ public final class MqttKafkaState
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
     }
 
     private MqttKafkaState()
