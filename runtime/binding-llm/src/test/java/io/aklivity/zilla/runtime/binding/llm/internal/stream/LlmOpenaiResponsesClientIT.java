@@ -2886,6 +2886,16 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.reply.abort.before.begin/client",
+        "${net}/openai.responses.reply.abort.before.begin/server"})
+    public void shouldOpenaiResponsesReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.text/client",
         "${net}/openai.responses.circuit/server"})
     public void shouldScopeCircuitToModel() throws Exception

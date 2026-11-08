@@ -3534,6 +3534,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.reply.abort.before.begin/client",
+        "${net}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic/client",
         "${net}/anthropic.circuit/server"})
     public void shouldScopeCircuitToModel() throws Exception

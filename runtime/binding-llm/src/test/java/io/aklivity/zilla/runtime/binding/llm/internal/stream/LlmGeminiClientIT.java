@@ -2705,6 +2705,16 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @Specification({
+        "${app}/gemini.reply.abort.before.begin/client",
+        "${net}/gemini.reply.abort.before.begin/server"})
+    public void shouldGeminiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
         "${app}/gemini/client",
         "${net}/gemini.circuit/server"})
     public void shouldScopeCircuitToModel() throws Exception
