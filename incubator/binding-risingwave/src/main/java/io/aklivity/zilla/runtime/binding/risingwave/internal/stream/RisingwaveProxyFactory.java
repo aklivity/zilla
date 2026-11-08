@@ -579,10 +579,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             long traceId,
             long authorization)
         {
-            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0L, EMPTY_OCTETS);
-
             state = StreamState.openingReply(state);
+
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
+                traceId, authorization, 0L, EMPTY_OCTETS);
         }
 
         private <T> void doAppData(
@@ -600,7 +600,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             final int length = limit - offset;
             final int reserved = length + initialPad;
 
-            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state, traceId, authorization,
                 flags, replyBudgetId, reserved, buffer, offset, length, extension);
 
             replySeq += reserved;
@@ -616,7 +616,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
 
@@ -628,9 +628,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             if (StreamState.replyOpening(state))
             {
+                state = StreamState.abortingReply(state);
                 state = StreamState.closeReply(state);
 
-                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -643,7 +644,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -669,7 +670,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 
                 state = StreamState.openInitial(state);
 
-                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, initialBudgetId, initialPad);
             }
         }
@@ -699,7 +700,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             int reserved = replyPadding;
 
-            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state, traceId,
                 authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -712,7 +713,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             int reserved = replyPadding;
 
-            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+            doFlush(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state, traceId,
                 authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -1272,6 +1273,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
+                        .state(state)
                         .maximum(initialMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -1297,7 +1299,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             final int reserved = length + initialPad;
 
-            doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+            doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state, traceId, authorization,
                 flags, initialBudgetId, reserved, buffer, offset, length, extension);
 
             initialSeq += reserved;
@@ -1312,7 +1314,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -1323,9 +1325,10 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         {
             if (StreamState.initialOpened(state))
             {
+                state = StreamState.abortingInitial(state);
                 state = StreamState.closeInitial(state);
 
-                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -1338,7 +1341,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -1362,7 +1365,9 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 replyAck = Math.max(replySeq, server.replyAck);
                 replyMax = server.replyMax;
 
-                doWindow(app, originId, routedId, replyId, replySeq, replyAck, server.replyMax,
+                state = StreamState.openReply(state);
+
+                doWindow(app, originId, routedId, replyId, replySeq, replyAck, server.replyMax, state,
                     traceId, authorization, server.replyBudgetId, server.replyPadding);
             }
         }
@@ -1420,6 +1425,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final long affinity,
@@ -1431,6 +1437,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1449,6 +1456,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final int flags,
@@ -1465,6 +1473,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1486,6 +1495,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final int flags,
@@ -1502,6 +1512,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1523,6 +1534,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final long budgetId,
@@ -1535,6 +1547,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1554,6 +1567,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final long budgetId,
@@ -1566,6 +1580,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1585,6 +1600,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1595,6 +1611,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1612,6 +1629,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1622,6 +1640,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1639,6 +1658,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         final long authorization,
         final OctetsFW extension)
@@ -1649,6 +1669,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1666,6 +1687,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
         final long sequence,
         final long acknowledge,
         final int maximum,
+        final int state,
         final long traceId,
         long authorization,
         final long budgetId,
@@ -1677,6 +1699,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
