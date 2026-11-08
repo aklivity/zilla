@@ -46,7 +46,7 @@ final class PresidioDetector implements Detector
         }
         else
         {
-            analyzer.analyze(value).whenComplete((body, failure) ->
+            analyzer.analyze(value, (body, failure) ->
                 context.dispatch(() -> complete(contextId, value, body, failure, completion)));
         }
     }

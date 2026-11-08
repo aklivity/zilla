@@ -46,6 +46,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
     private final Map<String, String> entitiesByLabel;
     private final PresidioSurrogates surrogates;
     private final Set<CompletableFuture<String>> pending;
+    private final Set<CompletableFuture<String>> dispatching;
 
     PresidioClassifierHandler(
         EngineContext context,
@@ -70,6 +71,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
         this.entitiesByLabel = options.labels;
         this.surrogates = new PresidioSurrogates();
         this.pending = ConcurrentHashMap.newKeySet();
+        this.dispatching = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -106,13 +108,14 @@ final class PresidioClassifierHandler implements ClassifierHandler
     void close()
     {
         pending.forEach(analyzed -> analyzed.cancel(true));
+        dispatching.forEach(dispatched -> dispatched.exceptionally(failure -> null).join());
         client.shutdownNow();
     }
 
     private PresidioAnalyzer analyzer(
         List<String> entities)
     {
-        return new PresidioAnalyzer(client, analyze, authorization, language, threshold, timeout, entities, pending);
+        return new PresidioAnalyzer(client, analyze, authorization, language, threshold, timeout, entities, pending, dispatching);
     }
 
     private static URI analyze(

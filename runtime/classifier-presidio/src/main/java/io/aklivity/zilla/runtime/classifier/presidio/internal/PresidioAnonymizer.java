@@ -79,7 +79,7 @@ final class PresidioAnonymizer implements Anonymizer
                     .decode(ByteBuffer.wrap(value))
                     .toString();
 
-                analyzer.analyze(text).whenComplete((body, failure) ->
+                analyzer.analyze(text, (body, failure) ->
                     context.dispatch(() -> complete(scopeId, contextId, value, text, body, failure, next, completion)));
             }
             catch (CharacterCodingException ex)
