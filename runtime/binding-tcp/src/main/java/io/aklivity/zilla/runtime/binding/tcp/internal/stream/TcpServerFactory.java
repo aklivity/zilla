@@ -618,9 +618,9 @@ public class TcpServerFactory implements TcpStreamFactory
             final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
             final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
 
-            app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, localAddress, remoteAddress);
             state = StreamState.openingInitial(state);
+            app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                    traceId, localAddress, remoteAddress);
         }
 
         private void doAppData(
@@ -631,7 +631,7 @@ public class TcpServerFactory implements TcpStreamFactory
             final long traceId = supplyTraceId.getAsLong();
             final int reserved = length + initialPad;
 
-            doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+            doData(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
                     initialBudgetId, reserved, buffer, offset, length);
 
             initialSeq += reserved;
@@ -645,15 +645,15 @@ public class TcpServerFactory implements TcpStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             state = StreamState.closeInitial(state);
+            doEnd(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId);
         }
 
         private void doAppWindow(
             long traceId)
         {
-            doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0, 0);
             state = StreamState.openReply(state);
+            doWindow(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0, 0);
         }
 
         private void doAppReset(
@@ -661,8 +661,8 @@ public class TcpServerFactory implements TcpStreamFactory
         {
             if (!StreamState.replyClosing(state))
             {
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = StreamState.closeReply(state);
+                doReset(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId);
             }
         }
 
@@ -671,8 +671,8 @@ public class TcpServerFactory implements TcpStreamFactory
         {
             if (StreamState.initialOpened(state) && !StreamState.initialClosed(state))
             {
-                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
-                state = StreamState.closeInitial(state);
+                state = StreamState.abortingInitial(StreamState.closeInitial(state));
+                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId);
             }
         }
 
@@ -725,6 +725,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         InetSocketAddress localAddress,
@@ -736,6 +737,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .affinity(streamId)
@@ -759,6 +761,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long budgetId,
@@ -773,6 +776,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -790,6 +794,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -799,6 +804,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -813,6 +819,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -822,6 +829,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -836,6 +844,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -845,6 +854,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -859,6 +869,7 @@ public class TcpServerFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         int budgetId,
@@ -870,6 +881,7 @@ public class TcpServerFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)

@@ -496,9 +496,9 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long authorization,
             long affinity)
         {
-            doBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, EMPTY_OCTETS);
             state = StreamState.openingReply(state);
+            doBegin(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, affinity, EMPTY_OCTETS);
         }
 
         private void doNetData(
@@ -509,7 +509,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int reserved,
             OctetsFW payload)
         {
-            doData(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, flags, budgetId, reserved, payload);
 
             replySeq += reserved;
@@ -523,8 +523,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = StreamState.closeReply(state);
+                doEnd(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
 
@@ -534,8 +534,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                doAbort(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(StreamState.closeReply(state));
+                doAbort(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
 
@@ -545,7 +545,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -555,8 +555,9 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
                 state = StreamState.closeInitial(state);
+                doReset(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
+                    authorization);
             }
         }
 
@@ -579,7 +580,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
                 initialMax = minInitialMax;
 
-                doWindow(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
             }
         }
@@ -589,7 +590,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doChallenge(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, extension);
         }
 
@@ -922,9 +923,9 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long affinity,
             Flyweight extension)
         {
-            receiver = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, extension);
             state = StreamState.openingInitial(state);
+            receiver = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                    traceId, authorization, affinity, extension);
         }
 
         private void doAppData(
@@ -935,7 +936,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             int reserved,
             OctetsFW payload)
         {
-            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, flags, budgetId, reserved, payload);
 
             initialSeq += reserved;
@@ -949,8 +950,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
                 state = StreamState.closeInitial(state);
+                doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
         }
 
@@ -960,8 +961,9 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = StreamState.closeInitial(state);
+                state = StreamState.abortingInitial(StreamState.closeInitial(state));
+                doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
+                    authorization);
             }
         }
 
@@ -971,7 +973,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -981,8 +983,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 state = StreamState.closeReply(state);
+                doReset(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
             }
         }
 
@@ -1005,9 +1007,10 @@ public final class ProxyServerFactory implements ProxyStreamFactory
 
                 replyMax = minReplyMax;
 
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId,
-                        minReplyPad, minimum, capabilities);
                 state = StreamState.openReply(state);
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    budgetId,
+                        minReplyPad, minimum, capabilities);
             }
         }
 
@@ -1016,7 +1019,8 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
+            doChallenge(receiver, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                extension);
         }
 
         private void cleanup(
@@ -1035,6 +1039,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1047,6 +1052,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1069,6 +1075,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1081,6 +1088,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1098,6 +1106,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1112,6 +1121,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1131,6 +1141,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1141,6 +1152,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1156,6 +1168,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1170,6 +1183,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1189,6 +1203,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1200,6 +1215,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1216,6 +1232,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1226,6 +1243,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1241,6 +1259,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1251,6 +1270,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1266,6 +1286,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1278,6 +1299,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

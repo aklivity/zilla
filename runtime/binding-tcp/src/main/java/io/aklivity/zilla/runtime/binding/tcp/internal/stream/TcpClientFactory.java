@@ -739,8 +739,8 @@ public class TcpClientFactory implements TcpStreamFactory
             InetSocketAddress localAddress,
             InetSocketAddress remoteAddress)
         {
-            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
             state = StreamState.openingReply(state);
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, localAddress, remoteAddress);
         }
 
         private void doAppData(
@@ -751,7 +751,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long traceId = supplyTraceId.getAsLong();
             final int reserved = length + replyPad;
 
-            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, replyBudgetId,
+            doData(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, replyBudgetId,
                     reserved, buffer, offset, length);
 
             replySeq += reserved;
@@ -767,15 +767,15 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = StreamState.closeReply(state);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId);
             }
         }
 
         private void doAppWindow(
             long traceId)
         {
-            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0, 0);
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, 0, 0);
         }
 
         private void doAppReset(
@@ -784,8 +784,8 @@ public class TcpClientFactory implements TcpStreamFactory
             if (StreamState.initialOpening(state) &&
                 !StreamState.initialClosing(state))
             {
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
                 state = StreamState.closeInitial(state);
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId);
             }
         }
 
@@ -800,8 +800,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
             if (!StreamState.replyClosed(state))
             {
-                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-                state = StreamState.closeReply(state);
+                state = StreamState.abortingReply(StreamState.closeReply(state));
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId);
             }
         }
 
@@ -824,6 +824,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         InetSocketAddress localAddress,
@@ -835,6 +836,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .affinity(streamId)
@@ -851,6 +853,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long budgetId,
@@ -865,6 +868,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -882,6 +886,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -891,6 +896,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -905,6 +911,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -914,6 +921,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -928,6 +936,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -937,6 +946,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();
@@ -951,6 +961,7 @@ public class TcpClientFactory implements TcpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         int budgetId,
@@ -962,6 +973,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
