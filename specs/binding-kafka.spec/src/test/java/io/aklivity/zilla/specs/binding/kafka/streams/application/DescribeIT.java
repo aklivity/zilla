@@ -102,4 +102,13 @@ public class DescribeIT
         k3po.notifyBarrier("CHANGE_TOPIC_CONFIG");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.abort.before.begin/client",
+        "${app}/server.sent.abort.before.begin/server"})
+    public void shouldHandleServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

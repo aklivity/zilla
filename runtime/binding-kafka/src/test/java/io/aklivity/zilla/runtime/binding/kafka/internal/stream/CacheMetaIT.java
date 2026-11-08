@@ -110,4 +110,14 @@ public class CacheMetaIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("cache.when.topic.yaml")
+    @Specification({
+        "${app}/server.sent.abort.before.begin/client",
+        "${app}/server.sent.abort.before.begin/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldHandleServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

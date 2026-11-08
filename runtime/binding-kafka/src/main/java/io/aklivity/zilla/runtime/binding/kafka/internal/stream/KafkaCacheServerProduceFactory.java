@@ -1646,7 +1646,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doServerReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doServerReplyAbort(traceId);
             }

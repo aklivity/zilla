@@ -975,7 +975,7 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
         private void doMetaReplyAbortIfNecessary(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doMetaReplyAbort(traceId);
             }
