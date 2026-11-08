@@ -503,7 +503,7 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         private void doOpenapiAbort(
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck,
                     StreamState.closeReply(StreamState.abortingReply(state)), replyMax,

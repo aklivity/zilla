@@ -492,7 +492,7 @@ public final class OpenapiServerFactory implements OpenapiStreamFactory
             int maximum,
             long traceId)
         {
-            if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, sequence, acknowledge,
                     StreamState.closeReply(StreamState.abortingReply(state)), maximum,
