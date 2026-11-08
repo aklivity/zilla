@@ -103,6 +103,8 @@
 - fix\(engine\): handle initial abort and end while the test binding awaits authorization [\#3042](https://github.com/aklivity/zilla/pull/3042) ([jfallows](https://github.com/jfallows))
 - docs\(agents\): one IT class per component, one method per scenario [\#3043](https://github.com/aklivity/zilla/pull/3043) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): keep descriptor resolution deterministic and fail on unreadable descriptors [\#3044](https://github.com/aklivity/zilla/pull/3044) ([jfallows](https://github.com/jfallows))
+- fix\(classifier-presidio\): await in-flight analyze dispatch when closing the handler [\#3046](https://github.com/aklivity/zilla/pull/3046) ([jfallows](https://github.com/jfallows))
+- fix\(embedding-openai\): dispatch completions onto the worker and await them when closing the handler [\#3048](https://github.com/aklivity/zilla/pull/3048) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
