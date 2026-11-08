@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -650,10 +651,11 @@ final class TestBindingFactory implements BindingHandler
         private long replyBud;
         private int replyCap;
 
+        private int state;
         private TestTarget target;
-        private boolean pendingBegin;
         private long pendingTraceId;
         private OctetsFW pendingExtension;
+        private OctetsFW pendingEndExtension;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
         private final boolean encodeAsserted;
@@ -746,7 +748,7 @@ final class TestBindingFactory implements BindingHandler
                         long contextId,
                         long sessionId)
                     {
-                        if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
+                        if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null && !StreamState.initialClosed(state))
                         {
                             doPreauthorizeAndCallback(traceId, authorization);
                         }
@@ -805,15 +807,22 @@ final class TestBindingFactory implements BindingHandler
         {
             authorization = sessionId;
 
-            TestBindingConfig binding = bindings.get(routedId);
-            TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
-            if (route != null)
+            if (StreamState.initialClosed(state))
             {
-                onAuthResolved(traceId, route.id);
+                releaseSession();
             }
             else
             {
-                onAuthRejected(traceId);
+                TestBindingConfig binding = bindings.get(routedId);
+                TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+                if (route != null)
+                {
+                    onAuthResolved(traceId, route.id);
+                }
+                else
+                {
+                    onAuthRejected(traceId);
+                }
             }
         }
 
@@ -822,12 +831,39 @@ final class TestBindingFactory implements BindingHandler
             long resolvedId)
         {
             this.target = new TestTarget(routedId, resolvedId, authorization);
-            if (pendingBegin)
+            if (authorizing())
             {
-                pendingBegin = false;
                 runInitialBeginBody(pendingTraceId, pendingExtension);
                 pendingExtension = null;
+
+                if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
+                {
+                    replayInitialEnd();
+                }
             }
+        }
+
+        private boolean authorizing()
+        {
+            return StreamState.initialOpening(state) &&
+                !StreamState.initialOpened(state) &&
+                !StreamState.initialClosed(state);
+        }
+
+        private void replayInitialEnd()
+        {
+            long traceId = pendingEndTraceId;
+            pendingEndTraceId = -1L;
+
+            releaseSession();
+
+            if (verifyReleased(traceId))
+            {
+                target.doInitialEnd(traceId, pendingEndExtension);
+            }
+
+            pendingEndExtension = null;
+            state = StreamState.closeInitial(state);
         }
 
         private void onAuthRejected(
@@ -886,21 +922,24 @@ final class TestBindingFactory implements BindingHandler
 
             doAuthorize(traceId, begin.authorization());
 
-            if (target == null)
+            if (target != null)
             {
-                pendingBegin = true;
+                runInitialBeginBody(traceId, begin.extension());
+            }
+            else if (!StreamState.initialClosed(state))
+            {
+                state = StreamState.openingInitial(state);
                 pendingTraceId = traceId;
                 pendingExtension = copyOf(begin.extension());
-                return;
             }
-
-            runInitialBeginBody(traceId, begin.extension());
         }
 
         private void runInitialBeginBody(
             long traceId,
             OctetsFW extension)
         {
+            state = StreamState.openInitial(state);
+
             target.doInitialBegin(traceId, extension);
 
             if (!encodeAsserted || !target.decodeAsserted)
@@ -1451,20 +1490,29 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = end.traceId();
 
-            releaseSession();
+            if (StreamState.initialOpened(state))
+            {
+                releaseSession();
 
-            if (awaitingResume)
-            {
-                pendingEndTraceId = traceId;
-            }
-            else
-            {
-                if (verifyReleased(traceId))
+                if (awaitingResume)
                 {
-                    target.doInitialEnd(traceId, end.extension());
+                    pendingEndTraceId = traceId;
                 }
+                else
+                {
+                    if (verifyReleased(traceId))
+                    {
+                        target.doInitialEnd(traceId, end.extension());
+                    }
 
-                cleanupDecodeSlot();
+                    cleanupDecodeSlot();
+                }
+            }
+            else if (authorizing())
+            {
+                state = StreamState.closingInitial(state);
+                pendingEndTraceId = traceId;
+                pendingEndExtension = copyOf(end.extension());
             }
         }
 
@@ -1473,20 +1521,35 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = abort.traceId();
 
-            releaseSession();
+            if (StreamState.initialOpened(state))
+            {
+                releaseSession();
 
-            if (awaitingResume)
-            {
-                pendingAbortTraceId = traceId;
-            }
-            else
-            {
-                if (verifyReleased(traceId))
+                if (awaitingResume)
                 {
-                    target.doInitialAbort(traceId, abort.extension());
+                    pendingAbortTraceId = traceId;
                 }
+                else
+                {
+                    if (verifyReleased(traceId))
+                    {
+                        target.doInitialAbort(traceId, abort.extension());
+                    }
 
-                cleanupDecodeSlot();
+                    cleanupDecodeSlot();
+                }
+            }
+            else if (authorizing())
+            {
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
+
+                if (!StreamState.replyClosed(state))
+                {
+                    state = StreamState.abortingReply(state);
+                    state = StreamState.closeReply(state);
+                    doReplyAbort(traceId);
+                }
             }
         }
 
@@ -1526,7 +1589,19 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = reset.traceId();
 
-            target.doReplyReset(traceId, reset.extension());
+            if (StreamState.initialOpened(state))
+            {
+                target.doReplyReset(traceId, reset.extension());
+            }
+            else
+            {
+                if (authorizing())
+                {
+                    doInitialReset(traceId);
+                }
+
+                state = StreamState.closeReply(state);
+            }
         }
 
         private void onReplyWindow(
@@ -1571,6 +1646,8 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
+            state = StreamState.closeInitial(state);
+
             doReset(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, extension);
         }
 
