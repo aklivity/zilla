@@ -66,6 +66,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.abort.before.begin/client",
+        "${net}/openai.reply.abort.before.begin/server"})
+    public void shouldOpenaiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.echo/client",
         "${net}/openai.echo/server"})
     public void shouldEncodeOpenaiRequest() throws Exception
@@ -9202,6 +9211,150 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.end.deferred/client",
+        "${net}/openai.request.end.deferred/server"})
+    public void shouldOpenaiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.end.deferred/client",
+        "${net}/openai.responses.request.end.deferred/server"})
+    public void shouldOpenaiResponsesRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.end.deferred.reset/client",
+        "${net}/openai.responses.request.end.deferred.reset/server"})
+    public void shouldOpenaiResponsesRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.end.deferred/client",
+        "${net}/openai.responses.response.end.deferred/server"})
+    public void shouldOpenaiResponsesResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.end.deferred.reset/client",
+        "${net}/openai.responses.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponsesResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.end.deferred/client",
+        "${net}/gemini.request.end.deferred/server"})
+    public void shouldGeminiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.end.deferred.reset/client",
+        "${net}/gemini.request.end.deferred.reset/server"})
+    public void shouldGeminiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.end.deferred/client",
+        "${net}/gemini.response.end.deferred/server"})
+    public void shouldGeminiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.end.deferred.reset/client",
+        "${net}/gemini.response.end.deferred.reset/server"})
+    public void shouldGeminiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.end.deferred/client",
+        "${net}/anthropic.request.end.deferred/server"})
+    public void shouldAnthropicRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.end.deferred.reset/client",
+        "${net}/anthropic.request.end.deferred.reset/server"})
+    public void shouldAnthropicRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.end.deferred/client",
+        "${net}/anthropic.response.end.deferred/server"})
+    public void shouldAnthropicResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.end.deferred.reset/client",
+        "${net}/anthropic.response.end.deferred.reset/server"})
+    public void shouldAnthropicResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.end.deferred.reset/client",
+        "${net}/openai.request.end.deferred.reset/server"})
+    public void shouldOpenaiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.end.deferred/client",
+        "${net}/openai.response.end.deferred/server"})
+    public void shouldOpenaiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.end.deferred.reset/client",
+        "${net}/openai.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.reasoning.tool.call.stream/client",
         "${net}/openai.responses.sorted.reasoning.tool.call.stream/server"})
     public void shouldOpenaiSortedResponsesReasoningToolCallStream() throws Exception
@@ -9346,6 +9499,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.reply.abort.before.begin/client",
+        "${net}/anthropic.reply.abort.before.begin/server"})
+    public void shouldAnthropicReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.custom.tool.call.stream/client",
         "${net}/openai.responses.sorted.custom.tool.call.stream/server"})
     public void shouldOpenaiSortedResponsesCustomToolCallStream() throws Exception
@@ -9358,6 +9520,15 @@ public class NetworkIT
         "${net}/gemini.abort/client",
         "${net}/gemini.abort/server"})
     public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.reply.abort.before.begin/client",
+        "${net}/gemini.reply.abort.before.begin/server"})
+    public void shouldGeminiReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }
@@ -9583,6 +9754,15 @@ public class NetworkIT
         "${net}/openai.responses.abort/client",
         "${net}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.abort.before.begin/client",
+        "${net}/openai.responses.reply.abort.before.begin/server"})
+    public void shouldOpenaiResponsesReplyAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }

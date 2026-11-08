@@ -80,4 +80,13 @@ public class KafkaFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.write.abort.before.begin.unary.rpc/client",
+        "${kafka}/server.sent.write.abort.before.begin.unary.rpc/server"})
+    public void shouldAbortOnKafkaWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

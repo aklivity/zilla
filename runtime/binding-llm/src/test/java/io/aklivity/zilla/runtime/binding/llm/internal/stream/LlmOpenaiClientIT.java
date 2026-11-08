@@ -79,6 +79,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.reply.abort.before.begin/client",
+        "${net}/openai.reply.abort.before.begin/server"})
+    public void shouldOpenaiReplyAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.streaming.usage/client",
         "${net}/openai.streaming.usage/server"})
     public void shouldForwardOpenaiStreamingUsage() throws Exception

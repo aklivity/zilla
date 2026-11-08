@@ -32,4 +32,5 @@ connected
 
 read "{\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 
+write flush
 write abort

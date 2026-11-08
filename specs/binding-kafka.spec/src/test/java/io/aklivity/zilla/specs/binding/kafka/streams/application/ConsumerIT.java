@@ -48,6 +48,15 @@ public class ConsumerIT
 
     @Test
     @Specification({
+        "${app}/partition.assignment.window.before.begin/client",
+        "${app}/partition.assignment.window.before.begin/server"})
+    public void shouldPartitionAssignmentWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reassign.new.topic/client",
         "${app}/reassign.new.topic/server"})
     public void shouldReassignOnNewTopic() throws Exception

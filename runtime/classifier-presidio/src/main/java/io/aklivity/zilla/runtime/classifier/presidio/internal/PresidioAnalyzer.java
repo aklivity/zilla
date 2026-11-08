@@ -23,6 +23,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -35,6 +36,7 @@ final class PresidioAnalyzer
     private final double threshold;
     private final Duration timeout;
     private final List<String> entities;
+    private final Set<CompletableFuture<String>> pending;
 
     PresidioAnalyzer(
         HttpClient client,
@@ -43,7 +45,8 @@ final class PresidioAnalyzer
         String language,
         double threshold,
         Duration timeout,
-        List<String> entities)
+        List<String> entities,
+        Set<CompletableFuture<String>> pending)
     {
         this.client = client;
         this.analyze = analyze;
@@ -52,6 +55,7 @@ final class PresidioAnalyzer
         this.threshold = threshold;
         this.timeout = timeout;
         this.entities = entities;
+        this.pending = pending;
     }
 
     CompletableFuture<String> analyze(
@@ -68,7 +72,11 @@ final class PresidioAnalyzer
             response = CompletableFuture.failedFuture(ex);
         }
 
-        return response.thenApply(PresidioAnalyzer::body);
+        final CompletableFuture<String> analyzed = response.thenApply(PresidioAnalyzer::body);
+        pending.add(analyzed);
+        analyzed.whenComplete((body, failure) -> pending.remove(analyzed));
+
+        return analyzed;
     }
 
     static Throwable cause(

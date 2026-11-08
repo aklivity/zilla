@@ -33,7 +33,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 // Holds the frames of a request as they leave the guardrail chain, so that the request can be sent again to
 // another exit. A request stays in memory up to a threshold and then moves to a file that has no directory
 // entry once opened, so it is freed when the channel closes or the process ends. Reservations against the
-// shared budget are released on close.
+// shared budget are released on close. A record appended while every earlier record has been relayed is itself
+// relayed, so records remain after the position only while the request is being sent again from the start.
 final class LlmRequestRetention
 {
     static final int KIND_DATA = 0;
@@ -94,6 +95,7 @@ final class LlmRequestRetention
         final int extensionLength = extension.capacity();
         final long recordSize = HEADER_SIZE + payloadLength + extensionLength;
         final long newSize = size + recordSize;
+        final boolean relayed = recordPosition == size;
 
         boolean retained = newSize <= requestMax;
 
@@ -117,6 +119,11 @@ final class LlmRequestRetention
         if (retained)
         {
             retained = write(kind, flags, payload, extension, recordSize);
+        }
+
+        if (retained && relayed)
+        {
+            this.recordPosition = size;
         }
 
         if (!retained)

@@ -69,6 +69,29 @@ public class LlmRequestRetentionTest
     }
 
     @Test
+    public void shouldHaveRecordsOnlyWhileSentAgain() throws Exception
+    {
+        final LlmRetentionBudget budget = new LlmRetentionBudget(1024, 1024);
+        final LlmRequestRetention retention = retention(budget, 1024, 256);
+
+        retention.append(KIND_DATA, 0x03, bytes("Hello"), bytes(""));
+        assertThat(retention.hasRecord(), is(false));
+
+        retention.rewind();
+        assertThat(retention.hasRecord(), is(true));
+
+        retention.append(KIND_DATA, 0x03, bytes("World"), bytes(""));
+        retention.advance();
+        assertThat(retention.hasRecord(), is(true));
+        retention.advance();
+        assertThat(retention.hasRecord(), is(false));
+
+        retention.append(KIND_DATA, 0x03, bytes("!"), bytes(""));
+        assertThat(retention.hasRecord(), is(false));
+        retention.close();
+    }
+
+    @Test
     public void shouldReplayPayloadInFragments() throws Exception
     {
         final LlmRetentionBudget budget = new LlmRetentionBudget(1024, 1024);

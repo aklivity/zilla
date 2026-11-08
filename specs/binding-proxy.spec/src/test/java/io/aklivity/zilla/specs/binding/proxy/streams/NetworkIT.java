@@ -138,6 +138,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/connected.local.server.sent.abort.before.begin/client",
+        "${net}/connected.local.server.sent.abort.before.begin/server"})
+    public void shouldConnectLocalServerSendsAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connected.local.server.sent.reset/client",
         "${net}/connected.local.server.sent.reset/server"})
     public void shouldConnectLocalServerSendsReset() throws Exception
@@ -177,6 +186,42 @@ public class NetworkIT
         "${net}/connected.tcp4/client",
         "${net}/connected.tcp4/server"})
     public void shouldConnectTcp4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connected.tcp4.client.sent.10k.message/client",
+        "${net}/connected.tcp4.client.sent.10k.message/server"})
+    public void shouldConnectTcp4ClientSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connected.tcp4.client.sent.100k.message/client",
+        "${net}/connected.tcp4.client.sent.100k.message/server"})
+    public void shouldConnectTcp4ClientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connected.tcp4.server.sent.10k.message/client",
+        "${net}/connected.tcp4.server.sent.10k.message/server"})
+    public void shouldConnectTcp4ServerSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connected.tcp4.server.sent.100k.message/client",
+        "${net}/connected.tcp4.server.sent.100k.message/server"})
+    public void shouldConnectTcp4ServerSent100kMessage() throws Exception
     {
         k3po.finish();
     }

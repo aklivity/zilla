@@ -190,6 +190,16 @@ public class ProxyServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connected.local.server.sent.abort.before.begin/client",
+        "${app}/connected.local.server.sent.abort.before.begin/server"})
+    public void shouldConnectLocalServerSendsAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connected.local.server.sent.reset/client",
         "${app}/connected.local.server.sent.reset/server"})
     public void shouldConnectLocalServerSendsReset() throws Exception
@@ -203,6 +213,46 @@ public class ProxyServerIT
         "${net}/connected.tcp4/client",
         "${app}/connected.tcp4/server"})
     public void shouldConnectTcp4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.tcp4.yaml")
+    @Specification({
+        "${net}/connected.tcp4.client.sent.10k.message/client",
+        "${app}/connected.tcp4.client.sent.10k.message/server"})
+    public void shouldConnectTcp4ClientSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.tcp4.yaml")
+    @Specification({
+        "${net}/connected.tcp4.client.sent.100k.message/client",
+        "${app}/connected.tcp4.client.sent.100k.message/server"})
+    public void shouldConnectTcp4ClientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.tcp4.yaml")
+    @Specification({
+        "${net}/connected.tcp4.server.sent.10k.message/client",
+        "${app}/connected.tcp4.server.sent.10k.message/server"})
+    public void shouldConnectTcp4ServerSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.tcp4.yaml")
+    @Specification({
+        "${net}/connected.tcp4.server.sent.100k.message/client",
+        "${app}/connected.tcp4.server.sent.100k.message/server"})
+    public void shouldConnectTcp4ServerSent100kMessage() throws Exception
     {
         k3po.finish();
     }

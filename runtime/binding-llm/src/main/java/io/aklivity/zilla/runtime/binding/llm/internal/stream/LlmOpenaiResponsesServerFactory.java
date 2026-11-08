@@ -77,6 +77,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -2917,7 +2918,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
             initialMax = decodeMax;
-            state = LlmState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doNetWindow(traceId);
         }
@@ -2952,8 +2953,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final long traceId = end.traceId();
 
             initialSeq = end.sequence();
-            state = LlmState.closeInitial(state);
-            state = LlmState.deferInitialEnd(state);
+            state = StreamState.closingInitial(state);
 
             if (decodeSlot != NO_SLOT)
             {
@@ -3046,7 +3046,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int progress = offset;
 
             decodedInput = buffer;
-            decodedLast = LlmState.initialClosed(state);
+            decodedLast = StreamState.initialClosing(state);
 
             if (decoder == decodeEnd || decoder == decodeIgnore)
             {
@@ -3117,9 +3117,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void flushNetEnd(
             long traceId)
         {
-            if (LlmState.initialEndDeferred(state) && decodeSlot == NO_SLOT && decoder != decodeIgnore)
+            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state) &&
+                decodeSlot == NO_SLOT && decoder != decodeIgnore)
             {
-                state = LlmState.clearInitialEndDeferred(state);
+                state = StreamState.closeInitial(state);
                 onDecodeEnd(traceId);
             }
         }
@@ -4270,13 +4271,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 stream.doAppFlush(traceId, initialAuthorization, maxOutputTokens);
 
-                if (LlmState.replyClosed(stream.state))
+                if (StreamState.replyClosed(stream.state))
                 {
                     stream.doAppEnd(traceId);
                 }
                 else
                 {
-                    stream.state = LlmState.closingInitial(stream.state);
+                    stream.state = StreamState.closingInitial(stream.state);
                 }
             }
         }
@@ -4365,7 +4366,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (encodeSlot != NO_SLOT)
             {
-                state = LlmState.deferReplyEnd(state);
+                state = StreamState.closingReply(state);
                 pendingReplyEndTraceId = traceId;
                 pendingReplyEndAuthorization = authorization;
             }
@@ -4463,7 +4464,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final long traceId = abort.traceId();
 
             initialSeq = abort.sequence();
-            state = LlmState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanup(traceId);
         }
@@ -4479,7 +4480,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyMax = maximum;
             replyPad = window.padding();
             replyBudgetId = window.budgetId();
-            state = LlmState.openReply(state);
+            state = StreamState.openReply(state);
 
             if (replyBudgetId != 0L)
             {
@@ -4498,7 +4499,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             final long traceId = reset.traceId();
 
-            state = LlmState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanup(traceId);
         }
@@ -4643,6 +4644,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -4750,9 +4752,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 stream.ackReply(traceId);
             }
 
-            if (LlmState.replyEndDeferred(state) && encodeSlot == NO_SLOT)
+            if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && encodeSlot == NO_SLOT)
             {
-                state = LlmState.clearReplyEndDeferred(state);
                 doNetEnd(pendingReplyEndTraceId, pendingReplyEndAuthorization, EMPTY_OCTETS);
 
                 if (stream != null)
@@ -4780,12 +4781,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
 
+            state = StreamState.openingReply(state);
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -4794,7 +4797,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .build();
 
             network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-            state = LlmState.openingReply(state);
         }
 
         private void doNetEnd(
@@ -4802,14 +4804,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
+                state = StreamState.closeReply(state);
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -4817,7 +4821,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     .build();
 
                 network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-                state = LlmState.closeReply(state);
 
                 if (!deauthorized)
                 {
@@ -4832,19 +4835,22 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.replyOpening(state) && !LlmState.replyClosed(state))
+            if (!StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 doNetBegin(traceId, authorization, 0L, Integer.toString(STATUS_INTERNAL_SERVER_ERROR), null);
             }
 
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
+                state = StreamState.abortingReply(state);
+                state = StreamState.closeReply(state);
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -4852,7 +4858,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     .build();
 
                 network.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-                state = LlmState.closeReply(state);
 
                 if (!deauthorized)
                 {
@@ -4871,6 +4876,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .budgetId(0L)
@@ -4884,20 +4890,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void doNetReset(
             long traceId)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosing(state))
             {
+                state = StreamState.closeInitial(state);
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .build();
 
                 network.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-                state = LlmState.closeInitial(state);
             }
         }
 
@@ -4912,6 +4919,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -5001,9 +5009,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final OctetsFW extension = reset.extension();
             final LlmResetExFW resetEx = extension.get(llmResetExRO::tryWrap);
 
-            state = LlmState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
-            if (resetEx != null && !LlmState.replyOpening(server.state))
+            if (resetEx != null && !StreamState.replyOpening(server.state))
             {
                 server.doNetError(traceId, authorization, resetEx.error());
                 doAppReset(traceId);
@@ -5022,7 +5030,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             initialAck = window.acknowledge();
             initialMax = window.maximum();
             initialBud = window.budgetId();
-            state = LlmState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             server.decodeNet(traceId, server.initialAuthorization, 0L);
         }
@@ -5048,12 +5056,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             final LlmBeginExFW llmBeginEx = builder.build();
 
+            state = StreamState.openingInitial(state);
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(server.routedId)
                 .routedId(server.exitId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -5065,7 +5075,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 this::onAppMessage);
             app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
-            state = LlmState.openingInitial(state);
         }
 
         private void onAppMessage(
@@ -5116,7 +5125,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = LlmState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
 
@@ -5222,7 +5231,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final OctetsFW extension = end.extension();
 
             replySeq = end.sequence();
-            state = LlmState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
             final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
@@ -5248,7 +5257,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (server.encodeSlot != NO_SLOT)
             {
-                server.state = LlmState.deferReplyEnd(server.state);
+                server.state = StreamState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
                 server.pendingReplyEndAuthorization = authorization;
             }
@@ -5258,7 +5267,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 cleanupAccumulator();
             }
 
-            if (LlmState.initialClosing(state) && !LlmState.initialClosed(state))
+            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
             {
                 server.onDecodeEnd(traceId);
             }
@@ -5273,7 +5282,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final OctetsFW extension = abort.extension();
 
             replySeq = abort.sequence();
-            state = LlmState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupHeld();
 
@@ -5292,7 +5301,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (server.encodeSlot != NO_SLOT)
                 {
-                    server.state = LlmState.deferReplyEnd(server.state);
+                    server.state = StreamState.closingReply(server.state);
                     server.pendingReplyEndTraceId = traceId;
                     server.pendingReplyEndAuthorization = authorization;
                 }
@@ -5309,7 +5318,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 cleanupAccumulator();
             }
 
-            if (LlmState.initialClosing(state) && !LlmState.initialClosed(state))
+            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
             {
                 server.onDecodeEnd(traceId);
             }
@@ -5334,7 +5343,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long authorization,
             int maxOutputTokens)
         {
-            if (!flushed && !LlmState.initialClosed(state))
+            if (!flushed && !StreamState.initialClosed(state))
             {
                 flushed = true;
 
@@ -5344,6 +5353,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -5369,72 +5379,79 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void doAppEnd(
             long traceId)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
+                state = StreamState.closeInitial(state);
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(server.routedId)
                     .routedId(server.exitId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .build();
 
                 app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-                state = LlmState.closeInitial(state);
             }
         }
 
         private void doAppAbort(
             long traceId)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(server.routedId)
                     .routedId(server.exitId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .build();
 
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-                state = LlmState.closeInitial(state);
             }
         }
 
         private void doAppReset(
             long traceId)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
+                state = StreamState.closeReply(state);
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(server.routedId)
                     .routedId(server.exitId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .build();
 
                 app.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-                state = LlmState.closeReply(state);
             }
         }
 
         private void doAppWindow(
             long traceId)
         {
+            state = StreamState.openReply(state);
+
             final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(server.routedId)
                 .routedId(server.exitId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .budgetId(0L)
@@ -5455,6 +5472,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -5482,6 +5500,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -8062,6 +8081,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private long replyAck;
         private int replyMax;
 
+        private int state;
         private boolean began;
         private int bodySent;
 
@@ -8113,6 +8133,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onNetBegin(
             BeginFW begin)
         {
+            state = StreamState.openInitial(state);
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
@@ -8138,6 +8159,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onNetEnd(
             EndFW end)
         {
+            state = StreamState.closeInitial(state);
             initialSeq = end.sequence();
             initialAck = initialSeq;
         }
@@ -8145,6 +8167,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onNetAbort(
             AbortFW abort)
         {
+            state = StreamState.closeInitial(state);
             initialSeq = abort.sequence();
             initialAck = initialSeq;
         }
@@ -8152,6 +8175,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onNetWindow(
             WindowFW window)
         {
+            state = StreamState.openReply(state);
             replyAck = window.acknowledge();
             replyMax = window.maximum();
 
@@ -8167,6 +8191,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .budgetId(0L)
@@ -8180,6 +8205,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
+            state = StreamState.openingReply(state);
+
             final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HEADER_STATUS).value(status))
@@ -8192,6 +8219,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -8231,6 +8259,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -8256,12 +8285,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
+            state = StreamState.closeReply(state);
+
             final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)

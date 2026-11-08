@@ -108,4 +108,46 @@ public class SchemaTest
     {
         schema.validate("server.binding.with.no.exit.yaml");
     }
+
+    @Test
+    public void shouldValidateEventFilterExcludeQname()
+    {
+        JsonObject config = schema.validate("server.event.filter.exclude.qname.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateEventFilterExcludeId()
+    {
+        JsonObject config = schema.validate("server.event.filter.exclude.id.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateEventFilterExcludeWithNoEvents()
+    {
+        JsonObject config = schema.validate("server.event.filter.exclude.no.events.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectEventFilterInclude()
+    {
+        schema.validate("server.event.filter.include.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectEventFilterExcludeEmptyMatcher()
+    {
+        schema.validate("server.event.filter.exclude.empty.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectEventFilterExcludeUnknownMatcherKey()
+    {
+        schema.validate("server.event.filter.exclude.unknown.yaml");
+    }
 }

@@ -74,6 +74,43 @@
                                     ]
                                 }
                             },
+                            "filter":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "exclude":
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "qname":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "id":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "name":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "message":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "minProperties": 1,
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
                             "metrics":
                             {
                                 "type": "array",

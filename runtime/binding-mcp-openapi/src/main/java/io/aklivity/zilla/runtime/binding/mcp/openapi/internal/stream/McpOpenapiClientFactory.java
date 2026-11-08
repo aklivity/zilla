@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class McpOpenapiClientFactory implements BindingHandler
@@ -240,7 +241,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpOpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             http.doMcpHttpBegin(sequence, acknowledge, maximum, traceId, affinity, extension);
         }
@@ -272,7 +273,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doMcpHttpEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -300,7 +301,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doMcpHttpAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -314,7 +315,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             http.doMcpHttpReset(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -339,11 +340,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
-                state = McpOpenapiState.openingReply(state);
+                state = StreamState.openingReply(state);
 
-                McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doBegin(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                     traceId, authorization, affinity, extension);
             }
         }
@@ -359,7 +360,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpOpenapiClientFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doData(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
@@ -372,7 +373,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpOpenapiClientFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doFlush(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -387,13 +388,14 @@ public final class McpOpenapiClientFactory implements BindingHandler
             // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpOpenapiAbort below
             doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
 
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                McpOpenapiClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.closeReply(state);
+                McpOpenapiClientFactory.this.doEnd(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpOpenapiAbort(
@@ -407,15 +409,15 @@ public final class McpOpenapiClientFactory implements BindingHandler
             // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
             // opening the reply first, this abort is silently dropped and the real client hangs forever
             // waiting for any reply frame at all
-            doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
-
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                McpOpenapiClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.abortingReply(state);
+                state = StreamState.closeReply(state);
+                McpOpenapiClientFactory.this.doAbort(sender, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                     traceId, authorization, extension);
             }
 
-            state = McpOpenapiState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doMcpOpenapiReset(
@@ -425,11 +427,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
-                McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+                McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                     traceId, authorization, extension);
             }
         }
@@ -442,7 +444,8 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpOpenapiClientFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
+            state = StreamState.openInitial(state);
+            McpOpenapiClientFactory.this.doWindow(sender, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -524,7 +527,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = begin.traceId();
             final OctetsFW extension = begin.extension();
 
-            state = McpOpenapiState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             delegate.doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -569,7 +572,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = end.traceId();
             final OctetsFW extension = end.extension();
 
-            state = McpOpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpOpenapiEnd(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -583,7 +586,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = abort.traceId();
             final OctetsFW extension = abort.extension();
 
-            state = McpOpenapiState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             delegate.doMcpOpenapiAbort(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -597,7 +600,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            state = McpOpenapiState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId, extension);
         }
@@ -612,7 +615,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            state = McpOpenapiState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             delegate.doMcpOpenapiWindow(sequence, acknowledge, maximum, traceId, budgetId, padding);
         }
@@ -625,13 +628,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long affinity,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
 
                 this.receiver = McpOpenapiClientFactory.this.newStream(this::onMcpHttpMessage, originId, routedId, initialId,
-                    sequence, acknowledge, maximum, traceId, authorization, affinity, extension);
-                state = McpOpenapiState.openingInitial(state);
+                    sequence, acknowledge, state, maximum, traceId, authorization, affinity, extension);
+                state = StreamState.openingInitial(state);
             }
         }
 
@@ -647,7 +650,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             OctetsFW payload,
             OctetsFW extension)
         {
-            McpOpenapiClientFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doData(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, flags, reserved, payload, extension);
         }
 
@@ -660,7 +663,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            McpOpenapiClientFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+            McpOpenapiClientFactory.this.doFlush(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -671,12 +674,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                McpOpenapiClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                state = StreamState.closeInitial(state);
+                McpOpenapiClientFactory.this.doEnd(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -687,12 +691,15 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                McpOpenapiClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, maximum,
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
+                McpOpenapiClientFactory.this.doAbort(receiver, originId, routedId, initialId, sequence, acknowledge, state,
+                    maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -703,12 +710,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            if (!McpOpenapiState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                state = StreamState.closeReply(state);
+                McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                     traceId, authorization, extension);
 
-                state = McpOpenapiState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -721,7 +729,8 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            McpOpenapiClientFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+            state = StreamState.openReply(state);
+            McpOpenapiClientFactory.this.doWindow(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum,
                 traceId, authorization, budgetId, padding);
         }
     }
@@ -733,6 +742,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -745,6 +755,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -767,6 +778,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -779,6 +791,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -796,6 +809,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -811,6 +825,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -831,6 +846,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -844,6 +860,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -862,6 +879,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -873,6 +891,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -889,6 +908,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -900,6 +920,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -916,6 +937,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -928,6 +950,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -945,6 +968,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -956,6 +980,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)

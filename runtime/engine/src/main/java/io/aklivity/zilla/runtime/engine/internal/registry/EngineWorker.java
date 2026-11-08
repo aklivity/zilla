@@ -1219,6 +1219,11 @@ public class EngineWorker implements EngineContext, Agent
                 handlers.forEach((id, handler) -> doSyntheticAbort(streamId(localIndex, senderIndex0, id), handler));
             }
 
+            final Long2ObjectHashMap<MessageConsumer> pending = new Long2ObjectHashMap<>();
+            pending.putAll(correlations);
+            correlations.clear();
+            pending.forEach(this::doSyntheticAbort);
+
             acquiredBuffers = bufferPool.acquiredSlots();
             acquiredCreditors = creditor.acquired();
             acquiredDebitors = debitorsByIndex.values()
@@ -1959,6 +1964,25 @@ public class EngineWorker implements EngineContext, Agent
         else if (msgTypeId == EndFW.TYPE_ID)
         {
             handleDroppedReadEnd(msgTypeId, buffer, index, length);
+        }
+        else if (msgTypeId == AbortFW.TYPE_ID)
+        {
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long routedId = frame.routedId();
+            final long streamId = frame.streamId();
+
+            final MessageConsumer pendingStream = correlations.remove(streamId);
+            if (pendingStream != null)
+            {
+                pendingStream.accept(msgTypeId, buffer, index, length);
+
+                final LongHashSet streamIdSet = streamSets.get(routedId);
+                if (streamIdSet != null)
+                {
+                    streamIdSet.remove(streamId | 1L);
+                }
+                budgetHandles.release(streamId);
+            }
         }
         else if (msgTypeId == FlushFW.TYPE_ID)
         {

@@ -496,8 +496,10 @@ A new `boolean` field that records "which phase are we in", "did this finish",
 mechanism.
 
 - Before adding a field, ask whether the phase already exists: a failed stream
-  is the `decodeIgnore` decoder state, a deferred end is the `deferInitialEnd` /
-  `initialEndDeferred` state bits that `flushNetEnd` honors, and a section in
+  is the `decodeIgnore` decoder state, a deferred end is `closingInitial` /
+  `closingReply` set when the END is received or ready while a slot still has
+  bytes to drain, with `closeInitial` / `closeReply` set only when the END is
+  actually forwarded (`flushNetEnd`, `doNetEnd`), and a section in
   progress is a decoder state or a strategy selected when the section opens.
 - Model a phase as a `decode<StateName>` method assigned to `decoder`, or as a
   strategy field chosen at the transition, and let the transition do the work.

@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.aklivity.zilla.config.classifier.presidio.PresidioClassifierOptionsConfig;
 import io.aklivity.zilla.config.engine.ClassifierConfig;
@@ -43,6 +45,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
     private final Duration timeout;
     private final Map<String, String> entitiesByLabel;
     private final PresidioSurrogates surrogates;
+    private final Set<CompletableFuture<String>> pending;
 
     PresidioClassifierHandler(
         EngineContext context,
@@ -66,6 +69,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
         this.timeout = options.timeout;
         this.entitiesByLabel = options.labels;
         this.surrogates = new PresidioSurrogates();
+        this.pending = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -101,13 +105,14 @@ final class PresidioClassifierHandler implements ClassifierHandler
 
     void close()
     {
+        pending.forEach(analyzed -> analyzed.cancel(true));
         client.shutdownNow();
     }
 
     private PresidioAnalyzer analyzer(
         List<String> entities)
     {
-        return new PresidioAnalyzer(client, analyze, authorization, language, threshold, timeout, entities);
+        return new PresidioAnalyzer(client, analyze, authorization, language, threshold, timeout, entities, pending);
     }
 
     private static URI analyze(

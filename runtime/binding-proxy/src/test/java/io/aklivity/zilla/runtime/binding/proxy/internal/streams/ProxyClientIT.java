@@ -166,6 +166,16 @@ public class ProxyClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/connected.local.server.sent.abort.before.begin/client",
+        "${net}/connected.local.server.sent.abort.before.begin/server"})
+    public void shouldConnectLocalServerSendsAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/connected.local.server.sent.close/client",
         "${net}/connected.local.server.sent.close/server"})
     public void shouldConnectLocalServerSendsClose() throws Exception
@@ -201,6 +211,46 @@ public class ProxyClientIT
         "${app}/connected.tcp4/client",
         "${net}/connected.tcp4/server"})
     public void shouldConnectTcp4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connected.tcp4.client.sent.10k.message/client",
+        "${net}/connected.tcp4.client.sent.10k.message/server"})
+    public void shouldConnectTcp4ClientSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connected.tcp4.client.sent.100k.message/client",
+        "${net}/connected.tcp4.client.sent.100k.message/server"})
+    public void shouldConnectTcp4ClientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connected.tcp4.server.sent.10k.message/client",
+        "${net}/connected.tcp4.server.sent.10k.message/server"})
+    public void shouldConnectTcp4ServerSent10kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connected.tcp4.server.sent.100k.message/client",
+        "${net}/connected.tcp4.server.sent.100k.message/server"})
+    public void shouldConnectTcp4ServerSent100kMessage() throws Exception
     {
         k3po.finish();
     }

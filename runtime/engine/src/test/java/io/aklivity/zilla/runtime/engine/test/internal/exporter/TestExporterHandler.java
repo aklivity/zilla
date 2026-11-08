@@ -143,6 +143,28 @@ class TestExporterHandler implements ExporterHandler
         }
     }
 
+    private boolean excluded(
+        String qname,
+        String id,
+        String name,
+        String message)
+    {
+        boolean excluded = false;
+
+        if (options.filter != null)
+        {
+            for (TestExporterOptionsConfig.EventMatcher matcher : options.filter.exclude)
+            {
+                excluded |= (matcher.qName == null || matcher.qName.equals(qname)) &&
+                    (matcher.id == null || matcher.id.equals(id)) &&
+                    (matcher.name == null || matcher.name.equals(name)) &&
+                    (matcher.message == null || matcher.message.equals(message));
+            }
+        }
+
+        return excluded;
+    }
+
     private void handleEvent(
         int msgTypeId,
         DirectBufferEx buffer,
@@ -161,6 +183,18 @@ class TestExporterHandler implements ExporterHandler
         String name = context.supplyEventName(event.id());
         String message = formatter.format(msgTypeId, buffer, index, length);
 
+        if (!excluded(qname, id, name, message))
+        {
+            assertEvent(qname, id, name, message);
+        }
+    }
+
+    private void assertEvent(
+        String qname,
+        String id,
+        String name,
+        String message)
+    {
         if (options.events == null || options.events.isEmpty())
         {
             throw new IllegalStateException(String.format("event not expected: %s %s %s %s",

@@ -78,6 +78,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -755,7 +756,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
             initialMax = 0;
-            state = LlmState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             if (model == null)
             {
@@ -856,7 +857,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             final long traceId = end.traceId();
 
             initialSeq = end.sequence();
-            state = LlmState.closingInitial(state);
+            state = StreamState.closingInitial(state);
 
             http.doEncodeRequestEnd(NO_MAX_OUTPUT_TOKENS);
 
@@ -892,7 +893,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             final long traceId = abort.traceId();
 
             initialSeq = abort.sequence();
-            state = LlmState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             http.doNetAbort(traceId);
             cleanupControlSlot();
@@ -908,7 +909,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             replyAck = window.acknowledge();
             replyMax = window.maximum();
             replyPad = window.padding();
-            state = LlmState.openReply(state);
+            state = StreamState.openReply(state);
 
             http.decodeNet(traceId);
         }
@@ -918,7 +919,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final long traceId = reset.traceId();
 
-            state = LlmState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             http.doNetReset(traceId);
             http.doNetAbort(traceId);
@@ -963,8 +964,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             final long target = initialSeq + credit;
 
             if (http.initialMax > 0 &&
-                !LlmState.initialClosing(state) &&
-                !LlmState.initialClosed(state) &&
+                !StreamState.initialClosing(state) &&
+                !StreamState.initialClosed(state) &&
                 target > initialAck + initialMax)
             {
                 initialAck = initialSeq;
@@ -976,7 +977,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doAppBeginSections(
             long traceId)
         {
-            if (!LlmState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doAppBegin(traceId, servedModel(), id());
             }
@@ -987,7 +988,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             String servedModel,
             String servedId)
         {
-            state = LlmState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             final LlmBeginExFW.Builder builder = llmBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(llmTypeId)
@@ -1005,12 +1006,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             final LlmBeginExFW llmBeginEx = builder.build();
 
+            state = StreamState.openReply(state);
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1019,7 +1022,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .build();
 
             app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-            state = LlmState.openReply(state);
         }
 
         private void doAppFrame(
@@ -1068,6 +1070,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -3445,9 +3448,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doAppEnd(
             long traceId)
         {
-            state = LlmState.closingReply(state);
+            state = StreamState.closingReply(state);
 
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 if (failed())
                 {
@@ -3458,7 +3461,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     finish();
                     doAppBeginSections(traceId);
 
-                    state = LlmState.closeReply(state);
+                    state = StreamState.closeReply(state);
 
                     final LlmEndExFW llmEndEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
@@ -3472,6 +3475,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
+                        .state(state)
                         .maximum(replyMax)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -3487,11 +3491,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doAppAbort(
             long traceId)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                doAppBeginSections(traceId);
+                if (servedModel() != null || id() != null)
+                {
+                    doAppBeginSections(traceId);
+                }
 
-                state = LlmState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 final LlmAbortExFW llmAbortEx = llmAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId)
@@ -3505,6 +3512,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -3522,7 +3530,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             String type,
             String message)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 rejected = true;
 
@@ -3544,12 +3552,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 final LlmResetExFW llmResetEx = builder.build();
 
+                state = StreamState.closeInitial(state);
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -3557,7 +3567,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     .build();
 
                 app.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-                state = LlmState.closeInitial(state);
             }
         }
 
@@ -3565,7 +3574,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             long traceId,
             int status)
         {
-            if (LlmState.replyOpening(state) || LlmState.replyOpened(state) || LlmState.initialClosed(state))
+            if (StreamState.replyOpening(state) || StreamState.replyOpened(state) || StreamState.initialClosed(state))
             {
                 doAppAbort(traceId);
             }
@@ -3591,6 +3600,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(0L)
@@ -3611,6 +3621,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -3752,7 +3763,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doNetBegin(
             long traceId)
         {
-            state = LlmState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             final String credentials = credentials(stream.binding, stream.authorization);
 
@@ -3771,12 +3782,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
 
+            state = StreamState.openInitial(state);
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(0)
                 .traceId(traceId)
                 .authorization(stream.authorization)
@@ -3790,14 +3803,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (net == null)
             {
-                state = LlmState.closeInitial(state);
-                state = LlmState.closeReply(state);
+                state = StreamState.closeInitial(state);
+                state = StreamState.closeReply(state);
                 stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
             }
             else
             {
                 net.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-                state = LlmState.openInitial(state);
             }
         }
 
@@ -4467,7 +4479,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doEncodeRequestEnd(
             int maxOutputTokens)
         {
-            if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
+            if (!StreamState.initialClosing(state) && !StreamState.initialClosed(state))
             {
                 if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_THINKING + collector.held()))
                 {
@@ -4507,7 +4519,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 cleanupHeldSlot();
 
-                state = LlmState.closingInitial(state);
+                state = StreamState.closingInitial(state);
             }
         }
 
@@ -4585,7 +4597,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void flushEncode(
             long traceId)
         {
-            if (net != null && !LlmState.initialClosed(state))
+            if (net != null && !StreamState.initialClosed(state))
             {
                 if (encodeSlot != NO_SLOT)
                 {
@@ -4614,7 +4626,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     }
                 }
 
-                if (LlmState.initialClosing(state) && encodeSlot == NO_SLOT)
+                if (StreamState.initialClosing(state) && encodeSlot == NO_SLOT)
                 {
                     doNetEnd(traceId);
                 }
@@ -4666,8 +4678,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
             replyMax = decodeMax;
-            state = LlmState.openingReply(state);
-            state = LlmState.openReply(state);
+            state = StreamState.openingReply(state);
+            state = StreamState.openReply(state);
 
             final String responseStatus = header(httpBeginEx, HEADER_STATUS);
             final String responseContentType = header(httpBeginEx, HEADER_CONTENT_TYPE);
@@ -4750,13 +4762,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final long traceId = end.traceId();
 
-            state = LlmState.closingReply(state);
+            state = StreamState.closingReply(state);
 
             pendingEndTraceId = traceId;
 
             if (errorStatus != NO_ERROR)
             {
-                state = LlmState.closeReply(state);
+                state = StreamState.closeReply(state);
                 decodeErrorBody();
                 doNetAbort(traceId);
                 stream.doAppReset(traceId, errorStatus, stream.errorType, stream.errorMessage);
@@ -4833,7 +4845,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             initialMax = window.maximum();
             initialPad = window.padding();
             initialBudgetId = window.budgetId();
-            state = LlmState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             if (initialBudgetId != 0L)
             {
@@ -4852,7 +4864,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void onNetReset(
             ResetFW reset)
         {
-            state = LlmState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupNet(reset.traceId());
         }
@@ -4872,7 +4884,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 drainEvents(traceId, stream.replyCredit() > 0);
 
-                if (!LlmState.replyClosing(state))
+                if (!StreamState.replyClosing(state))
                 {
                     doNetWindow(traceId);
                 }
@@ -4888,7 +4900,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 doNetWindow(traceId);
             }
-            else if (decodeSlot == NO_SLOT && LlmState.replyClosing(state))
+            else if (decodeSlot == NO_SLOT && StreamState.replyClosing(state))
             {
                 doAppEnd(pendingEndTraceId);
             }
@@ -4928,7 +4940,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 cleanupDecodeSlot();
 
-                if (LlmState.replyClosing(state))
+                if (StreamState.replyClosing(state))
                 {
                     doAppEnd(pendingEndTraceId);
                 }
@@ -4940,7 +4952,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            final boolean last = LlmState.replyClosing(state);
+            final boolean last = StreamState.replyClosing(state);
 
             int progress = stream.decodeNet(buffer, offset, limit, last);
 
@@ -5273,9 +5285,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doAppEnd(
             long traceId)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = LlmState.closeReply(state);
+                state = StreamState.closeReply(state);
                 stream.doAppEnd(traceId);
             }
         }
@@ -5310,6 +5322,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(stream.authorization)
@@ -5327,42 +5340,45 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doNetEnd(
             long traceId)
         {
-            if (net != null && !LlmState.initialClosed(state))
+            if (net != null && !StreamState.initialClosed(state))
             {
+                state = StreamState.closeInitial(state);
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(stream.authorization)
                     .build();
 
                 net.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-                state = LlmState.closeInitial(state);
             }
         }
 
         private void doNetAbort(
             long traceId)
         {
-            if (net != null && !LlmState.initialClosed(state))
+            if (net != null && !StreamState.initialClosed(state))
             {
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(stream.authorization)
                     .build();
 
                 net.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-                state = LlmState.closeInitial(state);
             }
 
             cleanupHeldSlot();
@@ -5371,20 +5387,21 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doNetReset(
             long traceId)
         {
-            if (net != null && !LlmState.replyClosed(state))
+            if (net != null && !StreamState.replyClosed(state))
             {
+                state = StreamState.closeReply(state);
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
+                    .state(state)
                     .maximum(replyMax)
                     .traceId(traceId)
                     .build();
 
                 net.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-                state = LlmState.closeReply(state);
             }
         }
 
@@ -5399,12 +5416,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 replyAck = replyAckMax;
             }
 
+            state = StreamState.openReply(state);
             final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(decodeMax)
                 .traceId(traceId)
                 .budgetId(0L)
@@ -5413,7 +5432,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .build();
 
             net.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-            state = LlmState.openReply(state);
         }
 
         private void doNetChallenge(
@@ -5429,6 +5447,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .traceId(traceId)
                     .authorization(authorization)

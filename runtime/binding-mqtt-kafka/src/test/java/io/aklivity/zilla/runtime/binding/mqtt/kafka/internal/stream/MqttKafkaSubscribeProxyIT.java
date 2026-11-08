@@ -647,4 +647,15 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.server.sent.abort.before.begin/client",
+        "${kafka}/subscribe.server.sent.abort.before.begin/server"})
+    public void shouldReceiveServerSentAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
