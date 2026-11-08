@@ -16,14 +16,16 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream;
 
 final class McpKafkaState
 {
-    private static final int INITIAL_OPENING = 0x01;
-    private static final int INITIAL_OPENED = 0x02;
-    private static final int INITIAL_CLOSING = 0x04;
-    private static final int INITIAL_CLOSED = 0x08;
-    private static final int REPLY_OPENING = 0x10;
-    private static final int REPLY_OPENED = 0x20;
-    private static final int REPLY_CLOSING = 0x40;
-    private static final int REPLY_CLOSED = 0x80;
+    private static final int REPLY_OPENING = 0x0001;
+    private static final int REPLY_OPENED = 0x0002;
+    private static final int REPLY_CLOSING = 0x0004;
+    private static final int REPLY_CLOSED = 0x0008;
+    private static final int INITIAL_OPENING = 0x0010;
+    private static final int INITIAL_OPENED = 0x0020;
+    private static final int INITIAL_CLOSING = 0x0040;
+    private static final int INITIAL_CLOSED = 0x0080;
+    private static final int INITIAL_ABORTING = 0x0100;
+    private static final int REPLY_ABORTING = 0x0200;
 
     static int openingInitial(
         int state)
@@ -31,10 +33,10 @@ final class McpKafkaState
         return state | INITIAL_OPENING;
     }
 
-    static int openedInitial(
+    static int openInitial(
         int state)
     {
-        return state | INITIAL_OPENED;
+        return openingInitial(state) | INITIAL_OPENED;
     }
 
     static int closingInitial(
@@ -43,10 +45,34 @@ final class McpKafkaState
         return state | INITIAL_CLOSING;
     }
 
-    static int closedInitial(
+    static int closeInitial(
         int state)
     {
-        return state | INITIAL_CLOSED;
+        return closingInitial(state) | INITIAL_CLOSED;
+    }
+
+    static int abortingInitial(
+        int state)
+    {
+        return state | INITIAL_ABORTING;
+    }
+
+    static boolean initialOpening(
+        int state)
+    {
+        return (state & INITIAL_OPENING) != 0;
+    }
+
+    static boolean initialOpened(
+        int state)
+    {
+        return (state & INITIAL_OPENED) != 0;
+    }
+
+    static boolean initialClosing(
+        int state)
+    {
+        return (state & INITIAL_CLOSING) != 0;
     }
 
     static boolean initialClosed(
@@ -55,13 +81,19 @@ final class McpKafkaState
         return (state & INITIAL_CLOSED) != 0;
     }
 
+    static boolean initialAborting(
+        int state)
+    {
+        return (state & INITIAL_ABORTING) != 0;
+    }
+
     static int openingReply(
         int state)
     {
         return state | REPLY_OPENING;
     }
 
-    static int openedReply(
+    static int openReply(
         int state)
     {
         return state | REPLY_OPENED;
@@ -73,16 +105,52 @@ final class McpKafkaState
         return state | REPLY_CLOSING;
     }
 
-    static int closedReply(
+    static int closeReply(
         int state)
     {
-        return state | REPLY_CLOSED;
+        return closingReply(state) | REPLY_CLOSED;
+    }
+
+    static int abortingReply(
+        int state)
+    {
+        return state | REPLY_ABORTING;
+    }
+
+    static boolean replyOpening(
+        int state)
+    {
+        return (state & REPLY_OPENING) != 0;
+    }
+
+    static boolean replyOpened(
+        int state)
+    {
+        return (state & REPLY_OPENED) != 0;
+    }
+
+    static boolean replyClosing(
+        int state)
+    {
+        return (state & REPLY_CLOSING) != 0;
     }
 
     static boolean replyClosed(
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    static boolean replyAborting(
+        int state)
+    {
+        return (state & REPLY_ABORTING) != 0;
+    }
+
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
     }
 
     private McpKafkaState()

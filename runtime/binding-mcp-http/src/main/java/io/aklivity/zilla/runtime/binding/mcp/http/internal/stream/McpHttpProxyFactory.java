@@ -425,7 +425,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             EndFW end)
         {
             initialSeq = end.sequence();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             cleanupDecodeSlot();
         }
 
@@ -433,7 +433,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             cleanupDecodeSlot();
         }
 
@@ -443,6 +443,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             replyAck = window.acknowledge();
             replyMax = window.maximum();
             replyPad = window.padding();
+            state = McpHttpState.openReply(state);
 
             final long traceId = window.traceId();
             flushReply(traceId);
@@ -451,7 +452,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         void onMcpReset(
             ResetFW reset)
         {
-            state = McpHttpState.closedReply(state);
+            state = McpHttpState.closeReply(state);
             cleanupEncodeSlot();
         }
 
@@ -549,7 +550,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         int flushReply(
             long traceId)
         {
-            if (encodeSlot != NO_SLOT && McpHttpState.replyOpened(state))
+            if (encodeSlot != NO_SLOT && McpHttpState.replyOpening(state))
             {
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 int maxPayload = replyMax - (int)(replySeq - replyAck) - replyPad;
@@ -582,11 +583,11 @@ public final class McpHttpProxyFactory implements BindingHandler
         void doMcpBegin(
             long traceId)
         {
-            if (!McpHttpState.replyOpened(state))
+            if (!McpHttpState.replyOpening(state))
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, emptyRO);
-                state = McpHttpState.openedReply(state);
+                state = McpHttpState.openingReply(state);
             }
         }
 
@@ -609,7 +610,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpHttpState.closedReply(state);
+                state = McpHttpState.closeReply(state);
             }
             cleanupEncodeSlot();
         }
@@ -621,7 +622,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpHttpState.closedReply(state);
+                state = McpHttpState.closeReply(state);
             }
             cleanupEncodeSlot();
         }
@@ -631,7 +632,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             initialMax = WINDOW_MAX;
             initialAck = initialSeq;
-            state = McpHttpState.openedInitial(state);
+            state = McpHttpState.openInitial(state);
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L, 0);
         }
@@ -655,7 +656,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 initialAck = newInitialAck;
                 initialMax = newInitialMax;
-                state = McpHttpState.openedInitial(state);
+                state = McpHttpState.openInitial(state);
                 doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding);
             }
@@ -667,7 +668,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = McpHttpState.closedInitial(state);
+                state = McpHttpState.closeInitial(state);
             }
             cleanupDecodeSlot();
         }
@@ -687,7 +688,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     .build();
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
-                state = McpHttpState.closedInitial(state);
+                state = McpHttpState.closeInitial(state);
             }
             cleanupDecodeSlot();
         }
@@ -760,7 +761,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             delegate.doHttpAbort(traceId);
             cleanupDecodeSlot();
         }
@@ -770,7 +771,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            state = McpHttpState.closedReply(state);
+            state = McpHttpState.closeReply(state);
             delegate.doHttpReset(traceId);
             cleanupEncodeSlot();
         }
@@ -1170,7 +1171,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
             initialSeq = end.sequence();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
 
             // requestPipeline is null only for the trivial (no body/query/validation) shape, which already
             // dispatched synchronously in onMcpBegin and set requestHandled there — nothing left to do here
@@ -1776,7 +1777,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
-            state = McpHttpState.openedReply(state);
+            state = McpHttpState.openingReply(state);
 
             final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
             if (httpBeginEx != null)
@@ -1833,7 +1834,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
             replySeq = end.sequence();
-            state = McpHttpState.closedReply(state);
+            state = McpHttpState.closeReply(state);
 
             pumpResponse(traceId);
         }
@@ -1842,7 +1843,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = McpHttpState.closedReply(state);
+            state = McpHttpState.closeReply(state);
             mcp.onHttpAbort(traceId);
             cleanupDecodeSlot();
         }
@@ -1864,7 +1865,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             cleanupEncodeSlot();
             mcp.onHttpAbort(traceId);
         }
@@ -1910,7 +1911,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, mcp.authorization);
-                state = McpHttpState.closedInitial(state);
+                state = McpHttpState.closeInitial(state);
             }
             cleanupEncodeSlot();
         }
@@ -1922,7 +1923,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, mcp.authorization);
-                state = McpHttpState.closedInitial(state);
+                state = McpHttpState.closeInitial(state);
             }
             cleanupEncodeSlot();
         }
@@ -1933,7 +1934,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (McpHttpState.initialOpening(state) && !McpHttpState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, mcp.authorization);
-                state = McpHttpState.closedReply(state);
+                state = McpHttpState.closeReply(state);
             }
             cleanupDecodeSlot();
         }
@@ -1959,6 +1960,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 {
                     replyAck = newReplyAck;
                     replyMax = newReplyMax;
+                    state = McpHttpState.openReply(state);
                     doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, mcp.authorization, budgetId, padding);
                 }
@@ -2261,7 +2263,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
             initialSeq = end.sequence();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             sessions.remove(sessionId, this);
             doMcpReplyEnd(traceId);
         }
@@ -2270,7 +2272,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = McpHttpState.closedInitial(state);
+            state = McpHttpState.closeInitial(state);
             sessions.remove(sessionId, this);
             doMcpReplyAbort(traceId);
         }
@@ -2280,13 +2282,14 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             replyAck = window.acknowledge();
             replyMax = window.maximum();
+            state = McpHttpState.openReply(state);
         }
 
         private void onMcpReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            state = McpHttpState.closedReply(state);
+            state = McpHttpState.closeReply(state);
             sessions.remove(sessionId, this);
             doMcpReset(traceId);
         }
@@ -2296,7 +2299,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             initialMax = WINDOW_MAX;
             initialAck = initialSeq;
-            state = McpHttpState.openedInitial(state);
+            state = McpHttpState.openInitial(state);
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L, 0);
         }
@@ -2304,7 +2307,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         private void doMcpReplyBegin(
             long traceId)
         {
-            if (!McpHttpState.replyOpened(state))
+            if (!McpHttpState.replyOpening(state))
             {
                 // capabilities is this binding's own declared real capabilities (McpHttpBindingConfig.
                 // serverCapabilities, computed from its configured tools/resources), not an echo of
@@ -2317,7 +2320,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     .build();
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, lifecycleEx);
-                state = McpHttpState.openedReply(state);
+                state = McpHttpState.openingReply(state);
             }
         }
 
@@ -2327,7 +2330,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpHttpState.closedReply(state);
+                state = McpHttpState.closeReply(state);
             }
         }
 
@@ -2337,7 +2340,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpHttpState.closedReply(state);
+                state = McpHttpState.closeReply(state);
             }
         }
 
@@ -2347,7 +2350,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (!McpHttpState.initialClosed(state))
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = McpHttpState.closedInitial(state);
+                state = McpHttpState.closeInitial(state);
             }
         }
     }

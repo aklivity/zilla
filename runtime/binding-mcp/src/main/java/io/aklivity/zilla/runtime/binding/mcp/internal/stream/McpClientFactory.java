@@ -441,7 +441,7 @@ public final class McpClientFactory implements McpStreamFactory
                 stream.paramsDepth--;
                 if (stream.paramsDepth == 0)
                 {
-                    stream.state = McpState.openedInitial(stream.state);
+                    stream.state = McpState.openInitial(stream.state);
                     stream.http.doEncodeRequestEnd(traceId, authorization);
                     stream.decoder = decodeRequestEnd;
                 }
@@ -1848,7 +1848,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence;
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1876,7 +1876,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence;
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1916,7 +1916,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge >= replyAck;
             assert maximum + acknowledge >= replyMax + replyAck;
 
-            state = McpState.openedReply(state);
+            state = McpState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBud = budgetId;
@@ -1939,7 +1939,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2035,7 +2035,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 if (http != null && http.responseError)
                 {
                     McpEndExFW endEx = mcpEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2084,7 +2084,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 doAbort(sender, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
                     traceId, authorization);
@@ -2099,7 +2099,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -2115,7 +2115,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
@@ -2429,7 +2429,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
             decoder = decodeRequestEnd;
         }
@@ -3187,7 +3187,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final long authorization = end.authorization();
                 cancelElicitTimeout();
                 pendingAuth = false;
-                state = McpState.openedInitial(state);
+                state = McpState.openInitial(state);
                 decoder = decodeRequestEnd;
                 doAppReset(traceId, authorization);
                 doAppAbort(traceId, authorization);
@@ -3256,7 +3256,7 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 cancelElicitTimeout();
                 pendingAuth = false;
-                state = McpState.openedInitial(state);
+                state = McpState.openInitial(state);
                 decoder = decodeRequestEnd;
                 emitElicitComplete(traceId, authorization);
                 doAppAbort(traceId, authorization);
@@ -3273,7 +3273,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final long traceId = signal.traceId();
                 final long authorization = signal.authorization();
                 pendingAuth = false;
-                state = McpState.openedInitial(state);
+                state = McpState.openInitial(state);
                 decoder = decodeRequestEnd;
                 emitElicitComplete(traceId, authorization);
                 doAppAbort(traceId, authorization);
@@ -3351,7 +3351,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             cancelElicitTimeout();
             pendingAuth = false;
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             decoder = decodeRequestEnd;
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
@@ -3379,7 +3379,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             cancelElicitTimeout();
             pendingAuth = false;
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             decoder = decodeRequestEnd;
             doAppAbort(elicitTraceId, elicitAuthorization);
         }
@@ -3760,7 +3760,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
             decoder = decodeRequestEnd;
         }
@@ -3806,7 +3806,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
             decoder = decodeRequestEnd;
         }
@@ -3852,7 +3852,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
             decoder = decodeRequestEnd;
         }
@@ -3880,7 +3880,7 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             http.doEncodeRequestEnd(traceId, authorization);
             decoder = decodeRequestEnd;
         }
@@ -4382,7 +4382,7 @@ public final class McpClientFactory implements McpStreamFactory
                 decodeSlot == BufferPool.NO_SLOT &&
                 mcp != null)
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 onResponseComplete(traceId, authorization);
                 mcp.onNetEnd(traceId, authorization);
             }
@@ -4407,7 +4407,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             if (decodeSlot == BufferPool.NO_SLOT)
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 onResponseComplete(traceId, authorization);
                 mcp.onNetEnd(traceId, authorization);
             }
@@ -4444,7 +4444,7 @@ public final class McpClientFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
-            state = McpState.openedReply(state);
+            state = McpState.openReply(state);
 
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
@@ -4463,7 +4463,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -4486,7 +4486,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge >= initialAck;
             assert maximum + acknowledge >= initialMax + initialAck;
 
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
             initialPad = padding;
@@ -4519,7 +4519,7 @@ public final class McpClientFactory implements McpStreamFactory
             assert acknowledge <= initialAck;
 
             initialAck = acknowledge;
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -4618,7 +4618,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (!McpState.initialClosed(state) &&
                 encodeSlot == NO_SLOT)
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
 
                 cleanupEncodeSlot();
@@ -4631,7 +4631,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (net != null && !McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId, traceId, authorization);
 
                 cleanupEncodeSlot();
@@ -4644,7 +4644,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (net != null && !McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 doReset(net, originId, routedId, replyId, traceId, authorization);
 
                 cleanupDecodeSlot();
@@ -5041,7 +5041,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert net != null;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization);
         }
@@ -5052,7 +5052,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
             }
@@ -5064,7 +5064,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
             }
@@ -5115,7 +5115,7 @@ public final class McpClientFactory implements McpStreamFactory
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
             replyMax = decodeMax;
-            state = McpState.openedReply(state);
+            state = McpState.openingReply(state);
 
             final OctetsFW ext = begin.extension();
             final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
@@ -5247,7 +5247,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             final long traceId = end.traceId();
             final long authorization = end.authorization();
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             cleanupDecodeSlot();
             mcp.onDecodeCompletion(traceId, authorization);
             detach();
@@ -5259,7 +5259,7 @@ public final class McpClientFactory implements McpStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             cleanupDecodeSlot();
 
             if (mcp.sseRef() == this)
@@ -5272,7 +5272,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetReset(
             ResetFW reset)
         {
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             cleanupDecodeSlot();
             detach();
         }
@@ -5280,7 +5280,7 @@ public final class McpClientFactory implements McpStreamFactory
         private void onNetWindow(
             WindowFW window)
         {
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
         }
 
         private void doNetWindow(
@@ -5289,6 +5289,7 @@ public final class McpClientFactory implements McpStreamFactory
             long budgetId,
             int padding)
         {
+            state = McpState.openReply(state);
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
@@ -6123,7 +6124,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doEnd(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -6136,7 +6137,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -6149,7 +6150,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 doReset(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
                     traceId, authorization);
@@ -6198,13 +6199,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = McpState.openedReply(state);
+            state = McpState.openingReply(state);
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = writeBuffer.capacity();
 
             assert replyAck <= replySeq;
 
+            state = McpState.openReply(state);
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, 0);
@@ -6220,7 +6222,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
 
@@ -6369,7 +6371,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 doEnd(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -6382,7 +6384,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (!McpState.replyClosed(state))
             {
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
                 doReset(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
                     traceId, authorization);
@@ -6431,13 +6433,14 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert acknowledge <= sequence;
 
-            state = McpState.openedReply(state);
+            state = McpState.openingReply(state);
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = writeBuffer.capacity();
 
             assert replyAck <= replySeq;
 
+            state = McpState.openReply(state);
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, 0L, 0);
@@ -6451,7 +6454,7 @@ public final class McpClientFactory implements McpStreamFactory
             final int maximum = window.maximum();
             final int padding = window.padding();
 
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
 
