@@ -51,6 +51,8 @@ import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.internal.impl.collect.DefaultDependencyCollector;
+import org.eclipse.aether.internal.impl.collect.df.DfDependencyCollector;
 import org.eclipse.aether.internal.impl.scope.OptionalDependencySelector;
 import org.eclipse.aether.internal.impl.scope.ScopeDependencySelector;
 import org.eclipse.aether.repository.LocalRepository;
@@ -98,6 +100,13 @@ public final class ZpmCache
     // both so a stuck transfer fails while there is still budget left to report it.
     private static final int CONNECT_TIMEOUT_MS = 10000;
     private static final int REQUEST_TIMEOUT_MS = 60000;
+
+    // Without sync-context locking nothing stops concurrent threads from transferring the same artifact into
+    // the local repository, and replacing an existing file is not atomic: a descriptor read that lands between
+    // the unlink and the rename sees a missing POM. The breadth-first collector reads descriptors on a thread
+    // pool, so a shared parent POM is routinely transferred by several threads at once. The depth-first
+    // collector reads descriptors on the calling thread, which keeps each artifact transfer exclusive.
+    private static final String COLLECTOR_IMPL = DfDependencyCollector.NAME;
 
     // maven-resolver configuration passed as -Daether.* system properties, as Maven itself does,
     // for example aether.remoteRepositoryFilter.groupId to restrict which groups a repository serves
@@ -377,16 +386,15 @@ public final class ZpmCache
                 .setConfigProperties(resolverProperties())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
+                .setConfigProperty(DefaultDependencyCollector.CONFIG_PROP_COLLECTOR_IMPL, COLLECTOR_IMPL)
                 .setConfigProperty(CONNECT_TIMEOUT, CONNECT_TIMEOUT_MS)
                 .setConfigProperty(REQUEST_TIMEOUT, REQUEST_TIMEOUT_MS)
                 .setIgnoreArtifactDescriptorRepositories(excludeRemote);
 
-        if (includeOptional)
-        {
-            // the validation-only tree reaches artifacts whose descriptors may be missing or unparseable
-            // (for example an unresolved classifier property); skip those rather than drop the whole tree
-            builder.setArtifactDescriptorPolicy(new SimpleArtifactDescriptorPolicy(true, true));
-        }
+        // the default policy ignores missing and invalid descriptors, silently dropping the dependencies they declare
+        // from the resolved tree; only the validation-only tree reaches artifacts whose descriptors may be missing or
+        // unparseable (for example an unresolved classifier property) and skips those rather than dropping the whole tree
+        builder.setArtifactDescriptorPolicy(new SimpleArtifactDescriptorPolicy(includeOptional, includeOptional));
 
         return builder.build();
     }
