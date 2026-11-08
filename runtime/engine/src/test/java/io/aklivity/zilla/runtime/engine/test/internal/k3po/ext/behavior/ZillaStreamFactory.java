@@ -249,6 +249,7 @@ public final class ZillaStreamFactory
             channel.sourceAck(acknowledge);
             channel.sourceId(streamId);
             channel.sourceAuth(begin.authorization());
+            channel.stateOpeningRead();
 
             channel.beginInputFuture().setSuccess();
 
@@ -387,6 +388,8 @@ public final class ZillaStreamFactory
                 channel.readExtBuffer(END, false).writeBytes(endExtCopy);
             }
 
+            channel.stateCloseRead();
+
             if (channel.setReadClosed())
             {
                 fireInputShutdown(channel);
@@ -429,6 +432,8 @@ public final class ZillaStreamFactory
 
                 channel.readExtBuffer(ABORT, false).writeBytes(abortExtCopy);
             }
+
+            channel.stateAbortRead();
 
             if (channel.setReadAborted())
             {
