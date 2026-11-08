@@ -154,6 +154,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
@@ -1043,7 +1044,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 client.decoder = decodeIgnoreAll;
             }
 
-            boolean canPublish = MqttState.replyOpening(subscriber.state) && MqttState.replyOpened(subscriber.state);
+            boolean canPublish = StreamState.replyOpening(subscriber.state) && StreamState.replyOpened(subscriber.state);
 
             int reserved = payloadSize + subscriber.replyPad;
             canPublish &= subscriber.replySeq + reserved <= subscriber.replyAck + subscriber.replyMax;
@@ -1357,7 +1358,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = MqttState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert encodeCredit == null;
             this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
@@ -1420,7 +1421,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             if (decodeSlot == NO_SLOT)
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 cleanupStreamsUsingAbort(traceId, authorization);
 
@@ -1436,7 +1437,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupDecodeSlot();
 
@@ -1454,7 +1455,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            state = MqttState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert acknowledge <= sequence;
             assert sequence <= encodeSeq;
@@ -1955,7 +1956,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 }
             }
 
-            state = MqttState.closingInitial(state);
+            state = StreamState.closingInitial(state);
             closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);
         }
@@ -2003,9 +2004,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long authorization,
             long affinity)
         {
-            if (!MqttState.initialOpening(state))
+            if (!StreamState.initialOpening(state))
             {
-                state = MqttState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 Flyweight extension = EMPTY_OCTETS;
 
@@ -2063,9 +2064,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 cleanupEncodeSlot();
 
@@ -2078,9 +2079,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 cleanupEncodeSlot();
 
@@ -2093,9 +2094,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 cleanupDecodeSlot();
 
@@ -2123,14 +2124,14 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final long newReplyAck = Math.max(decodeSeq - minReplyNoAck, decodeAck);
 
-            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !MqttState.initialOpened(state))
+            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !StreamState.initialOpened(state))
             {
                 decodeAck = newReplyAck;
                 assert decodeAck <= decodeSeq;
 
                 decodeMax = minReplyMax;
 
-                state = MqttState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(network, originId, routedId, replyId, decodeSeq, decodeAck, decodeMax,
                     traceId, authorization, budgetId, padding);
@@ -2648,15 +2649,15 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (MqttState.initialClosing(state))
+                if (StreamState.initialClosing(state))
                 {
-                    state = MqttState.closeInitial(state);
+                    state = StreamState.closeInitial(state);
                     cleanupStreamsUsingAbort(traceId, authorization);
                     doNetworkEnd(traceId, authorization);
                 }
             }
 
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doNetworkWindow(traceId, authorization, 0, budgetId, decodeSlotReserved, decodeMax);
             }
@@ -2918,7 +2919,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long authorization = window.authorization();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
-            final boolean wasOpen = MqttState.replyOpened(state);
+            final boolean wasOpen = StreamState.replyOpened(state);
 
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
@@ -2929,7 +2930,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             replyMax = maximum;
             replyBud = budgetId;
             replyPad = padding;
-            state = MqttState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert initialAck <= initialSeq;
 
@@ -2938,7 +2939,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 debit = context.supplyDebit(initialId, budgetId, client::decodeNetwork);
             }
 
-            if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
+            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
             {
                 doSessionEnd(traceId, authorization);
             }
@@ -2955,7 +2956,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = MqttState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             client.doNetworkReset(traceId, authorization);
         }
@@ -2978,7 +2979,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
             initialMax = maximum;
-            state = MqttState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             client.doNetworkBegin(traceId, authorization, affinity);
 
@@ -3118,7 +3119,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3140,7 +3141,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3159,7 +3160,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int limit = payload.limit();
             final int length = limit - offset;
 
-            if (!MqttState.closed(state))
+            if (!StreamState.closed(state))
             {
                 doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, dataEx);
@@ -3188,9 +3189,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3203,11 +3204,11 @@ public final class MqttClientFactory implements MqttStreamFactory
             int minInitialNoAck,
             int minInitialMax)
         {
-            if (MqttState.replyOpened(client.state))
+            if (StreamState.replyOpened(client.state))
             {
                 final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-                if (newInitialAck > initialAck || minInitialMax > initialMax || !MqttState.initialOpened(state))
+                if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
                 {
                     initialAck = newInitialAck;
                     assert initialAck <= initialSeq;
@@ -3225,7 +3226,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             long authorization,
             int reasonCode)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 Flyweight resetEx = mqttResetExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
@@ -3233,7 +3234,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .reasonCode(reasonCode)
                     .build();
 
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
@@ -3244,9 +3245,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3259,7 +3260,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             long affinity,
             Flyweight extension)
         {
-            state = MqttState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -3269,9 +3270,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3381,7 +3382,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 initialSeq = sequence;
                 initialAck = acknowledge;
                 initialMax = maximum;
-                state = MqttState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
 
@@ -3448,7 +3449,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             long authorization,
             long affinity)
         {
-            state = MqttState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
@@ -3458,9 +3459,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3471,9 +3472,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3486,7 +3487,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = MqttState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             client.doNetworkReset(traceId, authorization);
         }
@@ -3510,7 +3511,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = MqttState.openReply(state);
+            state = StreamState.openReply(state);
 
             client.doNetworkWindow(traceId, authorization, padding, budgetId);
             client.decodeNetwork(traceId);
@@ -3528,7 +3529,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3549,7 +3550,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3572,14 +3573,14 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !MqttState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = MqttState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
@@ -3590,9 +3591,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3606,7 +3607,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            assert MqttState.replyOpening(state);
+            assert StreamState.replyOpening(state);
 
             final DirectBufferEx buffer = payload.buffer();
             final int offset = payload.offset();
@@ -3732,7 +3733,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 initialSeq = sequence;
                 initialAck = acknowledge;
                 initialMax = maximum;
-                state = MqttState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 final MqttBeginExFW mqttBeginEx = extension.get(mqttBeginExRO::tryWrap);
 
@@ -3799,7 +3800,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3818,7 +3819,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = MqttState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -3844,7 +3845,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = padding;
-            state = MqttState.openReply(state);
+            state = StreamState.openReply(state);
 
             client.doNetworkWindow(traceId, authorization, padding, budgetId);
         }
@@ -3855,7 +3856,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = MqttState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             client.doNetworkReset(traceId, authorization);
         }
@@ -3898,7 +3899,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             long authorization,
             long affinity)
         {
-            state = MqttState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
@@ -3908,9 +3909,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3946,14 +3947,14 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !MqttState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = MqttState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
@@ -3964,9 +3965,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = MqttState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
@@ -3977,9 +3978,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            if (!MqttState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = MqttState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);

@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class SseClientFactory implements SseStreamFactory
@@ -267,7 +268,7 @@ public class SseClientFactory implements SseStreamFactory
             initialSeq = sequence;
             initialAck = acknowledge;
             initialMax = maximum;
-            state = SseState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -280,7 +281,7 @@ public class SseClientFactory implements SseStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            state = SseState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doNetEnd(traceId, authorization);
             delegate.cleanupNet(traceId, authorization);
@@ -292,7 +293,7 @@ public class SseClientFactory implements SseStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = SseState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.cleanupNet(traceId, authorization);
         }
@@ -315,7 +316,7 @@ public class SseClientFactory implements SseStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = SseState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -328,7 +329,7 @@ public class SseClientFactory implements SseStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = SseState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             delegate.doNetReset(traceId, authorization);
         }
@@ -338,10 +339,10 @@ public class SseClientFactory implements SseStreamFactory
             long authorization,
             long affinity)
         {
-            if (!SseState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 replySeq = delegate.replySeq;
-                state = SseState.openingReply(state);
+                state = StreamState.openingReply(state);
 
                 doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, affinity);
@@ -369,9 +370,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
@@ -392,9 +393,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
@@ -407,7 +408,7 @@ public class SseClientFactory implements SseStreamFactory
             long budgetId,
             int padding)
         {
-            state = SseState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, 0);
@@ -417,9 +418,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = SseState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -480,7 +481,7 @@ public class SseClientFactory implements SseStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = SseState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             network = newHttpStream(this::onNetMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, affinity,
@@ -491,9 +492,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = SseState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -504,9 +505,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = SseState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -519,7 +520,7 @@ public class SseClientFactory implements SseStreamFactory
             long budgetId,
             int padding)
         {
-            state = SseState.openReply(state);
+            state = StreamState.openReply(state);
 
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
@@ -532,9 +533,9 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
@@ -608,7 +609,7 @@ public class SseClientFactory implements SseStreamFactory
             assert acknowledge <= replyAck;
 
             replySeq = sequence;
-            state = SseState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -667,7 +668,7 @@ public class SseClientFactory implements SseStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = SseState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             delegate.doAppEnd(traceId, authorization);
         }
@@ -687,7 +688,7 @@ public class SseClientFactory implements SseStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = SseState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             delegate.doAppAbort(traceId, authorization);
         }
@@ -718,7 +719,7 @@ public class SseClientFactory implements SseStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            state = SseState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             delegate.doAppReset(traceId, authorization);
         }
@@ -741,7 +742,7 @@ public class SseClientFactory implements SseStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = SseState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialMax;
 
