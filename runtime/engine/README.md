@@ -26,6 +26,13 @@ Read `gc.alloc.rate.norm` (B/op) from the `gc` profiler for `open`, `stream` and
 zero for the other methods, and the `gc` numbers for `leave` are not meaningful. For `stream`, `ops/s` times the
 message size is the relay throughput, but it is noisy; allocation per message is the stable figure.
 
+`RetainedObjectsProfiler` names the classes behind `retained.heap.norm`: it takes a live-object class histogram
+before and after every iteration and lists the classes that grew, largest first, as B/op and objects/op. Add
+`-prof io.aklivity.zilla.runtime.engine.test.RetainedObjectsProfiler` next to `RetainedHeapProfiler` and read the
+iteration that retains most. The benchmark's own `Client` and its flyweights are live for every in-flight stream, so
+they are part of `leave`'s figure (about 0.85 KB per stream); the rest is the engine and the binding. A class that
+grows in only some iterations is usually a table doubling in size, which is how unbounded growth shows up.
+
 `RetainedHeapProfiler` forces two full collections before and after every iteration, so it needs at least one
 warmup iteration, releases state only at trial teardown, and aggregates with the maximum to ignore the last
 iteration, which JMH profiles after trial teardown.
