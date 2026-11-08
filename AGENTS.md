@@ -190,6 +190,25 @@ defeats the purpose.
 Spec script conventions and unit-test conventions are detailed in
 [specs/AGENTS.md](specs/AGENTS.md) and [runtime/AGENTS.md](runtime/AGENTS.md).
 
+### IT structure: one IT per component, one method per scenario
+
+Each component under test (binding, guard, store, catalog, vault, exporter, ...)
+has one dedicated IT class named for it (for example `HttpServerIT`, `EngineIT`);
+every scenario for that component, including shutdown, error and event-ordering
+scenarios, is a test method in that class with its own `@Configuration` and
+`@Specification`. Do not add an IT class per scenario or concern (`XxxCloseIT`,
+`XxxEventIT`, `XxxRegressionIT`).
+
+When a scenario needs extra fixtures (a held HTTP endpoint, extra engine
+properties), keep them in a small helper in the module's test tree that the
+test method creates and closes itself, or that stays inert until a test arms it,
+instead of forking the class. A separate class is for a genuinely different
+component or protocol side, not for another scenario of the same component:
+spec-level peer-to-peer ITs are split per protocol side (`NetworkIT`,
+`ApplicationIT`) or per protocol (`McpIT`, `KafkaIT`), see
+[specs/AGENTS.md](specs/AGENTS.md). If you believe a new IT class is justified,
+say why in the PR description.
+
 ---
 
 ## Adding a new binding
