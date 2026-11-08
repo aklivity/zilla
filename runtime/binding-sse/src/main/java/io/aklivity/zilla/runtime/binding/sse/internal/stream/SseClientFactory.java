@@ -344,7 +344,7 @@ public class SseClientFactory implements SseStreamFactory
                 replySeq = delegate.replySeq;
                 state = StreamState.openingReply(state);
 
-                doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, affinity);
             }
         }
@@ -358,7 +358,7 @@ public class SseClientFactory implements SseStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             replySeq += reserved;
@@ -374,7 +374,8 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId, authorization);
             }
         }
@@ -385,7 +386,7 @@ public class SseClientFactory implements SseStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -397,7 +398,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization);
             }
         }
@@ -410,7 +411,7 @@ public class SseClientFactory implements SseStreamFactory
         {
             state = StreamState.openInitial(state);
 
-            doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, padding, 0);
         }
 
@@ -422,7 +423,8 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                         traceId, authorization);
             }
         }
@@ -484,7 +486,7 @@ public class SseClientFactory implements SseStreamFactory
             state = StreamState.openingInitial(state);
 
             network = newHttpStream(this::onNetMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, authorization, affinity,
+                    initialSeq, initialAck, state, initialMax, traceId, authorization, affinity,
                     scheme, authority, path, lastId);
         }
 
@@ -496,7 +498,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization);
             }
         }
@@ -509,7 +511,8 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                         traceId, authorization);
             }
         }
@@ -525,7 +528,7 @@ public class SseClientFactory implements SseStreamFactory
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
-            doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doWindow(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
 
@@ -537,7 +540,8 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(network, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId, authorization);
             }
         }
@@ -810,6 +814,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -855,6 +860,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -877,6 +883,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -888,6 +895,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -904,6 +912,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -919,6 +928,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -939,6 +949,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -949,6 +960,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -964,6 +976,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -974,6 +987,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -989,6 +1003,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1001,6 +1016,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1018,6 +1034,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1031,6 +1048,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1049,6 +1067,7 @@ public class SseClientFactory implements SseStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1059,6 +1078,7 @@ public class SseClientFactory implements SseStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

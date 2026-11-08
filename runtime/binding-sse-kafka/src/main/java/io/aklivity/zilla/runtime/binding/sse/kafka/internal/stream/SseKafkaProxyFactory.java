@@ -395,7 +395,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replyMax = delegate.replyMax;
             state = StreamState.openingReply(state);
 
-            doBegin(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sse, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity);
         }
 
@@ -408,7 +408,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sse, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             replySeq += reserved;
@@ -424,7 +424,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         {
             replySeq = delegate.replySeq;
 
-            doFlush(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sse, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -437,7 +437,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = StreamState.closeReply(state);
 
-                doAbort(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sse, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId, authorization);
             }
         }
@@ -451,7 +452,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = StreamState.closeReply(state);
 
-                doEnd(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sse, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                       traceId, authorization);
             }
         }
@@ -466,7 +467,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(sse, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sse, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, padding, 0, capabilities);
         }
 
@@ -477,7 +478,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(sse, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(sse, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId);
             }
         }
     }
@@ -524,7 +526,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = StreamState.openingInitial(state);
 
-            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity, resolved);
         }
 
@@ -540,7 +542,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
-                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization);
             }
         }
@@ -556,7 +558,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                         traceId, authorization);
             }
         }
@@ -801,7 +804,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                         traceId);
             }
         }
@@ -817,7 +821,9 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
-            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            state = StreamState.openReply(state);
+
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, padding, minimum, capabilities);
         }
     }
@@ -829,6 +835,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -840,6 +847,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -856,6 +864,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -871,6 +880,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -891,6 +901,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -901,6 +912,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -916,6 +928,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -926,6 +939,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -941,6 +955,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -953,6 +968,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -970,6 +986,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -992,6 +1009,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1014,6 +1032,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1028,6 +1047,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1047,6 +1067,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -1056,6 +1077,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();

@@ -493,6 +493,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -505,6 +506,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -527,6 +529,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -539,6 +542,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -556,6 +560,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -572,6 +577,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -591,6 +597,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -602,6 +609,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -618,6 +626,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -629,6 +638,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -645,6 +655,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -657,6 +668,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -674,6 +686,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -685,6 +698,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -701,6 +715,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -714,6 +729,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1358,7 +1374,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
 
-            state = StreamState.openingInitial(state);
+            state = StreamState.openingReply(state);
 
             assert encodeCredit == null;
             this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
@@ -2024,6 +2040,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 }
 
                 network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck,
+                    state,
                     initialMax, traceId, authorization, affinity, extension);
             }
         }
@@ -2070,7 +2087,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 cleanupEncodeSlot();
 
-                doEnd(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
+                doEnd(network, originId, routedId, initialId, encodeSeq, encodeAck, state, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -2085,7 +2102,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 cleanupEncodeSlot();
 
-                doAbort(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
+                doAbort(network, originId, routedId, initialId, encodeSeq, encodeAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -2100,7 +2118,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 cleanupDecodeSlot();
 
-                doReset(network, originId, routedId, initialId, decodeSeq, decodeAck, decodeMax,
+                doReset(network, originId, routedId, initialId, decodeSeq, decodeAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), decodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -2124,16 +2143,16 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final long newReplyAck = Math.max(decodeSeq - minReplyNoAck, decodeAck);
 
-            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !StreamState.initialOpened(state))
+            if (newReplyAck > decodeAck || minReplyMax > decodeMax || !StreamState.replyOpened(state))
             {
                 decodeAck = newReplyAck;
                 assert decodeAck <= decodeSeq;
 
                 decodeMax = minReplyMax;
 
-                state = StreamState.openInitial(state);
+                state = StreamState.openReply(state);
 
-                doWindow(network, originId, routedId, replyId, decodeSeq, decodeAck, decodeMax,
+                doWindow(network, originId, routedId, replyId, decodeSeq, decodeAck, state, decodeMax,
                     traceId, authorization, budgetId, padding);
             }
         }
@@ -2552,7 +2571,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 final int reserved = length + encodePad;
 
-                doData(network, originId, routedId, initialId, encodeSeq, encodeAck, encodeMax,
+                doData(network, originId, routedId, initialId, encodeSeq, encodeAck, state, encodeMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
 
                 encodeSeq += reserved;
@@ -3162,7 +3181,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             if (!StreamState.closed(state))
             {
-                doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doData(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved, buffer, offset, length, dataEx);
 
                 replySeq += reserved;
@@ -3193,7 +3212,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3215,7 +3235,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                     initialMax = minInitialMax;
 
-                    doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
                 }
             }
@@ -3236,7 +3256,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, authorization, resetEx);
             }
         }
@@ -3249,7 +3270,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3262,7 +3284,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, affinity, extension);
         }
 
@@ -3274,7 +3296,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3451,7 +3473,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
         }
 
@@ -3463,7 +3485,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3476,7 +3499,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3582,7 +3605,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 state = StreamState.openInitial(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
             }
         }
@@ -3595,7 +3618,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3615,7 +3639,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int length = limit - offset;
             assert reserved >= length + replyPad;
 
-            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, reserved, buffer, offset, length, extension);
 
             replySeq += reserved;
@@ -3901,7 +3925,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, affinity, EMPTY_OCTETS);
         }
 
@@ -3913,7 +3937,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3956,7 +3981,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 state = StreamState.openInitial(state);
 
-                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
             }
         }
@@ -3969,7 +3994,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -3982,7 +4008,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 state = StreamState.closeReply(state);
 
-                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
