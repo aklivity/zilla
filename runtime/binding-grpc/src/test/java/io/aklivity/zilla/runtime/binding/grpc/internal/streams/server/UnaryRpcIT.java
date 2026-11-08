@@ -167,5 +167,14 @@ public class UnaryRpcIT
         k3po.finish();
     }
 
-
+    @Test
+    @Configuration("server.when.catalog.yaml")
+    @Specification({
+        "${net}/server.send.write.abort.before.response.begin/client",
+        "${app}/server.send.write.abort.before.response.begin/server"
+    })
+    public void serverSendsWriteAbortBeforeResponseBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
