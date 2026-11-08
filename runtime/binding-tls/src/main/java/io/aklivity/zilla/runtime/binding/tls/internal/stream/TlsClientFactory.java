@@ -1244,12 +1244,6 @@ public final class TlsClientFactory implements TlsStreamFactory
         private void doAppAbort(
             long traceId)
         {
-            if (!StreamState.replyOpening(state) &&
-                !StreamState.replyClosed(state))
-            {
-                doAppBegin(traceId, 0L, null, null);
-            }
-
             if (!StreamState.replyClosed(state))
             {
                 state = StreamState.abortingReply(StreamState.closeReply(state));

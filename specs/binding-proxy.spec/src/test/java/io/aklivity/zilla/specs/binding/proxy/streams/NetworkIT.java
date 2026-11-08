@@ -138,6 +138,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/connected.local.server.sent.abort.before.begin/client",
+        "${net}/connected.local.server.sent.abort.before.begin/server"})
+    public void shouldConnectLocalServerSendsAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connected.local.server.sent.reset/client",
         "${net}/connected.local.server.sent.reset/server"})
     public void shouldConnectLocalServerSendsReset() throws Exception
