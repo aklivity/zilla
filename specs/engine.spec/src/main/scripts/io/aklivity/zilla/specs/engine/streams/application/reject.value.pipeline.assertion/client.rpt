@@ -18,3 +18,5 @@ connect "zilla://streams/app1"
         option zilla:transmission "duplex"
         option zilla:window 8192
 connected
+
+read abort
