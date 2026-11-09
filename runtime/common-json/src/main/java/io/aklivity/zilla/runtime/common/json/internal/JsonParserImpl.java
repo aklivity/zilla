@@ -245,6 +245,8 @@ public final class JsonParserImpl implements JsonParserEx
         int offset,
         int limit)
     {
+        // what the consumer left of a fragment read from the window is kept before the window is replaced
+        stringViewOffset = tokenizer.fragmenting() ? tokenizer.retainView(stringViewOffset) : stringViewOffset;
         ownedInput.wrap(buffer, offset, limit - offset);
         windowLast = true;
         // every explicit wrap() is unconditionally a new window, unlike the lazy sync syncInput() performs
@@ -451,6 +453,8 @@ public final class JsonParserImpl implements JsonParserEx
         }
         else
         {
+            // a fragment read from the window is retained now, since the window may be replaced next
+            final int taken = tokenizer.fragmenting() ? tokenizer.retainView(stringViewOffset) : 0;
             materializeInput();
             syncInput();
             // before resuming a value that spans windows, tell the tokenizer how much of the prior
@@ -458,7 +462,7 @@ public final class JsonParserImpl implements JsonParserEx
             // accumulates rather than discarding a declined fragment
             if (tokenizer.fragmenting())
             {
-                tokenizer.markScratchConsumed(stringViewOffset);
+                tokenizer.markScratchConsumed(taken);
             }
             result = tokenizer.advance();
         }
@@ -814,6 +818,12 @@ public final class JsonParserImpl implements JsonParserEx
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
+            // a consumer that left part of a fragment read from the window has it kept now, while the window
+            // is still the caller's, since the caller may reuse it as soon as it asks for the next event
+            if (tokenizer.fragmenting())
+            {
+                stringViewOffset = tokenizer.retainView(stringViewOffset);
+            }
             if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
             {
                 takeBackKey();
