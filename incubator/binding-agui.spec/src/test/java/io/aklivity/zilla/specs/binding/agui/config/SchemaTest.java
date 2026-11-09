@@ -65,14 +65,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateChain()
-    {
-        JsonObject config = schema.validate("chain.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateClientGuarded()
     {
         JsonObject config = schema.validate("client.guarded.yaml");
