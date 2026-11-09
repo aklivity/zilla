@@ -132,6 +132,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int unitViewChars;
     private int unitScratchLength;
     private boolean pairOpen;
+    private int declinedBytes;
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
@@ -262,6 +263,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         valuePending = false;
         viewStart = NO_VIEW;
         viewPending = false;
+        declinedBytes = 0;
         streamOffset = 0;
         documentEndOffset = 0;
         line = 1;
@@ -1054,35 +1056,40 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
     }
 
-    // The fragment just delivered is read from the window bytes, which the caller is free to replace once it has
-    // asked for the next event, so what the consumer left of it is decoded into scratch now, for the next
-    // fragment to accumulate onto. A consumer that took the whole fragment leaves nothing to retain. Returns the
-    // number of chars of scratch the consumer has taken: none of them, once the remainder is all that scratch holds.
+    // A value declined in fragments is not copied anywhere: the caller keeps its bytes in the window it holds, so a
+    // value that does not fit it cannot be had whole. The position goes back to the first byte the consumer left, and
+    // the fragment is read again, longer, from the next window.
     @Override
-    public int retainView(
+    public void positionAfter(
         int consumed)
     {
-        int taken = consumed;
-
-        if (viewPending && fragmenting)
+        if (fragmenting && viewPending)
         {
-            final EncodedStringView view = pendingView();
+            final int bytes = consumed < viewChars ? viewLength - (pendingView().floorOffsetOf(consumed) - viewOffset) : 0;
 
-            if (consumed < view.length())
+            if (bytes != declinedBytes)
             {
-                scratch.setLength(0);
-
-                for (int index = consumed; index < view.length(); index++)
-                {
-                    scratch.append(view.charAt(index));
-                }
-
-                viewPending = false;
-                taken = 0;
+                bufferOffset += declinedBytes - bytes;
+                streamOffset += declinedBytes - bytes;
+                declinedBytes = bytes;
             }
         }
+    }
 
-        return taken;
+    @Override
+    public boolean declined()
+    {
+        return declinedBytes > 0;
+    }
+
+    @Override
+    public void acceptDeclined()
+    {
+        if (declinedBytes > 0)
+        {
+            declinedBytes = 0;
+            viewPending = false;
+        }
     }
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator

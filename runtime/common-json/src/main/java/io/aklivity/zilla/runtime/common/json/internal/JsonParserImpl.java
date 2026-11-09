@@ -245,8 +245,13 @@ public final class JsonParserImpl implements JsonParserEx
         int offset,
         int limit)
     {
-        // what the consumer left of a fragment read from the window is kept before the window is replaced
-        stringViewOffset = tokenizer.fragmenting() ? tokenizer.retainView(stringViewOffset) : stringViewOffset;
+        // the bytes a consumer left of a fragment read from the window went back to the caller, who re-presents them
+        if (tokenizer.declined())
+        {
+            tokenizer.acceptDeclined();
+            stringViewOffset = 0;
+        }
+
         ownedInput.wrap(buffer, offset, limit - offset);
         windowLast = true;
         // every explicit wrap() is unconditionally a new window, unlike the lazy sync syncInput() performs
@@ -453,8 +458,6 @@ public final class JsonParserImpl implements JsonParserEx
         }
         else
         {
-            // a fragment read from the window is retained now, since the window may be replaced next
-            final int taken = tokenizer.fragmenting() ? tokenizer.retainView(stringViewOffset) : 0;
             materializeInput();
             syncInput();
             // before resuming a value that spans windows, tell the tokenizer how much of the prior
@@ -462,9 +465,10 @@ public final class JsonParserImpl implements JsonParserEx
             // accumulates rather than discarding a declined fragment
             if (tokenizer.fragmenting())
             {
-                tokenizer.markScratchConsumed(taken);
+                tokenizer.markScratchConsumed(stringViewOffset);
             }
-            result = tokenizer.advance();
+            // a fragment the consumer left is read again from the next window, so there is nothing to scan until then
+            result = !tokenizer.declined() && tokenizer.advance();
         }
         return result;
     }
@@ -818,11 +822,9 @@ public final class JsonParserImpl implements JsonParserEx
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
-            // a consumer that left part of a fragment read from the window has it kept now, while the window
-            // is still the caller's, since the caller may reuse it as soon as it asks for the next event
             if (tokenizer.fragmenting())
             {
-                stringViewOffset = tokenizer.retainView(stringViewOffset);
+                tokenizer.positionAfter(stringViewOffset);
             }
             if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
             {
