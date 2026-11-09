@@ -67,6 +67,11 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private static final int MAX_DEPTH = 64;
     private static final int SCRATCH_RETAINED = 1024;
     private static final int NO_VIEW = -1;
+    private static final long ONES = 0x0101010101010101L;
+    private static final long HIGHS = 0x8080808080808080L;
+    private static final long QUOTES = 0x2222222222222222L;
+    private static final long BACKSLASHES = 0x5c5c5c5c5c5c5c5cL;
+    private static final long SPACES = 0x2020202020202020L;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
@@ -1460,6 +1465,11 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean complete = false;
         while (!complete && !starved)
         {
+            if (viewStart != NO_VIEW && !resumeEscape && resumeUnicodePending == 0)
+            {
+                skipPlain();
+            }
+
             // Track each complete-unit boundary so a starve mid-char/escape can rewind here: the chars
             // decoded so far ship as a fragment and the partial unit's bytes stay unconsumed
             // (position() reports unitStartOffset) for the caller to re-present on the next window.
@@ -1542,6 +1552,40 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 }
             }
         }
+    }
+
+    // A string read in place needs nothing from a stretch of plain ASCII, so the scan passes over it a word at a
+    // time. A byte ends the stretch if its high bit is set, or if it is a quote, a backslash or a control char, and
+    // each of those is found in the word without looking at its bytes one by one. Plain ASCII is one char a byte
+    // and never a new line, so the position moves by the number of bytes skipped, and the stretch is no longer
+    // than the room left for chars under maxValueSize.
+    private void skipPlain()
+    {
+        final int words = Math.min(bufferLimit - bufferOffset, maxValueSize - viewChars) / Long.BYTES;
+
+        int offset = bufferOffset;
+        boolean plain = true;
+
+        for (int word = 0; plain && word < words; word++)
+        {
+            final long bytes = buffer.getLong(offset);
+            final long quotes = bytes ^ QUOTES;
+            final long backslashes = bytes ^ BACKSLASHES;
+
+            plain = ((bytes | (bytes - SPACES) | (quotes - ONES) & ~quotes | (backslashes - ONES) & ~backslashes) & HIGHS) == 0L;
+
+            if (plain)
+            {
+                offset += Long.BYTES;
+            }
+        }
+
+        final int skipped = offset - bufferOffset;
+
+        bufferOffset = offset;
+        streamOffset += skipped;
+        column += skipped;
+        viewChars += skipped;
     }
 
     private void appendScratch(
