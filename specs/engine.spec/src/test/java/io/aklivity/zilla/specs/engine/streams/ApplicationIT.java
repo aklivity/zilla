@@ -186,6 +186,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/exchange.value.pipeline.binding.id/client",
+        "${app}/exchange.value.pipeline.binding.id/server" })
+    public void shouldExchangeValuePipelineBindingId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/exchange.value.pipeline.transform.identity/client",
         "${app}/exchange.value.pipeline.transform.identity/server" })
     public void shouldExchangeValuePipelineTransformIdentity() throws Exception

@@ -25,7 +25,7 @@ telemetry:
             id: engine.started
             name: ENGINE_STARTED
             message: Engine Started.
-          - qname: test:app0
+          - qname: test:net0
             id: model.core.validation.failed
             name: MODEL_CORE_VALIDATION_FAILED
             message: A message payload failed validation. A field was not the expected type (test-uppercase rejected).

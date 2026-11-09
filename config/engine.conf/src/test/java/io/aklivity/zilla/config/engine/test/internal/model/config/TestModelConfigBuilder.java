@@ -43,6 +43,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private String discloseRedacted;
     private String envelopeDiscloseName;
     private boolean deterministic = true;
+    private boolean bindingConsistent;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -195,12 +196,19 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> bindingConsistent(
+        boolean bindingConsistent)
+    {
+        this.bindingConsistent = bindingConsistent;
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(
             new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
                 reject, withhold, mask, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName,
-                deterministic));
+                deterministic, bindingConsistent));
     }
 }

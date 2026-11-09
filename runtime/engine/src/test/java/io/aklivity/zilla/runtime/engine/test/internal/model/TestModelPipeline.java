@@ -365,7 +365,8 @@ final class TestModelPipeline implements ModelPipeline
         if (status == ModelStatus.COMPLETE)
         {
             final Long expectedAuthorization = handler.nextTransformAuthorization();
-            if (expectedAuthorization != null && authorization != expectedAuthorization)
+            if (expectedAuthorization != null && authorization != expectedAuthorization ||
+                !handler.acceptBindingId(bindingId))
             {
                 status = ModelStatus.REJECTED;
             }
