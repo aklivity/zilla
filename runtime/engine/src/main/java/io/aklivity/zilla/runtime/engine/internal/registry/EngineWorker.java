@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
@@ -1547,6 +1548,7 @@ public class EngineWorker implements EngineContext, Agent
                         .streamId(0L)
                         .sequence(0L)
                         .acknowledge(0L)
+                        .state(0)
                         .maximum(0)
                         .traceId(traceId)
                         .budgetId(budgetId)
@@ -1577,6 +1579,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(0L)
             .sequence(0L)
             .acknowledge(0L)
+            .state(0)
             .maximum(reserved)
             .traceId(traceId)
             .budgetId(budgetId)
@@ -2128,6 +2131,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(abortedState(streamId))
                 .maximum(maximum)
                 .build();
 
@@ -2147,6 +2151,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(abortedState(streamId))
             .maximum(0)
             .build();
 
@@ -2165,6 +2170,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(abortedState(streamId))
             .maximum(0)
             .build();
 
@@ -2616,6 +2622,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(0)
                 .maximum(0)
                 .timestamp(timestamp)
                 .traceId(traceId)
@@ -2650,6 +2657,7 @@ public class EngineWorker implements EngineContext, Agent
                                             .streamId(streamId)
                                             .sequence(sequence)
                                             .acknowledge(acknowledge)
+                                            .state(0)
                                             .maximum(0)
                                             .timestamp(timestamp)
                                             .traceId(traceId)

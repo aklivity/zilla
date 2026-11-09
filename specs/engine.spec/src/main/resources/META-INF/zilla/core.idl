@@ -38,7 +38,9 @@ scope core
         // Bits are monotonic, so a set bit is reliable and a clear bit means not known to be set. For the sender's own
         // direction the value is exact as of the frame; for the opposing direction it can be stale.
         // The value is a snapshot for observers and does not replace the state held by a stream handler.
-        // 0 means unset or unknown, and is the default for writers that do not supply it.
+        // Every writer supplies the value; there is no default. 0 means the frame effects no stream lifecycle transition,
+        // as for a SIGNAL, which is self-addressed, and for the engine's system WINDOW and FLUSH that replace a frame
+        // dropped for a stream with no handler. Every other frame has at least one bit set.
         struct Frame
         {
             int64 originId;
@@ -46,7 +48,7 @@ scope core
             int64 streamId;
             int64 sequence;
             int64 acknowledge;
-            int32 state = 0;            // see Frame state semantics
+            int32 state;                // see Frame state semantics
             int32 maximum;
             int64 timestamp = 0;
             int64 traceId = 0;

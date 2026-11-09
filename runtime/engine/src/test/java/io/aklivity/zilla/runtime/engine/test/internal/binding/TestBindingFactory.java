@@ -1409,7 +1409,7 @@ final class TestBindingFactory implements BindingHandler
             if (newInitialAck > initialAck)
             {
                 initialAck = newInitialAck;
-                doWindow(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                doWindow(source, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
                         initialBud, initialPad, initialCap);
             }
         }
@@ -1546,8 +1546,6 @@ final class TestBindingFactory implements BindingHandler
 
                 if (!StreamState.replyClosed(state))
                 {
-                    state = StreamState.abortingReply(state);
-                    state = StreamState.closeReply(state);
                     doReplyAbort(traceId);
                 }
             }
@@ -1615,6 +1613,8 @@ final class TestBindingFactory implements BindingHandler
             replyBud = window.budgetId();
             replyCap = window.capabilities();
 
+            state = StreamState.openReply(state);
+
             if (encodeSlot != NO_SLOT)
             {
                 encodeReply(encodeSlotTraceId, encodePool.buffer(encodeSlot), 0, encodeSlotOffset);
@@ -1648,7 +1648,7 @@ final class TestBindingFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
 
-            doReset(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, extension);
+            doReset(source, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, extension);
         }
 
         private void doInitialWindow(
@@ -1665,21 +1665,24 @@ final class TestBindingFactory implements BindingHandler
             initialPad = padding;
             initialCap = capabilities;
 
-            doWindow(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+            doWindow(source, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
                     initialBud, initialPad, initialCap);
         }
 
         private void doInitialChallenge(
             long traceId)
         {
-            doChallenge(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+            doChallenge(source, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId);
         }
 
         private void doReplyBegin(
             long traceId,
             OctetsFW extension)
         {
-            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
+            state = StreamState.openingReply(state);
+
+            doBegin(source, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                extension);
         }
 
         private void doReplyData(
@@ -1740,7 +1743,7 @@ final class TestBindingFactory implements BindingHandler
                 OctetsFW ext = hasInit(flags) && replyEnvelopeExt != null
                         ? envelopeExtRO.wrap(replyEnvelopeExt, 0, replyEnvelopeExt.capacity())
                         : null;
-                doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
+                doData(source, originId, routedId, replyId, replySeq, replyAck, state, replyMax, replyBud,
                         traceId, flags, reserved, out, ext, authorization);
                 if (ext != null)
                 {
@@ -1795,7 +1798,9 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            doEnd(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, extension);
+            state = StreamState.closeReply(state);
+
+            doEnd(source, originId, routedId, replyId, replySeq, replyAck, state, replyPad, traceId, extension);
 
             cleanupEncodeSlot();
         }
@@ -1810,7 +1815,10 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            doAbort(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, extension);
+            state = StreamState.abortingReply(state);
+            state = StreamState.closeReply(state);
+
+            doAbort(source, originId, routedId, replyId, replySeq, replyAck, state, replyPad, traceId, extension);
 
             cleanupEncodeSlot();
         }
@@ -1827,8 +1835,8 @@ final class TestBindingFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            doFlush(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, authorization, replyBud, reserved,
-                extension);
+            doFlush(source, originId, routedId, replyId, replySeq, replyAck, state, replyPad, traceId, authorization, replyBud,
+                reserved, extension);
         }
 
         private void cleanupDecodeSlot()
@@ -1877,6 +1885,7 @@ final class TestBindingFactory implements BindingHandler
             private long replyBud;
             private int replyCap;
 
+            private int state;
             private final TestSource source;
             private final ModelPipeline pipeline;
             private final boolean decodeAsserted;
@@ -2006,6 +2015,8 @@ final class TestBindingFactory implements BindingHandler
                 initialBud = window.budgetId();
                 initialCap = window.capabilities();
 
+                state = StreamState.openInitial(state);
+
                 if (encodeSlot != NO_SLOT)
                 {
                     encodeInitial(encodeSlotTraceId, encodePool.buffer(encodeSlot), 0, encodeSlotOffset);
@@ -2027,6 +2038,8 @@ final class TestBindingFactory implements BindingHandler
                 BeginFW begin)
             {
                 long traceId = begin.traceId();
+
+                state = StreamState.openingReply(state);
 
                 source.doReplyBegin(traceId, begin.extension());
             }
@@ -2095,7 +2108,9 @@ final class TestBindingFactory implements BindingHandler
                 if (newReplyAck > replyAck)
                 {
                     replyAck = newReplyAck;
-                    doWindow(target, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    state = StreamState.openReply(state);
+
+                    doWindow(target, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, replyBud, replyPad, replyCap);
                 }
             }
@@ -2217,7 +2232,9 @@ final class TestBindingFactory implements BindingHandler
                 long traceId,
                 OctetsFW extension)
             {
-                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                state = StreamState.openingInitial(state);
+
+                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, extension);
             }
 
@@ -2279,7 +2296,7 @@ final class TestBindingFactory implements BindingHandler
                     OctetsFW ext = hasInit(flags) && initialEnvelopeExt != null
                             ? envelopeExtRO.wrap(initialEnvelopeExt, 0, initialEnvelopeExt.capacity())
                             : null;
-                    doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
+                    doData(target, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, initialBud,
                             traceId, flags, reserved, out, ext, authorization);
                     if (ext != null)
                     {
@@ -2328,7 +2345,9 @@ final class TestBindingFactory implements BindingHandler
                 long traceId,
                 OctetsFW extension)
             {
-                doEnd(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, extension);
+                state = StreamState.closeInitial(state);
+
+                doEnd(target, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, extension);
 
                 cleanupEncodeSlot();
             }
@@ -2343,7 +2362,10 @@ final class TestBindingFactory implements BindingHandler
                 long traceId,
                 OctetsFW extension)
             {
-                doAbort(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, extension);
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
+
+                doAbort(target, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, extension);
 
                 cleanupEncodeSlot();
             }
@@ -2353,8 +2375,8 @@ final class TestBindingFactory implements BindingHandler
                 int reserved,
                 OctetsFW extension)
             {
-                doFlush(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                        initialBud, reserved, extension);
+                doFlush(target, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
+                        authorization, initialBud, reserved, extension);
             }
 
             private void doReplyReset(
@@ -2367,7 +2389,9 @@ final class TestBindingFactory implements BindingHandler
                 long traceId,
                 OctetsFW extension)
             {
-                doReset(target, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, extension);
+                state = StreamState.closeReply(state);
+
+                doReset(target, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, extension);
             }
 
             private void doReplyWindow(
@@ -2384,14 +2408,16 @@ final class TestBindingFactory implements BindingHandler
                 replyPad = padding;
                 replyCap = capabilities;
 
-                doWindow(target, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                state = StreamState.openReply(state);
+
+                doWindow(target, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, replyBud, replyPad, replyCap);
             }
 
             private void doReplyChallenge(
                 long traceId)
             {
-                doChallenge(target, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+                doChallenge(target, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId);
             }
 
             private void cleanupDecodeSlot()
@@ -2425,6 +2451,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2439,6 +2466,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2466,6 +2494,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2479,6 +2508,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2501,6 +2531,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long budgetId,
         long traceId,
@@ -2518,6 +2549,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2543,6 +2575,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         OctetsFW extension)
@@ -2555,6 +2588,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId);
 
@@ -2575,6 +2609,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         OctetsFW extension)
@@ -2587,6 +2622,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId);
 
@@ -2607,6 +2643,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2622,6 +2659,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2645,6 +2683,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         OctetsFW extension)
@@ -2657,6 +2696,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId);
 
@@ -2677,6 +2717,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long budgetId,
@@ -2691,6 +2732,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -2708,6 +2750,7 @@ final class TestBindingFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId)
     {
@@ -2719,6 +2762,7 @@ final class TestBindingFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .build();

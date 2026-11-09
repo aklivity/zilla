@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
+
 public final class StreamId
 {
     public static int streamIndex(
@@ -63,6 +65,14 @@ public final class StreamId
     {
         return isInitial(instanceId) ? ((remoteIndex & 0x7fL) << 56) | ((localIndex & 0x7fL) << 48) | instanceId
                 : ((localIndex & 0x7fL) << 56) | ((remoteIndex & 0x7fL) << 48) | instanceId;
+    }
+
+    public static int abortedState(
+        long streamId)
+    {
+        return isInitial(streamId)
+            ? StreamState.closeInitial(StreamState.abortingInitial(StreamState.openInitial(0)))
+            : StreamState.closeReply(StreamState.abortingReply(StreamState.openingReply(0)));
     }
 
     public static boolean isInitial(
