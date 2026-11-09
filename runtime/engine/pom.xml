@@ -297,6 +297,15 @@
               <includes>
                 <include>META-INF/**/*</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/EngineBench.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/EngineBench$*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Responder.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Responder$*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Reflector.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/Reflector$*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/RetainedHeapProfiler.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/RetainedObjectsProfiler.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/RetainedObjectsProfiler$*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/EngineTest*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/annotation/Configur*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
