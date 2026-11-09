@@ -344,4 +344,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/exchange.rejected/client",
+        "${net}/exchange.rejected/server" })
+    public void shouldExchangeRejected() throws Exception
+    {
+        k3po.finish();
+    }
 }

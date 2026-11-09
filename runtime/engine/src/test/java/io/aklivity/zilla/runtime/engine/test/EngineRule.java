@@ -244,6 +244,59 @@ public final class EngineRule implements TestRule
         return size;
     }
 
+    private int tableSize(
+        String name)
+    {
+        int size = 0;
+
+        try
+        {
+            final Field workersField = Engine.class.getDeclaredField("workers");
+            workersField.setAccessible(true);
+            final List<?> workers = (List<?>) workersField.get(engine);
+
+            final Field tableField = EngineWorker.class.getDeclaredField(name);
+            tableField.setAccessible(true);
+
+            for (Object worker : workers)
+            {
+                final Object table = tableField.get(worker);
+                if (table instanceof Map<?, ?> map)
+                {
+                    size += map.size();
+                }
+                else
+                {
+                    for (Object map : (Object[]) table)
+                    {
+                        size += ((Map<?, ?>) map).size();
+                    }
+                }
+            }
+        }
+        catch (ReflectiveOperationException ex)
+        {
+            throw new IllegalStateException(ex);
+        }
+
+        return size;
+    }
+
+    public int throttleSize()
+    {
+        return tableSize("throttles");
+    }
+
+    public int streamSize()
+    {
+        return tableSize("streams");
+    }
+
+    public int correlationSize()
+    {
+        return tableSize("correlations");
+    }
+
     public EngineExtContext context()
     {
         return engine.context();

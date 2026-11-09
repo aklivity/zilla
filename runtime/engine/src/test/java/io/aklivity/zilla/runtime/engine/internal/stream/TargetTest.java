@@ -48,10 +48,12 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.RedirectFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 
 public class TargetTest
 {
-    private static final long INITIAL_ID = 1L;
+    private static final long INITIAL_ID = 3L;
     private static final long REPLY_ID = 2L;
 
     @Rule
@@ -162,6 +164,50 @@ public class TargetTest
         assertThat(throttles[throttleIndex(REPLY_ID)].get(instanceId(REPLY_ID)) == null, equalTo(false));
     }
 
+    @Test
+    public void shouldReleaseReplyWhenInitialResetBeforeReplyOpens()
+    {
+        attach(REPLY_ID);
+
+        final ResetFW reset = reset(INITIAL_ID, abortedState(INITIAL_ID));
+        target.writeHandler().accept(reset.typeId(), frameBuffer, 0, reset.sizeof());
+
+        assertReleased(REPLY_ID);
+    }
+
+    @Test
+    public void shouldRetainReplyWhenInitialResetAfterReplyOpens()
+    {
+        attach(REPLY_ID);
+
+        final ResetFW reset = reset(INITIAL_ID, StreamState.openingReply(abortedState(INITIAL_ID)));
+        target.writeHandler().accept(reset.typeId(), frameBuffer, 0, reset.sizeof());
+
+        assertRetained(REPLY_ID);
+    }
+
+    @Test
+    public void shouldReleaseReplyWhenInitialRedirectedBeforeReplyOpens()
+    {
+        attach(REPLY_ID);
+
+        final RedirectFW redirect = redirect(INITIAL_ID, abortedState(INITIAL_ID));
+        target.writeHandler().accept(redirect.typeId(), frameBuffer, 0, redirect.sizeof());
+
+        assertReleased(REPLY_ID);
+    }
+
+    @Test
+    public void shouldRetainReplyWhenInitialRedirectedAfterReplyOpens()
+    {
+        attach(REPLY_ID);
+
+        final RedirectFW redirect = redirect(INITIAL_ID, StreamState.openingReply(abortedState(INITIAL_ID)));
+        target.writeHandler().accept(redirect.typeId(), frameBuffer, 0, redirect.sizeof());
+
+        assertRetained(REPLY_ID);
+    }
+
     private void attach(
         long streamId)
     {
@@ -177,6 +223,46 @@ public class TargetTest
 
         budgetHandles.release(streamId);
         assertThat(closes.get(), equalTo(1));
+    }
+
+    private void assertRetained(
+        long streamId)
+    {
+        assertThat(closes.get(), equalTo(0));
+        assertThat(throttles[throttleIndex(streamId)].get(instanceId(streamId)) == null, equalTo(false));
+    }
+
+    private ResetFW reset(
+        long streamId,
+        int state)
+    {
+        return new ResetFW.Builder()
+            .wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0L)
+            .routedId(0L)
+            .streamId(streamId)
+            .sequence(0L)
+            .acknowledge(0L)
+            .state(state)
+            .maximum(0)
+            .build();
+    }
+
+    private RedirectFW redirect(
+        long streamId,
+        int state)
+    {
+        return new RedirectFW.Builder()
+            .wrap(frameBuffer, 0, frameBuffer.capacity())
+            .originId(0L)
+            .routedId(0L)
+            .streamId(streamId)
+            .sequence(0L)
+            .acknowledge(0L)
+            .state(state)
+            .maximum(0)
+            .affinity(0L)
+            .build();
     }
 
     private EndFW end(

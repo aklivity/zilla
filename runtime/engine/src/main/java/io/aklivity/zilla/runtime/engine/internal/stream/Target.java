@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.stream;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.replyId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
@@ -30,6 +31,7 @@ import org.agrona.collections.LongHashSet;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
@@ -243,6 +245,7 @@ public final class Target implements AutoCloseable
                 {
                     streamIdSet.remove(streamId);
                 }
+                releaseUnopenedReply(streamId);
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -258,6 +261,7 @@ public final class Target implements AutoCloseable
                 {
                     redirectStreamIdSet.remove(streamId);
                 }
+                releaseUnopenedReply(streamId);
                 break;
             default:
                 handled = true;
@@ -266,6 +270,17 @@ public final class Target implements AutoCloseable
         }
 
         return handled;
+    }
+
+    private void releaseUnopenedReply(
+        long initialId)
+    {
+        if (!StreamState.replyOpening(frameRO.state()))
+        {
+            final long reply = replyId(initialId);
+            throttles[throttleIndex(reply)].remove(instanceId(reply));
+            budgetHandles.release(reply);
+        }
     }
 
     private boolean handleWriteReply(

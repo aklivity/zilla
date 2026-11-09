@@ -22,6 +22,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.util.function.IntSupplier;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -494,7 +496,7 @@ public class EngineIT
     {
         k3po.finish();
 
-        assertThat(awaitStreamSetEmpty(), equalTo(0));
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
     }
 
     @Test
@@ -506,20 +508,36 @@ public class EngineIT
     {
         k3po.finish();
 
-        assertThat(awaitStreamSetEmpty(), equalTo(0));
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
     }
 
-    private int awaitStreamSetEmpty() throws InterruptedException
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/exchange.rejected/client",
+        "${app}/exchange.rejected.authorized/server"})
+    public void shouldReleaseStreamsWhenRejected() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
+        assertThat(awaitEmpty(engine::streamSize), equalTo(0));
+        assertThat(awaitEmpty(engine::throttleSize), equalTo(0));
+        assertThat(awaitEmpty(engine::correlationSize), equalTo(0));
+    }
+
+    private int awaitEmpty(
+        IntSupplier size) throws InterruptedException
     {
         final long deadline = System.nanoTime() + SECONDS.toNanos(5);
 
-        int size = engine.streamSetSize();
-        while (size != 0 && System.nanoTime() < deadline)
+        int current = size.getAsInt();
+        while (current != 0 && System.nanoTime() < deadline)
         {
             Thread.sleep(10);
-            size = engine.streamSetSize();
+            current = size.getAsInt();
         }
 
-        return size;
+        return current;
     }
 }
