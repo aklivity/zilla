@@ -174,6 +174,14 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateServerRoutesUnguarded()
+    {
+        JsonObject config = schema.validate("server.routes.unguarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = JsonException.class)
     public void shouldRejectServerRoutesWhenPathInvalid()
     {
