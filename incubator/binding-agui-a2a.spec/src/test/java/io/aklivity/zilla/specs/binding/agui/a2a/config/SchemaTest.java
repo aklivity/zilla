@@ -32,6 +32,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/agui/a2a/schema/agui_a2a.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/agui/a2a/config");
 
     @Test
@@ -40,6 +41,20 @@ public class SchemaTest
         JsonObject config = schema.validate("proxy.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyOptionsStore()
+    {
+        JsonObject config = schema.validate("proxy.options.store.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectOptionsStoreType()
+    {
+        schema.validate("proxy.options.store.type.invalid.yaml");
     }
 
     @Test

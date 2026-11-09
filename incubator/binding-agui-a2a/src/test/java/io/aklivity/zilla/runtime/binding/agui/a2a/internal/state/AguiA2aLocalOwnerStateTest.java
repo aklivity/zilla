@@ -22,15 +22,10 @@ import static org.hamcrest.Matchers.hasLength;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.IntConsumer;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class AguiA2aLocalOwnerStateTest
 {
@@ -208,111 +203,5 @@ public class AguiA2aLocalOwnerStateTest
 
         assertThat(signaler.timeMillis, equalTo(now + HANDLE_TTL));
         assertThat(state.lookupContext(key), equalTo("ctx-1"));
-    }
-
-    private static final class ManualSignaler implements Signaler
-    {
-        private long timeMillis;
-        private IntConsumer handler;
-
-        void fire()
-        {
-            final IntConsumer fired = handler;
-            handler = null;
-            fired.accept(1);
-        }
-
-        @Override
-        public long signalAt(
-            long timeMillis,
-            int signalId,
-            IntConsumer handler)
-        {
-            this.timeMillis = timeMillis;
-            this.handler = handler;
-            return 1L;
-        }
-
-        @Override
-        public long signalAt(
-            Instant time,
-            int signalId,
-            IntConsumer handler)
-        {
-            return signalAt(time.toEpochMilli(), signalId, handler);
-        }
-
-        @Override
-        public void signalNow(
-            long originId,
-            long routedId,
-            long streamId,
-            long traceId,
-            int signalId,
-            int contextId)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void signalNow(
-            long originId,
-            long routedId,
-            long streamId,
-            long traceId,
-            int signalId,
-            int contextId,
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long signalAt(
-            long timeMillis,
-            long originId,
-            long routedId,
-            long streamId,
-            long traceId,
-            int signalId,
-            int contextId)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long signalAt(
-            Instant time,
-            long originId,
-            long routedId,
-            long streamId,
-            long traceId,
-            int signalId,
-            int contextId)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long signalTask(
-            Runnable task,
-            long originId,
-            long routedId,
-            long streamId,
-            long traceId,
-            int signalId,
-            int contextId)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean cancel(
-            long cancelId)
-        {
-            throw new UnsupportedOperationException();
-        }
     }
 }

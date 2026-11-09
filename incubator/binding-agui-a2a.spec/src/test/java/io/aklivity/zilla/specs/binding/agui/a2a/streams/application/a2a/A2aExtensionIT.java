@@ -386,4 +386,13 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/restored.tool.result/client",
+        "${app}/restored.tool.result/server"})
+    public void shouldRestoreToolResult() throws Exception
+    {
+        k3po.finish();
+    }
 }

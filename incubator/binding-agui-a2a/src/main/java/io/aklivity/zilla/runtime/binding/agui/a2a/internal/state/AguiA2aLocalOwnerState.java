@@ -144,6 +144,28 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
         return target;
     }
 
+    public boolean holdsHandle(
+        String handle)
+    {
+        final HandleEntry entry = handles.get(handle);
+
+        return entry != null && entry.expiresAt > clock.getAsLong();
+    }
+
+    public void adoptHandle(
+        String handle,
+        AguiA2aThreadKey key,
+        AguiA2aHandleKind kind,
+        String taskId,
+        String subject)
+    {
+        final long now = clock.getAsLong();
+
+        handles.put(handle, new HandleEntry(key, kind, taskId, subject, now + handleTtlMillis));
+        evictHandles();
+        scheduleSweep(now);
+    }
+
     public void sweep()
     {
         final long now = clock.getAsLong();
