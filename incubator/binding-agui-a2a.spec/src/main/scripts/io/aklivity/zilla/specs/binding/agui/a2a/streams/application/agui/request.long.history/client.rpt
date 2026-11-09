@@ -46,8 +46,6 @@ read zilla:data.ext ${agui:matchDataEx()
                               .role("ASSISTANT")
                               .build()
                           .build()}
-read zilla:data.empty
-read option zilla:flags "none"
 read "ok"
 read option zilla:flags "fin"
 read zilla:data.empty
