@@ -155,6 +155,13 @@ public final class AguiFunctions
             return this;
         }
 
+        public AguiBeginExBuilder agent(
+            String agent)
+        {
+            beginExRW.agent(agent);
+            return this;
+        }
+
         public byte[] build()
         {
             final AguiBeginExFW beginEx = beginExRW.build();
@@ -174,6 +181,7 @@ public final class AguiFunctions
         private String threadId;
         private String runId;
         private String parentRunId;
+        private String agent;
 
         public AguiBeginExMatcherBuilder typeId(
             int typeId)
@@ -203,6 +211,13 @@ public final class AguiFunctions
             return this;
         }
 
+        public AguiBeginExMatcherBuilder agent(
+            String agent)
+        {
+            this.agent = agent;
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -223,7 +238,8 @@ public final class AguiFunctions
                 matchTypeId(beginEx) &&
                 matchThreadId(beginEx) &&
                 matchRunId(beginEx) &&
-                matchParentRunId(beginEx))
+                matchParentRunId(beginEx) &&
+                matchAgent(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -254,6 +270,12 @@ public final class AguiFunctions
             AguiBeginExFW beginEx)
         {
             return parentRunId == null || beginEx.parentRunId() != null && parentRunId.equals(beginEx.parentRunId().asString());
+        }
+
+        private boolean matchAgent(
+            AguiBeginExFW beginEx)
+        {
+            return agent == null || beginEx.agent() != null && agent.equals(beginEx.agent().asString());
         }
     }
 
