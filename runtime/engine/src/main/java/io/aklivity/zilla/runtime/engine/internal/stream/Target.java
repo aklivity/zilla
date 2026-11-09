@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
@@ -59,6 +60,7 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
+    private final BudgetHandleRegistry budgetHandles;
     private final MessageConsumer writeHandler;
 
     private MessagePredicate streamsBuffer;
@@ -71,7 +73,8 @@ public final class Target implements AutoCloseable
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
-        Int2ObjectHashMap<MessageConsumer>[] throttles)
+        Int2ObjectHashMap<MessageConsumer>[] throttles,
+        BudgetHandleRegistry budgetHandles)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -92,6 +95,7 @@ public final class Target implements AutoCloseable
         this.streams = streams;
         this.streamSets = streamSets;
         this.throttles = throttles;
+        this.budgetHandles = budgetHandles;
 
         this.writeHandler = this::handleWrite;
     }
@@ -208,10 +212,12 @@ public final class Target implements AutoCloseable
             case EndFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case AbortFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -285,10 +291,12 @@ public final class Target implements AutoCloseable
             case EndFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case AbortFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -309,11 +317,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet streamIdSet = streamSets.get(routedId);
-                if (streamIdSet != null)
-                {
-                    streamIdSet.remove(streamId);
-                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -325,11 +328,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet redirectStreamIdSet = streamSets.get(routedId);
-                if (redirectStreamIdSet != null)
-                {
-                    redirectStreamIdSet.remove(streamId);
-                }
                 break;
             default:
                 handled = true;
