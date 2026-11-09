@@ -63,6 +63,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyCardStreamingDisabled()
+    {
+        JsonObject config = schema.validate("proxy.card.streaming.disabled.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateGuardedProxy()
     {
         JsonObject config = schema.validate("proxy.guarded.yaml");
