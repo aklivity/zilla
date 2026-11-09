@@ -43,6 +43,7 @@ final class LlmReasoningScanner
 
     private static final int OUTSIDE = -1;
     private static final byte DELIMITER_START = '<';
+    private static final Delimiters DEFAULT_DELIMITERS = new Delimiters(LlmReasoningTags.DEFAULTS);
 
     private final String[] tags;
     private final byte[][] openDelimiters;
@@ -57,22 +58,13 @@ final class LlmReasoningScanner
     LlmReasoningScanner(
         Collection<String> tags)
     {
-        this.tags = tags.toArray(String[]::new);
-        this.openDelimiters = new byte[this.tags.length][];
-        this.closeDelimiters = new byte[this.tags.length][];
+        final Delimiters delimiters = tags == LlmReasoningTags.DEFAULTS ? DEFAULT_DELIMITERS : new Delimiters(tags);
 
-        int capacity = 0;
-        int minBlock = Integer.MAX_VALUE;
-        for (int index = 0; index < this.tags.length; index++)
-        {
-            openDelimiters[index] = ("<" + this.tags[index] + ">").getBytes(US_ASCII);
-            closeDelimiters[index] = ("</" + this.tags[index] + ">").getBytes(US_ASCII);
-            capacity = Math.max(capacity, closeDelimiters[index].length);
-            minBlock = Math.min(minBlock, openDelimiters[index].length + closeDelimiters[index].length);
-        }
-
-        this.minBlock = minBlock;
-        this.held = new byte[capacity];
+        this.tags = delimiters.tags;
+        this.openDelimiters = delimiters.open;
+        this.closeDelimiters = delimiters.close;
+        this.minBlock = delimiters.minBlock;
+        this.held = new byte[delimiters.capacity];
         this.heldBuffer = new UnsafeBufferEx(held);
         this.inside = OUTSIDE;
     }
@@ -251,6 +243,36 @@ final class LlmReasoningScanner
             {
                 visitor.reasoning(buffer, offset, length);
             }
+        }
+    }
+
+    private static final class Delimiters
+    {
+        private final String[] tags;
+        private final byte[][] open;
+        private final byte[][] close;
+        private final int capacity;
+        private final int minBlock;
+
+        private Delimiters(
+            Collection<String> tags)
+        {
+            this.tags = tags.toArray(String[]::new);
+            this.open = new byte[this.tags.length][];
+            this.close = new byte[this.tags.length][];
+
+            int capacity = 0;
+            int minBlock = Integer.MAX_VALUE;
+            for (int index = 0; index < this.tags.length; index++)
+            {
+                open[index] = ("<" + this.tags[index] + ">").getBytes(US_ASCII);
+                close[index] = ("</" + this.tags[index] + ">").getBytes(US_ASCII);
+                capacity = Math.max(capacity, close[index].length);
+                minBlock = Math.min(minBlock, open[index].length + close[index].length);
+            }
+
+            this.capacity = capacity;
+            this.minBlock = minBlock;
         }
     }
 }

@@ -119,7 +119,8 @@ public class LlmMediaGuardPipelineTest
         String rejectOn)
     {
         final RecordingPipeline chain = new RecordingPipeline(rejectOn);
-        final LlmMediaGuardPipeline pipeline = new LlmMediaGuardPipeline(chain, container, member, dataUri);
+        final LlmMediaGuardPipeline pipeline = new LlmMediaGuardPipeline(chain, new UnsafeBufferEx(new byte[1 << 14]),
+            container, member, dataUri);
         final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[dstSize]);
         final StringBuilder output = new StringBuilder();
 

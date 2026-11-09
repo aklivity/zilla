@@ -108,6 +108,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
     private static final int STATUS_OK = 200;
     private static final int STATUS_MULTIPLE_CHOICES = 300;
     private static final int STATUS_BAD_REQUEST = 400;
@@ -253,6 +255,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
+    private final HttpDataExFW httpDataExRO = new HttpDataExFW();
+    private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
     private final LlmSectionAttributes sectionAttributes = new LlmSectionAttributes();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -269,6 +273,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
     private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
 
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
@@ -674,7 +679,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             this.crossDialect = !NAME.equals(dialect);
             this.operation = crossDialect ? null : operation;
             this.http = new LlmGeminiHttpStream(this);
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
             this.decoder = decodeLookahead;
@@ -3656,9 +3661,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
     private final class LlmGeminiHttpStream
     {
-        private final HttpDataExFW httpDataExRO = new HttpDataExFW();
-        private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
         private final LlmGeminiStream stream;
         private final long originId;
         private final long routedId;
@@ -3692,7 +3694,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private int region = REGION_NONE;
         private LlmTextPipeline encodeText;
-        private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
+        private LlmTextPipeline sectionText;
         private boolean contentsOpened;
         private boolean systemOpened;
         private boolean toolsOpened;
@@ -3862,6 +3864,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int signatureReserve()
         {
             return signing(sectionKind) ? SIGNATURE_RESERVE : 0;
+        }
+
+        private LlmTextPipeline sectionText()
+        {
+            if (sectionText == null)
+            {
+                sectionText = new LlmTextPipeline(this::onSectionText);
+            }
+
+            return sectionText;
         }
 
         private LlmSectionPipeline signaturePipeline()
@@ -4060,7 +4072,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText;
+                encodeText = sectionText();
                 encodeText.begin();
 
                 if (signing(kind))

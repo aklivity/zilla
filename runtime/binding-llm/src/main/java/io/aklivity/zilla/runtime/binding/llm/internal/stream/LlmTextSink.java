@@ -27,6 +27,8 @@ final class LlmTextSink implements JsonSink
 
     private final LlmTextPipeline.Output output;
     private final boolean completing;
+    private final byte[] initialBytes;
+    private final UnsafeBufferEx initialBuffer;
 
     private byte[] bytes;
     private UnsafeBufferEx buffer;
@@ -38,8 +40,10 @@ final class LlmTextSink implements JsonSink
     {
         this.output = output;
         this.completing = completing;
-        this.bytes = new byte[1024];
-        this.buffer = new UnsafeBufferEx(bytes);
+        this.initialBytes = new byte[1024];
+        this.initialBuffer = new UnsafeBufferEx(initialBytes);
+        this.bytes = initialBytes;
+        this.buffer = initialBuffer;
     }
 
     @Override
@@ -60,6 +64,12 @@ final class LlmTextSink implements JsonSink
             if (encoded > 0)
             {
                 output.put(buffer, 0, encoded);
+            }
+
+            if (bytes != initialBytes)
+            {
+                bytes = initialBytes;
+                buffer = initialBuffer;
             }
 
             control.consumed(chars.length());
