@@ -521,4 +521,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.path.not.found/client",
+        "${net}/request.path.not.found/server"})
+    public void shouldRejectRequestPathNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.path.forbidden/client",
+        "${net}/request.path.forbidden/server"})
+    public void shouldRejectRequestPathForbidden() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.routed/client",
+        "${net}/run.routed/server"})
+    public void shouldRunRouted() throws Exception
+    {
+        k3po.finish();
+    }
 }
