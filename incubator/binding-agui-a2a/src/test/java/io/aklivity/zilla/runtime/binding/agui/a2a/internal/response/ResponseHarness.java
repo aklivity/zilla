@@ -140,6 +140,10 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             case AguiDataExFW.KIND_CUSTOM:
                 ex = String.format("custom(%s)", dataEx.custom().name().asString());
                 break;
+            case AguiDataExFW.KIND_ACTIVITY:
+                ex = String.format("activity(%s,%s,%s)", dataEx.activity().type().get(), dataEx.activity().messageId().asString(),
+                    dataEx.activity().activityType().asString());
+                break;
             case AguiDataExFW.KIND_STATE:
                 ex = String.format("state(%s)", dataEx.state().type().get());
                 break;
