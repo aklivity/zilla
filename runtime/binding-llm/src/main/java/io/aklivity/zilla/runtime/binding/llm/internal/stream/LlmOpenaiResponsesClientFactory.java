@@ -1018,6 +1018,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, rejection());
                     http.doNetAbort(traceId);
+                    cleanupSlots();
                 }
                 else
                 {
@@ -6244,6 +6245,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             doAppAbort(traceId);
             http.doNetAbort(traceId);
             http.doNetReset(traceId);
+            cleanupSlots();
+        }
+
+        private void cleanupSlots()
+        {
             cleanupEncodeSlot();
             cleanupControlSlot();
             cleanupHeldSlot();
