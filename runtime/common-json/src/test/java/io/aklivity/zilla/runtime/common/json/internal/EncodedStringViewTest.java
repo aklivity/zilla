@@ -255,15 +255,74 @@ class EncodedStringViewTest
         }
     }
 
+    @Test
+    void shouldMatchTheDecodedValueForLongPlainStretches()
+    {
+        final Random random = new Random(23L);
+        final String[] specials = {"\n", "\"", "\\", "\t", "\u00e9", "\u20ac", "\ud83d\ude00", "\u0001"};
+
+        for (int round = 0; round < 3000; round++)
+        {
+            final StringBuilder value = new StringBuilder();
+            final int stretches = random.nextInt(6);
+
+            for (int stretch = 0; stretch <= stretches; stretch++)
+            {
+                final int length = random.nextInt(4) == 0 ? random.nextInt(20) : random.nextInt(300);
+
+                for (int index = 0; index < length; index++)
+                {
+                    value.append((char) ('a' + random.nextInt(26)));
+                }
+
+                if (stretch < stretches)
+                {
+                    value.append(specials[random.nextInt(specials.length)]);
+                }
+            }
+
+            final String decoded = value.toString();
+            final String encoded = encode(decoded, random.nextBoolean());
+
+            wrap(encoded, random.nextInt(9));
+
+            assertEquals(decoded.length(), view.length(), encoded);
+            assertEquals(decoded, view.toString(), encoded);
+
+            for (int probe = 0; probe < 20 && !decoded.isEmpty(); probe++)
+            {
+                final int index = random.nextInt(decoded.length());
+                assertEquals(decoded.charAt(index), view.charAt(index), "index " + index + " of " + encoded);
+            }
+
+            final int cut = boundary(decoded, random);
+            final byte[] expected = encoded.getBytes(UTF_8);
+            final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[expected.length]);
+            final int head = view.transferTo(0, cut, dst, 0);
+            final int tail = view.transferTo(cut, view.length(), dst, head);
+
+            final byte[] actual = new byte[head + tail];
+            dst.getBytes(0, actual);
+            assertArrayEquals(expected, actual, encoded);
+        }
+    }
+
     private void wrap(
         String encoded)
     {
+        wrap(encoded, PADDING);
+    }
+
+    private void wrap(
+        String encoded,
+        int padding)
+    {
         final byte[] value = encoded.getBytes(UTF_8);
-        final byte[] padded = new byte[PADDING + value.length + PADDING];
+        final byte[] padded = new byte[padding + value.length + PADDING];
 
-        System.arraycopy(value, 0, padded, PADDING, value.length);
+        System.arraycopy(value, 0, padded, padding, value.length);
 
-        view.wrap(new UnsafeBufferEx(padded), PADDING, value.length);
+        view.wrap(new UnsafeBufferEx(padded), padding, value.length);
     }
 
     private static int boundary(

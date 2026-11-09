@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import java.nio.ByteOrder;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonStringView;
@@ -24,10 +26,12 @@ import io.aklivity.zilla.runtime.common.json.JsonStringView;
  * <p>
  * Each unit of the encoded form is one UTF-16 char, except a raw four-byte UTF-8 sequence, which is two (a
  * surrogate pair). A unit is one ASCII byte, a simple escape ({@code \n}), a unicode escape ({@code é}, six
- * bytes, and each half of an escaped surrogate pair is its own unit), or a UTF-8 sequence. A view with only
- * single ASCII bytes indexes the bytes directly. Any other view decodes a short run of chars at a time into a
- * small array, so reading the chars in order decodes each unit once and costs a lookup per char; reading
- * backwards decodes again from the start of the value.
+ * bytes, and each half of an escaped surrogate pair is its own unit), or a UTF-8 sequence.
+ * <p>
+ * The view decodes the value a short run of chars at a time into a small array, so reading the chars in order
+ * decodes each unit once and costs a lookup per char; reading backwards starts again from the start of the
+ * value. A stretch of plain ASCII, with no escape, is widened a word at a time, so the bytes are read from the
+ * buffer eight at a time, and only the escapes and the multi-byte characters are decoded a unit at a time.
  * <p>
  * The view is a flyweight that is reused for every value and is valid only while the bytes it wraps are
  * unchanged. It assumes the bytes are a valid JSON string body, as the tokenizer has already checked them.
@@ -35,6 +39,11 @@ import io.aklivity.zilla.runtime.common.json.JsonStringView;
 final class EncodedStringView implements JsonStringView
 {
     private static final int RUN = 64;
+    private static final int STRETCH = Long.BYTES;
+    private static final long ONES = 0x0101010101010101L;
+    private static final long HIGHS = 0x8080808080808080L;
+    private static final long BACKSLASHES = 0x5c5c5c5c5c5c5c5cL;
+    private static final boolean LITTLE_ENDIAN = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN;
 
     private char[] run;
 
@@ -112,35 +121,21 @@ final class EncodedStringView implements JsonStringView
     public char charAt(
         int index)
     {
+        final int position = index - runChar;
         final char result;
 
-        if (plain)
+        if (position >= 0 && position < runLength)
         {
-            if (index < 0 || index >= length)
-            {
-                throw new IndexOutOfBoundsException(index);
-            }
-
-            result = (char) (buffer.getByte(offset + index) & 0xff);
+            result = run[position];
+        }
+        else if (index < 0 || index >= length)
+        {
+            throw new IndexOutOfBoundsException(index);
         }
         else
         {
-            final int position = index - runChar;
-
-            if (position >= 0 && position < runLength)
-            {
-                result = run[position];
-            }
-            else
-            {
-                if (index < 0 || index >= length)
-                {
-                    throw new IndexOutOfBoundsException(index);
-                }
-
-                cover(index);
-                result = run[index - runChar];
-            }
+            cover(index);
+            result = run[index - runChar];
         }
 
         return result;
@@ -211,7 +206,7 @@ final class EncodedStringView implements JsonStringView
     private int byteOffsetOf(
         int charIndex)
     {
-        final int result;
+        int result;
 
         if (charIndex == length)
         {
@@ -226,20 +221,20 @@ final class EncodedStringView implements JsonStringView
             cover(charIndex);
 
             int index = runChar;
-            int position = runByte;
+            result = runByte;
 
             while (index < charIndex)
             {
-                final int c = buffer.getByte(position) & 0xff;
+                final int c = buffer.getByte(result) & 0xff;
 
                 if (c == '\\')
                 {
-                    position += buffer.getByte(position + 1) == 'u' ? 6 : 2;
+                    result += buffer.getByte(result + 1) == 'u' ? 6 : 2;
                     index++;
                 }
                 else if (c < 0x80)
                 {
-                    position++;
+                    result++;
                     index++;
                 }
                 else
@@ -251,12 +246,10 @@ final class EncodedStringView implements JsonStringView
                         throw new IllegalArgumentException("char " + charIndex + " is inside a four-byte sequence");
                     }
 
-                    position += size;
+                    result += size;
                     index += size == 4 ? 2 : 1;
                 }
             }
-
-            result = position;
         }
 
         return result;
@@ -301,17 +294,28 @@ final class EncodedStringView implements JsonStringView
 
         while (count < RUN && index < limit)
         {
-            final int c = buffer.getByte(index) & 0xff;
+            final long word = index + STRETCH <= limit && count + STRETCH <= RUN ? plainWord(index) : 0L;
 
-            if (c < 0x80 && c != '\\')
+            if (word != 0L)
             {
-                run[count++] = (char) c;
-                index++;
+                widen(word, count);
+                count += STRETCH;
+                index += STRETCH;
             }
             else
             {
-                index = decodeUnit(c, index, count);
-                count += c >= 0xf0 ? 2 : 1;
+                final int c = buffer.getByte(index) & 0xff;
+
+                if (c < 0x80 && c != '\\')
+                {
+                    run[count++] = (char) c;
+                    index++;
+                }
+                else
+                {
+                    index = decodeUnit(c, index, count);
+                    count += c >= 0xf0 ? 2 : 1;
+                }
             }
         }
 
@@ -320,6 +324,35 @@ final class EncodedStringView implements JsonStringView
         runLength = count;
         nextChar += count;
         nextByte = index;
+    }
+
+    // the next eight bytes as a word, in byte order, or zero if any of them is not plain ASCII: a byte is plain
+    // unless its high bit is set or it is a backslash, which is the byte that is zero once xor-ed with one, and
+    // a plain word is never zero since a zero byte is not valid in a string
+    private long plainWord(
+        int index)
+    {
+        final long word = buffer.getLong(index);
+        final long backslashes = word ^ BACKSLASHES;
+        final boolean plain = ((word | (backslashes - ONES) & ~backslashes) & HIGHS) == 0L;
+
+        return plain ? LITTLE_ENDIAN ? word : Long.reverseBytes(word) : 0L;
+    }
+
+    private void widen(
+        long word,
+        int count)
+    {
+        final char[] run = this.run;
+
+        run[count] = (char) (word & 0xff);
+        run[count + 1] = (char) (word >>> 8 & 0xff);
+        run[count + 2] = (char) (word >>> 16 & 0xff);
+        run[count + 3] = (char) (word >>> 24 & 0xff);
+        run[count + 4] = (char) (word >>> 32 & 0xff);
+        run[count + 5] = (char) (word >>> 40 & 0xff);
+        run[count + 6] = (char) (word >>> 48 & 0xff);
+        run[count + 7] = (char) (word >>> 56 & 0xff);
     }
 
     private int decodeUnit(
