@@ -740,6 +740,7 @@ public class TlsWorker implements EngineContext
                     .streamId(streamId)
                     .sequence(0L)
                     .acknowledge(0L)
+                    .state(0)
                     .maximum(0)
                     .timestamp(0L)
                     .traceId(traceId)
