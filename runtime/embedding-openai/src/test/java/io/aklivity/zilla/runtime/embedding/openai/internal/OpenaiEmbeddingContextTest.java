@@ -16,7 +16,13 @@ package io.aklivity.zilla.runtime.embedding.openai.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -53,7 +59,64 @@ public class OpenaiEmbeddingContextTest
         assertThat(context.attach(embedding), instanceOf(OpenaiEmbeddingHandler.class));
     }
 
+    @Test
+    public void shouldCloseHttpClientWhenLastEmbeddingDetached() throws Exception
+    {
+        List<HttpClient> clients = new ArrayList<>();
+        OpenaiEmbeddingContext context = newContext(clients);
+        EmbeddingConfig first = embeddingConfig(1L);
+        EmbeddingConfig second = embeddingConfig(2L);
+
+        context.attach(first);
+        context.attach(second);
+        context.detach(first);
+
+        assertThat(clients.size(), is(1));
+        assertThat(clients.get(0).isTerminated(), is(false));
+
+        context.detach(second);
+
+        assertThat(clients.get(0).awaitTermination(Duration.ofSeconds(5L)), is(true));
+    }
+
+    @Test
+    public void shouldCreateHttpClientAgainWhenAttachedAfterLastEmbeddingDetached() throws Exception
+    {
+        List<HttpClient> clients = new ArrayList<>();
+        OpenaiEmbeddingContext context = newContext(clients);
+        EmbeddingConfig embedding = embeddingConfig(1L);
+
+        context.attach(embedding);
+        context.detach(embedding);
+        context.attach(embedding);
+
+        assertThat(clients.size(), is(2));
+        assertThat(clients.get(0).awaitTermination(Duration.ofSeconds(5L)), is(true));
+        assertThat(clients.get(1).isTerminated(), is(false));
+
+        context.detach(embedding);
+
+        assertThat(clients.get(1).awaitTermination(Duration.ofSeconds(5L)), is(true));
+    }
+
+    private static OpenaiEmbeddingContext newContext(
+        List<HttpClient> clients)
+    {
+        return new OpenaiEmbeddingContext(mock(EngineContext.class), () ->
+        {
+            HttpClient client = HttpClient.newHttpClient();
+            clients.add(client);
+            return client;
+        });
+    }
+
     private static EmbeddingConfig embeddingConfig()
+    {
+        return embeddingConfig(1L);
+    }
+
+    private static EmbeddingConfig embeddingConfig(
+        long id)
     {
         OpenaiOptionsConfig options = OpenaiOptionsConfig.builder()
             .model("text-embedding-3-small")
@@ -64,11 +127,11 @@ public class OpenaiEmbeddingContextTest
 
         GenericEmbeddingConfig embedding = GenericEmbeddingConfig.builder()
             .namespace("test")
-            .name("embedding0")
+            .name("embedding" + id)
             .type("openai")
             .options(options)
             .build();
-        embedding.id = 1L;
+        embedding.id = id;
 
         return embedding;
     }
