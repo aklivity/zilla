@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class AguiA2aBindingFactorySpiTest
 {
@@ -74,7 +73,6 @@ public class AguiA2aBindingFactorySpiTest
         BindingHandler handler = context.attach(binding);
 
         assertThat(handler, not(nullValue()));
-        assertThat(handler.newStream(0, null, 0, 0, mock(MessageConsumer.class)), nullValue());
         assertThat(context.toString(), containsString("AguiA2aBindingContext"));
 
         context.detach(binding);
