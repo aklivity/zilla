@@ -123,6 +123,10 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExF
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceStatusFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAckType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTaggedFieldFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 
@@ -1152,6 +1156,13 @@ public final class KafkaFunctions
             beginExRW.kind(KafkaApi.PRODUCE.value());
 
             return new KafkaProduceBeginExBuilder();
+        }
+
+        public KafkaShareBeginExBuilder share()
+        {
+            beginExRW.kind(KafkaApi.SHARE.value());
+
+            return new KafkaShareBeginExBuilder();
         }
 
         public KafkaGroupBeginExBuilder group()
@@ -2378,6 +2389,80 @@ public final class KafkaFunctions
             }
         }
 
+        public final class KafkaShareBeginExBuilder
+        {
+            private final KafkaShareBeginExFW.Builder shareBeginExRW = new KafkaShareBeginExFW.Builder();
+
+            private KafkaShareBeginExBuilder()
+            {
+                shareBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_SHARE, writeBuffer.capacity());
+            }
+
+            public KafkaShareBeginExBuilder groupId(
+                String groupId)
+            {
+                shareBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaShareBeginExBuilder memberId(
+                String memberId)
+            {
+                shareBeginExRW.memberId(memberId);
+                return this;
+            }
+
+            public KafkaShareBeginExBuilder topic(
+                String topic)
+            {
+                shareBeginExRW.topic(topic);
+                return this;
+            }
+
+            public KafkaShareBeginExBuilder host(
+                String host)
+            {
+                shareBeginExRW.host(host);
+                return this;
+            }
+
+            public KafkaShareBeginExBuilder port(
+                int port)
+            {
+                shareBeginExRW.port(port);
+                return this;
+            }
+
+            public KafkaShareBeginExBuilder recordsMax(
+                int recordsMax)
+            {
+                shareBeginExRW.recordsMax(recordsMax);
+                return this;
+            }
+
+            public KafkaFilterBuilder<KafkaShareBeginExBuilder> filter()
+            {
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaShareBeginExBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        shareBeginExRW.filtersItem(fb -> set(fb, filter));
+                        return KafkaShareBeginExBuilder.this;
+                    }
+                };
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaShareBeginExFW shareBeginEx = shareBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, shareBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
+
         public final class KafkaGroupBeginExBuilder
         {
             private final KafkaGroupBeginExFW.Builder groupBeginExRW = new KafkaGroupBeginExFW.Builder();
@@ -2705,6 +2790,13 @@ public final class KafkaFunctions
             dataExRW.kind(KafkaApi.PRODUCE.value());
 
             return new KafkaProduceDataExBuilder();
+        }
+
+        public KafkaShareDataExBuilder share()
+        {
+            dataExRW.kind(KafkaApi.SHARE.value());
+
+            return new KafkaShareDataExBuilder();
         }
 
         public KafkaConsumerDataExBuilder consumer()
@@ -3338,6 +3430,97 @@ public final class KafkaFunctions
             }
         }
 
+        public final class KafkaShareDataExBuilder
+        {
+            private final DirectBufferEx keyRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx nameRO = new UnsafeBufferEx(0, 0);
+            private final DirectBufferEx valueRO = new UnsafeBufferEx(0, 0);
+
+            private final KafkaShareDataExFW.Builder shareDataExRW = new KafkaShareDataExFW.Builder();
+
+            private KafkaShareDataExBuilder()
+            {
+                shareDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_SHARE, writeBuffer.capacity());
+            }
+
+            public KafkaShareDataExBuilder deferred(
+                int deferred)
+            {
+                shareDataExRW.deferred(deferred);
+                return this;
+            }
+
+            public KafkaShareDataExBuilder timestamp(
+                long timestamp)
+            {
+                shareDataExRW.timestamp(timestamp);
+                return this;
+            }
+
+            public KafkaShareDataExBuilder deliveryCount(
+                int deliveryCount)
+            {
+                shareDataExRW.deliveryCount(deliveryCount);
+                return this;
+            }
+
+            public KafkaShareDataExBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                shareDataExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
+                return this;
+            }
+
+            public KafkaShareDataExBuilder key(
+                String key)
+            {
+                if (key == null)
+                {
+                    shareDataExRW.key(m -> m.length(-1)
+                                            .value((OctetsFW) null));
+                }
+                else
+                {
+                    keyRO.wrap(key.getBytes(UTF_8));
+                    shareDataExRW.key(k -> k.length(keyRO.capacity())
+                                            .value(keyRO, 0, keyRO.capacity()));
+                }
+                return this;
+            }
+
+            public KafkaShareDataExBuilder header(
+                String name,
+                String value)
+            {
+                if (value == null)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    shareDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                                                    .name(nameRO, 0, nameRO.capacity())
+                                                    .valueLen(-1)
+                                                    .value((OctetsFW) null));
+                }
+                else
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(value.getBytes(UTF_8));
+                    shareDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                                                    .name(nameRO, 0, nameRO.capacity())
+                                                    .valueLen(valueRO.capacity())
+                                                    .value(valueRO, 0, valueRO.capacity()));
+                }
+                return this;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                final KafkaShareDataExFW shareDataEx = shareDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, shareDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+        }
+
         public final class KafkaMetaDataExBuilder
         {
             private final KafkaMetaDataExFW.Builder metaDataExRW = new KafkaMetaDataExFW.Builder();
@@ -3705,6 +3888,13 @@ public final class KafkaFunctions
             flushExRW.kind(KafkaApi.PRODUCE.value());
 
             return new KafkaProduceFlushExBuilder();
+        }
+
+        public KafkaShareFlushExBuilder share()
+        {
+            flushExRW.kind(KafkaApi.SHARE.value());
+
+            return new KafkaShareFlushExBuilder();
         }
 
         public KafkaGroupFlushExBuilder group()
@@ -4169,6 +4359,52 @@ public final class KafkaFunctions
             {
                 final KafkaProduceFlushExFW produceFlushEx = produceFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, produceFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
+        }
+
+        public final class KafkaShareFlushExBuilder
+        {
+            private final KafkaShareFlushExFW.Builder shareFlushExRW = new KafkaShareFlushExFW.Builder();
+
+            private KafkaShareFlushExBuilder()
+            {
+                shareFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_SHARE, writeBuffer.capacity());
+            }
+
+            public KafkaShareFlushExBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                shareFlushExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
+                return this;
+            }
+
+            public KafkaShareFlushExBuilder type(
+                String type)
+            {
+                shareFlushExRW.type(t -> t.set(KafkaShareAckType.valueOf(type)));
+                return this;
+            }
+
+            public KafkaShareFlushExBuilder correlationId(
+                long correlationId)
+            {
+                shareFlushExRW.correlationId(correlationId);
+                return this;
+            }
+
+            public KafkaShareFlushExBuilder error(
+                int error)
+            {
+                shareFlushExRW.error(error);
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                final KafkaShareFlushExFW shareFlushEx = shareFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, shareFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
         }
@@ -4721,6 +4957,15 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaShareDataExMatcherBuilder share()
+        {
+            final KafkaShareDataExMatcherBuilder matcherBuilder = new KafkaShareDataExMatcherBuilder();
+
+            this.kind = KafkaApi.SHARE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaProduceDataExMatcherBuilder produce()
         {
             final KafkaProduceDataExMatcherBuilder matcherBuilder = new KafkaProduceDataExMatcherBuilder();
@@ -5005,6 +5250,158 @@ public final class KafkaFunctions
                 final KafkaFetchDataExFW fetchDataEx)
             {
                 return headersRW == null || headersRW.build().equals(fetchDataEx.headers());
+            }
+        }
+
+        public final class KafkaShareDataExMatcherBuilder
+        {
+            private Integer deferred;
+            private Long timestamp;
+            private Integer deliveryCount;
+            private Integer partitionId;
+            private Long partitionOffset;
+            private KafkaKeyFW.Builder keyRW;
+            private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW;
+
+            private KafkaShareDataExMatcherBuilder()
+            {
+            }
+
+            public KafkaShareDataExMatcherBuilder deferred(
+                int deferred)
+            {
+                this.deferred = deferred;
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder timestamp(
+                long timestamp)
+            {
+                this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder deliveryCount(
+                int deliveryCount)
+            {
+                this.deliveryCount = deliveryCount;
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                this.partitionId = partitionId;
+                this.partitionOffset = partitionOffset;
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder key(
+                String key)
+            {
+                assert keyRW == null;
+                keyRW = new KafkaKeyFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+
+                if (key == null)
+                {
+                    keyRW.length(-1)
+                         .value((OctetsFW) null);
+                }
+                else
+                {
+                    keyRO.wrap(key.getBytes(UTF_8));
+                    keyRW.length(keyRO.capacity())
+                         .value(keyRO, 0, keyRO.capacity());
+                }
+
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder header(
+                String name,
+                String value)
+            {
+                if (headersRW == null)
+                {
+                    this.headersRW = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                                                .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+
+                if (value == null)
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                                         .name(nameRO, 0, nameRO.capacity())
+                                         .valueLen(-1)
+                                         .value((OctetsFW) null));
+                }
+                else
+                {
+                    nameRO.wrap(name.getBytes(UTF_8));
+                    valueRO.wrap(value.getBytes(UTF_8));
+                    headersRW.item(i -> i.nameLen(nameRO.capacity())
+                                         .name(nameRO, 0, nameRO.capacity())
+                                         .valueLen(valueRO.capacity())
+                                         .value(valueRO, 0, valueRO.capacity()));
+                }
+
+                return this;
+            }
+
+            public KafkaDataExMatcherBuilder build()
+            {
+                return KafkaDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaDataExFW dataEx)
+            {
+                final KafkaShareDataExFW shareDataEx = dataEx.share();
+                return matchDeferred(shareDataEx) &&
+                    matchTimestamp(shareDataEx) &&
+                    matchDeliveryCount(shareDataEx) &&
+                    matchPartition(shareDataEx) &&
+                    matchKey(shareDataEx) &&
+                    matchHeaders(shareDataEx);
+            }
+
+            private boolean matchDeferred(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return deferred == null || deferred == shareDataEx.deferred();
+            }
+
+            private boolean matchTimestamp(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return timestamp == null || timestamp == shareDataEx.timestamp();
+            }
+
+            private boolean matchDeliveryCount(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return deliveryCount == null || deliveryCount == shareDataEx.deliveryCount();
+            }
+
+            private boolean matchPartition(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                final KafkaOffsetFW partition = shareDataEx.partition();
+                return (partitionId == null || partitionId == partition.partitionId()) &&
+                    (partitionOffset == null || partitionOffset == partition.partitionOffset());
+            }
+
+            private boolean matchKey(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return keyRW == null || keyRW.build().equals(shareDataEx.key());
+            }
+
+            private boolean matchHeaders(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return headersRW == null || headersRW.build().equals(shareDataEx.headers());
             }
         }
 
@@ -5956,6 +6353,15 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaShareFlushExMatcherBuilder share()
+        {
+            final KafkaShareFlushExMatcherBuilder matcherBuilder = new KafkaShareFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.SHARE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaProduceFlushExMatcherBuilder produce()
         {
             final KafkaProduceFlushExMatcherBuilder matcherBuilder = new KafkaProduceFlushExMatcherBuilder();
@@ -6472,6 +6878,90 @@ public final class KafkaFunctions
             }
         }
 
+        public final class KafkaShareFlushExMatcherBuilder
+        {
+            private Integer partitionId;
+            private Long partitionOffset;
+            private KafkaShareAckType type;
+            private Long correlationId;
+            private Integer error;
+
+            private KafkaShareFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaShareFlushExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                this.partitionId = partitionId;
+                this.partitionOffset = partitionOffset;
+                return this;
+            }
+
+            public KafkaShareFlushExMatcherBuilder type(
+                String type)
+            {
+                this.type = KafkaShareAckType.valueOf(type);
+                return this;
+            }
+
+            public KafkaShareFlushExMatcherBuilder correlationId(
+                long correlationId)
+            {
+                this.correlationId = correlationId;
+                return this;
+            }
+
+            public KafkaShareFlushExMatcherBuilder error(
+                int error)
+            {
+                this.error = error;
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaShareFlushExFW shareFlushEx = flushEx.share();
+                return matchPartition(shareFlushEx) &&
+                    matchType(shareFlushEx) &&
+                    matchCorrelationId(shareFlushEx) &&
+                    matchError(shareFlushEx);
+            }
+
+            private boolean matchPartition(
+                final KafkaShareFlushExFW shareFlushEx)
+            {
+                final KafkaOffsetFW partition = shareFlushEx.partition();
+                return (partitionId == null || partitionId == partition.partitionId()) &&
+                    (partitionOffset == null || partitionOffset == partition.partitionOffset());
+            }
+
+            private boolean matchType(
+                final KafkaShareFlushExFW shareFlushEx)
+            {
+                return type == null || type == shareFlushEx.type().get();
+            }
+
+            private boolean matchCorrelationId(
+                final KafkaShareFlushExFW shareFlushEx)
+            {
+                return correlationId == null || correlationId == shareFlushEx.correlationId();
+            }
+
+            private boolean matchError(
+                final KafkaShareFlushExFW shareFlushEx)
+            {
+                return error == null || error == shareFlushEx.error();
+            }
+        }
+
         public final class KafkaProduceFlushExMatcherBuilder
         {
             private KafkaKeyFW.Builder keyRW;
@@ -6774,6 +7264,15 @@ public final class KafkaFunctions
             final KafkaMergedBeginExMatcherBuilder matcherBuilder = new KafkaMergedBeginExMatcherBuilder();
 
             this.kind = KafkaApi.MERGED.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaShareBeginExMatcherBuilder share()
+        {
+            final KafkaShareBeginExMatcherBuilder matcherBuilder = new KafkaShareBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.SHARE.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -7213,6 +7712,145 @@ public final class KafkaFunctions
                 final KafkaFetchBeginExFW fetchBeginEx)
             {
                 return evaluation == null || evaluation.equals(fetchBeginEx.evaluation());
+            }
+        }
+
+        public final class KafkaShareBeginExMatcherBuilder
+        {
+            private String16FW groupId;
+            private String16FW memberId;
+            private String16FW topic;
+            private String16FW host;
+            private Integer port;
+            private Integer recordsMax;
+
+            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+
+            private KafkaShareBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaShareBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
+                return this;
+            }
+
+            public KafkaShareBeginExMatcherBuilder memberId(
+                String memberId)
+            {
+                this.memberId = new String16FW(memberId);
+                return this;
+            }
+
+            public KafkaShareBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaShareBeginExMatcherBuilder host(
+                String host)
+            {
+                this.host = new String16FW(host);
+                return this;
+            }
+
+            public KafkaShareBeginExMatcherBuilder port(
+                int port)
+            {
+                this.port = port;
+                return this;
+            }
+
+            public KafkaShareBeginExMatcherBuilder recordsMax(
+                int recordsMax)
+            {
+                this.recordsMax = recordsMax;
+                return this;
+            }
+
+            public KafkaFilterBuilder<KafkaShareBeginExMatcherBuilder> filter()
+            {
+                if (filtersRW == null)
+                {
+                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                            .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaShareBeginExMatcherBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        filtersRW.item(fb -> set(fb, filter));
+                        return KafkaShareBeginExMatcherBuilder.this;
+                    }
+                };
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaShareBeginExFW shareBeginEx = beginEx.share();
+                return matchGroupId(shareBeginEx) &&
+                    matchMemberId(shareBeginEx) &&
+                    matchTopic(shareBeginEx) &&
+                    matchHost(shareBeginEx) &&
+                    matchPort(shareBeginEx) &&
+                    matchRecordsMax(shareBeginEx) &&
+                    matchFilters(shareBeginEx);
+            }
+
+            private boolean matchGroupId(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return groupId == null || groupId.equals(shareBeginEx.groupId());
+            }
+
+            private boolean matchMemberId(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return memberId == null || memberId.equals(shareBeginEx.memberId());
+            }
+
+            private boolean matchTopic(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return topic == null || topic.equals(shareBeginEx.topic());
+            }
+
+            private boolean matchHost(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return host == null || host.equals(shareBeginEx.host());
+            }
+
+            private boolean matchPort(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return port == null || port == shareBeginEx.port();
+            }
+
+            private boolean matchRecordsMax(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return recordsMax == null || recordsMax == shareBeginEx.recordsMax();
+            }
+
+            private boolean matchFilters(
+                final KafkaShareBeginExFW shareBeginEx)
+            {
+                return filtersRW == null || filtersRW.build().equals(shareBeginEx.filters());
             }
         }
 
