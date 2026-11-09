@@ -139,6 +139,11 @@ public final class A2aBindingConfig
         return guard != null;
     }
 
+    public boolean pushConfigured()
+    {
+        return options != null && options.serverPush != null;
+    }
+
     public boolean isPushPath(
         String path)
     {

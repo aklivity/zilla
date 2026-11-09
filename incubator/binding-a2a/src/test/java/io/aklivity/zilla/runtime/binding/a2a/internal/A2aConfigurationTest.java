@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.a2a.internal;
 
 import static io.aklivity.zilla.runtime.binding.a2a.internal.A2aConfiguration.A2A_CACHE_LEASE_TTL;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.A2aConfiguration.A2A_PUSH_DELIVERY_BACKOFF;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.A2aConfiguration.A2A_PUSH_DELIVERY_RETRIES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -30,6 +32,17 @@ public class A2aConfigurationTest
     public void shouldVerifyConstants()
     {
         assertThat(A2A_CACHE_LEASE_TTL.name(), equalTo("zilla.binding.a2a.cache.lease.ttl"));
+        assertThat(A2A_PUSH_DELIVERY_RETRIES.name(), equalTo("zilla.binding.a2a.push.delivery.retries"));
+        assertThat(A2A_PUSH_DELIVERY_BACKOFF.name(), equalTo("zilla.binding.a2a.push.delivery.backoff"));
+    }
+
+    @Test
+    public void shouldDefaultPushDelivery()
+    {
+        final A2aConfiguration configuration = new A2aConfiguration(new Configuration());
+
+        assertThat(configuration.pushDeliveryRetries(), equalTo(2));
+        assertThat(configuration.pushDeliveryBackoff(), equalTo(Duration.ofSeconds(1)));
     }
 
     @Test

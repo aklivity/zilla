@@ -2380,6 +2380,26 @@
                                                         "0.3"
                                                     ]
                                                 },
+                                                "push": {
+                                                    "title": "Push",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "allow": {
+                                                            "title": "Allow",
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "minItems": 1
+                                                        },
+                                                        "maxLength": {
+                                                            "title": "Maximum Length",
+                                                            "type": "integer",
+                                                            "minimum": 1
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                },
                                                 "authorization": {
                                                     "title": "Authorization",
                                                     "type": "object",
@@ -2584,6 +2604,12 @@
                                                     "title": "Push",
                                                     "type": "object",
                                                     "properties": {
+                                                        "url": {
+                                                            "title": "URL",
+                                                            "type": "string",
+                                                            "format": "uri",
+                                                            "pattern": "^https?://"
+                                                        },
                                                         "vault": {
                                                             "title": "Vault",
                                                             "type": "string"

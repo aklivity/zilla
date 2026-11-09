@@ -1,0 +1,48 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property path "/a2a/push/sealed-1"
+property token "nonce-1"
+property authorizationHeader "Bearer agent-cred-1"
+property taskId "t-1"
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", path)
+                            .header("content-type", "application/a2a+json")
+                            .header("a2a-version", "1.0")
+                            .header("x-a2a-notification-token", token)
+                            .header("authorization", authorizationHeader)
+                            .header("content-length", "93")
+                            .build()}
+
+connected
+
+write '{"statusUpdate":{"taskId":"' ${taskId} '","contextId":"c-1","status":{"state":"TASK_STATE_COMPLETED"}}}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .build()}
+
+read closed

@@ -164,6 +164,29 @@ public class A2aOptionsConfigAdapterTest
         assertThat(options.cache, nullValue());
         assertThat(options.discovery, nullValue());
         assertThat(options.proxyPush, nullValue());
+        assertThat(options.clientPush, nullValue());
+    }
+
+    @Test
+    public void shouldReadClientPushOptions()
+    {
+        String text =
+            """
+            server: "http://localhost:8080/a2a"
+            push:
+              allow:
+                - https://*.example.com/hooks/*
+              maxLength: 4096
+            """;
+
+        A2aOptionsConfig options = (A2aOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.clientPush.allow, contains("https://*.example.com/hooks/*"));
+        assertThat(options.clientPush.maxLength, equalTo(4096));
+        assertThat(options.serverPush, nullValue());
+        assertThat(options.proxyPush, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(
+            text.replace("- https://*.example.com/hooks/*", "- \"https://*.example.com/hooks/*\"")));
     }
 
     @Test

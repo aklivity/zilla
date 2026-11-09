@@ -55,6 +55,39 @@ public class A2aClientBindingConfigTest
     }
 
     @Test
+    public void shouldDefaultPush()
+    {
+        final A2aClientBindingConfig binding = new A2aClientBindingConfig(bare(), context);
+
+        assertThat(binding.pushMaxLength, equalTo(-1));
+        assertThat(binding.pushPolicy.permits("https://client.example.com/hooks/1"), equalTo(true));
+        assertThat(binding.pushPolicy.permits("http://127.0.0.1/hooks/1"), equalTo(false));
+    }
+
+    @Test
+    public void shouldResolvePush()
+    {
+        final BindingConfig config = A2aBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.CLIENT)
+            .options()
+                .clientPush()
+                    .allow(List.of("http://10.0.0.5/hooks/*"))
+                    .maxLength(4096)
+                    .build()
+                .build()
+            .build();
+        config.resolveId = name -> 0L;
+
+        final A2aClientBindingConfig binding = new A2aClientBindingConfig(config, context);
+
+        assertThat(binding.pushMaxLength, equalTo(4096));
+        assertThat(binding.pushPolicy.permits("http://10.0.0.5/hooks/1"), equalTo(true));
+        assertThat(binding.pushPolicy.permits("https://client.example.com/hooks/1"), equalTo(false));
+    }
+
+    @Test
     public void shouldResolveServer()
     {
         assertThat(server("http://localhost:8080/a2a").serverAuthority, equalTo("localhost:8080"));
