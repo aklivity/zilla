@@ -520,6 +520,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public void pause()
+    {
+        flushed = true;
+    }
+
+    @Override
     public boolean flush()
     {
         boolean complete = true;

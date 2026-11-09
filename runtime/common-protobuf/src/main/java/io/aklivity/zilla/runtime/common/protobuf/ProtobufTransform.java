@@ -24,6 +24,14 @@ package io.aklivity.zilla.runtime.common.protobuf;
  */
 public interface ProtobufTransform
 {
+    /**
+     * Transforms one {@code event}. A stage that must wait for asynchronous work before it can finish the
+     * event starts that work and returns {@link ProtobufPipeline.Status#PENDING} without forwarding the event;
+     * after {@link ProtobufController#resumer()} runs and the caller drives the pipeline again, this method is
+     * invoked with the same event and the same {@code source} view, exactly once per resumption, and the stage
+     * returns {@link ProtobufPipeline.Status#PENDING} again if its work is not yet complete. Only the pending
+     * stage is re-entered; stages before it are not presented the event again.
+     */
     ProtobufPipeline.Status transform(
         ProtobufController control,
         ProtobufSource source,

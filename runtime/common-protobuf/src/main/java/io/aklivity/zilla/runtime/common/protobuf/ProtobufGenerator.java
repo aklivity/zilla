@@ -254,6 +254,16 @@ public interface ProtobufGenerator
     boolean flush();
 
     /**
+     * Ends the current chunk mid-message while the message stays in flight, so the next
+     * {@link #wrap(MutableDirectBufferEx, int, int)} continues it instead of starting a new message. A generator
+     * that frames nested messages holds the bytes written so far and re-emits them at the front of the next buffer
+     * with its records still open, so no message element is split or duplicated; {@link #length()} then reports zero
+     * and the next buffer must have room for what was held. A generator whose output concatenates into
+     * one document without per-record framing carries on as is.
+     */
+    void pause();
+
+    /**
      * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A
      * generator that re-encodes into a different representation (e.g. JSON) is not identity.
      */
