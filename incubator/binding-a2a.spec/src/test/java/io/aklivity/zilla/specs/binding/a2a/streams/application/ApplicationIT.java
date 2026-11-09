@@ -422,4 +422,94 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/discovery.card/client",
+        "${app}/discovery.card/server"})
+    public void shouldDiscoveryCard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.find.name/client",
+        "${app}/discovery.find.name/server"})
+    public void shouldDiscoveryFindName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.find.skill/client",
+        "${app}/discovery.find.skill/server"})
+    public void shouldDiscoveryFindSkill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.guarded/client",
+        "${app}/discovery.guarded/server"})
+    public void shouldDiscoveryGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.guarded.filtered/client",
+        "${app}/discovery.guarded.filtered/server"})
+    public void shouldDiscoveryGuardedFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.limit/client",
+        "${app}/discovery.limit/server"})
+    public void shouldDiscoveryLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.limit.config/client",
+        "${app}/discovery.limit.config/server"})
+    public void shouldDiscoveryLimitConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.no.match/client",
+        "${app}/discovery.no.match/server"})
+    public void shouldDiscoveryNoMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.query.data/client",
+        "${app}/discovery.query.data/server"})
+    public void shouldDiscoveryQueryData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/discovery.rank/client",
+        "${app}/discovery.rank/server"})
+    public void shouldDiscoveryRank() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -20,4 +20,9 @@ public interface A2aAgentCards
 {
     List<A2aCachedAgent> list(
         long authorization);
+
+    long revision();
+
+    void ready(
+        Runnable ready);
 }

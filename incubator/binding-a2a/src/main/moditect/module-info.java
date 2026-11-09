@@ -18,6 +18,13 @@ module io.aklivity.zilla.runtime.binding.a2a
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.a2a.search;
+
+    uses io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchIndexFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.a2a.internal.A2aBindingFactorySpi;
+
+    provides io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchIndexFactorySpi
+        with io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aKeywordAgentSearchIndexFactorySpi;
 }
