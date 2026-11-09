@@ -23,14 +23,6 @@ public final class AguiWithConfig extends WithConfig
     public final String agent;
     public final String path;
 
-    AguiWithConfig(
-        String agent,
-        String path)
-    {
-        this.agent = agent;
-        this.path = path;
-    }
-
     public static AguiWithConfigBuilder<AguiWithConfig> builder()
     {
         return new AguiWithConfigBuilder<>(AguiWithConfig.class::cast);
@@ -40,5 +32,15 @@ public final class AguiWithConfig extends WithConfig
         Function<WithConfig, T> mapper)
     {
         return new AguiWithConfigBuilder<>(mapper);
+    }
+
+    AguiWithConfig(
+        long compositeId,
+        String agent,
+        String path)
+    {
+        super(compositeId);
+        this.agent = agent;
+        this.path = path;
     }
 }

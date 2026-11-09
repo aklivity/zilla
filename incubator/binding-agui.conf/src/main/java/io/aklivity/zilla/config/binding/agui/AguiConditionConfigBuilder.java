@@ -26,10 +26,17 @@ public final class AguiConditionConfigBuilder<T> extends ConfigBuilder<T, AguiCo
     private String path;
     private String agent;
 
-    public AguiConditionConfigBuilder(
+    AguiConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<AguiConditionConfigBuilder<T>> thisType()
+    {
+        return (Class<AguiConditionConfigBuilder<T>>) getClass();
     }
 
     public AguiConditionConfigBuilder<T> path(
@@ -44,13 +51,6 @@ public final class AguiConditionConfigBuilder<T> extends ConfigBuilder<T, AguiCo
     {
         this.agent = agent;
         return this;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Class<AguiConditionConfigBuilder<T>> thisType()
-    {
-        return (Class<AguiConditionConfigBuilder<T>>) getClass();
     }
 
     @Override
