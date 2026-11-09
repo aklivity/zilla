@@ -41,5 +41,17 @@ public interface A2aDialect
         String url,
         boolean secured);
 
+    JsonObject requestParams(
+        A2aOperation operation,
+        A2aRequestParams request,
+        String tenant);
+
+    JsonValue resultFromWire(
+        A2aOperation operation,
+        JsonValue wire);
+
+    JsonObject cardFromWire(
+        JsonObject wire);
+
     boolean verbatim();
 }
