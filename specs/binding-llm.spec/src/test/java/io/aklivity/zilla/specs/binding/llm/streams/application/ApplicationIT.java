@@ -1038,6 +1038,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.assistant.reasoning.history.escaped/client",
+        "${app}/openai.section.assistant.reasoning.history.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.history.large/client",
+        "${app}/openai.section.assistant.reasoning.history.large/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.assistant.refusal/client",
         "${app}/openai.section.assistant.refusal/server"})
     public void shouldOpenaiSectionAssistantRefusal() throws Exception
@@ -3867,6 +3885,15 @@ public class ApplicationIT
         "${app}/openai.transform.response.reasoning/client",
         "${app}/openai.transform.response.reasoning/server"})
     public void shouldOpenaiTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.reasoning.escaped/client",
+        "${app}/openai.transform.response.reasoning.escaped/server"})
+    public void shouldOpenaiTransformResponseReasoningEscaped() throws Exception
     {
         k3po.finish();
     }

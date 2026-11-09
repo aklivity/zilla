@@ -14,42 +14,37 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-
 import java.util.Collection;
-
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 final class LlmReasoningScanner
 {
     interface Visitor
     {
         void text(
-            DirectBufferEx buffer,
-            int offset,
-            int length);
+            CharSequence chars,
+            int from,
+            int to);
 
         void reasoningBegin(
             String tag);
 
         void reasoning(
-            DirectBufferEx buffer,
-            int offset,
-            int length);
+            CharSequence chars,
+            int from,
+            int to);
 
         void reasoningEnd();
     }
 
     private static final int OUTSIDE = -1;
-    private static final byte DELIMITER_START = '<';
+    private static final char DELIMITER_START = '<';
     private static final Delimiters DEFAULT_DELIMITERS = new Delimiters(LlmReasoningTags.DEFAULTS);
 
     private final String[] tags;
-    private final byte[][] openDelimiters;
-    private final byte[][] closeDelimiters;
-    private final byte[] held;
-    private final DirectBufferEx heldBuffer;
+    private final char[][] openDelimiters;
+    private final char[][] closeDelimiters;
+    private final char[] held;
+    private final CharSequence heldChars;
     private final int minBlock;
 
     private int heldLength;
@@ -64,8 +59,8 @@ final class LlmReasoningScanner
         this.openDelimiters = delimiters.open;
         this.closeDelimiters = delimiters.close;
         this.minBlock = delimiters.minBlock;
-        this.held = new byte[delimiters.capacity];
-        this.heldBuffer = new UnsafeBufferEx(held);
+        this.held = new char[delimiters.capacity];
+        this.heldChars = new HeldChars();
         this.inside = OUTSIDE;
     }
 
@@ -96,19 +91,17 @@ final class LlmReasoningScanner
     }
 
     void accept(
-        DirectBufferEx payload,
-        int offset,
-        int length,
+        CharSequence chars,
+        int from,
+        int to,
         Visitor visitor)
     {
-        final int limit = offset + length;
+        int run = from;
+        int index = from;
 
-        int run = offset;
-        int index = offset;
-
-        while (index < limit)
+        while (index < to)
         {
-            final byte next = payload.getByte(index);
+            final char next = chars.charAt(index);
 
             if (heldLength == 0 && next != DELIMITER_START)
             {
@@ -116,19 +109,19 @@ final class LlmReasoningScanner
             }
             else
             {
-                emit(visitor, payload, run, index - run);
+                emit(visitor, chars, run, index);
                 run = absorb(visitor, next) ? index + 1 : index;
                 index++;
             }
         }
 
-        emit(visitor, payload, run, limit - run);
+        emit(visitor, chars, run, to);
     }
 
     void flush(
         Visitor visitor)
     {
-        emit(visitor, heldBuffer, 0, heldLength);
+        emit(visitor, heldChars, 0, heldLength);
         heldLength = 0;
     }
 
@@ -147,7 +140,7 @@ final class LlmReasoningScanner
 
     private boolean absorb(
         Visitor visitor,
-        byte next)
+        char next)
     {
         held[heldLength] = next;
 
@@ -161,14 +154,14 @@ final class LlmReasoningScanner
         final boolean absorbed = shift < length - 1 || candidate(shift, length) != OUTSIDE;
         final int released = absorbed ? shift : heldLength;
 
-        emit(visitor, heldBuffer, 0, released);
+        emit(visitor, heldChars, 0, released);
         heldLength = absorbed ? length - shift : 0;
         System.arraycopy(held, released, held, 0, heldLength);
 
         if (absorbed)
         {
             final int match = candidate(0, heldLength);
-            final byte[] delimiter = delimiters()[match];
+            final char[] delimiter = delimiters()[match];
 
             if (heldLength == delimiter.length)
             {
@@ -194,14 +187,14 @@ final class LlmReasoningScanner
         int from,
         int to)
     {
-        final byte[][] delimiters = delimiters();
+        final char[][] delimiters = delimiters();
         final int first = inside == OUTSIDE ? 0 : inside;
         final int last = inside == OUTSIDE ? delimiters.length : inside + 1;
 
         int match = OUTSIDE;
         for (int index = first; match == OUTSIDE && index < last; index++)
         {
-            final byte[] delimiter = delimiters[index];
+            final char[] delimiter = delimiters[index];
             final int length = to - from;
 
             if (length <= delimiter.length)
@@ -222,35 +215,65 @@ final class LlmReasoningScanner
         return match;
     }
 
-    private byte[][] delimiters()
+    private char[][] delimiters()
     {
         return inside == OUTSIDE ? openDelimiters : closeDelimiters;
     }
 
     private void emit(
         Visitor visitor,
-        DirectBufferEx buffer,
-        int offset,
-        int length)
+        CharSequence chars,
+        int from,
+        int to)
     {
-        if (length > 0)
+        if (to > from)
         {
             if (inside == OUTSIDE)
             {
-                visitor.text(buffer, offset, length);
+                visitor.text(chars, from, to);
             }
             else
             {
-                visitor.reasoning(buffer, offset, length);
+                visitor.reasoning(chars, from, to);
             }
+        }
+    }
+
+    private final class HeldChars implements CharSequence
+    {
+        @Override
+        public int length()
+        {
+            return held.length;
+        }
+
+        @Override
+        public char charAt(
+            int index)
+        {
+            return held[index];
+        }
+
+        @Override
+        public CharSequence subSequence(
+            int start,
+            int end)
+        {
+            return new String(held, start, end - start);
+        }
+
+        @Override
+        public String toString()
+        {
+            return new String(held, 0, heldLength);
         }
     }
 
     private static final class Delimiters
     {
         private final String[] tags;
-        private final byte[][] open;
-        private final byte[][] close;
+        private final char[][] open;
+        private final char[][] close;
         private final int capacity;
         private final int minBlock;
 
@@ -258,15 +281,15 @@ final class LlmReasoningScanner
             Collection<String> tags)
         {
             this.tags = tags.toArray(String[]::new);
-            this.open = new byte[this.tags.length][];
-            this.close = new byte[this.tags.length][];
+            this.open = new char[this.tags.length][];
+            this.close = new char[this.tags.length][];
 
             int capacity = 0;
             int minBlock = Integer.MAX_VALUE;
             for (int index = 0; index < this.tags.length; index++)
             {
-                open[index] = ("<" + this.tags[index] + ">").getBytes(US_ASCII);
-                close[index] = ("</" + this.tags[index] + ">").getBytes(US_ASCII);
+                open[index] = ("<" + this.tags[index] + ">").toCharArray();
+                close[index] = ("</" + this.tags[index] + ">").toCharArray();
                 capacity = Math.max(capacity, close[index].length);
                 minBlock = Math.min(minBlock, open[index].length + close[index].length);
             }

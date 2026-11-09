@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.JsonStringView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -147,6 +148,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int CONTROL_GROWTH = 3;
     private static final int CONTROL_OPEN_CAPACITY = 8;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
+    private static final byte[] HEX_DIGITS = "0123456789abcdef".getBytes(UTF_8);
 
 
     private static final String MEMBER_STREAM = "stream";
@@ -244,8 +246,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
 
-    private byte[] textBytes;
-    private UnsafeBufferEx textBuffer;
+    private final StringBuilder surrogates;
+
+    private byte[] pieceBytes;
+    private UnsafeBufferEx pieceBuffer;
 
     public LlmOpenaiServerFactory(
         EngineContext context)
@@ -264,8 +268,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.textBytes = new byte[1024];
-        this.textBuffer = new UnsafeBufferEx(textBytes);
+        this.surrogates = new StringBuilder(2);
+        this.pieceBytes = new byte[1024];
+        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -1991,113 +1996,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         };
     }
 
-    private int encode(
-        LlmOpenaiServer server,
-        CharSequence chars,
-        int length,
-        boolean fin)
+    private static boolean verbatim(
+        CharSequence chars)
     {
-        if (textBytes.length < length * 3 + 8)
-        {
-            textBytes = new byte[length * 3 + 8];
-            textBuffer = new UnsafeBufferEx(textBytes);
-        }
-
-        int position = 0;
-        int index = 0;
-
-        if (server.textHighSurrogate != 0 && length > 0)
-        {
-            final char c = chars.charAt(0);
-            if (Character.isLowSurrogate(c))
-            {
-                position = put(Character.toCodePoint(server.textHighSurrogate, c), position);
-                index = 1;
-            }
-            else
-            {
-                position = put(REPLACEMENT_CHARACTER, position);
-            }
-            server.textHighSurrogate = 0;
-        }
-
-        while (index < length)
-        {
-            final char c = chars.charAt(index++);
-
-            if (Character.isHighSurrogate(c))
-            {
-                if (index < length)
-                {
-                    final char d = chars.charAt(index);
-                    if (Character.isLowSurrogate(d))
-                    {
-                        position = put(Character.toCodePoint(c, d), position);
-                        index++;
-                    }
-                    else
-                    {
-                        position = put(REPLACEMENT_CHARACTER, position);
-                    }
-                }
-                else if (fin)
-                {
-                    position = put(REPLACEMENT_CHARACTER, position);
-                }
-                else
-                {
-                    server.textHighSurrogate = c;
-                }
-            }
-            else if (Character.isLowSurrogate(c))
-            {
-                position = put(REPLACEMENT_CHARACTER, position);
-            }
-            else
-            {
-                position = put(c, position);
-            }
-        }
-
-        if (fin && server.textHighSurrogate != 0)
-        {
-            position = put(REPLACEMENT_CHARACTER, position);
-            server.textHighSurrogate = 0;
-        }
-
-        return position;
-    }
-
-    private int put(
-        int codePoint,
-        int position)
-    {
-        int next = position;
-
-        if (codePoint < 0x80)
-        {
-            textBytes[next++] = (byte) codePoint;
-        }
-        else if (codePoint < 0x800)
-        {
-            textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else if (codePoint < 0x10000)
-        {
-            textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else
-        {
-            textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-
-        return next;
+        return chars instanceof JsonStringView;
     }
 
     private static boolean isWhitespace(
@@ -2252,8 +2154,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final LlmReasoningScanner scanner;
         private LlmSectionType scanType;
         private int scanSections;
-        private byte[] pieceBytes;
-        private UnsafeBufferEx pieceBuffer;
         private final JsonGeneratorEx generator;
         private long scanTraceId;
         private long scanAuthorization;
@@ -2284,8 +2184,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
-            this.pieceBytes = new byte[1024];
-            this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
             this.generator = JsonEx.createGenerator();
             this.probe = new LlmOpenaiAttributeProbe();
             this.blockAttributes = new LlmSectionAttributes();
@@ -2760,16 +2658,16 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (take > 0 || finished && textHighSurrogate != 0)
             {
-                final int decoded = encode(this, chars, take, finished);
+                int from = textHighSurrogate != 0 ? resumeSurrogate(chars, take) : 0;
+                int to = take;
 
-                if (textType == LlmSectionType.ASSISTANT_TEXT)
+                if (!finished && to > from && Character.isHighSurrogate(chars.charAt(to - 1)))
                 {
-                    scanner.accept(textBuffer, 0, decoded, this);
+                    textHighSurrogate = chars.charAt(to - 1);
+                    to--;
                 }
-                else
-                {
-                    text(textBuffer, 0, decoded);
-                }
+
+                scan(chars, from, to);
             }
 
             if (finished)
@@ -2785,6 +2683,42 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             return take;
+        }
+
+        private int resumeSurrogate(
+            CharSequence chars,
+            int take)
+        {
+            final boolean paired = take > 0 && Character.isLowSurrogate(chars.charAt(0));
+
+            surrogates.setLength(0);
+            surrogates.append(textHighSurrogate);
+
+            if (paired)
+            {
+                surrogates.append(chars.charAt(0));
+            }
+
+            textHighSurrogate = 0;
+
+            scan(surrogates, 0, surrogates.length());
+
+            return paired ? 1 : 0;
+        }
+
+        private void scan(
+            CharSequence chars,
+            int from,
+            int to)
+        {
+            if (textType == LlmSectionType.ASSISTANT_TEXT)
+            {
+                scanner.accept(chars, from, to, this);
+            }
+            else if (to > from)
+            {
+                text(chars, from, to);
+            }
         }
 
         private int textAllowance(
@@ -2803,13 +2737,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int index = 0;
             boolean fits = true;
 
+            if (scanning && verbatim(chars))
+            {
+                final int tail = fin ? REASONING_SUFFIX.length + closing : 0;
+                final int total = cost + ((JsonStringView) chars).encodedLength(0, length) +
+                    delimiterStarts(chars) * boundary + tail;
+
+                if (total <= credit)
+                {
+                    take = length;
+                    index = length;
+                }
+            }
+
             while (fits && index < length)
             {
                 final char c = chars.charAt(index);
                 final boolean pair = Character.isHighSurrogate(c) && index + 1 < length &&
                     Character.isLowSurrogate(chars.charAt(index + 1));
                 final int width = pair ? 2 : 1;
-                final int next = cost + (pair ? 4 : escapedWidth(c)) + (c == '<' ? boundary : 0);
+                final int next = cost + outputWidth(chars, index, width) + (c == '<' ? boundary : 0);
                 final boolean last = index + width == length;
 
                 fits = next + (last && fin ? REASONING_SUFFIX.length + closing : 0) <= credit;
@@ -2830,11 +2777,37 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return take;
         }
 
+        private int outputWidth(
+            CharSequence chars,
+            int index,
+            int width)
+        {
+            return verbatim(chars)
+                ? ((JsonStringView) chars).encodedLength(index, index + width)
+                : width == 2 ? 4 : escapedWidth(chars.charAt(index));
+        }
+
+        private int delimiterStarts(
+            CharSequence chars)
+        {
+            int starts = 0;
+
+            for (int index = 0, length = chars.length(); index < length; index++)
+            {
+                if (chars.charAt(index) == '<')
+                {
+                    starts++;
+                }
+            }
+
+            return starts;
+        }
+
         @Override
         public void text(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (scanType != null && scanType != textType)
             {
@@ -2846,7 +2819,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 openScan(textType);
             }
 
-            final int encoded = encodePiece(buffer, offset, length);
+            final int encoded = encodePiece(chars, from, to);
 
             onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, encoded, false);
         }
@@ -2860,9 +2833,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         @Override
         public void reasoning(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (scanType != null && scanType != LlmSectionType.ASSISTANT_REASONING)
             {
@@ -2875,7 +2848,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 blockAttributes.reasoningTag(scanner.tag());
             }
 
-            final int encoded = encodePiece(buffer, offset, length);
+            final int encoded = encodePiece(chars, from, to);
 
             onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, encoded, false);
         }
@@ -2916,44 +2889,173 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private int encodePiece(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            reservePiece(REASONING_PREFIX.length + length * REASONING_ESCAPE_EXPANSION);
+            final int prefix = Flags.hasInit(blockFlags) ? REASONING_PREFIX.length : 0;
+            final int length;
 
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
-
-            if (Flags.hasInit(blockFlags))
+            if (verbatim(chars))
             {
-                beginPieceObject();
+                final JsonStringView view = (JsonStringView) chars;
+
+                reservePiece(prefix + view.encodedLength(from, to));
+
+                length = prefix + view.transferTo(from, to, pieceBuffer, prefix);
+            }
+            else
+            {
+                reservePiece(prefix + (to - from) * REASONING_ESCAPE_EXPANSION);
+
+                length = escape(chars, from, to, prefix);
             }
 
-            generator.writeSegment(buffer, offset, length);
+            System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
 
-            return generator.length();
+            return length;
         }
 
         private int encodePieceEnd()
         {
-            reservePiece(REASONING_PREFIX.length + REASONING_SUFFIX.length);
+            final int prefix = Flags.hasInit(blockFlags) ? REASONING_PREFIX.length : 0;
 
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+            reservePiece(prefix + REASONING_SUFFIX.length);
 
-            if (Flags.hasInit(blockFlags))
-            {
-                beginPieceObject();
-            }
+            System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
+            System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, prefix, REASONING_SUFFIX.length);
 
-            generator.writeEndEscaped().writeEnd();
-
-            return generator.length();
+            return prefix + REASONING_SUFFIX.length;
         }
 
-        private void beginPieceObject()
+        private int escape(
+            CharSequence chars,
+            int from,
+            int to,
+            int position)
         {
-            generator.reset();
-            generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
+            int next = position;
+            int index = from;
+
+            while (index < to)
+            {
+                final char c = chars.charAt(index++);
+                int codePoint = c;
+
+                if (Character.isHighSurrogate(c))
+                {
+                    if (index < to && Character.isLowSurrogate(chars.charAt(index)))
+                    {
+                        codePoint = Character.toCodePoint(c, chars.charAt(index));
+                        index++;
+                    }
+                    else
+                    {
+                        codePoint = REPLACEMENT_CHARACTER;
+                    }
+                }
+                else if (Character.isLowSurrogate(c))
+                {
+                    codePoint = REPLACEMENT_CHARACTER;
+                }
+
+                next = putEscaped(codePoint, next);
+            }
+
+            return next;
+        }
+
+        private int putEscaped(
+            int codePoint,
+            int position)
+        {
+            int next = position;
+
+            switch (codePoint)
+            {
+            case '"':
+                next = putShort('"', next);
+                break;
+            case '\\':
+                next = putShort('\\', next);
+                break;
+            case '\n':
+                next = putShort('n', next);
+                break;
+            case '\r':
+                next = putShort('r', next);
+                break;
+            case '\t':
+                next = putShort('t', next);
+                break;
+            case '\b':
+                next = putShort('b', next);
+                break;
+            case '\f':
+                next = putShort('f', next);
+                break;
+            default:
+                next = codePoint < 0x20 ? putControl(codePoint, next) : putUtf8(codePoint, next);
+                break;
+            }
+
+            return next;
+        }
+
+        private int putShort(
+            int escape,
+            int position)
+        {
+            pieceBytes[position] = '\\';
+            pieceBytes[position + 1] = (byte) escape;
+
+            return position + 2;
+        }
+
+        private int putControl(
+            int codePoint,
+            int position)
+        {
+            pieceBytes[position] = '\\';
+            pieceBytes[position + 1] = 'u';
+            pieceBytes[position + 2] = '0';
+            pieceBytes[position + 3] = '0';
+            pieceBytes[position + 4] = HEX_DIGITS[codePoint >> 4 & 0xf];
+            pieceBytes[position + 5] = HEX_DIGITS[codePoint & 0xf];
+
+            return position + 6;
+        }
+
+        private int putUtf8(
+            int codePoint,
+            int position)
+        {
+            int next = position;
+
+            if (codePoint < 0x80)
+            {
+                pieceBytes[next++] = (byte) codePoint;
+            }
+            else if (codePoint < 0x800)
+            {
+                pieceBytes[next++] = (byte) (0xC0 | codePoint >> 6);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+            else if (codePoint < 0x10000)
+            {
+                pieceBytes[next++] = (byte) (0xE0 | codePoint >> 12);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+            else
+            {
+                pieceBytes[next++] = (byte) (0xF0 | codePoint >> 18);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+
+            return next;
         }
 
         private static int escapedWidth(

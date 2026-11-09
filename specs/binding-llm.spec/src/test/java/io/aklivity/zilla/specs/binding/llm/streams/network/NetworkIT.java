@@ -255,6 +255,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.history.escaped/client",
+        "${net}/openai.section.assistant.reasoning.history.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history.large/client",
+        "${net}/openai.section.assistant.reasoning.history.large/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.10k/client",
         "${net}/anthropic.10k/server"})
     public void shouldEncodeAnthropic10k() throws Exception
@@ -2769,6 +2787,15 @@ public class NetworkIT
         "${net}/openai.transform.response.reasoning/client",
         "${net}/openai.transform.response.reasoning/server"})
     public void shouldOpenaiTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.escaped/client",
+        "${net}/openai.transform.response.reasoning.escaped/server"})
+    public void shouldOpenaiTransformResponseReasoningEscaped() throws Exception
     {
         k3po.finish();
     }

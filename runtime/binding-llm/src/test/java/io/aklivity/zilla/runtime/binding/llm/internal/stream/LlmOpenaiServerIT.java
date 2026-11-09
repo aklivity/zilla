@@ -343,6 +343,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.history.escaped/client",
+        "${app}/openai.section.assistant.reasoning.history.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history.large/client",
+        "${app}/openai.section.assistant.reasoning.history.large/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.assistant.refusal/client",
         "${app}/openai.section.assistant.refusal/server"})
     public void shouldDecodeOpenaiSectionAssistantRefusal() throws Exception
