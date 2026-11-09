@@ -23,6 +23,7 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.specs.binding.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.A2aTaskState;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.a2a.internal.types.stream.A2aAbortExFW;
@@ -2106,6 +2107,7 @@ public final class A2aFunctions
             private String taskId;
             private String contextId;
             private A2aTaskState state = A2aTaskState.UNSPECIFIED;
+            private String messageId;
 
             public A2aTaskDataExBuilder taskId(
                 String taskId)
@@ -2128,9 +2130,16 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aTaskDataExBuilder messageId(
+                String messageId)
+            {
+                this.messageId = messageId;
+                return this;
+            }
+
             public A2aDataExBuilder build()
             {
-                dataExRW.task(b -> b.taskId(taskId).contextId(contextId).state(s -> s.set(state)));
+                dataExRW.task(b -> b.taskId(taskId).contextId(contextId).state(s -> s.set(state)).messageId(messageId));
                 return A2aDataExBuilder.this;
             }
         }
@@ -2139,6 +2148,7 @@ public final class A2aFunctions
         {
             private String taskId;
             private String contextId;
+            private String messageId;
 
             public A2aMessageDataExBuilder taskId(
                 String taskId)
@@ -2154,9 +2164,16 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aMessageDataExBuilder messageId(
+                String messageId)
+            {
+                this.messageId = messageId;
+                return this;
+            }
+
             public A2aDataExBuilder build()
             {
-                dataExRW.message(b -> b.taskId(taskId).contextId(contextId));
+                dataExRW.message(b -> b.taskId(taskId).contextId(contextId).messageId(messageId));
                 return A2aDataExBuilder.this;
             }
         }
@@ -2166,6 +2183,7 @@ public final class A2aFunctions
             private String taskId;
             private String contextId;
             private A2aTaskState state = A2aTaskState.UNSPECIFIED;
+            private String messageId;
 
             public A2aStatusUpdateDataExBuilder taskId(
                 String taskId)
@@ -2188,9 +2206,16 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aStatusUpdateDataExBuilder messageId(
+                String messageId)
+            {
+                this.messageId = messageId;
+                return this;
+            }
+
             public A2aDataExBuilder build()
             {
-                dataExRW.statusUpdate(b -> b.taskId(taskId).contextId(contextId).state(s -> s.set(state)));
+                dataExRW.statusUpdate(b -> b.taskId(taskId).contextId(contextId).state(s -> s.set(state)).messageId(messageId));
                 return A2aDataExBuilder.this;
             }
         }
@@ -2200,6 +2225,8 @@ public final class A2aFunctions
             private String taskId;
             private String contextId;
             private String artifactId;
+            private A2aFlag append = A2aFlag.UNSPECIFIED;
+            private A2aFlag lastChunk = A2aFlag.UNSPECIFIED;
 
             public A2aArtifactUpdateDataExBuilder taskId(
                 String taskId)
@@ -2222,9 +2249,24 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aArtifactUpdateDataExBuilder append(
+                boolean append)
+            {
+                this.append = append ? A2aFlag.TRUE : A2aFlag.FALSE;
+                return this;
+            }
+
+            public A2aArtifactUpdateDataExBuilder lastChunk(
+                boolean lastChunk)
+            {
+                this.lastChunk = lastChunk ? A2aFlag.TRUE : A2aFlag.FALSE;
+                return this;
+            }
+
             public A2aDataExBuilder build()
             {
-                dataExRW.artifactUpdate(b -> b.taskId(taskId).contextId(contextId).artifactId(artifactId));
+                dataExRW.artifactUpdate(b -> b.taskId(taskId).contextId(contextId).artifactId(artifactId)
+                    .append(a -> a.set(append)).lastChunk(l -> l.set(lastChunk)));
                 return A2aDataExBuilder.this;
             }
         }
@@ -2329,6 +2371,7 @@ public final class A2aFunctions
             private String16FW taskId;
             private String16FW contextId;
             private A2aTaskState state;
+            private String16FW messageId;
 
             public A2aTaskDataExMatcherBuilder taskId(
                 String taskId)
@@ -2351,6 +2394,13 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aTaskDataExMatcherBuilder messageId(
+                String messageId)
+            {
+                this.messageId = new String16FW(messageId);
+                return this;
+            }
+
             public A2aDataExMatcherBuilder build()
             {
                 return A2aDataExMatcherBuilder.this;
@@ -2360,7 +2410,13 @@ public final class A2aFunctions
                 A2aDataExFW dataEx)
             {
                 final A2aTaskDataExFW task = dataEx.task();
-                return matchTaskId(task) && matchContextId(task) && matchState(task);
+                return matchTaskId(task) && matchContextId(task) && matchState(task) && matchMessageId(task);
+            }
+
+            private boolean matchMessageId(
+                A2aTaskDataExFW task)
+            {
+                return messageId == null || messageId.equals(task.messageId());
             }
 
             private boolean matchTaskId(
@@ -2386,6 +2442,7 @@ public final class A2aFunctions
         {
             private String16FW taskId;
             private String16FW contextId;
+            private String16FW messageId;
 
             public A2aMessageDataExMatcherBuilder taskId(
                 String taskId)
@@ -2401,6 +2458,13 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aMessageDataExMatcherBuilder messageId(
+                String messageId)
+            {
+                this.messageId = new String16FW(messageId);
+                return this;
+            }
+
             public A2aDataExMatcherBuilder build()
             {
                 return A2aDataExMatcherBuilder.this;
@@ -2410,7 +2474,13 @@ public final class A2aFunctions
                 A2aDataExFW dataEx)
             {
                 final A2aMessageDataExFW message = dataEx.message();
-                return matchTaskId(message) && matchContextId(message);
+                return matchTaskId(message) && matchContextId(message) && matchMessageId(message);
+            }
+
+            private boolean matchMessageId(
+                A2aMessageDataExFW message)
+            {
+                return messageId == null || messageId.equals(message.messageId());
             }
 
             private boolean matchTaskId(
@@ -2431,6 +2501,7 @@ public final class A2aFunctions
             private String16FW taskId;
             private String16FW contextId;
             private A2aTaskState state;
+            private String16FW messageId;
 
             public A2aStatusUpdateDataExMatcherBuilder taskId(
                 String taskId)
@@ -2453,6 +2524,13 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aStatusUpdateDataExMatcherBuilder messageId(
+                String messageId)
+            {
+                this.messageId = new String16FW(messageId);
+                return this;
+            }
+
             public A2aDataExMatcherBuilder build()
             {
                 return A2aDataExMatcherBuilder.this;
@@ -2462,7 +2540,14 @@ public final class A2aFunctions
                 A2aDataExFW dataEx)
             {
                 final A2aStatusUpdateDataExFW statusUpdate = dataEx.statusUpdate();
-                return matchTaskId(statusUpdate) && matchContextId(statusUpdate) && matchState(statusUpdate);
+                return matchTaskId(statusUpdate) && matchContextId(statusUpdate) && matchState(statusUpdate) &&
+                    matchMessageId(statusUpdate);
+            }
+
+            private boolean matchMessageId(
+                A2aStatusUpdateDataExFW statusUpdate)
+            {
+                return messageId == null || messageId.equals(statusUpdate.messageId());
             }
 
             private boolean matchTaskId(
@@ -2489,6 +2574,8 @@ public final class A2aFunctions
             private String16FW taskId;
             private String16FW contextId;
             private String16FW artifactId;
+            private A2aFlag append;
+            private A2aFlag lastChunk;
 
             public A2aArtifactUpdateDataExMatcherBuilder taskId(
                 String taskId)
@@ -2511,6 +2598,20 @@ public final class A2aFunctions
                 return this;
             }
 
+            public A2aArtifactUpdateDataExMatcherBuilder append(
+                boolean append)
+            {
+                this.append = append ? A2aFlag.TRUE : A2aFlag.FALSE;
+                return this;
+            }
+
+            public A2aArtifactUpdateDataExMatcherBuilder lastChunk(
+                boolean lastChunk)
+            {
+                this.lastChunk = lastChunk ? A2aFlag.TRUE : A2aFlag.FALSE;
+                return this;
+            }
+
             public A2aDataExMatcherBuilder build()
             {
                 return A2aDataExMatcherBuilder.this;
@@ -2520,7 +2621,20 @@ public final class A2aFunctions
                 A2aDataExFW dataEx)
             {
                 final A2aArtifactUpdateDataExFW artifactUpdate = dataEx.artifactUpdate();
-                return matchTaskId(artifactUpdate) && matchContextId(artifactUpdate) && matchArtifactId(artifactUpdate);
+                return matchTaskId(artifactUpdate) && matchContextId(artifactUpdate) && matchArtifactId(artifactUpdate) &&
+                    matchAppend(artifactUpdate) && matchLastChunk(artifactUpdate);
+            }
+
+            private boolean matchAppend(
+                A2aArtifactUpdateDataExFW artifactUpdate)
+            {
+                return append == null || append == artifactUpdate.append().get();
+            }
+
+            private boolean matchLastChunk(
+                A2aArtifactUpdateDataExFW artifactUpdate)
+            {
+                return lastChunk == null || lastChunk == artifactUpdate.lastChunk().get();
             }
 
             private boolean matchTaskId(

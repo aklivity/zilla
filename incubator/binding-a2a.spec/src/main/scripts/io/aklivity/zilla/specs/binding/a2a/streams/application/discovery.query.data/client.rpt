@@ -35,6 +35,7 @@ write '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"data":{"query
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
                          .message()
+                             .messageId("discovery-m-1")
                              .build()
                          .build()}
 read '{"message":{"messageId":"discovery-m-1","role":"ROLE_AGENT","parts":[{"text":"Found 1 agent: travel"},{"data":{"agents":[{"agent":"travel","name":"Travel Agent","description":"Plans trips and books flights","skills":[{"id":"itinerary","name":"Itinerary"},{"id":"flights","name":"Flights"}],"protocolBinding":"JSONRPC","protocolVersion":"1.0","score":1.71}]}}]}}'
