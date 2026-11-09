@@ -894,6 +894,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, rejection());
                     http.doNetAbort(traceId);
+                    cleanupSlots();
                 }
                 else
                 {
@@ -917,6 +918,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, MESSAGE_SECTION_INVALID);
                 http.doNetAbort(traceId);
+                cleanupSlots();
             }
             else
             {
@@ -3890,6 +3892,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             doAppAbort(traceId);
             http.doNetAbort(traceId);
             http.doNetReset(traceId);
+            cleanupSlots();
+        }
+
+        private void cleanupSlots()
+        {
             cleanupEncodeSlot();
             cleanupControlSlot();
             http.cleanupEncodeSlot();

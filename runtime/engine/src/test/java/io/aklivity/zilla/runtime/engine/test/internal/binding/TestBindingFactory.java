@@ -1646,7 +1646,7 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            state = StreamState.closeInitial(state);
+            state = StreamState.closeInitial(StreamState.abortingInitial(state));
 
             doReset(source, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, extension);
         }
@@ -2041,7 +2041,15 @@ final class TestBindingFactory implements BindingHandler
 
                 state = StreamState.openingReply(state);
 
-                source.doReplyBegin(traceId, begin.extension());
+                if (StreamState.initialAborting(source.state) && !StreamState.replyOpening(source.state))
+                {
+                    doReplyWindow(traceId, replyAck, replyMax, replyBud, replyPad, replyCap);
+                    doReplyReset(traceId);
+                }
+                else
+                {
+                    source.doReplyBegin(traceId, begin.extension());
+                }
             }
 
             private void onReplyData(

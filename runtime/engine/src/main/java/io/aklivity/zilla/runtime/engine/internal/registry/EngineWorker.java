@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedS
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.replyId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -1698,6 +1699,7 @@ public class EngineWorker implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    correlations.remove(replyId(streamId));
                     break;
                 case SignalFW.TYPE_ID:
                     final SignalFW signal = signalRO.wrap(buffer, index, index + length);
@@ -1715,6 +1717,7 @@ public class EngineWorker implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    correlations.remove(replyId(streamId));
                     break;
                 default:
                     break;

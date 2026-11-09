@@ -67,6 +67,12 @@ public final class StreamId
                 : ((localIndex & 0x7fL) << 56) | ((remoteIndex & 0x7fL) << 48) | instanceId;
     }
 
+    public static long replyId(
+        long initialId)
+    {
+        return initialId & 0xffff_ffff_ffff_fffeL;
+    }
+
     public static int abortedState(
         long streamId)
     {
