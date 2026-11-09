@@ -1,0 +1,59 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${agui:beginEx()
+                        .typeId(zilla:id("agui"))
+                        .threadId("thread-1")
+                        .runId("run-1")
+                        .build()}
+
+connected
+
+write "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg-1\",\"role\":\"user\",\"content\":\"Hello\"}],\"tools\":[],\"context\":[],\"forwardedProps\":{}}"
+write close
+
+read zilla:begin.ext ${agui:matchBeginEx()
+                       .typeId(zilla:id("agui"))
+                       .threadId("thread-1")
+                       .runId("run-1")
+                       .build()}
+
+read zilla:data.ext ${agui:matchDataEx()
+                      .typeId(zilla:id("agui"))
+                      .reasoning()
+                          .messageId("r1")
+                          .build()
+                      .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${agui:matchDataEx()
+                      .typeId(zilla:id("agui"))
+                      .reasoningEncrypted()
+                          .subtype("MESSAGE")
+                          .entityId("r1")
+                          .build()
+                      .build()}
+read "c2VjcmV0"
+
+read zilla:end.ext ${agui:matchEndEx()
+                     .typeId(zilla:id("agui"))
+                     .build()}
+
+read closed
