@@ -103,13 +103,14 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
     public String issueHandle(
         AguiA2aThreadKey key,
         AguiA2aHandleKind kind,
-        String taskId)
+        String taskId,
+        String subject)
     {
         final long now = clock.getAsLong();
 
         final String handle = handleIdSupplier.get();
 
-        handles.put(handle, new HandleEntry(key, kind, taskId, now + handleTtlMillis));
+        handles.put(handle, new HandleEntry(key, kind, taskId, subject, now + handleTtlMillis));
         evictHandles();
         scheduleSweep(now);
 
@@ -117,14 +118,14 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
     }
 
     @Override
-    public String resolveHandle(
+    public AguiA2aHandleTarget resolveTarget(
         AguiA2aThreadKey key,
         AguiA2aHandleKind kind,
         String handle)
     {
         final long now = clock.getAsLong();
 
-        String taskId = null;
+        AguiA2aHandleTarget target = null;
 
         final HandleEntry entry = handle != null ? handles.get(handle) : null;
         if (entry != null)
@@ -136,11 +137,11 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
             else if (entry.key.equals(key) && entry.kind == kind)
             {
                 handles.remove(handle);
-                taskId = entry.taskId;
+                target = new AguiA2aHandleTarget(entry.taskId, entry.subject);
             }
         }
 
-        return taskId;
+        return target;
     }
 
     public void sweep()
@@ -227,17 +228,20 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
         private final AguiA2aThreadKey key;
         private final AguiA2aHandleKind kind;
         private final String taskId;
+        private final String subject;
         private final long expiresAt;
 
         private HandleEntry(
             AguiA2aThreadKey key,
             AguiA2aHandleKind kind,
             String taskId,
+            String subject,
             long expiresAt)
         {
             this.key = key;
             this.kind = kind;
             this.taskId = taskId;
+            this.subject = subject;
             this.expiresAt = expiresAt;
         }
     }
