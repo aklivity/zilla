@@ -86,6 +86,7 @@
     "io.aklivity.zilla:metrics-http",
     "io.aklivity.zilla:metrics-llm",
     "io.aklivity.zilla:metrics-mcp",
+    "io.aklivity.zilla:metrics-model",
     "io.aklivity.zilla:metrics-stream",
     "io.aklivity.zilla:model-avro",
     "io.aklivity.zilla:model-classify",

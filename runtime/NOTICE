@@ -66,6 +66,7 @@ This project includes:
   zilla::config::metrics-http.conf under Aklivity Community License Agreement
   zilla::config::metrics-llm.conf under Aklivity Community License Agreement
   zilla::config::metrics-mcp.conf under Aklivity Community License Agreement
+  zilla::config::metrics-model.conf under Aklivity Community License Agreement
   zilla::config::metrics-stream.conf under Aklivity Community License Agreement
   zilla::config::model-avro.conf under Aklivity Community License Agreement
   zilla::config::model-core.conf under Aklivity Community License Agreement
