@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -27,9 +26,6 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-
 public class LlmReasoningScannerTest
 {
     private final LlmReasoningScanner scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
@@ -38,11 +34,11 @@ public class LlmReasoningScannerTest
     {
         @Override
         public void text(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            pieces.add("text:" + buffer.getStringWithoutLengthUtf8(offset, length));
+            pieces.add("text:" + chars.subSequence(from, to));
         }
 
         @Override
@@ -54,11 +50,11 @@ public class LlmReasoningScannerTest
 
         @Override
         public void reasoning(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            pieces.add("reasoning:" + buffer.getStringWithoutLengthUtf8(offset, length));
+            pieces.add("reasoning:" + chars.subSequence(from, to));
         }
 
         @Override
@@ -307,6 +303,60 @@ public class LlmReasoningScannerTest
     }
 
     @Test
+    public void shouldPassNonAsciiTextAroundBlocks()
+    {
+        scanner.begin();
+        accept("caf\u00e9 \ud83d\ude00 <think>pl\u00e0n \u20ac</think>d\u00f4ne");
+        scanner.end(visitor);
+
+        assertThat(merged(pieces), contains("text:caf\u00e9 \ud83d\ude00 ", "begin:think", "reasoning:pl\u00e0n \u20ac", "end",
+            "text:d\u00f4ne"));
+    }
+
+    @Test
+    public void shouldReportRangesOfTheSourceText()
+    {
+        final List<String> ranges = new ArrayList<>();
+        final LlmReasoningScanner.Visitor visitor = new LlmReasoningScanner.Visitor()
+        {
+            @Override
+            public void text(
+                CharSequence chars,
+                int from,
+                int to)
+            {
+                ranges.add("text:" + from + "-" + to);
+            }
+
+            @Override
+            public void reasoningBegin(
+                String tag)
+            {
+            }
+
+            @Override
+            public void reasoning(
+                CharSequence chars,
+                int from,
+                int to)
+            {
+                ranges.add("reasoning:" + from + "-" + to);
+            }
+
+            @Override
+            public void reasoningEnd()
+            {
+            }
+        };
+
+        scanner.begin();
+        scanner.accept("Sure. <think>plan</think>Done", 0, 29, visitor);
+        scanner.end(visitor);
+
+        assertThat(ranges, contains("text:0-6", "reasoning:13-17", "text:25-29"));
+    }
+
+    @Test
     public void shouldProduceSameSequenceForEveryFrameSize()
     {
         final String text = "ab <t<thinking>x</thin</think>y</thinking> c <reas<reason>z</reason>";
@@ -324,11 +374,9 @@ public class LlmReasoningScannerTest
     {
         pieces.clear();
         scanner.begin();
-        final byte[] bytes = text.getBytes(UTF_8);
-        for (int offset = 0; offset < bytes.length; offset += size)
+        for (int offset = 0; offset < text.length(); offset += size)
         {
-            final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
-            scanner.accept(buffer, offset, Math.min(size, bytes.length - offset), visitor);
+            scanner.accept(text, offset, Math.min(offset + size, text.length()), visitor);
         }
         scanner.end(visitor);
         return new ArrayList<>(pieces);
@@ -365,8 +413,6 @@ public class LlmReasoningScannerTest
         LlmReasoningScanner scanner,
         String text)
     {
-        final byte[] bytes = text.getBytes(UTF_8);
-        final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
-        scanner.accept(buffer, 0, bytes.length, visitor);
+        scanner.accept(text, 0, text.length(), visitor);
     }
 }
