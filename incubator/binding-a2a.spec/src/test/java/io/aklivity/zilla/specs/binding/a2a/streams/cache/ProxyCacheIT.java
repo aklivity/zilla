@@ -89,4 +89,67 @@ public class ProxyCacheIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${cache}/cache.hydrate.guarded/client",
+        "${cache}/cache.hydrate.guarded/server"})
+    public void shouldCacheHydrateGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${cache}/cache.hydrate.restricted/client",
+        "${cache}/cache.hydrate.restricted/server"})
+    public void shouldCacheHydrateRestricted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${cache}/cache.hydrate.refresh.error/client",
+        "${cache}/cache.hydrate.refresh.error/server"})
+    public void shouldCacheHydrateRefreshError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${cache}/cache.serve.card.expired/client",
+        "${cache}/cache.serve.card.expired/server"})
+    public void shouldCacheServeCardExpired() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("EXPIRED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${cache}/cache.serve.card.refresh.error/client",
+        "${cache}/cache.serve.card.refresh.error/server"})
+    public void shouldCacheServeCardRefreshError() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("EXPIRED");
+        k3po.awaitBarrier("SERVED");
+        k3po.notifyBarrier("EXPIRED_AGAIN");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${cache}/cache.serve.card.retry/client",
+        "${cache}/cache.serve.card.retry/server"})
+    public void shouldCacheServeCardRetry() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FAILED");
+        k3po.notifyBarrier("EXPIRED");
+        k3po.finish();
+    }
 }
