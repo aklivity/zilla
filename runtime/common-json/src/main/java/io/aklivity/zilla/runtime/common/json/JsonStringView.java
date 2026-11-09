@@ -38,19 +38,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 public interface JsonStringView extends CharSequence
 {
     /**
-     * Returns whether the encoded form is exactly the form {@link JsonGeneratorEx} writes for these chars as
-     * string content: the only escapes are {@code \"}, {@code \\}, {@code \b}, {@code \f}, {@code \n},
-     * {@code \r} and {@code \t}, and every other char is written as itself in UTF-8. A caller that forwards
-     * the chars in that form copies the encoded bytes when this is {@code true}, and encodes the chars itself
-     * otherwise, since a different spelling of the same chars, such as {@code \u00e9} or {@code \/}, is not
-     * what the generator would write. It may return {@code false} for a value whose encoded form happens to
-     * match.
-     *
-     * @return {@code true} if the encoded bytes are the generator's form of the chars
-     */
-    boolean canonical();
-
-    /**
      * Returns the number of encoded bytes of the chars in {@code [fromChar, toChar)}.
      *
      * @param fromChar  the index of the first char

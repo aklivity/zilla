@@ -124,7 +124,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int viewStart = NO_VIEW;
     private int viewChars;
     private boolean viewPlain;
-    private boolean viewCanonical;
     private boolean viewPending;
     private int viewOffset;
     private int viewLength;
@@ -219,7 +218,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean scalarSegment;
         int viewChars;
         boolean viewPlain;
-        boolean viewCanonical;
         int viewOffset;
         int viewLength;
     }
@@ -353,7 +351,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.scalarSegment = scalarSegment;
         mark.viewChars = viewChars;
         mark.viewPlain = viewPlain;
-        mark.viewCanonical = viewCanonical;
         mark.viewOffset = viewOffset;
         mark.viewLength = viewLength;
     }
@@ -411,7 +408,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         scalarSegment = mark.scalarSegment;
         viewChars = mark.viewChars;
         viewPlain = mark.viewPlain;
-        viewCanonical = mark.viewCanonical;
         viewOffset = mark.viewOffset;
         viewLength = mark.viewLength;
         seek(mark.streamOffset, mark.line, mark.column);
@@ -1003,7 +999,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         viewStart = streamingValue() ? NO_VIEW : bufferOffset;
         viewChars = 0;
         viewPlain = true;
-        viewCanonical = true;
     }
 
     // the closing quote has been read, so the value's bytes end just before it
@@ -1020,7 +1015,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
     private EncodedStringView pendingView()
     {
-        return stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain, viewCanonical);
+        return stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain);
     }
 
     // a string that fills the window is delivered in fragments through scratch, so the chars scanned so far
@@ -1503,11 +1498,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
                     {
                     case '"':
                     case '\\':
-                        appendScratch((char) c);
-                        break;
                     case '/':
                         appendScratch((char) c);
-                        viewCanonical = false;
                         break;
                     case 'b':
                         appendScratch('\b');
@@ -1527,7 +1519,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
                     case 'u':
                         resumeUnicodePending = 4;
                         resumeUnicodeValue = 0;
-                        viewCanonical = false;
                         break;
                     default:
                         throw new JsonParsingException("Invalid escape: \\" + describe(c), null);

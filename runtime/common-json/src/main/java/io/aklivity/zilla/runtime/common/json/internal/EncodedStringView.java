@@ -52,7 +52,6 @@ final class EncodedStringView implements JsonStringView
     private int limit;
     private int length;
     private boolean plain;
-    private boolean canonical;
 
     private int runChar;
     private int runByte;
@@ -67,7 +66,6 @@ final class EncodedStringView implements JsonStringView
     {
         int chars = 0;
         boolean ascii = true;
-        boolean canonical = true;
 
         for (int index = offset, end = offset + byteLength; index < end; )
         {
@@ -75,11 +73,8 @@ final class EncodedStringView implements JsonStringView
 
             if (c == '\\')
             {
-                final int escape = buffer.getByte(index + 1);
-
                 ascii = false;
-                canonical &= escape != 'u' && escape != '/';
-                index += escape == 'u' ? 6 : 2;
+                index += buffer.getByte(index + 1) == 'u' ? 6 : 2;
                 chars++;
             }
             else if (c < 0x80)
@@ -95,7 +90,7 @@ final class EncodedStringView implements JsonStringView
             }
         }
 
-        return wrap(buffer, offset, byteLength, chars, ascii, canonical);
+        return wrap(buffer, offset, byteLength, chars, ascii);
     }
 
     EncodedStringView wrap(
@@ -103,15 +98,13 @@ final class EncodedStringView implements JsonStringView
         int offset,
         int byteLength,
         int chars,
-        boolean plain,
-        boolean canonical)
+        boolean plain)
     {
         this.buffer = buffer;
         this.offset = offset;
         this.limit = offset + byteLength;
         this.length = chars;
         this.plain = plain;
-        this.canonical = canonical;
 
         restart();
 
@@ -180,12 +173,6 @@ final class EncodedStringView implements JsonStringView
     boolean plain()
     {
         return plain;
-    }
-
-    @Override
-    public boolean canonical()
-    {
-        return canonical;
     }
 
     @Override

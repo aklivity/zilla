@@ -48,25 +48,6 @@ class EncodedStringViewTest
     }
 
     @Test
-    void shouldReportCanonicalWhenTheEncodedFormIsTheGeneratorsForm()
-    {
-        assertTrue(canonical("plain text"));
-        assertTrue(canonical(""));
-        assertTrue(canonical("a\\\"b\\\\c\\bd\\fe\\nf\\rg\\th"));
-        assertTrue(canonical("caf\u00e9 \u20ac \ud83d\ude00"));
-    }
-
-    @Test
-    void shouldNotReportCanonicalForAnotherSpellingOfTheSameChars()
-    {
-        assertFalse(canonical("caf\\u00e9"));
-        assertFalse(canonical("\\u0041"));
-        assertFalse(canonical("\\ud83d\\ude00"));
-        assertFalse(canonical("a\\/b"));
-        assertFalse(canonical("\\u000a"));
-    }
-
-    @Test
     void shouldViewEmpty()
     {
         wrap("");
@@ -178,7 +159,7 @@ class EncodedStringViewTest
     {
         final byte[] bytes = "a\\nb".getBytes(UTF_8);
 
-        view.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, 3, false, true);
+        view.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, 3, false);
 
         assertEquals(3, view.length());
         assertEquals("a\nb", view.toString());
@@ -324,14 +305,6 @@ class EncodedStringViewTest
             dst.getBytes(0, actual);
             assertArrayEquals(expected, actual, encoded);
         }
-    }
-
-    private boolean canonical(
-        String encoded)
-    {
-        wrap(encoded);
-
-        return view.canonical();
     }
 
     private void wrap(

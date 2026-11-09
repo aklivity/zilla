@@ -23,8 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -62,14 +60,6 @@ class JsonParserStringViewTest
         assertInstanceOf(EncodedStringView.class, view);
         assertEquals("a\nb\"cé€😀", view.toString());
         assertEquals(9, view.length());
-    }
-
-    @Test
-    void shouldReportWhetherTheEncodedFormIsCanonical()
-    {
-        wrap("{\"a\":\"x\\ny\u00e9\",\"b\":\"x\\u00e9\",\"c\":\"x\\/y\",\"d\":\"x\\\\y\"}");
-
-        assertEquals(List.of(true, false, false, true), canonicals());
     }
 
     @Test
@@ -331,21 +321,6 @@ class JsonParserStringViewTest
         assertNotNull(view);
 
         return view;
-    }
-
-    private List<Boolean> canonicals()
-    {
-        final List<Boolean> canonicals = new ArrayList<>();
-
-        while (parser.hasNextEvent())
-        {
-            if (parser.nextEvent() == JsonEvent.VALUE_STRING)
-            {
-                canonicals.add(assertInstanceOf(JsonStringView.class, parser.getStringView()).canonical());
-            }
-        }
-
-        return canonicals;
     }
 
     private void nextValueString()
