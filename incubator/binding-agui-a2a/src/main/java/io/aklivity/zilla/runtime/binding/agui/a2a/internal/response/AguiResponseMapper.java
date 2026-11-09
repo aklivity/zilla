@@ -33,11 +33,14 @@ import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiActivityType;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiContentType;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiEncryptedSubtype;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiEventMetaFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutcomeType;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiRole;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiStateType;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiStepType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -50,7 +53,7 @@ public final class AguiResponseMapper implements A2aEventSink
     public static final String CODE_REJECTED = "agent_rejected";
     public static final String CODE_INCOMPLETE = "agent_incomplete";
     public static final String CODE_ABORTED = "agent_aborted";
-    public static final String CODE_INVALID_RESPONSE = "agent_invalid_response";
+    public static final String CODE_PROTOCOL = "agent_protocol";
 
     public static final String CUSTOM_DATA = "agent.data";
     public static final String CUSTOM_FILE = "agent.file";
@@ -65,6 +68,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private static final String MESSAGE_FAILED = "Agent failed";
     private static final String MESSAGE_REJECTED = "Agent declined";
     private static final String MESSAGE_TOO_LARGE = "Event too large";
+    private static final String MESSAGE_PROTOCOL = "Agent response invalid";
     private static final String REPLACEMENT_SEPARATOR = "#";
 
     private interface Content
@@ -85,6 +89,11 @@ public final class AguiResponseMapper implements A2aEventSink
             String name,
             String url,
             String raw);
+    }
+
+    private interface TagContent extends Content
+    {
+        void end();
     }
 
     private interface ReplyEvents extends A2aEventSink
@@ -122,9 +131,18 @@ public final class AguiResponseMapper implements A2aEventSink
     private final Content statusCompletedContent = new StatusCompletedContent();
     private final Content newContent = new NewContent();
     private final Content continueContent = new ContinueContent();
+    private final TagContent ignoreTag = new IgnoreTag();
+    private final TagContent stepTag = new StepTag();
+    private final TagContent dataTagNew = new DataTagNew();
+    private final TagContent dataTagFlowing = new DataTagFlowing();
+    private final TagContent textTagNew = new TextTagNew();
+    private final TagContent textTagFlowing = new TextTagFlowing();
 
     private ReplyEvents events = open;
     private Content content = ignoreContent;
+    private Content resumeContent = ignoreContent;
+    private TagContent tagContent = ignoreTag;
+    private A2aPartTag tag;
     private Runnable closing = noop;
     private Runnable leading = noop;
     private A2aEventKind kind;
@@ -241,6 +259,34 @@ public final class AguiResponseMapper implements A2aEventSink
         String raw)
     {
         events.file(mediaType, name, url, raw);
+    }
+
+    @Override
+    public void tagStarted(
+        A2aPartTag tag)
+    {
+        events.tagStarted(tag);
+    }
+
+    @Override
+    public void tagEnded()
+    {
+        events.tagEnded();
+    }
+
+    @Override
+    public void tagDropped(
+        String event)
+    {
+        events.tagDropped(event);
+    }
+
+    @Override
+    public void tagMalformed(
+        String event,
+        String detail)
+    {
+        events.tagMalformed(event, detail);
     }
 
     @Override
@@ -421,6 +467,39 @@ public final class AguiResponseMapper implements A2aEventSink
         }
 
         @Override
+        public void tagStarted(
+            A2aPartTag tag)
+        {
+            AguiResponseMapper.this.tag = tag;
+            resumeContent = content;
+            tagContent = content == ignoreContent ? ignoreTag : tagContentOf(tag);
+            content = tagContent;
+        }
+
+        @Override
+        public void tagEnded()
+        {
+            tagContent.end();
+            content = resumeContent;
+        }
+
+        @Override
+        public void tagDropped(
+            String event)
+        {
+            host.tagDropped(event);
+        }
+
+        @Override
+        public void tagMalformed(
+            String event,
+            String detail)
+        {
+            host.tagMalformed(event, detail);
+            runError(STATUS_BAD_GATEWAY, CODE_PROTOCOL, MESSAGE_PROTOCOL);
+        }
+
+        @Override
         public void artifactEnded()
         {
             if (kind == A2aEventKind.TASK && content != ignoreContent)
@@ -473,7 +552,7 @@ public final class AguiResponseMapper implements A2aEventSink
             String code,
             String message)
         {
-            runError(STATUS_BAD_GATEWAY, CODE_INVALID_RESPONSE, message);
+            runError(STATUS_BAD_GATEWAY, CODE_PROTOCOL, message);
         }
     }
 
@@ -538,6 +617,30 @@ public final class AguiResponseMapper implements A2aEventSink
             String name,
             String url,
             String raw)
+        {
+        }
+
+        @Override
+        public void tagStarted(
+            A2aPartTag tag)
+        {
+        }
+
+        @Override
+        public void tagEnded()
+        {
+        }
+
+        @Override
+        public void tagDropped(
+            String event)
+        {
+        }
+
+        @Override
+        public void tagMalformed(
+            String event,
+            String detail)
         {
         }
 
@@ -627,6 +730,100 @@ public final class AguiResponseMapper implements A2aEventSink
             String raw)
         {
             emitFile(mediaType, name, url, raw);
+        }
+    }
+
+    private final class IgnoreTag extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void end()
+        {
+        }
+    }
+
+    private final class StepTag extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void end()
+        {
+            emitTag(INIT | FIN, emptyBuffer, 0, 0);
+        }
+    }
+
+    private final class DataTagNew extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            emitTag(flags, buffer, offset, limit);
+            tagContent = dataTagFlowing;
+            content = tagContent;
+        }
+
+        @Override
+        public void end()
+        {
+            emitTag(INIT | FIN, emptyBuffer, 0, 0);
+        }
+    }
+
+    private final class DataTagFlowing extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            sink.message(flags, null, buffer, offset, limit);
+        }
+
+        @Override
+        public void end()
+        {
+        }
+    }
+
+    private final class TextTagNew extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            emitTag(INIT, buffer, offset, limit);
+            tagContent = textTagFlowing;
+            content = tagContent;
+        }
+
+        @Override
+        public void end()
+        {
+            emitTag(INIT | FIN, emptyBuffer, 0, 0);
+        }
+    }
+
+    private final class TextTagFlowing extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            sink.message(0, null, buffer, offset, limit);
+        }
+
+        @Override
+        public void end()
+        {
+            sink.message(FIN, null, emptyBuffer, 0, 0);
         }
     }
 
@@ -839,6 +1036,105 @@ public final class AguiResponseMapper implements A2aEventSink
         sink.message(flags, dataEx, buffer, offset, limit);
     }
 
+    private TagContent tagContentOf(
+        A2aPartTag tag)
+    {
+        final TagContent next;
+
+        switch (tag.event)
+        {
+        case A2aPartTag.EVENT_STEP:
+            next = stepTag;
+            break;
+        case A2aPartTag.EVENT_REASONING:
+        case A2aPartTag.EVENT_REASONING_ENCRYPTED:
+            next = textTagNew;
+            break;
+        default:
+            next = dataTagNew;
+            break;
+        }
+
+        return next;
+    }
+
+    private void emitTag(
+        int flags,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        closing.run();
+        ensureSnapshot();
+
+        sink.message(flags, tagEx(), buffer, offset, limit);
+    }
+
+    private AguiDataExFW tagEx()
+    {
+        final AguiDataExFW.Builder builder = dataExRW.wrap(exBuffer, 0, exBuffer.capacity()).typeId(aguiTypeId);
+
+        switch (tag.event)
+        {
+        case A2aPartTag.EVENT_STATE:
+            builder.state(s -> s.meta(this::meta).type(t -> t.set(stateType(tag.type))));
+            break;
+        case A2aPartTag.EVENT_ACTIVITY:
+            builder.activity(a -> a.meta(this::meta)
+                .type(t -> t.set("delta".equals(tag.type) ? AguiActivityType.DELTA : AguiActivityType.SNAPSHOT))
+                .messageId(tag.messageId)
+                .activityType(tag.activityType)
+                .replace(Boolean.FALSE.equals(tag.replace) ? 0 : 1));
+            break;
+        case A2aPartTag.EVENT_REASONING:
+            builder.reasoning(r -> r.meta(this::meta).messageId(tag.messageId).groupId(tag.groupId));
+            break;
+        case A2aPartTag.EVENT_REASONING_ENCRYPTED:
+            builder.reasoningEncrypted(r -> r.meta(this::meta)
+                .subtype(t -> t.set("toolCall".equals(tag.subtype)
+                    ? AguiEncryptedSubtype.TOOL_CALL
+                    : AguiEncryptedSubtype.MESSAGE))
+                .entityId(tag.entityId));
+            break;
+        case A2aPartTag.EVENT_STEP:
+            builder.step(s -> s.meta(this::meta)
+                .type(t -> t.set("finished".equals(tag.type) ? AguiStepType.FINISHED : AguiStepType.STARTED))
+                .stepName(tag.name));
+            break;
+        case A2aPartTag.EVENT_TOOL_CALL:
+            builder.toolCall(c -> c.meta(this::meta)
+                .toolCallId(tag.callId)
+                .toolCallName(tag.callName)
+                .parentMessageId(tag.parentMessageId));
+            break;
+        case A2aPartTag.EVENT_TOOL_RESULT:
+            builder.toolResult(r -> r.meta(this::meta)
+                .messageId(unique(tag.messageId))
+                .toolCallId(tag.resultCallId)
+                .content(c -> c.set(AguiContentType.TEXT)));
+            break;
+        case A2aPartTag.EVENT_RAW:
+            builder.raw(r -> r.meta(this::meta).source(tag.source));
+            break;
+        default:
+            builder.custom(c -> c.meta(this::meta).name(tag.name));
+            break;
+        }
+
+        return builder.build();
+    }
+
+    private static AguiStateType stateType(
+        String type)
+    {
+        return switch (type)
+        {
+        case "delta" -> AguiStateType.DELTA;
+        case "messages" -> AguiStateType.MESSAGES_SNAPSHOT;
+        default -> AguiStateType.SNAPSHOT;
+        };
+    }
+
     private void ensureSnapshot()
     {
         leading.run();
@@ -996,7 +1292,7 @@ public final class AguiResponseMapper implements A2aEventSink
 
     private void tooLarge()
     {
-        runError(STATUS_BAD_GATEWAY, CODE_INVALID_RESPONSE, MESSAGE_TOO_LARGE);
+        runError(STATUS_BAD_GATEWAY, CODE_PROTOCOL, MESSAGE_TOO_LARGE);
     }
 
     private void digestUpdate(

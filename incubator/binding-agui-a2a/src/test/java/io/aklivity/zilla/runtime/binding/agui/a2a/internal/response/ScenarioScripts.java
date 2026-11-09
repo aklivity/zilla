@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 
 final class ScenarioScripts
@@ -40,11 +42,13 @@ final class ScenarioScripts
     private static final Pattern OUTCOME = Pattern.compile("\\.outcome\\(\"([^\"]*)\"\\)");
     private static final Pattern CODE = Pattern.compile("\\.code\\(\"([^\"]*)\"\\)");
     private static final Pattern MESSAGE = Pattern.compile("\\.message\\(\"([^\"]*)\"\\)");
+    private static final Pattern FEATURES = Pattern.compile("\"features\":\\[([^\\]]*)\\]");
     private static final Pattern REASON = Pattern.compile("\\.reason\\(\"([^\"]*)\"\\)");
 
     final List<String> events = new ArrayList<>();
     final List<A2aExSpec> exs = new ArrayList<>();
     final List<ResponseHarness.Frame> expected = new ArrayList<>();
+    AguiA2aExtension extension;
     boolean error;
     boolean abort;
     String abortReason;
@@ -96,6 +100,14 @@ final class ScenarioScripts
                 exs.add(chain != null ? a2aExOf(chain) : null);
                 chain = null;
             }
+        }
+
+        final Matcher features = FEATURES.matcher(script);
+
+        if (stream.contains("write zilla:begin.ext ${a2a:beginEx()") && features.find())
+        {
+            extension = new AguiA2aExtension(AguiA2aExtension.URI_V1, false,
+                Set.of(features.group(1).replace("\"", "").split(",")));
         }
 
         abort = stream.contains("zilla:abort.ext");
@@ -239,6 +251,30 @@ final class ScenarioScripts
         else if (chain.contains(".state()") && type.find())
         {
             ex = String.format("state(%s)", type.group(1));
+        }
+        else if (chain.contains(".reasoning()") && id.find())
+        {
+            ex = String.format("reasoning(%s,%s)", id.group(1), member(chain, "groupId"));
+        }
+        else if (chain.contains(".reasoningEncrypted()"))
+        {
+            ex = String.format("reasoningEncrypted(%s,%s)", member(chain, "subtype"), member(chain, "entityId"));
+        }
+        else if (chain.contains(".toolCall()"))
+        {
+            ex = String.format("toolCall(%s,%s)", member(chain, "toolCallId"), member(chain, "toolCallName"));
+        }
+        else if (chain.contains(".toolResult()"))
+        {
+            ex = String.format("toolResult(%s,%s)", member(chain, "messageId"), member(chain, "toolCallId"));
+        }
+        else if (chain.contains(".step()") && type.find())
+        {
+            ex = String.format("step(%s,%s)", type.group(1), member(chain, "stepName"));
+        }
+        else if (chain.contains(".raw()"))
+        {
+            ex = String.format("raw(%s)", member(chain, "source"));
         }
 
         return ex;
