@@ -37,6 +37,8 @@ public final class A2aPushTaskScanner
     private static final String ID_NAME = "id";
     private static final String TASK_NAME = "task";
 
+    private final JsonParserEx parser = JsonEx.createParser(Map.of());
+
     private String taskId;
 
     public String taskId()
@@ -55,7 +57,7 @@ public final class A2aPushTaskScanner
 
         try
         {
-            final JsonParserEx parser = JsonEx.createParser(Map.of());
+            parser.reset();
             parser.wrap(buffer, offset, limit, last);
 
             int depth = 0;

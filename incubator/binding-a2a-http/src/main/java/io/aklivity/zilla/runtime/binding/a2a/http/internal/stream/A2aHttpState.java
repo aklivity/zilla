@@ -31,7 +31,7 @@ final class A2aHttpState
         return state | INITIAL_OPENING;
     }
 
-    static int openedInitial(
+    static int openInitial(
         int state)
     {
         return state | INITIAL_OPENING | INITIAL_OPENED;
@@ -43,7 +43,7 @@ final class A2aHttpState
         return state | INITIAL_CLOSING;
     }
 
-    static int closedInitial(
+    static int closeInitial(
         int state)
     {
         return state | INITIAL_CLOSING | INITIAL_CLOSED;
@@ -79,7 +79,7 @@ final class A2aHttpState
         return (state & REPLY_OPENING) != 0;
     }
 
-    static int openedReply(
+    static int openReply(
         int state)
     {
         return state | REPLY_OPENING | REPLY_OPENED;
@@ -91,7 +91,7 @@ final class A2aHttpState
         return state | REPLY_CLOSING;
     }
 
-    static int closedReply(
+    static int closeReply(
         int state)
     {
         return state | REPLY_CLOSING | REPLY_CLOSED;

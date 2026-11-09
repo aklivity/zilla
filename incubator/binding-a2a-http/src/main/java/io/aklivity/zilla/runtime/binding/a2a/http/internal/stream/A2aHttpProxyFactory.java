@@ -402,14 +402,14 @@ public final class A2aHttpProxyFactory implements BindingHandler
             EndFW end)
         {
             initialSeq = end.sequence();
-            state = A2aHttpState.closedInitial(state);
+            state = A2aHttpState.closeInitial(state);
             cleanupDecodeSlot();
         }
 
         void onA2aAbort(
             AbortFW abort)
         {
-            state = A2aHttpState.closedInitial(A2aHttpState.closedReply(state));
+            state = A2aHttpState.closeInitial(A2aHttpState.closeReply(state));
             cleanupDecodeSlot();
             cleanupEncodeSlot();
         }
@@ -427,7 +427,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         void onA2aReset(
             ResetFW reset)
         {
-            state = A2aHttpState.closedReply(state);
+            state = A2aHttpState.closeReply(state);
             cleanupEncodeSlot();
         }
 
@@ -555,7 +555,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, emptyRO);
-                state = A2aHttpState.openedReply(state);
+                state = A2aHttpState.openReply(state);
             }
         }
 
@@ -579,7 +579,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             if (!A2aHttpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = A2aHttpState.closedReply(state);
+                state = A2aHttpState.closeReply(state);
             }
             cleanupEncodeSlot();
         }
@@ -591,7 +591,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             if (!A2aHttpState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = A2aHttpState.closedReply(state);
+                state = A2aHttpState.closeReply(state);
             }
             cleanupEncodeSlot();
         }
@@ -601,7 +601,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         {
             initialMax = decodePool.slotCapacity();
             initialAck = initialSeq;
-            state = A2aHttpState.openedInitial(state);
+            state = A2aHttpState.openInitial(state);
             doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L, 0);
         }
@@ -636,7 +636,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
                     .build();
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
-                state = A2aHttpState.closedInitial(state);
+                state = A2aHttpState.closeInitial(state);
             }
             cleanupDecodeSlot();
         }
@@ -656,7 +656,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
                     .build();
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
-                state = A2aHttpState.closedInitial(state);
+                state = A2aHttpState.closeInitial(state);
             }
             cleanupDecodeSlot();
         }
@@ -839,7 +839,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
             initialSeq = end.sequence();
-            state = A2aHttpState.closedInitial(state);
+            state = A2aHttpState.closeInitial(state);
             decoder.decode(this, traceId, true);
         }
 
@@ -1575,7 +1575,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
 
             replySeq = begin.sequence();
             replyAck = begin.acknowledge();
-            state = A2aHttpState.openedReply(state);
+            state = A2aHttpState.openReply(state);
 
             final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
             if (httpBeginEx != null)
@@ -1654,7 +1654,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         {
             final long traceId = end.traceId();
             replySeq = end.sequence();
-            state = A2aHttpState.closedReply(state);
+            state = A2aHttpState.closeReply(state);
 
             if (a2a.responseActive())
             {
@@ -1666,7 +1666,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
-            state = A2aHttpState.closedReply(state);
+            state = A2aHttpState.closeReply(state);
             a2a.onHttpAbort(traceId);
             cleanupDecodeSlot();
         }
@@ -1690,7 +1690,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             ResetFW reset)
         {
             final long traceId = reset.traceId();
-            state = A2aHttpState.closedInitial(state);
+            state = A2aHttpState.closeInitial(state);
             cleanupEncodeSlot();
             a2a.onHttpAbort(traceId);
         }
@@ -1736,7 +1736,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             {
                 doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, a2a.authorization);
-                state = A2aHttpState.closedInitial(state);
+                state = A2aHttpState.closeInitial(state);
             }
             cleanupEncodeSlot();
         }
@@ -1748,7 +1748,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             {
                 doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, a2a.authorization);
-                state = A2aHttpState.closedInitial(state);
+                state = A2aHttpState.closeInitial(state);
             }
             cleanupEncodeSlot();
         }
@@ -1759,7 +1759,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             if (A2aHttpState.initialOpening(state) && !A2aHttpState.replyClosed(state))
             {
                 doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, a2a.authorization);
-                state = A2aHttpState.closedReply(state);
+                state = A2aHttpState.closeReply(state);
             }
             cleanupDecodeSlot();
         }
