@@ -28,9 +28,12 @@ public final class A2aPartTag
     public static final String EVENT_TOOL_RESULT = "toolResult";
     public static final String EVENT_CUSTOM = "custom";
     public static final String EVENT_RAW = "raw";
+    public static final String EVENT_SUBAGENT = "subagent";
+    public static final String EVENT_TEXT = "text";
 
     public static final Set<String> TAG_MEMBERS = Set.of("event", "type", "name", "messageId", "groupId", "activityType",
-        "subtype", "entityId", "executor", "parentMessageId", "source", "replace");
+        "subtype", "entityId", "executor", "parentMessageId", "source", "replace", "subagentRunId", "description",
+        "parentSubagentRunId", "parentToolCallId", "outcome", "code", "message");
     public static final Set<String> DATA_MEMBERS = Set.of("id", "name", "toolCallId");
 
     private static final Map<String, String> FEATURES = Map.ofEntries(
@@ -43,7 +46,8 @@ public final class A2aPartTag
         Map.entry(EVENT_TOOL_RESULT, "toolCalls"),
         Map.entry(EVENT_CUSTOM, "custom"),
         Map.entry(EVENT_RAW, "custom"),
-        Map.entry("subagent", "subagents"),
+        Map.entry(EVENT_SUBAGENT, "subagents"),
+        Map.entry(EVENT_TEXT, "subagents"),
         Map.entry("interrupt", "interrupts"));
 
     public String event;
@@ -57,6 +61,13 @@ public final class A2aPartTag
     public String executor;
     public String parentMessageId;
     public String source;
+    public String subagentRunId;
+    public String description;
+    public String parentSubagentRunId;
+    public String parentToolCallId;
+    public String outcome;
+    public String code;
+    public String message;
     public Boolean replace;
     public String callId;
     public String callName;
@@ -75,6 +86,13 @@ public final class A2aPartTag
         executor = null;
         parentMessageId = null;
         source = null;
+        subagentRunId = null;
+        description = null;
+        parentSubagentRunId = null;
+        parentToolCallId = null;
+        outcome = null;
+        code = null;
+        message = null;
         replace = null;
         callId = null;
         callName = null;
@@ -98,6 +116,13 @@ public final class A2aPartTag
         case "executor" -> executor = value;
         case "parentMessageId" -> parentMessageId = value;
         case "source" -> source = value;
+        case "subagentRunId" -> subagentRunId = value;
+        case "description" -> description = value;
+        case "parentSubagentRunId" -> parentSubagentRunId = value;
+        case "parentToolCallId" -> parentToolCallId = value;
+        case "outcome" -> outcome = value;
+        case "code" -> code = value;
+        case "message" -> message = value;
         default -> ignore();
         }
     }
@@ -180,6 +205,14 @@ public final class A2aPartTag
             break;
         case EVENT_CUSTOM:
             problem = name != null ? null : "custom tag needs name";
+            break;
+        case EVENT_SUBAGENT:
+            problem = oneOf(type, "started", "finished", "error") && subagentRunId != null &&
+                (outcome == null || oneOf(outcome, "success", "suspended"))
+                ? null : "subagent tag needs type and subagentRunId";
+            break;
+        case EVENT_TEXT:
+            problem = subagentRunId != null ? null : "text tag needs subagentRunId";
             break;
         default:
             problem = null;

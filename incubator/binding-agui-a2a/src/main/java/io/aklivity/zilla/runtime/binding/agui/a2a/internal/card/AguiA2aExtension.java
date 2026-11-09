@@ -29,12 +29,13 @@ public record AguiA2aExtension(
     public static final String FEATURE_STATE = "state";
     public static final String FEATURE_TOOLS = "tools";
     public static final String FEATURE_HISTORY = "history";
+    public static final String FEATURE_SUBAGENTS = "subagents";
     public static final String HISTORY_CONTEXT = "context";
     public static final String HISTORY_ALWAYS = "always";
 
     static final List<String> IMPLEMENTED = List.of(URI_V1);
     static final Set<String> FEATURES =
-        Set.of("state", "tools", "history", "activity", "reasoning", "steps", "toolCalls", "custom");
+        Set.of("state", "tools", "history", "activity", "reasoning", "steps", "toolCalls", "subagents", "custom");
 
     public AguiA2aExtension(
         String uri,
