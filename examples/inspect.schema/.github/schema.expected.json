@@ -3383,39 +3383,106 @@
                             },
                             "kind": {
                                 "enum": [
-                                    "server"
+                                    "server",
+                                    "client"
                                 ]
                             },
                             "catalog": false,
                             "vault": false,
                             "entry": false,
-                            "options": {
-                                "properties": {
-                                    "authorization": {
-                                        "title": "Authorization",
-                                        "type": "object",
-                                        "patternProperties": {
-                                            "^[A-Za-z0-9_-]+$": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "credentials": {
-                                                        "title": "Credentials",
-                                                        "type": "string",
-                                                        "pattern": ".*\\{credentials\\}.*",
-                                                        "default": "Bearer {credentials}"
-                                                    }
-                                                },
-                                                "additionalProperties": false
-                                            }
-                                        },
-                                        "additionalProperties": false,
-                                        "maxProperties": 1
+                            "routes": false
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "server"
+                                        }
                                     }
                                 },
-                                "additionalProperties": false
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "pattern": ".*\\{credentials\\}.*",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
                             },
-                            "routes": false
-                        }
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "client"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "server": {
+                                                    "title": "Server",
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "pattern": "^https?://"
+                                                },
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "pattern": ".*\\{credentials\\}.*",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "required": [
+                                                "server"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "exit",
+                                        "options"
+                                    ]
+                                }
+                            }
+                        ]
                     }
                 },
                 {

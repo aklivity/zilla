@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.internal;
 
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
 import java.util.EnumMap;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.agui.internal.stream.AguiClientFactory;
 import io.aklivity.zilla.runtime.binding.agui.internal.stream.AguiServerFactory;
 import io.aklivity.zilla.runtime.binding.agui.internal.stream.AguiStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -37,6 +39,7 @@ final class AguiBindingContext implements BindingContext
     {
         final Map<KindConfig, AguiStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new AguiServerFactory(config, context));
+        factories.put(CLIENT, new AguiClientFactory(config, context));
         this.factories = factories;
     }
 
