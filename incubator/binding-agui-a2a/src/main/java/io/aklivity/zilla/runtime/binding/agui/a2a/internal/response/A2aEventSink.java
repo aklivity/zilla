@@ -54,6 +54,9 @@ public interface A2aEventSink
     void tagStarted(
         A2aPartTag tag);
 
+    void surfaceStarted(
+        String surfaceId);
+
     void tagEnded();
 
     void tagDropped(

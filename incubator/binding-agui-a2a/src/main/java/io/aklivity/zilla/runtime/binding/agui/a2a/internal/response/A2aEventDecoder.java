@@ -41,6 +41,7 @@ public final class A2aEventDecoder
 {
     public static final String CODE_INVALID_MESSAGE = "invalid_message";
 
+    private static final String EVENT_A2UI = "a2ui";
     private static final String ERROR_MALFORMED = "Malformed event";
     private static final String ERROR_TOO_LARGE = "Event too large";
     private static final String ERROR_TRUNCATED = "Truncated event";
@@ -50,7 +51,9 @@ public final class A2aEventDecoder
         PART,
         METADATA,
         AGUI,
-        DATA
+        DATA,
+        MESSAGE,
+        OPERATION
     }
 
     private enum PartMember
@@ -102,6 +105,13 @@ public final class A2aEventDecoder
     private final A2aEventDecoderState decodeDataSeparator = this::decodeDataSeparator;
     private final A2aEventDecoderState decodePartStart = this::decodePartStart;
     private final A2aEventDecoderState decodeTaggedPartStart = this::decodeTaggedPartStart;
+    private final A2aEventDecoderState decodeSurfacePartStart = this::decodeSurfacePartStart;
+    private final A2aEventDecoderState decodeSurfacePart = this::decodeSurfacePart;
+    private final A2aEventDecoderState decodeSurfaceData = this::decodeSurfaceData;
+    private final A2aEventDecoderState decodeSurfaceMessages = this::decodeSurfaceMessages;
+    private final A2aEventDecoderState decodeSurfaceMessageStart = this::decodeSurfaceMessageStart;
+    private final A2aEventDecoderState decodeSurfaceMessageEnd = this::decodeSurfaceMessageEnd;
+    private final A2aEventDecoderState decodeSurfaceSkip = this::decodeSurfaceSkip;
     private final A2aEventDecoderState decodeTaggedPart = this::decodeTaggedPart;
     private final A2aEventDecoderState decodeToolDataValue = this::decodeToolDataValue;
     private final A2aEventDecoderState decodeToolData = this::decodeToolData;
@@ -127,11 +137,13 @@ public final class A2aEventDecoder
     private A2aEventDecoderState partsThen;
     private A2aEventDecoderState dataThen = decodePart;
     private A2aEventDecoderState textThen = decodePart;
+    private A2aEventDecoderState surfaceThen = decodeSurfacePart;
     private TagSection tagSection;
     private TagSection tagEntering;
     private int tagSkipping;
     private String tagMember;
     private AguiA2aExtension extension;
+    private boolean a2ui;
     private A2aMessageScope messageScope;
     private PartMember partMember;
     private String taskId;
@@ -214,6 +226,12 @@ public final class A2aEventDecoder
         AguiA2aExtension extension)
     {
         this.extension = extension;
+    }
+
+    public void activateA2ui(
+        boolean a2ui)
+    {
+        this.a2ui = a2ui;
     }
 
     public void finish()
@@ -917,7 +935,7 @@ public final class A2aEventDecoder
             switch (parser.nextEvent())
             {
             case START_OBJECT:
-                if (extension == null)
+                if (extension == null && !a2ui)
                 {
                     clearPart();
                     decoder = decodePart;
@@ -1055,6 +1073,10 @@ public final class A2aEventDecoder
             {
                 tagEntering = TagSection.DATA;
             }
+            else if (matches(key, "mediaType"))
+            {
+                tagMember = "mediaType";
+            }
             else
             {
                 parser.skipValue();
@@ -1065,10 +1087,28 @@ public final class A2aEventDecoder
             {
                 tagEntering = TagSection.AGUI;
             }
+            else if (matches(key, "mimeType"))
+            {
+                tagMember = "mimeType";
+            }
             else
             {
                 parser.skipValue();
             }
+            break;
+        case MESSAGE:
+            if (A2aPartTag.OPERATION_KEYS.contains(key.toString()))
+            {
+                tagEntering = TagSection.OPERATION;
+            }
+            else
+            {
+                parser.skipValue();
+            }
+            break;
+        case OPERATION:
+            tagMember = matches(key, "surfaceId") ? "surfaceId" : null;
+            lookaheadTagSkip();
             break;
         case AGUI:
             tagMember = A2aPartTag.TAG_MEMBERS.contains(key.toString()) ? key.toString() : null;
@@ -1092,13 +1132,23 @@ public final class A2aEventDecoder
     private void lookaheadTagValue(
         String value)
     {
-        if (tagSection == TagSection.AGUI)
+        switch (tagSection)
         {
+        case AGUI:
             tag.tag(tagMember, value);
-        }
-        else if (tagSection == TagSection.DATA)
-        {
+            break;
+        case DATA:
             tag.data(tagMember, value);
+            break;
+        case PART:
+            tag.mediaType = value;
+            break;
+        case METADATA:
+            tag.mimeType = value;
+            break;
+        default:
+            tag.surfaceId = value;
+            break;
         }
     }
 
@@ -1113,8 +1163,16 @@ public final class A2aEventDecoder
             resolved = !tag.needsData();
             break;
         case METADATA:
+            tagSection = TagSection.PART;
+            break;
         case DATA:
             tagSection = TagSection.PART;
+            break;
+        case OPERATION:
+            tagSection = TagSection.MESSAGE;
+            break;
+        case MESSAGE:
+            resolved = true;
             break;
         default:
             resolved = true;
@@ -1128,6 +1186,8 @@ public final class A2aEventDecoder
     {
         final A2aEventDecoderState next;
 
+        tag.event = extension != null ? tag.event : null;
+
         if (tag.tagged() && !extension.enabled(AguiA2aExtension.FEATURE_SUBAGENTS))
         {
             tag.subagentRunId = null;
@@ -1135,7 +1195,7 @@ public final class A2aEventDecoder
 
         if (!tag.tagged())
         {
-            next = decodePartStart;
+            next = a2ui && tag.a2uiPart() ? decodeSurfacePartStart : decodePartStart;
         }
         else if (!tag.known())
         {
@@ -1181,6 +1241,207 @@ public final class A2aEventDecoder
             textThen = decodeTaggedPart;
             sink.tagStarted(tag);
             decoder = decodeTaggedPart;
+        }
+
+        return position();
+    }
+
+    private int decodeSurfacePartStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            parser.nextEvent();
+            clearPart();
+            decoder = decodeSurfacePart;
+        }
+
+        return position();
+    }
+
+    private int decodeSurfacePart()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                final CharSequence key = key();
+
+                if (key == null)
+                {
+                    break;
+                }
+                else if (matches(key, "data"))
+                {
+                    decoder = decodeSurfaceData;
+                }
+                else
+                {
+                    parser.skipValue();
+                }
+                break;
+            case END_OBJECT:
+                decoder = decodeParts;
+                break;
+            default:
+                fail(ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeSurfaceData()
+    {
+        parser.mark();
+
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case START_ARRAY:
+                surfaceThen = decodeSurfaceMessages;
+                decoder = decodeSurfaceMessages;
+                break;
+            case START_OBJECT:
+                surfaceThen = decodeSurfacePart;
+
+                if (lookaheadSurface())
+                {
+                    decoder = decodeSurfaceMessageStart;
+                }
+
+                parser.rewind();
+                break;
+            default:
+                decoder = decodeSurfacePart;
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeSurfaceMessages()
+    {
+        parser.mark();
+
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case START_OBJECT:
+                if (lookaheadSurface())
+                {
+                    decoder = decodeSurfaceMessageStart;
+                }
+
+                parser.rewind();
+                break;
+            case END_ARRAY:
+                decoder = decodeSurfacePart;
+                break;
+            default:
+                fail(ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private boolean lookaheadSurface()
+    {
+        boolean resolved = false;
+
+        tag.clear();
+        tagSection = TagSection.MESSAGE;
+        tagEntering = null;
+        tagSkipping = 0;
+        tagMember = null;
+
+        while (!resolved && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else if (tagSkipping > 0)
+            {
+                tagSkipping += event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY ? 1 :
+                    event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY ? -1 : 0;
+            }
+            else
+            {
+                resolved = lookaheadTagEvent(event);
+            }
+        }
+
+        return resolved || windowLimit == maximum || windowLast;
+    }
+
+    private int decodeSurfaceMessageStart()
+    {
+        dataFrom = position();
+        dataLength = 0;
+        dataDepth = 0;
+
+        if (tag.surfaceId != null)
+        {
+            dataThen = decodeSurfaceMessageEnd;
+            sink.surfaceStarted(tag.surfaceId);
+            decoder = decodeDataSeparator;
+        }
+        else
+        {
+            sink.tagDropped(EVENT_A2UI);
+            decoder = decodeSurfaceSkip;
+        }
+
+        return position();
+    }
+
+    private int decodeSurfaceMessageEnd()
+    {
+        sink.tagEnded();
+        decoder = surfaceThen;
+
+        return position();
+    }
+
+    private int decodeSurfaceSkip()
+    {
+        while (decoder == decodeSurfaceSkip && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean fragment = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER ||
+                event == JsonEvent.KEY_NAME) && parser.deferredBytes();
+
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                dataDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                dataDepth--;
+                break;
+            default:
+                break;
+            }
+
+            if (fragment)
+            {
+                parser.consumed(parser.getStringView().length());
+            }
+            else if (event != JsonEvent.KEY_NAME && dataDepth == 0)
+            {
+                decoder = surfaceThen;
+            }
         }
 
         return position();
@@ -1698,7 +1959,7 @@ public final class A2aEventDecoder
     {
         int index = skipWhitespace(buffer, offset, limit);
 
-        if (index < limit && buffer.getByte(index) == ':')
+        if (index < limit && (buffer.getByte(index) == ':' || buffer.getByte(index) == ','))
         {
             index = skipWhitespace(buffer, index + 1, limit);
         }
