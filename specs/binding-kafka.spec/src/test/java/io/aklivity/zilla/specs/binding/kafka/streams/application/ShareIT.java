@@ -1,0 +1,264 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.specs.binding.kafka.streams.application;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.rules.RuleChain.outerRule;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+
+public class ShareIT
+{
+    private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/share.group");
+
+    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+
+    @Rule
+    public final TestRule chain = outerRule(k3po).around(timeout);
+
+    @Test
+    @Specification({
+        "${app}/receive.message.value/client",
+        "${app}/receive.message.value/server"})
+    public void shouldReceiveMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.message.values/client",
+        "${app}/receive.message.values/server"})
+    public void shouldReceiveMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.message.key.with.header/client",
+        "${app}/receive.message.key.with.header/server"})
+    public void shouldReceiveMessageKeyWithHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.message.value.10k/client",
+        "${app}/receive.message.value.10k/server"})
+    public void shouldReceiveMessageValue10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.accept/client",
+        "${app}/acknowledge.accept/server"})
+    public void shouldAcknowledgeAccept() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.release/client",
+        "${app}/acknowledge.release/server"})
+    public void shouldAcknowledgeRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.reject/client",
+        "${app}/acknowledge.reject/server"})
+    public void shouldAcknowledgeReject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.without.fetch/client",
+        "${app}/acknowledge.without.fetch/server"})
+    public void shouldAcknowledgeWithoutFetch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.invalid.record.state/client",
+        "${app}/acknowledge.invalid.record.state/server"})
+    public void shouldAcknowledgeInvalidRecordState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.multiple.partitions/client",
+        "${app}/receive.multiple.partitions/server"})
+    public void shouldReceiveMultiplePartitions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/change.assignment/client",
+        "${app}/change.assignment/server"})
+    public void shouldChangeAssignment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/await.assignment/client",
+        "${app}/await.assignment/server"})
+    public void shouldAwaitAssignment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.key/client",
+        "${app}/filter.key/server"})
+    public void shouldFilterKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.key.skip.all/client",
+        "${app}/filter.key.skip.all/server"})
+    public void shouldFilterKeySkipAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/flow.control.window/client",
+        "${app}/flow.control.window/server"})
+    public void shouldFlowControlWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/flow.control.records.max/client",
+        "${app}/flow.control.records.max/server"})
+    public void shouldFlowControlRecordsMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/leave/client",
+        "${app}/leave/server"})
+    public void shouldLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/handle.coordinator.not.available/client",
+        "${app}/handle.coordinator.not.available/server"})
+    public void shouldHandleCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/handle.heartbeat.not.coordinator/client",
+        "${app}/handle.heartbeat.not.coordinator/server"})
+    public void shouldHandleHeartbeatNotCoordinator() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rejoin.unknown.member.id/client",
+        "${app}/rejoin.unknown.member.id/server"})
+    public void shouldRejoinUnknownMemberId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rejoin.fenced.member.epoch/client",
+        "${app}/rejoin.fenced.member.epoch/server"})
+    public void shouldRejoinFencedMemberEpoch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.group.authorization.failed/client",
+        "${app}/reject.group.authorization.failed/server"})
+    public void shouldRejectGroupAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.topic.authorization.failed/client",
+        "${app}/reject.topic.authorization.failed/server"})
+    public void shouldRejectTopicAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.unknown.topic.or.partition/client",
+        "${app}/reject.unknown.topic.or.partition/server"})
+    public void shouldRejectUnknownTopicOrPartition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/handle.partition.not.leader/client",
+        "${app}/handle.partition.not.leader/server"})
+    public void shouldHandlePartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+}
