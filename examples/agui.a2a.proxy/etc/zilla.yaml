@@ -1,0 +1,50 @@
+---
+name: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7117
+    routes:
+      - when:
+          - port: 7117
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    exit: north_agui_server
+  north_agui_server:
+    type: agui
+    kind: server
+    routes:
+      - when:
+          - path: /agents/{agent}
+        with:
+          agent: ${params.agent}
+        exit: north_agui_a2a_proxy
+  north_agui_a2a_proxy:
+    type: agui-a2a
+    kind: proxy
+    routes:
+      - when:
+          - agent: assistant
+        exit: south_a2a_proxy
+  south_a2a_proxy:
+    type: a2a
+    kind: proxy
+    routes:
+      - when:
+          - agent: assistant
+        exit: south_a2a_client
+  south_a2a_client:
+    type: a2a
+    kind: client
+    options:
+      server: http://agent:8080/a2a
+    exit: sys:http_client
