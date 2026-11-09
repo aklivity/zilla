@@ -22,6 +22,17 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
  * schema and configuration. A pipeline decoding a value for a reader and one encoding a caller's value
  * into its canonical form are extended independently, so an extension that only applies to one of these
  * overrides that method alone; the default for each leaves the other unaffected.
+ * <p>
+ * A stage appended here may wait for asynchronous work: it returns
+ * {@link io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status#PENDING PENDING} from its transform,
+ * keeping {@link io.aklivity.zilla.runtime.common.avro.AvroController#resumer() resumer()} from the
+ * controller it was given, and runs that callback when the work completes. The pipeline reports
+ * {@link io.aklivity.zilla.runtime.engine.model.ModelStatus#SUSPENDED SUSPENDED} to its caller and accepts no
+ * new input; once the caller re-drives it, the stage is re-entered through
+ * {@link io.aklivity.zilla.runtime.common.avro.AvroTransform#resume resume} with the pending event
+ * presented exactly once, and returns {@code PENDING} again if still waiting. The callback must run on the
+ * pipeline's I/O thread, such as from an engine signal.
+ * </p>
  */
 public interface AvroModelExtHandler
 {

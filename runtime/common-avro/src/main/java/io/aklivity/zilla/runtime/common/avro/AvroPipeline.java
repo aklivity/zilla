@@ -33,6 +33,11 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
  * <li><b>Output</b> — {@link Status#SUSPENDED}: the bounded generator filled mid-datum. The caller
  * drains the output, resets the generator, and calls {@code transform} again with the <em>same</em> input
  * window (kept stable) to resume the in-flight datum from where it paused.</li>
+ * <li><b>Asynchronous completion</b> — {@link Status#PENDING}: a stage is waiting on work that completes
+ * elsewhere. The pipeline holds its position and accepts no new input; the {@link AvroController#resumer()
+ * resumer} callback, run on the pipeline's I/O thread, signals completion, after which the caller calls
+ * {@code transform} again with the <em>same</em> input window and the pending stage is re-entered, with
+ * the pending event re-presented exactly once.</li>
  * </ul>
  * Zero per-message allocation; abort on failure.
  */
@@ -44,6 +49,12 @@ public interface AvroPipeline
         ADVANCED,
         /** the bounded output filled: drain the buffer, reset the generator, then {@link #transform} again to resume */
         SUSPENDED,
+        /**
+         * a stage is waiting for asynchronous work to complete: the pipeline accepts no new input until the
+         * {@link AvroController#resumer() resumer} callback has run, after which {@link #transform} is called
+         * again with the same window to re-enter the pending stage
+         */
+        PENDING,
         /** the input window was consumed mid-datum: {@link #transform} the next window (input back-pressure) */
         STARVED,
         /** the current top-level datum finished and was accepted */
@@ -74,6 +85,31 @@ public interface AvroPipeline
      */
     default void authorization(
         long authorization)
+    {
+    }
+
+    /**
+     * Sets the namespaced identifier of the binding the next {@link #transform fed} datum is driven for,
+     * reached by any stage via {@link AvroController#bindingId()}. The default does nothing, for a pipeline
+     * assembled with no stage that reads it. Call before each {@code transform}, since a reused pipeline
+     * instance carries this value forward otherwise.
+     *
+     * @param bindingId  the identifier of the binding the pipeline is driven for
+     */
+    default void bindingId(
+        long bindingId)
+    {
+    }
+
+    /**
+     * Sets the callback a stage reaches through {@link AvroController#resumer()}, to be run on the pipeline's
+     * I/O thread once the asynchronous work behind a {@link Status#PENDING} outcome completes. The default
+     * does nothing, for a pipeline assembled with no stage that can wait.
+     *
+     * @param resumer  the callback that signals the caller to re-drive this pipeline
+     */
+    default void resumer(
+        Runnable resumer)
     {
     }
 

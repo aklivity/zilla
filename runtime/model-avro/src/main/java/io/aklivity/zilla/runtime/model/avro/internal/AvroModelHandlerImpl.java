@@ -54,6 +54,10 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
+    private static final Runnable NO_RESUMED = () ->
+    {
+    };
+
     private final AvroModelConfig options;
     private final List<AvroModelExtContext> exts;
     private final boolean decodeDeterministic;
@@ -87,8 +91,16 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelTransform transform,
         ModelCache cache)
     {
-        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
-            cache);
+        return supplyDecoder(envelope, transform, cache, NO_RESUMED);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform, ModelCache.NONE, resumed);
     }
 
     @Override
@@ -96,7 +108,27 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new AvroModelEncoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+        return supplyEncoder(envelope, transform, NO_RESUMED);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new AvroModelEncoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            requireNonNull(resumed));
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        ModelCache cache,
+        Runnable resumed)
+    {
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            cache, requireNonNull(resumed));
     }
 
     boolean decodeDeterministic(
