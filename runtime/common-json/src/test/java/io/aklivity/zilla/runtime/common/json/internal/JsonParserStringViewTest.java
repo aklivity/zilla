@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
 
@@ -37,6 +38,9 @@ import io.aklivity.zilla.runtime.common.json.JsonStringView;
 
 class JsonParserStringViewTest
 {
+    private static final String ENCODED = "the model returns a response with tokens and a few escapes \\n \\\" \\u00e9 and more";
+    private static final String DECODED = "the model returns a response with tokens and a few escapes \n \" \u00e9 and more";
+
     private final JsonParserEx parser = JsonEx.createParser();
 
     @Test
@@ -193,6 +197,170 @@ class JsonParserStringViewTest
         final String document = "{\"a\":\"" + encode(value, false) + "\",\"b\":[\"" + encode(value, true) + "\"]}";
 
         assertEquals(value + value, strings(document, 1, new Random(1L)));
+    }
+
+    @Test
+    void shouldReadFragmentsInPlace()
+    {
+        final String document = "{\"a\":\"" + ENCODED + "\"}";
+        final byte[] bytes = document.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final JsonParserEx windowed = JsonEx.createParser();
+        final StringBuilder joined = new StringBuilder();
+
+        int fragments = 0;
+        int offset = 0;
+        int limit = 16;
+
+        while (true)
+        {
+            final boolean last = limit == bytes.length;
+            windowed.wrap(buffer, offset, limit, last);
+
+            while (windowed.hasNextEvent())
+            {
+                if (windowed.nextEvent() == JsonEvent.VALUE_STRING)
+                {
+                    final CharSequence chars = windowed.getStringView();
+
+                    assertInstanceOf(JsonStringView.class, chars);
+                    joined.append(chars);
+                    windowed.consumed(chars.length());
+                    fragments++;
+                }
+            }
+
+            if (last)
+            {
+                break;
+            }
+
+            offset = limit - windowed.remaining();
+            limit = Math.min(limit + 16, bytes.length);
+        }
+
+        assertTrue(fragments > 1);
+        assertEquals(DECODED, joined.toString());
+    }
+
+    @Test
+    void shouldNotSplitAnEscapedSurrogatePairAcrossFragments()
+    {
+        final StringBuilder value = new StringBuilder();
+        for (int pair = 0; pair < 20; pair++)
+        {
+            value.append("\\ud83d\\ude").append(String.format("%02x", pair)).append("a");
+        }
+        final String document = "{\"a\":\"" + value + "\"}";
+        final byte[] bytes = document.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+
+        for (int size = 12; size < 60; size++)
+        {
+            final JsonParserEx windowed = JsonEx.createParser();
+
+            int offset = 0;
+            int limit = Math.min(size, bytes.length);
+
+            while (true)
+            {
+                final boolean last = limit == bytes.length;
+                windowed.wrap(buffer, offset, limit, last);
+
+                while (windowed.hasNextEvent())
+                {
+                    if (windowed.nextEvent() == JsonEvent.VALUE_STRING)
+                    {
+                        final CharSequence chars = windowed.getStringView();
+                        final int length = chars.length();
+
+                        final boolean endsInHigh = length > 0 && Character.isHighSurrogate(chars.charAt(length - 1));
+                        final boolean startsInLow = length > 0 && Character.isLowSurrogate(chars.charAt(0));
+
+                        assertFalse(endsInHigh, "size " + size);
+                        assertFalse(startsInLow, "size " + size);
+
+                        windowed.consumed(length);
+                    }
+                }
+
+                if (last)
+                {
+                    break;
+                }
+
+                offset = limit - windowed.remaining();
+                limit = Math.min(limit + size, bytes.length);
+            }
+        }
+    }
+
+    @Test
+    void shouldKeepADeclinedFragmentWhenTheWindowIsReplaced()
+    {
+        final Random random = new Random(9L);
+
+        for (int round = 0; round < 300; round++)
+        {
+            final String value = random(random, 20 + random.nextInt(150));
+            final String document = "{\"a\":\"" + encode(value, random.nextBoolean()) + "\",\"b\":1}";
+            final byte[] bytes = document.getBytes(UTF_8);
+            final int size = 12 + random.nextInt(30);
+
+            assertEquals(value, declined(bytes, size), document + " size " + size);
+        }
+    }
+
+    private String declined(
+        byte[] bytes,
+        int size)
+    {
+        final byte[] window = new byte[bytes.length];
+        final JsonParserEx windowed = JsonEx.createParser();
+
+        String whole = null;
+        int fed = 0;
+        int carry = 0;
+
+        while (true)
+        {
+            final int chunk = Math.min(size, bytes.length - fed);
+            System.arraycopy(bytes, fed, window, carry, chunk);
+            fed += chunk;
+
+            final int limit = carry + chunk;
+            final boolean last = fed == bytes.length;
+            windowed.wrap(new UnsafeBufferEx(window), 0, limit, last);
+
+            while (windowed.hasNextEvent())
+            {
+                if (windowed.nextEvent() == JsonEvent.VALUE_STRING)
+                {
+                    if (windowed.deferredBytes())
+                    {
+                        windowed.consumed(0);
+                    }
+                    else if (whole == null)
+                    {
+                        whole = windowed.getStringView().toString();
+                    }
+                }
+            }
+
+            if (last)
+            {
+                break;
+            }
+
+            final int tail = windowed.remaining();
+            final byte[] kept = new byte[tail];
+            System.arraycopy(window, limit - tail, kept, 0, tail);
+            Arrays.fill(window, (byte) 'X');
+            System.arraycopy(kept, 0, window, 0, tail);
+            carry = tail;
+        }
+
+        return whole;
     }
 
     @Test

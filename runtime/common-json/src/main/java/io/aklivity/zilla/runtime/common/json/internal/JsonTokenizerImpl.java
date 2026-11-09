@@ -127,6 +127,11 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private boolean viewPending;
     private int viewOffset;
     private int viewLength;
+    // the chars counted before the last unit boundary, and whether the last unit was the first half of an
+    // escaped surrogate pair, whose second half then belongs to the same unit
+    private int unitViewChars;
+    private int unitScratchLength;
+    private boolean pairOpen;
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
@@ -220,6 +225,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean viewPlain;
         int viewOffset;
         int viewLength;
+        int unitViewChars;
+        int unitScratchLength;
+        boolean pairOpen;
     }
 
     // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
@@ -353,6 +361,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.viewPlain = viewPlain;
         mark.viewOffset = viewOffset;
         mark.viewLength = viewLength;
+        mark.unitViewChars = unitViewChars;
+        mark.unitScratchLength = unitScratchLength;
+        mark.pairOpen = pairOpen;
     }
 
     // Returns to the mark: the scan resumes at the marked byte with the state it had there. Only the container
@@ -410,6 +421,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         viewPlain = mark.viewPlain;
         viewOffset = mark.viewOffset;
         viewLength = mark.viewLength;
+        unitViewChars = mark.unitViewChars;
+        unitScratchLength = mark.unitScratchLength;
+        pairOpen = mark.pairOpen;
         seek(mark.streamOffset, mark.line, mark.column);
 
         scratch.setLength(0);
@@ -535,7 +549,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 seek(unitStartOffset, unitLine, unitColumn);
-                copyViewToScratch();
+                viewChars = unitViewChars;
+                scratch.setLength(Math.min(scratch.length(), unitScratchLength));
+                pairOpen = false;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
                 resumeUnicodeValue = 0;
@@ -560,8 +576,11 @@ final class JsonTokenizerImpl implements JsonTokenizer
                     // materializes the decoded chars, so leave them in scratch (cleared when the next
                     // fragment resumes) and let stringValue() take them on demand
                     captureValue();
+                    endFragmentView();
                     delivered = true;
                 }
+
+                viewStart = NO_VIEW;
             }
             else if (fragment)
             {
@@ -583,6 +602,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 seek(valueStreamStart, valueLine, valueColumn);
                 scratch.setLength(0);
                 viewStart = NO_VIEW;
+                pairOpen = false;
                 resumeOp = ResumeOp.NONE;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
@@ -919,6 +939,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             scratch.delete(0, Math.min(scratchConsumed, scratch.length()));
             scratchConsumed = 0;
             fragmentStart = streamOffset;
+            beginView();
             continueStringContent();
             if (!starved)
             {
@@ -996,9 +1017,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
     private void beginView()
     {
-        viewStart = streamingValue() ? NO_VIEW : bufferOffset;
+        viewStart = streamingValue() || scratch.length() > 0 ? NO_VIEW : bufferOffset;
         viewChars = 0;
+        unitViewChars = 0;
+        unitScratchLength = scratch.length();
         viewPlain = true;
+        pairOpen = false;
     }
 
     // the closing quote has been read, so the value's bytes end just before it
@@ -1018,15 +1042,47 @@ final class JsonTokenizerImpl implements JsonTokenizer
         return stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain);
     }
 
-    // a string that fills the window is delivered in fragments through scratch, so the chars scanned so far
-    // are decoded from the window bytes into scratch up to the unit boundary the scan has been rewound to
-    private void copyViewToScratch()
+    // a fragment ends at the unit boundary the scan has been rewound to, so it is the bytes up to there
+    private void endFragmentView()
     {
         if (viewStart != NO_VIEW)
         {
-            scratch.append(stringView.wrap(buffer, viewStart, bufferOffset - viewStart));
+            viewOffset = viewStart;
+            viewLength = bufferOffset - viewStart;
+            viewPending = true;
             viewStart = NO_VIEW;
         }
+    }
+
+    // The fragment just delivered is read from the window bytes, which the caller is free to replace once it has
+    // asked for the next event, so what the consumer left of it is decoded into scratch now, for the next
+    // fragment to accumulate onto. A consumer that took the whole fragment leaves nothing to retain. Returns the
+    // number of chars of scratch the consumer has taken: none of them, once the remainder is all that scratch holds.
+    @Override
+    public int retainView(
+        int consumed)
+    {
+        int taken = consumed;
+
+        if (viewPending && fragmenting)
+        {
+            final EncodedStringView view = pendingView();
+
+            if (consumed < view.length())
+            {
+                scratch.setLength(0);
+
+                for (int index = consumed; index < view.length(); index++)
+                {
+                    scratch.append(view.charAt(index));
+                }
+
+                viewPending = false;
+                taken = 0;
+            }
+        }
+
+        return taken;
     }
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
@@ -1472,12 +1528,18 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
             // Track each complete-unit boundary so a starve mid-char/escape can rewind here: the chars
             // decoded so far ship as a fragment and the partial unit's bytes stay unconsumed
-            // (position() reports unitStartOffset) for the caller to re-present on the next window.
-            if (!resumeEscape && resumeUnicodePending == 0)
+            // (position() reports unitStartOffset) for the caller to re-present on the next window. The two
+            // escapes of a surrogate pair are one unit, like the four bytes of a raw one, so the boundary
+            // is not moved after the first.
+            final boolean pairing = pairOpen;
+            pairOpen = false;
+            if (!resumeEscape && resumeUnicodePending == 0 && !pairing)
             {
                 unitStartOffset = streamOffset;
                 unitLine = line;
                 unitColumn = column;
+                unitViewChars = viewChars;
+                unitScratchLength = scratch.length();
             }
             int c = readByte();
             if (!starved)
@@ -1489,6 +1551,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                     if (resumeUnicodePending == 0)
                     {
                         appendScratch((char) resumeUnicodeValue);
+                        pairOpen = Character.isHighSurrogate((char) resumeUnicodeValue);
                     }
                 }
                 else if (resumeEscape)

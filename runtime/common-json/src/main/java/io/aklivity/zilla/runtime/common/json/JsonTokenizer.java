@@ -59,6 +59,11 @@ public interface JsonTokenizer
     void markScratchConsumed(
         int consumed);
 
+    // Called before the window is replaced: keeps what the consumer left of a fragment read from the window.
+    // Returns how many chars of scratch the consumer has taken.
+    int retainView(
+        int consumed);
+
     long streamOffset();
 
     long line();
