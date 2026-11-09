@@ -540,4 +540,44 @@ public class EngineIT
 
         return current;
     }
+
+    @Test
+    @Configuration("server.store.increment.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldIncrementCounterInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.get.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldGetMultipleKeysFromTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.delete.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldDeleteMultipleKeysFromTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.replace.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldReplaceValueInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

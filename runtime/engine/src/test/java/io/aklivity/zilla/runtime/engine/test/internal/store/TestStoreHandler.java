@@ -66,7 +66,8 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        entries.put(key, new TestEntry(value, expiresAt(ttl)));
+        // put and putIfAbsent never expire so bindings configured with short leases keep their records
+        entries.put(key, new TestEntry(value, Long.MAX_VALUE));
         notifyListeners(key, value);
         defer(() -> completion.accept(null));
     }
@@ -78,7 +79,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        final TestEntry next = new TestEntry(value, expiresAt(ttl));
+        final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
         if (existing != null && existing.expired())

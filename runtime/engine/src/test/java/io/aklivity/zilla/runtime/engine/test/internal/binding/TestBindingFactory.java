@@ -1155,8 +1155,14 @@ final class TestBindingFactory implements BindingHandler
             // token delivered by a prior lock's asynchronous callback
             final Runnable next = () -> runStoreAssertion(traceId, index + 1);
 
-            switch (a.op)
+            switch (a.keys != null ? a.op + ".keys" : a.op)
             {
+            case "get.keys":
+            case "delete.keys":
+            case "increment":
+            case "replace":
+                runStoreAtomicAssertion(traceId, a, dispatchThread, returned, fired, next);
+                break;
             case "get":
                 store.get(a.key, (k, v) ->
                 {
@@ -1312,6 +1318,76 @@ final class TestBindingFactory implements BindingHandler
                 next.run();
                 break;
             }
+        }
+
+        private void runStoreAtomicAssertion(
+            long traceId,
+            StoreAssertion a,
+            Thread dispatchThread,
+            MutableBoolean returned,
+            MutableBoolean fired,
+            Runnable next)
+        {
+            switch (a.op)
+            {
+            case "get":
+                store.get(a.keys, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expectValues))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                break;
+            case "delete":
+                store.delete(a.keys, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expectNumber))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                break;
+            case "increment":
+                store.increment(a.key, a.delta, a.ttl, (k, v) ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expectNumber))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                break;
+            default:
+                store.replace(a.key, a.expected, a.value, a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expectBoolean))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                break;
+            }
+            returned.value = true;
         }
 
         private void runWatchAssertion(

@@ -95,4 +95,44 @@ public class MemoryStoreHandlerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("store.increment.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldIncrementCounter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.get.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldGetMultipleKeys() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.delete.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldDeleteMultipleKeys() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.replace.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldReplaceValue() throws Exception
+    {
+        k3po.finish();
+    }
 }
