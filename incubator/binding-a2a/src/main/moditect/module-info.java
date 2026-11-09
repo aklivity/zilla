@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.binding.a2a
 {
     requires io.aklivity.zilla.config.binding.a2a;
+    requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
