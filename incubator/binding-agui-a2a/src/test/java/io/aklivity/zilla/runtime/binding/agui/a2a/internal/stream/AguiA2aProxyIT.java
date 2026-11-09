@@ -791,4 +791,48 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/cancel.abort/client",
+        "${agent}/cancel.abort/server"})
+    public void shouldCancelAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/cancel.abort.no.task/client",
+        "${agent}/cancel.abort.no.task/server"})
+    public void shouldCancelAbortNoTask() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/cancel.abort.not.cancelable/client",
+        "${agent}/cancel.abort.not.cancelable/server"})
+    public void shouldCancelAbortNotCancelable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/cancel.canceled/client",
+        "${agent}/cancel.canceled/server"})
+    public void shouldCancelCanceled() throws Exception
+    {
+        k3po.finish();
+    }
 }
