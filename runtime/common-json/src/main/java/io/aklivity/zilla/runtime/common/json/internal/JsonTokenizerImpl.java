@@ -66,6 +66,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
     private static final int MAX_DEPTH = 64;
     private static final int SCRATCH_RETAINED = 1024;
+    private static final int NO_VIEW = -1;
 
     private final Deque<ParseState> stack = new ArrayDeque<>();
     private final StringBuilder scratch = new StringBuilder();
@@ -109,6 +110,18 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private JsonParser.Event pendingEvent;
     private String pendingString;
     private boolean valuePending;
+    // a value-string that completes within the current window is not copied into scratch: its chars are read in
+    // place from the window bytes. viewStart is where its bytes begin in the window buffer (NO_VIEW when the
+    // string is not read in place: a key, a number, a verbatim or fragmented string), viewChars and viewPlain
+    // are counted as the bytes are validated, and viewPending marks a completed value waiting to be read from
+    // [viewOffset, viewOffset + viewLength) of the window buffer
+    private final EncodedStringView stringView = new EncodedStringView();
+    private int viewStart = NO_VIEW;
+    private int viewChars;
+    private boolean viewPlain;
+    private boolean viewPending;
+    private int viewOffset;
+    private int viewLength;
     private long streamOffset;
     private long valueStreamStart;
     private long valueStreamEnd;
@@ -198,6 +211,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean separatorBefore;
         boolean segmenting;
         boolean scalarSegment;
+        int viewChars;
+        boolean viewPlain;
+        int viewOffset;
+        int viewLength;
     }
 
     // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
@@ -230,6 +247,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pendingEvent = null;
         pendingString = null;
         valuePending = false;
+        viewStart = NO_VIEW;
+        viewPending = false;
         streamOffset = 0;
         documentEndOffset = 0;
         line = 1;
@@ -325,6 +344,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.separatorBefore = separatorBefore;
         mark.segmenting = segmenting;
         mark.scalarSegment = scalarSegment;
+        mark.viewChars = viewChars;
+        mark.viewPlain = viewPlain;
+        mark.viewOffset = viewOffset;
+        mark.viewLength = viewLength;
     }
 
     // Returns to the mark: the scan resumes at the marked byte with the state it had there. Only the container
@@ -378,6 +401,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         separatorBefore = mark.separatorBefore;
         segmenting = mark.segmenting;
         scalarSegment = mark.scalarSegment;
+        viewChars = mark.viewChars;
+        viewPlain = mark.viewPlain;
+        viewOffset = mark.viewOffset;
+        viewLength = mark.viewLength;
         seek(mark.streamOffset, mark.line, mark.column);
 
         scratch.setLength(0);
@@ -385,6 +412,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pendingEvent = null;
         pendingString = null;
         valuePending = false;
+        viewStart = NO_VIEW;
+        viewPending = false;
         starved = false;
         fragmenting = false;
         resumeOp = ResumeOp.NONE;
@@ -451,6 +480,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pendingEvent = null;
         pendingString = null;
         valuePending = false;
+        viewPending = false;
 
         boolean produced = true;
         while (!starved && pendingEvent == null && state != ParseState.DOC_DONE)
@@ -500,6 +530,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
                 seek(unitStartOffset, unitLine, unitColumn);
+                copyViewToScratch();
                 resumeEscape = false;
                 resumeUnicodePending = 0;
                 resumeUnicodeValue = 0;
@@ -546,6 +577,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 // value fits a window (or terminal): rewind to its start and reassemble whole next window
                 seek(valueStreamStart, valueLine, valueColumn);
                 scratch.setLength(0);
+                viewStart = NO_VIEW;
                 resumeOp = ResumeOp.NONE;
                 resumeEscape = false;
                 resumeUnicodePending = 0;
@@ -644,20 +676,21 @@ final class JsonTokenizerImpl implements JsonTokenizer
     {
         if (valuePending)
         {
-            pendingString = takeScratch();
+            pendingString = viewPending ? pendingView().toString() : takeScratch();
             valuePending = false;
+            viewPending = false;
         }
         return pendingString;
     }
 
     // Non-allocating view of the current string token (a deferred KEY_NAME or a readable VALUE_STRING),
-    // valid while the unescaped chars are still in scratch because nobody has materialized them yet. Lets
-    // a downstream stage copy or compare the chars without a String; returns the materialized value if it
-    // was already taken.
+    // valid while the unescaped chars are still in scratch, or still in the window bytes, because nobody has
+    // materialized them yet. Lets a downstream stage copy or compare the chars without a String; returns the
+    // materialized value if it was already taken.
     @Override
     public CharSequence stringView()
     {
-        return valuePending ? scratch : pendingString;
+        return valuePending ? viewPending ? pendingView() : scratch : pendingString;
     }
 
     // The parser reports, before a resuming advance, how many chars of the current fragment the consumer
@@ -934,6 +967,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void captureValue()
     {
         valuePending = true;
+        viewPending = false;
         pendingString = null;
     }
 
@@ -948,10 +982,46 @@ final class JsonTokenizerImpl implements JsonTokenizer
         stringVerbatim = scalarSegment || segmenting;
         pendingEvent = JsonParser.Event.VALUE_STRING;
         captureValue();
+        endView();
         fragmenting = false;
         scalarSegment = false;
         resumeOp = ResumeOp.NONE;
         afterValueConsumed();
+    }
+
+    private void beginView()
+    {
+        viewStart = streamingValue() ? NO_VIEW : bufferOffset;
+        viewChars = 0;
+        viewPlain = true;
+    }
+
+    // the closing quote has been read, so the value's bytes end just before it
+    private void endView()
+    {
+        if (viewStart != NO_VIEW)
+        {
+            viewOffset = viewStart;
+            viewLength = bufferOffset - 1 - viewStart;
+            viewPending = true;
+            viewStart = NO_VIEW;
+        }
+    }
+
+    private EncodedStringView pendingView()
+    {
+        return stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain);
+    }
+
+    // a string that fills the window is delivered in fragments through scratch, so the chars scanned so far
+    // are decoded from the window bytes into scratch up to the unit boundary the scan has been rewound to
+    private void copyViewToScratch()
+    {
+        if (viewStart != NO_VIEW)
+        {
+            scratch.append(stringView.wrap(buffer, viewStart, bufferOffset - viewStart));
+            viewStart = NO_VIEW;
+        }
     }
 
     // Completes a VALUE_NUMBER scan: continueNumberContent only returns here once the number terminator
@@ -1106,6 +1176,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             resumeEscape = false;
             resumeUnicodePending = 0;
             resumeOp = ResumeOp.VALUE_STRING;
+            beginView();
             continueStringContent();
             if (!starved)
             {
@@ -1270,6 +1341,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void captureKey()
     {
         valuePending = true;
+        viewPending = false;
         pendingString = null;
         if (pathDepth > 0 && !pathInArray[pathDepth - 1])
         {
@@ -1449,6 +1521,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 else if (c == '\\')
                 {
                     resumeEscape = true;
+                    viewPlain = false;
                 }
                 else if (c < 0x20)
                 {
@@ -1461,6 +1534,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 else
                 {
                     int codePoint = decodeUtf8(c);
+                    viewPlain = false;
                     if (!starved)
                     {
                         appendCodePointScratch(codePoint);
@@ -1473,7 +1547,15 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void appendScratch(
         char c)
     {
-        if (!streamingValue())
+        if (viewStart != NO_VIEW)
+        {
+            if (viewChars >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
+            viewChars++;
+        }
+        else if (!streamingValue())
         {
             if (scratch.length() >= maxValueSize)
             {
@@ -1486,7 +1568,15 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void appendCodePointScratch(
         int codePoint)
     {
-        if (!streamingValue())
+        if (viewStart != NO_VIEW)
+        {
+            if (viewChars >= maxValueSize)
+            {
+                throw resourceExhausted();
+            }
+            viewChars += Character.charCount(codePoint);
+        }
+        else if (!streamingValue())
         {
             if (scratch.length() >= maxValueSize)
             {

@@ -849,7 +849,7 @@ public final class JsonParserImpl implements JsonParserEx
         // while rendering a decoded char-scalar (key or value), expose the unconsumed char remainder from the
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
-        return charScalar()
+        return charScalar() && stringViewOffset > 0
             ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
             : tokenizer.stringView();
     }
