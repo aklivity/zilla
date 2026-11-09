@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
@@ -404,6 +405,7 @@ public final class EngineBench implements AutoCloseable
                 .streamId(initialId)
                 .sequence(begin.sequence())
                 .acknowledge(begin.acknowledge())
+                .state(StreamState.closeInitial(StreamState.abortingInitial(StreamState.openInitial(0))))
                 .maximum(begin.maximum())
                 .traceId(begin.traceId())
                 .build();
@@ -442,18 +444,13 @@ public final class EngineBench implements AutoCloseable
 
     public final class Client implements MessageConsumer
     {
-        private static final int INITIAL_CLOSED = 1;
-        private static final int REPLY_CLOSED = 2;
-        private static final int CLOSED = INITIAL_CLOSED | REPLY_CLOSED;
-        private static final int FAILED = 4;
-        private static final int REPLY_OPENED = 8;
-
         private final MessageConsumer inbound = this::onInbound;
         private final DataFW dataRO = new DataFW();
         private final WindowFW windowRO = new WindowFW();
 
         private MessageConsumer reply;
         private int state;
+        private boolean failed;
         private long originId;
         private long routedId;
         private long initialId;
@@ -524,7 +521,7 @@ public final class EngineBench implements AutoCloseable
         {
             final long deadline = System.nanoTime() + TIMEOUT_NANOS;
 
-            while ((state & REPLY_CLOSED) == 0)
+            while (!StreamState.replyClosed(state))
             {
                 poll();
                 checkProgress(deadline);
@@ -555,12 +552,15 @@ public final class EngineBench implements AutoCloseable
             int offset,
             int length)
         {
+            state = StreamState.openInitial(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .affinity(0L)
                 .extension(extension, offset, length)
@@ -591,6 +591,7 @@ public final class EngineBench implements AutoCloseable
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .budgetId(0L)
                 .reserved(length + initialPad)
@@ -609,6 +610,7 @@ public final class EngineBench implements AutoCloseable
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(StreamState.closeInitial(state))
                 .maximum(initialMax)
                 .build();
 
@@ -617,16 +619,21 @@ public final class EngineBench implements AutoCloseable
 
         public void abort()
         {
+            state = StreamState.abortingInitial(state);
+
             final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(StreamState.closeInitial(state))
                 .maximum(initialMax)
                 .build();
 
             accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+
+            state = StreamState.abortingReply(state);
 
             final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -634,11 +641,12 @@ public final class EngineBench implements AutoCloseable
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(StreamState.closeReply(state))
                 .maximum(replyMax)
                 .build();
 
             write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-            close(REPLY_CLOSED);
+            closeReply();
         }
 
         public void replyWindow(
@@ -647,7 +655,7 @@ public final class EngineBench implements AutoCloseable
             replyMax = maximum;
             replyAck = replySeq;
 
-            if ((state & REPLY_OPENED) != 0)
+            if (StreamState.replyOpening(state))
             {
                 doReplyWindow();
             }
@@ -677,7 +685,7 @@ public final class EngineBench implements AutoCloseable
 
             if (msgTypeId == EndFW.TYPE_ID || msgTypeId == AbortFW.TYPE_ID)
             {
-                close(INITIAL_CLOSED);
+                closeInitial();
             }
         }
 
@@ -688,6 +696,7 @@ public final class EngineBench implements AutoCloseable
         {
             this.reply = reply;
             this.state = 0;
+            this.failed = false;
             this.originId = routedId;
             this.routedId = routedId;
             this.initialId = initialId;
@@ -711,7 +720,7 @@ public final class EngineBench implements AutoCloseable
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                state |= REPLY_OPENED;
+                state = StreamState.openingReply(state);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
@@ -744,15 +753,17 @@ public final class EngineBench implements AutoCloseable
                 }
                 break;
             case EndFW.TYPE_ID:
-                close(REPLY_CLOSED);
+                closeReply();
                 break;
             case AbortFW.TYPE_ID:
-                state |= FAILED;
-                close(REPLY_CLOSED);
+                failed = true;
+                state = StreamState.abortingReply(state);
+                closeReply();
                 break;
             case ResetFW.TYPE_ID:
-                state |= FAILED;
-                close(CLOSED);
+                failed = true;
+                state = StreamState.abortingInitial(state);
+                closeStream();
                 break;
             default:
                 break;
@@ -762,7 +773,7 @@ public final class EngineBench implements AutoCloseable
         private void checkProgress(
             long deadline)
         {
-            if ((state & FAILED) != 0)
+            if (failed)
             {
                 throw new IllegalStateException("stream rejected by engine");
             }
@@ -775,12 +786,15 @@ public final class EngineBench implements AutoCloseable
 
         private void doReplyWindow()
         {
+            state = StreamState.openReply(state);
+
             final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(replyMax)
                 .budgetId(0L)
                 .padding(0)
@@ -789,13 +803,37 @@ public final class EngineBench implements AutoCloseable
             write(window.typeId(), window.buffer(), window.offset(), window.sizeof());
         }
 
-        private void close(
-            int closed)
+        private void closeInitial()
         {
-            final int opened = state;
-            state |= closed;
+            final boolean closed = StreamState.closed(state);
 
-            if ((opened & CLOSED) != CLOSED && (state & CLOSED) == CLOSED)
+            state = StreamState.closeInitial(state);
+
+            release(closed);
+        }
+
+        private void closeReply()
+        {
+            final boolean closed = StreamState.closed(state);
+
+            state = StreamState.closeReply(state);
+
+            release(closed);
+        }
+
+        private void closeStream()
+        {
+            final boolean closed = StreamState.closed(state);
+
+            state = StreamState.closeReply(StreamState.closeInitial(state));
+
+            release(closed);
+        }
+
+        private void release(
+            boolean closed)
+        {
+            if (!closed && StreamState.closed(state))
             {
                 streamsById.remove(replyId);
                 throttlesById.remove(initialId);

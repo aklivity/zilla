@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
@@ -81,9 +82,6 @@ public final class Reflector implements BindingHandler
 
     private final class ReflectorStream
     {
-        private static final int INITIAL_CLOSED = 1;
-        private static final int REPLY_CLOSED = 2;
-
         private final MessageConsumer consumer = this::onMessage;
 
         private MessageConsumer sender;
@@ -131,6 +129,7 @@ public final class Reflector implements BindingHandler
                 this.routedId = begin.routedId();
                 this.initialId = begin.streamId();
                 this.replyId = initialId & ~1L;
+                state = StreamState.openInitial(state);
                 doReplyBegin();
                 break;
             case DataFW.TYPE_ID:
@@ -145,15 +144,16 @@ public final class Reflector implements BindingHandler
                 replyAck = window.acknowledge();
                 replyMax = window.maximum();
                 replyPad = window.padding();
+                state = StreamState.openReply(state);
                 doInitialWindow();
                 break;
             case EndFW.TYPE_ID:
                 doReplyEnd();
-                close(INITIAL_CLOSED | REPLY_CLOSED);
+                closeStream();
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
-                close(INITIAL_CLOSED | REPLY_CLOSED);
+                closeStream();
                 break;
             default:
                 break;
@@ -182,6 +182,7 @@ public final class Reflector implements BindingHandler
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
+                    .state(state)
                     .maximum(initialMax)
                     .budgetId(0L)
                     .padding(replyPad)
@@ -193,12 +194,15 @@ public final class Reflector implements BindingHandler
 
         private void doReplyBegin()
         {
+            state = StreamState.openingReply(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
                 .routedId(originId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .affinity(0L)
                 .build();
@@ -217,6 +221,7 @@ public final class Reflector implements BindingHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .flags(flags)
                 .budgetId(0L)
@@ -231,25 +236,28 @@ public final class Reflector implements BindingHandler
 
         private void doReplyEnd()
         {
+            state = StreamState.closeReply(state);
+
             final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
                 .routedId(originId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .build();
 
             sender.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
         }
 
-        private void close(
-            int closed)
+        private void closeStream()
         {
-            final int opened = state;
-            state |= closed;
+            final boolean closed = StreamState.closed(state);
 
-            if (opened != (INITIAL_CLOSED | REPLY_CLOSED) && state == (INITIAL_CLOSED | REPLY_CLOSED))
+            state = StreamState.closeReply(StreamState.closeInitial(state));
+
+            if (!closed && StreamState.closed(state))
             {
                 idleStreams.offer(this);
             }

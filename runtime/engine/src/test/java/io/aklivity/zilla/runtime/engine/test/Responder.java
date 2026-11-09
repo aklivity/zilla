@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
@@ -147,9 +148,6 @@ public final class Responder implements BindingHandler
 
     private final class ResponderStream
     {
-        private static final int INITIAL_CLOSED = 1;
-        private static final int REPLY_CLOSED = 2;
-
         private final MessageConsumer consumer = this::onMessage;
 
         private MessageConsumer sender;
@@ -197,6 +195,7 @@ public final class Responder implements BindingHandler
                 this.routedId = begin.routedId();
                 this.initialId = begin.streamId();
                 this.replyId = initialId & ~1L;
+                state = StreamState.openInitial(state);
                 doInitialWindow();
                 onTrigger(Trigger.BEGIN);
                 break;
@@ -212,6 +211,7 @@ public final class Responder implements BindingHandler
                 replyAck = windowFW.acknowledge();
                 replyMax = windowFW.maximum();
                 replyPad = windowFW.padding();
+                state = StreamState.openReply(state);
                 if (step != 0)
                 {
                     doReply();
@@ -219,11 +219,11 @@ public final class Responder implements BindingHandler
                 break;
             case EndFW.TYPE_ID:
                 onTrigger(Trigger.END);
-                close(INITIAL_CLOSED);
+                closeInitial();
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
-                close(INITIAL_CLOSED | REPLY_CLOSED);
+                closeStream();
                 break;
             default:
                 break;
@@ -267,9 +267,12 @@ public final class Responder implements BindingHandler
 
             if (step == sections + 1)
             {
+                final boolean closed = StreamState.closed(state);
+
                 doReplyEnd();
                 step++;
-                close(REPLY_CLOSED);
+
+                release(closed);
             }
         }
 
@@ -286,6 +289,7 @@ public final class Responder implements BindingHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialSeq)
+                .state(state)
                 .maximum(window)
                 .budgetId(0L)
                 .padding(0)
@@ -296,12 +300,15 @@ public final class Responder implements BindingHandler
 
         private void doReplyBegin()
         {
+            state = StreamState.openingReply(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
                 .routedId(originId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .affinity(0L)
                 .extension(response.beginEx, 0, response.beginEx.capacity())
@@ -325,6 +332,7 @@ public final class Responder implements BindingHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .flags(first | last)
                 .budgetId(0L)
@@ -340,12 +348,15 @@ public final class Responder implements BindingHandler
 
         private void doReplyEnd()
         {
+            state = StreamState.closeReply(state);
+
             final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
                 .routedId(originId)
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
+                .state(state)
                 .maximum(0)
                 .extension(response.endEx, 0, response.endEx.capacity())
                 .build();
@@ -353,13 +364,28 @@ public final class Responder implements BindingHandler
             sender.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
         }
 
-        private void close(
-            int closed)
+        private void closeInitial()
         {
-            final int opened = state;
-            state |= closed;
+            final boolean closed = StreamState.closed(state);
 
-            if (opened != (INITIAL_CLOSED | REPLY_CLOSED) && state == (INITIAL_CLOSED | REPLY_CLOSED))
+            state = StreamState.closeInitial(state);
+
+            release(closed);
+        }
+
+        private void closeStream()
+        {
+            final boolean closed = StreamState.closed(state);
+
+            state = StreamState.closeReply(StreamState.closeInitial(state));
+
+            release(closed);
+        }
+
+        private void release(
+            boolean closed)
+        {
+            if (!closed && StreamState.closed(state))
             {
                 idleStreams.offer(this);
             }
