@@ -16,7 +16,9 @@
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,6 +41,7 @@ import org.junit.rules.TemporaryFolder;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
@@ -149,6 +152,7 @@ public class TargetTest
             .streamId(REPLY_ID)
             .sequence(0L)
             .acknowledge(0L)
+            .state(StreamState.openingReply(0))
             .maximum(0)
             .affinity(0L)
             .build();
@@ -185,6 +189,7 @@ public class TargetTest
             .streamId(streamId)
             .sequence(0L)
             .acknowledge(0L)
+            .state(isInitial(streamId) ? StreamState.closeInitial(0) : StreamState.closeReply(0))
             .maximum(0)
             .build();
     }
@@ -199,6 +204,7 @@ public class TargetTest
             .streamId(streamId)
             .sequence(0L)
             .acknowledge(0L)
+            .state(abortedState(streamId))
             .maximum(0)
             .build();
     }

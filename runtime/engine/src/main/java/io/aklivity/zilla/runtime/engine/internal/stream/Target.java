@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -350,6 +351,7 @@ public final class Target implements AutoCloseable
                 .streamId(streamId)
                 .sequence(Long.MAX_VALUE)
                 .acknowledge(0L)
+                .state(abortedState(streamId))
                 .maximum(0)
                 .build();
 

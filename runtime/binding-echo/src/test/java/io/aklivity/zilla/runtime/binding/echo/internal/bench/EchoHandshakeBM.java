@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 @State(Scope.Benchmark)
@@ -113,6 +114,7 @@ public class EchoHandshakeBM
             .streamId(0L)
             .sequence(0L)
             .acknowledge(0L)
+            .state(StreamState.openInitial(0))
             .maximum(BUFFER_SIZE)
             .traceId(0L)
             .authorization(0L)
@@ -130,6 +132,7 @@ public class EchoHandshakeBM
                 .streamId(0L)
                 .sequence(0L)
                 .acknowledge(0L)
+                .state(StreamState.openReply(StreamState.openingReply(0)))
                 .maximum(BUFFER_SIZE)
                 .traceId(0L)
                 .budgetId(0L)

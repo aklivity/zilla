@@ -6525,6 +6525,7 @@ public final class McpServerFactory implements McpStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         long traceId,
         long authorization,
         long affinity,
@@ -6536,6 +6537,7 @@ public final class McpServerFactory implements McpStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(0)
             .traceId(traceId)
             .authorization(authorization)
@@ -6642,7 +6644,8 @@ public final class McpServerFactory implements McpStreamFactory
             BeginFW begin)
         {
             final long authorization = begin.authorization();
-            doRedirect(sender, originId, routedId, streamId, sequence, acknowledge, traceId, authorization,
+            doRedirect(sender, originId, routedId, streamId, sequence, acknowledge,
+                StreamState.closeInitial(StreamState.openingInitial(0)), traceId, authorization,
                 sessionIdAffinity.applyAsLong(sessionId), extension);
         }
     }

@@ -63,6 +63,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -204,6 +205,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(INITIAL_ID)
             .sequence(0)
             .acknowledge(0)
+            .state(StreamState.openInitial(0))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -236,6 +238,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(INITIAL_ID)
             .sequence(0)
             .acknowledge(0)
+            .state(StreamState.openInitial(0))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -268,6 +271,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(0)
+            .state(openedState(streamId))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -292,6 +296,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(acknowledge)
+            .state(openedState(streamId))
             .maximum(maximum)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -312,6 +317,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(0)
+            .state(closedState(streamId))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -330,6 +336,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(0)
+            .state(abortedState(streamId))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -349,6 +356,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(0)
+            .state(0)
             .maximum(0)
             .traceId(1L)
             .cancelId(0L)
@@ -373,6 +381,7 @@ public class McpKafkaProxyFactoryTest
             .streamId(streamId)
             .sequence(0)
             .acknowledge(0)
+            .state(openedState(streamId))
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
@@ -383,6 +392,36 @@ public class McpKafkaProxyFactoryTest
             .build();
 
         stream.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private static boolean isInitial(
+        long streamId)
+    {
+        return (streamId & 1L) != 0L;
+    }
+
+    private static int openedState(
+        long streamId)
+    {
+        return isInitial(streamId)
+            ? StreamState.openInitial(0)
+            : StreamState.openReply(StreamState.openingReply(0));
+    }
+
+    private static int closedState(
+        long streamId)
+    {
+        return isInitial(streamId)
+            ? StreamState.closeInitial(StreamState.openInitial(0))
+            : StreamState.closeReply(StreamState.openReply(StreamState.openingReply(0)));
+    }
+
+    private static int abortedState(
+        long streamId)
+    {
+        return isInitial(streamId)
+            ? StreamState.closeInitial(StreamState.abortingInitial(StreamState.openInitial(0)))
+            : StreamState.closeReply(StreamState.abortingReply(StreamState.openingReply(0)));
     }
 
     private MessageConsumer captureKafkaSender()

@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -144,6 +145,7 @@ public final class EchoServerFactory implements BindingHandler
         private final Deque<PendingEcho> pending;
 
         private PendingEcho active;
+        private int state;
 
         private EchoServer(
             MessageConsumer receiver,
@@ -218,7 +220,10 @@ public final class EchoServerFactory implements BindingHandler
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            doBegin(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+            state = StreamState.openInitial(state);
+            state = StreamState.openingReply(state);
+
+            doBegin(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum, traceId,
                     authorization, affinity, extension);
         }
 
@@ -240,7 +245,7 @@ public final class EchoServerFactory implements BindingHandler
 
             if (pipeline == null)
             {
-                doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+                doData(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum, traceId,
                         authorization, flags, budgetId, reserved, payload, extension);
             }
             else
@@ -290,8 +295,9 @@ public final class EchoServerFactory implements BindingHandler
             {
                 pipeline.reset();
                 active = null;
+                state = StreamState.closeReply(state);
                 doEnd(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
-                        message.maximum, message.traceId, message.authorization, EMPTY_OCTETS);
+                        state, message.maximum, message.traceId, message.authorization, EMPTY_OCTETS);
                 processNext();
             }
             else if (status == ModelStatus.COMPLETE)
@@ -299,7 +305,7 @@ public final class EchoServerFactory implements BindingHandler
                 pipeline.reset();
                 active = null;
                 doData(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
-                        message.maximum, message.traceId, message.authorization, message.flags, message.budgetId,
+                        state, message.maximum, message.traceId, message.authorization, message.flags, message.budgetId,
                         message.reserved, message.text, EMPTY_OCTETS);
                 processNext();
             }
@@ -335,7 +341,7 @@ public final class EchoServerFactory implements BindingHandler
             final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
-            doFlush(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+            doFlush(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum, traceId,
                     authorization, budgetId, reserved, extension);
         }
 
@@ -351,7 +357,10 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = end.authorization();
             final OctetsFW extension = end.extension();
 
-            doEnd(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+            state = StreamState.closeInitial(state);
+            state = StreamState.closeReply(state);
+
+            doEnd(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum, traceId,
                     authorization, extension);
         }
 
@@ -367,7 +376,10 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = abort.authorization();
             final OctetsFW extension = abort.extension();
 
-            doAbort(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+            state = StreamState.abortingInitial(StreamState.closeInitial(state));
+            state = StreamState.abortingReply(StreamState.closeReply(state));
+
+            doAbort(receiver, originId, routedId, replyId, sequence, acknowledge, state, maximum, traceId,
                     authorization, extension);
         }
 
@@ -383,7 +395,10 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = reset.authorization();
             final OctetsFW extension = reset.extension();
 
-            doReset(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
+            state = StreamState.abortingReply(StreamState.closeReply(state));
+            state = StreamState.abortingInitial(StreamState.closeInitial(state));
+
+            doReset(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum, traceId,
                     authorization, extension);
         }
 
@@ -399,7 +414,9 @@ public final class EchoServerFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            doWindow(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
+            state = StreamState.openReply(state);
+
+            doWindow(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum, traceId,
                     budgetId, padding);
         }
 
@@ -415,7 +432,7 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            doChallenge(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
+            doChallenge(receiver, originId, routedId, initialId, sequence, acknowledge, state, maximum, traceId,
                     authorization, extension);
         }
     }
@@ -479,6 +496,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -491,6 +509,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -508,6 +527,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -523,6 +543,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -543,6 +564,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -561,6 +583,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -581,6 +604,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -594,6 +618,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -612,6 +637,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -623,6 +649,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -639,6 +666,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -650,6 +678,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -666,6 +695,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -677,6 +707,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -693,6 +724,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long budgetId,
@@ -704,6 +736,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(budgetId)
@@ -720,6 +753,7 @@ public final class EchoServerFactory implements BindingHandler
         final long streamId,
         final long sequence,
         final long acknowledge,
+        final int state,
         final int maximum,
         final long traceId,
         final long authorization,
@@ -731,6 +765,7 @@ public final class EchoServerFactory implements BindingHandler
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)

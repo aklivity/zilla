@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 @State(Scope.Benchmark)
@@ -285,6 +286,7 @@ public class TlsHandshakeBM
             .streamId(initialId)
             .sequence(0L)
             .acknowledge(0L)
+            .state(StreamState.openInitial(0))
             .maximum(BUFFER_SIZE)
             .traceId(0L)
             .authorization(0L)
@@ -303,6 +305,7 @@ public class TlsHandshakeBM
                 .streamId(replyId)
                 .sequence(0L)
                 .acknowledge(0L)
+                .state(StreamState.openReply(0))
                 .maximum(BUFFER_SIZE)
                 .traceId(0L)
                 .budgetId(0L)

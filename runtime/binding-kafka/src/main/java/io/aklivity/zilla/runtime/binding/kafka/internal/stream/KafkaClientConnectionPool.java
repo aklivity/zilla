@@ -504,6 +504,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(0)
             .maximum(0)
             .traceId(traceId)
             .cancelId(0)
