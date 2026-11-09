@@ -364,6 +364,102 @@ class JsonParserStringViewTest
     }
 
     @Test
+    void shouldGiveBackADeclinedFragmentToTheCaller()
+    {
+        final byte[] first = "{\"a\":\"abcdefghij".getBytes(UTF_8);
+        final JsonParserEx windowed = JsonEx.createParser();
+
+        windowed.wrap(new UnsafeBufferEx(first), 0, first.length, false);
+
+        assertEquals(JsonEvent.START_DOCUMENT, windowed.nextEvent());
+        assertEquals(JsonEvent.START_OBJECT, windowed.nextEvent());
+        assertEquals(JsonEvent.KEY_NAME, windowed.nextEvent());
+        assertEquals(JsonEvent.VALUE_STRING, windowed.nextEvent());
+        assertTrue(windowed.deferredBytes());
+        assertEquals("abcdefghij", windowed.getStringView().toString());
+
+        windowed.consumed(4);
+
+        assertEquals("efghij", windowed.getStringView().toString());
+        assertEquals(6, windowed.remaining());
+
+        windowed.consumed(6);
+
+        assertEquals(0, windowed.remaining());
+        assertFalse(windowed.hasNextEvent());
+    }
+
+    @Test
+    void shouldReadAgainFromTheFirstByteTheConsumerLeft()
+    {
+        final byte[] first = "{\"a\":\"abcdefghij".getBytes(UTF_8);
+        final byte[] second = "klm\"}".getBytes(UTF_8);
+        final JsonParserEx windowed = JsonEx.createParser();
+
+        windowed.wrap(new UnsafeBufferEx(first), 0, first.length, false);
+
+        while (windowed.nextEvent() != JsonEvent.VALUE_STRING)
+        {
+        }
+
+        windowed.consumed(4);
+        assertFalse(windowed.hasNextEvent());
+
+        final int left = windowed.remaining();
+        final byte[] next = new byte[left + second.length];
+        System.arraycopy(first, first.length - left, next, 0, left);
+        System.arraycopy(second, 0, next, left, second.length);
+
+        windowed.wrap(new UnsafeBufferEx(next), 0, next.length, true);
+
+        assertEquals(JsonEvent.VALUE_STRING, windowed.nextEvent());
+        assertFalse(windowed.deferredBytes());
+        assertEquals("efghijklm", windowed.getStringView().toString());
+    }
+
+    @Test
+    void shouldStarveAgainWhenADeclinedValueIsPresentedWithoutMoreBytes()
+    {
+        final byte[] first = "{\"a\":\"abcdefghij".getBytes(UTF_8);
+        final byte[] second = "klm\"}".getBytes(UTF_8);
+        final JsonParserEx windowed = JsonEx.createParser();
+
+        windowed.wrap(new UnsafeBufferEx(first), 0, first.length, false);
+
+        while (windowed.nextEvent() != JsonEvent.VALUE_STRING)
+        {
+        }
+
+        windowed.consumed(0);
+        assertFalse(windowed.hasNextEvent());
+
+        final int left = windowed.remaining();
+        final byte[] same = new byte[left];
+        System.arraycopy(first, first.length - left, same, 0, left);
+
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            windowed.wrap(new UnsafeBufferEx(same), 0, same.length, false);
+
+            assertEquals(JsonEvent.VALUE_STRING, windowed.nextEvent());
+            assertTrue(windowed.deferredBytes());
+            windowed.consumed(0);
+            assertFalse(windowed.hasNextEvent());
+            assertEquals(left, windowed.remaining());
+        }
+
+        final byte[] next = new byte[left + second.length];
+        System.arraycopy(same, 0, next, 0, left);
+        System.arraycopy(second, 0, next, left, second.length);
+
+        windowed.wrap(new UnsafeBufferEx(next), 0, next.length, true);
+
+        assertEquals(JsonEvent.VALUE_STRING, windowed.nextEvent());
+        assertFalse(windowed.deferredBytes());
+        assertEquals("abcdefghijklm", windowed.getStringView().toString());
+    }
+
+    @Test
     void shouldNotAllocateToDeliverAString()
     {
         final StringBuilder value = new StringBuilder();

@@ -203,8 +203,25 @@ final class EncodedStringView implements JsonStringView
         return end - start;
     }
 
+    /**
+     * The offset in the buffer of the unit that holds the char at {@code charIndex}: the start of the pair when the
+     * char is the second half of a raw four-byte sequence.
+     */
+    int floorOffsetOf(
+        int charIndex)
+    {
+        return byteOffsetOf(charIndex, false);
+    }
+
     private int byteOffsetOf(
         int charIndex)
+    {
+        return byteOffsetOf(charIndex, true);
+    }
+
+    private int byteOffsetOf(
+        int charIndex,
+        boolean strict)
     {
         int result;
 
@@ -243,11 +260,18 @@ final class EncodedStringView implements JsonStringView
 
                     if (size == 4 && index + 1 == charIndex)
                     {
-                        throw new IllegalArgumentException("char " + charIndex + " is inside a four-byte sequence");
-                    }
+                        if (strict)
+                        {
+                            throw new IllegalArgumentException("char " + charIndex + " is inside a four-byte sequence");
+                        }
 
-                    result += size;
-                    index += size == 4 ? 2 : 1;
+                        index = charIndex;
+                    }
+                    else
+                    {
+                        result += size;
+                        index += size == 4 ? 2 : 1;
+                    }
                 }
             }
         }

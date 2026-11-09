@@ -103,7 +103,8 @@ class JsonValidatorStreamingTest
         byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
         assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
-        Status status = pipeline.transform(new UnsafeBufferEx(f2), 0, f2.length, false);
+        byte[] window = represent(pipeline, f1, f2);
+        Status status = pipeline.transform(new UnsafeBufferEx(window), 0, window.length, false);
 
         assertEquals(Status.REJECTED, status);
     }
@@ -121,7 +122,8 @@ class JsonValidatorStreamingTest
         byte[] f1 = "\"ab".getBytes(UTF_8);
         byte[] f2 = "c\"".getBytes(UTF_8);
         assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
-        Status status = pipeline.transform(new UnsafeBufferEx(f2), 0, f2.length, true);
+        byte[] window = represent(pipeline, f1, f2);
+        Status status = pipeline.transform(new UnsafeBufferEx(window), 0, window.length, true);
 
         assertEquals(Status.COMPLETED, status);
         byte[] out = new byte[gen.length()];
@@ -142,9 +144,25 @@ class JsonValidatorStreamingTest
         byte[] f1 = "\"abcde".getBytes(UTF_8);
         byte[] f2 = "fghij\"".getBytes(UTF_8);
         assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
-        Status status = pipeline.transform(new UnsafeBufferEx(f2), 0, f2.length, true);
+        byte[] window = represent(pipeline, f1, f2);
+        Status status = pipeline.transform(new UnsafeBufferEx(window), 0, window.length, true);
 
         assertEquals(Status.REJECTED, status);
+    }
+
+    // after a decline the caller re-presents what the pipeline reports as remaining, ahead of the next bytes
+    private static byte[] represent(
+        JsonPipeline pipeline,
+        byte[] previous,
+        byte[] next)
+    {
+        final int remaining = pipeline.remaining();
+        final byte[] window = new byte[remaining + next.length];
+
+        System.arraycopy(previous, previous.length - remaining, window, 0, remaining);
+        System.arraycopy(next, 0, window, remaining, next.length);
+
+        return window;
     }
 
     @Test
