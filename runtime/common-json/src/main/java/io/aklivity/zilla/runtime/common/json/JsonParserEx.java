@@ -212,7 +212,8 @@ public interface JsonParserEx extends JsonParser
      * number lexeme, or an object key — valid until the parser advances. The zero-copy peer of
      * {@link #getString()}: a streaming caller reads or matches the value (or key) without materializing a
      * {@code String}. The backing buffer is reused across events, so copy out anything needed beyond the
-     * current event. This promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
+     * current event. A string value parsed whole from the input window is a {@link JsonStringView}. This
+     * promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
      * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
     CharSequence getStringView();
