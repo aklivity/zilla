@@ -16,6 +16,7 @@
 - binding-http: circuit breaker and Retry-After handling in http\(client\) [\#2801](https://github.com/aklivity/zilla/issues/2801) ([jfallows](https://github.com/jfallows))
 - engine: typed structured configuration properties via JsonPropertyDef [\#2806](https://github.com/aklivity/zilla/issues/2806) ([jfallows](https://github.com/jfallows))
 - binding-llm: llm\(server\) resolves its route by dialect and model, as llm\(proxy\) does [\#2807](https://github.com/aklivity/zilla/issues/2807) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): atomic increment and multi-key get and delete on the store [\#2960](https://github.com/aklivity/zilla/issues/2960) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -54,6 +55,7 @@
 - fix\(binding-http\): h2c handover slot overrun and h2 client and server split reserved frames [\#2948](https://github.com/aklivity/zilla/pull/2948) ([ankitk-me](https://github.com/ankitk-me))
 - fix\(binding-http\): decline an h2c upgrade whose HTTP2-Settings are invalid and cover the upgrade fallback paths [\#2949](https://github.com/aklivity/zilla/pull/2949) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add circuitId to Begin frame [\#2951](https://github.com/aklivity/zilla/pull/2951) ([jfallows](https://github.com/jfallows))
+- feat\(engine\)!: atomic increment, replace and multi-key get and delete on the store [\#2969](https://github.com/aklivity/zilla/pull/2969) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add StreamState for the stream lifecycle bitmask [\#2983](https://github.com/aklivity/zilla/pull/2983) ([jfallows](https://github.com/jfallows))
 - refactor\(incubator\): align stream state semantics with StreamState [\#2984](https://github.com/aklivity/zilla/pull/2984) ([jfallows](https://github.com/jfallows))
 - refactor\(incubator\): migrate to engine StreamState [\#2985](https://github.com/aklivity/zilla/pull/2985) ([jfallows](https://github.com/jfallows))
@@ -94,8 +96,10 @@
 - feat\(binding-kafka\): send reply abort without a reply begin [\#3023](https://github.com/aklivity/zilla/pull/3023) ([jfallows](https://github.com/jfallows))
 - feat\(runtime\): carry the stream state in frames written by mqtt, mqtt-kafka, sse, sse-kafka, filesystem, http-filesystem and fan [\#3024](https://github.com/aklivity/zilla/pull/3024) ([jfallows](https://github.com/jfallows))
 - fix\(runtime\): tolerate a reply abort before the reply begin in mqtt, mqtt-kafka, sse, sse-kafka, filesystem, http-filesystem and fan [\#3025](https://github.com/aklivity/zilla/pull/3025) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): reduce per-request allocation in llm server, proxy and client [\#3030](https://github.com/aklivity/zilla/pull/3030) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): offer h2c upgrade on plain tcp client connections [\#3031](https://github.com/aklivity/zilla/pull/3031) ([ankitk-me](https://github.com/ankitk-me))
 - fix\(common-protobuf\): consume nested messages, packed blocks and segments across input windows [\#3033](https://github.com/aklivity/zilla/pull/3033) ([jfallows](https://github.com/jfallows))
+- test\(engine\): add EngineBench harness and echo, proxy and llm server benchmarks [\#3034](https://github.com/aklivity/zilla/pull/3034) ([jfallows](https://github.com/jfallows))
 - fix: cancel in-flight async work on detach \(classifier-presidio, binding-filesystem\) [\#3037](https://github.com/aklivity/zilla/pull/3037) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add filter.exclude to the test exporter options [\#3039](https://github.com/aklivity/zilla/pull/3039) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): saturate maxIdleCount instead of overflowing int [\#3040](https://github.com/aklivity/zilla/pull/3040) ([jfallows](https://github.com/jfallows))
@@ -104,7 +108,12 @@
 - docs\(agents\): one IT class per component, one method per scenario [\#3043](https://github.com/aklivity/zilla/pull/3043) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): keep descriptor resolution deterministic and fail on unreadable descriptors [\#3044](https://github.com/aklivity/zilla/pull/3044) ([jfallows](https://github.com/jfallows))
 - fix\(classifier-presidio\): await in-flight analyze dispatch when closing the handler [\#3046](https://github.com/aklivity/zilla/pull/3046) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): release stream ids and budget handles when streams end [\#3047](https://github.com/aklivity/zilla/pull/3047) ([jfallows](https://github.com/jfallows))
 - fix\(embedding-openai\): dispatch completions onto the worker and await them when closing the handler [\#3048](https://github.com/aklivity/zilla/pull/3048) ([jfallows](https://github.com/jfallows))
+- feat\(engine\)!: require frame state from every writer [\#3051](https://github.com/aklivity/zilla/pull/3051) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): release the reply registration when the initial stream is rejected [\#3052](https://github.com/aklivity/zilla/pull/3052) ([jfallows](https://github.com/jfallows))
+- fix\(embedding-openai\): close the HttpClient when the last embedding is detached [\#3053](https://github.com/aklivity/zilla/pull/3053) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): defer root controls while openai/ccs messages are open [\#3055](https://github.com/aklivity/zilla/pull/3055) ([ankitk-me](https://github.com/ankitk-me))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
