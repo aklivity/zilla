@@ -212,6 +212,33 @@ read  69                                             # size
 
 read notify ROUTED_LEADER
 
+write await SHARE_SESSION_CLOSED
+
+write 51                                             # size
+      76s                                            # share group heartbeat
+      1s                                             # v1
+      ${newRequestId}                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      -1                                             # member epoch
+      [0x00]                                         # rack id
+      [0x00]                                         # subscribed topic names (unchanged)
+      [0x00]                                         # tagged fields
+
+read  45                                             # size
+      (int:newRequestId)                             # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      -1                                             # member epoch
+      0                                              # heartbeat interval ms
+      [0xff]                                         # assignment (unchanged)
+      [0x00]                                         # tagged fields
+
 connect await ROUTED_LEADER
         "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
@@ -271,7 +298,7 @@ write 95                                             # size
       0                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      12                                             # max bytes
+      52428800                                       # max bytes
       500                                            # max records
       500                                            # batch size
       [0x02]                                         # topics
@@ -334,6 +361,51 @@ read  158                                            # size
       [0x01]                                         # node endpoints
       [0x00]                                         # tagged fields
 
+write 71                                             # size
+      78s                                            # share fetch
+      1s                                             # v1
+      ${newRequestId}                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      1                                              # share session epoch
+      500                                            # max wait ms
+      1                                              # min bytes
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
+      [0x01]                                         # topics
+      [0x01]                                         # forgotten topics
+      [0x00]                                         # tagged fields
+
+write notify APPLICATION_LEFT
+
+read  59                                             # size
+      (int:newRequestId)                             # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      30000                                          # acquisition lock timeout ms
+      [0x02]                                         # responses
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition index
+          0s                                         # error code
+          [0x00]                                     # error message
+          0s                                         # acknowledge error code
+          [0x00]                                     # acknowledge error message
+          0                                          # current leader id
+          0                                          # current leader epoch
+          [0x00]                                     # tagged fields
+          [0x01]                                     # records
+          [0x01]                                     # acquired records
+          [0x00]                                     # tagged fields
+        [0x00]                                       # tagged fields
+      [0x01]                                         # node endpoints
+      [0x00]                                         # tagged fields
+
 write 93                                             # size
       79s                                            # share acknowledge
       1s                                             # v1
@@ -342,7 +414,7 @@ write 93                                             # size
       [0x00]                                         # tagged fields
       [0x05] "test"                                  # group id
       [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
-      1                                              # share session epoch
+      -1                                             # share session epoch
       [0x02]                                         # topics
         [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
         [0x02]                                       # partitions
@@ -351,7 +423,7 @@ write 93                                             # size
             5L                                       # first offset
             5L                                       # last offset
             [0x02]                                   # acknowledge types
-            [0x01]                                   # accept
+            [0x02]                                   # release
             [0x00]                                   # tagged fields
           [0x00]                                     # tagged fields
         [0x00]                                       # tagged fields
@@ -376,3 +448,5 @@ read  50                                             # size
         [0x00]                                       # tagged fields
       [0x01]                                         # node endpoints
       [0x00]                                         # tagged fields
+
+read notify SHARE_SESSION_CLOSED
