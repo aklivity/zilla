@@ -100,6 +100,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaRequestB
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAckType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAcquiredFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareFlushExFW;
@@ -6219,7 +6220,6 @@ public class KafkaFunctionsTest
             .share()
                 .deferred(10)
                 .timestamp(12345678L)
-                .deliveryCount(2)
                 .partition(1, 5L)
                 .key("match")
                 .header("name", "value")
@@ -6235,7 +6235,6 @@ public class KafkaFunctionsTest
         final KafkaShareDataExFW shareDataEx = dataEx.share();
         assertEquals(10, shareDataEx.deferred());
         assertEquals(12345678L, shareDataEx.timestamp());
-        assertEquals(2, shareDataEx.deliveryCount());
 
         final KafkaOffsetFW partition = shareDataEx.partition();
         assertEquals(1, partition.partitionId());
@@ -6277,7 +6276,6 @@ public class KafkaFunctionsTest
 
         final KafkaShareDataExFW shareDataEx = dataEx.share();
         assertEquals(0, shareDataEx.deferred());
-        assertEquals(1, shareDataEx.deliveryCount());
         assertNull(shareDataEx.key().value());
         assertEquals(0, shareDataEx.headers().fieldCount());
     }
@@ -6290,7 +6288,6 @@ public class KafkaFunctionsTest
             .share()
                 .deferred(10)
                 .timestamp(12345678L)
-                .deliveryCount(2)
                 .partition(1, 5L)
                 .key("match")
                 .header("name", "value")
@@ -6303,7 +6300,6 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .share(f -> f.deferred(10)
                          .timestamp(12345678L)
-                         .deliveryCount(2)
                          .partition(p -> p.partitionId(1).partitionOffset(5L))
                          .key(k -> k.length(5)
                                     .value(v -> v.set("match".getBytes(UTF_8))))
@@ -6343,11 +6339,11 @@ public class KafkaFunctionsTest
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchShareDataExtensionDeliveryCount() throws Exception
+    public void shouldNotMatchShareDataExtensionTimestamp() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchDataEx()
             .share()
-                .deliveryCount(2)
+                .timestamp(12345678L)
                 .build()
             .build();
 
@@ -6554,6 +6550,156 @@ public class KafkaFunctionsTest
             .share(f -> f.partition(p -> p.partitionId(0).partitionOffset(0L))
                          .type(t -> t.set(KafkaShareAckType.ACCEPT))
                          .error(0))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldGenerateShareAcquiredFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .shareAcquired()
+                .partition(1)
+                .range(5L, 7L, 1)
+                .range(9L, 9L, 2)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals(KafkaApi.SHARE_ACQUIRED.value(), flushEx.kind());
+
+        final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx = flushEx.shareAcquired();
+        assertEquals(1, shareAcquiredFlushEx.partitionId());
+
+        final MutableInteger rangeCount = new MutableInteger();
+        shareAcquiredFlushEx.ranges().forEach(r -> rangeCount.value++);
+        assertEquals(2, rangeCount.value);
+        assertNotNull(shareAcquiredFlushEx.ranges()
+            .matchFirst(r -> r.firstOffset() == 5L && r.lastOffset() == 7L && r.deliveryCount() == 1));
+        assertNotNull(shareAcquiredFlushEx.ranges()
+            .matchFirst(r -> r.firstOffset() == 9L && r.lastOffset() == 9L && r.deliveryCount() == 2));
+    }
+
+    @Test
+    public void shouldGenerateShareAcquiredFlushExtensionWithoutRanges()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+            .typeId(0x01)
+            .shareAcquired()
+                .partition(0)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx = flushEx.shareAcquired();
+        assertEquals(0, shareAcquiredFlushEx.partitionId());
+        assertEquals(0, shareAcquiredFlushEx.ranges().fieldCount());
+    }
+
+    @Test
+    public void shouldMatchShareAcquiredFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .typeId(0x01)
+            .shareAcquired()
+                .partition(1)
+                .range(5L, 7L, 1)
+                .range(9L, 9L, 2)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .shareAcquired(f -> f.partitionId(1)
+                                 .rangesItem(r -> r.firstOffset(5L).lastOffset(7L).deliveryCount(1))
+                                 .rangesItem(r -> r.firstOffset(9L).lastOffset(9L).deliveryCount(2)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchShareAcquiredFlushExtensionWithoutRanges() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .shareAcquired()
+                .partition(2)
+                .none()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .shareAcquired(f -> f.partitionId(2))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchShareAcquiredFlushExtensionPartition() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .shareAcquired()
+                .partition(1)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .shareAcquired(f -> f.partitionId(0))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchShareAcquiredFlushExtensionDeliveryCount() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .shareAcquired()
+                .range(5L, 5L, 2)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .shareAcquired(f -> f.partitionId(0)
+                                 .rangesItem(r -> r.firstOffset(5L).lastOffset(5L).deliveryCount(1)))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchShareAcquiredFlushExtensionNone() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .shareAcquired()
+                .none()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .shareAcquired(f -> f.partitionId(0)
+                                 .rangesItem(r -> r.firstOffset(5L).lastOffset(5L).deliveryCount(1)))
             .build();
 
         matcher.match(byteBuf);
