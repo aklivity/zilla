@@ -504,4 +504,40 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.ack.with.reasoncode/client",
+        "${app}/subscribe.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.ack.with.reasoncode/client",
+        "${app}/subscribe.receive.message.qos2.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos2AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos1/client",
+        "${app}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/client",
+        "${app}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
 }

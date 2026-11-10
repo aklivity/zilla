@@ -150,4 +150,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/connect.shared.subscriptions.not.supported/server",
+        "${app}/session.connect.shared.subscriptions.not.supported/client"})
+    public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
 }

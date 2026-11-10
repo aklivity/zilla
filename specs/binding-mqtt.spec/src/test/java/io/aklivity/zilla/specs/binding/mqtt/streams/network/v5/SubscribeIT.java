@@ -633,4 +633,49 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos1.ack.with.reasoncode/client",
+        "${net}/subscribe.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.ack.with.reasoncode/client",
+        "${net}/subscribe.receive.message.qos2.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos2AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos1/client",
+        "${net}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/client",
+        "${net}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription.upstream/client",
+        "${net}/subscribe.shared.subscription.upstream/server"})
+    public void shouldSubscribeSharedSubscriptionUpstream() throws Exception
+    {
+        k3po.finish();
+    }
 }
