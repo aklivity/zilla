@@ -54,7 +54,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 5)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -65,7 +65,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 6)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 write zilla:data.ext ${kafka:dataEx()
@@ -76,7 +76,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 7)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 read advised zilla:flush ${kafka:matchFlushEx()

@@ -256,6 +256,17 @@ public class CacheShareIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/expire.lock.lapsed/client",
+        "${app}/member.expire.lock.lapsed/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldExpireLockLapsed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/skip.lock.margin/client",
         "${app}/member.skip.lock.margin/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

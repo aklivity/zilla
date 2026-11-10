@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,6 +44,8 @@ public class ClientShareIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(ENGINE_CLOCK_NAME,
+            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ShareFetchClock::supplyClock")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -123,6 +126,24 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/reduce.lock.timeout.delayed.response/client",
+        "${net}/reduce.lock.timeout.delayed.response/server"})
+    public void shouldReduceLockTimeoutDelayedResponse() throws Exception
+    {
+        ShareFetchClock.advanceBy(5000L);
+        try
+        {
+            k3po.finish();
+        }
+        finally
+        {
+            ShareFetchClock.freeze();
+        }
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/acknowledge.accept/client",
         "${net}/acknowledge.accept/server"})
     public void shouldAcknowledgeAccept() throws Exception
@@ -176,6 +197,16 @@ public class ClientShareIT
         "${app}/acknowledge.invalid.record.state/client",
         "${net}/acknowledge.invalid.record.state/server"})
     public void shouldAcknowledgeInvalidRecordState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/acknowledge.invalid.record.state.uncorrelated/client",
+        "${net}/acknowledge.invalid.record.state.uncorrelated/server"})
+    public void shouldAcknowledgeInvalidRecordStateUncorrelated() throws Exception
     {
         k3po.finish();
     }

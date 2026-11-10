@@ -49,7 +49,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 5)
                                  .build()
                              .build()}
-read [0..700]
+read [0..4096]
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -59,17 +59,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 6)
                                  .build()
                              .build()}
-read [0..700]
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .share()
-                                 .timestamp(1700000000000)
-                                 .deliveryCount(1)
-                                 .partition(0, 7)
-                                 .build()
-                             .build()}
-read [0..700]
+read [0..4096]
 
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
@@ -86,6 +76,16 @@ write advise zilla:flush ${kafka:flushEx()
                                  .type("ACCEPT")
                                  .build()
                              .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .share()
+                                 .timestamp(1700000000000)
+                                 .deliveryCount(1)
+                                 .partition(0, 7)
+                                 .build()
+                             .build()}
+read [0..4096]
 
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))

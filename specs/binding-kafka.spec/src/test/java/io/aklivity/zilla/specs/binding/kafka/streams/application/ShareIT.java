@@ -102,6 +102,15 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${app}/reduce.lock.timeout.delayed.response/client",
+        "${app}/reduce.lock.timeout.delayed.response/server"})
+    public void shouldReduceLockTimeoutDelayedResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/acknowledge.accept/client",
         "${app}/acknowledge.accept/server"})
     public void shouldAcknowledgeAccept() throws Exception
@@ -150,6 +159,15 @@ public class ShareIT
         "${app}/acknowledge.invalid.record.state/client",
         "${app}/acknowledge.invalid.record.state/server"})
     public void shouldAcknowledgeInvalidRecordState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/acknowledge.invalid.record.state.uncorrelated/client",
+        "${app}/acknowledge.invalid.record.state.uncorrelated/server"})
+    public void shouldAcknowledgeInvalidRecordStateUncorrelated() throws Exception
     {
         k3po.finish();
     }

@@ -363,6 +363,24 @@ public class ShareCacheIT
 
     @Test
     @Specification({
+        "${app}/expire.lock.lapsed/client",
+        "${app}/expire.lock.lapsed/server"})
+    public void shouldExpireLockLapsed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/member.expire.lock.lapsed/client",
+        "${app}/member.expire.lock.lapsed/server"})
+    public void shouldMemberExpireLockLapsed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/skip.lock.margin/client",
         "${app}/skip.lock.margin/server"})
     public void shouldSkipLockMargin() throws Exception

@@ -62,10 +62,21 @@ write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .shareAcquired()
                                  .partition(0)
-                                 .lockTimeoutMillis(0)
+                                 .lockTimeoutMillis(300)
                                  .range(5, 5, 1)
                                  .build()
                              .build()}
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                             .typeId(zilla:id("kafka"))
+                             .share()
+                                 .partition(0, 5)
+                                 .type("RELEASE")
+                                 .correlationId(-1)
+                                 .build()
+                             .build()}
+
+read notify RECORD_RELEASED
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))

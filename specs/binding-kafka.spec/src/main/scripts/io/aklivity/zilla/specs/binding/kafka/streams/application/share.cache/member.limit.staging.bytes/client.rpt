@@ -50,7 +50,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 5)
                                  .build()
                              .build()}
-read [0..700]
+read [0..4096]
 
 # acquired ranges follow the records streamed for the partition
 read advised zilla:flush ${kafka:matchFlushEx()
@@ -69,7 +69,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 6)
                                  .build()
                              .build()}
-read [0..700]
+read [0..4096]
 
 # acquired ranges follow the records streamed for the partition
 read advised zilla:flush ${kafka:matchFlushEx()
@@ -88,7 +88,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .partition(0, 7)
                                  .build()
                              .build()}
-read [0..700]
+read [0..4096]
 
 # acquired ranges follow the records streamed for the partition
 read advised zilla:flush ${kafka:matchFlushEx()

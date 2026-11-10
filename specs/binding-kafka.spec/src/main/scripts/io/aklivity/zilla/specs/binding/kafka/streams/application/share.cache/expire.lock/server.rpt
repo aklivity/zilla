@@ -46,6 +46,8 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 write flush
 
+write notify RECORD_RELEASED
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .share()
