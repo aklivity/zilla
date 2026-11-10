@@ -96,6 +96,12 @@ scope mqtt
         MqttTopicFilterV1[] subscriptions;
     }
 
+    struct MqttSessionStateV2
+    {
+        uint8 version = 2;
+        MqttTopicFilterV1[] subscriptions;
+    }
+
     enum MqttSessionSignalType (uint8)
     {
         WILL (0),
@@ -275,6 +281,7 @@ scope mqtt
             uint8 qos = 0;
             uint16 packetId = 0;
             uint8 state = 0;
+            uint8 reasonCode = 0;
             MqttTopicFilter[] filters;
         }
 

@@ -35,6 +35,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV2FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
@@ -1380,6 +1381,28 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeFlushExReasonCode()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .qos("EXACTLY_ONCE")
+                .packetId(1)
+                .state("COMPLETE")
+                .reasonCode(0x83)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, mqttFlushEx.subscribe().packetId());
+        assertEquals(2, mqttFlushEx.subscribe().qos());
+        assertEquals(0, mqttFlushEx.subscribe().state());
+        assertEquals(0x83, mqttFlushEx.subscribe().reasonCode());
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeFlushExSharedFilter()
     {
         final byte[] array = MqttFunctions.flushEx()
@@ -1486,7 +1509,7 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateV1FW sessionState = new MqttSessionStateV1FW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(1, sessionState.version());
         assertNotNull(sessionState.subscriptions()
@@ -1506,8 +1529,9 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateV2FW sessionState = new MqttSessionStateV2FW().wrap(buffer, 0, buffer.capacity());
 
+        assertEquals(2, sessionState.version());
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
@@ -1549,6 +1573,32 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSessionStateNonSharedAsVersion2()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        final byte[] expected = MqttFunctions.sessionV1()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+        expected[0] = 2;
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateEmptyAsVersion2()
+    {
+        final byte[] array = MqttFunctions.session().build();
+
+        final byte[] expected = MqttFunctions.sessionV1().build();
+        expected[0] = 2;
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
     public void shouldEncodeMqttSessionStateSharedSubscription()
     {
         final byte[] array = MqttFunctions.session()
@@ -1559,7 +1609,7 @@ public class MqttFunctionsTest
         DirectBufferEx buffer = new UnsafeBufferEx(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(2, sessionState.version());
+        assertEquals(3, sessionState.version());
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&

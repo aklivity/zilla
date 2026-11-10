@@ -45,6 +45,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV2FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
@@ -859,6 +860,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeFlushExBuilder reasonCode(
+                int reasonCode)
+            {
+                subscribeFlushExRW.reasonCode(reasonCode);
+                return this;
+            }
+
             public MqttSubscribeFlushExBuilder filter(
                 String topic,
                 int id)
@@ -968,17 +976,24 @@ public final class MqttFunctions
     public static final class MqttSessionStateBuilder
     {
         private final MqttSessionStateFW.Builder sessionStateRW = new MqttSessionStateFW.Builder();
+        private final MqttSessionStateV2FW.Builder sessionStateV2RW = new MqttSessionStateV2FW.Builder();
+
+        private boolean shared;
 
         private MqttSessionStateBuilder()
         {
             MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+
+            MutableDirectBufferEx writeV2Buffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            sessionStateV2RW.wrap(writeV2Buffer, 0, writeV2Buffer.capacity());
         }
 
         public MqttSessionStateBuilder version(
             int version)
         {
             sessionStateRW.version(version);
+            sessionStateV2RW.version(version);
             return this;
         }
 
@@ -986,6 +1001,7 @@ public final class MqttFunctions
             String pattern)
         {
             sessionStateRW.subscriptionsItem(f -> f.pattern(pattern));
+            sessionStateV2RW.subscriptionsItem(f -> f.pattern(pattern));
             return this;
         }
 
@@ -994,6 +1010,7 @@ public final class MqttFunctions
             int id)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).pattern(pattern));
+            sessionStateV2RW.subscriptionsItem(f -> f.subscriptionId(id).pattern(pattern));
             return this;
         }
 
@@ -1003,6 +1020,7 @@ public final class MqttFunctions
             int reasonCode)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
+            sessionStateV2RW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 
@@ -1019,6 +1037,8 @@ public final class MqttFunctions
             int qos = MqttQoS.valueOf(qosName).ordinal();
             sessionStateRW.subscriptionsItem(f -> f
                 .subscriptionId(id).qos(qos).flags(flags).reasonCode(reasonCode).pattern(pattern));
+            sessionStateV2RW.subscriptionsItem(f -> f
+                .subscriptionId(id).qos(qos).flags(flags).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 
@@ -1033,6 +1053,7 @@ public final class MqttFunctions
                 .reduce(0, (a, b) -> a | b);
             int qos = MqttQoS.valueOf(qosName).ordinal();
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).qos(qos).flags(flags).pattern(pattern));
+            sessionStateV2RW.subscriptionsItem(f -> f.subscriptionId(id).qos(qos).flags(flags).pattern(pattern));
             return this;
         }
 
@@ -1053,14 +1074,25 @@ public final class MqttFunctions
                 .flags(flags)
                 .pattern(pattern)
                 .shareName(shareName));
+            this.shared = true;
             return this;
         }
 
         public byte[] build()
         {
-            final MqttSessionStateFW sessionState = sessionStateRW.build();
-            final byte[] array = new byte[sessionState.sizeof()];
-            sessionState.buffer().getBytes(sessionState.offset(), array);
+            final byte[] array;
+            if (shared)
+            {
+                final MqttSessionStateFW sessionState = sessionStateRW.build();
+                array = new byte[sessionState.sizeof()];
+                sessionState.buffer().getBytes(sessionState.offset(), array);
+            }
+            else
+            {
+                final MqttSessionStateV2FW sessionState = sessionStateV2RW.build();
+                array = new byte[sessionState.sizeof()];
+                sessionState.buffer().getBytes(sessionState.offset(), array);
+            }
             return array;
         }
     }
