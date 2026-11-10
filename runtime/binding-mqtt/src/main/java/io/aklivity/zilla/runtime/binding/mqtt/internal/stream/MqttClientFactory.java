@@ -105,7 +105,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionFlags;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
@@ -268,6 +270,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private final MqttBeginExFW.Builder mqttSessionBeginExRW = new MqttBeginExFW.Builder();
     private final MqttDataExFW.Builder mqttPublishDataExRW = new MqttDataExFW.Builder();
+    private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
+    private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
     private final MqttWillV5FW.Builder willMessageRW = new MqttWillV5FW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
@@ -348,7 +352,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx dataExtBuffer;
-    private final MqttSessionStateCodec sessionStateCodec;
+    private final MutableDirectBufferEx sessionStateBuffer;
     private final MutableDirectBufferEx payloadBuffer;
     private final MutableDirectBufferEx propertyBuffer;
     private final MutableDirectBufferEx userPropertiesBuffer;
@@ -385,7 +389,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.sessionStateCodec = new MqttSessionStateCodec(writeBuffer.capacity());
+        this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -1028,17 +1032,12 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 if (!existSubscribeStream)
                 {
-                    final MqttSessionStateCodec state = sessionStateCodec.begin();
-                    client.sessionStream.subscriptions.forEach(s -> s.appendTo(state));
-
                     final Subscription adminSubscription = new Subscription().withTopicFilter(null, mqttPublishHeader.topic);
                     adminSubscription.id = subscriptionId;
                     adminSubscription.qos = mqttPublishHeader.qos;
                     client.sessionStream.subscriptions.add(adminSubscription);
 
-                    adminSubscription.appendTo(state);
-
-                    final Flyweight sessionState = state.build();
+                    final MqttSessionStateFW sessionState = sessionState(client.sessionStream.subscriptions);
                     client.sessionStream.doSessionData(traceId, authorization, sessionState.sizeof(), EMPTY_OCTETS, sessionState);
                 }
 
@@ -1173,6 +1172,23 @@ public final class MqttClientFactory implements MqttStreamFactory
         }
 
         return progress;
+    }
+
+    private MqttSessionStateFW sessionState(
+        List<Subscription> subscriptions)
+    {
+        mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
+
+        if (subscriptions.stream().anyMatch(Subscription::shared))
+        {
+            mqttSessionStateRW.sessionStateV2(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilter)));
+        }
+        else
+        {
+            mqttSessionStateRW.sessionStateV1(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilterV1)));
+        }
+
+        return mqttSessionStateRW.build();
     }
 
     private boolean invalidUtf8(
@@ -1916,11 +1932,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             final int decodeLimit = decodePayload.limit();
 
             final List<Subscription> unackedSubscriptions = sessionStream.unAckedSubscriptionsByPacketId.remove(packetId);
-            final MqttSessionStateCodec state = sessionStateCodec.begin();
-
-            sessionStream.subscriptions.stream()
+            final List<Subscription> state = sessionStream.subscriptions.stream()
                 .filter(s -> !unackedSubscriptions.contains(s))
-                .forEach(s -> s.appendTo(state));
+                .collect(Collectors.toList());
 
             int i = 0;
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
@@ -1933,9 +1947,9 @@ public final class MqttClientFactory implements MqttStreamFactory
                 }
                 decodeProgress = subackPayload.limit();
 
-                unackedSubscriptions.get(i++).appendTo(state, subackPayload.reasonCode());
+                state.add(unackedSubscriptions.get(i++).withReasonCode(subackPayload.reasonCode()));
             }
-            final Flyweight sessionState = state.build();
+            final MqttSessionStateFW sessionState = sessionState(state);
             sessionStream.doSessionData(traceId, authorization, sessionState.sizeof(), EMPTY_OCTETS, sessionState);
 
             progress = suback.limit();
@@ -1960,8 +1974,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final List<Subscription> unackedSubscriptions = sessionStream.unAckedSubscriptionsByPacketId.remove(packetId);
             sessionStream.subscriptions.removeAll(unackedSubscriptions);
 
-            final MqttSessionStateCodec state = sessionStateCodec.begin();
-            sessionStream.subscriptions.forEach(s -> s.appendTo(state));
+            final List<Subscription> state = new ArrayList<>(sessionStream.subscriptions);
 
             int i = 0;
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
@@ -1977,11 +1990,11 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final int reasonCode = unsubackPayload.reasonCode();
                 if (reasonCode != SUCCESS)
                 {
-                    unackedSubscriptions.get(i).appendTo(state, reasonCode);
+                    state.add(unackedSubscriptions.get(i).withReasonCode(reasonCode));
                 }
                 i++;
             }
-            final Flyweight sessionState = state.build();
+            final MqttSessionStateFW sessionState = sessionState(state);
             sessionStream.doSessionData(traceId, authorization, sessionState.sizeof(), EMPTY_OCTETS, sessionState);
 
             progress = unsuback.limit();
@@ -3234,18 +3247,24 @@ public final class MqttClientFactory implements MqttStreamFactory
             int limit)
         {
             final List<Subscription> newSubscribeState = new ArrayList<>();
-            final boolean decoded = sessionStateCodec.decode(buffer, offset, limit,
-                (subscriptionId, qos, flags, reasonCode, pattern, shareName) ->
-                {
-                    Subscription subscription = new Subscription().withTopicFilter(shareName, pattern);
-                    subscription.id = subscriptionId;
-                    subscription.flags = flags;
-                    subscription.qos = qos;
-                    newSubscribeState.add(subscription);
-                });
+            final MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
 
-            if (decoded)
+            if (sessionState != null)
             {
+                switch (sessionState.kind())
+                {
+                case V1:
+                    sessionState.sessionStateV1().subscriptions().forEach(filter ->
+                        newSubscribeState.add(new Subscription().withFilter(null, filter.pattern().asString(),
+                            (int) filter.subscriptionId(), filter.qos(), filter.flags())));
+                    break;
+                case V2:
+                    sessionState.sessionStateV2().subscriptions().forEach(filter ->
+                        newSubscribeState.add(new Subscription().withFilter(filter.shareName().asString(),
+                            filter.pattern().asString(), (int) filter.subscriptionId(), filter.qos(), filter.flags())));
+                    break;
+                }
+
                 final List<Subscription> newSubscriptions = newSubscribeState.stream()
                     .filter(s -> !subscriptions.contains(s))
                     .collect(Collectors.toList());
@@ -4552,17 +4571,52 @@ public final class MqttClientFactory implements MqttStreamFactory
             return this;
         }
 
-        private MqttSessionStateCodec appendTo(
-            MqttSessionStateCodec state)
+        private Subscription withFilter(
+            String shareName,
+            String pattern,
+            int id,
+            int qos,
+            int flags)
         {
-            return appendTo(state, 0);
+            this.id = id;
+            this.qos = qos;
+            this.flags = flags;
+            return withTopicFilter(shareName, pattern);
         }
 
-        private MqttSessionStateCodec appendTo(
-            MqttSessionStateCodec state,
+        private Subscription withReasonCode(
             int reasonCode)
         {
-            return state.subscription(id, qos, flags, reasonCode, pattern(), shareName());
+            final Subscription subscription = new Subscription();
+            subscription.id = id;
+            subscription.filter = filter;
+            subscription.qos = qos;
+            subscription.flags = flags;
+            subscription.reasonCode = reasonCode;
+            return subscription;
+        }
+
+        private MqttTopicFilterFW.Builder asTopicFilter(
+            MqttTopicFilterFW.Builder builder)
+        {
+            return builder
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .reasonCode(reasonCode)
+                .pattern(pattern())
+                .shareName(shareName());
+        }
+
+        private MqttTopicFilterV1FW.Builder asTopicFilterV1(
+            MqttTopicFilterV1FW.Builder builder)
+        {
+            return builder
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .reasonCode(reasonCode)
+                .pattern(pattern());
         }
 
         @Override
