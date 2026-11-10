@@ -180,6 +180,7 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            SHARE_ACQUIRED (246),
             SHARE (247),
             API_REQUEST (248),
             API_RESPONSE (249),
@@ -237,6 +238,7 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 246: kafka::stream::KafkaShareAcquiredFlushEx shareAcquired;
             case 247: kafka::stream::KafkaShareFlushEx share;
             case 248: kafka::stream::KafkaApiFlushEx apiFlush;
             case 252: kafka::stream::KafkaConsumerFlushEx consumer;
@@ -460,7 +462,6 @@ scope kafka
         {
             int32 deferred = 0;                             // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;                            // INIT only
-            int32 deliveryCount = 1;                        // INIT only
             KafkaOffset partition;                          // INIT only
             KafkaKey key;                                   // INIT only
             KafkaHeader[] headers;                          // FIN only
@@ -472,6 +473,19 @@ scope kafka
             KafkaShareAckType type;
             int64 correlationId = -1;
             int32 error = 0;
+        }
+
+        struct KafkaShareAcquiredRange
+        {
+            int64 firstOffset;
+            int64 lastOffset;
+            int32 deliveryCount = 1;
+        }
+
+        struct KafkaShareAcquiredFlushEx
+        {
+            int32 partitionId;
+            KafkaShareAcquiredRange[] ranges;
         }
 
         struct KafkaProduceFlushEx

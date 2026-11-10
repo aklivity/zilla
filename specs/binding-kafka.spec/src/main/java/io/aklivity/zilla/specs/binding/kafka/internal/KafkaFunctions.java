@@ -124,6 +124,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResource
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResourceStatusFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAckType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAcquiredFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareAcquiredRangeFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaShareFlushExFW;
@@ -3457,13 +3459,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaShareDataExBuilder deliveryCount(
-                int deliveryCount)
-            {
-                shareDataExRW.deliveryCount(deliveryCount);
-                return this;
-            }
-
             public KafkaShareDataExBuilder partition(
                 int partitionId,
                 long partitionOffset)
@@ -3895,6 +3890,13 @@ public final class KafkaFunctions
             flushExRW.kind(KafkaApi.SHARE.value());
 
             return new KafkaShareFlushExBuilder();
+        }
+
+        public KafkaShareAcquiredFlushExBuilder shareAcquired()
+        {
+            flushExRW.kind(KafkaApi.SHARE_ACQUIRED.value());
+
+            return new KafkaShareAcquiredFlushExBuilder();
         }
 
         public KafkaGroupFlushExBuilder group()
@@ -4405,6 +4407,41 @@ public final class KafkaFunctions
             {
                 final KafkaShareFlushExFW shareFlushEx = shareFlushExRW.build();
                 flushExRO.wrap(writeBuffer, 0, shareFlushEx.limit());
+                return KafkaFlushExBuilder.this;
+            }
+        }
+
+        public final class KafkaShareAcquiredFlushExBuilder
+        {
+            private final KafkaShareAcquiredFlushExFW.Builder shareAcquiredFlushExRW = new KafkaShareAcquiredFlushExFW.Builder();
+
+            private KafkaShareAcquiredFlushExBuilder()
+            {
+                shareAcquiredFlushExRW.wrap(writeBuffer, KafkaFlushExFW.FIELD_OFFSET_SHARE_ACQUIRED, writeBuffer.capacity());
+            }
+
+            public KafkaShareAcquiredFlushExBuilder partition(
+                int partitionId)
+            {
+                shareAcquiredFlushExRW.partitionId(partitionId);
+                return this;
+            }
+
+            public KafkaShareAcquiredFlushExBuilder range(
+                long firstOffset,
+                long lastOffset,
+                int deliveryCount)
+            {
+                shareAcquiredFlushExRW.rangesItem(r -> r.firstOffset(firstOffset)
+                                                        .lastOffset(lastOffset)
+                                                        .deliveryCount(deliveryCount));
+                return this;
+            }
+
+            public KafkaFlushExBuilder build()
+            {
+                final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx = shareAcquiredFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, shareAcquiredFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
         }
@@ -5257,7 +5294,6 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
-            private Integer deliveryCount;
             private Integer partitionId;
             private Long partitionOffset;
             private KafkaKeyFW.Builder keyRW;
@@ -5278,13 +5314,6 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
-                return this;
-            }
-
-            public KafkaShareDataExMatcherBuilder deliveryCount(
-                int deliveryCount)
-            {
-                this.deliveryCount = deliveryCount;
                 return this;
             }
 
@@ -5360,7 +5389,6 @@ public final class KafkaFunctions
                 final KafkaShareDataExFW shareDataEx = dataEx.share();
                 return matchDeferred(shareDataEx) &&
                     matchTimestamp(shareDataEx) &&
-                    matchDeliveryCount(shareDataEx) &&
                     matchPartition(shareDataEx) &&
                     matchKey(shareDataEx) &&
                     matchHeaders(shareDataEx);
@@ -5376,12 +5404,6 @@ public final class KafkaFunctions
                 final KafkaShareDataExFW shareDataEx)
             {
                 return timestamp == null || timestamp == shareDataEx.timestamp();
-            }
-
-            private boolean matchDeliveryCount(
-                final KafkaShareDataExFW shareDataEx)
-            {
-                return deliveryCount == null || deliveryCount == shareDataEx.deliveryCount();
             }
 
             private boolean matchPartition(
@@ -6362,6 +6384,15 @@ public final class KafkaFunctions
             return matcherBuilder;
         }
 
+        public KafkaShareAcquiredFlushExMatcherBuilder shareAcquired()
+        {
+            final KafkaShareAcquiredFlushExMatcherBuilder matcherBuilder = new KafkaShareAcquiredFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.SHARE_ACQUIRED.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public KafkaProduceFlushExMatcherBuilder produce()
         {
             final KafkaProduceFlushExMatcherBuilder matcherBuilder = new KafkaProduceFlushExMatcherBuilder();
@@ -6959,6 +6990,77 @@ public final class KafkaFunctions
                 final KafkaShareFlushExFW shareFlushEx)
             {
                 return error == null || error == shareFlushEx.error();
+            }
+        }
+
+        public final class KafkaShareAcquiredFlushExMatcherBuilder
+        {
+            private Integer partitionId;
+            private Array32FW.Builder<KafkaShareAcquiredRangeFW.Builder, KafkaShareAcquiredRangeFW> rangesRW;
+
+            private KafkaShareAcquiredFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaShareAcquiredFlushExMatcherBuilder partition(
+                int partitionId)
+            {
+                this.partitionId = partitionId;
+                return this;
+            }
+
+            public KafkaShareAcquiredFlushExMatcherBuilder none()
+            {
+                assert rangesRW == null;
+                rangesRW = newRangesBuilder();
+                return this;
+            }
+
+            public KafkaShareAcquiredFlushExMatcherBuilder range(
+                long firstOffset,
+                long lastOffset,
+                int deliveryCount)
+            {
+                if (rangesRW == null)
+                {
+                    rangesRW = newRangesBuilder();
+                }
+
+                rangesRW.item(r -> r.firstOffset(firstOffset)
+                                    .lastOffset(lastOffset)
+                                    .deliveryCount(deliveryCount));
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private Array32FW.Builder<KafkaShareAcquiredRangeFW.Builder, KafkaShareAcquiredRangeFW> newRangesBuilder()
+            {
+                return new Array32FW.Builder<>(new KafkaShareAcquiredRangeFW.Builder(), new KafkaShareAcquiredRangeFW())
+                    .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx = flushEx.shareAcquired();
+                return matchPartition(shareAcquiredFlushEx) &&
+                    matchRanges(shareAcquiredFlushEx);
+            }
+
+            private boolean matchPartition(
+                final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx)
+            {
+                return partitionId == null || partitionId == shareAcquiredFlushEx.partitionId();
+            }
+
+            private boolean matchRanges(
+                final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx)
+            {
+                return rangesRW == null || rangesRW.build().equals(shareAcquiredFlushEx.ranges());
             }
         }
 
