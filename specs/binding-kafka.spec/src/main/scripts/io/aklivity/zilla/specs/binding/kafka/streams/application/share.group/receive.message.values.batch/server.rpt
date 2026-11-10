@@ -82,6 +82,7 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #3"
 write flush
 
+# acquired ranges follow the records streamed for the partition
 write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .shareAcquired()
