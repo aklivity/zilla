@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Spliterator;
@@ -56,6 +57,10 @@ public final class JsonParserImpl implements JsonParserEx
     // selected once per JVM, not once per parser: ServiceLoader lookup (and an implementation's own
     // availability probe) would otherwise run on every JsonParserImpl construction
     private static final JsonTokenizerFactory TOKENIZER_FACTORY = JsonTokenizerFactory.instantiate();
+
+    // a run with nothing left to pull: the bytes of an escaped scope are the escaped form of its content, never
+    // original source bytes to splice
+    private static final JsonVerbatim DRAINED = new DrainedVerbatim();
 
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
@@ -318,7 +323,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public void mark()
     {
-        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.event() != null)
+        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.pending())
         {
             throw new IllegalStateException("mark requires an event boundary outside a skip, fragment or segment");
         }
@@ -405,7 +410,13 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public boolean identity()
     {
-        return true;
+        return !tokenizer.inScope();
+    }
+
+    @Override
+    public void escaped()
+    {
+        tokenizer.escape();
     }
 
     @Override
@@ -441,7 +452,7 @@ public final class JsonParserImpl implements JsonParserEx
     private boolean tokenizerHasNext()
     {
         boolean result;
-        if (tokenizer.event() != null)
+        if (tokenizer.pending())
         {
             result = true;
         }
@@ -518,7 +529,7 @@ public final class JsonParserImpl implements JsonParserEx
             skipPending();
         }
 
-        if (skipping || tokenizer.event() == null && !tokenizerHasNext())
+        if (skipping || !tokenizer.pending() && !tokenizerHasNext())
         {
             throw new JsonParsingException("No more events", location);
         }
@@ -546,8 +557,10 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     private JsonEvent deliverEvent(
-        Mode mode)
+        Mode requested)
     {
+        final Mode mode = tokenizer.inScope() ? Mode.STRUCTURED : requested;
+
         if (mode == Mode.SEGMENTED)
         {
             // arm the just-delivered boundary to stream verbatim before pulling its events (the mode-driven
@@ -578,7 +591,7 @@ public final class JsonParserImpl implements JsonParserEx
             // ends between tokens leaves the separator and whitespace it scanned past the last token unconsumed
             // when a sink is reading the original bytes, which are otherwise drained ahead of the decision about
             // the member the separator introduces
-            if (verbatim && docState == DocState.STARTED && segmentState == SegmentState.NONE)
+            if (verbatim && docState == DocState.STARTED && segmentState == SegmentState.NONE && !tokenizer.inScope())
             {
                 tokenizer.rewindLookahead(tokenEnd, tokenEndLine, tokenEndColumn);
             }
@@ -609,7 +622,11 @@ public final class JsonParserImpl implements JsonParserEx
             // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
             lastEvent = event;
             currentEvent = toEvent(event);
-            if (isBodyEvent(event))
+            if (event == JsonEvent.END_ESCAPED)
+            {
+                closeScope();
+            }
+            else if (isBodyEvent(event) && !tokenizer.inScope())
             {
                 // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
                 // and skipValue()'s internal next() never reaches here
@@ -714,6 +731,13 @@ public final class JsonParserImpl implements JsonParserEx
             event = scanSegment(ownedInput.offset());
             break;
         default:
+            if (tokenizer.marker() != null)
+            {
+                lastEvent = tokenizer.marker();
+                tokenizer.clearMarker();
+                event = lastEvent;
+                break;
+            }
             lastEvent = JsonEvent.of(next());
             if (lastEvent == JsonEvent.VALUE_NUMBER ||
                 lastEvent == JsonEvent.KEY_NAME ||
@@ -960,6 +984,10 @@ public final class JsonParserImpl implements JsonParserEx
     {
         // verbatim consumption of a structured run; a segment's bytes are pulled via getSegment() instead
         assert lastEvent != null && !lastEvent.segmented();
+        if (tokenizer.inScope())
+        {
+            return DRAINED;
+        }
         // drop any steps already behind the cursor — a skipValue() jumps the cursor past the dropped member's
         // own steps
         while (stepHead < stepCount && stepEnds[stepHead] <= verbatimCursor)
@@ -1191,6 +1219,21 @@ public final class JsonParserImpl implements JsonParserEx
         };
     }
 
+    // the string the scope replaced is not a run to splice: what a byte-preserving downstream has not yet taken is
+    // drained here, so it is not written again after the structured content of the scope
+    private void closeScope()
+    {
+        verbatimCursor = tokenizer.streamOffset();
+        stepHead = stepCount;
+
+        priorTokenEnd = tokenEnd;
+        priorTokenEndLine = tokenEndLine;
+        priorTokenEndColumn = tokenEndColumn;
+        tokenEnd = tokenizer.streamOffset();
+        tokenEndLine = tokenizer.line();
+        tokenEndColumn = tokenizer.column();
+    }
+
     private static boolean isBodyEvent(
         JsonEvent event)
     {
@@ -1396,6 +1439,28 @@ public final class JsonParserImpl implements JsonParserEx
 
     // Reusable, allocation-free char view onto the decoded string remainder: wraps the tokenizer's decoded
     // chars at a running offset so a bounded write can resume from where it left off without copying.
+    private static final class DrainedVerbatim implements JsonVerbatim
+    {
+        private UnsafeBufferEx empty;
+
+        @Override
+        public Iterator<JsonStep> getSteps()
+        {
+            return Collections.emptyIterator();
+        }
+
+        @Override
+        public DirectBufferEx getSegment()
+        {
+            if (empty == null)
+            {
+                empty = new UnsafeBufferEx(new byte[0]);
+            }
+
+            return empty;
+        }
+    }
+
     private static final class StringView implements CharSequence
     {
         private CharSequence base;

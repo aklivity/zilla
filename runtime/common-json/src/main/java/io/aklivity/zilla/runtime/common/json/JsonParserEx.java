@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -208,6 +209,20 @@ public interface JsonParserEx extends JsonParser
      * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
     CharSequence getStringView();
+
+    /**
+     * Arms the string value that follows the current {@link JsonEvent#KEY_NAME} to be parsed as a stringified
+     * JSON document: in place of the string value the parser delivers {@link JsonEvent#START_ESCAPED}, the events of
+     * the document held by the string, and {@link JsonEvent#END_ESCAPED}. The content is read where it lies, with
+     * the escapes of the string undone as it is tokenized, so it is never copied. The content must be exactly one
+     * complete JSON value, with optional surrounding whitespace, and an empty string delivers the two markers with
+     * nothing between. A value that is not a string, content that is malformed or incomplete, or a request made
+     * while a scope is open, is an error. The default rejects, for a parser that cannot read a string as a document.
+     */
+    default void escaped()
+    {
+        throw new JsonException("escaped scope not supported");
+    }
 
     /**
      * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the current
