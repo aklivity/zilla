@@ -103,13 +103,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int wrapOffset;
     private long wrapStreamOffset;
 
-    // path tracking — pre-allocated, no per-event allocation
+    // whether each open container is an array, and how many are open — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
-    // pathKeyChars mirrors each object key allocation-free; path matching and currentPath() compare
-    // against it as a CharSequence so keys are never materialized into Strings just to track the path.
-    private final StringBuilder[] pathKeyChars = new StringBuilder[MAX_DEPTH];
-    private final boolean[] pathKeySet = new boolean[MAX_DEPTH];
-    private final int[] pathIndex = new int[MAX_DEPTH];
     private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
@@ -219,9 +214,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         ParseState state;
         int stackSize;
         int pathDepth;
-        boolean frameKeySet;
-        int frameIndex;
-        final StringBuilder frameKeyChars = new StringBuilder();
         long streamOffset;
         long valueStreamStart;
         long valueStreamEnd;
@@ -353,17 +345,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.state = state;
         mark.stackSize = stack.size();
         mark.pathDepth = pathDepth;
-        if (pathDepth > 0)
-        {
-            final int frame = pathDepth - 1;
-            mark.frameKeySet = pathKeySet[frame];
-            mark.frameIndex = pathIndex[frame];
-            mark.frameKeyChars.setLength(0);
-            if (pathKeyChars[frame] != null)
-            {
-                mark.frameKeyChars.append(pathKeyChars[frame]);
-            }
-        }
         mark.streamOffset = streamOffset;
         mark.valueStreamStart = valueStreamStart;
         mark.valueStreamEnd = valueStreamEnd;
@@ -419,15 +400,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
             stack.pop();
         }
         pathDepth = mark.pathDepth;
-        if (pathDepth > 0)
-        {
-            final int frame = pathDepth - 1;
-            pathKeySet[frame] = mark.frameKeySet;
-            pathIndex[frame] = mark.frameIndex;
-            final StringBuilder keyChars = pathKeyChars(frame);
-            keyChars.setLength(0);
-            keyChars.append(mark.frameKeyChars);
-        }
         state = mark.state;
         valueStreamStart = mark.valueStreamStart;
         valueStreamEnd = mark.valueStreamEnd;
@@ -870,31 +842,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         return stringVerbatim;
     }
 
-    // Not part of the public SPI (only one test exercises path tracking); kept as a plain method so
-    // maintaining pathKeyChars/pathKeySet/pathIndex is this implementation's own choice, not a cross-impl
-    // contract obligation.
-    String currentPath()
-    {
-        if (pathDepth == 0)
-        {
-            return "";
-        }
-        final StringBuilder path = new StringBuilder();
-        for (int i = 0; i < pathDepth; i++)
-        {
-            path.append('/');
-            if (pathInArray[i])
-            {
-                path.append(pathIndex[i]);
-            }
-            else if (pathKeySet[i])
-            {
-                path.append(pathKeyChars[i].toString().replace("~", "~0").replace("/", "~1"));
-            }
-        }
-        return path.toString();
-    }
-
     private void pushPath(
         boolean inArray)
     {
@@ -903,23 +850,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
             throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
         }
         pathInArray[pathDepth] = inArray;
-        pathKeySet[pathDepth] = false;
-        pathIndex[pathDepth] = 0;
         pathDepth++;
     }
 
     private void popPath()
     {
         pathDepth--;
-        pathKeySet[pathDepth] = false;
-    }
-
-    private void markValueConsumed()
-    {
-        if (pathDepth > 0 && pathInArray[pathDepth - 1])
-        {
-            pathIndex[pathDepth - 1]++;
-        }
     }
 
     private void advanceOne()
@@ -1175,11 +1111,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
     // Completes a KEY_STRING scan: continueStringContent only returns here once the closing quote is seen
     // (otherwise onScalarStarved decides fragment-vs-reassemble), so the key is whole — the final fragment
-    // of a fragmented key, or a key that fit one window. captureKey() mirrors it into pathKeyChars for
-    // currentPath(); when the key fragmented and each fragment was fully consumed downstream (so scratch
-    // was trimmed each round rather than accumulating via consumed(0)), only the final fragment's chars are
-    // mirrored — currentPath() is not guaranteed exact mid-document for a window-spanning key, only once
-    // the surrounding container's traversal has moved on.
+    // of a fragmented key, or a key that fit one window.
     private void finishKeyValue()
     {
         pendingEvent = JsonParser.Event.KEY_NAME;
@@ -1454,18 +1386,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
     }
 
-    private StringBuilder pathKeyChars(
-        int frame)
-    {
-        StringBuilder keyChars = pathKeyChars[frame];
-        if (keyChars == null)
-        {
-            keyChars = new StringBuilder();
-            pathKeyChars[frame] = keyChars;
-        }
-        return keyChars;
-    }
-
     private void clearScratch()
     {
         scratch.setLength(0);
@@ -1476,21 +1396,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     // Keys are always deferred (left in scratch, materialized lazily by stringValue()), so a key that
-    // is never read by a downstream stage allocates no String. The chars are mirrored into the
-    // per-depth pathKeyChars slot so path matching and currentPath() can compare them as a
-    // CharSequence without materializing a String — even when path filtering is configured.
+    // is never read by a downstream stage allocates no String.
     private void captureKey()
     {
         valuePending = true;
         viewPending = false;
         pendingString = null;
-        if (pathDepth > 0 && !pathInArray[pathDepth - 1])
-        {
-            final StringBuilder keyChars = pathKeyChars(pathDepth - 1);
-            keyChars.setLength(0);
-            keyChars.append(scratch);
-            pathKeySet[pathDepth - 1] = true;
-        }
     }
 
     private void pushAndEnter(
@@ -1539,10 +1450,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         default:
             throw new JsonParsingException("Unexpected state after value: " + state, null);
         }
-        if (state != ParseState.ESC_DONE)
-        {
-            markValueConsumed();
-        }
     }
 
     private void emitEnd(
@@ -1562,7 +1469,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             documentEndOffset = streamOffset;
         }
-        markValueConsumed();
     }
 
     // After a complete top-level value on a one-shot stream, only insignificant whitespace may
@@ -1994,7 +1900,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         starved = false;
         state = stack.pop();
         marker = JsonEvent.END_ESCAPED;
-        markValueConsumed();
     }
 
     // how far back the first byte of the token just read began: a byte of the string as it is, or the whole of the
