@@ -732,9 +732,9 @@ public class McpClientIT
         k3po.finish();
     }
 
-    // regression test: a JSON-RPC scalar value (here the notified resource's uri) that spans an
-    // input window must be accumulated across every deferredBytes() fragment rather than handed
-    // back as complete on the first one -- a small buffer slot capacity forces the split
+    // regression test: a JSON-RPC string value (here the notified resource's uri) that spans an
+    // input window is pushed back until it is whole, rather than handed back as complete on the
+    // first fragment -- a small buffer slot capacity forces the split
     @Test
     @Configuration("client.yaml")
     @Specification({
@@ -742,6 +742,18 @@ public class McpClientIT
         "${net}/lifecycle.notify.resources.updated.fragmented/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "1024")
     public void shouldNotifyResourcesUpdatedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a JSON-RPC string value that would fill the decode slot cannot be held whole, so the events stream is reset and suspended
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.oversize/client",
+        "${net}/lifecycle.notify.resources.updated.oversize/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "1024")
+    public void shouldSuspendWhenNotifiedResourceUriIsOversize() throws Exception
     {
         k3po.finish();
     }
