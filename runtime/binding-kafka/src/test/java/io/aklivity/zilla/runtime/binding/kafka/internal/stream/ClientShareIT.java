@@ -363,6 +363,16 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/reject.unsupported.version.heartbeat.error/client",
+        "${net}/reject.unsupported.version.heartbeat.error/server"})
+    public void shouldRejectUnsupportedVersionHeartbeatError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/reject.unsupported.version.metadata.range/client",
         "${net}/reject.unsupported.version.metadata.range/server"})
     public void shouldRejectUnsupportedVersionMetadataRange() throws Exception
