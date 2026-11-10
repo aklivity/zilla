@@ -64,6 +64,8 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                  .build()
                              .build()}
 
+read notify S1_ACKED
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .share()

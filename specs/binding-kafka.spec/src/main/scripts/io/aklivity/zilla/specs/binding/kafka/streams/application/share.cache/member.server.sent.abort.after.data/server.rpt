@@ -67,5 +67,7 @@ write advise zilla:flush ${kafka:flushEx()
                                  .build()
                              .build()}
 
+write await RECORD_RECEIVED
+
 write abort
 read aborted

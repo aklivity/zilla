@@ -69,6 +69,8 @@ write advise zilla:flush ${kafka:flushEx()
                                  .build()
                              .build()}
 
+write await S1_ACKED
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .share()
