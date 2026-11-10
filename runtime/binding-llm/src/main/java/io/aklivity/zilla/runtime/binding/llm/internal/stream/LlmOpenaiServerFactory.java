@@ -84,7 +84,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 {
     private static final String HTTP_TYPE_NAME = "http";
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
-    private static final int EVENT_ATTRIBUTES_CAPACITY = 2048;
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
@@ -3942,9 +3941,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
-            this.eventAttributesBuffer = new UnsafeBufferEx(new byte[EVENT_ATTRIBUTES_CAPACITY]);
-            this.eventAttributeOffsets = new int[EVENT_CAPACITY];
-            this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
             this.delimiterBytes = new byte[64];
             this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
@@ -4467,7 +4463,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void beginEncode()
         {
             generator.wrap(copyBuffer, 0, copyBuffer.capacity());
-            eventAttributesLimit = 0;
 
             if (eventOpen)
             {
@@ -4493,14 +4488,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 for (int index = 0; index < count; index++)
                 {
-                    final int attributesLength = eventAttributeLengths[index];
-                    final OctetsFW attributes = attributesLength > 0
-                        ? eventAttributesRO.wrap(eventAttributesBuffer, eventAttributeOffsets[index],
-                            eventAttributeOffsets[index] + attributesLength)
-                        : EMPTY_OCTETS;
-
                     server.doNetData(copyBuffer, eventOffsets[index], eventLengths[index], index == count - 1 ? reserved : 0,
-                        eventFlags[index], attributes, budgetId, traceId, authorization);
+                        eventFlags[index], EMPTY_OCTETS, budgetId, traceId, authorization);
                 }
 
                 eventCount = 0;
@@ -4572,13 +4561,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int[] eventOffsets;
         private int[] eventLengths;
         private int[] eventFlags;
-        private final MutableDirectBufferEx eventAttributesBuffer;
-        private final OctetsFW eventAttributesRO = new OctetsFW();
-        private int[] eventAttributeOffsets;
-        private int[] eventAttributeLengths;
-        private int eventAttributesLimit;
-        private int eventAttributeOffset;
-        private int eventAttributeLength;
         private int eventCount;
         private boolean eventOpen;
         private boolean eventStarted;
@@ -5175,26 +5157,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void eventBegin(
             int position)
         {
-            eventBegin(position, null, 0, 0);
-        }
-
-        private void eventBegin(
-            int position,
-            DirectBufferEx attributes,
-            int offset,
-            int length)
-        {
             this.eventOpen = true;
             this.eventStarted = false;
             this.eventStart = position;
-            this.eventAttributeOffset = eventAttributesLimit;
-            this.eventAttributeLength = eventAttributesLimit + length <= eventAttributesBuffer.capacity() ? length : 0;
-
-            if (eventAttributeLength > 0)
-            {
-                eventAttributesBuffer.putBytes(eventAttributesLimit, attributes, offset, length);
-                eventAttributesLimit += length;
-            }
         }
 
         private void eventEnd(
@@ -5223,8 +5188,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     eventOffsets = Arrays.copyOf(eventOffsets, capacity);
                     eventLengths = Arrays.copyOf(eventLengths, capacity);
                     eventFlags = Arrays.copyOf(eventFlags, capacity);
-                    eventAttributeOffsets = Arrays.copyOf(eventAttributeOffsets, capacity);
-                    eventAttributeLengths = Arrays.copyOf(eventAttributeLengths, capacity);
                 }
 
                 final int init = eventStarted ? Flags.NONE : Flags.INIT;
@@ -5232,8 +5195,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 eventOffsets[eventCount] = eventStart;
                 eventLengths[eventCount] = length;
                 eventFlags[eventCount] = fin ? Flags.fin(init) : init;
-                eventAttributeOffsets[eventCount] = eventAttributeOffset;
-                eventAttributeLengths[eventCount] = eventStarted ? 0 : eventAttributeLength;
                 eventCount++;
 
                 eventStarted = true;
