@@ -25,6 +25,32 @@ connect "zilla://streams/net0"
 
 connected
 
+write 15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      ${newRequestId}                                # correlation id
+      5s "zilla"                                     # client id
+
+read  40                                             # size
+      (int:newRequestId)                             # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
 write 42                                             # size
       3s                                             # metadata
       13s                                            # v13
@@ -126,6 +152,32 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
+write 15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      ${newRequestId}                                # correlation id
+      5s "zilla"                                     # client id
+
+read  40                                             # size
+      (int:newRequestId)                             # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
 write 56                                             # size
       76s                                            # share group heartbeat
       1s                                             # v1
@@ -181,6 +233,32 @@ write zilla:begin.ext ${proxy:beginEx()
                                .build()}
 
 connected
+
+write 15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      ${newRequestId}                                # correlation id
+      5s "zilla"                                     # client id
+
+read  40                                             # size
+      (int:newRequestId)                             # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
 
 write 95                                             # size
       78s                                            # share fetch

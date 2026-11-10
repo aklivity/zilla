@@ -29,6 +29,32 @@ accepted
 
 connected
 
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
 read  22                                             # size
       17s                                            # sasl.handshake
       1s                                             # v1
@@ -153,6 +179,32 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
 read  22                                             # size
       17s                                            # sasl.handshake
       1s                                             # v1
@@ -231,6 +283,32 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                               .build()}
 
 connected
+
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
 
 read  22                                             # size
       17s                                            # sasl.handshake

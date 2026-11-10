@@ -192,6 +192,42 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${app}/client.sent.write.abort.after.data/client",
+        "${app}/client.sent.write.abort.after.data/server"})
+    public void shouldClientSentWriteAbortAfterData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.read.abort.after.data/client",
+        "${app}/client.sent.read.abort.after.data/server"})
+    public void shouldClientSentReadAbortAfterData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/broker.leader.connection.abort/client",
+        "${app}/broker.leader.connection.abort/server"})
+    public void shouldBrokerLeaderConnectionAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/broker.coordinator.connection.abort/client",
+        "${app}/broker.coordinator.connection.abort/server"})
+    public void shouldBrokerCoordinatorConnectionAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/handle.coordinator.not.available/client",
         "${app}/handle.coordinator.not.available/server"})
     public void shouldHandleCoordinatorNotAvailable() throws Exception
@@ -258,6 +294,42 @@ public class ShareIT
         "${app}/handle.partition.not.leader/client",
         "${app}/handle.partition.not.leader/server"})
     public void shouldHandlePartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.unsupported.version.heartbeat.absent/client",
+        "${app}/reject.unsupported.version.heartbeat.absent/server"})
+    public void shouldRejectUnsupportedVersionHeartbeatAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.unsupported.version.heartbeat.range/client",
+        "${app}/reject.unsupported.version.heartbeat.range/server"})
+    public void shouldRejectUnsupportedVersionHeartbeatRange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.unsupported.version.metadata.range/client",
+        "${app}/reject.unsupported.version.metadata.range/server"})
+    public void shouldRejectUnsupportedVersionMetadataRange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.unsupported.version.fetch.range/client",
+        "${app}/reject.unsupported.version.fetch.range/server"})
+    public void shouldRejectUnsupportedVersionFetchRange() throws Exception
     {
         k3po.finish();
     }
