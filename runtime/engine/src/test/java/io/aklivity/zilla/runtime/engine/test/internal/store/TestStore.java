@@ -27,7 +27,7 @@ public final class TestStore implements Store
 {
     public static final String NAME = "test";
 
-    private final ConcurrentMap<Long, ConcurrentMap<String, String>> storage;
+    private final ConcurrentMap<Long, ConcurrentMap<String, TestEntry>> storage;
     private final ConcurrentMap<Long, ConcurrentMap<String, List<TestWatcher>>> storageListeners;
     private final ConcurrentMap<Long, ConcurrentMap<String, TestLockEntry>> storageLocks;
 
@@ -52,7 +52,7 @@ public final class TestStore implements Store
         return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireLocks);
     }
 
-    private ConcurrentMap<String, String> acquireEntries(
+    private ConcurrentMap<String, TestEntry> acquireEntries(
         long storeId)
     {
         return storage.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());

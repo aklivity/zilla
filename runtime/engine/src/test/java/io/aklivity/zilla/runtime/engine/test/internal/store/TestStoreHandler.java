@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -24,13 +25,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
-    private final ConcurrentMap<String, String> entries;
+    private final ConcurrentMap<String, TestEntry> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
     private final Consumer<Runnable> dispatcher;
@@ -38,7 +40,7 @@ public final class TestStoreHandler implements StoreHandler
     public TestStoreHandler(
         StoreConfig store,
         Consumer<Runnable> dispatcher,
-        ConcurrentMap<String, String> entries,
+        ConcurrentMap<String, TestEntry> entries,
         ConcurrentMap<String, List<TestWatcher>> listeners,
         ConcurrentMap<String, TestLockEntry> locks)
     {
@@ -53,7 +55,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         BiConsumer<String, String> completion)
     {
-        final String value = entries.get(key);
+        final String value = live(entries.get(key));
         defer(() -> completion.accept(key, value));
     }
 
@@ -64,7 +66,8 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        entries.put(key, value);
+        // put and putIfAbsent never expire so bindings configured with short leases keep their records
+        entries.put(key, new TestEntry(value, Long.MAX_VALUE));
         notifyListeners(key, value);
         defer(() -> completion.accept(null));
     }
@@ -76,12 +79,19 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        final String existing = entries.putIfAbsent(key, value);
-        if (existing == null)
+        final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
+        final TestEntry existing = entries.putIfAbsent(key, next);
+        boolean stored = existing == null;
+        if (existing != null && existing.expired())
+        {
+            stored = entries.replace(key, existing, next);
+        }
+        if (stored)
         {
             notifyListeners(key, value);
         }
-        defer(() -> completion.accept(existing));
+        final String result = live(existing);
+        defer(() -> completion.accept(result));
     }
 
     @Override
@@ -89,7 +99,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        final String removed = entries.remove(key);
+        final TestEntry removed = entries.remove(key);
         if (removed != null)
         {
             notifyListeners(key, null);
@@ -102,12 +112,97 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        final String prior = entries.remove(key);
+        final TestEntry prior = entries.remove(key);
         if (prior != null)
         {
             notifyListeners(key, null);
         }
-        defer(() -> completion.accept(prior));
+        final String result = live(prior);
+        defer(() -> completion.accept(result));
+    }
+
+    @Override
+    public void increment(
+        String key,
+        long delta,
+        Duration ttl,
+        BiConsumer<String, Long> completion)
+    {
+        long counter;
+        boolean updated;
+        do
+        {
+            final TestEntry existing = entries.get(key);
+            final boolean alive = existing != null && !existing.expired();
+            counter = (alive ? Long.parseLong(existing.value()) : 0L) + delta;
+            final TestEntry next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl));
+            updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
+        }
+        while (!updated);
+        notifyListeners(key, Long.toString(counter));
+        final long result = counter;
+        defer(() -> completion.accept(key, result));
+    }
+
+    @Override
+    public void get(
+        List<String> keys,
+        Consumer<List<String>> completion)
+    {
+        final String[] values = new String[keys.size()];
+        for (int index = 0; index < values.length; index++)
+        {
+            values[index] = live(entries.get(keys.get(index)));
+        }
+        defer(() -> completion.accept(Arrays.asList(values)));
+    }
+
+    @Override
+    public void delete(
+        List<String> keys,
+        LongConsumer completion)
+    {
+        long removed = 0L;
+        for (String key : keys)
+        {
+            final TestEntry entry = entries.remove(key);
+            if (entry != null)
+            {
+                notifyListeners(key, null);
+                if (!entry.expired())
+                {
+                    removed++;
+                }
+            }
+        }
+        final long count = removed;
+        defer(() -> completion.accept(count));
+    }
+
+    @Override
+    public void replace(
+        String key,
+        String expected,
+        String value,
+        Duration ttl,
+        Consumer<Boolean> completion)
+    {
+        boolean replaced;
+        boolean contended;
+        do
+        {
+            final TestEntry existing = entries.get(key);
+            final boolean matches = existing != null && !existing.expired() && existing.value().equals(expected);
+            replaced = matches && entries.replace(key, existing, new TestEntry(value, expiresAt(ttl)));
+            contended = matches && !replaced;
+        }
+        while (contended);
+        if (replaced)
+        {
+            notifyListeners(key, value);
+        }
+        final boolean result = replaced;
+        defer(() -> completion.accept(result));
     }
 
     @Override
@@ -211,6 +306,18 @@ public final class TestStoreHandler implements StoreHandler
                 w.dispatcher().accept(() -> w.listener().accept(key, value));
             }
         }
+    }
+
+    private static String live(
+        TestEntry entry)
+    {
+        return entry != null && !entry.expired() ? entry.value() : null;
+    }
+
+    private static long expiresAt(
+        Duration ttl)
+    {
+        return ttl == null ? Long.MAX_VALUE : System.currentTimeMillis() + ttl.toMillis();
     }
 
     private void defer(

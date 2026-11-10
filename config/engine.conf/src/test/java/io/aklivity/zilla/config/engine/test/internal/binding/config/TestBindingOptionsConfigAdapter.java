@@ -76,6 +76,9 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_NAME = "store";
     private static final String STORE_OP_NAME = "op";
     private static final String STORE_KEY_NAME = "key";
+    private static final String STORE_KEYS_NAME = "keys";
+    private static final String STORE_EXPECTED_NAME = "expected";
+    private static final String STORE_DELTA_NAME = "delta";
     private static final String STORE_VALUE_NAME = "value";
     private static final String STORE_TTL_NAME = "ttl";
     private static final String STORE_EXPECT_NAME = "expect";
@@ -309,10 +312,27 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 {
                     JsonObjectBuilder assertion = Json.createObjectBuilder();
                     assertion.add(STORE_OP_NAME, a.op);
-                    assertion.add(STORE_KEY_NAME, a.key);
+                    if (a.key != null)
+                    {
+                        assertion.add(STORE_KEY_NAME, a.key);
+                    }
+                    if (a.keys != null)
+                    {
+                        JsonArrayBuilder keys = Json.createArrayBuilder();
+                        a.keys.forEach(keys::add);
+                        assertion.add(STORE_KEYS_NAME, keys);
+                    }
                     if (a.value != null)
                     {
                         assertion.add(STORE_VALUE_NAME, a.value);
+                    }
+                    if (a.expected != null)
+                    {
+                        assertion.add(STORE_EXPECTED_NAME, a.expected);
+                    }
+                    if ("increment".equals(a.op))
+                    {
+                        assertion.add(STORE_DELTA_NAME, a.delta);
                     }
                     if (a.ttl != null)
                     {
@@ -320,7 +340,21 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                     }
                     if (a.hasExpect)
                     {
-                        if (a.expect == null)
+                        if (a.expectNumber != null)
+                        {
+                            assertion.add(STORE_EXPECT_NAME, a.expectNumber);
+                        }
+                        else if (a.expectBoolean != null)
+                        {
+                            assertion.add(STORE_EXPECT_NAME, a.expectBoolean);
+                        }
+                        else if (a.expectValues != null)
+                        {
+                            JsonArrayBuilder values = Json.createArrayBuilder();
+                            a.expectValues.forEach(v -> addNullable(values, v));
+                            assertion.add(STORE_EXPECT_NAME, values);
+                        }
+                        else if (a.expect == null)
                         {
                             assertion.addNull(STORE_EXPECT_NAME);
                         }
@@ -616,17 +650,56 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 {
                     JsonObject s = assertion.asJsonObject();
                     String expect = null;
+                    Long expectNumber = null;
+                    Boolean expectBoolean = null;
+                    List<String> expectValues = null;
                     boolean hasExpect = s.containsKey(STORE_EXPECT_NAME);
                     if (hasExpect && !s.isNull(STORE_EXPECT_NAME))
                     {
-                        expect = s.getString(STORE_EXPECT_NAME);
+                        final JsonValue expectJson = s.get(STORE_EXPECT_NAME);
+                        switch (expectJson.getValueType())
+                        {
+                        case NUMBER:
+                            expectNumber = ((JsonNumber) expectJson).longValue();
+                            break;
+                        case TRUE:
+                        case FALSE:
+                            expectBoolean = expectJson.getValueType() == JsonValue.ValueType.TRUE;
+                            break;
+                        case ARRAY:
+                            expectValues = new LinkedList<>();
+                            for (JsonValue element : expectJson.asJsonArray())
+                            {
+                                expectValues.add(element.getValueType() == JsonValue.ValueType.NULL ?
+                                    null : ((JsonString) element).getString());
+                            }
+                            break;
+                        default:
+                            expect = s.getString(STORE_EXPECT_NAME);
+                            break;
+                        }
+                    }
+                    List<String> keys = null;
+                    if (s.containsKey(STORE_KEYS_NAME))
+                    {
+                        keys = new LinkedList<>();
+                        for (JsonString element : s.getJsonArray(STORE_KEYS_NAME).getValuesAs(JsonString.class))
+                        {
+                            keys.add(element.getString());
+                        }
                     }
                     storeAssertions.add(new TestBindingOptionsConfig.StoreAssertion(
                         s.getString(STORE_OP_NAME),
-                        s.getString(STORE_KEY_NAME),
+                        s.getString(STORE_KEY_NAME, null),
+                        keys,
                         s.getString(STORE_VALUE_NAME, null),
+                        s.getString(STORE_EXPECTED_NAME, null),
+                        s.containsKey(STORE_DELTA_NAME) ? s.getJsonNumber(STORE_DELTA_NAME).longValue() : 0L,
                         s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
                         expect,
+                        expectNumber,
+                        expectBoolean,
+                        expectValues,
                         hasExpect,
                         s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));
                 }
@@ -662,6 +735,20 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 pipelineJson.containsKey(PIPELINE_DECODE_NAME)
                     ? readPipelineExpectation(pipelineJson.getJsonObject(PIPELINE_DECODE_NAME))
                     : null);
+        }
+    }
+
+    private static void addNullable(
+        JsonArrayBuilder builder,
+        String value)
+    {
+        if (value == null)
+        {
+            builder.addNull();
+        }
+        else
+        {
+            builder.add(value);
         }
     }
 }
