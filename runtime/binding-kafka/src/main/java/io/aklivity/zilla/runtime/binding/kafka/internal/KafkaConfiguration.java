@@ -48,6 +48,8 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_BYTES;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
@@ -100,6 +102,8 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS = config.property("client.fetch.max.wait.millis", 1 * 60 * 1000);
         KAFKA_CLIENT_FETCH_MAX_BYTES = config.property("client.fetch.max.bytes", 50 * 1024 * 1024);
         KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES = config.property("client.fetch.partition.max.bytes", 50 * 1024 * 1024);
+        KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS = config.property("client.share.fetch.max.wait.millis", 500);
+        KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES = config.property("client.share.fetch.min.bytes", 1);
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
@@ -188,6 +192,16 @@ public class KafkaConfiguration extends Configuration
     public int clientFetchPartitionMaxBytes()
     {
         return KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES.get(this);
+    }
+
+    public int clientShareFetchMaxWaitMillis()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS.getAsInt(this);
+    }
+
+    public int clientShareFetchMinBytes()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES.getAsInt(this);
     }
 
     public int clientProduceMaxRequestMillis()
