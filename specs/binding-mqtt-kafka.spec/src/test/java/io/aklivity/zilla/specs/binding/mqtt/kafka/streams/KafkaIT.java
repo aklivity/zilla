@@ -1451,9 +1451,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.capabilities/client",
+        "${kafka}/session.capabilities/server"})
+    public void shouldSessionCapabilities() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.retained.topic.not.compacted/client",
         "${kafka}/session.retained.topic.not.compacted/server"})
     public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.reconnect.shared.subscription/client",
+        "${kafka}/session.reconnect.shared.subscription/server"})
+    public void shouldSessionReconnectSharedSubscription() throws Exception
     {
         k3po.finish();
     }
@@ -1469,9 +1487,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.subscribe.shared.cap.qos/client",
+        "${kafka}/session.subscribe.shared.cap.qos/server"})
+    public void shouldSessionSubscribeSharedCapQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.empty.retained.message/client",
         "${kafka}/publish.empty.retained.message/server"})
     public void shouldPublishEmptyRetainedMessageAsTombstone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.and.non.shared.receive.messages/client",
+        "${kafka}/subscribe.shared.and.non.shared.receive.messages/server"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
     {
         k3po.finish();
     }
@@ -1487,9 +1523,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.client.sent.abort/client",
+        "${kafka}/subscribe.shared.client.sent.abort/server"})
+    public void shouldSubscribeSharedClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.retained.empty.value/client",
         "${kafka}/subscribe.retained.empty.value/server"})
     public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.client.sent.reset/client",
+        "${kafka}/subscribe.shared.client.sent.reset/server"})
+    public void shouldSubscribeSharedClientSentReset() throws Exception
     {
         k3po.finish();
     }
@@ -1505,9 +1559,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.distinct.filters/client",
+        "${kafka}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos1.server.sent.reset/client",
         "${kafka}/publish.qos1.server.sent.reset/server"})
     public void shouldPublishQos1ServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.distinct.share.names/client",
+        "${kafka}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
     {
         k3po.finish();
     }
@@ -1523,9 +1595,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.expire.message/client",
+        "${kafka}/subscribe.shared.expire.message/server"})
+    public void shouldSubscribeSharedExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
         "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
     public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0() throws Exception
     {
         k3po.finish();
     }
@@ -1541,9 +1631,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos1.reject.large.message/client",
         "${kafka}/publish.qos1.reject.large.message/server"})
     public void shouldPublishQos1RejectLargeMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
     {
         k3po.finish();
     }
@@ -1559,6 +1667,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.published.qos2/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.published.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1PublishedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.subscribe.unmatched.filter/client",
         "${kafka}/session.subscribe.unmatched.filter/server"})
     public void shouldSessionSubscribeUnmatchedFilter() throws Exception
@@ -1568,9 +1685,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.subscribe.unmatched.all/client",
         "${kafka}/session.subscribe.unmatched.all/server"})
     public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.reject.filter.mismatch/client",
+        "${kafka}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
     {
         k3po.finish();
     }
@@ -1604,6 +1739,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.reject.fragmented.message/client",
+        "${kafka}/subscribe.shared.reject.fragmented.message/server"})
+    public void shouldSubscribeSharedRejectFragmentedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.parent.level.overlapping/client",
         "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
     public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
@@ -1613,9 +1757,45 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.reject.qos2.acknowledgement/client",
+        "${kafka}/subscribe.shared.reject.qos2.acknowledgement/server"})
+    public void shouldSubscribeSharedRejectQos2Acknowledgement() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.retain.parent.level/client",
         "${kafka}/subscribe.retain.parent.level/server"})
     public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.reject.unsupported.version/client",
+        "${kafka}/subscribe.shared.reject.unsupported.version/server"})
+    public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.resubscribe.change.qos/client",
+        "${kafka}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.server.sent.abort/client",
+        "${kafka}/subscribe.shared.server.sent.abort/server"})
+    public void shouldSubscribeSharedServerSentAbort() throws Exception
     {
         k3po.finish();
     }
