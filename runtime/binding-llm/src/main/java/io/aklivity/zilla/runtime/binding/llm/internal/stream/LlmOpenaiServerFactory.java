@@ -4771,12 +4771,27 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private void onReasoningText(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+        private void onEncodeText(
+            CharSequence chars,
+            int from,
+            int to)
         {
-            onEncodeText(payload, offset, length);
+            if (server.streaming)
+            {
+                dataChunk(chars, from, to);
+            }
+            else
+            {
+                generator.writeSegment(chars, from, to);
+            }
+        }
+
+        private void onReasoningText(
+            CharSequence chars,
+            int from,
+            int to)
+        {
+            onEncodeText(chars, from, to);
         }
 
         private LlmTextPipeline textPipeline()
@@ -5395,6 +5410,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             dataChunkStart();
 
             generator.writeSegment(payload, offset, length);
+            dataChunkEnd();
+        }
+
+        private void dataChunk(
+            CharSequence chars,
+            int from,
+            int to)
+        {
+            dataChunkStart();
+
+            generator.writeSegment(chars, from, to);
             dataChunkEnd();
         }
 

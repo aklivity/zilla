@@ -33,6 +33,15 @@ final class LlmTextPipeline
             int length);
     }
 
+    @FunctionalInterface
+    interface CharOutput
+    {
+        void put(
+            CharSequence chars,
+            int from,
+            int to);
+    }
+
     private final JsonPipeline pipeline;
     private final LlmTextTransform transform;
     private final UnsafeBufferEx windowBuffer;
@@ -44,25 +53,31 @@ final class LlmTextPipeline
     LlmTextPipeline(
         Output output)
     {
-        this(output, false, null);
+        this(new LlmUtf8Output(output), false, null);
     }
 
     LlmTextPipeline(
         Output output,
         boolean optional)
     {
-        this(output, optional, null);
+        this(new LlmUtf8Output(output), optional, null);
     }
 
     LlmTextPipeline(
         Output output,
         LlmCacheBreakpoint breakpoints)
     {
-        this(output, false, breakpoints);
+        this(new LlmUtf8Output(output), false, breakpoints);
+    }
+
+    LlmTextPipeline(
+        CharOutput output)
+    {
+        this(output, false, null);
     }
 
     private LlmTextPipeline(
-        Output output,
+        CharOutput output,
         boolean optional,
         LlmCacheBreakpoint breakpoints)
     {
