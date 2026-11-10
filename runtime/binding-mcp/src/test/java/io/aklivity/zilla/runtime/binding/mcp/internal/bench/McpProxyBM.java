@@ -162,8 +162,10 @@ public class McpProxyBM
 
             bench.newServer("app1", new McpApplicationPeer(
                 new McpLifecyclePeer(McpBenchMessages.lifecycleReplyEx(mcpTypeId)),
-                responder(respond ? McpBenchMessages.toolsListResult(size) : null, streaming),
-                responder(respond ? McpBenchMessages.toolsCallResult(size) : null, streaming)));
+                responder(McpBenchMessages.toolsListEx(mcpTypeId, McpBenchMessages.APP_SESSION_ID).byteArray(),
+                    respond ? McpBenchMessages.toolsListResult(size) : null, streaming),
+                responder(McpBenchMessages.toolsCallEx(mcpTypeId, McpBenchMessages.APP_SESSION_ID, 0).byteArray(),
+                    respond ? McpBenchMessages.toolsCallResult(size) : null, streaming)));
 
             driver = new McpApplicationDriver(bench, bench.bindingId("app0"), mcpTypeId, ids, size, requests);
 
@@ -202,12 +204,13 @@ public class McpProxyBM
         }
 
         private static Responder responder(
+            byte[] beginEx,
             String result,
             boolean streaming)
         {
             return new Responder(Trigger.BEGIN, result != null
                 ? new Response(
-                    new byte[0],
+                    beginEx,
                     new byte[][] { new byte[0] },
                     new byte[][] { McpBenchMessages.bytes(result) },
                     new byte[0],
