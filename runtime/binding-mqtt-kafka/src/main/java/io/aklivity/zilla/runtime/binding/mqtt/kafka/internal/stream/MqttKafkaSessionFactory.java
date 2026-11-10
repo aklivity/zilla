@@ -87,7 +87,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
@@ -142,7 +141,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final String OFFSETS_KEY_POSTFIX = "#offsets";
     private static final String KAFKA_API_CLIENT_ID = "zilla";
     private static final short KAFKA_API_ERROR_UNKNOWN = -1;
-    private static final int SESSION_STATE_VERSION_SHARE_NAMES = 3;
     private static final int KAFKA_BROKER_UNKNOWN = -1;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 3;
@@ -238,8 +236,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
     private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
-    private final MqttSessionStateV1FW mqttSessionStateV1RO = new MqttSessionStateV1FW();
-    private final MqttSessionStateV1FW.Builder mqttSessionStateV1RW = new MqttSessionStateV1FW.Builder();
     private final MqttSessionSignalFW mqttSessionSignalRO = new MqttSessionSignalFW();
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
@@ -1257,44 +1253,43 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             OctetsFW payload)
         {
             final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
-            final int version = payload.buffer().getByte(payload.offset()) & 0xff;
+            final MqttSessionStateFW sessionState = mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
+            final MqttSessionStateFW.Builder resolvedState =
+                mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
-            final Flyweight resolved;
-            if (version == SESSION_STATE_VERSION_SHARE_NAMES)
+            switch (sessionState.kind())
             {
-                final MqttSessionStateFW sessionState =
-                    mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
-                final MqttSessionStateFW.Builder resolvedState =
-                    mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
-
-                sessionState.subscriptions().forEach(filter -> resolvedState.subscriptionsItem(f -> f
-                    .subscriptionId(filter.subscriptionId())
-                    .qos(filter.qos())
-                    .flags(filter.flags())
-                    .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
-                    .pattern(filter.pattern())
-                    .shareName(filter.shareName())));
-
-                resolved = resolvedState.build();
-            }
-            else
-            {
-                final MqttSessionStateV1FW sessionState =
-                    mqttSessionStateV1RO.wrap(payload.buffer(), payload.offset(), payload.limit());
-                final MqttSessionStateV1FW.Builder resolvedState =
-                    mqttSessionStateV1RW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity()).version(version);
-
-                sessionState.subscriptions().forEach(filter -> resolvedState.subscriptionsItem(f -> f
-                    .subscriptionId(filter.subscriptionId())
-                    .qos(filter.qos())
-                    .flags(filter.flags())
-                    .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
-                    .pattern(filter.pattern())));
-
-                resolved = resolvedState.build();
+            case V1:
+                resolvedState.sessionStateV1(s -> sessionState.sessionStateV1().subscriptions().forEach(filter ->
+                    s.subscriptionsItem(f -> f
+                        .subscriptionId(filter.subscriptionId())
+                        .qos(filter.qos())
+                        .flags(filter.flags())
+                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
+                        .pattern(filter.pattern()))));
+                break;
+            case V2:
+                resolvedState.sessionStateV2(s -> sessionState.sessionStateV2().subscriptions().forEach(filter ->
+                    s.subscriptionsItem(f -> f
+                        .subscriptionId(filter.subscriptionId())
+                        .qos(filter.qos())
+                        .flags(filter.flags())
+                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
+                        .pattern(filter.pattern()))));
+                break;
+            case V3:
+                resolvedState.sessionStateV3(s -> sessionState.sessionStateV3().subscriptions().forEach(filter ->
+                    s.subscriptionsItem(f -> f
+                        .subscriptionId(filter.subscriptionId())
+                        .qos(filter.qos())
+                        .flags(filter.flags())
+                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
+                        .pattern(filter.pattern())
+                        .shareName(filter.shareName()))));
+                break;
             }
 
-            return resolved;
+            return resolvedState.build();
         }
 
         private int resolveSubscribeReasonCode(
