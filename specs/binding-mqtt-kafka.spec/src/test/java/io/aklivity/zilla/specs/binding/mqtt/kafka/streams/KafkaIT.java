@@ -650,6 +650,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.subscribe.shared.via.session.state/client",
+        "${kafka}/session.subscribe.shared.via.session.state/server"})
+    public void shouldReceiveSharedSubscriptionViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.unsubscribe.after.subscribe/client",
         "${kafka}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
