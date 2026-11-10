@@ -363,6 +363,46 @@ public class SubscribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${net}/subscribe.receive.message.qos2.duplicate.before.ack/server",
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/client"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.duplicate.after.ack/server",
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/client"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${net}/subscribe.shared.subscription.upstream/server",
         "${app}/subscribe.shared.subscription/client"})
     public void shouldSubscribeSharedSubscriptionUpstream() throws Exception
