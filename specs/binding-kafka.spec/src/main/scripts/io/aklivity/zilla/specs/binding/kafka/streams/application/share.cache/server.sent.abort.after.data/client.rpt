@@ -51,5 +51,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world #A1"
 
-read aborted
+read notify RECORD_RECEIVED
+
 write aborted
+read aborted

@@ -57,5 +57,5 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A1"
 write flush
 
-write abort
 read abort
+write abort
