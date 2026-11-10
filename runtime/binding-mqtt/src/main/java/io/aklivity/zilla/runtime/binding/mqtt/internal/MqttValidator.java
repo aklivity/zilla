@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 public final class MqttValidator
 {
+    private static final String SHARED_PREFIX = "$share/";
     private static final Pattern TOPIC_FILTER_REGEX =
         Pattern.compile("(?!$)[/]?(([^/#+\\u0000]*|\\+)/)*(#|\\+|[^/#+\\u0000]*)");
     private static final Pattern TOPIC_NAME_REGEX = Pattern.compile("[^#+\\u0000]+");
@@ -41,5 +42,55 @@ public final class MqttValidator
         String topicName)
     {
         return topicNameMatcher.reset(topicName).matches();
+    }
+
+    public boolean isSharedTopicFilterValid(
+        String topicFilter)
+    {
+        final String shareName = shareName(topicFilter);
+        final String pattern = sharePattern(topicFilter);
+
+        return shareName != null &&
+            !shareName.isEmpty() &&
+            shareName.indexOf('+') == -1 &&
+            shareName.indexOf('#') == -1 &&
+            pattern != null &&
+            !pattern.isEmpty() &&
+            isTopicFilterValid(pattern);
+    }
+
+    public static boolean isShared(
+        String topicFilter)
+    {
+        return topicFilter.startsWith(SHARED_PREFIX);
+    }
+
+    public static String shareName(
+        String topicFilter)
+    {
+        final int separator = shareSeparator(topicFilter);
+
+        return separator != -1 ? topicFilter.substring(SHARED_PREFIX.length(), separator) : null;
+    }
+
+    public static String sharePattern(
+        String topicFilter)
+    {
+        final int separator = shareSeparator(topicFilter);
+
+        return separator != -1 ? topicFilter.substring(separator + 1) : null;
+    }
+
+    public static String topicFilter(
+        String shareName,
+        String pattern)
+    {
+        return shareName != null ? SHARED_PREFIX + shareName + "/" + pattern : pattern;
+    }
+
+    private static int shareSeparator(
+        String topicFilter)
+    {
+        return isShared(topicFilter) ? topicFilter.indexOf('/', SHARED_PREFIX.length()) : -1;
     }
 }

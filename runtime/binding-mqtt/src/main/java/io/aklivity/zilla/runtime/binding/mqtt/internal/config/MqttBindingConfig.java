@@ -41,6 +41,7 @@ import io.aklivity.zilla.config.binding.mqtt.MqttVersion;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -130,19 +131,23 @@ public final class MqttBindingConfig
 
     public MqttRouteConfig resolveSubscribe(
         long authorization,
+        String shareName,
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, topic))
+            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, shareName, topic))
             .findFirst()
             .orElse(null);
     }
 
     public int resolveSubscribeReasonCode(
         long authorization,
-        String topic)
+        String topicFilter)
     {
-        return resolveSubscribe(authorization, topic) != null ? SUCCESS : UNSPECIFIED_ERROR;
+        final String shareName = MqttValidator.shareName(topicFilter);
+        final String topic = shareName != null ? MqttValidator.sharePattern(topicFilter) : topicFilter;
+
+        return resolveSubscribe(authorization, shareName, topic) != null ? SUCCESS : UNSPECIFIED_ERROR;
     }
 
     public MqttRouteConfig resolvePublish(
