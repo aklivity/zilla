@@ -48,16 +48,6 @@ final class KafkaShareRanges
         return bounds.getLong((index << 1) + 1);
     }
 
-    long count()
-    {
-        long count = 0L;
-        for (int index = 0; index < size(); index++)
-        {
-            count += last(index) - first(index) + 1L;
-        }
-        return count;
-    }
-
     boolean contains(
         long offset)
     {
