@@ -6254,6 +6254,29 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldGenerateShareDataExtensionWithIntHeader()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .share()
+                .partition(0, 5L)
+                .key("match")
+                .headerInt("expiry", 7)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        final KafkaShareDataExFW shareDataEx = dataEx.share();
+        assertNotNull(shareDataEx.headers()
+                .matchFirst(h ->
+                    "expiry".equals(h.name()
+                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
+                    h.value().get((b, o, m) -> b.getInt(o, ByteOrder.BIG_ENDIAN)) == 7));
+    }
+
+    @Test
     public void shouldGenerateShareDataExtensionWithNullKey()
     {
         byte[] build = KafkaFunctions.dataEx()
