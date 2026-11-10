@@ -40,18 +40,6 @@ public final class McpSchemeExcluder implements JsonTransform
     private int depth;
     private int arrayDepth;
     private boolean armed;
-    // Zero-buffer incremental match of the arm key against arrayKey, spanning however many fragments the
-    // key takes to arrive: armMatching is true while a fragment of the current arm key is still pending,
-    // armMatchOffset is how many of arrayKey's chars have matched so far, armMatchDiverged latches once a
-    // char mismatches or the fragment runs longer than arrayKey -- the fragment is still forwarded live
-    // either way (arming never gates forwarding), so byte-preserving verbatim delivery is never sacrificed
-    // for this key.
-    private boolean armMatching;
-    private int armMatchOffset;
-    private boolean armMatchDiverged;
-    // True once the first fragment of the current element key (at arrayDepth + 1) could not be
-    // securitySchemes, so the key and its remaining fragments are forwarded as they arrive -- see onElementKey.
-    private boolean elementKeyVerbatim;
 
     public McpSchemeExcluder(
         String arrayKey)
@@ -66,10 +54,6 @@ public final class McpSchemeExcluder implements JsonTransform
         depth = 0;
         arrayDepth = NO_DEPTH;
         armed = false;
-        armMatching = false;
-        armMatchOffset = 0;
-        armMatchDiverged = false;
-        elementKeyVerbatim = false;
     }
 
     @Override
@@ -112,7 +96,7 @@ public final class McpSchemeExcluder implements JsonTransform
                 : downstream;
             break;
         case KEY_NAME:
-            status = onKey(control, source, event, sink);
+            status = onKey(source, event, sink);
             break;
         default:
             status = sink.transform(mediator, source, forward(event));
@@ -151,7 +135,6 @@ public final class McpSchemeExcluder implements JsonTransform
     // dispatches to whichever position-specific key check applies, or forwards immediately when neither
     // the arm key nor a candidate element key is possible at the current depth
     private Status onKey(
-        JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
@@ -163,7 +146,7 @@ public final class McpSchemeExcluder implements JsonTransform
         }
         else if (arrayDepth != NO_DEPTH && depth == arrayDepth + 1)
         {
-            status = onElementKey(control, source, event, sink);
+            status = onElementKey(source, event, sink);
         }
         else
         {
@@ -173,80 +156,25 @@ public final class McpSchemeExcluder implements JsonTransform
     }
 
     // arms array descent on the target key. Arming never gates forwarding (every depth-1 key is forwarded
-    // regardless of match), so the key is always forwarded live, fragment by fragment, preserving verbatim
-    // bytes; the match itself is tracked incrementally (armMatchOffset/armMatchDiverged) across however many
-    // fragments the key takes, with no buffering of the key's content, and armed is only assigned once the
-    // key completes.
+    // regardless of match), so the key is always forwarded live, preserving verbatim bytes.
     private Status onArmKey(
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
-        CharSequence fragment = source.getStringView();
-        boolean complete = !source.deferredBytes();
-        if (!armMatching)
-        {
-            armMatchOffset = 0;
-            armMatchDiverged = false;
-        }
-        if (!armMatchDiverged)
-        {
-            if (fragment.length() > arrayKey.length() - armMatchOffset)
-            {
-                armMatchDiverged = true;
-            }
-            else
-            {
-                for (int i = 0; i < fragment.length(); i++)
-                {
-                    if (fragment.charAt(i) != arrayKey.charAt(armMatchOffset + i))
-                    {
-                        armMatchDiverged = true;
-                        break;
-                    }
-                }
-                armMatchOffset += fragment.length();
-            }
-        }
-        armMatching = !complete;
-        if (complete)
-        {
-            armed = !armMatchDiverged && armMatchOffset == arrayKey.length();
-        }
+        armed = arrayKey.contentEquals(source.getStringView());
         return sink.transform(mediator, source, forward(event));
     }
 
-    // drops the securitySchemes member of a direct array element. The drop decision needs the whole key, so
-    // while a key fragment could still turn out to be securitySchemes it is declined with consumed(0); a verbatim
-    // sink makes the source leave it unconsumed, with the separator ahead of it, to be re-presented once the
-    // window holds more of it. A key that turns out to be something else is then forwarded with its original
-    // bytes, while a matching key is dropped along with its separator and leaves no prefix behind. A fragment
-    // that cannot match is forwarded as it arrives, like any other key.
+    // drops the securitySchemes member of a direct array element: a matching key is dropped along with its
+    // separator and value, any other key is forwarded with its original bytes
     private Status onElementKey(
-        JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
-        final CharSequence key = source.getStringView();
-        final boolean complete = !source.deferredBytes();
         Status status;
-        if (elementKeyVerbatim)
-        {
-            elementKeyVerbatim = !complete;
-            status = sink.transform(mediator, source, forward(event));
-        }
-        else if (!complete && securitySchemesPrefix(key))
-        {
-            control.consumed(0);
-            status = Status.STARVED;
-        }
-        else if (!complete)
-        {
-            elementKeyVerbatim = true;
-            status = sink.transform(mediator, source, forward(event));
-        }
-        else if (SECURITY_SCHEMES.contentEquals(key))
+        if (SECURITY_SCHEMES.contentEquals(source.getStringView()))
         {
             // drop the matched member: the source advances past its key, separator, and value and folds in the
             // leading-separator trim, so no sub-event of the dropped value reaches this stage or the sink
@@ -258,17 +186,6 @@ public final class McpSchemeExcluder implements JsonTransform
             status = sink.transform(mediator, source, forward(event));
         }
         return status;
-    }
-
-    private static boolean securitySchemesPrefix(
-        CharSequence key)
-    {
-        boolean prefix = key.length() <= SECURITY_SCHEMES.length();
-        for (int i = 0; prefix && i < key.length(); i++)
-        {
-            prefix = key.charAt(i) == SECURITY_SCHEMES.charAt(i);
-        }
-        return prefix;
     }
 
     // Re-asserts verbatim downstream once the sink has opted in: a body event (a scalar, key, or structural

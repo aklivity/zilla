@@ -26,9 +26,10 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * {@code arguments.max_results} without materializing a DOM or buffering the whole request.
  * <p>
  * One instance is created per stream and fed every frame in order. Per {@link JsonParserEx}'s
- * windowed contract, a value that straddles a window boundary is declined ({@code consumed(0)})
- * until it arrives whole, so {@link #query} and {@link #maxResults} are only ever assigned a
- * complete value, never a fragment.
+ * windowed contract, a key or number that straddles a window boundary is presented whole once it
+ * arrives, and a string value that straddles one is declined ({@code consumed(0)}) until it arrives
+ * whole, so {@link #query} and {@link #maxResults} are only ever assigned a complete value, never a
+ * fragment.
  */
 public final class McpSearchToolCallScanner
 {
@@ -152,22 +153,15 @@ public final class McpSearchToolCallScanner
 
     private void onKey()
     {
-        if (parser.deferredBytes())
+        final CharSequence key = parser.getStringView();
+        if (depth == 1)
         {
-            parser.consumed(0);
+            argumentsArmed = ARGUMENTS_NAME.contentEquals(key);
         }
-        else
+        else if (depth == argumentsDepth)
         {
-            final CharSequence key = parser.getStringView();
-            if (depth == 1)
-            {
-                argumentsArmed = ARGUMENTS_NAME.contentEquals(key);
-            }
-            else if (depth == argumentsDepth)
-            {
-                queryArmed = QUERY_NAME.contentEquals(key);
-                maxResultsArmed = MAX_RESULTS_NAME.contentEquals(key);
-            }
+            queryArmed = QUERY_NAME.contentEquals(key);
+            maxResultsArmed = MAX_RESULTS_NAME.contentEquals(key);
         }
     }
 
@@ -191,15 +185,8 @@ public final class McpSearchToolCallScanner
     {
         if (maxResultsArmed)
         {
-            if (parser.deferredBytes())
-            {
-                parser.consumed(0);
-            }
-            else
-            {
-                maxResults = (int) parser.getLong();
-                maxResultsArmed = false;
-            }
+            maxResults = (int) parser.getLong();
+            maxResultsArmed = false;
         }
     }
 }
