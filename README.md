@@ -41,186 +41,170 @@
 
 **Zilla is a streaming-native, multi-protocol gateway for AI, APIs, and real-time data.**
 
-Connect applications and agents to LLM providers, enterprise tools, and event streams through one high-performance gateway. Zilla handles protocol translation, routing, security, and observability at the edge, without requiring separate proxy services or custom integration code for supported backends.
+Connect applications to LLMs, give AI agents governed access to enterprise tools, and expose Kafka streams through application-friendly protocols. Zilla provides protocol translation, routing, security, and observability in a lightweight, stateless runtime, configured declaratively in `zilla.yaml`.
 
-Use existing AI SDKs to access models across providers. Give agents one governed MCP endpoint for enterprise tools and data. Expose Kafka streams through application-friendly protocols.
-
-Zilla composes protocol-native bindings in a lightweight, stateless runtime, configured declaratively in `zilla.yaml`. LLM access, MCP tool connectivity, and event streaming are different uses of the same gateway architecture, not three separately deployed gateways.
+**One engine, many use cases.** LLM access, MCP tool connectivity, and event streaming are different routes through the same gateway, not separate proxy products to deploy and operate.
 
 ## Contents
 
 - [What You Can Build](#what-you-can-build)
+- [Why One Multi-Protocol Gateway?](#why-one-multi-protocol-gateway)
 - [Get Started](#get-started)
-- [Why Zilla?](#why-zilla)
-- [How It Works](#how-it-works)
-- [Capabilities](#capabilities)
-- [Explore the Documentation](#explore-the-documentation)
-- [Zilla Plus](#zilla-plus)
-- [Install with Your Own Configuration](#install-with-your-own-configuration)
-- [Resources](#resources)
+- [How Zilla Works](#how-zilla-works)
+- [Governance in the Data Path](#governance-in-the-data-path)
+- [Streaming-Native by Design](#streaming-native-by-design)
+- [Capabilities at a Glance](#capabilities-at-a-glance)
+- [Zilla Plus and Zilla Console](#zilla-plus-and-zilla-console)
+- [Install and Deploy](#install-and-deploy)
+- [Documentation and Examples](#documentation-and-examples)
+- [Community and Contributing](#community-and-contributing)
 - [License](#license)
 
 ## What You Can Build
 
-### Connect applications to LLMs
+### ⚡ Connect and govern real-time data
 
-Use OpenAI, Anthropic, or Google Gemini SDKs with Zilla as the gateway endpoint. Route requests by model, translate supported chat and tool-call workflows between provider APIs, stream responses, apply configurable prompt and response guardrails, and export token and latency metrics. Configure fallback when a model deployment cannot be reached. **Zilla Plus adds Amazon Bedrock**, including access from existing SDKs.
+Expose Kafka through REST, SSE, WebSocket, gRPC, and MQTT without building custom protocol bridges. Validate schemas, control access, and connect browsers, services, and devices to event streams. With **Zilla Plus**, transparently proxy native Kafka clients and Kafka Connect, including across network boundaries.
 
-**Try it:** [Cross-provider LLM demo](https://github.com/aklivity/zilla-demos/tree/main/llm.gateway) | [LLM documentation](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/)
+**Explore:** [Kafka Gateway](https://docs.aklivity.io/latest/kafka-gateway/) · [Kafka use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) · [REST example](./examples/http.kafka.crud/)
 
-### Give agents governed access to enterprise tools and data
+### ✨ Connect applications to LLMs
 
-Aggregate existing MCP servers, turn HTTP/OpenAPI services into tools, and expose Kafka capabilities directly over MCP without building wrapper services for those backends. Present a single namespaced MCP endpoint, authorize what each caller can discover and invoke, and keep the default tool list compact with on-demand discovery.
+Keep using supported OpenAI, Anthropic, and Gemini SDKs while Zilla routes requests to the right model provider. Translate supported chat and tool-call workflows across APIs, stream responses, apply configurable guardrails, and observe token usage and latency. Configure fallback for unreachable model deployments.
 
-**Try it:** [MCP example](./examples/mcp.proxy/) | [MCP documentation](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/)
+**Explore:** [LLM Gateway](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/) · [Cross-provider demo](https://github.com/aklivity/zilla-demos/tree/main/llm.gateway)
 
-### Bring real-time data to applications, services, and devices
+### 🤖 Give AI agents governed access to tools and data
 
-Expose Kafka-backed REST APIs and live streams to HTTP, SSE, WebSocket, gRPC, and MQTT clients. Apply protocol-aware authentication, authorization, schema validation, and data policies at the gateway instead of building and operating custom bridges.
+Present one MCP endpoint for existing MCP servers, HTTP/OpenAPI services, and Kafka. Expose Kafka topics, Kafka Connect, and Schema Registry operations as MCP tools without custom wrapper services. Authorize what each caller can discover and invoke, and keep large tool catalogs manageable with eager and on-demand discovery.
 
-**Try it:** [Kafka REST example](./examples/http.kafka.crud/) | [Kafka Gateway documentation](https://docs.aklivity.io/latest/kafka-gateway/)
+**Explore:** [MCP Gateway](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/) · [MCP example](./examples/mcp.proxy/)
+
+## Why One Multi-Protocol Gateway?
+
+Kafka and AI solve different problems. Kafka moves real-time data, LLM APIs connect applications to models, and MCP connects agents to tools. But the infrastructure needed to connect them has much in common: **routing, identity, access control, protocol mediation, policy enforcement, and observability**.
+
+Zilla was built as a streaming-native, multi-protocol engine rather than a collection of standalone proxies. Protocol-aware bindings connect clients and backends, while routing, security, telemetry, and declarative configuration are managed through the same runtime. Each protocol retains its own semantics and specialized controls.
+
+That architecture matters both when these workloads are separate and when they intersect. Use Zilla to govern LLM access without Kafka, to expose Kafka without AI, or to connect them directly—for example, letting an agent discover and invoke Kafka-backed tools through MCP without building a custom integration service.
+
+**Use either capability on its own. Combine them when your applications need both.**
 
 ## Get Started
 
-The examples below use Docker Compose. Run them in separate sessions: several examples share local ports.
+Run Zilla locally with Docker Compose and expose a Kafka topic as a REST API. The example starts Zilla, Kafka, and Kafka UI; no external service credentials are required.
 
-### 1. Try the LLM gateway
-
-**Prerequisites:** Docker Compose and API keys for the model providers you want to call.
-
-```bash
-git clone --depth 1 https://github.com/aklivity/zilla-demos.git
-cd zilla-demos/llm.gateway
-cp .env.example .env
-```
-
-Edit `.env` to add your provider keys:
-
-```dotenv
-ZILLA_VERSION=2.6.0
-OPENAI_API_KEY=<your-openai-api-key>
-ANTHROPIC_API_KEY=<your-anthropic-api-key>
-GEMINI_API_KEY=<your-gemini-api-key>
-```
-
-For Apple silicon or another ARM64 host, also uncomment `TEI_VERSION=cpu-arm64-1.9` in `.env`. Keep `.env` out of version control.
-
-```bash
-docker compose up --build --wait
-```
-
-Open the [demo app at localhost:7860](http://localhost:7860). For example, select the **OpenAI SDK**, choose a `claude-*` model, and send a prompt. Zilla routes it to Anthropic, translates the request and response, and returns the result in the OpenAI format your SDK expects.
-
-Or try the same cross-provider call from the command line:
-
-```bash
-docker compose run --rm -e SDK=openai -e MODEL=claude-haiku-4-5 llm-client
-```
-
-Explore streaming replies, tool calls, guardrail rejections, model fallback, and comparisons across providers. Open the [Grafana dashboard](http://localhost:3000) for token usage, request counts, latency, and time to first token, or inspect raw metrics:
-
-```bash
-curl -s http://localhost:7190/metrics | grep '^llm_'
-```
-
-The demo uses **bring-your-own-key** credentials: callers send a valid key for the provider handling the request. Translating an API does not make a key from one provider valid at another. Gateway-managed credentials can also be configured. Some guardrail checks in this demo use accompanying Presidio and embedding services.
-
-For the full walkthrough, including Gemini and the Zilla Plus / Bedrock extension, see the [LLM demo README](https://github.com/aklivity/zilla-demos/blob/main/llm.gateway/README.md).
-
-### 2. Try the MCP gateway
-
-From a separate terminal, after stopping the previous demo (`docker compose down`), run:
+**Prerequisite:** Docker with Docker Compose.
 
 ```bash
 git clone --depth 1 --branch 2.6.0 https://github.com/aklivity/zilla.git
-cd zilla/examples/mcp.proxy
+cd zilla/examples/http.kafka.crud
 docker compose up --wait
 ```
 
-The gateway listens at `http://localhost:7114/mcp` over MCP Streamable HTTP. This example combines MCP servers, HTTP/OpenAPI-backed tools, and Kafka-backed tools. Its protected toolkits require JWT scopes; use the instructions in the [example README](./examples/mcp.proxy/README.md) to obtain a token and connect Claude Code or MCP Inspector.
-
-### 3. Expose Kafka through a REST API
-
-After stopping the MCP example (`docker compose down`), from the cloned `zilla` repository:
+Produce a record over HTTP, then retrieve it by key:
 
 ```bash
-cd ../http.kafka.crud
-docker compose up --wait
-
-curl -X POST http://localhost:7114/items \
+curl -i -X POST http://localhost:7114/items \
+  -H 'Idempotency-Key: hello' \
   -H 'Content-Type: application/json' \
-  -d '{"greeting":"Hello from Zilla"}'
+  -d '{"message":"Hello from Zilla"}'
 
-curl http://localhost:7114/items
+curl http://localhost:7114/items/hello
 ```
 
-This example backs REST create/read/update/delete operations with a Kafka topic. Browse the records in [Kafka UI](http://localhost:8080/ui/clusters/local/all-topics).
+Zilla maps the request to Kafka without an application service in between. Inspect the topic in [Kafka UI](http://localhost:8080/ui/clusters/local/all-topics). Stop the stack with `docker compose down`.
 
-[Browse all examples](./examples/) | [Read the documentation](https://docs.aklivity.io/latest/)
+**Prefer an AI example?** [Try the MCP Gateway](https://docs.aklivity.io/latest/ai-gateway/get-started/) or [run the cross-provider LLM demo](https://github.com/aklivity/zilla-demos/tree/main/llm.gateway).
 
-## Why Zilla?
+## How Zilla Works
 
-Most systems do not speak the protocols of the services they need. AI applications call model APIs; agents use MCP; business services expose HTTP and gRPC; real-time data lives in Kafka and MQTT. Building bridges between them typically means more adapters, proxies, credentials, and operational overhead.
+Zilla is built from composable, protocol-aware **bindings**. An inbound binding accepts a protocol, routes and configured guards determine what is permitted, and an outbound binding connects to the destination. The same runtime can map HTTP/SSE/MQTT/gRPC to Kafka, expose APIs and Kafka as MCP tools, or route LLM API calls across providers.
 
-Zilla addresses that fragmentation at the gateway:
+<img src="./assets/zilla-gateway-architecture.png" alt="Zilla multi-protocol gateway architecture" width="760">
 
-- **One runtime for many protocols.** Compose LLM, MCP, HTTP, SSE, WebSocket, gRPC, Kafka, and MQTT connectivity in a single deployment, with shared configuration and telemetry infrastructure.
-- **Native translation instead of application-side wrappers.** Connect supported models, APIs, tools, and event streams through protocol-aware bindings, rather than maintaining custom middleware for every integration.
-- **Governance at the boundary.** Enforce caller identity, route and model access, MCP tool visibility and invocation, schema rules, and configured LLM guardrails independently of client implementations. Controls remain specific to each protocol and policy configuration.
-- **Streaming-native performance.** Preserve backpressure and avoid unnecessary buffering, copies, and allocations along the data path, including streaming LLM responses and event-driven traffic.
-- **Simple deployment and operations.** Run a lightweight, stateless data plane in Docker or Kubernetes. External stores are optional for features that need shared state across replicas.
+The same architecture supports an **AI SDK → LLM provider**, an **AI agent → MCP → Kafka**, or an **HTTP client → Kafka** route. Protocol-specific bindings and policies determine which combinations are supported; these are not interchangeable protocols or separate gateway runtimes.
 
-## How It Works
+Routes are defined in `zilla.yaml`. For example, this excerpt maps an HTTP endpoint to a Kafka topic:
 
-Zilla connects protocol-aware **bindings** into a route. A binding terminates or originates a protocol; routing and configured guards determine where traffic goes and what is permitted. LLMs, MCP tools, and event streams use the same streaming engine and operational model.
+```yaml
+bindings:
+  api_to_events:
+    type: http-kafka
+    kind: proxy
+    routes:
+      - when:
+          - method: POST
+            path: /events
+        exit: kafka_cache_client
+        with:
+          capability: produce
+          topic: events
+          key: ${idempotencyKey}
+```
 
-<img src="./assets/zilla-gateway-architecture.png" height="450">
+One declarative configuration defines protocol connectivity and the controls applied along each route. Zilla runs as a stateless data plane; optional external stores support features that require shared state across replicas.
 
-Under the hood, code-generated flyweights access encoded buffers without unnecessary object creation. Connections stay assigned to a worker to reduce contention, and bindings exchange back-pressured stream frames through the runtime. Stateless processing enables horizontal scaling; shared stores can be configured where distributed features require them.
+[How Zilla Works](https://www.aklivity.io/post/how-zilla-works) · [Configuration reference](https://docs.aklivity.io/latest/reference/2.x/)
 
-[How Zilla Works](https://www.aklivity.io/post/how-zilla-works) | [Configuration reference](https://docs.aklivity.io/latest/reference/2.x/)
+## Governance in the Data Path
 
-## Capabilities
+Zilla applies protocol-aware controls where traffic crosses a system boundary, instead of requiring every application, agent, or integration to implement them independently.
 
-| Area | What Zilla enables |
-| :--- | :--- |
-| **Protocol connectivity** | HTTP, SSE, WebSocket, gRPC, MQTT, Kafka, MCP, and supported LLM APIs in one composable runtime |
-| **LLM providers and APIs** | OpenAI Chat Completions, Anthropic Messages, and Google Gemini in Zilla Community; Amazon Bedrock in Zilla Plus |
-| **LLM routing and interoperability** | Model-based routing, supported request/response and tool-call translation, streaming, and connectivity-based fallback |
-| **LLM governance** | Caller authentication, model-aware authorization, configurable prompt/response guardrails, and provider credential handling |
-| **MCP connectivity** | Aggregate MCP servers; expose HTTP/OpenAPI and Kafka-backed capabilities as tools without custom wrappers for supported backends |
-| **MCP governance and discovery** | Identity-aware tool listing and invocation; namespaced toolkits; eager and on-demand discovery |
-| **API and event integration** | Expose Kafka through REST and streaming protocols; connect services and devices across supported protocols |
-| **Data validation** | Protocol-appropriate schema validation and supported JSON, Avro, and Protobuf transformations |
-| **Observability** | Gateway and protocol metrics, MCP interaction metrics, and provider-reported LLM token usage and latency; Prometheus/OTLP export |
-| **Deployment** | Docker and Kubernetes/Helm; stateless data-plane scaling, with optional external shared stores where needed |
+| Control | What you can enforce or observe |
+| --- | --- |
+| **Identity and access** | Authenticate callers with supported guards, TLS/mTLS, and provider credentials; authorize model routes and MCP tool discovery and invocation. |
+| **Schema and API contracts** | Validate supported JSON, Avro, and Protobuf payloads; apply OpenAPI and AsyncAPI-driven configuration and transformations. |
+| **LLM guardrails** | Check configured prompt and response sections for policy violations, including secrets, personal data, and other classified content. |
+| **Data protection** | Apply field-level encryption, masking, and conditional disclosure for supported Kafka workflows with Zilla Plus. |
+| **Observability** | Export gateway and protocol metrics, MCP interactions, LLM token usage, and logs to supported telemetry systems. |
 
-**LLM compatibility notes:** Translation covers supported chat, streaming, and tool workflows, not every provider-specific parameter or API feature. Configured fallback is for deployments that cannot be reached; it does **not** trigger on provider responses such as HTTP `429` or `5xx`. See [dialect translation](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/dialect-translation/) and [fallback](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/fallback/).
+Policies are configured per protocol and route; not every control applies to every kind of traffic. [Explore AI security](https://docs.aklivity.io/latest/ai-gateway/) · [Kafka governance](https://docs.aklivity.io/latest/kafka-gateway/) · [Monitoring and observability](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)
 
-## Explore the Documentation
+## Streaming-Native by Design
 
-- **Models and LLMs:** [LLM overview](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/) · [Model routing](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/model-routing/) · [Guardrails](https://docs.aklivity.io/latest/ai-gateway/guardrails/llm/) · [2.6.0 cross-provider demo](https://github.com/aklivity/zilla-demos/tree/main/llm.gateway)
-- **Agents and tools:** [MCP overview](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/) · [MCP quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/) · [Tool discovery](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/tool-discovery/)
-- **Real-time data:** [Kafka Gateway](https://docs.aklivity.io/latest/kafka-gateway/) · [Examples](./examples/)
-- **Observability:** [Monitoring](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)
+Zilla's runtime is designed for continuous, high-throughput traffic as well as request/response workloads.
 
-## Zilla Plus
+- **Backpressure-aware streaming:** Data flows through protocol bindings without requiring whole messages or streams to be buffered unnecessarily.
+- **Efficient data processing:** Code-generated flyweights operate on encoded buffers while minimizing copying, allocation, and cross-worker contention.
+- **Stateless horizontal scaling:** Run independent gateway instances in containers or Kubernetes; configure shared stores only for capabilities that need them.
+- **One operational model:** Deploy and observe LLM, MCP, API, and event-streaming routes through the same engine and declarative configuration.
 
-**Zilla Plus** builds on Zilla Community with additional capabilities for enterprise Kafka and AI deployments:
+Explore the [architecture](https://www.aklivity.io/post/how-zilla-works) and [Kafka performance benchmarks](https://www.aklivity.io/post/zilla-plus-on-confluent-cloud-aklivity-zilla-benchmark-series-part-2).
 
-- **Native Kafka-to-Kafka proxying.** Transparently connect existing Kafka producers, consumers, and Kafka Connect clients to Kafka clusters using the native Kafka protocol, without application changes.
-- **Virtual Kafka clusters.** Give teams and tenants isolated Kafka endpoints, topic and consumer-group namespaces, and access controls on shared Kafka infrastructure.
-- **Dynamic topic aliasing.** Map the same client-facing topic name to different internal topics based on client identity.
-- **Secure public and private Kafka access.** Connect clients through authenticated, TLS-protected public endpoints or private connectivity across VPCs and AWS accounts, including Amazon MSK and MSK Serverless.
-- **Additional enterprise governance and integrations.** Field-level data protection, Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, and commercial support.
+## Capabilities at a Glance
 
-Explore the [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) and [edition comparison](https://www.aklivity.io/pricing) for details.
+| Area | Capabilities |
+| --- | --- |
+| **Protocols** | Kafka, HTTP, SSE, WebSocket, gRPC, MQTT, MCP, and supported LLM APIs |
+| **LLM connectivity** | OpenAI, Anthropic, and Gemini; model-based routing, streaming, supported dialect translation, and unreachable-deployment fallback |
+| **MCP connectivity** | Aggregate MCP servers; expose HTTP/OpenAPI, Kafka, Kafka Connect, and Schema Registry capabilities as tools and resources |
+| **Kafka integration** | HTTP/MQTT/gRPC/SSE mediation, schema validation, and Kafka-backed API patterns |
+| **Security and policy** | TLS, JWT-based guards, authorization, schema enforcement, and configurable LLM guardrails |
+| **Telemetry** | Metrics and logs with Prometheus, OTLP, and other supported exporters |
+| **Deployment** | Docker, Kubernetes/Helm, and local installation; declarative `zilla.yaml` configuration |
 
-**Get started with Zilla Plus:** [Request a license key from the Aklivity team](https://www.aklivity.io/contact) or [get Zilla Plus on AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-lqfqftufwpttm).
+Some features and integrations require **Zilla Plus**. See the [edition capability matrix](https://docs.aklivity.io/latest/reference/editions/capability-matrix/).
 
-## Install with Your Own Configuration
+## Zilla Plus and Zilla Console
 
-For a guided first experience, use the [LLM quickstart](#1-try-the-llm-gateway) above. The commands below run Zilla with a configuration you supply; they do not generate a working `zilla.yaml` for you.
+**Zilla Community** includes the multi-protocol runtime, Kafka protocol mediation, MCP and LLM gateway capabilities, and core security, schema, and observability features.
+
+**Zilla Plus** adds enterprise capabilities, including:
+
+- Transparent **Kafka-to-Kafka proxying** for existing producers, consumers, and Kafka Connect clients, without changing the client protocol.
+- **Virtual Kafka clusters**, dynamic topic aliases, and secure public or private Kafka access across VPCs and cloud accounts.
+- **Field-level data protection** and additional enterprise security and identity integrations.
+- **Additional LLM providers:** Amazon Bedrock, Azure AI Foundry, and Google Vertex AI.
+- Advanced MCP tool-discovery policies, distributed stores, and commercial support.
+
+**Zilla Console** is an optional management and governance layer, available as an add-on with Plus and included with Enterprise. It provides gateway and Kafka observability, API/data product catalogs, managed access, self-service subscriptions, and audit workflows. Zilla does not require Console to run.
+
+[Compare editions](https://docs.aklivity.io/latest/reference/editions/capability-matrix/) · [Explore Zilla Console](https://docs.aklivity.io/latest/zilla-console/) · [Request a Zilla Plus license](https://www.aklivity.io/contact) · [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-lqfqftufwpttm)
+
+## Install and Deploy
+
+The quickstart above runs a complete example stack. For your own configuration, supply a valid `zilla.yaml` and publish ports that match its listeners.
 
 ### Docker
 
@@ -230,13 +214,12 @@ docker pull ghcr.io/aklivity/zilla:2.6.0
 docker run --rm \
   -p 7114:7114 \
   -v "$(pwd)/zilla.yaml:/etc/zilla/zilla.yaml:ro" \
-  ghcr.io/aklivity/zilla:2.6.0 \
-  start -v
+  ghcr.io/aklivity/zilla:2.6.0 start -v
 ```
 
-Adjust published ports to match the listeners in your configuration.
-
 ### Kubernetes / Helm
+
+After preparing your `zilla.yaml` and Helm values:
 
 ```bash
 helm install zilla oci://ghcr.io/aklivity/charts/zilla \
@@ -247,26 +230,29 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla \
   --set-file 'zilla\.yaml=zilla.yaml'
 ```
 
-Choose chart settings and gateway image version appropriate for your deployment. See the [deployment documentation](https://docs.aklivity.io/latest/).
+For local installation, container options, Kubernetes configuration, and production deployment guidance, see [Deploy & Configure](https://docs.aklivity.io/latest/deployment/).
 
-## Resources
+## Documentation and Examples
 
-- [📖 Documentation](https://docs.aklivity.io/latest)
-- [✨ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)
-- [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)
-- [🧪 Examples](https://github.com/aklivity/zilla/tree/develop/examples)
-- [🎬 Demos](https://github.com/aklivity/zilla-demos)
-- [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1)
-- [💬 Discord Server](https://discord.gg/RbUeKPsxq)
-- [💬 Community Slack](https://www.aklivity.io/slack)
-- [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues)
-- [🦎 Contributing](https://github.com/aklivity/zilla/blob/develop/.github/CONTRIBUTING.md)
+- **Start here:** [Documentation](https://docs.aklivity.io/latest/) · [Examples](./examples/) · [End-to-end demos](https://github.com/aklivity/zilla-demos)
+- **AI:** [LLM Gateway](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/) · [MCP Gateway](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/) · [Tool discovery](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/tool-discovery/)
+- **Real-time data:** [Kafka Gateway](https://docs.aklivity.io/latest/kafka-gateway/) · [Kafka use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/)
+- **Reference:** [Configuration](https://docs.aklivity.io/latest/reference/2.x/) · [Editions](https://docs.aklivity.io/latest/reference/editions/) · [Releases](https://github.com/aklivity/zilla/releases)
+
+## Community and Contributing
+
+Questions, feedback, and contributions are welcome.
+
+- [Join the community on Slack](https://www.aklivity.io/slack)
+- [Report an issue or request a feature](https://github.com/aklivity/zilla/issues)
+- [Read the contributing guide](./.github/CONTRIBUTING.md)
+- [Follow the roadmap](https://github.com/orgs/aklivity/projects/4/views/1)
+
+If Zilla is useful to you, consider [starring the repository](https://github.com/aklivity/zilla).
 
 ## License
 
-Zilla is made available under the [Aklivity Community License](LICENSE-AklivityCommunity).
-
-The license allows you to deploy, run, and modify Zilla for your own workloads, including production and cloud deployments. It does not permit offering Zilla as a standalone commercial Zilla-as-a-service product. Review the license text for the full terms.
+Zilla Community is **source-available** under the [Aklivity Community License](./LICENSE-AklivityCommunity); select components carry Apache License 2.0. The Community License allows you to use, modify, and distribute Zilla, subject to its terms and a restriction on offering competing hosted services. Review the [license](./LICENSE-AklivityCommunity) for complete terms.
 
 <!-- Badge links -->
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
