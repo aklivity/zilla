@@ -2739,6 +2739,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream/client",
+        "${app}/anthropic.transform.system.instruction.control.stream/server"})
+    public void shouldAnthropicTransformSystemInstructionControlStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream.sorted/client",
+        "${app}/anthropic.transform.system.instruction.control.stream.sorted/server"})
+    public void shouldAnthropicTransformSystemInstructionControlStreamSorted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream.tools/client",
+        "${app}/anthropic.transform.system.instruction.control.stream.tools/server"})
+    public void shouldAnthropicTransformSystemInstructionControlStreamTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
     public void shouldTransformAssistantText() throws Exception

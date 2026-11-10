@@ -1182,6 +1182,39 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\""})
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream/client",
+        "${net}/openai.transform.system.instruction.control.stream/server"})
+    public void shouldTransformAnthropicSystemInstructionControlStreamAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\""})
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream.sorted/client",
+        "${net}/openai.transform.system.instruction.control.stream.sorted/server"})
+    public void shouldTransformAnthropicSystemInstructionControlStreamSortedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\""})
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.control.stream.tools/client",
+        "${net}/openai.transform.system.instruction.control.stream.tools/server"})
+    public void shouldTransformAnthropicSystemInstructionControlStreamToolsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/ccs\""})
     @Specification({
         "${app}/transform.system.instruction.last.100k/client",
