@@ -28,6 +28,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SASL_SCRAM_NONCE;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -51,6 +53,9 @@ public class KafkaConfigurationTest
         "zilla.binding.kafka.client.describe.config.include.synonyms";
     public static final String KAFKA_CLIENT_API_VERSIONS_NAME = "zilla.binding.kafka.client.api.versions";
     public static final String KAFKA_CLIENT_RECONNECT_DELAY_NAME = "zilla.binding.kafka.client.reconnect";
+    public static final String KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS_NAME =
+        "zilla.binding.kafka.client.share.fetch.max.wait.millis";
+    public static final String KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES_NAME = "zilla.binding.kafka.client.share.fetch.min.bytes";
 
     public static final String KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME =
         "zilla.binding.kafka.cache.retention.ms.max";
@@ -71,5 +76,7 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS.name(), KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME);
         assertEquals(KAFKA_CLIENT_API_VERSIONS.name(), KAFKA_CLIENT_API_VERSIONS_NAME);
         assertEquals(KAFKA_CLIENT_RECONNECT_DELAY.name(), KAFKA_CLIENT_RECONNECT_DELAY_NAME);
+        assertEquals(KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS.name(), KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS_NAME);
+        assertEquals(KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES.name(), KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES_NAME);
     }
 }
