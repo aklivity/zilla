@@ -60,6 +60,12 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES_NAME = "zilla.binding.kafka.client.share.fetch.min.bytes";
     public static final String KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES_NAME = "zilla.binding.kafka.client.share.fetch.max.bytes";
     public static final String KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS_NAME = "zilla.binding.kafka.client.share.fetch.max.records";
+    public static final String KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES_NAME =
+        "zilla.binding.kafka.cache.server.share.staging.max.bytes";
+    public static final String KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES_NAME =
+        "zilla.binding.kafka.cache.server.share.staging.segment.bytes";
+    public static final String KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT_NAME =
+        "zilla.binding.kafka.cache.server.share.lock.margin.percent";
 
     public static final String KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME =
         "zilla.binding.kafka.cache.retention.ms.max";
