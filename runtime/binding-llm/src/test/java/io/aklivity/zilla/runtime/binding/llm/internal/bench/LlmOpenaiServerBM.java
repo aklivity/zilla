@@ -114,6 +114,9 @@ public class LlmOpenaiServerBM
         @Param({"false", "true"})
         public boolean streaming;
 
+        @Param({"text", "toolCall"})
+        public String request;
+
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
         private final boolean respond;
@@ -170,6 +173,13 @@ public class LlmOpenaiServerBM
             String text)
         {
             final String stream = streaming ? "\"stream\":true," : "";
+
+            if ("toolCall".equals(request))
+            {
+                return String.format("{\"model\":\"gpt-4\",%s\"messages\":[{\"role\":\"assistant\",\"tool_calls\":" +
+                    "[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\"," +
+                    "\"arguments\":\"{\\\"query\\\":\\\"%s\\\"}\"}}]}]}", stream, text);
+            }
 
             return String.format("{\"model\":\"gpt-4\",%s\"messages\":[{\"role\":\"user\",\"content\":\"%s\"}]}", stream, text);
         }
