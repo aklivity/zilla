@@ -21,12 +21,15 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_QOS_MAX;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SHARED_SUBSCRIPTION_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.TIME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_STREAM_RECONNECT_DELAY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 
@@ -41,6 +44,8 @@ public class MqttKafkaConfigurationTest
     public static final String WILL_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.will.stream.reconnect";
     public static final String BOOTSTRAP_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.bootstrap.available";
     public static final String BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.bootstrap.stream.reconnect";
+    public static final String SHARED_SUBSCRIPTION_AVAILABLE_NAME =
+        "zilla.binding.mqtt.kafka.shared.subscription.available";
     public static final String PUBLISH_MAX_QOS_NAME = "zilla.binding.mqtt.kafka.publish.qos.max";
     public static final String SESSION_ID_NAME = "zilla.binding.mqtt.kafka.session.id";
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
@@ -60,6 +65,25 @@ public class MqttKafkaConfigurationTest
         assertEquals(LIFETIME_ID.name(), LIFETIME_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(PUBLISH_QOS_MAX.name(), PUBLISH_MAX_QOS_NAME);
+        assertEquals(SHARED_SUBSCRIPTION_AVAILABLE.name(), SHARED_SUBSCRIPTION_AVAILABLE_NAME);
+    }
+
+    @Test
+    public void shouldDefaultSharedSubscriptionAvailable()
+    {
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(new Properties()));
+
+        assertTrue(config.sharedSubscriptionAvailable());
+    }
+
+    @Test
+    public void shouldDisableSharedSubscriptionAvailable()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(SHARED_SUBSCRIPTION_AVAILABLE_NAME, "false");
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
+
+        assertFalse(config.sharedSubscriptionAvailable());
     }
 
     @Test
