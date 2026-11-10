@@ -354,6 +354,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     private final int proxyTypeId;
     private final int shareFetchMaxWaitMillis;
     private final int shareFetchMinBytes;
+    private final int shareFetchMaxBytes;
+    private final int shareFetchMaxRecords;
     private final int decodeMaxBytes;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool decodePool;
@@ -375,6 +377,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.shareFetchMaxWaitMillis = config.clientShareFetchMaxWaitMillis();
         this.shareFetchMinBytes = config.clientShareFetchMinBytes();
+        this.shareFetchMaxBytes = config.clientShareFetchMaxBytes();
+        this.shareFetchMaxRecords = config.clientShareFetchMaxRecords();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -410,7 +414,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         final String groupId = kafkaShareBeginEx.groupId().asString();
         final String memberId = kafkaShareBeginEx.memberId().asString();
         final String topic = kafkaShareBeginEx.topic().asString();
-        final int recordsMax = kafkaShareBeginEx.recordsMax();
 
         MessageConsumer newStream = null;
 
@@ -429,7 +432,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 groupId,
                 memberId,
                 topic,
-                recordsMax,
                 binding.servers(),
                 binding.sasl(),
                 binding.guard)::onApplication;
@@ -1955,7 +1957,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private final String groupId;
         private final String memberId;
         private final String topic;
-        private final int recordsMax;
         private final List<KafkaServerConfig> servers;
         private final KafkaSaslConfig sasl;
         private final GuardHandler guard;
@@ -1996,7 +1997,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             String groupId,
             String memberId,
             String topic,
-            int recordsMax,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
             GuardHandler guard)
@@ -2011,7 +2011,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             this.groupId = groupId;
             this.memberId = memberId;
             this.topic = topic;
-            this.recordsMax = recordsMax;
             this.servers = servers;
             this.sasl = sasl;
             this.guard = guard;
@@ -2052,16 +2051,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private boolean leaving()
         {
             return StreamState.initialClosed(state) || StreamState.replyClosed(state);
-        }
-
-        private int inflightCount()
-        {
-            long count = 0L;
-            for (int index = 0; index < partitions.size(); index++)
-            {
-                count += partitions.get(index).inflight.count();
-            }
-            return (int) Math.min(count, Integer.MAX_VALUE);
         }
 
         private SharePartition partition(
@@ -2507,8 +2496,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                                      .memberId(memberId)
                                      .topic(topic)
                                      .host(coordinatorHost)
-                                     .port(coordinatorPort)
-                                     .recordsMax(recordsMax))
+                                     .port(coordinatorPort))
                         .build()
                         .sizeof()));
             }
@@ -4108,7 +4096,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             {
                 if (sessionEpoch > SHARE_SESSION_EPOCH_INITIAL)
                 {
-                    doEncodeShareAcknowledge(traceId, budgetId, SHARE_SESSION_EPOCH_FINAL);
+                    doEncodeShareAcknowledge(traceId, budgetId);
                 }
                 else
                 {
@@ -4119,10 +4107,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             else if (fetchable())
             {
                 doEncodeShareFetch(traceId, budgetId);
-            }
-            else if (acknowledgeable())
-            {
-                doEncodeShareAcknowledge(traceId, budgetId, sessionEpoch);
             }
         }
 
@@ -4149,21 +4133,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private boolean fetchable()
         {
             return assignedCount() != 0 &&
-                StreamState.replyOpening(delegate.state) &&
-                delegate.replyBudget() > 0 &&
-                delegate.inflightCount() < delegate.recordsMax;
-        }
-
-        private boolean acknowledgeable()
-        {
-            boolean acknowledgeable = false;
-            for (int index = 0; !acknowledgeable && sessionEpoch > SHARE_SESSION_EPOCH_INITIAL &&
-                index < delegate.partitions.size(); index++)
-            {
-                final SharePartition partition = delegate.partitions.get(index);
-                acknowledgeable = partition.leaderId == nodeId && partition.acknowledged();
-            }
-            return acknowledgeable;
+                StreamState.replyOpening(delegate.state);
         }
 
         private void onAssignmentChanged(
@@ -4270,8 +4240,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 }
             }
 
-            final int maxRecords = delegate.recordsMax - delegate.inflightCount();
-
             final ShareFetchRequestFW shareFetchRequest = shareFetchRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .taggedFields(0)
                 .groupId(delegate.groupId)
@@ -4279,9 +4247,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 .shareSessionEpoch(sessionEpoch)
                 .maxWaitMillis(shareFetchMaxWaitMillis)
                 .minBytes(shareFetchMinBytes)
-                .maxBytes(delegate.replyBudget())
-                .maxRecords(maxRecords)
-                .batchSize(maxRecords)
+                .maxBytes(shareFetchMaxBytes)
+                .maxRecords(shareFetchMaxRecords)
+                .batchSize(shareFetchMaxRecords)
                 .topicCount(entryCount != 0 ? 1 : 0)
                 .build();
 
@@ -4459,8 +4427,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
         private void doEncodeShareAcknowledge(
             long traceId,
-            long budgetId,
-            int epoch)
+            long budgetId)
         {
             final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
@@ -4479,10 +4446,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 final SharePartition partition = delegate.partitions.get(index);
                 if (partition.leaderId == nodeId)
                 {
-                    if (epoch == SHARE_SESSION_EPOCH_FINAL)
-                    {
-                        partition.releaseInflight();
-                    }
+                    partition.releaseInflight();
 
                     if (partition.acknowledged())
                     {
@@ -4496,7 +4460,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                     .taggedFields(0)
                     .groupId(delegate.groupId)
                     .memberId(delegate.memberId)
-                    .shareSessionEpoch(epoch)
+                    .shareSessionEpoch(SHARE_SESSION_EPOCH_FINAL)
                     .topicCount(entryCount != 0 ? 1 : 0)
                     .build();
 
@@ -4516,7 +4480,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
             completeRequestHeader(encodeBuffer, encodeOffset, encodeProgress, requestHeader);
 
-            sessionEpoch = epoch == SHARE_SESSION_EPOCH_FINAL ? SHARE_SESSION_EPOCH_FINAL : sessionEpoch + 1;
+            sessionEpoch = SHARE_SESSION_EPOCH_FINAL;
             confirmSent = confirmKeys.size();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -4690,30 +4654,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         {
             doConfirmRemaining(traceId, errorCode);
 
-            if (sessionEpoch == SHARE_SESSION_EPOCH_FINAL)
-            {
-                decoder = decodeIgnoreAll;
-                closeNetwork(traceId);
-                delegate.onLeaderClosed(traceId);
-            }
-            else if (errorCode == ERROR_SHARE_SESSION_NOT_FOUND || errorCode == ERROR_INVALID_SHARE_SESSION_EPOCH)
-            {
-                sessionEpoch = SHARE_SESSION_EPOCH_INITIAL;
-                sessionPartitions.clear();
-                onResponseComplete(traceId);
-            }
-            else if (errorCode != ERROR_NONE)
-            {
-                onDecodeResponseErrorCode(traceId, delegate.routedId, SHARE_ACKNOWLEDGE_API_KEY, SHARE_ACKNOWLEDGE_API_VERSION,
-                    errorCode, delegate.topic);
-
-                decoder = decodeIgnoreAll;
-                delegate.cleanup(traceId, errorCode);
-            }
-            else
-            {
-                onResponseComplete(traceId);
-            }
+            decoder = decodeIgnoreAll;
+            closeNetwork(traceId);
+            delegate.onLeaderClosed(traceId);
         }
     }
 
