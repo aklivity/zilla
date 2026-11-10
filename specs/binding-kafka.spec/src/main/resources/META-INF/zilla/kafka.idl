@@ -450,7 +450,7 @@ scope kafka
         struct KafkaShareBeginEx
         {
             string16 groupId;
-            string16 memberId;
+            string16 memberId = null;
             string16 topic;
             string16 host = null;
             int32 port = 0;
@@ -461,6 +461,7 @@ scope kafka
         {
             int32 deferred = 0;                             // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;                            // INIT only
+            int32 deliveryCount = 0;                        // INIT only, 0 when not reported
             KafkaOffset partition;                          // INIT only
             KafkaKey key;                                   // INIT only
             KafkaHeader[] headers;                          // FIN only
@@ -484,6 +485,7 @@ scope kafka
         struct KafkaShareAcquiredFlushEx
         {
             int32 partitionId;
+            int32 lockTimeoutMillis;
             KafkaShareAcquiredRange[] ranges;
         }
 

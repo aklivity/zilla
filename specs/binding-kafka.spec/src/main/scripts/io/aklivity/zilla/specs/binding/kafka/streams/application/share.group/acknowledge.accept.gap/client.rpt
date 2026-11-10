@@ -64,6 +64,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                              .typeId(zilla:id("kafka"))
                              .shareAcquired()
                                  .partition(0)
+                                 .lockTimeoutMillis(30000)
                                  .range(5, 7, 1)
                                  .build()
                              .build()}
