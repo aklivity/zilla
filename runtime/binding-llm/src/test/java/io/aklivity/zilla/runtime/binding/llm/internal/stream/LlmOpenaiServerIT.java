@@ -93,6 +93,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.streaming.reply.padded/client",
+        "${app}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldForwardOpenaiStreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.reply.window.small/client",
+        "${app}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldForwardOpenaiStreamingWithSmallReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.10k/client",
         "${app}/openai.10k/server"})
     public void shouldForwardOpenai10k() throws Exception
