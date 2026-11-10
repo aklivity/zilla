@@ -62,5 +62,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                  .build()
                              .build()}
 
+read notify RECORD_RECEIVED
+
 read aborted
 write abort
