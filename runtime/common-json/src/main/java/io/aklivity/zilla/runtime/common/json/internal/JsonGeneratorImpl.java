@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
@@ -51,6 +52,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
     // any document is stringified
     private static final int MAX_ESCAPE_DEPTH = 16;
+    // the escape levels and open scopes the first scope sets aside room for: a document stringified more than a
+    // couple of times is rare, and the state grows to what a deeper one needs
+    private static final int INITIAL_ESCAPE_LEVELS = 4;
     // worst-case ASCII lexeme width for write(int)/write(long): Integer.MIN_VALUE and Long.MIN_VALUE
     private static final int MAX_INT_DIGITS = 11;
     private static final int MAX_LONG_DIGITS = 20;
@@ -319,7 +323,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             push(false);
             if (scopeFrames == null)
             {
-                scopeFrames = new int[MAX_DEPTH];
+                scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
+            }
+            else if (scopeCount == scopeFrames.length)
+            {
+                scopeFrames = Arrays.copyOf(scopeFrames, scopeCount << 1);
             }
             scopeFrames[scopeCount++] = depth - 1;
             bind(escapeDepth + 1);
@@ -1355,8 +1363,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (escapePuts == null)
         {
-            escapePuts = new IntConsumer[MAX_DEPTH];
-            escapeSegments = new SegmentWriter[MAX_DEPTH];
+            escapePuts = new IntConsumer[Math.max(level + 1, INITIAL_ESCAPE_LEVELS)];
+            escapeSegments = new SegmentWriter[escapePuts.length];
+        }
+        else if (level >= escapePuts.length)
+        {
+            final int capacity = Math.max(level + 1, escapePuts.length << 1);
+
+            escapePuts = Arrays.copyOf(escapePuts, capacity);
+            escapeSegments = Arrays.copyOf(escapeSegments, capacity);
         }
         for (int index = 0; index <= level; index++)
         {
