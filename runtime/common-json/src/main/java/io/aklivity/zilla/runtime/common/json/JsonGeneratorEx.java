@@ -141,6 +141,20 @@ public interface JsonGeneratorEx extends JsonGenerator
         int length);
 
     /**
+     * Appends the chars of {@code value} in {@code [from, to)} as content, with no structural separator and no
+     * quotes, the char counterpart of {@link #writeSegment(DirectBufferEx, int, int)}: each code point is encoded
+     * as UTF-8 and escaped to the escape level in force, so inside an escaped scope the chars become the content
+     * of the scope's string, and outside one they are written as they are. A lone surrogate is written as
+     * U+FFFD. The write is <em>consumption-driven</em>: it takes whole code points while each one's escaped width
+     * fits the output bound, so a value larger than what fits is written by writing what fits, draining, then
+     * continuing from the unconsumed remainder. Track how many chars were taken via {@link #consumed()}.
+     */
+    JsonGeneratorEx writeSegment(
+        CharSequence value,
+        int from,
+        int to);
+
+    /**
      * Appends a value's verbatim bytes that may arrive in fragments, owning the value's leading structural
      * separator so the caller holds no per-value state. The separator is emitted before the first fragment;
      * each fragment appends bounded, consumption-driven content exactly as {@link #writeSegment(DirectBufferEx,
