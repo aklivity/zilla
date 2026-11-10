@@ -504,6 +504,30 @@ public class CacheProduceIT
     }
 
     @Test
+    @Configuration("cache.value.model.suspend.complete.yaml")
+    @Specification({
+        "${app}/message.value/client",
+        "${app}/message.value/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueAfterSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.value.model.suspend.rejected.yaml")
+    @Specification({
+        "${app}/message.value.rejected/client",
+        "${app}/message.value.rejected/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    public void shouldRejectMessageValueAfterSuspend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.values.rejected/client",
