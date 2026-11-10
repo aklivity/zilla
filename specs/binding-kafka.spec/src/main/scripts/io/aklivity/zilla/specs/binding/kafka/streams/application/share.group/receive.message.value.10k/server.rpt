@@ -54,16 +54,22 @@ write zilla:data.ext ${kafka:dataEx()
                               .share()
                                   .deferred(10240 - 6144)
                                   .timestamp(newTimestamp)
-                                  .deliveryCount(1)
                                   .partition(0, 5)
                                   .build()
                               .build()}
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .share()
-                                  .deliveryCount(1)
                                   .partition(0, 5)
                                   .build()
                               .build()}
 write ${kafka:randomBytes(10240)}
 write flush
+
+write advise zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .shareAcquired()
+                                 .partition(0)
+                                 .range(5, 5, 1)
+                                 .build()
+                             .build()}
