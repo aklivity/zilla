@@ -76,6 +76,8 @@ import org.agrona.MutableDirectBuffer;
 public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
 {
     private static final MemorySegment GLOBAL = MemorySegment.NULL.reinterpret(Long.MAX_VALUE);
+    private static final byte[] EMPTY_BYTES = new byte[0];
+    private static final MemorySegment EMPTY_SEGMENT = MemorySegment.ofArray(EMPTY_BYTES);
 
     // Native-path bounds checking. Defaults on for the class path (unnamed module — unit and integration
     // tests) and off for the packaged named-module runtime (production GLOBAL fast path); override the
@@ -156,7 +158,9 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
 
     public UnsafeBufferEx()
     {
-        wrap(new byte[0]);
+        segment = EMPTY_SEGMENT;
+        byteArray = EMPTY_BYTES;
+        addressOffset = BufferUtil.ARRAY_BASE_OFFSET;
     }
 
     public UnsafeBufferEx(
@@ -413,7 +417,7 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         byteArray = null;
         byteBuffer = null;
         byteBufferView = null;
-        segment = MemorySegment.ofAddress(address).reinterpret(length);
+        segment = address == 0L && length == 0 ? MemorySegment.NULL : MemorySegment.ofAddress(address).reinterpret(length);
         addressOffset = address;
         capacity = length;
         wrapAdjustment = 0;

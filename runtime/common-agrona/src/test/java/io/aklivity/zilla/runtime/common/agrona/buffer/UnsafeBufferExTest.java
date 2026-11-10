@@ -311,6 +311,55 @@ public class UnsafeBufferExTest
         }
 
         @Test
+        public void shouldWrapAfterDefaultConstructor()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx();
+
+            buffer.wrap(new byte[16]);
+            buffer.putInt(4, 321);
+
+            assertEquals(16, buffer.capacity());
+            assertEquals(321, buffer.getInt(4));
+
+            buffer.wrap(ByteBuffer.allocateDirect(32));
+            buffer.putInt(8, 654);
+
+            assertEquals(32, buffer.capacity());
+            assertEquals(654, buffer.getInt(8));
+        }
+
+        @Test
+        public void shouldKeepDefaultConstructedBuffersIndependent()
+        {
+            final UnsafeBufferEx first = new UnsafeBufferEx();
+            final UnsafeBufferEx second = new UnsafeBufferEx();
+
+            first.wrap(new byte[8]);
+            first.putInt(0, 11);
+
+            assertEquals(0, second.capacity());
+            assertEquals(8, first.capacity());
+            assertEquals(11, first.getInt(0));
+        }
+
+        @Test
+        public void shouldWrapAfterEmptyAddress()
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(0L, 0);
+
+            assertEquals(0, buffer.capacity());
+
+            buffer.wrap(new byte[8]);
+            buffer.putInt(0, 5);
+
+            assertEquals(5, buffer.getInt(0));
+
+            buffer.wrap(0L, 0);
+
+            assertEquals(0, buffer.capacity());
+        }
+
+        @Test
         public void shouldReWrapFromHeapToDirect()
         {
             final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[32]);
