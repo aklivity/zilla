@@ -1149,6 +1149,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             final int error = response.error();
             if (error == ERROR_NONE)
             {
+                leader.lockTimeoutMillis = response.acquisitionLockTimeoutMillis();
                 leader.decodableTopics = response.topicCount();
                 client.decoder = decodeShareFetchTopics;
             }
@@ -2628,13 +2629,14 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private void doApplicationAcquired(
             long traceId,
             int partitionId,
+            int lockTimeoutMillis,
             LongArrayList firstOffsets,
             LongArrayList lastOffsets,
             IntArrayList deliveryCounts)
         {
             final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .shareAcquired(s -> setAcquired(s, partitionId, firstOffsets, lastOffsets, deliveryCounts))
+                .shareAcquired(s -> setAcquired(s, partitionId, lockTimeoutMillis, firstOffsets, lastOffsets, deliveryCounts))
                 .build();
 
             doFlush(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
@@ -2644,11 +2646,13 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private void setAcquired(
             KafkaShareAcquiredFlushExFW.Builder shareAcquired,
             int partitionId,
+            int lockTimeoutMillis,
             LongArrayList firstOffsets,
             LongArrayList lastOffsets,
             IntArrayList deliveryCounts)
         {
-            shareAcquired.partitionId(partitionId);
+            shareAcquired.partitionId(partitionId)
+                .lockTimeoutMillis(lockTimeoutMillis);
 
             for (int index = 0; index < firstOffsets.size(); index++)
             {
@@ -4050,6 +4054,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private int confirmSent;
 
         private int decodableTopics;
+        private int lockTimeoutMillis;
         private int decodablePartitions;
         private int decodableRecordSetBytes;
         private int decodableRecordBatchBytes;
@@ -4614,7 +4619,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
                 if (!decodeStreamed.isEmpty() && !delegate.leaving())
                 {
-                    delegate.doApplicationAcquired(traceId, decodePartition.id, acquiredFirsts, acquiredLasts, acquiredCounts);
+                    delegate.doApplicationAcquired(traceId, decodePartition.id, lockTimeoutMillis,
+                        acquiredFirsts, acquiredLasts, acquiredCounts);
                 }
             }
 
