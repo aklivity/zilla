@@ -3508,6 +3508,19 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaShareDataExBuilder headerInt(
+                String name,
+                int value)
+            {
+                nameRO.wrap(name.getBytes(UTF_8));
+                valueRO.wrap(ByteBuffer.allocate(Integer.BYTES).putInt(value));
+                shareDataExRW.headersItem(h -> h.nameLen(nameRO.capacity())
+                                                .name(nameRO, 0, nameRO.capacity())
+                                                .valueLen(valueRO.capacity())
+                                                .value(valueRO, 0, valueRO.capacity()));
+                return this;
+            }
+
             public KafkaDataExBuilder build()
             {
                 final KafkaShareDataExFW shareDataEx = shareDataExRW.build();
