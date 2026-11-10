@@ -3452,6 +3452,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaShareDataExBuilder deliveryCount(
+                int deliveryCount)
+            {
+                shareDataExRW.deliveryCount(deliveryCount);
+                return this;
+            }
+
             public KafkaShareDataExBuilder partition(
                 int partitionId,
                 long partitionOffset)
@@ -4420,6 +4427,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaShareAcquiredFlushExBuilder lockTimeoutMillis(
+                int lockTimeoutMillis)
+            {
+                shareAcquiredFlushExRW.lockTimeoutMillis(lockTimeoutMillis);
+                return this;
+            }
+
             public KafkaShareAcquiredFlushExBuilder range(
                 long firstOffset,
                 long lastOffset,
@@ -5287,6 +5301,7 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
+            private Integer deliveryCount;
             private Integer partitionId;
             private Long partitionOffset;
             private KafkaKeyFW.Builder keyRW;
@@ -5307,6 +5322,13 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaShareDataExMatcherBuilder deliveryCount(
+                int deliveryCount)
+            {
+                this.deliveryCount = deliveryCount;
                 return this;
             }
 
@@ -5382,6 +5404,7 @@ public final class KafkaFunctions
                 final KafkaShareDataExFW shareDataEx = dataEx.share();
                 return matchDeferred(shareDataEx) &&
                     matchTimestamp(shareDataEx) &&
+                    matchDeliveryCount(shareDataEx) &&
                     matchPartition(shareDataEx) &&
                     matchKey(shareDataEx) &&
                     matchHeaders(shareDataEx);
@@ -5397,6 +5420,12 @@ public final class KafkaFunctions
                 final KafkaShareDataExFW shareDataEx)
             {
                 return timestamp == null || timestamp == shareDataEx.timestamp();
+            }
+
+            private boolean matchDeliveryCount(
+                final KafkaShareDataExFW shareDataEx)
+            {
+                return deliveryCount == null || deliveryCount == shareDataEx.deliveryCount();
             }
 
             private boolean matchPartition(
@@ -6989,6 +7018,7 @@ public final class KafkaFunctions
         public final class KafkaShareAcquiredFlushExMatcherBuilder
         {
             private Integer partitionId;
+            private Integer lockTimeoutMillis;
             private Array32FW.Builder<KafkaShareAcquiredRangeFW.Builder, KafkaShareAcquiredRangeFW> rangesRW;
 
             private KafkaShareAcquiredFlushExMatcherBuilder()
@@ -6999,6 +7029,13 @@ public final class KafkaFunctions
                 int partitionId)
             {
                 this.partitionId = partitionId;
+                return this;
+            }
+
+            public KafkaShareAcquiredFlushExMatcherBuilder lockTimeoutMillis(
+                int lockTimeoutMillis)
+            {
+                this.lockTimeoutMillis = lockTimeoutMillis;
                 return this;
             }
 
@@ -7041,6 +7078,7 @@ public final class KafkaFunctions
             {
                 final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx = flushEx.shareAcquired();
                 return matchPartition(shareAcquiredFlushEx) &&
+                    matchLockTimeoutMillis(shareAcquiredFlushEx) &&
                     matchRanges(shareAcquiredFlushEx);
             }
 
@@ -7048,6 +7086,12 @@ public final class KafkaFunctions
                 final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx)
             {
                 return partitionId == null || partitionId == shareAcquiredFlushEx.partitionId();
+            }
+
+            private boolean matchLockTimeoutMillis(
+                final KafkaShareAcquiredFlushExFW shareAcquiredFlushEx)
+            {
+                return lockTimeoutMillis == null || lockTimeoutMillis == shareAcquiredFlushEx.lockTimeoutMillis();
             }
 
             private boolean matchRanges(

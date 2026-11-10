@@ -64,6 +64,7 @@ write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .shareAcquired()
                                  .partition(1)
+                                 .lockTimeoutMillis(30000)
                                  .range(3, 3, 1)
                                  .build()
                              .build()}
