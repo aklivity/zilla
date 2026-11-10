@@ -154,6 +154,46 @@ public class PipelineIT
     @Test
     @Configuration("server.client.yaml")
     @Specification({
+        "${net}/subscribe.receive.messages.qos2.deferred.ack/client",
+        "${upstream}/subscribe.receive.message.qos2.duplicate.before.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.messages.qos2.ack.with.success.reasoncode/client",
+        "${upstream}/subscribe.receive.message.qos2.duplicate.after.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client",
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client",
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
         "${net}/subscribe.reject.shared.subscriptions.not.supported/client",
         "${upstream}/connect.shared.subscriptions.not.supported/server"})
     public void shouldSubscribeRejectSharedSubscriptionsNotSupported() throws Exception
