@@ -271,7 +271,7 @@ write 95                                             # size
       0                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      8192                                           # max bytes
+      52428800                                       # max bytes
       500                                            # max records
       500                                            # batch size
       [0x02]                                         # topics

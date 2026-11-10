@@ -32,7 +32,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .groupId("test")
                                    .memberId("AAECAwQFBgcICQoLDA0ODw")
                                    .topic("test")
-                                   .recordsMax(1)
                                    .build()
                                .build()}
 

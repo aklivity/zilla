@@ -271,9 +271,9 @@ write 95                                             # size
       0                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      8192                                           # max bytes
-      1                                              # max records
-      1                                              # batch size
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
       [0x02]                                         # topics
         [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
         [0x02]                                       # partitions
@@ -330,7 +330,10 @@ read  158                                            # size
             1s                                       # delivery count
             [0x00]                                   # tagged fields
           [0x00]                                     # tagged fields
-        [0x00]                                       # tagged fields
+
+read notify APPLICATION_ACKNOWLEDGED
+
+read  [0x00]                                         # tagged fields
       [0x01]                                         # node endpoints
       [0x00]                                         # tagged fields
 
@@ -345,9 +348,9 @@ write 114                                            # size
       1                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      8192                                           # max bytes
-      1                                              # max records
-      1                                              # batch size
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
       [0x02]                                         # topics
         [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
         [0x02]                                       # partitions

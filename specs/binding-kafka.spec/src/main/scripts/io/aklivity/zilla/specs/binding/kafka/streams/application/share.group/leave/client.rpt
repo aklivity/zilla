@@ -18,9 +18,8 @@ property authorization 0L
 
 connect "zilla://streams/app0"
     option zilla:authorization ${authorization}
-    option zilla:window 12
+    option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:update "handshake"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -62,4 +61,5 @@ read advised zilla:flush ${kafka:matchFlushEx()
                              .build()}
 
 write close
+write notify APPLICATION_LEFT
 read closed

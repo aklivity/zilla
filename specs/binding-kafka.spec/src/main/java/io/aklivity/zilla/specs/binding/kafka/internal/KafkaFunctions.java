@@ -2435,13 +2435,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaShareBeginExBuilder recordsMax(
-                int recordsMax)
-            {
-                shareBeginExRW.recordsMax(recordsMax);
-                return this;
-            }
-
             public KafkaFilterBuilder<KafkaShareBeginExBuilder> filter()
             {
                 return new KafkaFilterBuilder<>()
@@ -7824,8 +7817,6 @@ public final class KafkaFunctions
             private String16FW topic;
             private String16FW host;
             private Integer port;
-            private Integer recordsMax;
-
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
             private KafkaShareBeginExMatcherBuilder()
@@ -7867,13 +7858,6 @@ public final class KafkaFunctions
                 return this;
             }
 
-            public KafkaShareBeginExMatcherBuilder recordsMax(
-                int recordsMax)
-            {
-                this.recordsMax = recordsMax;
-                return this;
-            }
-
             public KafkaFilterBuilder<KafkaShareBeginExMatcherBuilder> filter()
             {
                 if (filtersRW == null)
@@ -7909,7 +7893,6 @@ public final class KafkaFunctions
                     matchTopic(shareBeginEx) &&
                     matchHost(shareBeginEx) &&
                     matchPort(shareBeginEx) &&
-                    matchRecordsMax(shareBeginEx) &&
                     matchFilters(shareBeginEx);
             }
 
@@ -7941,12 +7924,6 @@ public final class KafkaFunctions
                 final KafkaShareBeginExFW shareBeginEx)
             {
                 return port == null || port == shareBeginEx.port();
-            }
-
-            private boolean matchRecordsMax(
-                final KafkaShareBeginExFW shareBeginEx)
-            {
-                return recordsMax == null || recordsMax == shareBeginEx.recordsMax();
             }
 
             private boolean matchFilters(

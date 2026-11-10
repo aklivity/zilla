@@ -27,7 +27,6 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .groupId("test")
                                    .memberId("AAECAwQFBgcICQoLDA0ODw")
                                    .topic("test")
-                                   .recordsMax(1)
                                    .build()
                                .build()}
 
@@ -68,3 +67,5 @@ write advise zilla:flush ${kafka:flushEx()
                                  .type("REJECT")
                                  .build()
                              .build()}
+
+write notify APPLICATION_ACKNOWLEDGED
