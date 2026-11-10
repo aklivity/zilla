@@ -915,4 +915,211 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.capabilities.shared.available/client",
+        "${mqtt}/session.capabilities.shared.available/server"})
+    public void shouldSessionCapabilitiesSharedAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.disabled/client",
+        "${mqtt}/session.capabilities.shared.unavailable.disabled/server"})
+    public void shouldSessionCapabilitiesSharedUnavailableDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
+        "${mqtt}/session.capabilities.shared.unavailable.without.store/server"})
+    public void shouldSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.reconnect.shared.subscription/client",
+        "${mqtt}/session.reconnect.shared.subscription/server"})
+    public void shouldSessionReconnectSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.shared.cap.qos/client",
+        "${mqtt}/session.subscribe.shared.cap.qos/server"})
+    public void shouldSessionSubscribeSharedCapQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.and.non.shared.receive.messages/client",
+        "${mqtt}/subscribe.shared.and.non.shared.receive.messages/server"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.abort/client",
+        "${mqtt}/subscribe.shared.client.sent.abort/server"})
+    public void shouldSubscribeSharedClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.reset/client",
+        "${mqtt}/subscribe.shared.client.sent.reset/server"})
+    public void shouldSubscribeSharedClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.distinct.filters/client",
+        "${mqtt}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.distinct.share.names/client",
+        "${mqtt}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message/client",
+        "${mqtt}/subscribe.shared.expire.message/server"})
+    public void shouldSubscribeSharedExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0/client",
+        "${mqtt}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1PublishedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.fragmented.message/client",
+        "${mqtt}/subscribe.shared.reject.fragmented.message/server"})
+    public void shouldSubscribeSharedRejectFragmentedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.qos2.acknowledgement/client",
+        "${mqtt}/subscribe.shared.reject.qos2.acknowledgement/server"})
+    public void shouldSubscribeSharedRejectQos2Acknowledgement() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.share.mismatch/client",
+        "${mqtt}/subscribe.shared.reject.share.mismatch/server"})
+    public void shouldSubscribeSharedRejectShareMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unsupported.version/client",
+        "${mqtt}/subscribe.shared.reject.unsupported.version/server"})
+    public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.resubscribe.change.qos/client",
+        "${mqtt}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.server.sent.abort/client",
+        "${mqtt}/subscribe.shared.server.sent.abort/server"})
+    public void shouldSubscribeSharedServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
