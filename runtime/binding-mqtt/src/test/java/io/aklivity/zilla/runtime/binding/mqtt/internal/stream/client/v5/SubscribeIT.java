@@ -419,4 +419,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.and.non.shared.receive.messages/server",
+        "${app}/subscribe.shared.and.non.shared.receive.messages/client"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
 }
