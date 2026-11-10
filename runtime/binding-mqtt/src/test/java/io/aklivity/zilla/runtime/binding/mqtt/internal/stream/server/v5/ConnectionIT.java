@@ -534,4 +534,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.shared.subscriptions.not.supported/client",
+        "${app}/session.connect.shared.subscriptions.not.supported/server"})
+    public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
 }
