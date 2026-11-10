@@ -521,11 +521,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
         if (starved && pendingEvent == null && marker == null)
         {
-            if (scopeEnded)
-            {
-                throw new JsonParsingException("Incomplete document in escaped string", null);
-            }
-
             produced = onScalarStarved();
         }
         return produced;
@@ -539,6 +534,11 @@ final class JsonTokenizerImpl implements JsonTokenizer
     // iff a fragment event was produced.
     private boolean onScalarStarved()
     {
+        if (scopeEnded)
+        {
+            throw new JsonParsingException("Incomplete document in escaped string", null);
+        }
+
         final boolean midScalar =
             (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.VALUE_NUMBER ||
                 resumeOp == ResumeOp.KEY_STRING) && !segmenting;
@@ -1239,10 +1239,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             pushPath(true);
             break;
         case '"':
-            valueStreamStart = streamOffset - startBack();
-            fragmentStart = streamOffset - startBack();
-            valueLine = line;
-            valueColumn = column - startBack();
+            startToken();
             clearScratch();
             resumeEscape = false;
             resumeUnicodePending = 0;
@@ -1290,10 +1287,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
-                valueStreamStart = streamOffset - startBack();
-                fragmentStart = streamOffset - startBack();
-                valueLine = line;
-                valueColumn = column - startBack();
+                startToken();
                 clearScratch();
                 scratchConsumed = 0;
                 numberState = NumberState.START;
@@ -1320,10 +1314,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
-        valueStreamStart = streamOffset - startBack();
-        fragmentStart = streamOffset - startBack();
-        valueLine = line;
-        valueColumn = column - startBack();
+        startToken();
         clearScratch();
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -1907,6 +1898,16 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int startBack()
     {
         return lens ? lensSize : 1;
+    }
+
+    private void startToken()
+    {
+        final int back = startBack();
+
+        valueStreamStart = streamOffset - back;
+        fragmentStart = valueStreamStart;
+        valueLine = line;
+        valueColumn = column - back;
     }
 
     private boolean eof()

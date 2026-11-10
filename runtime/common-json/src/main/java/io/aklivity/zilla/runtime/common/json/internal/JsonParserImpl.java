@@ -719,6 +719,24 @@ public final class JsonParserImpl implements JsonParserEx
         return result;
     }
 
+    private JsonEvent tokenEvent()
+    {
+        final JsonEvent marker = tokenizer.marker();
+        final JsonEvent event;
+
+        if (marker != null)
+        {
+            tokenizer.clearMarker();
+            event = marker;
+        }
+        else
+        {
+            event = JsonEvent.of(next());
+        }
+
+        return event;
+    }
+
     private JsonEvent nextToken()
     {
         JsonEvent event;
@@ -731,14 +749,7 @@ public final class JsonParserImpl implements JsonParserEx
             event = scanSegment(ownedInput.offset());
             break;
         default:
-            if (tokenizer.marker() != null)
-            {
-                lastEvent = tokenizer.marker();
-                tokenizer.clearMarker();
-                event = lastEvent;
-                break;
-            }
-            lastEvent = JsonEvent.of(next());
+            lastEvent = tokenEvent();
             if (lastEvent == JsonEvent.VALUE_NUMBER ||
                 lastEvent == JsonEvent.KEY_NAME ||
                 lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
