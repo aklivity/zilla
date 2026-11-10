@@ -949,7 +949,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void flushAppWindow(
             long traceId)
         {
-            final int room = (encodeMax - http.encodeSlotOffset - ENCODE_SLACK) / ESCAPE_EXPANSION;
+            final int room = (encodeMax - http.encodeSlotOffset - http.deferLength - ENCODE_SLACK) / ESCAPE_EXPANSION;
             final int credit = Math.max(0, room - http.holdLength);
             final long target = initialSeq + credit;
 
@@ -4047,6 +4047,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int encodeSlotOffset;
         private int holdSlot = NO_SLOT;
         private int holdLength;
+        private int deferSlot = NO_SLOT;
+        private int deferLength;
+        private boolean deferStarted;
         private boolean bodyHeld;
         private boolean rawOpen;
         private boolean encodeFailed;
@@ -4429,19 +4432,26 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (!rawOpen)
+            if (controlMessage == NONE && messagesOpened && !messagesClosed)
             {
-                openControl();
-            }
-
-            if (fits(length))
-            {
-                generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
-                rawOpen = true;
+                deferControl(buffer, offset, length);
             }
             else
             {
-                encodeFailed = true;
+                if (!rawOpen)
+                {
+                    openControl();
+                }
+
+                if (fits(length))
+                {
+                    generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
+                    rawOpen = true;
+                }
+                else
+                {
+                    encodeFailed = true;
+                }
             }
         }
 
@@ -4456,6 +4466,73 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 openControlMessage(controlMessage);
             }
+        }
+
+        private void deferControl(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            final int separator = !deferStarted && deferLength > 0 ? 1 : 0;
+
+            if (deferSlot == NO_SLOT)
+            {
+                deferSlot = stagePool.acquire(initialId);
+            }
+
+            if (deferSlot != NO_SLOT && deferLength + separator + length <= holdLimit && fits(separator + length))
+            {
+                final MutableDirectBufferEx defer = stagePool.buffer(deferSlot);
+
+                if (separator > 0)
+                {
+                    defer.putByte(deferLength++, (byte) ',');
+                }
+
+                defer.putBytes(deferLength, buffer, offset, length);
+                deferLength += length;
+                deferStarted = true;
+            }
+            else if (fits(length))
+            {
+                closeMessage();
+                closeMessages();
+                generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
+                rawOpen = true;
+            }
+            else
+            {
+                encodeFailed = true;
+            }
+        }
+
+        private void closeMessages()
+        {
+            if (messagesOpened && !messagesClosed)
+            {
+                generator.writeEnd();
+                messagesClosed = true;
+
+                if (deferLength > 0)
+                {
+                    generator.writeMembers(stagePool.buffer(deferSlot), 0, deferLength,
+                        deferStarted ? Completion.INCOMPLETE : Completion.COMPLETE);
+                }
+
+                releaseDefer();
+            }
+        }
+
+        private void releaseDefer()
+        {
+            if (deferSlot != NO_SLOT)
+            {
+                stagePool.release(deferSlot);
+                deferSlot = NO_SLOT;
+            }
+
+            deferLength = 0;
+            deferStarted = false;
         }
 
         private void openControlMessage(
@@ -4495,12 +4572,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void beginToolDefinition()
         {
             closeMessage();
-
-            if (messagesOpened && !messagesClosed)
-            {
-                generator.writeEnd();
-                messagesClosed = true;
-            }
+            closeMessages();
 
             if (toolsClosed)
             {
@@ -4690,6 +4762,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     rawOpen = false;
                 }
 
+                deferStarted = false;
+
                 if (sectionOpen)
                 {
                     if (sectionArrayPart)
@@ -4754,11 +4828,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 toolsClosed = true;
             }
 
-            if (messagesOpened && !messagesClosed)
-            {
-                generator.writeEnd();
-                messagesClosed = true;
-            }
+            closeMessages();
         }
 
         private void openMessage(
@@ -4955,7 +5025,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     encodeSlot = encodePool.acquire(initialId);
                 }
 
-                ready = encodeSlot != NO_SLOT && encodeSlotOffset + holdLength * ESCAPE_EXPANSION + required <= encodeMax;
+                ready = encodeSlot != NO_SLOT &&
+                    encodeSlotOffset + holdLength * ESCAPE_EXPANSION + deferLength + required <= encodeMax;
 
                 if (ready)
                 {
@@ -4978,7 +5049,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean fits(
             int length)
         {
-            return encodeSlotOffset + generator.length() + length <= encodeMax;
+            return encodeSlotOffset + generator.length() + deferLength + length <= encodeMax;
         }
 
         private int claimInitial(
@@ -5872,6 +5943,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             releaseEncodeSlot();
             releaseHold();
+            releaseDefer();
         }
 
         private void releaseEncodeSlot()
