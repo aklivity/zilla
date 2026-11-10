@@ -54,7 +54,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 5)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 # acquired ranges follow the records streamed for the partition
@@ -74,7 +74,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 6)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 # acquired ranges follow the records streamed for the partition
@@ -94,7 +94,7 @@ write zilla:data.ext ${kafka:dataEx()
                                   .partition(0, 7)
                                   .build()
                               .build()}
-write ${kafka:randomBytes(700)}
+write ${kafka:randomBytes(4096)}
 write flush
 
 # acquired ranges follow the records streamed for the partition
