@@ -46,6 +46,7 @@ final class LlmSectionPipeline
 
     private byte[] window;
     private int tailLength;
+    private int unconsumedLength;
     private boolean completed;
     private boolean closed;
 
@@ -80,7 +81,21 @@ final class LlmSectionPipeline
         boolean last,
         Output output)
     {
+        return feed(buffer, offset, length, last, output, true);
+    }
+
+    // The bytes the parser has not consumed are kept for the next feed unless the caller holds them, in which
+    // case unconsumed() reports how many of the last bytes fed it should present again.
+    boolean feed(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last,
+        Output output,
+        boolean retain)
+    {
         final int windowLength = tailLength + length;
+        unconsumedLength = 0;
 
         if (completed)
         {
@@ -119,7 +134,8 @@ final class LlmSectionPipeline
 
             // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
             // slot, so what the parser has not consumed is kept before the output is put
-            tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+            unconsumedLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+            tailLength = retain ? unconsumedLength : 0;
             retain(input, progress);
 
             final boolean done = status == Status.COMPLETED && last;
@@ -135,6 +151,11 @@ final class LlmSectionPipeline
         completed = status == Status.COMPLETED;
 
         return status != Status.REJECTED;
+    }
+
+    int unconsumed()
+    {
+        return unconsumedLength;
     }
 
     private void retain(
