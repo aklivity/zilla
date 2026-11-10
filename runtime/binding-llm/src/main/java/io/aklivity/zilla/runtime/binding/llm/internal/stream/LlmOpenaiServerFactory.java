@@ -235,6 +235,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeDocumentBlock = this::decodeDocumentBlock;
     private final LlmOpenaiServerDecoder decodeToolCall = this::decodeToolCall;
     private final LlmOpenaiServerDecoder decodeToolCallStart = this::decodeToolCallStart;
+    private final LlmOpenaiServerDecoder decodeToolCallHandoff = this::decodeToolCallHandoff;
     private final LlmOpenaiServerDecoder decodeTool = this::decodeTool;
     private final LlmOpenaiServerDecoder decodeToolStart = this::decodeToolStart;
     private final LlmOpenaiServerDecoder decodeBlockStart = this::decodeBlockStart;
@@ -1145,12 +1146,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 parser.rewind();
 
-                if (pending && server.decodedWindowLimit == limit)
-                {
-                    pending = false;
-                }
-
                 if (!pending)
+                {
+                    server.onDecodeToolCallHandoff();
+                    server.decoder = decodeToolCallHandoff;
+                }
+                else if (server.decodedWindowLimit == limit)
                 {
                     server.probe.restart();
                     server.decoder = decodeToolCallStart;
@@ -1195,6 +1196,31 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             server.capture(LlmSectionType.TOOL_CALL, server.message, decodeToolCalls);
             server.probing = true;
             server.decoder = decodeToolCall;
+        }
+
+        return server.position();
+    }
+
+    private int decodeToolCallHandoff(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (!server.blockPipeline.pump(server.blockOutput))
+        {
+            server.onDecodeParseError(traceId);
+        }
+        else if (server.blockPipeline.completed())
+        {
+            server.blockPipeline = null;
+            server.probing = false;
+            server.decoder = decodeToolCalls;
         }
 
         return server.position();
@@ -2143,6 +2169,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int blockMessage;
         private int blockFlags;
         private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline toolCallHandoff;
         private final StringBuilder controlKey = new StringBuilder();
         private LlmSectionPipeline controlPipeline;
         private LlmOpenaiControlToCanonical controlTransform;
@@ -3058,12 +3085,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int message,
             String toolCallId)
         {
-            blockSection = type;
-            blockMessage = message;
-            blockFlags = Flags.INIT;
-
-            blockAttributes.clear();
-            blockAttributes.toolCallId(toolCallId);
+            beginBlock(type, message, toolCallId);
 
             blockPipeline = blockPipelineFor(type);
 
@@ -3071,6 +3093,33 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 blockPipeline.begin(blockAttributes);
             }
+        }
+
+        private void onDecodeToolCallHandoff()
+        {
+            beginBlock(LlmSectionType.TOOL_CALL, message, null);
+
+            if (toolCallHandoff == null)
+            {
+                toolCallHandoff = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(), transformBuffer, parser);
+            }
+
+            blockPipeline = toolCallHandoff;
+            blockPipeline.begin(blockAttributes);
+            probing = true;
+        }
+
+        private void beginBlock(
+            LlmSectionType type,
+            int message,
+            String toolCallId)
+        {
+            blockSection = type;
+            blockMessage = message;
+            blockFlags = Flags.INIT;
+
+            blockAttributes.clear();
+            blockAttributes.toolCallId(toolCallId);
         }
 
         private void onDecodeData(
