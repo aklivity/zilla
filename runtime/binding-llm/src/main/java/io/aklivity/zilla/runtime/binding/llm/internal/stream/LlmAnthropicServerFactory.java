@@ -22,8 +22,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonException;
@@ -105,7 +103,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String UNAUTHORIZED_BODY = "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"," +
         "\"message\":\"invalid x-api-key\"}}";
@@ -213,7 +210,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -276,7 +272,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
@@ -311,11 +306,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     public boolean detect(
         JsonEnvelope headers)
     {
-        final boolean pathMatched = METHOD_POST.equalsIgnoreCase(header(headers, HEADER_METHOD)) &&
-            PATH_MESSAGES.equals(header(headers, HEADER_PATH));
-        final boolean versionPresent = header(headers, HEADER_ANTHROPIC_VERSION) != null;
-        final boolean apiKeyWithoutAuthorization = header(headers, HEADER_API_KEY) != null &&
-            header(headers, HEADER_AUTHORIZATION) == null;
+        final boolean pathMatched = LlmHeaderBytes.equalToIgnoreCase(headers.get(HEADER_METHOD, 0), METHOD_POST) &&
+            LlmHeaderBytes.equalTo(headers.get(HEADER_PATH, 0), PATH_MESSAGES);
+        final boolean versionPresent = headers.get(HEADER_ANTHROPIC_VERSION, 0) != null;
+        final boolean apiKeyWithoutAuthorization = headers.get(HEADER_API_KEY, 0) != null &&
+            headers.get(HEADER_AUTHORIZATION, 0) == null;
 
         return pathMatched || versionPresent || apiKeyWithoutAuthorization;
     }
@@ -346,7 +341,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final String version = header(headers, HEADER_ANTHROPIC_VERSION);
             final String beta = header(headers, HEADER_ANTHROPIC_BETA);
 
-            if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
+            if (!LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON))
             {
                 newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
@@ -5868,13 +5863,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
     }
 
-    private String mediaType(
-        String contentType)
-    {
-        contentTypeMatcher.reset(contentType != null ? contentType : "");
-
-        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
-    }
 
     private final class LlmAnthropicRejectHandler
     {
