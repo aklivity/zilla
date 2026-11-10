@@ -80,7 +80,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFl
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
@@ -217,7 +216,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
-    private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
     private final MqttSessionSignalFW mqttSessionSignalRO = new MqttSessionSignalFW();
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
@@ -791,7 +789,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .build();
 
             Flyweight kafkaPayload = payload.sizeof() > 0
-                ? mqttSessionStateRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
+                ? payloadRO.wrap(buffer, offset, limit) : EMPTY_OCTETS;
 
             session.doKafkaData(traceId, authorization, budgetId, reserved,
                 sessionPadding, flags, kafkaPayload, kafkaDataEx);
@@ -1049,28 +1047,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doBegin(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, extension);
             }
-        }
-
-        private void doMqttData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            MqttSessionStateFW sessionState)
-        {
-            Flyweight sessionStateData = sessionState == null ? EMPTY_OCTETS : sessionState;
-            final DirectBufferEx buffer = sessionStateData.buffer();
-            final int offset = sessionStateData.offset();
-            final int limit = sessionStateData.limit();
-            final int length = limit - offset;
-
-            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, EMPTY_OCTETS);
-
-            replySeq += reserved;
-
-            assert replySeq <= replyAck + replyMax;
         }
 
         private void doMqttData(
@@ -3371,12 +3347,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 int keyLen = key.length();
                 if (keyLen == delegate.clientId.length())
                 {
-                    MqttSessionStateFW sessionState = null;
-                    if (payload.sizeof() > 0)
-                    {
-                        sessionState = mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
-                    }
-                    delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
+                    delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, payload);
                 }
             }
         }
