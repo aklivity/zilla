@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class JsonModelIT
 {
@@ -171,6 +173,7 @@ public class JsonModelIT
 
     @Test
     @Configuration("json.ext.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "262144")
     @Specification({
         "${net}/client.received.json.ext.uppercase.100k/client",
         "${app}/client.received.json.ext.uppercase.100k/server"
@@ -204,6 +207,7 @@ public class JsonModelIT
 
     @Test
     @Configuration("json.ext.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "262144")
     @Specification({
         "${net}/client.sent.json.ext.uppercase.100k/client",
         "${app}/client.sent.json.ext.uppercase.100k/server"
