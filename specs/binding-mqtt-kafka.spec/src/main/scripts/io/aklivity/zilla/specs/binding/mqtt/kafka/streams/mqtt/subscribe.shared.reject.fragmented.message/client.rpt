@@ -28,5 +28,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
+write await REJECTED
 write close
 read closed

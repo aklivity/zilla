@@ -81,6 +81,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                 .correlationId(-1)
                                 .build()
                             .build()}
+write notify REJECTED
 
 read closed
 write close

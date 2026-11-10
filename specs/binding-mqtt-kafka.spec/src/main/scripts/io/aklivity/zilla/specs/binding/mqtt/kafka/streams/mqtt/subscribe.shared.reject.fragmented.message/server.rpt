@@ -30,5 +30,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write notify REJECTED
 read closed
 write close
