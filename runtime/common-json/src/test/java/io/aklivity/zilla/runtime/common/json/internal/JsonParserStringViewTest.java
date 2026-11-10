@@ -19,12 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Random;
 
 import org.junit.jupiter.api.Test;
@@ -143,39 +141,6 @@ class JsonParserStringViewTest
     }
 
     @Test
-    void shouldAllowAStringUpToTheMaximumValueSize()
-    {
-        final JsonParserEx limited = JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16));
-        final byte[] bytes = "{\"text\":\"0123456789abcdef\"}".getBytes(UTF_8);
-
-        limited.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals("0123456789abcdef", valueString(limited).toString());
-    }
-
-    @Test
-    void shouldRejectAStringPastTheMaximumValueSize()
-    {
-        final JsonParserEx limited = JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16));
-        final byte[] bytes = "{\"text\":\"0123456789abcdefg\"}".getBytes(UTF_8);
-
-        limited.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertThrows(RuntimeException.class, () -> valueString(limited));
-    }
-
-    @Test
-    void shouldRejectAnEscapedStringPastTheMaximumValueSize()
-    {
-        final JsonParserEx limited = JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 8));
-        final byte[] bytes = "{\"text\":\"\\n\\n\\n\\n\\n\\n\\n\\n\\n\"}".getBytes(UTF_8);
-
-        limited.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertThrows(RuntimeException.class, () -> valueString(limited));
-    }
-
-    @Test
     void shouldReadEveryStringWhateverTheWindows()
     {
         final Random random = new Random(5L);
@@ -241,6 +206,26 @@ class JsonParserStringViewTest
 
         assertTrue(fragments > 1);
         assertEquals(DECODED, joined.toString());
+    }
+
+    @Test
+    void shouldDeliverAKeyWholeWhenItSpansWindows()
+    {
+        assertEquals(DECODED, silent("{\"" + ENCODED + "\":1}", JsonEvent.KEY_NAME));
+    }
+
+    @Test
+    void shouldDeliverANumberWholeWhenItSpansWindows()
+    {
+        final String digits = "1234567890".repeat(12);
+
+        assertEquals(digits, silent("[" + digits + "]", JsonEvent.VALUE_NUMBER));
+    }
+
+    @Test
+    void shouldTakeEachFragmentOfAStringOnceWhenTheConsumerReportsNothing()
+    {
+        assertEquals(DECODED, silent("{\"a\":\"" + ENCODED + "\"}", JsonEvent.VALUE_STRING));
     }
 
     @Test
@@ -489,6 +474,43 @@ class JsonParserStringViewTest
 
         assertTrue(sink != 0);
         assertTrue(allocated < 512, "allocated " + allocated + " bytes per document");
+    }
+
+    private String silent(
+        String document,
+        JsonEvent kind)
+    {
+        final byte[] bytes = document.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final JsonParserEx windowed = JsonEx.createParser();
+        final StringBuilder joined = new StringBuilder();
+
+        int offset = 0;
+        int limit = 16;
+
+        while (true)
+        {
+            final boolean last = limit == bytes.length;
+            windowed.wrap(buffer, offset, limit, last);
+
+            while (windowed.hasNextEvent())
+            {
+                if (windowed.nextEvent() == kind)
+                {
+                    joined.append(windowed.getStringView());
+                }
+            }
+
+            if (last)
+            {
+                break;
+            }
+
+            offset = limit - windowed.remaining();
+            limit = Math.min(limit + 16, bytes.length);
+        }
+
+        return joined.toString();
     }
 
     private long read(

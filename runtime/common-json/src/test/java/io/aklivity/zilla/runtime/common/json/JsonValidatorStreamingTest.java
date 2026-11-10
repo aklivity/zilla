@@ -27,25 +27,23 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 // Issue #1926: a scalar position whose applicable schema needs no value content (no pattern/enum/const/
 // minLength/maxLength/numeric bounds keyword applies) should stream fragment-by-fragment through the
-// validator (forward-and-suppress) rather than being reassembled whole and held to JsonParserEx.MAX_VALUE_SIZE.
-// A position whose schema does need content still reassembles the value whole (Option A), including still
-// failing closed against the cap.
+// validator (forward-and-suppress) rather than being declined until it can be presented whole. A position
+// whose schema does need content declines the fragment, so the caller presents the value again with more of it.
 class JsonValidatorStreamingTest
 {
     private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[4096]);
 
     @Test
-    void shouldStreamUnconstrainedFragmentedRootValuePastValueSizeCap()
+    void shouldStreamUnconstrainedFragmentedRootValueAcrossWindows()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of("{\"type\":\"string\"}").validator())
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // no keyword reads the string's content: each window's chunk (10 chars) is forwarded and consumed
-        // immediately rather than retained, so the 30-char total never grows the retained backlog past the
-        // 16-char MAX_VALUE_SIZE cap, unlike a decline-and-reassemble stage that would accumulate all of it
+        // immediately rather than declined, so nothing is carried between windows
         byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
         byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
         byte[] f3 = "cccccccccc\"".getBytes(UTF_8);
@@ -60,17 +58,17 @@ class JsonValidatorStreamingTest
     }
 
     @Test
-    void shouldStreamUnconstrainedFragmentedPropertyValuePastValueSizeCap()
+    void shouldStreamUnconstrainedFragmentedPropertyValueAcrossWindows()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
         String schema = "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}";
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(schema).validator())
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();
 
         // the applicable schema for "data" is type-only: routing through the object property must resolve
-        // the same no-content position as the root case, streaming the value past the small cap. The key
+        // the same no-content position as the root case, streaming the value across windows. The key
         // and opening quote arrive in their own window so the value's own window matches the root case
         // exactly (a window mixing key bytes and value bytes changes the tokenizer's own fill-the-window
         // bookkeeping, which is incidental to what this test is proving).
@@ -87,26 +85,6 @@ class JsonValidatorStreamingTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"data\":\"aaaaaaaaaabbbbbbbbbbcccccccccc\"}", new String(out, UTF_8));
-    }
-
-    @Test
-    void shouldStillCapConstrainedFragmentedValueAtValueSize()
-    {
-        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
-            .transform(JsonSchema.of("{\"type\":\"string\",\"minLength\":1}").validator())
-            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
-        pipeline.reset();
-
-        // minLength reads the value's content: this position keeps the Option A decline-and-reassemble path,
-        // so the declined backlog keeps growing window over window and still fails closed past the cap
-        byte[] f1 = "\"aaaaaaaaaa".getBytes(UTF_8);
-        byte[] f2 = "bbbbbbbbbb".getBytes(UTF_8);
-        assertEquals(Status.STARVED, pipeline.transform(new UnsafeBufferEx(f1), 0, f1.length, false));
-        byte[] window = represent(pipeline, f1, f2);
-        Status status = pipeline.transform(new UnsafeBufferEx(window), 0, window.length, false);
-
-        assertEquals(Status.REJECTED, status);
     }
 
     @Test
@@ -200,23 +178,6 @@ class JsonValidatorStreamingTest
 
         // a different (also window-spanning) key is present instead of the required one
         String json = "{\"" + "y".repeat(40) + "\":1}";
-        Status status = feedWindowed(pipeline, json, 8);
-
-        assertEquals(Status.REJECTED, status);
-    }
-
-    @Test
-    void shouldRejectKeyLargerThanValueSizeCap()
-    {
-        // a key always needs reassembly to route/validate, so — like a content-needing scalar value — it
-        // still fails closed past MAX_VALUE_SIZE rather than being rejected solely for spanning windows
-        JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, 16)))
-            .transform(JsonSchema.of("{\"type\":\"object\"}").validator())
-            .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
-        pipeline.reset();
-
-        String json = "{\"" + "x".repeat(40) + "\":1}";
         Status status = feedWindowed(pipeline, json, 8);
 
         assertEquals(Status.REJECTED, status);

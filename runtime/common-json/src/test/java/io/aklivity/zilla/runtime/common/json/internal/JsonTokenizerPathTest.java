@@ -119,7 +119,7 @@ public class JsonTokenizerPathTest
     {
         final byte[] bytes = json.getBytes(UTF_8);
         final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
-        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(Integer.MAX_VALUE, false);
+        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(false);
         tokenizer.wrap(buffer, 0, bytes.length, true);
         tokenizer.window(bytes.length);
         return tokenizer;
