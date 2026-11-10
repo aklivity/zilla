@@ -115,6 +115,12 @@ final class LlmSectionPipeline
             final JsonPipelineResult result = pipeline.transform(input, progress, limit, last,
                 outputBuffer, 0, outputBuffer.capacity());
             status = result.status();
+            progress += result.consumed();
+
+            // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
+            // slot, so what the parser has not consumed is kept before the output is put
+            tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+            retain(input, progress);
 
             final boolean done = status == Status.COMPLETED && last;
 
@@ -123,14 +129,18 @@ final class LlmSectionPipeline
                 output.put(outputBuffer, 0, result.produced(), done);
                 closed |= done;
             }
-
-            progress += result.consumed();
         }
         while (status == Status.SUSPENDED);
 
         completed = status == Status.COMPLETED;
-        tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
 
+        return status != Status.REJECTED;
+    }
+
+    private void retain(
+        DirectBufferEx input,
+        int progress)
+    {
         if (tailLength > 0)
         {
             if (input == windowBuffer)
@@ -143,8 +153,6 @@ final class LlmSectionPipeline
                 input.getBytes(progress, window, 0, tailLength);
             }
         }
-
-        return status != Status.REJECTED;
     }
 
     private void reserve(
