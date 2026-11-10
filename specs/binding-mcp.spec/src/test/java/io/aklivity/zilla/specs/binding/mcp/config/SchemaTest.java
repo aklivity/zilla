@@ -50,6 +50,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerProxyClient()
+    {
+        JsonObject config = schema.validate("server.proxy.client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxy()
     {
         JsonObject config = schema.validate("proxy.options.yaml");
