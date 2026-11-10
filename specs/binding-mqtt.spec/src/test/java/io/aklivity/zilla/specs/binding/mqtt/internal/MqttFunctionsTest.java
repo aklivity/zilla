@@ -1317,6 +1317,28 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeFlushExReasonCode()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .qos("EXACTLY_ONCE")
+                .packetId(1)
+                .state("COMPLETE")
+                .reasonCode(0x83)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, mqttFlushEx.subscribe().packetId());
+        assertEquals(2, mqttFlushEx.subscribe().qos());
+        assertEquals(0, mqttFlushEx.subscribe().state());
+        assertEquals(0x83, mqttFlushEx.subscribe().reasonCode());
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeFlushExSharedFilter()
     {
         final byte[] array = MqttFunctions.flushEx()
@@ -1426,8 +1448,9 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateV1FW sessionState = new MqttSessionStateV1FW().wrap(buffer, 0, buffer.capacity());
 
+        assertEquals(1, sessionState.version());
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
@@ -1458,6 +1481,28 @@ public class MqttFunctionsTest
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/five".equals(f.pattern().asString())));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateNonSharedAsVersion1()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        final byte[] expected = MqttFunctions.sessionV1()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateEmptyAsVersion1()
+    {
+        final byte[] array = MqttFunctions.session().build();
+
+        assertArrayEquals(MqttFunctions.sessionV1().build(), array);
     }
 
     @Test

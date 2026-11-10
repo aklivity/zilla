@@ -813,6 +813,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeFlushExBuilder reasonCode(
+                int reasonCode)
+            {
+                subscribeFlushExRW.reasonCode(reasonCode);
+                return this;
+            }
+
             public MqttSubscribeFlushExBuilder filter(
                 String topic,
                 int id)
@@ -922,17 +929,24 @@ public final class MqttFunctions
     public static final class MqttSessionStateBuilder
     {
         private final MqttSessionStateFW.Builder sessionStateRW = new MqttSessionStateFW.Builder();
+        private final MqttSessionStateV1FW.Builder sessionStateV1RW = new MqttSessionStateV1FW.Builder();
+
+        private boolean shared;
 
         private MqttSessionStateBuilder()
         {
             MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+
+            MutableDirectBufferEx writeV1Buffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            sessionStateV1RW.wrap(writeV1Buffer, 0, writeV1Buffer.capacity());
         }
 
         public MqttSessionStateBuilder subscription(
             String pattern)
         {
             sessionStateRW.subscriptionsItem(f -> f.pattern(pattern));
+            sessionStateV1RW.subscriptionsItem(f -> f.pattern(pattern));
             return this;
         }
 
@@ -941,6 +955,7 @@ public final class MqttFunctions
             int id)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).pattern(pattern));
+            sessionStateV1RW.subscriptionsItem(f -> f.subscriptionId(id).pattern(pattern));
             return this;
         }
 
@@ -950,6 +965,7 @@ public final class MqttFunctions
             int reasonCode)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
+            sessionStateV1RW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 
@@ -964,6 +980,7 @@ public final class MqttFunctions
                 .reduce(0, (a, b) -> a | b);
             int qos = MqttQoS.valueOf(qosName).ordinal();
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).qos(qos).flags(flags).pattern(pattern));
+            sessionStateV1RW.subscriptionsItem(f -> f.subscriptionId(id).qos(qos).flags(flags).pattern(pattern));
             return this;
         }
 
@@ -984,14 +1001,25 @@ public final class MqttFunctions
                 .flags(flags)
                 .pattern(pattern)
                 .shareName(shareName));
+            this.shared = true;
             return this;
         }
 
         public byte[] build()
         {
-            final MqttSessionStateFW sessionState = sessionStateRW.build();
-            final byte[] array = new byte[sessionState.sizeof()];
-            sessionState.buffer().getBytes(sessionState.offset(), array);
+            final byte[] array;
+            if (shared)
+            {
+                final MqttSessionStateFW sessionState = sessionStateRW.build();
+                array = new byte[sessionState.sizeof()];
+                sessionState.buffer().getBytes(sessionState.offset(), array);
+            }
+            else
+            {
+                final MqttSessionStateV1FW sessionState = sessionStateV1RW.build();
+                array = new byte[sessionState.sizeof()];
+                sessionState.buffer().getBytes(sessionState.offset(), array);
+            }
             return array;
         }
     }
