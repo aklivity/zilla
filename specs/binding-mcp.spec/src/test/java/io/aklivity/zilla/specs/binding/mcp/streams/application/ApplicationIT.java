@@ -729,6 +729,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.notify.resources.updated.oversize/client",
+        "${app}/lifecycle.notify.resources.updated.oversize/server"})
+    public void shouldSuspendWhenNotifiedResourceUriIsOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.notify.resources.updated.unknown.param/client",
         "${app}/lifecycle.notify.resources.updated.unknown.param/server"})
     public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception

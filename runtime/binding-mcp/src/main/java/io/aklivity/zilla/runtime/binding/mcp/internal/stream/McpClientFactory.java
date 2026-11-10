@@ -652,15 +652,24 @@ public final class McpClientFactory implements McpStreamFactory
 
     // a string whose bytes fill the input window before completing is delivered as fragments, the same event
     // repeated with deferredBytes() true until it completes -- a fragment is pushed back, so the stream's decode
-    // slot keeps its bytes and the value is only handed back once the whole string has arrived
+    // slot keeps its bytes and the value is only handed back once the whole string has arrived; a string that
+    // would fill the slot can never be held whole, so it is a parse error
     private String jsonRpcStringValue(
-        McpHttpStream http)
+        McpHttpStream http,
+        long traceId,
+        long authorization)
     {
         String value = null;
 
         if (http.decodableJson.deferredBytes())
         {
             http.decodableJson.consumed(0);
+
+            if (http.decodableJson.remaining() >= decodeMax)
+            {
+                http.onDecodeParseError(traceId, authorization);
+                http.decoder = decodeIgnore;
+            }
         }
         else
         {
@@ -695,7 +704,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            final String version = jsonRpcStringValue(http);
+            final String version = jsonRpcStringValue(http, traceId, authorization);
             if (version != null)
             {
                 if (!JSON_RPC_VERSION.equals(version))
@@ -740,7 +749,7 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            final String id = jsonRpcStringValue(http);
+            final String id = jsonRpcStringValue(http, traceId, authorization);
             if (id != null)
             {
                 http.sseEventJsonId = id;
@@ -916,7 +925,7 @@ public final class McpClientFactory implements McpStreamFactory
                 http.decoder = decodeIgnore;
                 break decode;
             }
-            final String method = jsonRpcStringValue(http);
+            final String method = jsonRpcStringValue(http, traceId, authorization);
             if (method != null)
             {
                 if ("notifications/progress".equals(method))
@@ -1102,7 +1111,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String token = jsonRpcStringValue(http);
+            final String token = jsonRpcStringValue(http, traceId, authorization);
             if (token != null)
             {
                 http.sseProgressToken = token;
@@ -1175,7 +1184,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String message = jsonRpcStringValue(http);
+            final String message = jsonRpcStringValue(http, traceId, authorization);
             if (message != null)
             {
                 http.sseProgressMessage = message;
@@ -1202,7 +1211,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String elicitationId = jsonRpcStringValue(http);
+            final String elicitationId = jsonRpcStringValue(http, traceId, authorization);
             if (elicitationId != null)
             {
                 http.sseElicitationId = elicitationId;
@@ -1229,7 +1238,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String url = jsonRpcStringValue(http);
+            final String url = jsonRpcStringValue(http, traceId, authorization);
             if (url != null)
             {
                 http.sseElicitUrl = url;
@@ -1256,7 +1265,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String mode = jsonRpcStringValue(http);
+            final String mode = jsonRpcStringValue(http, traceId, authorization);
             if (mode != null)
             {
                 http.sseElicitMode = mode;
@@ -1283,7 +1292,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         if (nextBodyEvent(parser) != null)
         {
-            final String uri = jsonRpcStringValue(http);
+            final String uri = jsonRpcStringValue(http, traceId, authorization);
             if (uri != null)
             {
                 http.sseResourceUri = uri;
@@ -4127,6 +4136,54 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
+        abstract void cleanupNet(
+            long traceId,
+            long authorization);
+
+        void decodeNet(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            HttpResponseDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+            }
+
+            decodedParserProgress += progress - offset;
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(replyId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
+                }
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
+        }
+
         protected void cleanupDecodeSlot()
         {
             if (decodeSlot != NO_SLOT)
@@ -4361,6 +4418,7 @@ public final class McpClientFactory implements McpStreamFactory
             flushNetWindow(traceId, authorization, budgetId);
         }
 
+        @Override
         void decodeNet(
             long traceId,
             long authorization,
@@ -4370,39 +4428,7 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            HttpResponseDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-            }
-
-            decodedParserProgress += progress - offset;
-
-            if (progress < limit)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(replyId);
-                }
-
-                if (decodeSlot == NO_SLOT || limit - progress >= decodeMax)
-                {
-                    cleanupNet(traceId, authorization);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
-                }
-            }
-            else
-            {
-                cleanupDecodeSlot();
-            }
+            super.decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
 
             if (StreamState.replyClosing(state) &&
                 decodeSlot == BufferPool.NO_SLOT &&
@@ -4772,7 +4798,8 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void cleanupNet(
+        @Override
+        void cleanupNet(
             long traceId,
             long authorization)
         {
@@ -5226,50 +5253,6 @@ public final class McpClientFactory implements McpStreamFactory
             flushNetWindow(traceId, authorization, budgetId);
         }
 
-        private void decodeNet(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            DirectBufferEx buffer,
-            int offset,
-            int limit)
-        {
-            HttpResponseDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-            }
-
-            decodedParserProgress += progress - offset;
-
-            if (progress < limit)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(replyId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupNet(traceId, authorization);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
-                }
-            }
-            else
-            {
-                cleanupDecodeSlot();
-            }
-        }
-
         private void onNetEnd(
             EndFW end)
         {
@@ -5370,7 +5353,8 @@ public final class McpClientFactory implements McpStreamFactory
             return mcp.doAppData(traceId, authorization, buffer, offset, limit);
         }
 
-        private void cleanupNet(
+        @Override
+        void cleanupNet(
             long traceId,
             long authorization)
         {
