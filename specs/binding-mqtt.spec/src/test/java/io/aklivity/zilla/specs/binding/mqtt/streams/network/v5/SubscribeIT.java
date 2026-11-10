@@ -489,4 +489,148 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription/client",
+        "${net}/subscribe.shared.subscription/server"})
+    public void shouldSubscribeSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.distinct.share.names/client",
+        "${net}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.distinct.filters/client",
+        "${net}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.and.non.shared/client",
+        "${net}/subscribe.shared.and.non.shared/server"})
+    public void shouldSubscribeSharedAndNonShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.change.qos/client",
+        "${net}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscription.name.empty/client",
+        "${net}/subscribe.reject.shared.subscription.name.empty/server"})
+    public void shouldSubscribeRejectSharedSubscriptionNameEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscription.name.wildcard/client",
+        "${net}/subscribe.reject.shared.subscription.name.wildcard/server"})
+    public void shouldSubscribeRejectSharedSubscriptionNameWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscription.filter.missing/client",
+        "${net}/subscribe.reject.shared.subscription.filter.missing/server"})
+    public void shouldSubscribeRejectSharedSubscriptionFilterMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscription.filter.empty/client",
+        "${net}/subscribe.reject.shared.subscription.filter.empty/server"})
+    public void shouldSubscribeRejectSharedSubscriptionFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscription.no.local/client",
+        "${net}/subscribe.reject.shared.subscription.no.local/server"})
+    public void shouldSubscribeRejectSharedSubscriptionNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.unroutable.shared.subscription/client",
+        "${net}/subscribe.unroutable.shared.subscription/server"})
+    public void shouldSubscribeUnroutableSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos2.granted.qos1/client",
+        "${net}/subscribe.shared.receive.message.qos2.granted.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2GrantedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos2/client",
+        "${net}/subscribe.shared.receive.message.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${net}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.shared.subscription/client",
+        "${net}/subscribe.reconnect.shared.subscription/server"})
+    public void shouldSubscribeReconnectSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reconnect.legacy.session.state/client",
+        "${net}/subscribe.reconnect.legacy.session.state/server"})
+    public void shouldSubscribeReconnectLegacySessionState() throws Exception
+    {
+        k3po.finish();
+    }
 }
