@@ -33,7 +33,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateVersion;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
@@ -1448,17 +1448,17 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateV1FW sessionState = new MqttSessionStateV1FW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(1, sessionState.version());
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     1 == f.qos() &&
                     0b0001 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
@@ -1466,19 +1466,19 @@ public class MqttFunctionsTest
                     0 == f.reasonCode() &&
                     0b0000 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/three".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     2 == f.qos() &&
                     0b0001 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/four".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/five".equals(f.pattern().asString())));
     }
@@ -1516,15 +1516,15 @@ public class MqttFunctionsTest
         DirectBufferEx buffer = new UnsafeBufferEx(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(2, sessionState.version());
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V2, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     "consumers".equals(f.shareName().asString()) &&
                     1 == f.subscriptionId() &&
                     1 == f.qos() &&
                     0 == f.flags()));
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
                     f.shareName().asString() == null &&
@@ -1540,10 +1540,10 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateV1FW sessionState = new MqttSessionStateV1FW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(1, sessionState.version());
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
@@ -1562,8 +1562,8 @@ public class MqttFunctionsTest
         DirectBufferEx buffer = new UnsafeBufferEx(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(2, sessionState.version());
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V2, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     "consumers".equals(f.shareName().asString()) &&
@@ -1579,10 +1579,10 @@ public class MqttFunctionsTest
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
-        MqttSessionStateV1FW sessionState = new MqttSessionStateV1FW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertEquals(1, sessionState.version());
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
