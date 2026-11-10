@@ -79,6 +79,13 @@ public final class KafkaCacheTopic
         return partitionsById.computeIfAbsent(id, this::newFetchPartition);
     }
 
+    public KafkaCachePartition newShareStaging(
+        KafkaCacheTopicConfig stagingConfig,
+        String staging)
+    {
+        return new KafkaCachePartition(location, stagingConfig, cache, name, staging, appendCapacity, sortSpaceRef);
+    }
+
     public KafkaCachePartition supplyProducePartition(
         int id,
         int index)

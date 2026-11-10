@@ -19,6 +19,9 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_RETENTION_MILLIS_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
@@ -90,5 +93,8 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES.name(), KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES_NAME);
         assertEquals(KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES.name(), KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES_NAME);
         assertEquals(KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS.name(), KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS_NAME);
+        assertEquals(KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES.name(), KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES_NAME);
+        assertEquals(KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES.name(), KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES_NAME);
+        assertEquals(KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT.name(), KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT_NAME);
     }
 }

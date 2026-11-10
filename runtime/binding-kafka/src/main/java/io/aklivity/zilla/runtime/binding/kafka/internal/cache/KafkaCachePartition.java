@@ -54,6 +54,7 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonWriter;
 import jakarta.json.spi.JsonProvider;
 
+import org.agrona.IoUtil;
 import org.agrona.LangUtil;
 import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
@@ -91,6 +92,7 @@ public final class KafkaCachePartition
     public static final int CACHE_ENTRY_FLAGS_AUTHORITATIVE = KafkaCacheEntryFlags.AUTHORITATIVE.value();
     public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
 
+    private static final int STAGING_PARTITION_ID = -1;
     private static final long NO_DIRTY_SINCE = -1L;
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
@@ -166,6 +168,31 @@ public final class KafkaCachePartition
         this.cache = cache;
         this.topic = topic;
         this.id = id;
+        this.appendBuf = new UnsafeBufferEx(allocateDirect(appendCapacity));
+        this.sortSpaceRef = sortSpaceRef;
+        this.sentinel = new Node();
+        this.checksum = new CRC32C();
+        this.progress = OFFSET_HISTORICAL;
+        this.produceCapacity = new AtomicLong(0);
+    }
+
+    public KafkaCachePartition(
+        Path location,
+        KafkaCacheTopicConfig config,
+        String cache,
+        String topic,
+        String staging,
+        int appendCapacity,
+        IntFunction<long[]> sortSpaceRef)
+    {
+        final Path directory = location.resolve(staging);
+        IoUtil.delete(directory.toFile(), true);
+
+        this.location = createDirectories(directory);
+        this.config = config;
+        this.cache = cache;
+        this.topic = topic;
+        this.id = STAGING_PARTITION_ID;
         this.appendBuf = new UnsafeBufferEx(allocateDirect(appendCapacity));
         this.sortSpaceRef = sortSpaceRef;
         this.sentinel = new Node();
@@ -1021,6 +1048,24 @@ public final class KafkaCachePartition
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS,
             trailersOverflowed ? CACHE_ENTRY_FLAGS_ABORTED : CACHE_ENTRY_FLAGS_COMPLETED);
+    }
+
+    public void deleteAll()
+    {
+        Node node = sentinel.next;
+
+        while (node != sentinel)
+        {
+            final Node next = node.next;
+
+            if (next == sentinel)
+            {
+                node.segment(node.segment.freeze());
+            }
+
+            node.remove();
+            node = next;
+        }
     }
 
     public long retainAt(
