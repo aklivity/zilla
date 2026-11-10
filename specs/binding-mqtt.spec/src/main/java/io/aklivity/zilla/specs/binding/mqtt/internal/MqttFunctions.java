@@ -44,6 +44,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateV1FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
@@ -128,6 +129,12 @@ public final class MqttFunctions
     public static MqttSessionStateBuilder session()
     {
         return new MqttSessionStateBuilder();
+    }
+
+    @Function
+    public static MqttSessionStateV1Builder sessionV1()
+    {
+        return new MqttSessionStateV1Builder();
     }
 
     @Function
@@ -353,6 +360,26 @@ public final class MqttFunctions
                     .reduce(0, (a, b) -> a | b);
                 int qos = MqttQoS.valueOf(qosName).ordinal();
                 subscribeBeginExRW.filtersItem(f -> f.subscriptionId(id).qos(qos).flags(flagsBitset).pattern(pattern));
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder sharedFilter(
+                String shareName,
+                String pattern,
+                int id,
+                String qosName,
+                String... flags)
+            {
+                int flagsBitset = Arrays.stream(flags)
+                    .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                int qos = MqttQoS.valueOf(qosName).ordinal();
+                subscribeBeginExRW.filtersItem(f -> f
+                    .subscriptionId(id)
+                    .qos(qos)
+                    .flags(flagsBitset)
+                    .pattern(pattern)
+                    .shareName(shareName));
                 return this;
             }
 
@@ -808,6 +835,26 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeFlushExBuilder sharedFilter(
+                String shareName,
+                String topic,
+                int id,
+                String qosName,
+                String... flagNames)
+            {
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                int qos = MqttQoS.valueOf(qosName).ordinal();
+                subscribeFlushExRW.filtersItem(f -> f
+                    .subscriptionId(id)
+                    .qos(qos)
+                    .flags(flags)
+                    .pattern(topic)
+                    .shareName(shareName));
+                return this;
+            }
+
             public MqttFlushExBuilder build()
             {
                 final MqttSubscribeFlushExFW subscribeFlushEx = subscribeFlushExRW.build();
@@ -920,9 +967,62 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttSessionStateBuilder sharedSubscription(
+            String shareName,
+            String pattern,
+            int id,
+            String qosName,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .pattern(pattern)
+                .shareName(shareName));
+            return this;
+        }
+
         public byte[] build()
         {
             final MqttSessionStateFW sessionState = sessionStateRW.build();
+            final byte[] array = new byte[sessionState.sizeof()];
+            sessionState.buffer().getBytes(sessionState.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class MqttSessionStateV1Builder
+    {
+        private final MqttSessionStateV1FW.Builder sessionStateRW = new MqttSessionStateV1FW.Builder();
+
+        private MqttSessionStateV1Builder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttSessionStateV1Builder subscription(
+            String pattern,
+            int id,
+            String qosName,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).qos(qos).flags(flags).pattern(pattern));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttSessionStateV1FW sessionState = sessionStateRW.build();
             final byte[] array = new byte[sessionState.sizeof()];
             sessionState.buffer().getBytes(sessionState.offset(), array);
             return array;
@@ -1448,6 +1548,32 @@ public final class MqttFunctions
                     .qos(qos)
                     .flags(flags)
                     .pattern(pattern));
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder sharedFilter(
+                String shareName,
+                String pattern,
+                int id,
+                String qosName,
+                String... flagNames)
+            {
+                if (filters == null)
+                {
+                    this.filters = new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW())
+                        .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+
+                int flags = Arrays.stream(flagNames)
+                    .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                int qos = MqttQoS.valueOf(qosName).ordinal();
+                filters.item(i -> i
+                    .subscriptionId(id)
+                    .qos(qos)
+                    .flags(flags)
+                    .pattern(pattern)
+                    .shareName(shareName));
                 return this;
             }
 
