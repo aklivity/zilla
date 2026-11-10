@@ -131,15 +131,6 @@ public class ShareIT
 
     @Test
     @Specification({
-        "${net}/acknowledge.without.fetch/client",
-        "${net}/acknowledge.without.fetch/server"})
-    public void shouldAcknowledgeWithoutFetch() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/acknowledge.accept.gap/client",
         "${net}/acknowledge.accept.gap/server"})
     public void shouldAcknowledgeAcceptGap() throws Exception
@@ -203,18 +194,18 @@ public class ShareIT
 
     @Test
     @Specification({
-        "${net}/flow.control.records.max/client",
-        "${net}/flow.control.records.max/server"})
-    public void shouldFlowControlRecordsMax() throws Exception
+        "${net}/leave/client",
+        "${net}/leave/server"})
+    public void shouldLeave() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/leave/client",
-        "${net}/leave/server"})
-    public void shouldLeave() throws Exception
+        "${net}/leave.during.fetch/client",
+        "${net}/leave.during.fetch/server"})
+    public void shouldLeaveDuringFetch() throws Exception
     {
         k3po.finish();
     }

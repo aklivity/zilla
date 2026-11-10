@@ -271,9 +271,9 @@ read  101                                            # size
       0                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      [0..4]                                         # max bytes
-      [0..4]                                         # max records
-      [0..4]                                         # batch size
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
       [0x02]                                         # topics
         [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
         [0x03]                                       # partitions

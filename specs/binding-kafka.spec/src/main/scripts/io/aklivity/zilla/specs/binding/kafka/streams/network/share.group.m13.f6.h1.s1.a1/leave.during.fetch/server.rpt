@@ -205,6 +205,33 @@ write 69                                             # size
       [0x00]                                         # tagged fields
       [0x00]                                         # tagged fields
 
+read await SHARE_SESSION_CLOSED
+
+read  51                                             # size
+      76s                                            # share group heartbeat
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      -1                                             # member epoch
+      [0x00]                                         # rack id
+      [0x00]                                         # subscribed topic names (unchanged)
+      [0x00]                                         # tagged fields
+
+write 45                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      -1                                             # member epoch
+      0                                              # heartbeat interval ms
+      [0xff]                                         # assignment (unchanged)
+      [0x00]                                         # tagged fields
+
 accepted
 
 read zilla:begin.ext ${proxy:matchBeginEx()
@@ -260,9 +287,9 @@ read  95                                             # size
       0                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      [0..4]                                         # max bytes
-      2                                              # max records
-      2                                              # batch size
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
       [0x02]                                         # topics
         [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
         [0x02]                                       # partitions
@@ -273,7 +300,7 @@ read  95                                             # size
       [0x01]                                         # forgotten topics
       [0x00]                                         # tagged fields
 
-write 185                                            # size
+write 158                                            # size
       ${requestId}                                   # correlation id
       [0x00]                                         # tagged fields
       0                                              # throttle time ms
@@ -291,39 +318,31 @@ write 185                                            # size
           0                                          # current leader id
           0                                          # current leader epoch
           [0x00]                                     # tagged fields
-          [0x6c]                                     # records
+          [0x51]                                     # records
           5L                                         # first offset
-          95                                         # length
+          68                                         # length
           0                                          # partition leader epoch
           [0x02]                                     # magic
           0x4e8723aa                                 # crc
           0s                                         # attributes
-          1                                          # last offset delta
+          0                                          # last offset delta
           ${newTimestamp}                            # first timestamp
           ${newTimestamp}                            # last timestamp
           -1L                                        # producer id
           -1s                                        # producer epoch
           -1                                         # base sequence
-          2                                          # records
-          ${kafka:varint(22)}                        # record length
+          1                                          # records
+          ${kafka:varint(18)}                        # record length
           [0x00]                                     # attributes
           ${kafka:varint(0)}                         # timestamp delta
           ${kafka:varint(0)}                         # offset delta
           ${kafka:varint(-1)}                        # key
-          ${kafka:varint(16)}                        # value
-          "Hello, world #A1"
-          ${kafka:varint(0)}                         # headers
-          ${kafka:varint(22)}                        # record length
-          [0x00]                                     # attributes
-          ${kafka:varint(0)}                         # timestamp delta
-          ${kafka:varint(1)}                         # offset delta
-          ${kafka:varint(-1)}                        # key
-          ${kafka:varint(16)}                        # value
-          "Hello, world #A2"
+          ${kafka:varint(12)}                        # value
+          "Hello, world"
           ${kafka:varint(0)}                         # headers
           [0x02]                                     # acquired records
             5L                                       # first offset
-            6L                                       # last offset
+            5L                                       # last offset
             1s                                       # delivery count
             [0x00]                                   # tagged fields
           [0x00]                                     # tagged fields
@@ -331,7 +350,7 @@ write 185                                            # size
       [0x01]                                         # node endpoints
       [0x00]                                         # tagged fields
 
-read  114                                            # size
+read  71                                             # size
       78s                                            # share fetch
       1s                                             # v1
       (int:requestId)                                # correlation id
@@ -342,23 +361,16 @@ read  114                                            # size
       1                                              # share session epoch
       500                                            # max wait ms
       1                                              # min bytes
-      [0..4]                                         # max bytes
-      1                                              # max records
-      1                                              # batch size
-      [0x02]                                         # topics
-        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
-        [0x02]                                       # partitions
-          0                                          # partition index
-          [0x02]                                     # acknowledgement batches
-            5L                                       # first offset
-            5L                                       # last offset
-            [0x02]                                   # acknowledge types
-            [0x01]                                   # accept
-            [0x00]                                   # tagged fields
-          [0x00]                                     # tagged fields
-        [0x00]                                       # tagged fields
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
+      [0x01]                                         # topics
       [0x01]                                         # forgotten topics
       [0x00]                                         # tagged fields
+
+read notify FETCH_OUTSTANDING
+
+write await APPLICATION_LEFT
 
 write 59                                             # size
       ${requestId}                                   # correlation id
@@ -384,3 +396,48 @@ write 59                                             # size
         [0x00]                                       # tagged fields
       [0x01]                                         # node endpoints
       [0x00]                                         # tagged fields
+
+read  93                                             # size
+      79s                                            # share acknowledge
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      -1                                             # share session epoch
+      [0x02]                                         # topics
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition index
+          [0x02]                                     # acknowledgement batches
+            5L                                       # first offset
+            5L                                       # last offset
+            [0x02]                                   # acknowledge types
+            [0x02]                                   # release
+            [0x00]                                   # tagged fields
+          [0x00]                                     # tagged fields
+        [0x00]                                       # tagged fields
+      [0x00]                                         # tagged fields
+
+write 50                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      [0x02]                                         # responses
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition index
+          0s                                         # error code
+          [0x00]                                     # error message
+          0                                          # current leader id
+          0                                          # current leader epoch
+          [0x00]                                     # tagged fields
+          [0x00]                                     # tagged fields
+        [0x00]                                       # tagged fields
+      [0x01]                                         # node endpoints
+      [0x00]                                         # tagged fields
+
+write notify SHARE_SESSION_CLOSED

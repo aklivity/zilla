@@ -153,16 +153,6 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/acknowledge.without.fetch/client",
-        "${net}/acknowledge.without.fetch/server"})
-    public void shouldAcknowledgeWithoutFetch() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/acknowledge.accept.gap/client",
         "${net}/acknowledge.accept.gap/server"})
     public void shouldAcknowledgeAcceptGap() throws Exception
@@ -233,9 +223,9 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/flow.control.records.max/client",
-        "${net}/flow.control.records.max/server"})
-    public void shouldFlowControlRecordsMax() throws Exception
+        "${app}/leave/client",
+        "${net}/leave/server"})
+    public void shouldLeave() throws Exception
     {
         k3po.finish();
     }
@@ -243,9 +233,9 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/leave/client",
-        "${net}/leave/server"})
-    public void shouldLeave() throws Exception
+        "${app}/leave.during.fetch/client",
+        "${net}/leave.during.fetch/server"})
+    public void shouldLeaveDuringFetch() throws Exception
     {
         k3po.finish();
     }

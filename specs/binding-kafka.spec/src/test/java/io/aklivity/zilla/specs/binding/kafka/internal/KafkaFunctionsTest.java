@@ -6006,7 +6006,6 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .memberId("AAECAwQFBgcICQoLDA0ODw")
                 .topic("events")
-                .recordsMax(10)
                 .filter()
                     .key("match")
                     .build()
@@ -6027,7 +6026,6 @@ public class KafkaFunctionsTest
         assertEquals("events", shareBeginEx.topic().asString());
         assertNull(shareBeginEx.host().asString());
         assertEquals(0, shareBeginEx.port());
-        assertEquals(10, shareBeginEx.recordsMax());
 
         final MutableInteger filterCount = new MutableInteger();
         shareBeginEx.filters().forEach(f -> filterCount.value++);
@@ -6071,7 +6069,6 @@ public class KafkaFunctionsTest
         assertEquals("events", shareBeginEx.topic().asString());
         assertEquals("broker1.example.com", shareBeginEx.host().asString());
         assertEquals(9092, shareBeginEx.port());
-        assertEquals(500, shareBeginEx.recordsMax());
         assertEquals(0, shareBeginEx.filters().fieldCount());
     }
 
@@ -6086,7 +6083,6 @@ public class KafkaFunctionsTest
                 .topic("events")
                 .host("broker1.example.com")
                 .port(9092)
-                .recordsMax(10)
                 .filter()
                     .key("match")
                     .build()
@@ -6104,7 +6100,6 @@ public class KafkaFunctionsTest
                 .topic("events")
                 .host("broker1.example.com")
                 .port(9092)
-                .recordsMax(10)
                 .filtersItem(i -> i.conditionsItem(c -> c.key(k -> k
                     .length(5)
                     .value(v -> v.set("match".getBytes(UTF_8)))))))
@@ -6155,30 +6150,6 @@ public class KafkaFunctionsTest
                 .groupId("test")
                 .memberId("AAECAwQFBgcICQoLDA0ODw")
                 .topic("events"))
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchShareBeginExtensionRecordsMax() throws Exception
-    {
-        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
-            .share()
-                .recordsMax(1)
-                .build()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new KafkaBeginExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .share(f -> f
-                .groupId("test")
-                .memberId("AAECAwQFBgcICQoLDA0ODw")
-                .topic("events")
-                .recordsMax(10))
             .build();
 
         matcher.match(byteBuf);

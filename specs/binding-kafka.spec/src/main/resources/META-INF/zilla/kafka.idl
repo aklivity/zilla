@@ -454,7 +454,6 @@ scope kafka
             string16 topic;
             string16 host = null;
             int32 port = 0;
-            int32 recordsMax = 500;
             KafkaFilter[] filters; // ORed
         }
 

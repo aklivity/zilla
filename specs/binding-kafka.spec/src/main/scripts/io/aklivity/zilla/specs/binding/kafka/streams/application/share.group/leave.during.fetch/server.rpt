@@ -68,21 +68,7 @@ write advise zilla:flush ${kafka:flushEx()
                                  .build()
                              .build()}
 
-read advised zilla:flush ${kafka:matchFlushEx()
-                             .typeId(zilla:id("kafka"))
-                             .share()
-                                 .partition(0, 5)
-                                 .type("ACCEPT")
-                                 .correlationId(1)
-                                 .build()
-                             .build()}
+write notify FETCH_OUTSTANDING
 
-write advise zilla:flush ${kafka:flushEx()
-                             .typeId(zilla:id("kafka"))
-                             .share()
-                                 .partition(0, 5)
-                                 .type("ACCEPT")
-                                 .correlationId(1)
-                                 .error(0)
-                                 .build()
-                             .build()}
+read closed
+write close
