@@ -29,7 +29,7 @@ telemetry:
           - qname: test:app0
             id: binding.kafka.api.version.rejected
             name: BINDING_KAFKA_API_VERSION_REJECTED
-            message: "Share Group Heartbeat (Version: 1)"
+            message: "ShareGroupHeartbeat (Version: 1)"
 bindings:
   app0:
     type: kafka
