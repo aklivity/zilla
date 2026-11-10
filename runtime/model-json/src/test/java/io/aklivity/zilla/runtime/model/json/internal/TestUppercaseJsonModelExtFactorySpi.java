@@ -144,7 +144,7 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
                 break;
             case VALUE_STRING:
                 status = targeting
-                    ? onTargetString(source, sink)
+                    ? onTargetString(control, source, sink)
                     : sink.transform(mediator, source, event);
                 break;
             default:
@@ -197,6 +197,7 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         // re-capturing (not appending) on every fragment and staying armed until deferredBytes() goes
         // false always leaves the last (complete) capture in place
         private Status onTargetString(
+            JsonController control,
             JsonSource source,
             JsonSink sink)
         {
@@ -221,6 +222,7 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
             }
             else
             {
+                control.consumed(0);
                 status = Status.ADVANCED;
             }
             return status;
