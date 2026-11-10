@@ -186,4 +186,77 @@ public class MqttConditionConfigAdapterTest
             }
             """.replaceAll("\\s*\\n\\s*", "")));
     }
+
+    @Test
+    public void shouldReadConditionWithShare()
+    {
+        String text =
+            "{" +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"sensor/one\"," +
+                        "\"share\": \"consumers\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"sensor/two\"," +
+                        "\"share\": \"*\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"sensor/three\"" +
+                    "}" +
+                "]" +
+            "}";
+
+        MqttConditionConfig condition = jsonb.fromJson(text, MqttConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.subscribes.get(0).topic, equalTo("sensor/one"));
+        assertThat(condition.subscribes.get(0).share, equalTo("consumers"));
+        assertThat(condition.subscribes.get(1).topic, equalTo("sensor/two"));
+        assertThat(condition.subscribes.get(1).share, equalTo("*"));
+        assertThat(condition.subscribes.get(2).topic, equalTo("sensor/three"));
+        assertThat(condition.subscribes.get(2).share, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionWithShare()
+    {
+        MqttConditionConfig condition = MqttConditionConfig.builder()
+            .inject(identity())
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("sensor/two")
+                .share("*")
+                .build()
+            .subscribe()
+                .topic("sensor/three")
+                .build()
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("""
+            {
+                "subscribe":
+                [
+                    {
+                        "topic":"sensor/one",
+                        "share":"consumers"
+                    },
+                    {
+                        "topic":"sensor/two",
+                        "share":"*"
+                    },
+                    {
+                        "topic":"sensor/three"
+                    }
+                ]
+            }
+            """.replaceAll("\\s*\\n\\s*", "")));
+    }
 }

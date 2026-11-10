@@ -174,6 +174,28 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerWhenSubscribeShare()
+    {
+        JsonObject config = schema.validate("server.when.subscribe.share.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWhenSubscribeShareWildcard()
+    {
+        JsonObject config = schema.validate("server.when.subscribe.share.wildcard.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWhenSubscribeShareInvalid()
+    {
+        schema.validate("server.when.subscribe.share.invalid.yaml");
+    }
+
+    @Test
     public void shouldValidateServerWithGuardedIdentityTopicParam()
     {
         JsonObject config = schema.validate("server.when.topic.params.yaml");
