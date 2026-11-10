@@ -168,6 +168,12 @@
             uint16 packetId;
         }
 
+        struct MqttAckV5 extends MqttAckHeader
+        {
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
         struct MqttPubackV4 extends MqttAckHeader
         {
         }
