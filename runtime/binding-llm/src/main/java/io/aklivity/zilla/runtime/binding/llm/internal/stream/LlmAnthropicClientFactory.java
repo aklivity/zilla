@@ -1417,15 +1417,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     found = scanDepth == 0;
                     break;
                 case KEY_NAME:
-                    if (parser.deferredBytes())
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        scanKey = parser.getString();
-                        found = scanDepth == 1 && MEMBER_CONTENT.equals(scanKey);
-                    }
+                    scanKey = parser.getString();
+                    found = scanDepth == 1 && MEMBER_CONTENT.equals(scanKey);
                     break;
                 case VALUE_STRING:
                     if (parser.deferredBytes())
@@ -1564,10 +1557,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     commitDocument();
                     decoder = decodeEnd;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -1756,10 +1745,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeRoot;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -1858,10 +1843,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = decodeContent;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -1968,10 +1949,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
 
                     decoder = decodeRoot;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -2147,10 +2124,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeRoot;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2260,10 +2233,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     endUsage();
                     decoder = usageThen;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2344,7 +2313,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (captureDepth == 0)
                 {
@@ -2368,11 +2337,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (deferredScalar(event))
                 {
-                    parser.consumed(deferredLength(event));
-                }
-                else if (event == JsonEvent.KEY_NAME && parser.deferredBytes())
-                {
-                    parser.consumed(0);
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (event != JsonEvent.KEY_NAME && skipDepth == 0)
                 {
@@ -2457,10 +2422,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeIgnore;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2520,10 +2481,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeDrainRoot;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (MEMBER_USAGE.contentEquals(parser.getStringView()))
                 {
                     usageThen = decodeDrainMessage;
@@ -2581,10 +2538,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeEnd;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (MEMBER_ERROR.contentEquals(parser.getStringView()))
                 {
                     errorThen = decodeErrorRoot;
@@ -2633,10 +2586,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = errorThen;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -2749,10 +2698,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 skipAfter(event, then);
             }
-            else if (parser.deferredBytes())
-            {
-                parser.consumed(0);
-            }
             else
             {
                 value = parser.getInt();
@@ -2782,13 +2727,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean deferredScalar(
             JsonEvent event)
         {
-            return (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) && parser.deferredBytes();
-        }
-
-        private int deferredLength(
-            JsonEvent event)
-        {
-            return event == JsonEvent.VALUE_STRING ? parser.getStringView().length() : 0;
+            return event == JsonEvent.VALUE_STRING && parser.deferredBytes();
         }
 
         private void beginText(
@@ -3022,7 +2961,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {
@@ -3048,7 +2987,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {

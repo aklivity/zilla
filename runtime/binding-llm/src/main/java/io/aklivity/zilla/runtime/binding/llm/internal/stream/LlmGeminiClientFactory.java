@@ -1360,16 +1360,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     found = scanDepth < memberDepth;
                     break;
                 case KEY_NAME:
-                    if (parser.deferredBytes())
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        scanKey = parser.getString();
-                        scanError = scanDepth == memberDepth && MEMBER_ERROR.equals(scanKey);
-                        found = scanError;
-                    }
+                    scanKey = parser.getString();
+                    scanError = scanDepth == memberDepth && MEMBER_ERROR.equals(scanKey);
+                    found = scanError;
                     break;
                 case VALUE_STRING:
                     if (parser.deferredBytes())
@@ -1515,10 +1508,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     commitDocument();
                     decoder = rootThen;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -1618,10 +1607,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeCandidates;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -1683,10 +1668,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = decodeCandidate;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else if (MEMBER_PARTS.contentEquals(parser.getStringView()))
                 {
@@ -1785,10 +1766,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     }
 
                     decoder = decodeParts;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else if (MEMBER_TEXT.contentEquals(parser.getStringView()))
                 {
@@ -1983,10 +1960,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     decoder = decodePart;
                     endCall();
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2127,7 +2100,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (captureDepth == 0)
                 {
@@ -2286,10 +2259,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     endUsage();
                     decoder = usageThen;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2377,11 +2346,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (deferredScalar(event))
                 {
-                    parser.consumed(deferredLength(event));
-                }
-                else if (event == JsonEvent.KEY_NAME && parser.deferredBytes())
-                {
-                    parser.consumed(0);
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (event != JsonEvent.KEY_NAME && skipDepth == 0)
                 {
@@ -2466,10 +2431,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeIgnore;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (MEMBER_USAGE.contentEquals(parser.getStringView()))
                 {
                     usageThen = decodeDrainRoot;
@@ -2533,10 +2494,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeIgnore;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (MEMBER_ERROR.contentEquals(parser.getStringView()))
                 {
                     errorThen = decodeErrorRoot;
@@ -2586,10 +2543,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = errorThen;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -2691,10 +2644,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 skipAfter(event, then);
             }
-            else if (parser.deferredBytes())
-            {
-                parser.consumed(0);
-            }
             else
             {
                 value = parser.getInt();
@@ -2724,13 +2673,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean deferredScalar(
             JsonEvent event)
         {
-            return (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) && parser.deferredBytes();
-        }
-
-        private int deferredLength(
-            JsonEvent event)
-        {
-            return event == JsonEvent.VALUE_STRING ? parser.getStringView().length() : 0;
+            return event == JsonEvent.VALUE_STRING && parser.deferredBytes();
         }
 
         private void beginText(
@@ -2854,7 +2797,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {
@@ -2880,7 +2823,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {

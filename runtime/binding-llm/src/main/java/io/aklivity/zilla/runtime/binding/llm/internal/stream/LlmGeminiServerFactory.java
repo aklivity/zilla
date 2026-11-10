@@ -636,10 +636,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeRootKey(parser.getStringView());
                 break;
             case END_OBJECT:
@@ -675,10 +671,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (isConfig(key))
                 {
@@ -873,17 +865,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 break;
             case KEY_NAME:
-                roleKey = false;
-                if (!parser.deferredBytes())
+                final CharSequence member = parser.getStringView();
+
+                roleKey = level == LEVEL_CONTENT_MEMBER && matches(member, "role");
+
+                if (level == LEVEL_PART_MEMBER && media(member))
                 {
-                    final CharSequence member = parser.getStringView();
-
-                    roleKey = level == LEVEL_CONTENT_MEMBER && matches(member, "role");
-
-                    if (level == LEVEL_PART_MEMBER && media(member))
-                    {
-                        role = ROLE_USER;
-                    }
+                    role = ROLE_USER;
                 }
                 break;
             case VALUE_STRING:
@@ -976,10 +964,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, "role"))
                 {
@@ -1110,10 +1094,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 if (matches(parser.getStringView(), "parts"))
                 {
                     server.partsThen = decodeSystem;
@@ -1242,18 +1222,15 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 depth--;
                 break;
             case KEY_NAME:
-                if (!parser.deferredBytes())
+                final CharSequence member = parser.getStringView();
+                final boolean signature = matches(member, MEMBER_THOUGHT_SIGNATURE) ||
+                    matches(member, MEMBER_THOUGHT_SIGNATURE_SNAKE);
+
+                thoughtKey = matches(member, MEMBER_THOUGHT);
+
+                if (!thoughtKey && !signature)
                 {
-                    final CharSequence member = parser.getStringView();
-                    final boolean signature = matches(member, MEMBER_THOUGHT_SIGNATURE) ||
-                        matches(member, MEMBER_THOUGHT_SIGNATURE_SNAKE);
-
-                    thoughtKey = matches(member, MEMBER_THOUGHT);
-
-                    if (!thoughtKey && !signature)
-                    {
-                        key = member.toString();
-                    }
+                    key = member.toString();
                 }
                 break;
             case VALUE_TRUE:
@@ -1604,10 +1581,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 ended = true;
                 break;
             case KEY_NAME:
-                if (!parser.deferredBytes())
-                {
-                    key = parser.getStringView().toString();
-                }
+                key = parser.getStringView().toString();
                 break;
             default:
                 server.onDecodeParseError(traceId);
@@ -1697,10 +1671,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (!parser.deferredBytes())
-                {
-                    server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_UNSUPPORTED);
-                }
+                server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_UNSUPPORTED);
                 break;
             case END_OBJECT:
                 server.decoder = decodeTools;
@@ -1947,10 +1918,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), false);
                 break;
             case END_OBJECT:
@@ -1986,10 +1953,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), true);
                 break;
             case END_OBJECT:
@@ -2026,10 +1989,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), false);
                 break;
             case END_OBJECT:
@@ -2203,32 +2162,25 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             final JsonEvent event = parser.nextEvent();
 
-            if (event == JsonEvent.VALUE_NUMBER && parser.deferredBytes())
+            final boolean deferred;
+
+            if (event == JsonEvent.VALUE_NUMBER)
             {
-                parser.consumed(0);
+                server.maxOutputTokens = parser.getInt();
+                deferred = false;
             }
             else
             {
-                final boolean deferred;
+                deferred = onCaptureEvent(server, event);
+            }
 
-                if (event == JsonEvent.VALUE_NUMBER)
-                {
-                    server.maxOutputTokens = parser.getInt();
-                    deferred = false;
-                }
-                else
-                {
-                    deferred = onCaptureEvent(server, event);
-                }
-
-                if (server.captureDepth == 0 && !deferred)
-                {
-                    server.endConfigValue(traceId, authorization, decodeConfigOpen);
-                }
-                else
-                {
-                    server.decoder = decodeConfigResidue;
-                }
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endConfigValue(traceId, authorization, decodeConfigOpen);
+            }
+            else
+            {
+                server.decoder = decodeConfigResidue;
             }
         }
 
@@ -2240,8 +2192,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         JsonEvent event)
     {
         final JsonParserEx parser = server.parser;
-        final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
-            parser.deferredBytes();
+        final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
         switch (event)
         {
@@ -2253,7 +2204,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         case END_ARRAY:
             server.captureDepth--;
             break;
-        case VALUE_STRING, VALUE_NUMBER:
+        case VALUE_STRING:
             if (deferred)
             {
                 parser.consumed(parser.getStringView().length());
