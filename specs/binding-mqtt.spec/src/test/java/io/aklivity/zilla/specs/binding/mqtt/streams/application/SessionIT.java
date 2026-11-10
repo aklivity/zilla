@@ -514,4 +514,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.shared.subscriptions.not.supported/client",
+        "${app}/session.connect.shared.subscriptions.not.supported/server"})
+    public void shouldSessionConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
 }
