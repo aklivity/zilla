@@ -254,8 +254,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final int llmTypeId;
     private final int httpTypeId;
 
-    private final StringBuilder surrogates = new StringBuilder(2);
-
     private byte[] textBytes = new byte[1024];
     private UnsafeBufferEx textBuffer = new UnsafeBufferEx(textBytes);
     private byte[] pieceBytes = new byte[1024];
@@ -2577,18 +2575,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final int take = textAllowance(chars, deferred);
             final boolean finished = !deferred && take == length;
 
-            if (take > 0 || finished && highSurrogate != 0)
+            if (take > 0)
             {
-                final int from = highSurrogate != 0 ? resumeSurrogate(chars, take) : 0;
-                int to = take;
-
-                if (!finished && to > from && Character.isHighSurrogate(chars.charAt(to - 1)))
-                {
-                    highSurrogate = chars.charAt(to - 1);
-                    to--;
-                }
-
-                scan(chars, from, to);
+                scan(chars, 0, take);
             }
 
             if (finished && !http.framing)
@@ -2609,27 +2598,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             return take < length;
-        }
-
-        private int resumeSurrogate(
-            CharSequence chars,
-            int take)
-        {
-            final boolean paired = take > 0 && Character.isLowSurrogate(chars.charAt(0));
-
-            surrogates.setLength(0);
-            surrogates.append(highSurrogate);
-
-            if (paired)
-            {
-                surrogates.append(chars.charAt(0));
-            }
-
-            highSurrogate = 0;
-
-            scan(surrogates, 0, surrogates.length());
-
-            return paired ? 1 : 0;
         }
 
         private void scan(

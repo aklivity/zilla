@@ -705,6 +705,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.text.escaped.fragmented/client",
+        "${net}/openai.section.user.text.escaped.fragmented/server"})
+    public void shouldDecodeOpenaiSectionUserTextEscapedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.user.text.multibyte/client",
         "${net}/openai.section.user.text.multibyte/server"})
     public void shouldOpenaiSectionUserTextMultibyte() throws Exception
