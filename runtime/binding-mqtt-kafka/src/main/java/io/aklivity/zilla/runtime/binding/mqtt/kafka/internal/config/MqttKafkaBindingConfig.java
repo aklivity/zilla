@@ -97,7 +97,8 @@ public class MqttKafkaBindingConfig
     {
         return routes.stream()
             .filter(r -> r.authorized(authorization) &&
-                filters.anyMatch(f -> r.matches(f.pattern().asString(), MqttKafkaConditionKind.SUBSCRIBE)))
+                filters.anyMatch(f -> r.matches(
+                    f.pattern().asString(), f.shareName().asString(), MqttKafkaConditionKind.SUBSCRIBE)))
             .collect(Collectors.toList());
     }
 
