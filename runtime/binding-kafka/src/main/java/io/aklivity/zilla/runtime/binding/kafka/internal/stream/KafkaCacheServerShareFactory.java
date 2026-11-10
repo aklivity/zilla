@@ -637,17 +637,9 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
             KafkaShareRecord record = records.peekReady();
             while (record != null)
             {
-                if (record.expiresAt <= now)
+                if (record.deliverBy <= now || record.expiresAt <= now)
                 {
-                    staging.release(record);
-                    records.remove(record);
-                }
-                else if (record.deliverBy <= now)
-                {
-                    doShareFanoutInitialAck(traceId, record.partitionId, record.partitionOffset,
-                        KafkaShareAckType.RELEASE, NO_CORRELATION_ID);
-                    staging.release(record);
-                    records.remove(record);
+                    doShareFanoutRelease(traceId, record);
                 }
                 else
                 {
@@ -717,15 +709,22 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
 
             for (int index = 0; index < collected.size(); index++)
             {
-                final KafkaShareRecord record = collected.get(index);
-
-                staging.release(record);
-                records.remove(record);
+                doShareFanoutRelease(traceId, collected.get(index));
             }
 
             collected.clear();
 
             doShareFanoutDrain(traceId);
+        }
+
+        private void doShareFanoutRelease(
+            long traceId,
+            KafkaShareRecord record)
+        {
+            doShareFanoutInitialAck(traceId, record.partitionId, record.partitionOffset,
+                KafkaShareAckType.RELEASE, NO_CORRELATION_ID);
+            staging.release(record);
+            records.remove(record);
         }
 
         private void onShareFanoutMessage(
@@ -933,10 +932,14 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
                 final KafkaShareRecord record = collected.get(index);
                 final int deliveryCount = deliveryCountOf(ranges, record.partitionOffset);
 
-                if (deliveryCount == 0 || expiresAt <= now)
+                if (deliveryCount == 0)
                 {
                     staging.release(record);
                     records.remove(record);
+                }
+                else if (expiresAt <= now)
+                {
+                    doShareFanoutRelease(traceId, record);
                 }
                 else if (!matchesFilters(record))
                 {
