@@ -248,7 +248,8 @@ one of the labels listed under `reject`. The classifiers are declared at the top
   [text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference) service (`tei`)
   hosting `sentence-transformers/all-MiniLM-L6-v2`, so no vendor account is needed.
 - [`patterns`](../../runtime/classifier-patterns) (`secrets0`) labels a value matching a regular expression,
-  such as an AWS access key, a GitHub token or a private key header.
+  such as an AWS access key, a GitHub token or a private key header. It can also locate each match as a span
+  within the value, keeping the longest of any overlapping matches.
 - [`presidio`](../../runtime/classifier-presidio) (`presidio0`) labels personal data, such as an email
   address or a person's name, as reported by a [Presidio](https://microsoft.github.io/presidio/) analyzer
   running as the `presidio-analyzer` service.
