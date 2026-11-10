@@ -147,6 +147,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.streaming.reply.padded/client",
+        "${net}/openai.streaming.reply.padded/server"})
+    public void shouldEncodeOpenaiStreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.reply.window.small/client",
+        "${net}/openai.streaming.reply.window.small/server"})
+    public void shouldEncodeOpenaiStreamingWithSmallReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.padded/client",
         "${net}/openai.request.padded/server"})
     public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
