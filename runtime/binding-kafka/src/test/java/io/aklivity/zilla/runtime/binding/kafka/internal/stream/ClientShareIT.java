@@ -234,6 +234,16 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/change.assignment.acknowledge/client",
+        "${net}/change.assignment.acknowledge/server"})
+    public void shouldChangeAssignmentAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/await.assignment/client",
         "${net}/await.assignment/server"})
     public void shouldAwaitAssignment() throws Exception
