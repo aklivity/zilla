@@ -84,6 +84,42 @@ public class UpstreamIT
 
     @Test
     @Specification({
+        "${upstream}/subscribe.receive.message.qos2.duplicate.before.ack/client",
+        "${upstream}/subscribe.receive.message.qos2.duplicate.before.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/subscribe.receive.message.qos2.duplicate.after.ack/client",
+        "${upstream}/subscribe.receive.message.qos2.duplicate.after.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client",
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client",
+        "${upstream}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${upstream}/subscribe.shared.and.non.shared/client",
         "${upstream}/subscribe.shared.and.non.shared/server"})
     public void shouldSubscribeSharedAndNonShared() throws Exception
