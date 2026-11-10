@@ -103,8 +103,21 @@ decode slot size, and is complete once the headers arrive on the FIN frame.
   while the acquired records held (staged and awaiting delivery, plus delivered
   and awaiting acknowledgement) reach `cache.server.share.staging.max.bytes`;
   records of a response whose acquired flush is still to come are not counted,
-  so a response always completes and releases the records waiting on it
+  so a response always completes and releases the records waiting on it. The
+  bound is a high-water mark that gates acknowledgement, not a hard cap: the
+  records of one response are staged before they are counted, so staged bytes
+  can exceed the bound by up to one response. It needs no particular relation to
+  `client.share.fetch.max.bytes`, since the held records are always deliverable
+  and their acknowledgements reopen the window without waiting for the next
+  fetch
+- The client factory reports the lock timeout of an acquired flush as the broker
+  lock timeout minus the time elapsed since the ShareFetch that produced the
+  response was sent, floored at zero, so a response held back in the network
+  buffer does not overstate the lock that remains
 - Lock expiry is tracked from the arrival of the acquired flush plus its lock
   timeout; a record is not delivered when less than
-  `cache.server.share.lock.margin.percent` of the lock timeout remains and is
-  released instead, and an expired record is dropped without an acknowledgement
+  `cache.server.share.lock.margin.percent` of the lock timeout remains, and an
+  expired record, delivered or not, is released to the member stream. The
+  broker answers a release for a lapsed or reacquired record with an invalid
+  record state error that does not affect the member, and the client factory
+  has already cleared the offset from its in-flight set
