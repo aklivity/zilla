@@ -42,21 +42,5 @@ connected
 
 read zilla:data.empty
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .kind("STATE")
-                                .build()
-                             .build()}
-
-write ${mqtt:session()
-            .sharedSubscription("consumer1", "sensor/one", 1, "AT_MOST_ONCE")
-            .build()}
-write flush
-
-read ${mqtt:session()
-           .sharedSubscription("consumer1", "sensor/one", 1, "AT_MOST_ONCE")
-           .build()}
-read notify RECEIVED_SESSION_STATE
-
-write abort
+write close
+read closed

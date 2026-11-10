@@ -665,7 +665,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.shared.and.exact.non.successful/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldSubscribeSharedAndExactNonSuccessful() throws Exception
     {
         k3po.finish();

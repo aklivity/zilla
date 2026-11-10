@@ -41,8 +41,14 @@ write [0x82 0x23]                  # SUBSCRIBE
       [0x00 0x1b] "$share/consumer1/sensor/one" # topic filter
       [0x00]                       # options = at-most-once, send retained
 
-read  [0xe0 0x02]                  # DISCONNECT
-      [0x83]                       # reason = implementation specific error
+read  [0x90 0x04]                  # SUBACK
+      [0x00 0x01]                  # packet id = 1
+      [0x00]                       # properties = none
+      [0x80]                       # reason code
+
+write [0xe0 0x02]                  # DISCONNECT
+      [0x00]                       # normal disconnect
       [0x00]                       # properties = none
 
+write close
 read closed

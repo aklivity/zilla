@@ -120,4 +120,10 @@ public final class MqttReasonCodes
     {
         // Utility
     }
+
+    public static boolean isError(
+        int reasonCode)
+    {
+        return (reasonCode & 0xff) >= (UNSPECIFIED_ERROR & 0xff);
+    }
 }

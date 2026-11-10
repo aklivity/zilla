@@ -36,47 +36,47 @@ public class MqttSessionStateCodecTest
     private final MqttSessionStateCodec codec = new MqttSessionStateCodec(1024);
 
     @Test
-    public void shouldEncodeVersion1WithoutSharedSubscriptions()
+    public void shouldEncodeVersion2WithoutSharedSubscriptions()
     {
         final Flyweight state = codec.begin()
             .subscription(1, 1, 1, 0, "sensor/one", null)
             .subscription(2, 0, 0, 0, "sensor/two", null)
             .build();
 
-        assertEquals(1, state.buffer().getByte(state.offset() + VERSION_OFFSET));
+        assertEquals(2, state.buffer().getByte(state.offset() + VERSION_OFFSET));
     }
 
     @Test
-    public void shouldEncodeVersion1WithoutSubscriptions()
+    public void shouldEncodeVersion2WithoutSubscriptions()
     {
         final Flyweight state = codec.begin().build();
 
-        assertEquals(1, state.buffer().getByte(state.offset() + VERSION_OFFSET));
+        assertEquals(2, state.buffer().getByte(state.offset() + VERSION_OFFSET));
     }
 
     @Test
-    public void shouldEncodeVersion2WithSharedSubscription()
+    public void shouldEncodeVersion3WithSharedSubscription()
     {
         final Flyweight state = codec.begin()
             .subscription(1, 1, 1, 0, "sensor/one", null)
             .subscription(2, 2, 0, 0, "sensor/two", "consumers")
             .build();
 
-        assertEquals(2, state.buffer().getByte(state.offset() + VERSION_OFFSET));
+        assertEquals(3, state.buffer().getByte(state.offset() + VERSION_OFFSET));
     }
 
     @Test
-    public void shouldEncodeVersion1AfterBeginDiscardsSharedSubscription()
+    public void shouldEncodeVersion2AfterBeginDiscardsSharedSubscription()
     {
         codec.begin().subscription(2, 2, 0, 0, "sensor/two", "consumers");
 
         final Flyweight state = codec.begin().subscription(1, 1, 1, 0, "sensor/one", null).build();
 
-        assertEquals(1, state.buffer().getByte(state.offset() + VERSION_OFFSET));
+        assertEquals(2, state.buffer().getByte(state.offset() + VERSION_OFFSET));
     }
 
     @Test
-    public void shouldDecodeVersion1()
+    public void shouldDecodeVersion2()
     {
         final Flyweight state = codec.begin()
             .subscription(1, 1, 1, 1, "sensor/one", null)
@@ -92,7 +92,7 @@ public class MqttSessionStateCodecTest
     }
 
     @Test
-    public void shouldDecodeVersion2()
+    public void shouldDecodeVersion3()
     {
         final Flyweight state = codec.begin()
             .subscription(1, 1, 1, 0, "sensor/one", null)
@@ -106,6 +106,27 @@ public class MqttSessionStateCodecTest
 
         assertTrue(valid);
         assertEquals(List.of("1:1:1:0:sensor/one:null", "2:2:0:2:sensor/two:consumers"), decoded);
+    }
+
+    @Test
+    public void shouldDecodeVersion1WithoutGeneratedSubscriptionIds()
+    {
+        final Flyweight state = codec.begin()
+            .subscription(0x71, 1, 1, 0, "sensor/one", null)
+            .subscription(0x21, 2, 0, 0, "sensor/two", null)
+            .build();
+
+        final byte[] version1 = new byte[state.sizeof()];
+        state.buffer().getBytes(state.offset(), version1);
+        version1[VERSION_OFFSET] = 1;
+
+        final List<String> decoded = new ArrayList<>();
+        final boolean valid = codec.decode(new UnsafeBufferEx(version1), 0, version1.length,
+            (id, qos, flags, reasonCode, pattern, shareName) ->
+                decoded.add(String.format("%d:%d:%d:%d:%s:%s", id, qos, flags, reasonCode, pattern, shareName)));
+
+        assertTrue(valid);
+        assertEquals(List.of("0:1:1:0:sensor/one:null", "33:2:0:0:sensor/two:null"), decoded);
     }
 
     @Test

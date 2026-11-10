@@ -57,7 +57,7 @@ read ${mqtt:session()
                .build()}
 
 write ${mqtt:session()
-               .subscriptionWithReasonCode("sensor/one", 1, 2, "EXACTLY_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 1, "EXACTLY_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -120,7 +120,6 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
                                      .packetId(1)
-                                     .state("INCOMPLETE")
                                      .reasonCode(131)
                                      .build()
                                  .build()}
