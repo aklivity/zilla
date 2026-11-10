@@ -525,6 +525,42 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/client",
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/client",
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.shared.receive.message.qos1/client",
         "${app}/subscribe.shared.receive.message.qos1/server"})
     public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
