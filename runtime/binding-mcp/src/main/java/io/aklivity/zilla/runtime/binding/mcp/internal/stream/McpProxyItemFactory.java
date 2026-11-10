@@ -2271,7 +2271,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             state = StreamState.closeInitial(state);
             if (delegate != null && settled)
             {
-                doDelegateEnd(traceId);
+                doDelegateEnd(traceId, state);
             }
         }
 
@@ -2405,7 +2405,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 if (status == JsonPipeline.Status.SUSPENDED)
                 {
                     final int before = encodeSlotOffset;
-                    driveDelegateData(traceId);
+                    driveDelegateData(traceId, state);
                     blocked = encodeSlotOffset == before;
                 }
             }
@@ -2418,7 +2418,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 // give whatever just landed in encodeSlot a chance to drain before deciding whether the
                 // caller's ceiling can safely widen -- a settled delegate with real window open drains
                 // this immediately (a no-op otherwise: settled, no delegate yet, or still no window)
-                driveDelegateData(traceId);
+                driveDelegateData(traceId, state);
                 // only ever widen the caller's ceiling once BOTH slots are fully drained -- decodeSlot
                 // empty (bound via minInitialNoAck, mirroring HttpServerFactory#flushNetWindow's
                 // decodable = decodeMax - decodeSlotOffset) is not enough on its own: bytes already
@@ -2678,7 +2678,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 timeout,
                 prefix);
 
-            driveDelegateBegin(traceId);
+            driveDelegateBegin(traceId, state);
 
             if (!transform.argsSeen)
             {
@@ -2703,7 +2703,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         // fresh lifecycle round trip completes -- either way, driveDelegateData never runs before the
         // delegate's McpClient actually has a sender to forward through
         private void driveDelegateBegin(
-            long traceId)
+            long traceId,
+            int state)
         {
             // the delegate's own initial-side maximum must never advertise less than this outer
             // execute_tool request already promised the real caller on their one shared reply channel --
@@ -2720,6 +2721,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 .streamId(initialId)
                 .sequence(0L)
                 .acknowledge(0L)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -2777,7 +2779,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             encodeSlotOffset += EXECUTE_BODY_CLOSE.length;
             bodyLength = bodyBytesSent + encodeSlotOffset;
 
-            driveDelegateData(traceId);
+            driveDelegateData(traceId, state);
         }
 
         // drives the delegate's own initial-side DATA, chunked from whatever is currently resident in the
@@ -2788,7 +2790,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         // which McpServer's own onClientWindow-derived grant already keeps from ever overrunning this same
         // window), so this must track and respect that window itself
         private void driveDelegateData(
-            long traceId)
+            long traceId,
+            int state)
         {
             // the delegate's own McpClient only acquires a sender (and any real window) once its
             // upstream lifecycle round trip actually completes; driveDecode's own SUSPENDED handling
@@ -2836,6 +2839,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     .streamId(initialId)
                     .sequence((long) bodyBytesSent)
                     .acknowledge(0L)
+                    .state(state)
                     .maximum(0)
                     .traceId(traceId)
                     .authorization(authorization)
@@ -2868,7 +2872,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
                 if (StreamState.initialClosed(state))
                 {
-                    doDelegateEnd(traceId);
+                    doDelegateEnd(traceId, state);
                 }
             }
             else if (encodeSlotOffset > 0)
@@ -2885,7 +2889,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void onDelegateProgress(
             long traceId)
         {
-            driveDelegateData(traceId);
+            driveDelegateData(traceId, state);
             if (!settled && encodeSlotOffset == 0)
             {
                 if (decodeSlot != NO_SLOT)
@@ -2910,7 +2914,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         // acquire a credential. Ending it as soon as the body was written made this re-dispatch the
         // one caller that does not do that, and any target needing either would be aborted mid-flight
         private void doDelegateEnd(
-            long traceId)
+            long traceId,
+            int state)
         {
             // driveDelegateData's own reserved accounting already brought the delegate's initialSeq up to
             // exactly this outer request's own final initialSeq, so this END's sequence just continues
@@ -2924,6 +2929,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(0L)
+                .state(state)
                 .maximum(0)
                 .traceId(traceId)
                 .authorization(authorization)

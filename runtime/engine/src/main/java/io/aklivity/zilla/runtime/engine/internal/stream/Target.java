@@ -15,8 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.replyId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
@@ -29,8 +31,10 @@ import org.agrona.collections.LongHashSet;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
@@ -59,6 +63,7 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
+    private final BudgetHandleRegistry budgetHandles;
     private final MessageConsumer writeHandler;
 
     private MessagePredicate streamsBuffer;
@@ -71,7 +76,8 @@ public final class Target implements AutoCloseable
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
-        Int2ObjectHashMap<MessageConsumer>[] throttles)
+        Int2ObjectHashMap<MessageConsumer>[] throttles,
+        BudgetHandleRegistry budgetHandles)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -92,6 +98,7 @@ public final class Target implements AutoCloseable
         this.streams = streams;
         this.streamSets = streamSets;
         this.throttles = throttles;
+        this.budgetHandles = budgetHandles;
 
         this.writeHandler = this::handleWrite;
     }
@@ -208,10 +215,12 @@ public final class Target implements AutoCloseable
             case EndFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case AbortFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -236,6 +245,7 @@ public final class Target implements AutoCloseable
                 {
                     streamIdSet.remove(streamId);
                 }
+                releaseUnopenedReply(streamId);
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -251,6 +261,7 @@ public final class Target implements AutoCloseable
                 {
                     redirectStreamIdSet.remove(streamId);
                 }
+                releaseUnopenedReply(streamId);
                 break;
             default:
                 handled = true;
@@ -259,6 +270,17 @@ public final class Target implements AutoCloseable
         }
 
         return handled;
+    }
+
+    private void releaseUnopenedReply(
+        long initialId)
+    {
+        if (!StreamState.replyOpening(frameRO.state()))
+        {
+            final long reply = replyId(initialId);
+            throttles[throttleIndex(reply)].remove(instanceId(reply));
+            budgetHandles.release(reply);
+        }
     }
 
     private boolean handleWriteReply(
@@ -285,10 +307,12 @@ public final class Target implements AutoCloseable
             case EndFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case AbortFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                budgetHandles.release(streamId);
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -309,11 +333,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet streamIdSet = streamSets.get(routedId);
-                if (streamIdSet != null)
-                {
-                    streamIdSet.remove(streamId);
-                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -325,11 +344,6 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
-                LongHashSet redirectStreamIdSet = streamSets.get(routedId);
-                if (redirectStreamIdSet != null)
-                {
-                    redirectStreamIdSet.remove(streamId);
-                }
                 break;
             default:
                 handled = true;
@@ -352,6 +366,7 @@ public final class Target implements AutoCloseable
                 .streamId(streamId)
                 .sequence(Long.MAX_VALUE)
                 .acknowledge(0L)
+                .state(abortedState(streamId))
                 .maximum(0)
                 .build();
 

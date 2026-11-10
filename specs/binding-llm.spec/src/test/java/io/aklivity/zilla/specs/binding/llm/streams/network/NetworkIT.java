@@ -2442,6 +2442,51 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.transform.system.instruction.control.stream/client",
+        "${net}/openai.transform.system.instruction.control.stream/server"})
+    public void shouldOpenaiTransformSystemInstructionControlStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.system.instruction.control.stream.sorted/client",
+        "${net}/openai.transform.system.instruction.control.stream.sorted/server"})
+    public void shouldOpenaiTransformSystemInstructionControlStreamSorted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.system.instruction.control.stream.tools/client",
+        "${net}/openai.transform.system.instruction.control.stream.tools/server"})
+    public void shouldOpenaiTransformSystemInstructionControlStreamTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.system.instruction.control.stream/client",
+        "${net}/anthropic.transform.system.instruction.control.stream/server"})
+    public void shouldAnthropicTransformSystemInstructionControlStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.system.instruction.control.stream.sorted/client",
+        "${net}/anthropic.transform.system.instruction.control.stream.sorted/server"})
+    public void shouldAnthropicTransformSystemInstructionControlStreamSorted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.system.instruction.last.100k/client",
         "${net}/openai.transform.system.instruction.last.100k/server"})
     public void shouldOpenaiTransformSystemInstructionLast100k() throws Exception

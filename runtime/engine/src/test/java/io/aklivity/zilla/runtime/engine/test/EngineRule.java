@@ -33,6 +33,7 @@ import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystem;
@@ -52,6 +53,8 @@ import java.util.regex.Pattern;
 
 import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
+import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -63,6 +66,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
+import io.aklivity.zilla.runtime.engine.internal.registry.EngineWorker;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -208,6 +212,89 @@ public final class EngineRule implements TestRule
         ensureDriveStarted();
 
         return requireNonNull(engine.binding(kind));
+    }
+
+    public int streamSetSize()
+    {
+        int size = 0;
+
+        try
+        {
+            final Field workersField = Engine.class.getDeclaredField("workers");
+            workersField.setAccessible(true);
+            final List<?> workers = (List<?>) workersField.get(engine);
+
+            final Field streamSetsField = EngineWorker.class.getDeclaredField("streamSets");
+            streamSetsField.setAccessible(true);
+
+            for (Object worker : workers)
+            {
+                final Long2ObjectHashMap<?> streamSets = (Long2ObjectHashMap<?>) streamSetsField.get(worker);
+                for (Object streamSet : streamSets.values())
+                {
+                    size += ((LongHashSet) streamSet).size();
+                }
+            }
+        }
+        catch (ReflectiveOperationException ex)
+        {
+            throw new IllegalStateException(ex);
+        }
+
+        return size;
+    }
+
+    private int tableSize(
+        String name)
+    {
+        int size = 0;
+
+        try
+        {
+            final Field workersField = Engine.class.getDeclaredField("workers");
+            workersField.setAccessible(true);
+            final List<?> workers = (List<?>) workersField.get(engine);
+
+            final Field tableField = EngineWorker.class.getDeclaredField(name);
+            tableField.setAccessible(true);
+
+            for (Object worker : workers)
+            {
+                final Object table = tableField.get(worker);
+                if (table instanceof Map<?, ?> map)
+                {
+                    size += map.size();
+                }
+                else
+                {
+                    for (Object map : (Object[]) table)
+                    {
+                        size += ((Map<?, ?>) map).size();
+                    }
+                }
+            }
+        }
+        catch (ReflectiveOperationException ex)
+        {
+            throw new IllegalStateException(ex);
+        }
+
+        return size;
+    }
+
+    public int throttleSize()
+    {
+        return tableSize("throttles");
+    }
+
+    public int streamSize()
+    {
+        return tableSize("streams");
+    }
+
+    public int correlationSize()
+    {
+        return tableSize("correlations");
     }
 
     public EngineExtContext context()
@@ -382,20 +469,7 @@ public final class EngineRule implements TestRule
                     }
                 };
 
-                FileSystem fs = null;
-
-                final URI configURI = config.configURI();
-
-                switch (configURI.getScheme())
-                {
-                case "jar":
-                    String jarLocation = Path.of(
-                            configURI.toString().replace("jar:file:", "").split("!")[0]
-                            ).toUri().toString();
-                    URI jarURI = new URI("jar", jarLocation, null);
-                    fs = FileSystems.newFileSystem(jarURI, Map.of());
-                    break;
-                }
+                final FileSystem fs = openConfigFileSystem(config.configURI());
 
                 engine = builder.config(config)
                                 .errorHandler(errorHandler)
@@ -489,6 +563,25 @@ public final class EngineRule implements TestRule
                 }
             }
         };
+    }
+
+    static FileSystem openConfigFileSystem(
+        URI configURI) throws Exception
+    {
+        FileSystem fs = null;
+
+        switch (configURI.getScheme())
+        {
+        case "jar":
+            String jarLocation = Path.of(
+                    configURI.toString().replace("jar:file:", "").split("!")[0]
+                    ).toUri().toString();
+            URI jarURI = new URI("jar", jarLocation, null);
+            fs = FileSystems.newFileSystem(jarURI, Map.of());
+            break;
+        }
+
+        return fs;
     }
 
     private void cleanup() throws IOException

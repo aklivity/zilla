@@ -150,4 +150,36 @@ public class SchemaTest
     {
         schema.validate("server.event.filter.exclude.unknown.yaml");
     }
+
+    @Test
+    public void shouldValidateServerStoreIncrementAssertions()
+    {
+        JsonObject config = schema.validate("server.store.increment.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreGetKeysAssertions()
+    {
+        JsonObject config = schema.validate("server.store.get.keys.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreDeleteKeysAssertions()
+    {
+        JsonObject config = schema.validate("server.store.delete.keys.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreReplaceAssertions()
+    {
+        JsonObject config = schema.validate("server.store.replace.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

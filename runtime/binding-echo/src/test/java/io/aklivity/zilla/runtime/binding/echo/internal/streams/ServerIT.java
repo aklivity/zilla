@@ -80,4 +80,22 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${streams}/client.sent.write.abort/client"})
+    public void shouldClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${streams}/client.sent.read.abort/client"})
+    public void shouldClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

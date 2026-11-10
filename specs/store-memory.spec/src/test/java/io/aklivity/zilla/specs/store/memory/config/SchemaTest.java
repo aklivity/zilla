@@ -40,4 +40,36 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateStoreIncrementAssertions()
+    {
+        JsonObject config = schema.validate("store.increment.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreGetKeysAssertions()
+    {
+        JsonObject config = schema.validate("store.get.keys.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreDeleteKeysAssertions()
+    {
+        JsonObject config = schema.validate("store.delete.keys.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreReplaceAssertions()
+    {
+        JsonObject config = schema.validate("store.replace.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

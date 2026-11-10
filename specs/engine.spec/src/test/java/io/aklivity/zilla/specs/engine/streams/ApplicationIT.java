@@ -363,4 +363,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/exchange.closed.authorized/client",
+        "${app}/exchange.closed.authorized/server" })
+    public void shouldExchangeClosedAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.rejected.authorized/client",
+        "${app}/exchange.rejected.authorized/server" })
+    public void shouldExchangeRejectedAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }

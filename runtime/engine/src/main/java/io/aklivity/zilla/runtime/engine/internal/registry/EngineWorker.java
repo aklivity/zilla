@@ -21,9 +21,11 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.abortedState;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.replyId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -1547,6 +1549,7 @@ public class EngineWorker implements EngineContext, Agent
                         .streamId(0L)
                         .sequence(0L)
                         .acknowledge(0L)
+                        .state(0)
                         .maximum(0)
                         .traceId(traceId)
                         .budgetId(budgetId)
@@ -1577,6 +1580,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(0L)
             .sequence(0L)
             .acknowledge(0L)
+            .state(0)
             .maximum(reserved)
             .traceId(traceId)
             .budgetId(budgetId)
@@ -1659,11 +1663,13 @@ public class EngineWorker implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    removeStreamId(routedId, streamId);
                     break;
                 case AbortFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    removeStreamId(routedId, streamId);
                     break;
                 case FlushFW.TYPE_ID:
                     handler.accept(msgTypeId, buffer, index, length);
@@ -1693,6 +1699,7 @@ public class EngineWorker implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    correlations.remove(replyId(streamId));
                     break;
                 case SignalFW.TYPE_ID:
                     final SignalFW signal = signalRO.wrap(buffer, index, index + length);
@@ -1710,6 +1717,7 @@ public class EngineWorker implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     budgetHandles.release(streamId);
+                    correlations.remove(replyId(streamId));
                     break;
                 default:
                     break;
@@ -1729,6 +1737,17 @@ public class EngineWorker implements EngineContext, Agent
                     break;
                 }
             }
+        }
+    }
+
+    private void removeStreamId(
+        long routedId,
+        long streamId)
+    {
+        final LongHashSet streamIdSet = streamSets.get(routedId);
+        if (streamIdSet != null)
+        {
+            streamIdSet.remove(streamId);
         }
     }
 
@@ -2115,6 +2134,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(abortedState(streamId))
                 .maximum(maximum)
                 .build();
 
@@ -2134,6 +2154,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(abortedState(streamId))
             .maximum(0)
             .build();
 
@@ -2152,6 +2173,7 @@ public class EngineWorker implements EngineContext, Agent
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
+            .state(abortedState(streamId))
             .maximum(0)
             .build();
 
@@ -2303,7 +2325,7 @@ public class EngineWorker implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, budgetHandles);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(
@@ -2603,6 +2625,7 @@ public class EngineWorker implements EngineContext, Agent
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(0)
                 .maximum(0)
                 .timestamp(timestamp)
                 .traceId(traceId)
@@ -2637,6 +2660,7 @@ public class EngineWorker implements EngineContext, Agent
                                             .streamId(streamId)
                                             .sequence(sequence)
                                             .acknowledge(acknowledge)
+                                            .state(0)
                                             .maximum(0)
                                             .timestamp(timestamp)
                                             .traceId(traceId)

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.embedding.openai.internal;
 
 import java.net.http.HttpClient;
+import java.util.function.Supplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -27,14 +28,23 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 final class OpenaiEmbeddingContext implements EmbeddingContext
 {
     private final EngineContext context;
-    private final HttpClient client;
+    private final Supplier<HttpClient> supplyClient;
     private final Long2ObjectHashMap<OpenaiEmbeddingHandler> handlersById;
+
+    private HttpClient client;
 
     OpenaiEmbeddingContext(
         EngineContext context)
     {
+        this(context, HttpClient::newHttpClient);
+    }
+
+    OpenaiEmbeddingContext(
+        EngineContext context,
+        Supplier<HttpClient> supplyClient)
+    {
         this.context = context;
-        this.client = HttpClient.newHttpClient();
+        this.supplyClient = supplyClient;
         this.handlersById = new Long2ObjectHashMap<>();
     }
 
@@ -43,6 +53,10 @@ final class OpenaiEmbeddingContext implements EmbeddingContext
         EmbeddingConfig embedding)
     {
         OpenaiOptionsConfig options = (OpenaiOptionsConfig) embedding.options;
+        if (client == null)
+        {
+            client = supplyClient.get();
+        }
         OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options);
         handlersById.put(embedding.id, handler);
         return handler;
@@ -56,6 +70,12 @@ final class OpenaiEmbeddingContext implements EmbeddingContext
         if (handler != null)
         {
             handler.close();
+        }
+
+        if (handlersById.isEmpty() && client != null)
+        {
+            client.shutdownNow();
+            client = null;
         }
     }
 }

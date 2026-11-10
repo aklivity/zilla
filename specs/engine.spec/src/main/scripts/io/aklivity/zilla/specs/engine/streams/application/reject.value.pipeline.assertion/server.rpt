@@ -20,3 +20,5 @@ accept "zilla://streams/app1"
 
 accepted
 connected
+
+write aborted

@@ -38,6 +38,7 @@ final class LlmMediaGuardPipeline implements LlmGuardPipeline
     private final LlmObjectScanner member;
     private final LlmMediaDecoder decoder;
     private final MutableDirectBufferEx verdictBuffer;
+    private final int verdictLimit;
     private final UnsafeBufferEx decodedRO;
     private final ModelPipelineResult result;
 
@@ -48,6 +49,7 @@ final class LlmMediaGuardPipeline implements LlmGuardPipeline
 
     LlmMediaGuardPipeline(
         ModelPipeline pipeline,
+        MutableDirectBufferEx verdictBuffer,
         String container,
         String member,
         boolean dataUri)
@@ -56,7 +58,8 @@ final class LlmMediaGuardPipeline implements LlmGuardPipeline
         this.container = LlmObjectScanner.member(container);
         this.member = LlmObjectScanner.string(member);
         this.decoder = new LlmMediaDecoder(dataUri);
-        this.verdictBuffer = new UnsafeBufferEx(new byte[VERDICT_CAPACITY]);
+        this.verdictBuffer = verdictBuffer;
+        this.verdictLimit = Math.min(VERDICT_CAPACITY, verdictBuffer.capacity());
         this.decodedRO = new UnsafeBufferEx();
         this.result = new ModelPipelineResult();
         begin();
@@ -310,7 +313,7 @@ final class LlmMediaGuardPipeline implements LlmGuardPipeline
             decodedRO.wrap(decoder.decoded(), 0, decoder.length());
 
             final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, flags(0), decodedRO,
-                decodedProgress, decoder.length(), verdictBuffer, 0, verdictBuffer.capacity());
+                decodedProgress, decoder.length(), verdictBuffer, 0, verdictLimit);
 
             started = true;
             decodedProgress += inner.consumed();
@@ -340,7 +343,7 @@ final class LlmMediaGuardPipeline implements LlmGuardPipeline
         while (status == ModelStatus.OVERFLOW && progressed)
         {
             final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, flags(Flags.FIN), EMPTY, 0, 0,
-                verdictBuffer, 0, verdictBuffer.capacity());
+                verdictBuffer, 0, verdictLimit);
 
             started = true;
             status = inner.status();

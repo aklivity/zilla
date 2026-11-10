@@ -1406,6 +1406,28 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
+        "${net}/anthropic.transform.system.instruction.control.stream/client",
+        "${app}/anthropic.transform.system.instruction.control.stream/server"})
+    public void shouldTransformSystemInstructionControlStreamFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.system.instruction.control.stream.sorted/client",
+        "${app}/anthropic.transform.system.instruction.control.stream.sorted/server"})
+    public void shouldTransformSystemInstructionControlStreamSortedFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
         "${net}/anthropic.transform.response.streaming.tool.call/client",
         "${app}/anthropic.transform.response.streaming.tool.call/server"})
     public void shouldTransformResponseStreamingToolCallFromAnthropic() throws Exception

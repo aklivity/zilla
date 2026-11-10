@@ -1,0 +1,50 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+---
+name: test
+stores:
+    store0:
+        type: test
+bindings:
+    net0:
+        type: test
+        kind: server
+        options:
+            store: store0
+            assertions:
+                store:
+                    store0:
+                        - op: put
+                          key: a
+                          value: "1"
+                        - op: put
+                          key: c
+                          value: "3"
+                        - op: get
+                          keys: [c, b, a]
+                          expect: ["3", null, "1"]
+                        - op: increment
+                          key: e
+                          delta: 5
+                          ttl: PT0.05S
+                          expect: 5
+                        - op: get
+                          keys: [e, a]
+                          delay: 150
+                          expect: [null, "1"]
+        routes:
+            - exit: app0

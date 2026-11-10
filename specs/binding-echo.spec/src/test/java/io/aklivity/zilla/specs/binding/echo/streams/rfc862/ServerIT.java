@@ -72,4 +72,22 @@ public class ServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${scripts}/client.sent.write.abort/client",
+        "${scripts}/client.sent.write.abort/server"})
+    public void shouldClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${scripts}/client.sent.read.abort/client",
+        "${scripts}/client.sent.read.abort/server"})
+    public void shouldClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

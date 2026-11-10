@@ -64,6 +64,8 @@ final class LlmEdgeFilter implements LlmSectionPipeline.Output
 
         if (to > from)
         {
+            final byte tail = buffer.getByte(to - 1);
+
             if (holding)
             {
                 delegate.put(withheldBuffer, 0, 1, false);
@@ -74,7 +76,7 @@ final class LlmEdgeFilter implements LlmSectionPipeline.Output
                 delegate.put(buffer, from, to - from - 1, false);
             }
 
-            withheld[0] = buffer.getByte(to - 1);
+            withheld[0] = tail;
             holding = true;
         }
 

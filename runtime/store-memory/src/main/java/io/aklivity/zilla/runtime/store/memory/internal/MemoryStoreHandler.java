@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -119,6 +121,69 @@ final class MemoryStoreHandler implements StoreHandler
     }
 
     @Override
+    public void increment(
+        String key,
+        long delta,
+        Duration ttl,
+        BiConsumer<String, Long> completion)
+    {
+        final long counter = addAndGet(key, delta, ttl);
+        defer(() -> completion.accept(key, counter));
+    }
+
+    @Override
+    public void get(
+        List<String> keys,
+        Consumer<List<String>> completion)
+    {
+        final String[] values = new String[keys.size()];
+        for (int index = 0; index < values.length; index++)
+        {
+            final MemoryEntry entry = entries.get(keys.get(index));
+            values[index] = entry != null && !entry.expired() ? entry.value() : null;
+        }
+        defer(() -> completion.accept(Arrays.asList(values)));
+    }
+
+    @Override
+    public void delete(
+        List<String> keys,
+        LongConsumer completion)
+    {
+        long removed = 0L;
+        for (String key : keys)
+        {
+            final MemoryEntry entry = entries.remove(key);
+            if (entry != null)
+            {
+                notifyWatchers(key, null);
+                if (!entry.expired())
+                {
+                    removed++;
+                }
+            }
+        }
+        final long count = removed;
+        defer(() -> completion.accept(count));
+    }
+
+    @Override
+    public void replace(
+        String key,
+        String expected,
+        String value,
+        Duration ttl,
+        Consumer<Boolean> completion)
+    {
+        final boolean replaced = replaceIfEqual(key, expected, value, ttl);
+        if (replaced)
+        {
+            notifyWatchers(key, value);
+        }
+        defer(() -> completion.accept(replaced));
+    }
+
+    @Override
     public void lock(
         String key,
         Duration ttl,
@@ -208,6 +273,45 @@ final class MemoryStoreHandler implements StoreHandler
                 current.remove(watcher);
             }
         };
+    }
+
+    private long addAndGet(
+        String key,
+        long delta,
+        Duration ttl)
+    {
+        long counter;
+        boolean updated;
+        do
+        {
+            final MemoryEntry existing = entries.get(key);
+            final boolean live = existing != null && !existing.expired();
+            counter = (live ? Long.parseLong(existing.value()) : 0L) + delta;
+            final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl));
+            updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
+        }
+        while (!updated);
+        notifyWatchers(key, Long.toString(counter));
+        return counter;
+    }
+
+    private boolean replaceIfEqual(
+        String key,
+        String expected,
+        String value,
+        Duration ttl)
+    {
+        boolean replaced;
+        boolean contended;
+        do
+        {
+            final MemoryEntry existing = entries.get(key);
+            final boolean matches = existing != null && !existing.expired() && existing.value().equals(expected);
+            replaced = matches && entries.replace(key, existing, new MemoryEntry(value, expiresAt(ttl)));
+            contended = matches && !replaced;
+        }
+        while (contended);
+        return replaced;
     }
 
     private void notifyWatchers(

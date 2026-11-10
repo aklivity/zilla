@@ -137,6 +137,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String TOOL_CALL_ID_PREFIX = "call_";
     private static final int TOOL_PART_MAX = 24576;
     private static final int BLOCK_BUFFER_MAX = 4096;
+    private static final Map<String, StringEventPositions> PARSER_CONFIG =
+        Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -237,6 +239,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
+    private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
+    private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
     private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
@@ -246,6 +250,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
+    private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -313,6 +318,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
+        this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2439,8 +2445,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private final Runnable deauthorize;
         private final JsonParserEx parser;
         private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
-        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
-        private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
 
         private LlmGeminiStream stream;
         private LlmGeminiServerDecoder decoder;
@@ -2561,7 +2565,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             this.streaming = OPERATION_STREAM.equals(operation);
             this.sse = query != null && Arrays.asList(query.split("&")).contains(QUERY_ALT_SSE);
             this.deauthorize = deauthorize;
-            this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.parser = JsonEx.createParser(PARSER_CONFIG);
             this.generator = JsonEx.createGenerator();
             this.blockAttributes = new LlmSectionAttributes();
             this.sentAttributes = new LlmSectionAttributes();
@@ -2978,7 +2982,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (toolConfigPipeline == null)
             {
                 toolConfigTransform = new LlmGeminiControlToCanonical();
-                toolConfigPipeline = new LlmSectionPipeline(toolConfigTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                toolConfigPipeline = new LlmSectionPipeline(toolConfigTransform, transformBuffer);
             }
 
             return toolConfigPipeline;
@@ -3349,16 +3353,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_REASONING:
                 if (textPipeline == null)
                 {
-                    textPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    textPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(), transformBuffer);
                 }
                 pipeline = textPipeline;
                 break;
             case ASSISTANT_TEXT:
                 if (assistantTextPipeline == null)
                 {
-                    assistantTextPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(true),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    assistantTextPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(true), transformBuffer);
                 }
                 pipeline = assistantTextPipeline;
                 break;
@@ -3369,16 +3371,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case TOOL_CALL:
                 if (toolCallPipeline == null)
                 {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallToCanonical(), transformBuffer);
                 }
                 pipeline = toolCallPipeline;
                 break;
             case TOOL_DEFINITION:
                 if (toolDefinitionPipeline == null)
                 {
-                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionToCanonical(), transformBuffer);
                 }
                 pipeline = toolDefinitionPipeline;
                 break;
@@ -3388,8 +3388,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case SERVER_TOOL_CALL:
                 if (serverToolCallPipeline == null)
                 {
-                    serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(), transformBuffer);
                 }
                 pipeline = serverToolCallPipeline;
                 break;
@@ -3487,7 +3486,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 default -> LlmGeminiMediaToCanonical.document();
                 };
 
-                mediaPipelines[index] = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                mediaPipelines[index] = new LlmSectionPipeline(transform, transformBuffer);
             }
 
             return mediaPipelines[index];
@@ -3498,7 +3497,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (toolResultTransform == null)
             {
                 toolResultTransform = new LlmGeminiToolResultToCanonical();
-                toolResultPipeline = new LlmSectionPipeline(toolResultTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                toolResultPipeline = new LlmSectionPipeline(toolResultTransform, transformBuffer);
             }
 
             return toolResultTransform;
@@ -4188,7 +4187,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private final LlmGeminiServer server;
         private final JsonGeneratorEx generator;
-        private final LlmTextPipeline sectionText;
+        private LlmTextPipeline sectionText;
         private final LlmSectionPipeline.Output encodeControl = (buffer, offset, length, last) ->
             onEncodeControl(buffer, offset, length);
 
@@ -4254,7 +4253,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
-            this.sectionText = new LlmTextPipeline(this::onSectionText);
         }
 
         private long initialAvailable()
@@ -4972,8 +4970,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (kind == KIND_TEXT || kind == KIND_REASONING)
             {
-                sectionText.begin();
-                textPipeline = sectionText;
+                textPipeline = sectionText();
+                textPipeline.begin();
                 signaturePipeline().begin(replyAttributes);
 
                 if (!server.streaming)
@@ -5016,12 +5014,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
         }
 
+        private LlmTextPipeline sectionText()
+        {
+            if (sectionText == null)
+            {
+                sectionText = new LlmTextPipeline(this::onSectionText);
+            }
+
+            return sectionText;
+        }
+
         private LlmSectionPipeline signaturePipeline()
         {
             if (signaturePipeline == null)
             {
                 signatureTransform = new LlmGeminiSignatureFromCanonical();
-                signaturePipeline = new LlmSectionPipeline(signatureTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                signaturePipeline = new LlmSectionPipeline(signatureTransform, transformBuffer);
             }
 
             return signaturePipeline;
@@ -5048,7 +5056,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (toolCallPipeline == null)
             {
                 toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallFromCanonical(NAME.equals(responseDialect)),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    transformBuffer);
             }
 
             return toolCallPipeline;
@@ -5060,7 +5068,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 serverToolCallPipeline = new LlmSectionPipeline(
                     new LlmGeminiServerToolCallFromCanonical(NAME.equals(responseDialect)),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    transformBuffer);
             }
 
             return serverToolCallPipeline;
@@ -5070,8 +5078,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (serverToolResultPipeline == null)
             {
-                serverToolResultPipeline = new LlmSectionPipeline(new LlmGeminiServerToolFromCanonical(),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                serverToolResultPipeline = new LlmSectionPipeline(new LlmGeminiServerToolFromCanonical(), transformBuffer);
             }
 
             return serverToolResultPipeline;
@@ -5409,7 +5416,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 controlTransform = new LlmGeminiControlFromCanonical(NAME.equals(responseDialect));
-                controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;

@@ -18,7 +18,11 @@ package io.aklivity.zilla.runtime.engine.internal;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_LOCAL_CONFIG_URI_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.util.function.IntSupplier;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -479,6 +483,100 @@ public class EngineIT
         "${net}/server.sent.write.abort.before.begin/client",
         "${app}/server.sent.write.abort.before.begin.authorized/server"})
     public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/exchange.closed/client",
+        "${app}/exchange.closed.authorized/server"})
+    public void shouldReleaseStreamIdWhenStreamEnds() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.write.abort/client",
+        "${app}/client.sent.write.abort.authorized/server"})
+    public void shouldReleaseStreamIdWhenStreamAborts() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/exchange.rejected/client",
+        "${app}/exchange.rejected.authorized/server"})
+    public void shouldReleaseStreamsWhenRejected() throws Exception
+    {
+        k3po.finish();
+
+        assertThat(awaitEmpty(engine::streamSetSize), equalTo(0));
+        assertThat(awaitEmpty(engine::streamSize), equalTo(0));
+        assertThat(awaitEmpty(engine::throttleSize), equalTo(0));
+        assertThat(awaitEmpty(engine::correlationSize), equalTo(0));
+    }
+
+    private int awaitEmpty(
+        IntSupplier size) throws InterruptedException
+    {
+        final long deadline = System.nanoTime() + SECONDS.toNanos(5);
+
+        int current = size.getAsInt();
+        while (current != 0 && System.nanoTime() < deadline)
+        {
+            Thread.sleep(10);
+            current = size.getAsInt();
+        }
+
+        return current;
+    }
+
+    @Test
+    @Configuration("server.store.increment.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldIncrementCounterInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.get.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldGetMultipleKeysFromTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.delete.keys.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldDeleteMultipleKeysFromTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.replace.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldReplaceValueInTestStore() throws Exception
     {
         k3po.finish();
     }

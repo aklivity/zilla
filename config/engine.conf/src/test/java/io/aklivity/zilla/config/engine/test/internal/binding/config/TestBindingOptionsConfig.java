@@ -204,26 +204,44 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     {
         public final String op;
         public final String key;
+        public final List<String> keys;
         public final String value;
+        public final String expected;
+        public final long delta;
         public final Duration ttl;
         public final String expect;
+        public final Long expectNumber;
+        public final Boolean expectBoolean;
+        public final List<String> expectValues;
         public final boolean hasExpect;
         public final long delay;
 
         public StoreAssertion(
             String op,
             String key,
+            List<String> keys,
             String value,
+            String expected,
+            long delta,
             Duration ttl,
             String expect,
+            Long expectNumber,
+            Boolean expectBoolean,
+            List<String> expectValues,
             boolean hasExpect,
             long delay)
         {
             this.op = op;
             this.key = key;
+            this.keys = keys;
             this.value = value;
+            this.expected = expected;
+            this.delta = delta;
             this.ttl = ttl;
             this.expect = expect;
+            this.expectNumber = expectNumber;
+            this.expectBoolean = expectBoolean;
+            this.expectValues = expectValues;
             this.hasExpect = hasExpect;
             this.delay = delay;
         }

@@ -28,13 +28,13 @@ import io.aklivity.zilla.runtime.engine.store.StoreContext;
 public final class TestStoreContext implements StoreContext
 {
     private final Consumer<Runnable> dispatcher;
-    private final LongFunction<ConcurrentMap<String, String>> supplyEntries;
+    private final LongFunction<ConcurrentMap<String, TestEntry>> supplyEntries;
     private final LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners;
     private final LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks;
 
     public TestStoreContext(
         EngineContext context,
-        LongFunction<ConcurrentMap<String, String>> supplyEntries,
+        LongFunction<ConcurrentMap<String, TestEntry>> supplyEntries,
         LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners,
         LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks)
     {
@@ -48,10 +48,10 @@ public final class TestStoreContext implements StoreContext
     public TestStoreHandler attach(
         StoreConfig store)
     {
-        final ConcurrentMap<String, String> entries = supplyEntries.apply(store.id);
+        final ConcurrentMap<String, TestEntry> entries = supplyEntries.apply(store.id);
         if (store.options instanceof TestStoreOptionsConfig options && options.entries != null)
         {
-            options.entries.forEach(entries::putIfAbsent);
+            options.entries.forEach((key, value) -> entries.putIfAbsent(key, new TestEntry(value, Long.MAX_VALUE)));
         }
         final ConcurrentMap<String, List<TestWatcher>> listeners = supplyListeners.apply(store.id);
         final ConcurrentMap<String, TestLockEntry> locks = supplyLocks.apply(store.id);

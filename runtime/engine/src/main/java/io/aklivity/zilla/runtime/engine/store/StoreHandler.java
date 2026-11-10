@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.engine.store;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /**
  * Provides key-value state operations for streams passing through a binding backed by a store.
@@ -95,6 +97,73 @@ public interface StoreHandler
     void delete(
         String key,
         Consumer<String> completion);
+
+    /**
+     * Atomically adds {@code delta} to the counter stored under the given key.
+     * <p>
+     * An absent or expired key is created at zero before the addition, with {@code ttl} applied
+     * on creation only; an existing counter keeps its remaining lifetime. The stored form is the
+     * decimal string of the counter, so {@link #get} observes the same value. The existing value
+     * must be a decimal integer, otherwise the call fails with {@link NumberFormatException}.
+     * </p>
+     *
+     * @param key        the key of the counter
+     * @param delta      the amount to add, which may be negative
+     * @param ttl        the time-to-live applied when the key is created, or {@code null} for no expiry
+     * @param completion a callback that receives {@code (key, value)} where {@code value} is the
+     *                   counter after the addition
+     */
+    void increment(
+        String key,
+        long delta,
+        Duration ttl,
+        BiConsumer<String, Long> completion);
+
+    /**
+     * Retrieves the values associated with the given keys.
+     *
+     * @param keys       the keys to look up
+     * @param completion a callback that receives the values in key order;
+     *                   an element is {@code null} if its key is not present
+     */
+    void get(
+        List<String> keys,
+        Consumer<List<String>> completion);
+
+    /**
+     * Removes the entries for the given keys.
+     * <p>
+     * Removal is best-effort and not atomic across keys.
+     * </p>
+     *
+     * @param keys       the keys to remove
+     * @param completion a callback that receives the number of keys that were present and removed
+     */
+    void delete(
+        List<String> keys,
+        LongConsumer completion);
+
+    /**
+     * Atomically replaces the value associated with the given key, only if its current value
+     * equals {@code expected}.
+     * <p>
+     * A caller that loses to a concurrent writer is told so by the completion and may re-read
+     * with {@link #get} and try again; it is never blocked on a lock.
+     * </p>
+     *
+     * @param key        the key to update
+     * @param expected   the value the key must currently hold
+     * @param value      the value to associate if the current value matches
+     * @param ttl        the time-to-live of the new value, or {@code null} for no expiry
+     * @param completion a callback that receives {@code true} if the value was replaced,
+     *                   or {@code false} if the key is absent or holds a different value
+     */
+    void replace(
+        String key,
+        String expected,
+        String value,
+        Duration ttl,
+        Consumer<Boolean> completion);
 
     /**
      * Atomically retrieves and removes the entry for the given key.
