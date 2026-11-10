@@ -3938,10 +3938,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             this.server = server;
             this.generator = JsonEx.createGenerator();
-            this.eventOffsets = new int[EVENT_CAPACITY];
-            this.eventLengths = new int[EVENT_CAPACITY];
-            this.eventFlags = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
+            this.pendingStart = NO_EVENT;
             this.delimiterBytes = new byte[64];
             this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
         }
@@ -4086,9 +4084,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
 
-            beginEncode();
+            beginEncode(0L, traceId, authorization);
             doEncodeBegin();
-            doEncodeFlush(0, 0L, traceId, authorization);
+            doEncodeFlush(0);
 
             doAppWindow(traceId);
         }
@@ -4111,7 +4109,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
 
-            beginEncode();
+            beginEncode(budgetId, traceId, authorization);
 
             if (Flags.hasInit(flags))
             {
@@ -4138,7 +4136,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (encodeLength() > 0)
             {
-                doEncodeFlush(reserved, budgetId, traceId, authorization);
+                doEncodeFlush(reserved);
             }
             else
             {
@@ -4171,7 +4169,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
             final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
 
-            beginEncode();
+            beginEncode(0L, traceId, authorization);
 
             closeEncodedReasoning();
             doEncodeEnd();
@@ -4185,7 +4183,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             cleanupHeld();
 
-            doEncodeFlush(0, 0L, traceId, authorization);
+            doEncodeFlush(0);
 
             if (server.encodeSlot != NO_SLOT)
             {
@@ -4221,10 +4219,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (error != null && (error.type().asString() != null || error.message().asString() != null))
             {
-                beginEncode();
+                beginEncode(0L, traceId, authorization);
                 doEncodeError(error.type().asString(), error.param().asString(), error.code().asString(),
                     error.message().asString());
-                doEncodeFlush(0, 0L, traceId, authorization);
+                doEncodeFlush(0);
 
                 if (server.encodeSlot != NO_SLOT)
                 {
@@ -4460,8 +4458,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             initialSeq += length;
         }
 
-        private void beginEncode()
+        private void beginEncode(
+            long budgetId,
+            long traceId,
+            long authorization)
         {
+            encodeBudgetId = budgetId;
+            encodeTraceId = traceId;
+            encodeAuthorization = authorization;
+
             generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
             if (eventOpen)
@@ -4471,10 +4476,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void doEncodeFlush(
-            int reserved,
-            long budgetId,
-            long traceId,
-            long authorization)
+            int reserved)
         {
             if (server.streaming)
             {
@@ -4484,33 +4486,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     eventStart = NO_EVENT;
                 }
 
-                final int count = eventCount;
-
-                for (int index = 0; index < count; index++)
+                if (pendingStart != NO_EVENT)
                 {
-                    server.doNetData(copyBuffer, eventOffsets[index], eventLengths[index], index == count - 1 ? reserved : 0,
-                        eventFlags[index], EMPTY_OCTETS, budgetId, traceId, authorization);
+                    flushPendingEvent(reserved);
                 }
-
-                eventCount = 0;
-
-                if (count == 0)
+                else
                 {
-                    ackReply(traceId);
+                    ackReply(encodeTraceId);
                 }
             }
             else if (encodeLength() > 0)
             {
-                server.doNetData(copyBuffer, 0, encodeLength(), reserved, Flags.COMPLETE, EMPTY_OCTETS, budgetId, traceId,
-                    authorization);
+                server.doNetData(copyBuffer, 0, encodeLength(), reserved, Flags.COMPLETE, EMPTY_OCTETS, encodeBudgetId,
+                    encodeTraceId, encodeAuthorization);
             }
             else
             {
-                ackReply(traceId);
+                ackReply(encodeTraceId);
             }
         }
 
-        private static final int EVENT_CAPACITY = 8;
         private static final int NO_EVENT = -1;
 
         private static final int KIND_NONE = 0;
@@ -4558,10 +4553,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private String responseModel;
         private String responseDialect;
 
-        private int[] eventOffsets;
-        private int[] eventLengths;
-        private int[] eventFlags;
-        private int eventCount;
+        private int pendingStart;
+        private int pendingLength;
+        private int pendingFlags;
+        private long encodeTraceId;
+        private long encodeAuthorization;
+        private long encodeBudgetId;
         private boolean eventOpen;
         private boolean eventStarted;
         private int eventStart;
@@ -5182,22 +5179,29 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (length > 0 || fin && eventStarted)
             {
-                if (eventCount == eventOffsets.length)
-                {
-                    final int capacity = eventCount << 1;
-                    eventOffsets = Arrays.copyOf(eventOffsets, capacity);
-                    eventLengths = Arrays.copyOf(eventLengths, capacity);
-                    eventFlags = Arrays.copyOf(eventFlags, capacity);
-                }
+                flushPendingEvent(0);
 
                 final int init = eventStarted ? Flags.NONE : Flags.INIT;
 
-                eventOffsets[eventCount] = eventStart;
-                eventLengths[eventCount] = length;
-                eventFlags[eventCount] = fin ? Flags.fin(init) : init;
-                eventCount++;
+                pendingStart = eventStart;
+                pendingLength = length;
+                pendingFlags = fin ? Flags.fin(init) : init;
 
                 eventStarted = true;
+            }
+        }
+
+        private void flushPendingEvent(
+            int reserved)
+        {
+            if (pendingStart != NO_EVENT)
+            {
+                final int start = pendingStart;
+
+                pendingStart = NO_EVENT;
+
+                server.doNetData(copyBuffer, start, pendingLength, reserved, pendingFlags, EMPTY_OCTETS, encodeBudgetId,
+                    encodeTraceId, encodeAuthorization);
             }
         }
 
