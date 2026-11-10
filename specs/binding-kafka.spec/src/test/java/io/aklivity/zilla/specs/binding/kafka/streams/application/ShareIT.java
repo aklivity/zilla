@@ -75,6 +75,33 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${app}/receive.message.value.100k/client",
+        "${app}/receive.message.value.100k/server"})
+    public void shouldReceiveMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.message.values.batch/client",
+        "${app}/receive.message.values.batch/server"})
+    public void shouldReceiveMessageValuesBatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/receive.message.values.outside.acquired/client",
+        "${app}/receive.message.values.outside.acquired/server"})
+    public void shouldReceiveMessageValuesOutsideAcquired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/acknowledge.accept/client",
         "${app}/acknowledge.accept/server"})
     public void shouldAcknowledgeAccept() throws Exception
@@ -111,6 +138,24 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${app}/acknowledge.accept.gap/client",
+        "${app}/acknowledge.accept.gap/server"})
+    public void shouldAcknowledgeAcceptGap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.compressed.batch/client",
+        "${app}/reject.compressed.batch/server"})
+    public void shouldRejectCompressedBatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/acknowledge.invalid.record.state/client",
         "${app}/acknowledge.invalid.record.state/server"})
     public void shouldAcknowledgeInvalidRecordState() throws Exception
@@ -141,24 +186,6 @@ public class ShareIT
         "${app}/await.assignment/client",
         "${app}/await.assignment/server"})
     public void shouldAwaitAssignment() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/filter.key/client",
-        "${app}/filter.key/server"})
-    public void shouldFilterKey() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/filter.key.skip.all/client",
-        "${app}/filter.key.skip.all/server"})
-    public void shouldFilterKeySkipAll() throws Exception
     {
         k3po.finish();
     }

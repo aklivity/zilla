@@ -93,6 +93,36 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/receive.message.value.100k/client",
+        "${net}/receive.message.value.100k/server"})
+    public void shouldReceiveMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/receive.message.values.batch/client",
+        "${net}/receive.message.values.batch/server"})
+    public void shouldReceiveMessageValuesBatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/receive.message.values.outside.acquired/client",
+        "${net}/receive.message.values.outside.acquired/server"})
+    public void shouldReceiveMessageValuesOutsideAcquired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/acknowledge.accept/client",
         "${net}/acknowledge.accept/server"})
     public void shouldAcknowledgeAccept() throws Exception
@@ -133,6 +163,26 @@ public class ClientShareIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/acknowledge.accept.gap/client",
+        "${net}/acknowledge.accept.gap/server"})
+    public void shouldAcknowledgeAcceptGap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/reject.compressed.batch/client",
+        "${net}/reject.compressed.batch/server"})
+    public void shouldRejectCompressedBatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/acknowledge.invalid.record.state/client",
         "${net}/acknowledge.invalid.record.state/server"})
     public void shouldAcknowledgeInvalidRecordState() throws Exception
@@ -166,26 +216,6 @@ public class ClientShareIT
         "${app}/await.assignment/client",
         "${net}/await.assignment/server"})
     public void shouldAwaitAssignment() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/filter.key/client",
-        "${net}/filter.key/server"})
-    public void shouldFilterKey() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/filter.key.skip.all/client",
-        "${net}/filter.key.skip.all/server"})
-    public void shouldFilterKeySkipAll() throws Exception
     {
         k3po.finish();
     }
@@ -341,7 +371,7 @@ public class ClientShareIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.event.share.heartbeat.api.version.rejected.yaml")
     @Specification({
         "${app}/reject.unsupported.version.heartbeat.absent/client",
         "${net}/reject.unsupported.version.heartbeat.absent/server"})
@@ -351,7 +381,7 @@ public class ClientShareIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.event.share.heartbeat.api.version.rejected.yaml")
     @Specification({
         "${app}/reject.unsupported.version.heartbeat.range/client",
         "${net}/reject.unsupported.version.heartbeat.range/server"})
@@ -361,7 +391,7 @@ public class ClientShareIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.event.share.heartbeat.api.version.rejected.yaml")
     @Specification({
         "${app}/reject.unsupported.version.heartbeat.error/client",
         "${net}/reject.unsupported.version.heartbeat.error/server"})
@@ -371,7 +401,7 @@ public class ClientShareIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.event.share.metadata.api.version.rejected.yaml")
     @Specification({
         "${app}/reject.unsupported.version.metadata.range/client",
         "${net}/reject.unsupported.version.metadata.range/server"})
@@ -381,7 +411,7 @@ public class ClientShareIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.event.share.fetch.api.version.rejected.yaml")
     @Specification({
         "${app}/reject.unsupported.version.fetch.range/client",
         "${net}/reject.unsupported.version.fetch.range/server"})

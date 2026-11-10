@@ -48,7 +48,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .share()
                                  .deferred(10240 - 6144)
                                  .partition(0, 5)
-                                 .deliveryCount(1)
                                  .build()
                              .build()}
 
@@ -56,7 +55,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .share()
                                  .partition(0, 5)
-                                 .deliveryCount(1)
                                  .build()
                              .build()}
 read [0..10240]
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                             .typeId(zilla:id("kafka"))
+                             .shareAcquired()
+                                 .partition(0)
+                                 .range(5, 5, 1)
+                                 .build()
+                             .build()}
