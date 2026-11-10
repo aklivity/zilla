@@ -521,7 +521,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     }
                     break;
                 case KEY_NAME:
-                    modelValue = depth == 1 && !parser.deferredBytes() && matches(parser.getStringView(), "model");
+                    modelValue = depth == 1 && matches(parser.getStringView(), "model");
                     break;
                 case VALUE_STRING:
                     if (parser.deferredBytes())
@@ -630,10 +630,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeRootKey(parser.getStringView());
                 break;
             case END_OBJECT:
@@ -669,10 +665,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (isRootControl(key))
                 {
@@ -853,10 +845,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, "role"))
                 {
@@ -1147,11 +1135,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 break lookahead;
             }
 
-            if (parser.deferredBytes())
-            {
-                break lookahead;
-            }
-
             if (!matches(parser.getStringView(), "type"))
             {
                 server.onDecodeInvalidRequest(traceId, MESSAGE_PART_TYPE_ORDER);
@@ -1304,10 +1287,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, TYPE_TEXT))
                 {
@@ -1397,10 +1376,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, "tool_use_id"))
                 {
@@ -1930,8 +1905,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         while (server.decoder == decodeControlValue && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
-            final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
-                parser.deferredBytes();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
             switch (event)
             {
@@ -1943,7 +1917,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case END_ARRAY:
                 server.captureDepth--;
                 break;
-            case VALUE_STRING, VALUE_NUMBER:
+            case VALUE_STRING:
                 if (deferred)
                 {
                     parser.consumed(parser.getStringView().length());
@@ -2002,15 +1976,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case VALUE_NUMBER:
-                if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
-                else
-                {
-                    server.maxOutputTokens = parser.getInt();
-                    server.decoder = decodeRoot;
-                }
+                server.maxOutputTokens = parser.getInt();
+                server.decoder = decodeRoot;
                 break;
             case START_OBJECT:
             case START_ARRAY:
@@ -2959,7 +2926,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 breakpointDepth--;
                 break;
             case KEY_NAME:
-                if (!parser.deferredBytes() && breakpointDepth == 1)
+                if (breakpointDepth == 1)
                 {
                     final CharSequence key = parser.getStringView();
 
