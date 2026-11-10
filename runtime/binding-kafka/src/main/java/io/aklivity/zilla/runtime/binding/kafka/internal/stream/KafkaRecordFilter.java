@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueM
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW.KIND_VALUE;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
@@ -28,7 +29,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.message.MessageHeaderFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -39,7 +39,7 @@ final class KafkaRecordFilter
     private final KafkaFilterFW filterRO;
     private final KafkaConditionFW conditionRO;
     private final KafkaValueMatchFW valueMatchRO;
-    private final MessageHeaderFW messageHeaderRO;
+    private final KafkaHeaderFW headerRO;
 
     KafkaRecordFilter(
         Array32FW<KafkaFilterFW> filters)
@@ -51,13 +51,18 @@ final class KafkaRecordFilter
         this.filterRO = new KafkaFilterFW();
         this.conditionRO = new KafkaConditionFW();
         this.valueMatchRO = new KafkaValueMatchFW();
-        this.messageHeaderRO = new MessageHeaderFW();
+        this.headerRO = new KafkaHeaderFW();
+    }
+
+    boolean sameAs(
+        Array32FW<KafkaFilterFW> other)
+    {
+        return filters.equals(other);
     }
 
     boolean test(
         OctetsFW key,
-        DirectBufferEx headers,
-        int headerCount)
+        ArrayFW<KafkaHeaderFW> headers)
     {
         boolean matched = filters.isEmpty();
 
@@ -70,7 +75,7 @@ final class KafkaRecordFilter
             final KafkaFilterFW filter = filterRO.wrap(items, offset, limit);
             offset = filter.limit();
 
-            matched = testConditions(filter, key, headers, headerCount);
+            matched = testConditions(filter, key, headers);
         }
 
         return matched;
@@ -79,8 +84,7 @@ final class KafkaRecordFilter
     private boolean testConditions(
         KafkaFilterFW filter,
         OctetsFW key,
-        DirectBufferEx headers,
-        int headerCount)
+        ArrayFW<KafkaHeaderFW> headers)
     {
         boolean matched = true;
 
@@ -94,7 +98,7 @@ final class KafkaRecordFilter
             final KafkaConditionFW item = conditionRO.wrap(items, offset, limit);
             offset = item.limit();
 
-            matched = testCondition(item, key, headers, headerCount);
+            matched = testCondition(item, key, headers);
         }
 
         return matched;
@@ -103,8 +107,7 @@ final class KafkaRecordFilter
     private boolean testCondition(
         KafkaConditionFW condition,
         OctetsFW key,
-        DirectBufferEx headers,
-        int headerCount)
+        ArrayFW<KafkaHeaderFW> headers)
     {
         final boolean matched;
 
@@ -114,13 +117,13 @@ final class KafkaRecordFilter
             matched = testKey(condition.key(), key);
             break;
         case KafkaConditionFW.KIND_HEADER:
-            matched = testHeader(condition.header(), headers, headerCount);
+            matched = testHeader(condition.header(), headers);
             break;
         case KafkaConditionFW.KIND_NOT:
-            matched = !testCondition(condition.not().condition(), key, headers, headerCount);
+            matched = !testCondition(condition.not().condition(), key, headers);
             break;
         case KafkaConditionFW.KIND_HEADERS:
-            matched = testHeaders(condition.headers(), headers, headerCount);
+            matched = testHeaders(condition.headers(), headers);
             break;
         default:
             matched = false;
@@ -139,20 +142,20 @@ final class KafkaRecordFilter
 
     private boolean testHeader(
         KafkaHeaderFW expected,
-        DirectBufferEx headers,
-        int headerCount)
+        ArrayFW<KafkaHeaderFW> headers)
     {
         boolean matched = false;
 
-        final int limit = headers.capacity();
+        final DirectBufferEx items = headers.items();
+        final int limit = items.capacity();
 
         int offset = 0;
-        for (int index = 0; !matched && index < headerCount; index++)
+        while (!matched && offset < limit)
         {
-            final MessageHeaderFW header = messageHeaderRO.wrap(headers, offset, limit);
+            final KafkaHeaderFW header = headerRO.wrap(items, offset, limit);
             offset = header.limit();
 
-            matched = equalsOctets(expected.name(), header.key()) && equalsOctets(expected.value(), header.value());
+            matched = equalsOctets(expected.name(), header.name()) && equalsOctets(expected.value(), header.value());
         }
 
         return matched;
@@ -160,26 +163,26 @@ final class KafkaRecordFilter
 
     private boolean testHeaders(
         KafkaHeadersFW expected,
-        DirectBufferEx headers,
-        int headerCount)
+        ArrayFW<KafkaHeaderFW> headers)
     {
         final OctetsFW name = expected.name();
         final DirectBufferEx matchItems = expected.values().items();
         final int matchesLimit = matchItems.capacity();
 
-        final int headersLimit = headers.capacity();
+        final DirectBufferEx headerItems = headers.items();
+        final int headersLimit = headerItems.capacity();
 
         int matchOffset = 0;
         boolean matched = true;
         boolean skipManyHeaders = false;
 
         int headerOffset = 0;
-        for (int index = 0; matched && index < headerCount; index++)
+        while (matched && headerOffset < headersLimit)
         {
-            final MessageHeaderFW header = messageHeaderRO.wrap(headers, headerOffset, headersLimit);
+            final KafkaHeaderFW header = headerRO.wrap(headerItems, headerOffset, headersLimit);
             headerOffset = header.limit();
 
-            if (equalsOctets(name, header.key()))
+            if (equalsOctets(name, header.name()))
             {
                 if (matchOffset < matchesLimit)
                 {
