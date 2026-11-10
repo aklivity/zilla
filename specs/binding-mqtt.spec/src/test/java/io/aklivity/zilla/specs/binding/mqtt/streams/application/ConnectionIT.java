@@ -117,4 +117,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/disconnect.after.shared.subscription/client",
+        "${app}/disconnect.after.shared.subscription/server"})
+    public void shouldDisconnectAfterSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
 }
