@@ -220,6 +220,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -370,7 +371,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         if (binding != null && httpBeginEx != null)
         {
-            final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
+            final LlmRequestHeaders headers = headersRO.wrap(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
             final Matcher operation = operation(header(headers, HEADER_PATH));
 

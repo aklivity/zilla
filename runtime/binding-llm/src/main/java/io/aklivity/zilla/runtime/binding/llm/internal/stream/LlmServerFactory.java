@@ -42,6 +42,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final EngineContext context;
     private final Map<String, LlmDialectContext> dialects;
@@ -119,7 +120,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (httpBeginEx != null)
             {
-                final LlmDialectHandler handler = binding.resolve(LlmRequestHeaders.of(httpBeginEx));
+                final LlmDialectHandler handler = binding.resolve(headersRO.wrap(httpBeginEx));
 
                 if (handler != null)
                 {
