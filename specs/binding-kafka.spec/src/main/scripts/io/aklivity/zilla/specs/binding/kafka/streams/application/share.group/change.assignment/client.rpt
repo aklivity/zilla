@@ -47,7 +47,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .share()
                                  .partition(1, 3)
-                                 .deliveryCount(1)
                                  .build()
                              .build()}
 read "Hello, world #B1"
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                             .typeId(zilla:id("kafka"))
+                             .shareAcquired()
+                                 .partition(1)
+                                 .range(3, 3, 1)
+                                 .build()
+                             .build()}

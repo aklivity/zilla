@@ -53,12 +53,19 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .share()
                                   .timestamp(newTimestamp)
-                                  .deliveryCount(1)
                                   .partition(0, 5)
                                   .build()
                               .build()}
 write "Hello, world"
 write flush
+
+write advise zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .shareAcquired()
+                                 .partition(0)
+                                 .range(5, 5, 1)
+                                 .build()
+                             .build()}
 
 write zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
