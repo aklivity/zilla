@@ -60,14 +60,6 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A1"
 write flush
 
-write advise zilla:flush ${kafka:flushEx()
-                             .typeId(zilla:id("kafka"))
-                             .shareAcquired()
-                                 .partition(0)
-                                 .range(5, 5, 1)
-                                 .build()
-                             .build()}
-
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .share()
@@ -82,7 +74,7 @@ write advise zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .shareAcquired()
                                  .partition(0)
-                                 .range(6, 6, 1)
+                                 .range(5, 6, 1)
                                  .build()
                              .build()}
 
