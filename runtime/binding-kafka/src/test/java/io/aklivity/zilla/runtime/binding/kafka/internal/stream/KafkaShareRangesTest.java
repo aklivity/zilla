@@ -30,7 +30,6 @@ public class KafkaShareRangesTest
 
         assertTrue(ranges.isEmpty());
         assertEquals(0, ranges.size());
-        assertEquals(0L, ranges.count());
         assertFalse(ranges.contains(0L));
     }
 
@@ -44,7 +43,6 @@ public class KafkaShareRangesTest
         assertEquals(1, ranges.size());
         assertEquals(5L, ranges.first(0));
         assertEquals(9L, ranges.last(0));
-        assertEquals(5L, ranges.count());
         assertTrue(ranges.contains(5L));
         assertTrue(ranges.contains(9L));
         assertFalse(ranges.contains(4L));
@@ -67,7 +65,6 @@ public class KafkaShareRangesTest
         assertEquals(12L, ranges.last(1));
         assertEquals(20L, ranges.first(2));
         assertEquals(20L, ranges.last(2));
-        assertEquals(6L, ranges.count());
     }
 
     @Test
@@ -151,7 +148,6 @@ public class KafkaShareRangesTest
         assertEquals(6L, ranges.last(0));
         assertEquals(8L, ranges.first(1));
         assertEquals(9L, ranges.last(1));
-        assertEquals(4L, ranges.count());
     }
 
     @Test
@@ -164,7 +160,8 @@ public class KafkaShareRangesTest
         ranges.remove(10L);
 
         assertEquals(1, ranges.size());
-        assertEquals(5L, ranges.count());
+        assertEquals(5L, ranges.first(0));
+        assertEquals(9L, ranges.last(0));
     }
 
     @Test
