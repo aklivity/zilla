@@ -194,6 +194,15 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${net}/change.assignment.acknowledge/client",
+        "${net}/change.assignment.acknowledge/server"})
+    public void shouldChangeAssignmentAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/await.assignment/client",
         "${net}/await.assignment/server"})
     public void shouldAwaitAssignment() throws Exception
