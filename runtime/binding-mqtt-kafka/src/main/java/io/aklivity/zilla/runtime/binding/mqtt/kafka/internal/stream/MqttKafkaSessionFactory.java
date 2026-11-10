@@ -81,7 +81,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -155,6 +157,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
+    private static final int SHARED_SUBSCRIBE_QOS_MAX = 1;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
 
@@ -218,6 +221,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
+    private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
     private final MqttSessionSignalFW mqttSessionSignalRO = new MqttSessionSignalFW();
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
@@ -245,6 +249,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MutableDirectBufferEx willKeyBuffer;
     private final MutableDirectBufferEx sessionSignalKeyBuffer;
     private final MutableDirectBufferEx sessionExtBuffer;
+    private final MutableDirectBufferEx sessionStateBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
     private final Signaler signaler;
@@ -265,6 +270,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Object2LongHashMap<String16FW> sessionExpiryIds;
     private final InstanceId instanceId;
     private final boolean willAvailable;
+    private final boolean sharedSubscriptionAvailable;
     private final int reconnectDelay;
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
@@ -300,6 +306,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.willKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.sessionSignalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.sessionExtBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionStateBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
@@ -315,6 +322,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionIds = new Long2ObjectHashMap<>();
         this.coreIndex = context.index();
         this.willAvailable = config.willAvailable();
+        this.sharedSubscriptionAvailable = config.sharedSubscriptionAvailable();
         this.willDeliverIds = new Object2ObjectHashMap<>();
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.instanceId = instanceId;
@@ -403,6 +411,42 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         }
     }
 
+    private int capabilities(
+        MqttKafkaBindingConfig binding)
+    {
+        return sharedSubscriptionAvailable && binding.options.store != null
+            ? MQTT_KAFKA_CAPABILITIES | SHARED_SUBSCRIPTIONS_AVAILABLE_MASK
+            : MQTT_KAFKA_CAPABILITIES;
+    }
+
+    private MqttSessionStateFW capSharedQos(
+        MqttSessionStateFW sessionState)
+    {
+        MqttSessionStateFW capped = sessionState;
+
+        if (sessionState.kind() == MqttSessionStateVersion.V2 &&
+            sessionState.sessionStateV2().subscriptions().anyMatch(f -> grantedQos(f) != f.qos()))
+        {
+            capped = mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity())
+                .sessionStateV2(s -> sessionState.sessionStateV2().subscriptions().forEach(f -> s.subscriptionsItem(i -> i
+                    .subscriptionId(f.subscriptionId())
+                    .qos(grantedQos(f))
+                    .flags(f.flags())
+                    .reasonCode(f.reasonCode())
+                    .pattern(f.pattern())
+                    .shareName(f.shareName()))))
+                .build();
+        }
+
+        return capped;
+    }
+
+    private int grantedQos(
+        MqttTopicFilterFW filter)
+    {
+        return filter.shareName().asString() != null ? Math.min(filter.qos(), SHARED_SUBSCRIBE_QOS_MAX) : filter.qos();
+    }
+
     private final class MqttSessionProxy
     {
         private static final Consumer<KafkaOffsetFW.Builder> COMMIT_OFFSET_PARTITION =
@@ -469,6 +513,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private boolean offsetCommitSeeded;
         private MqttKafkaPublishMetadata metadata;
         private final String16FW retainedTopic;
+        private final int capabilities;
 
         private Set<String16FW> messagesTopics;
         private long producerId;
@@ -500,6 +545,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
+            this.capabilities = capabilities(binding);
             this.publishQosMax = publishQosMax.value();
             if (publishQosMax == MqttQoS.EXACTLY_ONCE)
             {
@@ -1216,7 +1262,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
-                        .capabilities(MQTT_KAFKA_CAPABILITIES)
+                        .capabilities(capabilities)
                         .clientId(clientId))
                     .build();
 
@@ -1422,7 +1468,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
-                        .capabilities(MQTT_KAFKA_CAPABILITIES)
+                        .capabilities(capabilities)
                         .clientId(clientId);
 
                     metadata.offsets.values().forEach(o ->
@@ -2915,7 +2961,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(delegate.publishQosMax)
-                        .capabilities(MQTT_KAFKA_CAPABILITIES)
+                        .capabilities(delegate.capabilities)
                         .clientId(delegate.clientId))
                     .build();
 
@@ -3363,7 +3409,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     MqttSessionStateFW sessionState = null;
                     if (payload.sizeof() > 0)
                     {
-                        sessionState = mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
+                        sessionState = capSharedQos(mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit()));
                     }
                     delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, sessionState);
                 }
