@@ -64,6 +64,8 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
         final KafkaCacheGroupFactory cacheGroupFactory = new KafkaCacheGroupFactory(config, context, bindings::get);
 
+        final KafkaCacheClientShareFactory cacheShareFactory = new KafkaCacheClientShareFactory(config, context, bindings::get);
+
         final KafkaCacheClientConsumerFactory consumerGroupFactory =
             new KafkaCacheClientConsumerFactory(config, context, bindings::get);
 
@@ -95,6 +97,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         factories.put(KafkaBeginExFW.KIND_META, cacheMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, cacheDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_GROUP, cacheGroupFactory);
+        factories.put(KafkaBeginExFW.KIND_SHARE, cacheShareFactory);
         factories.put(KafkaBeginExFW.KIND_CONSUMER, consumerGroupFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_COMMIT, cacheOffsetCommitFactory);
         factories.put(KafkaBeginExFW.KIND_OFFSET_FETCH, cacheOffsetFetchFactory);
