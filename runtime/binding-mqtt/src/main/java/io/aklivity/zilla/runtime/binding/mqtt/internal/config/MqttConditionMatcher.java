@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -58,10 +59,14 @@ public final class MqttConditionMatcher
             ? asWildcardMatcher(condition.sessions.stream().map(s -> s.clientId).collect(Collectors.toList()))
             : null;
         this.subscribeMatchers = condition.subscribes != null && !condition.subscribes.isEmpty()
-            ? condition.subscribes.stream().map(s -> new TopicMatcher(identities, attributor, s.topic, s.params)).toList()
+            ? condition.subscribes.stream()
+                .map(s -> new TopicMatcher(identities, attributor, s.topic, s.share, s.params))
+                .toList()
             : null;
         this.publishMatchers = condition.publishes != null && !condition.publishes.isEmpty()
-            ? condition.publishes.stream().map(p -> new TopicMatcher(identities, attributor, p.topic, p.params)).toList()
+            ? condition.publishes.stream()
+                .map(p -> new TopicMatcher(identities, attributor, p.topic, null, p.params))
+                .toList()
             : null;
     }
 
@@ -85,6 +90,7 @@ public final class MqttConditionMatcher
 
     public boolean matchesSubscribe(
         long authorization,
+        String shareName,
         String topic)
     {
         boolean match = false;
@@ -92,7 +98,7 @@ public final class MqttConditionMatcher
         {
             for (TopicMatcher matcher : subscribeMatchers)
             {
-                match = matcher.matches(authorization, topic);
+                match = matcher.matches(authorization, shareName, topic);
                 if (match)
                 {
                     break;
@@ -111,7 +117,7 @@ public final class MqttConditionMatcher
         {
             for (TopicMatcher matcher : publishMatchers)
             {
-                match = matcher.matches(authorization, topic);
+                match = matcher.matches(authorization, null, topic);
                 if (match)
                 {
                     break;
@@ -143,12 +149,14 @@ public final class MqttConditionMatcher
     private final class TopicMatcher
     {
         private final Matcher matchTopic;
+        private final Matcher matchShare;
         private final Map<String, LongObjPredicate<String>> matchParams;
 
         private TopicMatcher(
             Function<String, LongFunction<String>> identities,
             Function<String, LongObjectBiFunction<String, JsonValue>> attributor,
             String wildcard,
+            String share,
             List<MqttTopicParamConfig> params)
         {
             this.matchTopic = Pattern.compile(wildcard
@@ -157,6 +165,11 @@ public final class MqttConditionMatcher
                 .replace("+", "[^/]*")
                 .replace("#", ".*")
                 .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>[^/]+)")).matcher("");
+            this.matchShare = share != null
+                ? Pattern.compile(Arrays.stream(share.split("\\*", -1))
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining(".*"))).matcher("")
+                : null;
             this.matchParams = params != null
                 ? params.stream().collect(Collectors.toMap(
                     p -> p.name,
@@ -177,9 +190,11 @@ public final class MqttConditionMatcher
 
         private boolean matches(
             long authorization,
+            String shareName,
             String topic)
         {
-            return matchTopic.reset(topic).matches() &&
+            return matchShare(shareName) &&
+                matchTopic.reset(topic).matches() &&
                 matchParams(name ->
                 {
                     try
@@ -191,6 +206,12 @@ public final class MqttConditionMatcher
                         return null;
                     }
                 }, authorization);
+        }
+
+        private boolean matchShare(
+            String shareName)
+        {
+            return matchShare == null || shareName != null && matchShare.reset(shareName).matches();
         }
 
         private boolean matchParams(
