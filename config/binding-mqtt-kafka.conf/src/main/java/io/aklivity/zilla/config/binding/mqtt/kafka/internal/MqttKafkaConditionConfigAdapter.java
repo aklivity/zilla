@@ -31,6 +31,7 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
     private static final String SUBSCRIBE_NAME = "subscribe";
     private static final String PUBLISH_NAME = "publish";
     private static final String TOPIC_NAME = "topic";
+    private static final String SHARE_NAME = "share";
 
     @Override
     public JsonObject adaptToJson(
@@ -39,12 +40,17 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
         MqttKafkaConditionConfig mqttKafkaCondition = (MqttKafkaConditionConfig) condition;
         JsonArrayBuilder topics = Json.createArrayBuilder();
 
-        mqttKafkaCondition.topics.forEach(s ->
+        for (int i = 0; i < mqttKafkaCondition.topics.size(); i++)
         {
             JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
-            subscribeJson.add(TOPIC_NAME, s);
+            subscribeJson.add(TOPIC_NAME, mqttKafkaCondition.topics.get(i));
+            final String share = mqttKafkaCondition.shares.get(i);
+            if (share != null)
+            {
+                subscribeJson.add(SHARE_NAME, share);
+            }
             topics.add(subscribeJson);
-        });
+        }
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -70,7 +76,8 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
         {
             builder.kind(MqttKafkaConditionKind.SUBSCRIBE);
             JsonArray subscribesJson = object.getJsonArray(SUBSCRIBE_NAME);
-            subscribesJson.forEach(s -> builder.topic(s.asJsonObject().getString(TOPIC_NAME)));
+            subscribesJson.forEach(s -> builder.topic(
+                s.asJsonObject().getString(TOPIC_NAME), s.asJsonObject().getString(SHARE_NAME, null)));
         }
         else if (object.containsKey(PUBLISH_NAME))
         {

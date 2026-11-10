@@ -25,6 +25,7 @@ public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, M
 {
     private final Function<ConditionConfig, T> mapper;
     private final List<String> topics;
+    private final List<String> shares;
     private MqttKafkaConditionKind kind;
 
     MqttKafkaConditionConfigBuilder(
@@ -32,6 +33,7 @@ public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, M
     {
         this.mapper = mapper;
         this.topics = new ArrayList<>();
+        this.shares = new ArrayList<>();
     }
 
     @Override
@@ -44,7 +46,15 @@ public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, M
     public MqttKafkaConditionConfigBuilder<T> topic(
         String topic)
     {
+        return topic(topic, null);
+    }
+
+    public MqttKafkaConditionConfigBuilder<T> topic(
+        String topic,
+        String share)
+    {
         this.topics.add(topic);
+        this.shares.add(share);
         return this;
     }
 
@@ -58,6 +68,6 @@ public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, M
     @Override
     public T build()
     {
-        return mapper.apply(new MqttKafkaConditionConfig(topics, kind));
+        return mapper.apply(new MqttKafkaConditionConfig(topics, shares, kind));
     }
 }
