@@ -89,6 +89,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -510,13 +511,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -542,15 +544,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
-            case JsonParser.Event.KEY_NAME:
+            case JsonEvent.KEY_NAME:
                 final String key = parser.getString();
                 switch (key)
                 {
@@ -575,7 +578,7 @@ public final class McpClientFactory implements McpStreamFactory
                     break decode;
                 }
                 break;
-            case JsonParser.Event.END_OBJECT:
+            case JsonEvent.END_OBJECT:
                 http.decoder = decodeJsonRpcEnd;
                 break;
             default:
@@ -600,11 +603,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         decode:
         {
-            if (parser.hasNext())
+            if (nextBodyEvent(parser) != null)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -627,20 +630,41 @@ public final class McpClientFactory implements McpStreamFactory
         return progress;
     }
 
-    // a scalar (string or number lexeme) whose bytes fill the input window before completing is
-    // delivered as fragments, the same event repeated with deferredBytes() true until it completes --
-    // accumulate every fragment and only hand back the value once the whole scalar has arrived, so a
-    // long value straddling a window boundary is never mistaken for a complete one
-    private String accumulateJsonRpcStringValue(
+    // the document framing events carry no value, so they are taken as they come; the first event with a value, or
+    // null when the window has none yet
+    private static JsonEvent nextBodyEvent(
+        JsonParserEx parser)
+    {
+        JsonEvent event = null;
+
+        while (event == null && parser.hasNextEvent())
+        {
+            final JsonEvent next = parser.nextEvent();
+
+            if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT)
+            {
+                event = next;
+            }
+        }
+
+        return event;
+    }
+
+    // a string whose bytes fill the input window before completing is delivered as fragments, the same event
+    // repeated with deferredBytes() true until it completes -- a fragment is pushed back, so the stream's decode
+    // slot keeps its bytes and the value is only handed back once the whole string has arrived
+    private String jsonRpcStringValue(
         McpHttpStream http)
     {
-        http.sseJsonValue.append(http.decodableJson.getString());
-
         String value = null;
-        if (!http.decodableJson.deferredBytes())
+
+        if (http.decodableJson.deferredBytes())
         {
-            value = http.sseJsonValue.toString();
-            http.sseJsonValue.setLength(0);
+            http.decodableJson.consumed(0);
+        }
+        else
+        {
+            value = http.decodableJson.getString();
         }
 
         return value;
@@ -657,20 +681,21 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING)
+            if (event != JsonEvent.VALUE_STRING)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
 
-            final String version = accumulateJsonRpcStringValue(http);
+            final String version = jsonRpcStringValue(http);
             if (version != null)
             {
                 if (!JSON_RPC_VERSION.equals(version))
@@ -700,21 +725,22 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING &&
-                event != JsonParser.Event.VALUE_NUMBER)
+            if (event != JsonEvent.VALUE_STRING &&
+                event != JsonEvent.VALUE_NUMBER)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
 
-            final String id = accumulateJsonRpcStringValue(http);
+            final String id = jsonRpcStringValue(http);
             if (id != null)
             {
                 http.sseEventJsonId = id;
@@ -738,13 +764,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -774,7 +801,7 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         final int decodedResultProgress = (int) parser.getLocation().getStreamOffset();
         if (decodedResultProgress > http.decodedResultProgress)
@@ -808,16 +835,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        while (parser.hasNext())
+        JsonEvent event = nextBodyEvent(parser);
+        while (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event == JsonParser.Event.START_OBJECT)
+            if (event == JsonEvent.START_OBJECT)
             {
                 http.decodedSkipObjectDepth++;
             }
-            else if (event == JsonParser.Event.END_OBJECT)
+            else if (event == JsonEvent.END_OBJECT)
             {
                 http.decodedSkipObjectDepth--;
                 if (http.decodedSkipObjectDepth == 0)
@@ -830,10 +857,10 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 if (http.decodedResultErrorKey)
                 {
-                    http.responseError = event == JsonParser.Event.VALUE_TRUE;
+                    http.responseError = event == JsonEvent.VALUE_TRUE;
                     http.decodedResultErrorKey = false;
                 }
-                else if (event == JsonParser.Event.KEY_NAME &&
+                else if (event == JsonEvent.KEY_NAME &&
                     http.decodedSkipObjectDepth == 1 &&
                     "isError".equals(parser.getString()))
                 {
@@ -845,6 +872,8 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 http.onDecodeResultEvent(event, parser, http.decodedSkipObjectDepth);
             }
+
+            event = nextBodyEvent(parser);
         }
 
         final int decodedResultProgress = (int) parser.getLocation().getStreamOffset();
@@ -874,19 +903,20 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING)
+            if (event != JsonEvent.VALUE_STRING)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
-            final String method = accumulateJsonRpcStringValue(http);
+            final String method = jsonRpcStringValue(http);
             if (method != null)
             {
                 if ("notifications/progress".equals(method))
@@ -916,13 +946,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -946,15 +977,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
-            case JsonParser.Event.KEY_NAME:
+            case JsonEvent.KEY_NAME:
                 final String key = parser.getString();
                 switch (key)
                 {
@@ -993,7 +1025,7 @@ public final class McpClientFactory implements McpStreamFactory
                     break;
                 }
                 break;
-            case JsonParser.Event.END_OBJECT:
+            case JsonEvent.END_OBJECT:
                 http.decoder = decodeJsonRpcNext;
                 break;
             default:
@@ -1018,12 +1050,12 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         boolean complete = false;
-        while (!complete && parser.hasNext())
+        JsonEvent event = nextBodyEvent(parser);
+        while (!complete && event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
             case START_OBJECT:
@@ -1037,13 +1069,14 @@ public final class McpClientFactory implements McpStreamFactory
                 break;
             case VALUE_STRING:
             case VALUE_NUMBER:
-                parser.getString();
-                complete = http.decodedSkipValueDepth == 0 && !http.decodableJson.deferredBytes();
+                complete = http.decodedSkipValueDepth == 0 && !parser.deferredBytes();
                 break;
             default:
                 complete = http.decodedSkipValueDepth == 0;
                 break;
             }
+
+            event = complete ? null : nextBodyEvent(parser);
         }
 
         if (complete)
@@ -1065,12 +1098,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String token = accumulateJsonRpcStringValue(http);
+            final String token = jsonRpcStringValue(http);
             if (token != null)
             {
                 http.sseProgressToken = token;
@@ -1093,11 +1125,10 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
             http.sseProgress = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
@@ -1117,11 +1148,10 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
             http.sseProgressTotal = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
@@ -1141,12 +1171,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String message = accumulateJsonRpcStringValue(http);
+            final String message = jsonRpcStringValue(http);
             if (message != null)
             {
                 http.sseProgressMessage = message;
@@ -1169,12 +1198,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String elicitationId = accumulateJsonRpcStringValue(http);
+            final String elicitationId = jsonRpcStringValue(http);
             if (elicitationId != null)
             {
                 http.sseElicitationId = elicitationId;
@@ -1197,12 +1225,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String url = accumulateJsonRpcStringValue(http);
+            final String url = jsonRpcStringValue(http);
             if (url != null)
             {
                 http.sseElicitUrl = url;
@@ -1225,12 +1252,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String mode = accumulateJsonRpcStringValue(http);
+            final String mode = jsonRpcStringValue(http);
             if (mode != null)
             {
                 http.sseElicitMode = mode;
@@ -1253,12 +1279,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String uri = accumulateJsonRpcStringValue(http);
+            final String uri = jsonRpcStringValue(http);
             if (uri != null)
             {
                 http.sseResourceUri = uri;
@@ -1349,7 +1374,6 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseElicitUrl = null;
         http.sseElicitMode = null;
         http.sseResourceUri = null;
-        http.sseJsonValue.setLength(0);
     }
 
     private static String stripSseEventIdPrefix(
@@ -3979,7 +4003,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected boolean sseMode;
         protected String sseEventId;
         protected long sseEventRetry = -1L;
-        protected final StringBuilder sseJsonValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
         protected String sseEventMethod;
@@ -4098,7 +4121,7 @@ public final class McpClientFactory implements McpStreamFactory
             boolean endOfInput);
 
         void onDecodeResultEvent(
-            JsonParser.Event event,
+            JsonEvent event,
             JsonParser parser,
             int depth)
         {
@@ -4364,7 +4387,7 @@ public final class McpClientFactory implements McpStreamFactory
                     decodeSlot = decodePool.acquire(replyId);
                 }
 
-                if (decodeSlot == NO_SLOT)
+                if (decodeSlot == NO_SLOT || limit - progress >= decodeMax)
                 {
                     cleanupNet(traceId, authorization);
                 }
@@ -4841,7 +4864,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onDecodeResultEvent(
-            JsonParser.Event event,
+            JsonEvent event,
             JsonParser parser,
             int depth)
         {
