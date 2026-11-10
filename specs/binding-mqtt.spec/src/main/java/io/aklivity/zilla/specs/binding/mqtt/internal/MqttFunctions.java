@@ -984,6 +984,32 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
+            String pattern,
+            int id,
+            int reasonCode,
+            String qosName,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .reasonCode(reasonCode)
+                .pattern(pattern));
+            sessionStateV1RW.subscriptionsItem(f -> f
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .reasonCode(reasonCode)
+                .pattern(pattern));
+            return this;
+        }
+
         public MqttSessionStateBuilder sharedSubscription(
             String shareName,
             String pattern,
@@ -999,6 +1025,29 @@ public final class MqttFunctions
                 .subscriptionId(id)
                 .qos(qos)
                 .flags(flags)
+                .pattern(pattern)
+                .shareName(shareName));
+            this.shared = true;
+            return this;
+        }
+
+        public MqttSessionStateBuilder sharedSubscriptionWithReasonCode(
+            String shareName,
+            String pattern,
+            int id,
+            int reasonCode,
+            String qosName,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id)
+                .qos(qos)
+                .flags(flags)
+                .reasonCode(reasonCode)
                 .pattern(pattern)
                 .shareName(shareName));
             this.shared = true;
