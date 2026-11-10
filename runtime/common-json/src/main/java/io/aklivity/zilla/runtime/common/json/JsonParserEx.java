@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -217,12 +216,9 @@ public interface JsonParserEx extends JsonParser
      * the escapes of the string undone as it is tokenized, so it is never copied. The content must be exactly one
      * complete JSON value, with optional surrounding whitespace, and an empty string delivers the two markers with
      * nothing between. A value that is not a string, content that is malformed or incomplete, or a request made
-     * while a scope is open, is an error. The default rejects, for a parser that cannot read a string as a document.
+     * while a scope is open, is an error.
      */
-    default void escaped()
-    {
-        throw new JsonException("escaped scope not supported");
-    }
+    void escaped();
 
     /**
      * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the current
