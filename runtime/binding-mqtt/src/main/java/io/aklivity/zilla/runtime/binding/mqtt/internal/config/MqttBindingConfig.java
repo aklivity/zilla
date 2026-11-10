@@ -128,10 +128,11 @@ public final class MqttBindingConfig
 
     public MqttRouteConfig resolveSubscribe(
         long authorization,
+        String shareName,
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, topic))
+            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, shareName, topic))
             .findFirst()
             .orElse(null);
     }
