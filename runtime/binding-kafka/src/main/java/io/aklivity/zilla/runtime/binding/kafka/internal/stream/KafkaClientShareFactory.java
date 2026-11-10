@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.lang.System.currentTimeMillis;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -361,6 +362,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
+    private final Clock clock;
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -380,6 +382,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         this.shareFetchMaxBytes = config.clientShareFetchMaxBytes();
         this.shareFetchMaxRecords = config.clientShareFetchMaxRecords();
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.streamFactory = context.streamFactory();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
@@ -2320,6 +2323,12 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                     final SharePartition partition = partitions.get(index);
                     if (!assignment.containsInt(partition.id))
                     {
+                        final LeaderClient leader = leader(partition.leaderId);
+                        if (leader != null)
+                        {
+                            leader.doConfirmUnsent(traceId, partition.id, ERROR_INVALID_RECORD_STATE);
+                        }
+
                         partitions.remove(index);
                     }
                 }
@@ -4055,6 +4064,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
         private int decodableTopics;
         private int lockTimeoutMillis;
+        private long fetchSentMillis;
         private int decodablePartitions;
         private int decodableRecordSetBytes;
         private int decodableRecordBatchBytes;
@@ -4199,6 +4209,31 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
+        private void doConfirmUnsent(
+            long traceId,
+            int partitionId,
+            int error)
+        {
+            for (int index = confirmSent; index < confirmKeys.size(); )
+            {
+                final long key = confirmKeys.getLong(index);
+
+                if ((int) (key >> Integer.SIZE) == partitionId)
+                {
+                    delegate.doApplicationConfirm(traceId, partitionId, confirmOffsets.getLong(index), (int) key,
+                        confirmCorrelations.getLong(index), error);
+
+                    confirmKeys.removeAt(index);
+                    confirmOffsets.removeAt(index);
+                    confirmCorrelations.removeAt(index);
+                }
+                else
+                {
+                    index++;
+                }
+            }
+        }
+
         private void doConfirmRemaining(
             long traceId,
             int error)
@@ -4288,6 +4323,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
             sessionEpoch++;
             confirmSent = confirmKeys.size();
+            fetchSentMillis = clock.millis();
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
@@ -4619,7 +4655,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
                 if (!decodeStreamed.isEmpty() && !delegate.leaving())
                 {
-                    delegate.doApplicationAcquired(traceId, decodePartition.id, lockTimeoutMillis,
+                    delegate.doApplicationAcquired(traceId, decodePartition.id,
+                        KafkaShareLock.remainingMillis(lockTimeoutMillis, fetchSentMillis, clock.millis()),
                         acquiredFirsts, acquiredLasts, acquiredCounts);
                 }
             }
