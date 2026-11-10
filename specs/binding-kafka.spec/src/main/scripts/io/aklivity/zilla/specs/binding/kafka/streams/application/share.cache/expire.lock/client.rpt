@@ -18,7 +18,7 @@ property authorization 0L
 
 connect "zilla://streams/app0"
     option zilla:authorization ${authorization}
-    option zilla:window 8192
+    option zilla:window 0
     option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
@@ -40,6 +40,9 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                    .port(9092)
                                    .build()
                                .build()}
+
+read await RECORD_RELEASED
+read option zilla:window 8192
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
