@@ -15,8 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.IMPLEMENTATION_SPECIFIC_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NOT_AUTHORIZED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_MATCHING_SUBSCRIBERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_IDENTIFIER_IN_USE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PAYLOAD_FORMAT_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QUOTA_EXCEEDED;
@@ -25,6 +27,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -50,5 +53,21 @@ public class MqttReasonCodesTest
         assertFalse(acknowledgesPublish(SUCCESS));
         assertFalse(acknowledgesPublish(RETAIN_NOT_SUPPORTED));
         assertFalse(acknowledgesPublish(0x9b));
+    }
+
+    @Test
+    public void shouldNotRecognizeSuccessAsError()
+    {
+        assertFalse(isError(SUCCESS));
+        assertFalse(isError(GRANTED_QOS_2));
+        assertFalse(isError(NO_MATCHING_SUBSCRIBERS));
+    }
+
+    @Test
+    public void shouldRecognizeCodesFromUnspecifiedErrorAsError()
+    {
+        assertTrue(isError(UNSPECIFIED_ERROR));
+        assertTrue(isError(IMPLEMENTATION_SPECIFIC_ERROR));
+        assertTrue(isError(0xff));
     }
 }
