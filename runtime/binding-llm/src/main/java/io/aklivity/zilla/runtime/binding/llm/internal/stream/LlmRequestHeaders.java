@@ -14,44 +14,52 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.function.Consumer;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
+// The headers of a request, read where they lie in the begin extension. One instance is repointed at each request,
+// and a value it returns is valid only until the next lookup or the next request.
 final class LlmRequestHeaders implements JsonEnvelope
 {
-    private final Map<String, List<DirectBufferEx>> valuesByName;
+    private final UnsafeBufferEx valueRO;
+    private final Consumer<HttpHeaderFW> tally;
+    private final Consumer<HttpHeaderFW> locate;
 
-    private LlmRequestHeaders()
+    private HttpBeginExFW httpBeginEx;
+    private String name;
+    private int index;
+    private int seen;
+    private boolean found;
+
+    LlmRequestHeaders()
     {
-        this.valuesByName = new LinkedHashMap<>();
+        this.valueRO = new UnsafeBufferEx();
+        this.tally = this::onTally;
+        this.locate = this::onLocate;
     }
 
-    static LlmRequestHeaders of(
+    LlmRequestHeaders wrap(
         HttpBeginExFW httpBeginEx)
     {
-        final LlmRequestHeaders headers = new LlmRequestHeaders();
-
-        httpBeginEx.headers().forEach(h ->
-            headers.set(h.name().asString(), new UnsafeBufferEx(h.value().asString().getBytes(UTF_8))));
-
-        return headers;
+        this.httpBeginEx = httpBeginEx;
+        return this;
     }
 
     @Override
     public int count(
         String name)
     {
-        final List<DirectBufferEx> values = valuesByName.get(name);
-        return values != null ? values.size() : 0;
+        this.name = name;
+        this.seen = 0;
+
+        httpBeginEx.headers().forEach(tally);
+
+        return seen;
     }
 
     @Override
@@ -59,8 +67,14 @@ final class LlmRequestHeaders implements JsonEnvelope
         String name,
         int index)
     {
-        final List<DirectBufferEx> values = valuesByName.get(name);
-        return values != null && index < values.size() ? values.get(index) : null;
+        this.name = name;
+        this.index = index;
+        this.seen = 0;
+        this.found = false;
+
+        httpBeginEx.headers().forEach(locate);
+
+        return found ? valueRO : null;
     }
 
     @Override
@@ -68,6 +82,47 @@ final class LlmRequestHeaders implements JsonEnvelope
         String name,
         DirectBufferEx value)
     {
-        valuesByName.computeIfAbsent(name, n -> new ArrayList<>()).add(value);
+        throw new UnsupportedOperationException("request headers are read-only");
+    }
+
+    private void onTally(
+        HttpHeaderFW header)
+    {
+        if (named(header))
+        {
+            seen++;
+        }
+    }
+
+    private void onLocate(
+        HttpHeaderFW header)
+    {
+        if (!found && named(header))
+        {
+            final DirectBufferEx value = header.value().value();
+
+            if (seen == index && value != null)
+            {
+                valueRO.wrap(value);
+                found = true;
+            }
+
+            seen++;
+        }
+    }
+
+    private boolean named(
+        HttpHeaderFW header)
+    {
+        final DirectBufferEx key = header.name().value();
+
+        boolean matches = key != null && key.capacity() == name.length();
+
+        for (int position = 0; matches && position < name.length(); position++)
+        {
+            matches = key.getByte(position) == name.charAt(position);
+        }
+
+        return matches;
     }
 }
