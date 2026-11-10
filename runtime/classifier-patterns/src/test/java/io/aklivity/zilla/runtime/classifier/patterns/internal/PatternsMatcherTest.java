@@ -134,4 +134,69 @@ public class PatternsMatcherTest
 
         matcher.find("a".repeat(40), STEPS);
     }
+
+    @Test
+    public void shouldLocateEveryMatchInAscendingOrder()
+    {
+        PatternsMatcher matcher = new PatternsMatcher(0.0,
+            List.of("digits", "word"),
+            List.of(Pattern.compile("[0-9]+"), Pattern.compile("[a-z]+")));
+
+        int count = matcher.locate("ab 12 cd 345", STEPS);
+
+        assertThat(count, equalTo(4));
+        assertThat(matcher.label(0), equalTo("word"));
+        assertThat(matcher.start(0), equalTo(0));
+        assertThat(matcher.end(0), equalTo(2));
+        assertThat(matcher.label(1), equalTo("digits"));
+        assertThat(matcher.start(1), equalTo(3));
+        assertThat(matcher.end(1), equalTo(5));
+        assertThat(matcher.label(2), equalTo("word"));
+        assertThat(matcher.start(2), equalTo(6));
+        assertThat(matcher.label(3), equalTo("digits"));
+        assertThat(matcher.start(3), equalTo(9));
+        assertThat(matcher.end(3), equalTo(12));
+    }
+
+    @Test
+    public void shouldLocateLongestOfOverlappingMatches()
+    {
+        PatternsMatcher matcher = new PatternsMatcher(0.0,
+            List.of("short", "long"),
+            List.of(Pattern.compile("ab"), Pattern.compile("abcd")));
+
+        int count = matcher.locate("xabcdx", STEPS);
+
+        assertThat(count, equalTo(1));
+        assertThat(matcher.label(0), equalTo("long"));
+        assertThat(matcher.start(0), equalTo(1));
+        assertThat(matcher.end(0), equalTo(5));
+    }
+
+    @Test
+    public void shouldLocateNoMatchesBelowEntropy()
+    {
+        PatternsMatcher matcher = new PatternsMatcher(3.0, List.of("key"), List.of(Pattern.compile("AKIA[0-9A-Z]{16}")));
+
+        assertThat(matcher.locate("my key AKIAAAAAAAAAAAAAAAAA is a placeholder", STEPS), equalTo(0));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailLocateWhenStepsExceeded()
+    {
+        PatternsMatcher matcher = new PatternsMatcher(0.0, List.of("pathological"), List.of(Pattern.compile("(.*a){12}b")));
+
+        matcher.locate("a".repeat(40), STEPS);
+    }
+
+    @Test
+    public void shouldKeepFindUnchangedAfterLocate()
+    {
+        PatternsMatcher matcher = new PatternsMatcher(0.0, List.of("word"), List.of(Pattern.compile("beta")));
+
+        matcher.locate("beta beta", STEPS);
+
+        assertThat(matcher.find("a beta", STEPS), equalTo(true));
+        assertThat(matcher.start(), equalTo(2));
+    }
 }

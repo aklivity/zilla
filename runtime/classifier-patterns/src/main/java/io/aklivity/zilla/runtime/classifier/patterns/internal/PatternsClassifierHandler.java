@@ -24,6 +24,7 @@ import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
+import io.aklivity.zilla.runtime.engine.classifier.Locator;
 
 final class PatternsClassifierHandler implements ClassifierHandler
 {
@@ -49,6 +50,27 @@ final class PatternsClassifierHandler implements ClassifierHandler
     public Detector initDetector(
         List<String> labels)
     {
+        return new PatternsDetector(
+            context,
+            matcher(labels),
+            configuration.inputMaxLength(),
+            configuration.matchMaxSteps());
+    }
+
+    @Override
+    public Locator initLocator(
+        List<String> labels)
+    {
+        return new PatternsLocator(
+            context,
+            matcher(labels),
+            configuration.inputMaxLength(),
+            configuration.matchMaxSteps());
+    }
+
+    private PatternsMatcher matcher(
+        List<String> labels)
+    {
         List<String> aliases = new ArrayList<>();
         List<Pattern> patterns = new ArrayList<>();
 
@@ -68,10 +90,6 @@ final class PatternsClassifierHandler implements ClassifierHandler
             }
         }
 
-        return new PatternsDetector(
-            context,
-            new PatternsMatcher(entropy, aliases, patterns),
-            configuration.inputMaxLength(),
-            configuration.matchMaxSteps());
+        return new PatternsMatcher(entropy, aliases, patterns);
     }
 }
