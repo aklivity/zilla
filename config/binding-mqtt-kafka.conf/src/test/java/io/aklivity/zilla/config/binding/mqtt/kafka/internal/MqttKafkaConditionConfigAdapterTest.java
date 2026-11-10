@@ -126,4 +126,58 @@ public class MqttKafkaConditionConfigAdapterTest
                         "]" +
                 "}"));
     }
+
+    @Test
+    public void shouldReadSubscribeConditionWithShare()
+    {
+        String text =
+            "{" +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\": \"one\"," +
+                        "\"share\": \"consumers\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\": \"two\"" +
+                    "}" +
+                "]" +
+            "}";
+
+        MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.topics.size(), equalTo(2));
+        assertThat(condition.topics.get(0), equalTo("one"));
+        assertThat(condition.shares.get(0), equalTo("consumers"));
+        assertThat(condition.topics.get(1), equalTo("two"));
+        assertThat(condition.shares.get(1), nullValue());
+    }
+
+    @Test
+    public void shouldWriteSubscribeConditionWithShare()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .topic("one", "consumers")
+            .topic("two")
+            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{" +
+                "\"subscribe\":" +
+                "[" +
+                    "{" +
+                        "\"topic\":\"one\"," +
+                        "\"share\":\"consumers\"" +
+                    "}," +
+                    "{" +
+                        "\"topic\":\"two\"" +
+                    "}" +
+                "]" +
+            "}"));
+    }
 }
