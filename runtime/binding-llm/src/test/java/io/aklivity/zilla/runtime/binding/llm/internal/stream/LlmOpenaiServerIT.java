@@ -513,6 +513,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.text.escaped.fragmented/client",
+        "${app}/openai.section.user.text.escaped.fragmented/server"})
+    public void shouldDecodeOpenaiSectionUserTextEscapedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.text.multibyte/client",
         "${app}/openai.section.user.text.multibyte/server"})
     public void shouldDecodeOpenaiSectionUserTextMultibyte() throws Exception

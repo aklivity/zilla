@@ -246,8 +246,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
 
-    private final StringBuilder surrogates;
-
     private byte[] pieceBytes;
     private UnsafeBufferEx pieceBuffer;
 
@@ -268,7 +266,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.surrogates = new StringBuilder(2);
         this.pieceBytes = new byte[1024];
         this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
@@ -2127,7 +2124,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private LlmSectionType textType;
         private String textToolCallId;
         private boolean textOpen;
-        private char textHighSurrogate;
 
         private LlmOpenaiServerDecoder captureThen;
         private boolean captureOpen;
@@ -2656,18 +2652,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int take = textAllowance(chars, fin);
             final boolean finished = fin && take == length;
 
-            if (take > 0 || finished && textHighSurrogate != 0)
+            if (take > 0)
             {
-                int from = textHighSurrogate != 0 ? resumeSurrogate(chars, take) : 0;
-                int to = take;
-
-                if (!finished && to > from && Character.isHighSurrogate(chars.charAt(to - 1)))
-                {
-                    textHighSurrogate = chars.charAt(to - 1);
-                    to--;
-                }
-
-                scan(chars, from, to);
+                scan(chars, 0, take);
             }
 
             if (finished)
@@ -2683,27 +2670,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             return take;
-        }
-
-        private int resumeSurrogate(
-            CharSequence chars,
-            int take)
-        {
-            final boolean paired = take > 0 && Character.isLowSurrogate(chars.charAt(0));
-
-            surrogates.setLength(0);
-            surrogates.append(textHighSurrogate);
-
-            if (paired)
-            {
-                surrogates.append(chars.charAt(0));
-            }
-
-            textHighSurrogate = 0;
-
-            scan(surrogates, 0, surrogates.length());
-
-            return paired ? 1 : 0;
         }
 
         private void scan(
