@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -81,6 +82,36 @@ public interface JsonTokenizer
     long valueStreamEnd();
 
     boolean done();
+
+    // Arms the string value that follows to be read as a document of its own, in place: the tokenizer reads the
+    // string with its escapes undone, delivering START_ESCAPED and END_ESCAPED as markers around the events of the
+    // document. A tokenizer that cannot read a string as a document rejects.
+    default void escape()
+    {
+        throw new JsonException("escaped scope not supported");
+    }
+
+    // Whether an event, or a scope marker, is waiting to be taken.
+    default boolean pending()
+    {
+        return event() != null;
+    }
+
+    // The scope marker waiting to be taken, or null.
+    default JsonEvent marker()
+    {
+        return null;
+    }
+
+    default void clearMarker()
+    {
+    }
+
+    // Whether the tokenizer is reading the document of an escaped scope.
+    default boolean inScope()
+    {
+        return false;
+    }
 
     long documentEndOffset();
 

@@ -58,6 +58,12 @@ public final class JsonValueParser implements JsonParserEx
     }
 
     @Override
+    public void escaped()
+    {
+        parser.escaped();
+    }
+
+    @Override
     public JsonParserEx wrap(
         DirectBufferEx buffer,
         int offset,

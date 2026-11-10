@@ -17,10 +17,12 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 
 final class JsonTokenizerImpl implements JsonTokenizer
@@ -36,7 +38,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         OBJ_AFTER_VALUE,
         ARR_AFTER_OPEN,
         ARR_AFTER_COMMA,
-        ARR_AFTER_VALUE
+        ARR_AFTER_VALUE,
+        ESC_START,
+        ESC_DONE
     }
 
     private enum ResumeOp
@@ -183,6 +187,23 @@ final class JsonTokenizerImpl implements JsonTokenizer
     // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
     private boolean starved;
 
+    // an escaped scope: the string value that follows the key being read is armed, and is then read as a document
+    // of its own, in place. The bytes of the document are those of the string with its escapes undone, which the
+    // reads below produce a unit at a time, so the document is tokenized from the window with no copy. scopeStart
+    // is where the string's content begins, scopeEnded is set once a read meets the quote that closes the string,
+    // which ends the document as the end of the final window ends a document, and the register holds the bytes of
+    // the escape being read out, an escape being up to four bytes of UTF-8.
+    private boolean escapeArmed;
+    private boolean lens;
+    private boolean scopeEnded;
+    private long scopeStart;
+    private long lensUnit;
+    private int lensIndex;
+    private int lensCount;
+    private int lensSize;
+    private JsonEvent marker;
+    private final EscapedStringView escapedView = new EscapedStringView();
+
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
     private boolean resumeEscape;
@@ -226,6 +247,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
         int unitViewChars;
         int unitScratchLength;
         boolean pairOpen;
+        boolean lens;
+        long scopeStart;
     }
 
     // quoted holds a key back until its separator, whitespace and the value's first byte are in the
@@ -276,6 +299,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
         resumeUnicodePending = 0;
         resumeUnicodeValue = 0;
         resumeLiteralIndex = 0;
+        escapeArmed = false;
+        lens = false;
+        scopeEnded = false;
+        lensIndex = 0;
+        lensCount = 0;
+        marker = null;
     }
 
     // Tracks whether a segment scan is in progress so a value-string spanning frames is streamed as raw
@@ -360,6 +389,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.unitViewChars = unitViewChars;
         mark.unitScratchLength = unitScratchLength;
         mark.pairOpen = pairOpen;
+        mark.lens = lens;
+        mark.scopeStart = scopeStart;
     }
 
     // Returns to the mark: the scan resumes at the marked byte with the state it had there. Only the container
@@ -420,6 +451,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         unitViewChars = mark.unitViewChars;
         unitScratchLength = mark.unitScratchLength;
         pairOpen = mark.pairOpen;
+        lens = mark.lens;
+        scopeStart = mark.scopeStart;
+        marker = null;
         seek(mark.streamOffset, mark.line, mark.column);
 
         scratch.setLength(0);
@@ -476,6 +510,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         this.line = targetLine;
         this.column = targetColumn;
         this.bufferOffset = wrapOffset + (int) (targetStreamOffset - wrapStreamOffset);
+        this.lensIndex = 0;
+        this.lensCount = 0;
+        this.scopeEnded = false;
     }
 
     @Override
@@ -498,7 +535,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         viewPending = false;
 
         boolean produced = true;
-        while (!starved && pendingEvent == null && state != ParseState.DOC_DONE)
+        while (!starved && pendingEvent == null && marker == null && state != ParseState.DOC_DONE)
         {
             if (resumeOp != ResumeOp.NONE)
             {
@@ -510,8 +547,13 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
         }
 
-        if (starved && pendingEvent == null)
+        if (starved && pendingEvent == null && marker == null)
         {
+            if (scopeEnded)
+            {
+                throw new JsonParsingException("Incomplete document in escaped string", null);
+            }
+
             produced = onScalarStarved();
         }
         return produced;
@@ -540,7 +582,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             // a kept scalar leaf fragments verbatim on any starve; a decoded value-string only once it fills the
             // room left for it in the window. A key or number is never fragmented.
             final boolean fragment = resumeOp == ResumeOp.VALUE_STRING &&
-                !terminalEof && (scalarSegment || fragmenting || valueBytes >= valueRoom);
+                !eof() && (scalarSegment || fragmenting || valueBytes >= valueRoom);
             if (fragment)
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
@@ -742,6 +784,41 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     @Override
+    public void escape()
+    {
+        if (lens)
+        {
+            throw new JsonException("escaped scope is already open");
+        }
+
+        escapeArmed = true;
+    }
+
+    @Override
+    public boolean pending()
+    {
+        return pendingEvent != null || marker != null;
+    }
+
+    @Override
+    public JsonEvent marker()
+    {
+        return marker;
+    }
+
+    @Override
+    public void clearMarker()
+    {
+        marker = null;
+    }
+
+    @Override
+    public boolean inScope()
+    {
+        return lens;
+    }
+
+    @Override
     public long documentEndOffset()
     {
         return documentEndOffset;
@@ -884,6 +961,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
             memberSeparated = true;
             consumeValue();
             break;
+        case ESC_START:
+            consumeScopeValue();
+            break;
+        case ESC_DONE:
+            consumeScopeEnd();
+            break;
         default:
             throw new JsonParsingException("Unexpected parse state: " + state, null);
         }
@@ -1011,9 +1094,19 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
     }
 
-    private EncodedStringView pendingView()
+    private CharSequence pendingView()
     {
-        return stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain);
+        return lens
+            ? escapedView.wrap(buffer, viewOffset, viewLength, viewChars)
+            : stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain);
+    }
+
+    private int pendingFloorOffset(
+        int consumed)
+    {
+        return lens
+            ? escapedView.wrap(buffer, viewOffset, viewLength, viewChars).floorOffsetOf(consumed)
+            : stringView.wrap(buffer, viewOffset, viewLength, viewChars, viewPlain).floorOffsetOf(consumed);
     }
 
     // a fragment ends at the unit boundary the scan has been rewound to, so it is the bytes up to there
@@ -1037,7 +1130,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     {
         if (fragmenting && viewPending)
         {
-            final int bytes = consumed < viewChars ? viewLength - (pendingView().floorOffsetOf(consumed) - viewOffset) : 0;
+            final int bytes = consumed < viewChars ? viewLength - (pendingFloorOffset(consumed) - viewOffset) : 0;
 
             if (bytes != declinedBytes)
             {
@@ -1190,6 +1283,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void parseValue(
         int c)
     {
+        if (escapeArmed)
+        {
+            enterScope(c);
+            return;
+        }
+
         // a scalar-segment arm applies only to a value-string; clear it for any other value
         if (c != '"')
         {
@@ -1208,10 +1307,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
             pushPath(true);
             break;
         case '"':
-            valueStreamStart = streamOffset - 1;
-            fragmentStart = streamOffset - 1;
+            valueStreamStart = streamOffset - startBack();
+            fragmentStart = streamOffset - startBack();
             valueLine = line;
-            valueColumn = column - 1;
+            valueColumn = column - startBack();
             clearScratch();
             resumeEscape = false;
             resumeUnicodePending = 0;
@@ -1259,10 +1358,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         default:
             if (c == '-' || c >= '0' && c <= '9')
             {
-                valueStreamStart = streamOffset - 1;
-                fragmentStart = streamOffset - 1;
+                valueStreamStart = streamOffset - startBack();
+                fragmentStart = streamOffset - startBack();
                 valueLine = line;
-                valueColumn = column - 1;
+                valueColumn = column - startBack();
                 clearScratch();
                 scratchConsumed = 0;
                 numberState = NumberState.START;
@@ -1289,10 +1388,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             throw new JsonParsingException("Expected '\"' for key but got: " + describe(c), null);
         }
-        valueStreamStart = streamOffset - 1;
-        fragmentStart = streamOffset - 1;
+        valueStreamStart = streamOffset - startBack();
+        fragmentStart = streamOffset - startBack();
         valueLine = line;
-        valueColumn = column - 1;
+        valueColumn = column - startBack();
         clearScratch();
         resumeEscape = false;
         resumeUnicodePending = 0;
@@ -1327,12 +1426,14 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
             else
             {
-                final int c = buffer.getByte(bufferOffset) & 0xff;
-                if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+                final int c = peekByte();
+                if (c < 0)
                 {
-                    bufferOffset++;
-                    streamOffset++;
-                    advance(c);
+                    starved = true;
+                }
+                else if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+                {
+                    takeByte(c);
                 }
                 else
                 {
@@ -1341,7 +1442,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
         }
 
-        if (starved && !terminalEof)
+        if (starved && !eof())
         {
             seek(valueStreamStart, valueLine, valueColumn);
             state = memberSeparated ? ParseState.OBJ_AFTER_COMMA : ParseState.OBJ_AFTER_OPEN;
@@ -1405,6 +1506,8 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
         case DOC_START:
             return ParseState.DOC_DONE;
+        case ESC_START:
+            return ParseState.ESC_DONE;
         case OBJ_AFTER_COLON:
             return ParseState.OBJ_AFTER_VALUE;
         case ARR_AFTER_OPEN:
@@ -1423,6 +1526,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
             state = ParseState.DOC_DONE;
             documentEndOffset = streamOffset;
             break;
+        case ESC_START:
+            state = ParseState.ESC_DONE;
+            break;
         case OBJ_AFTER_COLON:
             state = ParseState.OBJ_AFTER_VALUE;
             break;
@@ -1433,7 +1539,10 @@ final class JsonTokenizerImpl implements JsonTokenizer
         default:
             throw new JsonParsingException("Unexpected state after value: " + state, null);
         }
-        markValueConsumed();
+        if (state != ParseState.ESC_DONE)
+        {
+            markValueConsumed();
+        }
     }
 
     private void emitEnd(
@@ -1727,20 +1836,18 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean complete = false;
         while (!complete && !starved)
         {
-            if (bufferOffset >= bufferLimit)
+            final int c = bufferOffset >= bufferLimit ? -1 : peekByte();
+            if (c < 0)
             {
                 // terminal window: its end ends the number; otherwise the window is exhausted mid-number
-                starved = !terminalEof;
-                complete = terminalEof;
+                starved = !eof();
+                complete = eof();
             }
             else
             {
-                int c = buffer.getByte(bufferOffset) & 0xff;
                 if (c >= '0' && c <= '9' || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E')
                 {
-                    bufferOffset++;
-                    streamOffset++;
-                    advance(c);
+                    takeByte(c);
                     validateNumberChar(c);
                     appendScratch((char) c);
                 }
@@ -1821,7 +1928,209 @@ final class JsonTokenizerImpl implements JsonTokenizer
         return c >= '0' && c <= '9';
     }
 
+    private void enterScope(
+        int c)
+    {
+        escapeArmed = false;
+
+        if (c != '"')
+        {
+            throw new JsonParsingException("escaped scope requires a string value, found " + describe(c), null);
+        }
+
+        scalarSegment = false;
+        stack.push(returnState());
+        state = ParseState.ESC_START;
+        lens = true;
+        scopeEnded = false;
+        scopeStart = streamOffset;
+        lensIndex = 0;
+        lensCount = 0;
+        marker = JsonEvent.START_ESCAPED;
+    }
+
+    private void consumeScopeValue()
+    {
+        final int c = skipWhitespace();
+
+        if (!starved)
+        {
+            parseValue(c);
+        }
+        else if (scopeEnded)
+        {
+            if (streamOffset != scopeStart)
+            {
+                throw new JsonParsingException("Incomplete document in escaped string", null);
+            }
+
+            exitScope();
+        }
+    }
+
+    private void consumeScopeEnd()
+    {
+        final int c = skipWhitespace();
+
+        if (!starved)
+        {
+            throw new JsonParsingException("escaped string continues with " + describe(c), null);
+        }
+        else if (scopeEnded)
+        {
+            exitScope();
+        }
+    }
+
+    private void exitScope()
+    {
+        lens = false;
+        scopeEnded = false;
+        lensIndex = 0;
+        lensCount = 0;
+        bufferOffset++;
+        streamOffset++;
+        column++;
+        starved = false;
+        state = stack.pop();
+        marker = JsonEvent.END_ESCAPED;
+        markValueConsumed();
+    }
+
+    // how far back the first byte of the token just read began: a byte of the string as it is, or the whole of the
+    // escape that spells it
+    private int startBack()
+    {
+        return lens ? lensSize : 1;
+    }
+
+    private boolean eof()
+    {
+        return terminalEof || scopeEnded;
+    }
+
     private int readByte()
+    {
+        return lens ? readLensByte() : readPlainByte();
+    }
+
+    private int peekByte()
+    {
+        return lens ? peekLensByte() : buffer.getByte(bufferOffset) & 0xff;
+    }
+
+    private void takeByte(
+        int c)
+    {
+        if (lens)
+        {
+            readLensByte();
+        }
+        else
+        {
+            bufferOffset++;
+            streamOffset++;
+            advance(c);
+        }
+    }
+
+    // The next byte of the document the string holds: a byte of the string as it is, or a byte of the escape the
+    // string spells, taking the escape whole so that a window ending inside one leaves it unread. The quote that
+    // closes the string is the end of the document.
+    private int readLensByte()
+    {
+        int c = -1;
+
+        if (lensIndex < lensCount)
+        {
+            c = JsonEscapeLens.byteAt(lensUnit, lensIndex++) & 0xff;
+        }
+        else if (bufferOffset >= bufferLimit)
+        {
+            starved = true;
+        }
+        else
+        {
+            final int b = buffer.getByte(bufferOffset) & 0xff;
+
+            if (b == '"')
+            {
+                scopeEnded = true;
+                starved = true;
+            }
+            else if (b != '\\')
+            {
+                bufferOffset++;
+                streamOffset++;
+                advance(b);
+                lensSize = 1;
+                c = b;
+            }
+            else
+            {
+                final long unit = JsonEscapeLens.decode(buffer, bufferOffset, bufferLimit, terminalEof);
+
+                if (unit == JsonEscapeLens.NEEDS_MORE)
+                {
+                    starved = true;
+                }
+                else
+                {
+                    final int size = JsonEscapeLens.size(unit);
+
+                    bufferOffset += size;
+                    streamOffset += size;
+                    column += size;
+                    lensSize = size;
+                    viewPlain = false;
+                    lensUnit = unit;
+                    lensCount = JsonEscapeLens.count(unit);
+                    lensIndex = 1;
+                    c = JsonEscapeLens.byteAt(unit, 0) & 0xff;
+                }
+            }
+        }
+
+        return c;
+    }
+
+    // The next byte of the document without taking it, or -1 when the window ends before it is whole or the string
+    // closes first.
+    private int peekLensByte()
+    {
+        int c = -1;
+
+        if (lensIndex < lensCount)
+        {
+            c = JsonEscapeLens.byteAt(lensUnit, lensIndex) & 0xff;
+        }
+        else
+        {
+            final int b = buffer.getByte(bufferOffset) & 0xff;
+
+            if (b == '"')
+            {
+                scopeEnded = true;
+            }
+            else if (b != '\\')
+            {
+                c = b;
+            }
+            else
+            {
+                final long unit = JsonEscapeLens.decode(buffer, bufferOffset, bufferLimit, terminalEof);
+
+                if (unit != JsonEscapeLens.NEEDS_MORE)
+                {
+                    c = JsonEscapeLens.byteAt(unit, 0) & 0xff;
+                }
+            }
+        }
+
+        return c;
+    }
+
+    private int readPlainByte()
     {
         int c;
         if (bufferOffset < bufferLimit)

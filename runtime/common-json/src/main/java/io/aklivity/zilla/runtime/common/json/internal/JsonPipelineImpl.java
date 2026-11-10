@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
@@ -40,14 +39,12 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
- * driver. {@link #transform(DirectBufferEx, int, int)} re-targets the parser at the frame buffer then pumps
+ * parser. {@link #transform(DirectBufferEx, int, int)} re-targets the parser at the frame buffer then pumps
  * each parsed event through the root sink, passing a {@link Source} view that adapts the parser to the
  * immutable {@code JsonSource} surface and a {@link Control} that adapts it to the {@link JsonController}.
  */
 public final class JsonPipelineImpl implements JsonPipeline
 {
-    private static final int INITIAL_SCOPES = 4;
-
     private final JsonParserEx parser;
     private final Source source;
     private final Control control;
@@ -59,11 +56,6 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonPipelineResult result;
     private final boolean lenient;
 
-    // the parser the pump pulls events from: the pipeline's own parser, or the stand-in for it while an escaped
-    // scope is open; held here and in the source and control views so a scope swaps all three at once
-    private JsonParserEx driver;
-    private JsonEscapedParser[] scopes;
-    private int scopeDepth;
     private boolean suspended;
     private boolean suspendedByFlush;
     private boolean completed;
@@ -79,7 +71,6 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonEnvelope envelope)
     {
         this.parser = parser;
-        this.driver = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
         this.control = new Control(this, parser, envelope);
@@ -95,8 +86,6 @@ public final class JsonPipelineImpl implements JsonPipeline
     public void reset()
     {
         parser.reset();
-        drive(parser);
-        scopeDepth = 0;
         root.reset();
         suspended = false;
         suspendedByFlush = false;
@@ -136,7 +125,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     @Override
     public int remaining()
     {
-        return driver.remaining();
+        return parser.remaining();
     }
 
     @Override
@@ -170,7 +159,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             }
             else
             {
-                driver.wrap(buffer, offset, limit, last);
+                parser.wrap(buffer, offset, limit, last);
             }
             if (resumingDocumentEnd && status == Status.ADVANCED)
             {
@@ -181,7 +170,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 // pull with the requested mode before any tokenizer advance, so a segmentable() request lands
                 // on the just-delivered boundary; a null event means the window is consumed (no hasNextEvent()
                 // gate here, which would advance the tokenizer past the boundary before the mode is applied)
-                final JsonEvent event = driver.nextEvent(control.mode());
+                final JsonEvent event = parser.nextEvent(control.mode());
                 if (event == null)
                 {
                     break;
@@ -272,54 +261,20 @@ public final class JsonPipelineImpl implements JsonPipeline
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
-        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - driver.remaining();
+        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
         return result.set(status, consumed, produced);
     }
 
-    private void drive(
-        JsonParserEx driver)
-    {
-        this.driver = driver;
-        source.parser = driver;
-        control.parser = driver;
-    }
-
-    // Stands a scope in for the parser: from the next event pulled, the string value is parsed as a document
-    // and delivered between the scope markers. Asking again before that pull changes nothing, and a scope
-    // requested within a scope wraps the scope in force.
     private void escape()
     {
-        if (!(driver instanceof JsonEscapedParser current && current.pending()))
-        {
-            if (scopes == null)
-            {
-                scopes = new JsonEscapedParser[INITIAL_SCOPES];
-            }
-            else if (scopeDepth == scopes.length)
-            {
-                scopes = Arrays.copyOf(scopes, scopeDepth * 2);
-            }
-            if (scopes[scopeDepth] == null)
-            {
-                scopes[scopeDepth] = new JsonEscapedParser(driver, this::unscope);
-            }
-            final JsonEscapedParser scope = scopes[scopeDepth++];
-            scope.open();
-            drive(scope);
-        }
-    }
-
-    private void unscope()
-    {
-        scopeDepth--;
-        drive(scopeDepth == 0 ? parser : scopes[scopeDepth - 1]);
+        parser.escaped();
     }
 
     private Status completeDocument(
         Status completed)
     {
         Status status = completed;
-        JsonEvent event = driver.nextEvent(control.mode());
+        JsonEvent event = parser.nextEvent(control.mode());
         while (event != null && status == Status.COMPLETED)
         {
             status = root.transform(control, source, event);
@@ -331,7 +286,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             else
             {
                 status = Status.COMPLETED;
-                event = driver.nextEvent(control.mode());
+                event = parser.nextEvent(control.mode());
             }
         }
         return status;
