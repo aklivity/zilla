@@ -318,6 +318,15 @@ public class ShareIT
 
     @Test
     @Specification({
+        "${app}/reject.unsupported.version.heartbeat.error/client",
+        "${app}/reject.unsupported.version.heartbeat.error/server"})
+    public void shouldRejectUnsupportedVersionHeartbeatError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reject.unsupported.version.metadata.range/client",
         "${app}/reject.unsupported.version.metadata.range/server"})
     public void shouldRejectUnsupportedVersionMetadataRange() throws Exception
