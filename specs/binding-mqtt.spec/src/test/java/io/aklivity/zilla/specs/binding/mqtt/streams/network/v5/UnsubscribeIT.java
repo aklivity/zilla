@@ -121,4 +121,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.subscription/client",
+        "${net}/unsubscribe.shared.subscription/server"})
+    public void shouldUnsubscribeSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
 }

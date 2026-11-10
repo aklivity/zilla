@@ -334,4 +334,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription.non.successful/client",
+        "${net}/subscribe.shared.subscription.non.successful/server"})
+    public void shouldSubscribeSharedSubscriptionNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.and.exact.non.successful/client",
+        "${net}/subscribe.shared.and.exact.non.successful/server"})
+    public void shouldSubscribeSharedAndExactNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
 }
