@@ -85,6 +85,7 @@ import java.util.function.LongUnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
@@ -182,6 +183,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
 
     private static final int NO_FLAGS = 0b0000_0000;
+    private static final int NO_REASON_CODE = -1;
     private static final int RETAIN_MASK = 0b0000_0001;
     private static final int PUBLISH_QOS1_MASK = 0b0000_0010;
     private static final int PUBLISH_QOS2_MASK = 0b0000_0100;
@@ -1007,7 +1009,16 @@ public final class MqttClientFactory implements MqttStreamFactory
                 reasonCode = PROTOCOL_ERROR;
             }
 
-            if (reasonCode == SUCCESS)
+            if (reasonCode == SUCCESS &&
+                mqttPublishHeader.qos == MqttQoS.EXACTLY_ONCE.value() &&
+                client.qos2Subscribes.containsKey(mqttPublishHeader.packetId))
+            {
+                client.onDecodePublishRetransmit(traceId, authorization, mqttPublishHeader.packetId);
+                client.decodeablePacketBytes = 0;
+                client.decoder = decodePacketType;
+                progress = packetLimit;
+            }
+            else if (reasonCode == SUCCESS)
             {
                 final Varuint32FW firstSubscriptionId = subscriptionIdsRW.build().matchFirst(s -> true);
                 final int subscriptionId = firstSubscriptionId != null ? firstSubscriptionId.value() : 0;
@@ -1309,6 +1320,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
         private final Map<String, MqttSubscribeStream> sharedSubscribeStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
+        private final Int2IntHashMap qos2PubrecReasonCodes;
         private final Int2ObjectHashMap<String> topicAliases;
         private final long encodeBudgetId;
         private final GuardHandler guard;
@@ -1396,6 +1408,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             this.subscribeStreams = new Int2ObjectHashMap<>();
             this.sharedSubscribeStreams = new Object2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
+            this.qos2PubrecReasonCodes = new Int2IntHashMap(NO_REASON_CODE);
             this.topicAliases = new Int2ObjectHashMap<>();
             this.maximumPacketSize = maximumPacketSize;
             this.packetIdCounter = new AtomicInteger();
@@ -2006,6 +2019,24 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 stream.doSubscribeData(traceId, authorization, reserved, payload, dataEx);
             }
+        }
+
+        private void onDecodePublishRetransmit(
+            long traceId,
+            long authorization,
+            int packetId)
+        {
+            if (qos2PubrecReasonCodes.containsKey(packetId))
+            {
+                doEncodeAck(traceId, authorization, PUBREC_FIXED_HEADER, packetId, qos2PubrecReasonCodes.get(packetId));
+            }
+        }
+
+        private void releaseQos2(
+            int packetId)
+        {
+            qos2Subscribes.remove(packetId);
+            qos2PubrecReasonCodes.remove(packetId);
         }
 
         private void onDecodePubrel(
@@ -3611,12 +3642,16 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                 if (isError(reasonCode))
                 {
-                    client.qos2Subscribes.remove(packetId);
+                    client.releaseQos2(packetId);
+                }
+                else
+                {
+                    client.qos2PubrecReasonCodes.put(packetId, reasonCode);
                 }
             }
             else
             {
-                client.qos2Subscribes.remove(packetId);
+                client.releaseQos2(packetId);
                 client.doEncodeAck(traceId, authorization, PUBCOMP_FIXED_HEADER, packetId, reasonCode);
             }
         }
