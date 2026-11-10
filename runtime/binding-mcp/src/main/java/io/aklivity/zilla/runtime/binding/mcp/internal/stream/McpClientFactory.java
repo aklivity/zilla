@@ -354,7 +354,7 @@ public final class McpClientFactory implements McpStreamFactory
     private interface HttpResponseDecoder
     {
         int decode(
-            McpHttpStream http,
+            HttpStream http,
             long traceId,
             long authorization,
             long budgetId,
@@ -477,7 +477,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpc(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -501,7 +501,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -534,7 +534,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcNext(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -593,7 +593,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcEnd(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -655,7 +655,7 @@ public final class McpClientFactory implements McpStreamFactory
     // slot keeps its bytes and the value is only handed back once the whole string has arrived; a string that
     // would fill the slot can never be held whole, so it is a parse error
     private String jsonRpcStringValue(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization)
     {
@@ -680,7 +680,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcVersion(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -724,7 +724,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcId(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -763,7 +763,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -800,7 +800,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultEnd(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -834,7 +834,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcSkipObject(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -902,7 +902,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcMethod(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -945,7 +945,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -976,7 +976,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsNext(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1049,7 +1049,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsSkipValue(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1097,7 +1097,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsToken(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1124,7 +1124,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsProgress(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1147,7 +1147,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsTotal(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1170,7 +1170,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsMessage(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1197,7 +1197,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsElicitationId(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1224,7 +1224,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsUrl(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1251,7 +1251,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsMode(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1278,7 +1278,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsUri(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1305,7 +1305,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeIgnore(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1319,7 +1319,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void finalizeSseEvent(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization)
     {
@@ -1367,7 +1367,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void resetSseEvent(
-        McpHttpStream http)
+        HttpStream http)
     {
         http.sseEventId = null;
         http.sseEventRetry = -1L;
@@ -1539,7 +1539,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected final long affinity;
         protected final String sessionId;
 
-        protected HttpStream http;
+        protected HttpJsonStream http;
         protected String credentials;
         protected long guardSessionId = GuardHandler.NOT_AUTHORIZED;
         protected int clientCapabilities;
@@ -1570,7 +1570,7 @@ public final class McpClientFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             String sessionId,
-            Function<McpStream, HttpStream> httpFactory)
+            Function<McpStream, HttpJsonStream> httpFactory)
         {
             this.sender = sender;
             this.originId = originId;
@@ -1731,7 +1731,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return null;
         }
@@ -2006,7 +2006,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2014,7 +2014,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void onNetReset(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2220,7 +2220,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long keepaliveId = Signaler.NO_CANCEL_ID;
         private long lastActiveAt;
         private int failedKeepalives;
-        private HttpEventStream sse;
+        private HttpSseStream sse;
         boolean eventsUnsupported;
 
         private boolean pendingConnect;
@@ -2309,7 +2309,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return sse;
         }
@@ -2498,7 +2498,7 @@ public final class McpClientFactory implements McpStreamFactory
                     {
                         final String16FW resumeId = challengeEx.resume().id();
                         final String lastEventId = resumeId != null ? resumeId.asString() : null;
-                        sse = new HttpEventStream(this, lastEventId);
+                        sse = new HttpSseStream(this, lastEventId);
                         sse.doNetStart(traceId, authorization);
                         scheduleKeepalive(traceId);
                     }
@@ -2801,7 +2801,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2817,7 +2817,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetReset(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2944,7 +2944,7 @@ public final class McpClientFactory implements McpStreamFactory
         final int requestId;
         int contentLength = -1;
         long timeout;
-        private HttpEventStream sse;
+        private HttpSseStream sse;
 
         JsonParserEx paramsParser;
         long paramsParserProgress;
@@ -3013,7 +3013,7 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            Function<McpStream, HttpStream> httpFactory)
+            Function<McpStream, HttpJsonStream> httpFactory)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity,
                 session.sessionId, httpFactory);
@@ -3472,7 +3472,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return sse;
         }
@@ -3505,7 +3505,7 @@ public final class McpClientFactory implements McpStreamFactory
                         final String prefixedId = suffix != null && !suffix.isEmpty()
                             ? requestId + ":" + suffix
                             : null;
-                        sse = new HttpEventStream(this, prefixedId);
+                        sse = new HttpSseStream(this, prefixedId);
                         sse.doNetStart(traceId, authorization);
                     }
                     break;
@@ -3689,7 +3689,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -3976,7 +3976,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class McpHttpStream
+    private abstract class HttpStream
     {
         protected final McpStream mcp;
         protected final long originId;
@@ -4027,7 +4027,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected int state;
 
-        McpHttpStream(
+        HttpStream(
             McpStream mcp)
         {
             this.mcp = mcp;
@@ -4196,7 +4196,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class HttpStream extends McpHttpStream
+    private abstract class HttpJsonStream extends HttpStream
     {
         private int initialPad;
 
@@ -4205,7 +4205,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
-        HttpStream(
+        HttpJsonStream(
             McpStream mcp)
         {
             super(mcp);
@@ -4809,7 +4809,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpInitializeRequest extends HttpStream
+    private final class HttpInitializeRequest extends HttpJsonStream
     {
         private boolean inCapabilities;
         private String capabilityCategory;
@@ -4977,7 +4977,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpNotifyInitialized extends HttpStream
+    private final class HttpNotifyInitialized extends HttpJsonStream
     {
         HttpNotifyInitialized(
             McpStream mcp)
@@ -5013,7 +5013,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpKeepalive extends HttpStream
+    private final class HttpKeepalive extends HttpJsonStream
     {
         HttpKeepalive(
             McpStream mcp)
@@ -5053,11 +5053,11 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpEventStream extends McpHttpStream
+    private final class HttpSseStream extends HttpStream
     {
         private final String lastEventId;
 
-        HttpEventStream(
+        HttpSseStream(
             McpStream mcp,
             String lastEventId)
         {
@@ -5376,7 +5376,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class HttpRequestStream extends HttpStream
+    private abstract class HttpRequestStream extends HttpJsonStream
     {
         protected final McpRequestStream request;
         protected int paramsForwarded;
