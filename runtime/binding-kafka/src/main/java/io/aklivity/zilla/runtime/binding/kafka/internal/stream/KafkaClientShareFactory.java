@@ -124,6 +124,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataEx
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaShareAckType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaShareAcquiredFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaShareBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaShareDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaShareFlushExFW;
@@ -188,16 +189,11 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     private static final int MEMBER_EPOCH_LEAVE = -1;
     private static final int SHARE_SESSION_EPOCH_INITIAL = 0;
     private static final int SHARE_SESSION_EPOCH_FINAL = -1;
-    private static final int SHARE_FETCH_MAX_WAIT_MILLIS = 500;
-    private static final int SHARE_FETCH_MIN_BYTES = 1;
 
     private static final int ACKNOWLEDGE_TYPE_ACCEPT = 1;
     private static final int ACKNOWLEDGE_TYPE_RELEASE = 2;
     private static final int ACKNOWLEDGE_TYPE_REJECT = 3;
 
-    private static final int RESPONSE_OVERHEAD_FIXED = 256;
-    private static final int RESPONSE_OVERHEAD_PARTITION = 256;
-    private static final int RESPONSE_OVERHEAD_ACQUIRED = 19;
     private static final int DEBITOR_CLAIM_MINIMUM = 1024;
     private static final long NO_CORRELATION_ID = -1L;
     private static final int TOPIC_ID_SIZE = 16;
@@ -333,14 +329,22 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     private final KafkaShareClientDecoder decodeShareRecordBatches = this::decodeShareRecordBatches;
     private final KafkaShareClientDecoder decodeShareRecordBatch = this::decodeShareRecordBatch;
     private final KafkaShareClientDecoder decodeShareRecords = this::decodeShareRecords;
+    private final KafkaShareClientDecoder decodeShareRecordLength = this::decodeShareRecordLength;
     private final KafkaShareClientDecoder decodeShareRecord = this::decodeShareRecord;
+    private final KafkaShareClientDecoder decodeShareRecordInit = this::decodeShareRecordInit;
     private final KafkaShareClientDecoder decodeShareRecordValue = this::decodeShareRecordValue;
+    private final KafkaShareClientDecoder decodeShareRecordSkip = this::decodeShareRecordSkip;
     private final KafkaShareClientDecoder decodeShareRecordBatchSkip = this::decodeShareRecordBatchSkip;
     private final KafkaShareClientDecoder decodeShareRecordSetSkip = this::decodeShareRecordSetSkip;
     private final KafkaShareClientDecoder decodeShareAcquired = this::decodeShareAcquired;
+    private final KafkaShareClientDecoder decodeShareAcquiredRanges = this::decodeShareAcquiredRanges;
+    private final KafkaShareClientDecoder decodeShareAcquiredRange = this::decodeShareAcquiredRange;
     private final KafkaShareClientDecoder decodeShareFetchPartitionTail = this::decodeShareFetchPartitionTail;
     private final KafkaShareClientDecoder decodeShareFetchTopicTail = this::decodeShareFetchTopicTail;
     private final KafkaShareClientDecoder decodeShareFetchTail = this::decodeShareFetchTail;
+    private final KafkaShareClientDecoder decodeShareFetchEndpoints = this::decodeShareFetchEndpoints;
+    private final KafkaShareClientDecoder decodeShareFetchEndpoint = this::decodeShareFetchEndpoint;
+    private final KafkaShareClientDecoder decodeShareFetchTrailer = this::decodeShareFetchTrailer;
     private final KafkaShareClientDecoder decodeShareAcknowledgeResponse = this::decodeShareAcknowledgeResponse;
     private final KafkaShareClientDecoder decodeSkipResponse = this::decodeSkipResponse;
     private final KafkaShareClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
@@ -348,6 +352,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
     private final int kafkaTypeId;
     private final int proxyTypeId;
+    private final int shareFetchMaxWaitMillis;
+    private final int shareFetchMinBytes;
+    private final int decodeMaxBytes;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
@@ -366,10 +373,13 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
+        this.shareFetchMaxWaitMillis = config.clientShareFetchMaxWaitMillis();
+        this.shareFetchMinBytes = config.clientShareFetchMinBytes();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
+        this.decodeMaxBytes = decodePool.slotCapacity();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
@@ -401,9 +411,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         final String memberId = kafkaShareBeginEx.memberId().asString();
         final String topic = kafkaShareBeginEx.topic().asString();
         final int recordsMax = kafkaShareBeginEx.recordsMax();
-        final KafkaRecordFilter filter = kafkaShareBeginEx.filters().isEmpty()
-            ? null
-            : new KafkaRecordFilter(kafkaShareBeginEx.filters());
 
         MessageConsumer newStream = null;
 
@@ -423,7 +430,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 memberId,
                 topic,
                 recordsMax,
-                filter,
                 binding.servers(),
                 binding.sasl(),
                 binding.guard)::onApplication;
@@ -1105,19 +1111,14 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         int progress,
         int limit)
     {
-        final int length = limit - progress;
+        final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
 
-        if (length != 0)
+        if (responseHeader != null)
         {
-            final int responseLimit = responseLimitOf(client, traceId, buffer, progress, limit);
+            progress = responseHeader.limit();
 
-            if (responseLimit != -1)
-            {
-                progress = responseHeaderRO.limit();
-
-                client.decodableResponseBytes = responseLimit - progress;
-                client.decoder = decodeShareFetch;
-            }
+            client.decodableResponseBytes = responseHeader.length();
+            client.decoder = decodeShareFetch;
         }
 
         return progress;
@@ -1153,10 +1154,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             {
                 leader.onDecodeFetchError(traceId, error);
             }
-        }
-        else
-        {
-            client.decoder = decodeReject;
         }
 
         return progress;
@@ -1201,10 +1198,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             leader.decodablePartitions = topicResponse.partitionCount();
             client.decoder = decodeShareFetchPartitions;
         }
-        else
-        {
-            client.decoder = decodeReject;
-        }
 
         return progress;
     }
@@ -1245,7 +1238,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         {
             final int error = partition.error();
             final int recordSetBytes = Math.max(partition.recordSetLength(), 0);
-            final int acquiredOffset = partition.limit() + recordSetBytes;
 
             progress = partition.limit();
 
@@ -1256,13 +1248,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             {
                 leader.decodableRecordSetBytes = recordSetBytes;
 
-                final boolean acquired = decodeAcquired(leader, buffer, acquiredOffset, limit);
-
-                if (!acquired)
-                {
-                    client.decoder = decodeReject;
-                }
-                else if (recordSetBytes == 0)
+                if (recordSetBytes == 0)
                 {
                     client.decoder = decodeShareAcquired;
                 }
@@ -1274,43 +1260,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 }
             }
         }
-        else
-        {
-            client.decoder = decodeReject;
-        }
 
         return progress;
-    }
-
-    private boolean decodeAcquired(
-        LeaderClient leader,
-        DirectBufferEx buffer,
-        int progress,
-        int limit)
-    {
-        boolean acquired = false;
-
-        final PartitionResponsePart2FW part2 = sharePartitionResponsePart2RO.tryWrap(buffer, progress, limit);
-        if (part2 != null)
-        {
-            acquired = true;
-            progress = part2.limit();
-
-            for (int index = 0; acquired && index < part2.acquiredRecordCount(); index++)
-            {
-                final AcquiredRecordResponseFW acquiredRecord = acquiredRecordResponseRO.tryWrap(buffer, progress, limit);
-                acquired = acquiredRecord != null;
-
-                if (acquired)
-                {
-                    leader.onDecodeAcquired(acquiredRecord.firstOffset(), acquiredRecord.lastOffset(),
-                        acquiredRecord.deliveryCount());
-                    progress = acquiredRecord.limit();
-                }
-            }
-        }
-
-        return acquired;
     }
 
     private int decodeShareRecordSetSkip(
@@ -1403,9 +1354,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 client.decoder = decodeShareRecords;
             }
         }
-        else
+        else if (limit - progress >= leader.decodableRecordSetBytes)
         {
-            client.decoder = decodeReject;
+            client.decoder = decodeShareRecordSetSkip;
         }
 
         return progress;
@@ -1450,7 +1401,47 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     {
         final LeaderClient leader = (LeaderClient) client;
 
-        client.decoder = leader.decodableRecords == 0 ? decodeShareRecordBatches : decodeShareRecord;
+        client.decoder = leader.decodableRecords == 0 ? decodeShareRecordBatches : decodeShareRecordLength;
+
+        return progress;
+    }
+
+    private int decodeShareRecordLength(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final Varint32FW recordLength = recordLengthRO.tryWrap(buffer, progress, limit);
+
+        if (recordLength != null)
+        {
+            final int sizeofRecord = recordLength.sizeof() + recordLength.value();
+
+            if (recordLength.value() < 0 || sizeofRecord > leader.decodableRecordBatchBytes)
+            {
+                client.decoder = decodeReject;
+            }
+            else
+            {
+                leader.decodableRecordBytes = sizeofRecord;
+
+                if (limit - progress >= sizeofRecord)
+                {
+                    client.decoder = decodeShareRecord;
+                }
+                else if (sizeofRecord > decodeMaxBytes)
+                {
+                    client.decoder = decodeShareRecordInit;
+                }
+            }
+        }
 
         return progress;
     }
@@ -1468,76 +1459,121 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     {
         final LeaderClient leader = (LeaderClient) client;
         final KafkaShareStream stream = leader.delegate;
+        final RecordHeaderFW recordHeader = recordHeaderRO.tryWrap(buffer, progress, limit);
 
-        decode:
+        if (recordHeader == null)
         {
-            final RecordHeaderFW recordHeader = recordHeaderRO.tryWrap(buffer, progress, limit);
-            final Varint32FW recordLength = recordLengthRO.tryWrap(buffer, progress, limit);
-
-            if (recordHeader == null || recordLength == null || recordHeader.offset() + recordLength.value() > limit)
-            {
-                client.decoder = decodeReject;
-                break decode;
-            }
-
-            final int sizeofRecord = recordLength.sizeof() + recordLength.value();
+            client.decoder = decodeReject;
+        }
+        else if (stream.leaving())
+        {
+            client.decoder = decodeShareRecordSkip;
+        }
+        else
+        {
+            final int sizeofRecord = leader.decodableRecordBytes;
             final int recordLimit = progress + sizeofRecord;
             final long recordOffset = leader.decodeBatchOffset + recordHeader.offsetDelta();
-            final int deliveryCount = leader.acquiredDeliveryCount(recordOffset);
-
-            if (deliveryCount == 0 || stream.leaving())
-            {
-                progress = recordLimit;
-                leader.onDecodeRecordConsumed(sizeofRecord);
-                client.decoder = decodeShareRecords;
-                break decode;
-            }
-
             final OctetsFW key = recordHeader.key();
             final int valueLength = recordHeader.valueLength();
             final int valueOffset = recordHeader.limit();
             final int valueSize = Math.max(valueLength, 0);
-            final RecordTrailerFW recordTrailer = recordTrailerRO.wrap(buffer, valueOffset + valueSize, recordLimit);
-            final int headerCount = recordTrailer.headerCount();
-            final DirectBufferEx headers = wrapHeaders(buffer, recordTrailer.limit(), recordLimit - recordTrailer.limit());
-
-            if (stream.filter != null && !stream.filter.test(key, headers, headerCount))
-            {
-                progress = recordLimit;
-                leader.onDecodeRecordSkipped(recordOffset);
-                leader.onDecodeRecordConsumed(sizeofRecord);
-                client.decoder = decodeShareRecords;
-                break decode;
-            }
-
-            final long timestamp = leader.decodeBatchTimestamp + recordHeader.timestampDelta();
             final int deliverable = stream.replyClaim(traceId, valueSize);
-            final OctetsFW value = valueLength != -1 ? valueRO.wrap(buffer, valueOffset, valueOffset + valueLength) : null;
 
             if (deliverable == valueSize + stream.replyPad)
             {
-                stream.doAppRecord(traceId, deliverable, leader.decodePartition.id, recordOffset, timestamp, deliveryCount,
+                final long timestamp = leader.decodeBatchTimestamp + recordHeader.timestampDelta();
+                final OctetsFW value = valueLength != -1 ? valueRO.wrap(buffer, valueOffset, valueOffset + valueLength) : null;
+                final RecordTrailerFW recordTrailer = recordTrailerRO.wrap(buffer, valueOffset + valueSize, recordLimit);
+                final int headerCount = recordTrailer.headerCount();
+                final DirectBufferEx headers = wrapHeaders(buffer, recordTrailer.limit(), recordLimit - recordTrailer.limit());
+
+                stream.doAppRecord(traceId, deliverable, leader.decodePartition.id, recordOffset, timestamp,
                     key, value, headerCount, headers);
 
                 progress = recordLimit;
-                leader.onDecodeRecordDelivered(recordOffset);
-                leader.onDecodeRecordConsumed(sizeofRecord);
+                leader.onDecodeRecordDelivered(recordOffset, sizeofRecord);
                 client.decoder = decodeShareRecords;
             }
             else if (deliverable > stream.replyPad)
             {
-                final int fragment = deliverable - stream.replyPad;
-                final OctetsFW valueInit = valueRO.wrap(buffer, valueOffset, valueOffset + fragment);
-
-                stream.doAppRecordInit(traceId, deliverable, valueSize - fragment, leader.decodePartition.id, recordOffset,
-                    timestamp, deliveryCount, key, valueInit);
-
-                leader.decodeValueProgress = fragment;
-                client.decoder = decodeShareRecordValue;
+                progress = doDecodeShareRecordInit(leader, traceId, deliverable, buffer, progress, limit, recordHeader);
             }
         }
 
         return progress;
+    }
+
+    private int decodeShareRecordInit(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final KafkaShareStream stream = leader.delegate;
+
+        if (stream.leaving())
+        {
+            client.decoder = decodeShareRecordSkip;
+        }
+        else if (limit - progress >= Math.min(decodeMaxBytes, leader.decodableRecordBytes))
+        {
+            final RecordHeaderFW recordHeader = recordHeaderRO.tryWrap(buffer, progress, limit);
+            final int valueSize = recordHeader != null ? Math.max(recordHeader.valueLength(), 0) : 0;
+            final int valueAvailable = recordHeader != null ? Math.min(valueSize, limit - recordHeader.limit()) : 0;
+
+            if (recordHeader == null || valueSize > 0 && valueAvailable == 0)
+            {
+                client.decoder = decodeReject;
+            }
+            else
+            {
+                final int deliverable = stream.replyClaim(traceId, valueAvailable);
+
+                if (deliverable > stream.replyPad)
+                {
+                    progress = doDecodeShareRecordInit(leader, traceId, deliverable, buffer, progress, limit, recordHeader);
+                }
+            }
+        }
+
+        return progress;
+    }
+
+    private int doDecodeShareRecordInit(
+        LeaderClient leader,
+        long traceId,
+        int deliverable,
+        DirectBufferEx buffer,
+        int progress,
+        int limit,
+        RecordHeaderFW recordHeader)
+    {
+        final KafkaShareStream stream = leader.delegate;
+        final long recordOffset = leader.decodeBatchOffset + recordHeader.offsetDelta();
+        final long timestamp = leader.decodeBatchTimestamp + recordHeader.timestampDelta();
+        final OctetsFW key = recordHeader.key();
+        final int valueOffset = recordHeader.limit();
+        final int valueSize = Math.max(recordHeader.valueLength(), 0);
+        final int fragment = deliverable - stream.replyPad;
+        final OctetsFW valueInit = valueRO.wrap(buffer, valueOffset, valueOffset + fragment);
+        final int recordProgress = recordHeader.sizeof() + fragment;
+
+        stream.doAppRecordInit(traceId, deliverable, valueSize - fragment, leader.decodePartition.id, recordOffset,
+            timestamp, key, valueInit);
+
+        leader.decodeRecordOffset = recordOffset;
+        leader.decodableRecordValueBytes = valueSize - fragment;
+        leader.onDecodeRecordProgress(recordProgress);
+        leader.decoder = decodeShareRecordValue;
+
+        return progress + recordProgress;
     }
 
     private int decodeShareRecordValue(
@@ -1553,59 +1589,78 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
     {
         final LeaderClient leader = (LeaderClient) client;
         final KafkaShareStream stream = leader.delegate;
+        final int length = limit - progress;
 
-        decode:
+        if (stream.leaving())
         {
-            final RecordHeaderFW recordHeader = recordHeaderRO.tryWrap(buffer, progress, limit);
-            final Varint32FW recordLength = recordLengthRO.tryWrap(buffer, progress, limit);
+            client.decoder = decodeShareRecordSkip;
+        }
+        else if (leader.decodableRecordValueBytes == 0 && length >= decodeMaxBytes && length < leader.decodableRecordBytes)
+        {
+            client.decoder = decodeReject;
+        }
+        else if (length >= Math.min(decodeMaxBytes, leader.decodableRecordBytes))
+        {
+            final int valueRemaining = leader.decodableRecordValueBytes;
+            final int valueAvailable = Math.min(length, valueRemaining);
+            final int deliverable = stream.replyClaim(traceId, valueAvailable);
+            final int fragment = deliverable - stream.replyPad;
 
-            if (recordHeader == null || recordLength == null)
+            if (fragment >= 0 && (fragment > 0 || valueAvailable == 0))
             {
-                client.decoder = decodeReject;
-                break decode;
+                if (fragment == valueRemaining && length >= leader.decodableRecordBytes)
+                {
+                    final int recordProgress = leader.decodableRecordBytes;
+                    final int recordLimit = progress + recordProgress;
+                    final OctetsFW value = valueRO.wrap(buffer, progress, progress + fragment);
+                    final RecordTrailerFW recordTrailer = recordTrailerRO.wrap(buffer, progress + fragment, recordLimit);
+                    final int headersOffset = recordTrailer.limit();
+                    final DirectBufferEx headers = wrapHeaders(buffer, headersOffset, recordLimit - headersOffset);
+
+                    stream.doAppRecordFin(traceId, deliverable, leader.decodePartition.id, leader.decodeRecordOffset,
+                        value, recordTrailer.headerCount(), headers);
+
+                    progress = recordLimit;
+                    leader.onDecodeRecordDelivered(leader.decodeRecordOffset, recordProgress);
+                    client.decoder = decodeShareRecords;
+                }
+                else
+                {
+                    final OctetsFW value = valueRO.wrap(buffer, progress, progress + fragment);
+
+                    stream.doAppRecordCont(traceId, deliverable, value);
+
+                    progress += fragment;
+                    leader.decodableRecordValueBytes -= fragment;
+                    leader.onDecodeRecordProgress(fragment);
+                }
             }
+        }
 
-            final int sizeofRecord = recordLength.sizeof() + recordLength.value();
-            final int recordLimit = progress + sizeofRecord;
-            final long recordOffset = leader.decodeBatchOffset + recordHeader.offsetDelta();
-            final int deliveryCount = leader.acquiredDeliveryCount(recordOffset);
-            final int valueSize = Math.max(recordHeader.valueLength(), 0);
-            final int valueOffset = recordHeader.limit();
-            final int remaining = valueSize - leader.decodeValueProgress;
-            final int deliverable = stream.replyClaim(traceId, remaining);
+        return progress;
+    }
 
-            if (stream.leaving())
-            {
-                leader.decodeValueProgress = 0;
-                progress = recordLimit;
-                leader.onDecodeRecordConsumed(sizeofRecord);
-                client.decoder = decodeShareRecords;
-            }
-            else if (deliverable == remaining + stream.replyPad)
-            {
-                final OctetsFW value = valueRO.wrap(buffer, valueOffset + leader.decodeValueProgress, valueOffset + valueSize);
-                final RecordTrailerFW recordTrailer = recordTrailerRO.wrap(buffer, valueOffset + valueSize, recordLimit);
-                final DirectBufferEx headers = wrapHeaders(buffer, recordTrailer.limit(), recordLimit - recordTrailer.limit());
+    private int decodeShareRecordSkip(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final int skip = Math.min(leader.decodableRecordBytes, limit - progress);
 
-                stream.doAppRecordFin(traceId, deliverable, leader.decodePartition.id, recordOffset, deliveryCount,
-                    value, recordTrailer.headerCount(), headers);
+        progress += skip;
+        leader.onDecodeRecordProgress(skip);
 
-                leader.decodeValueProgress = 0;
-                progress = recordLimit;
-                leader.onDecodeRecordDelivered(recordOffset);
-                leader.onDecodeRecordConsumed(sizeofRecord);
-                client.decoder = decodeShareRecords;
-            }
-            else if (deliverable > stream.replyPad)
-            {
-                final int fragment = deliverable - stream.replyPad;
-                final int fragmentOffset = valueOffset + leader.decodeValueProgress;
-                final OctetsFW value = valueRO.wrap(buffer, fragmentOffset, fragmentOffset + fragment);
-
-                stream.doAppRecordCont(traceId, deliverable, value);
-
-                leader.decodeValueProgress += fragment;
-            }
+        if (leader.decodableRecordBytes == 0)
+        {
+            leader.decodableRecords--;
+            client.decoder = decodeShareRecords;
         }
 
         return progress;
@@ -1622,26 +1677,59 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         int progress,
         int limit)
     {
+        final LeaderClient leader = (LeaderClient) client;
         final PartitionResponsePart2FW part2 = sharePartitionResponsePart2RO.tryWrap(buffer, progress, limit);
 
         if (part2 != null)
         {
             progress = part2.limit();
 
-            for (int index = 0; index < part2.acquiredRecordCount(); index++)
-            {
-                final AcquiredRecordResponseFW acquiredRecord = acquiredRecordResponseRO.tryWrap(buffer, progress, limit);
-                if (acquiredRecord != null)
-                {
-                    progress = acquiredRecord.limit();
-                }
-            }
-
-            client.decoder = decodeShareFetchPartitionTail;
+            leader.decodableAcquired = part2.acquiredRecordCount();
+            client.decoder = decodeShareAcquiredRanges;
         }
-        else
+
+        return progress;
+    }
+
+    private int decodeShareAcquiredRanges(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+
+        client.decoder = leader.decodableAcquired == 0 ? decodeShareFetchPartitionTail : decodeShareAcquiredRange;
+
+        return progress;
+    }
+
+    private int decodeShareAcquiredRange(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final AcquiredRecordResponseFW acquiredRecord = acquiredRecordResponseRO.tryWrap(buffer, progress, limit);
+
+        if (acquiredRecord != null)
         {
-            client.decoder = decodeReject;
+            progress = acquiredRecord.limit();
+
+            leader.onDecodeAcquired(acquiredRecord.firstOffset(), acquiredRecord.lastOffset(), acquiredRecord.deliveryCount());
+            leader.decodableAcquired--;
+            client.decoder = decodeShareAcquiredRanges;
         }
 
         return progress;
@@ -1665,13 +1753,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         {
             progress = part3.limit();
 
-            leader.onDecodePartitionComplete();
+            leader.onDecodePartitionComplete(traceId);
             leader.decodablePartitions--;
             client.decoder = decodeShareFetchPartitions;
-        }
-        else
-        {
-            client.decoder = decodeReject;
         }
 
         return progress;
@@ -1698,10 +1782,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             leader.decodableTopics--;
             client.decoder = decodeShareFetchTopics;
         }
-        else
-        {
-            client.decoder = decodeReject;
-        }
 
         return progress;
     }
@@ -1720,43 +1800,81 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         final LeaderClient leader = (LeaderClient) client;
         final ShareFetchResponsePart2FW part2 = shareFetchResponsePart2RO.tryWrap(buffer, progress, limit);
 
-        boolean parsed = part2 != null;
-
-        if (parsed)
+        if (part2 != null)
         {
             progress = part2.limit();
 
-            for (int node = 0; parsed && node < part2.nodeEndpointCount(); node++)
-            {
-                final BrokerMetadataFW endpoint = brokerMetadataRO.tryWrap(buffer, progress, limit);
-                parsed = endpoint != null;
-
-                if (parsed)
-                {
-                    leader.delegate.onBrokerEndpoint(endpoint.nodeId(), endpoint.host().asString(), endpoint.port());
-                    progress = endpoint.limit();
-                }
-            }
-
-            final ShareFetchResponsePart3FW part3 = parsed ? shareFetchResponsePart3RO.tryWrap(buffer, progress, limit) : null;
-            parsed = part3 != null;
-
-            if (parsed)
-            {
-                progress = part3.limit();
-            }
+            leader.decodableEndpoints = part2.nodeEndpointCount();
+            client.decoder = decodeShareFetchEndpoints;
         }
 
-        if (parsed)
+        return progress;
+    }
+
+    private int decodeShareFetchEndpoints(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+
+        client.decoder = leader.decodableEndpoints == 0 ? decodeShareFetchTrailer : decodeShareFetchEndpoint;
+
+        return progress;
+    }
+
+    private int decodeShareFetchEndpoint(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final BrokerMetadataFW endpoint = brokerMetadataRO.tryWrap(buffer, progress, limit);
+
+        if (endpoint != null)
         {
+            progress = endpoint.limit();
+
+            leader.delegate.onBrokerEndpoint(endpoint.nodeId(), endpoint.host().asString(), endpoint.port());
+            leader.decodableEndpoints--;
+            client.decoder = decodeShareFetchEndpoints;
+        }
+
+        return progress;
+    }
+
+    private int decodeShareFetchTrailer(
+        KafkaShareClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final LeaderClient leader = (LeaderClient) client;
+        final ShareFetchResponsePart3FW part3 = shareFetchResponsePart3RO.tryWrap(buffer, progress, limit);
+
+        if (part3 != null)
+        {
+            progress = part3.limit();
+
             client.decoder = decodeReject;
             leader.onDecodeFetch(traceId);
-        }
-        else
-        {
-            client.decoder = decodeReject;
-            progress = limit;
-            client.cleanupNetwork(traceId);
         }
 
         return progress;
@@ -1838,7 +1956,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private final String memberId;
         private final String topic;
         private final int recordsMax;
-        private final KafkaRecordFilter filter;
         private final List<KafkaServerConfig> servers;
         private final KafkaSaslConfig sasl;
         private final GuardHandler guard;
@@ -1880,7 +1997,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             String memberId,
             String topic,
             int recordsMax,
-            KafkaRecordFilter filter,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
             GuardHandler guard)
@@ -1896,7 +2012,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             this.memberId = memberId;
             this.topic = topic;
             this.recordsMax = recordsMax;
-            this.filter = filter;
             this.servers = servers;
             this.sasl = sasl;
             this.guard = guard;
@@ -2420,7 +2535,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             int partitionId,
             long partitionOffset,
             long timestamp,
-            int deliveryCount,
             OctetsFW key,
             OctetsFW value,
             int headerCount,
@@ -2428,7 +2542,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         {
             final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .share(s -> setRecord(s, timestamp, deliveryCount, partitionId, partitionOffset, key, headerCount, headers))
+                .share(s -> setRecord(s, timestamp, partitionId, partitionOffset, key, headerCount, headers))
                 .build();
 
             doApplicationRecord(traceId, COMPLETE, reserved, value, kafkaDataEx);
@@ -2441,7 +2555,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             int partitionId,
             long partitionOffset,
             long timestamp,
-            int deliveryCount,
             OctetsFW key,
             OctetsFW valueInit)
         {
@@ -2449,7 +2562,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 .typeId(kafkaTypeId)
                 .share(s -> s.deferred(deferred)
                              .timestamp(timestamp)
-                             .deliveryCount(deliveryCount)
                              .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset))
                              .key(k -> setKey(k, key)))
                 .build();
@@ -2470,14 +2582,13 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             int reserved,
             int partitionId,
             long partitionOffset,
-            int deliveryCount,
             OctetsFW value,
             int headerCount,
             DirectBufferEx headers)
         {
             final KafkaDataExFW kafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .share(s -> setRecordFin(s, deliveryCount, partitionId, partitionOffset, headerCount, headers))
+                .share(s -> setRecordFin(s, partitionId, partitionOffset, headerCount, headers))
                 .build();
 
             doApplicationRecord(traceId, FIN, reserved, value, kafkaDataEx);
@@ -2486,7 +2597,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private void setRecord(
             KafkaShareDataExFW.Builder share,
             long timestamp,
-            int deliveryCount,
             int partitionId,
             long partitionOffset,
             OctetsFW key,
@@ -2494,7 +2604,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             DirectBufferEx headers)
         {
             share.timestamp(timestamp)
-                 .deliveryCount(deliveryCount)
                  .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset))
                  .key(k -> setKey(k, key));
 
@@ -2503,14 +2612,12 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
         private void setRecordFin(
             KafkaShareDataExFW.Builder share,
-            int deliveryCount,
             int partitionId,
             long partitionOffset,
             int headerCount,
             DirectBufferEx headers)
         {
-            share.deliveryCount(deliveryCount)
-                 .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
+            share.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset));
 
             setHeaders(share, headerCount, headers);
         }
@@ -2527,6 +2634,41 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 final MessageHeaderFW header = messageHeaderRO.wrap(headers, headerProgress, headersLimit);
                 share.headersItem(i -> setHeader(i, header.key(), header.value()));
                 headerProgress = header.limit();
+            }
+        }
+
+        private void doApplicationAcquired(
+            long traceId,
+            int partitionId,
+            LongArrayList firstOffsets,
+            LongArrayList lastOffsets,
+            IntArrayList deliveryCounts)
+        {
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .shareAcquired(s -> setAcquired(s, partitionId, firstOffsets, lastOffsets, deliveryCounts))
+                .build();
+
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, 0, kafkaFlushEx);
+        }
+
+        private void setAcquired(
+            KafkaShareAcquiredFlushExFW.Builder shareAcquired,
+            int partitionId,
+            LongArrayList firstOffsets,
+            LongArrayList lastOffsets,
+            IntArrayList deliveryCounts)
+        {
+            shareAcquired.partitionId(partitionId);
+
+            for (int index = 0; index < firstOffsets.size(); index++)
+            {
+                final long firstOffset = firstOffsets.getLong(index);
+                final long lastOffset = lastOffsets.getLong(index);
+                final int deliveryCount = deliveryCounts.getInt(index);
+
+                shareAcquired.rangesItem(r -> r.firstOffset(firstOffset).lastOffset(lastOffset).deliveryCount(deliveryCount));
             }
         }
 
@@ -3912,7 +4054,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private final LongArrayList acquiredFirsts;
         private final LongArrayList acquiredLasts;
         private final IntArrayList acquiredCounts;
-        private final KafkaShareRanges pendingAcquired;
+        private final KafkaShareRanges decodeStreamed;
+        private final KafkaShareRanges decodeRejected;
         private final IntArrayList leaderMoves;
 
         private int sessionEpoch;
@@ -3923,9 +4066,13 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private int decodableRecordSetBytes;
         private int decodableRecordBatchBytes;
         private int decodableRecords;
+        private int decodableRecordBytes;
+        private int decodableRecordValueBytes;
+        private int decodableAcquired;
+        private int decodableEndpoints;
         private long decodeBatchOffset;
         private long decodeBatchTimestamp;
-        private int decodeValueProgress;
+        private long decodeRecordOffset;
         private SharePartition decodePartition;
 
         LeaderClient(
@@ -3946,7 +4093,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             this.acquiredFirsts = new LongArrayList();
             this.acquiredLasts = new LongArrayList();
             this.acquiredCounts = new IntArrayList();
-            this.pendingAcquired = new KafkaShareRanges();
+            this.decodeStreamed = new KafkaShareRanges();
+            this.decodeRejected = new KafkaShareRanges();
             this.leaderMoves = new IntArrayList();
             this.sessionEpoch = SHARE_SESSION_EPOCH_INITIAL;
         }
@@ -4016,15 +4164,6 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 acknowledgeable = partition.leaderId == nodeId && partition.acknowledged();
             }
             return acknowledgeable;
-        }
-
-        private int fetchMaxBytes()
-        {
-            final long acquiredMax = (long) RESPONSE_OVERHEAD_ACQUIRED * (delegate.recordsMax - delegate.inflightCount());
-            final long overhead = RESPONSE_OVERHEAD_FIXED + assignedCount() * (RESPONSE_OVERHEAD_PARTITION + acquiredMax);
-            final long capacity = Math.max(decodePool.slotCapacity() - overhead, 1L);
-
-            return (int) Math.min(delegate.replyBudget(), capacity);
         }
 
         private void onAssignmentChanged(
@@ -4138,9 +4277,9 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 .groupId(delegate.groupId)
                 .memberId(delegate.memberId)
                 .shareSessionEpoch(sessionEpoch)
-                .maxWaitMillis(SHARE_FETCH_MAX_WAIT_MILLIS)
-                .minBytes(SHARE_FETCH_MIN_BYTES)
-                .maxBytes(fetchMaxBytes())
+                .maxWaitMillis(shareFetchMaxWaitMillis)
+                .minBytes(shareFetchMinBytes)
+                .maxBytes(delegate.replyBudget())
                 .maxRecords(maxRecords)
                 .batchSize(maxRecords)
                 .topicCount(entryCount != 0 ? 1 : 0)
@@ -4421,7 +4560,8 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             acquiredFirsts.clear();
             acquiredLasts.clear();
             acquiredCounts.clear();
-            pendingAcquired.clear();
+            decodeStreamed.clear();
+            decodeRejected.clear();
 
             doConfirm(traceId, partitionId, acknowledgeError);
 
@@ -4458,76 +4598,62 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 acquiredCounts.addInt(deliveryCount);
 
                 decodePartition.inflight.add(firstOffset, lastOffset);
-                pendingAcquired.add(firstOffset, lastOffset);
             }
-        }
-
-        private int acquiredDeliveryCount(
-            long offset)
-        {
-            int deliveryCount = 0;
-            for (int index = 0; deliveryCount == 0 && index < acquiredFirsts.size(); index++)
-            {
-                if (offset >= acquiredFirsts.getLong(index) && offset <= acquiredLasts.getLong(index))
-                {
-                    deliveryCount = acquiredCounts.getInt(index);
-                }
-            }
-            return deliveryCount;
         }
 
         private void onDecodeBatchRejected(
             long firstOffset,
             long lastOffset)
         {
-            for (long offset = firstOffset; offset <= lastOffset; offset++)
-            {
-                if (pendingAcquired.contains(offset))
-                {
-                    pendingAcquired.remove(offset);
-                    decodePartition.inflight.remove(offset);
-                    decodePartition.rejected.add(offset, offset);
-                }
-            }
+            decodeRejected.add(firstOffset, lastOffset);
         }
 
-        private void onDecodeRecordConsumed(
+        private void onDecodeRecordProgress(
             int sizeofRecord)
         {
-            decodableRecords--;
-            decodableRecordBatchBytes -= sizeofRecord;
             decodableRecordSetBytes -= sizeofRecord;
-        }
-
-        private void onDecodeRecordSkipped(
-            long offset)
-        {
-            pendingAcquired.remove(offset);
-            decodePartition.inflight.remove(offset);
-            decodePartition.accepted.add(offset, offset);
+            decodableRecordBatchBytes -= sizeofRecord;
+            decodableRecordBytes -= sizeofRecord;
         }
 
         private void onDecodeRecordDelivered(
-            long offset)
+            long offset,
+            int sizeofRecord)
         {
-            pendingAcquired.remove(offset);
+            onDecodeRecordProgress(sizeofRecord);
+
+            decodableRecords--;
+            decodeStreamed.add(offset, offset);
         }
 
-        private void onDecodePartitionComplete()
+        private void onDecodePartitionComplete(
+            long traceId)
         {
-            if (decodePartition != null && !delegate.leaving())
+            if (decodePartition != null)
             {
-                for (int index = 0; index < pendingAcquired.size(); index++)
+                for (int index = 0; index < acquiredFirsts.size(); index++)
                 {
-                    for (long offset = pendingAcquired.first(index); offset <= pendingAcquired.last(index); offset++)
+                    for (long offset = acquiredFirsts.getLong(index); offset <= acquiredLasts.getLong(index); offset++)
                     {
-                        decodePartition.inflight.remove(offset);
-                        decodePartition.accepted.add(offset, offset);
+                        if (decodeRejected.contains(offset))
+                        {
+                            decodePartition.inflight.remove(offset);
+                            decodePartition.rejected.add(offset, offset);
+                        }
+                        else if (!decodeStreamed.contains(offset) && !delegate.leaving())
+                        {
+                            decodePartition.inflight.remove(offset);
+                            decodePartition.accepted.add(offset, offset);
+                        }
                     }
+                }
+
+                if (!decodeStreamed.isEmpty() && !delegate.leaving())
+                {
+                    delegate.doApplicationAcquired(traceId, decodePartition.id, acquiredFirsts, acquiredLasts, acquiredCounts);
                 }
             }
 
-            pendingAcquired.clear();
             decodePartition = null;
         }
 
