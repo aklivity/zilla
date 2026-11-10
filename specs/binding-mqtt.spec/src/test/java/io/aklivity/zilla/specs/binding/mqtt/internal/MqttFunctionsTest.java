@@ -1591,6 +1591,52 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSessionStateVersion1WireLayout()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .subscriptionWithReasonCode("sensor/two", 2, 1)
+            .build();
+
+        final byte[] expected =
+        {
+            0x01,
+            0x2a, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 'o', 'n', 'e',
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 't', 'w', 'o'
+        };
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateVersion2WireLayout()
+    {
+        final byte[] array = MqttFunctions.session()
+            .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .subscriptionWithReasonCode("sensor/two", 2, 1)
+            .build();
+
+        final byte[] expected =
+        {
+            0x02,
+            0x37, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 'o', 'n', 'e',
+            0x09, 0x00, 'c', 'o', 'n', 's', 'u', 'm', 'e', 'r', 's',
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 't', 'w', 'o',
+            (byte) 0xff, (byte) 0xff
+        };
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
     public void shouldEncodeWillMessage()
     {
         final byte[] array = MqttFunctions.will()
