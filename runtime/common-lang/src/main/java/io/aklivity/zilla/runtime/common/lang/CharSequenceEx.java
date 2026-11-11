@@ -17,61 +17,62 @@ package io.aklivity.zilla.runtime.common.lang;
 import java.lang.foreign.MemorySegment;
 
 /**
- * A {@link CharSequence} whose chars can also be handed to a {@link Target} as the bytes they are encoded as,
- * so a consumer that forwards the chars does not decode them to {@code char}s and encode them again.
+ * A {@link CharSequence} whose chars can also be transferred to a {@link TransferTarget} as the bytes they are
+ * written as, so a consumer that forwards the chars does not decode them to {@code char}s and encode them again.
  * <p>
- * The encoded form of a range of chars is defined by the implementation, as the form the chars take where they
- * are written: it is the form a consumer of that implementation knows how to accept. A view that reads the
- * chars from the bytes they were parsed from hands those bytes over exactly as they were written, and a view
- * that does not has to encode the chars itself, so a {@code Target} is always given a complete encoded form and
- * never needs to ask how the view came by it.
+ * The transfer of a range of chars is defined by the implementation, as the bytes the chars take where they are
+ * written: it is the form a consumer of that implementation knows how to accept. A sequence that reads its chars
+ * from the bytes they were parsed from transfers those bytes exactly as they were written, and a sequence that
+ * does not transfers the bytes it encodes the chars as, so a {@code TransferTarget} is always given a complete
+ * transfer and never needs to ask how the sequence came by it.
  * <p>
- * A char index addresses a position in the chars, and every index handed to {@link #encodedLength(int, int)}
- * and {@link #transferTo(int, int, Target)} must fall between two units of the encoded form. A unit is one
- * char, except where the encoding spells a code point with more than one char, which cannot be split.
+ * A char index addresses a position in the chars, and every index handed to {@link #transferLength(int, int)}
+ * and {@link #transferTo(int, int, TransferTarget)} must fall between two units of the transfer. A unit is one
+ * char, except where the bytes spell a code point with more than one char, which cannot be split.
  */
 public interface CharSequenceEx extends CharSequence
 {
     /**
-     * Returns the number of bytes of the encoded form of the chars in {@code [fromChar, toChar)}.
+     * Returns the number of bytes {@link #transferTo(int, int, TransferTarget)} transfers for the chars in
+     * {@code [fromChar, toChar)}.
      *
      * @param fromChar  the index of the first char
      * @param toChar    the index after the last char
      *
-     * @return the number of encoded bytes
+     * @return the number of bytes in the transfer
      *
      * @throws IndexOutOfBoundsException  if the range is not within this sequence
-     * @throws IllegalArgumentException   if an index falls inside a unit of the encoded form
+     * @throws IllegalArgumentException   if an index falls inside a unit of the transfer
      */
-    int encodedLength(
+    int transferLength(
         int fromChar,
         int toChar);
 
     /**
-     * Hands the encoded form of the chars in {@code [fromChar, toChar)} to {@code target}, in as many pieces as
-     * the implementation needs, in order and without allocating.
+     * Transfers the chars in {@code [fromChar, toChar)} to {@code target}, in as many pieces as the
+     * implementation needs, in order and without allocating.
      *
      * @param fromChar  the index of the first char
      * @param toChar    the index after the last char
-     * @param target    the target to hand the encoded form to
+     * @param target    the target to transfer to
      *
-     * @return the number of encoded bytes handed over, which is {@link #encodedLength(int, int)}
+     * @return the number of bytes transferred, which is {@link #transferLength(int, int)}
      *
      * @throws IndexOutOfBoundsException  if the range is not within this sequence
-     * @throws IllegalArgumentException   if an index falls inside a unit of the encoded form
+     * @throws IllegalArgumentException   if an index falls inside a unit of the transfer
      */
     int transferTo(
         int fromChar,
         int toChar,
-        Target target);
+        TransferTarget target);
 
     /**
-     * Accepts the encoded form of chars. A piece is valid only for the duration of the call.
+     * Accepts the pieces of a transfer. A piece is valid only for the duration of the call.
      */
-    interface Target
+    interface TransferTarget
     {
         /**
-         * Accepts {@code length} bytes of the encoded form, starting at {@code offset} of {@code bytes}.
+         * Accepts {@code length} bytes of the transfer, starting at {@code offset} of {@code bytes}.
          *
          * @param bytes   the memory holding the bytes
          * @param offset  the offset of the first byte in {@code bytes}
