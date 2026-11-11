@@ -79,7 +79,8 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         String dialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
+        super(mode, dialect, mode == MODE_OBJECT ? new LlmCapturedValue() : null,
+            mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.capability = capability;
@@ -191,7 +192,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, TOOL_CHOICE))
             {
@@ -270,10 +271,10 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
-        Status status = Status.ADVANCED;
+        Status status;
 
         if (matches(capturedMember(), MEMBER_TYPE))
         {
@@ -284,12 +285,22 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
             effort = LlmReasoning.effortOf(value);
             status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
         }
-        else if (matches(capturedMember(), THINKING_BUDGET_TOKENS))
+        else
         {
             budget = LlmReasoning.budgetOf(value);
             status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
         }
-        else if (choice.parseCanonical(value))
+
+        return status;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        Status status = Status.ADVANCED;
+
+        if (choice.parseCanonical(value))
         {
             if (emit(BIT_TOOL_CHOICE_KEY, JsonEvent.KEY_NAME, TOOL_CHOICE))
             {

@@ -81,7 +81,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
     LlmOpenaiResponsesControlToCanonical()
     {
-        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue(), new LlmCapturedScalar());
         this.choice = new LlmToolChoice();
         this.preceding = new LlmCapturedValue();
         captureLimit(CAPTURE_MAX);
@@ -184,16 +184,19 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
                 }
             }
         }
-        else if (matches(member, MEMBER_TYPE))
-        {
-            status = onFormatType(value.string(0));
-        }
         else
         {
             status = onPrecedingMember(member, value);
         }
 
         return status;
+    }
+
+    @Override
+    protected Status onScalar(
+        LlmCapturedScalar value)
+    {
+        return onFormatType(value.string());
     }
 
     @Override
@@ -308,7 +311,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_TYPE))
         {
-            action = capture(key);
+            action = captureScalar(key);
         }
         else if (format == FORMAT_FLATTENING)
         {

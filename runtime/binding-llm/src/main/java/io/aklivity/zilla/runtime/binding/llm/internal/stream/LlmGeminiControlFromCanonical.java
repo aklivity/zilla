@@ -115,7 +115,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect ? DIALECT : null, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
+        super(mode, sameDialect ? DIALECT : null, mode == MODE_OBJECT ? new LlmCapturedValue() : null,
+            mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.choice = new LlmToolChoice();
@@ -215,10 +216,15 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     {
         int action = DROP;
 
-        if (members && (matches(key, TOOL_CHOICE) || matches(key, PARALLEL_TOOL_CALLS)))
+        if (members && matches(key, TOOL_CHOICE))
         {
             target = MEMBER_TOOL_CONFIG;
             action = capture(key);
+        }
+        else if (members && matches(key, PARALLEL_TOOL_CALLS))
+        {
+            target = MEMBER_TOOL_CONFIG;
+            action = captureScalar(key);
         }
         else if (members && matches(key, RESPONSE_FORMAT))
         {
@@ -228,7 +234,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         else if (members && (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS)))
         {
             target = null;
-            action = capture(key);
+            action = captureScalar(key);
         }
         else if (members && matches(key, SERVICE_TIER))
         {
@@ -353,8 +359,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         final String captured = capturedMember();
         Status status;
@@ -371,12 +377,17 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         }
         else
         {
-            status = matches(captured, MEMBER_TYPE)
-                ? formatCaptured(value)
-                : matches(captured, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+            status = matches(captured, MEMBER_TYPE) ? formatCaptured(value) : onParallelCalls(value);
         }
 
         return status;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        return onToolChoice(value);
     }
 
     @Override
@@ -451,9 +462,9 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     }
 
     private Status onParallelCalls(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event(0);
+        final JsonEvent event = value.event();
 
         return event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_NULL ? Status.ADVANCED : rejected(PARALLEL_TOOL_CALLS);
     }
