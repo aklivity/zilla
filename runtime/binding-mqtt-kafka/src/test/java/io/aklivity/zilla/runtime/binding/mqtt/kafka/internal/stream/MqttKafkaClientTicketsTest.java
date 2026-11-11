@@ -206,6 +206,51 @@ public class MqttKafkaClientTicketsTest
         assertNull(stored(KEY));
     }
 
+    @Test
+    public void shouldAbandonTicketAfterInFlightWriteCompletes()
+    {
+        final MqttKafkaTicket sent = newTicket(1, PUBLISH_SENT, "consumers", 5L);
+        final MqttKafkaClientTickets tickets = newTickets(newStore(
+            new Assertion("put", KEY, codec.encode(List.of(sent)), null),
+            new Assertion("delete", KEY, null, null)));
+        runTasks();
+
+        tickets.add(sent);
+        tickets.write(() -> events.add("durable"));
+        tickets.abandon(1, () -> events.add("released"));
+
+        assertEquals(List.of(), events);
+        runTasks();
+
+        assertEquals(List.of("durable", "released"), events);
+        assertNull(tickets.find(1));
+        assertNull(stored(KEY));
+        assertTrue(tickets.idle());
+    }
+
+    @Test
+    public void shouldAbandonTicketBeforePendingWriteIsIssued()
+    {
+        final MqttKafkaTicket first = newTicket(1, PUBLISH_SENT, "consumers", 5L);
+        final MqttKafkaTicket second = newTicket(2, PUBLISH_SENT, "consumers", 6L);
+        final MqttKafkaClientTickets tickets = newTickets(newStore(
+            new Assertion("put", KEY, codec.encode(List.of(first)), null),
+            new Assertion("put", KEY, codec.encode(List.of(first)), null)));
+        runTasks();
+
+        tickets.add(first);
+        tickets.write(() -> events.add("first"));
+        tickets.add(second);
+        tickets.write(() -> events.add("second"));
+        tickets.abandon(2, () -> events.add("released"));
+        runTasks();
+
+        assertEquals(List.of("first", "second", "released"), events);
+        assertEquals(1, tickets.find(1).packetId);
+        assertNull(tickets.find(2));
+        assertEquals(codec.encode(List.of(first)), stored(KEY));
+    }
+
     private MqttKafkaClientTickets newTickets(
         TestStoreHandler store)
     {
