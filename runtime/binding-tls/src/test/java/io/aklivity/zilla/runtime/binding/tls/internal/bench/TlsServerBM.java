@@ -125,6 +125,7 @@ public class TlsServerBM
         private EngineBench bench;
         private TlsPeers peers;
         private long netId;
+        private DirectBufferEx beginEx;
         private TlsPeer shared;
 
         Fixture(
@@ -144,6 +145,7 @@ public class TlsServerBM
 
             peers = new TlsPeers();
             netId = bench.bindingId("net0");
+            beginEx = TlsPeers.proxyInetBeginEx(bench.labelId("proxy"));
             shared = new TlsPeer(new TlsPeer.Scratch(capacity), false);
 
             bench.newServer("app0", new EchoHandler(sink -> new EchoHandler.Endpoint()
@@ -241,7 +243,7 @@ public class TlsServerBM
 
             void handshake() throws Exception
             {
-                client.begin();
+                client.begin(beginEx, 0, beginEx.capacity());
                 client.replyWindow(DEFAULT_WINDOW);
                 peer.begin();
 
