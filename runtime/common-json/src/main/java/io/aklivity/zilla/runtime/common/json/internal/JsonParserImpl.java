@@ -108,6 +108,10 @@ public final class JsonParserImpl implements JsonParserEx
     // the leading separator off the new-first surviving sibling so the survivors stay well-formed
     private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
+    private final StringView plainViewRO = new StringView();
+    private final EncodedStringView encodedView = new EncodedStringView();
+    private final EscapedStringView escapedView = new EscapedStringView();
+    private String stringCache;
     // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
     // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
     // first step not yet handed out by a block; the log compacts once a prior run has been fully drained
@@ -168,6 +172,7 @@ public final class JsonParserImpl implements JsonParserEx
         int segmentDepth;
         boolean armNextValue;
         int stringViewOffset;
+        String stringCache;
         long verbatimCursor;
         boolean trimLeadingSeparator;
         int stepCount;
@@ -242,8 +247,8 @@ public final class JsonParserImpl implements JsonParserEx
         // the bytes a consumer left of a fragment read from the window went back to the caller, who re-presents them
         if (tokenizer.declined())
         {
-            tokenizer.acceptDeclined();
             stringViewOffset = 0;
+            stringCache = null;
         }
 
         ownedInput.wrap(buffer, offset, limit - offset);
@@ -344,6 +349,7 @@ public final class JsonParserImpl implements JsonParserEx
         mark.segmentDepth = segmentDepth;
         mark.armNextValue = armNextValue;
         mark.stringViewOffset = stringViewOffset;
+        mark.stringCache = stringCache;
         mark.verbatimCursor = verbatimCursor;
         mark.trimLeadingSeparator = trimLeadingSeparator;
         mark.stepCount = stepCount;
@@ -375,6 +381,7 @@ public final class JsonParserImpl implements JsonParserEx
         segmentDepth = mark.segmentDepth;
         armNextValue = mark.armNextValue;
         stringViewOffset = mark.stringViewOffset;
+        stringCache = mark.stringCache;
         verbatimCursor = mark.verbatimCursor;
         trimLeadingSeparator = mark.trimLeadingSeparator;
         stepCount = mark.stepCount;
@@ -460,13 +467,6 @@ public final class JsonParserImpl implements JsonParserEx
         {
             materializeInput();
             syncInput();
-            // before resuming a value that spans windows, tell the tokenizer how much of the prior
-            // fragment the consumer took (the char cursor) so it keeps the unconsumed remainder and
-            // accumulates rather than discarding a declined fragment
-            if (tokenizer.fragmenting())
-            {
-                tokenizer.markScratchConsumed(stringViewOffset);
-            }
             // a fragment the consumer left is read again from the next window, so there is nothing to scan until then
             result = !tokenizer.declined() && tokenizer.advance();
         }
@@ -540,6 +540,7 @@ public final class JsonParserImpl implements JsonParserEx
         }
         final JsonEvent event = tokenizer.event();
         tokenizer.clearEvent();
+        stringCache = null;
         currentEvent = toEvent(event);
         return event;
     }
@@ -835,7 +836,7 @@ public final class JsonParserImpl implements JsonParserEx
             stringViewOffset += sourceUnits;
             if (tokenizer.fragmenting())
             {
-                tokenizer.positionAfter(stringViewOffset);
+                tokenizer.decline(declinedBytes(stringViewOffset));
             }
             if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
             {
@@ -858,7 +859,11 @@ public final class JsonParserImpl implements JsonParserEx
     public String getString()
     {
         assert currentEvent == Event.KEY_NAME || currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER;
-        return tokenizer.stringValue();
+        if (stringCache == null)
+        {
+            stringCache = spanView().toString();
+        }
+        return stringCache;
     }
 
     @Override
@@ -873,8 +878,60 @@ public final class JsonParserImpl implements JsonParserEx
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
         return charScalar() && stringViewOffset > 0
-            ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
-            : tokenizer.stringView();
+            ? stringViewRO.wrap(tokenView(), stringViewOffset)
+            : tokenView();
+    }
+
+    // the current token as the chars the tokenizer read in place from the window; a token that is not read in place
+    // has none
+    private CharSequence spanView()
+    {
+        final int length = tokenizer.tokenLength();
+        final CharSequence view;
+
+        if (length < 0)
+        {
+            view = "";
+        }
+        else if (tokenizer.inScope())
+        {
+            view = escapedView.wrap(syncedBuffer, tokenizer.tokenOffset(), length, tokenizer.tokenChars());
+        }
+        else
+        {
+            view = encodedView.wrap(syncedBuffer, tokenizer.tokenOffset(), length, tokenizer.tokenChars(),
+                tokenizer.tokenPlain());
+        }
+
+        return view;
+    }
+
+    // only a string value parsed whole from the window is a JsonStringView; a key and a number are plain chars
+    private CharSequence tokenView()
+    {
+        final CharSequence view = spanView();
+
+        return lastEvent == JsonEvent.VALUE_STRING || tokenizer.tokenLength() < 0 ? view : plainViewRO.wrap(view, 0);
+    }
+
+    private int declinedBytes(
+        int consumed)
+    {
+        final int length = tokenizer.tokenLength();
+        int bytes = 0;
+
+        if (length > 0 && consumed < tokenizer.tokenChars())
+        {
+            final int offset = tokenizer.tokenOffset();
+            final int floor = tokenizer.inScope()
+                ? escapedView.wrap(syncedBuffer, offset, length, tokenizer.tokenChars()).floorOffsetOf(consumed)
+                : encodedView.wrap(syncedBuffer, offset, length, tokenizer.tokenChars(), tokenizer.tokenPlain())
+                    .floorOffsetOf(consumed);
+
+            bytes = length - (floor - offset);
+        }
+
+        return bytes;
     }
 
     // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
@@ -895,11 +952,11 @@ public final class JsonParserImpl implements JsonParserEx
         assert currentEvent == Event.VALUE_NUMBER;
         // the current number's char view (not stringValue()), so scanning it materializes no String; with
         // consumed(0) accumulation a value the caller needs whole is fully present in scratch by this point
-        final CharSequence v = tokenizer.stringView();
-        if (v == null)
+        if (tokenizer.tokenLength() < 0)
         {
             throw new IllegalStateException("Not a number");
         }
+        final CharSequence v = spanView();
         boolean integral = true;
         for (int i = 0; integral && i < v.length(); i++)
         {
@@ -914,7 +971,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert currentEvent == Event.VALUE_NUMBER;
         assert !deferredBytes();
-        final CharSequence lexeme = tokenizer.stringView();
+        final CharSequence lexeme = spanView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
             throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
@@ -927,7 +984,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert currentEvent == Event.VALUE_NUMBER;
         assert !deferredBytes();
-        final CharSequence lexeme = tokenizer.stringView();
+        final CharSequence lexeme = spanView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
             throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
@@ -943,7 +1000,7 @@ public final class JsonParserImpl implements JsonParserEx
         // value still spanning windows must first gather it (e.g. push back via consumed(0)) and only
         // read it once the deferred bytes have arrived
         assert !deferredBytes();
-        return new BigDecimal(tokenizer.stringView().toString());
+        return new BigDecimal(spanView().toString());
     }
 
     // count of leading integer digits after an optional sign; a longer integer lexeme cannot fit a long,
@@ -1071,8 +1128,7 @@ public final class JsonParserImpl implements JsonParserEx
             }
             else
             {
-                final CharSequence view = tokenizer.stringView();
-                stringViewOffset = view != null ? view.length() : 0;
+                stringViewOffset = tokenizer.tokenLength() < 0 ? 0 : tokenizer.tokenChars();
             }
             skipping = skipDepth > 0 || tokenizer.fragmenting();
         }
@@ -1258,7 +1314,7 @@ public final class JsonParserImpl implements JsonParserEx
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.numberLiteral(tokenizer.stringView().toString());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(spanView().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;

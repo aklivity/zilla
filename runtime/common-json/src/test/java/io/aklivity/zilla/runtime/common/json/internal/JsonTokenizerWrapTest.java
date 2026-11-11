@@ -67,11 +67,11 @@ public class JsonTokenizerWrapTest
         // key is rolled back rather than delivered early
         assertFalse(tokenizer.advance());
 
-        wrap(tokenizer, "\"a\":\"value\"}", true);
+        final DirectBufferEx window = wrap(tokenizer, "\"a\":\"value\"}", true);
 
         assertTrue(tokenizer.advance());
         assertEquals(JsonEvent.KEY_NAME, tokenizer.event());
-        assertEquals("a", tokenizer.stringValue());
+        assertEquals("a", window.getStringWithoutLengthUtf8(tokenizer.tokenOffset(), tokenizer.tokenLength()));
         final long positionAfterKey = tokenizer.streamOffset();
         tokenizer.clearEvent();
 
@@ -80,7 +80,7 @@ public class JsonTokenizerWrapTest
         assertEquals(positionAfterKey, tokenizer.valueStreamStart());
     }
 
-    private static void wrap(
+    private static DirectBufferEx wrap(
         JsonTokenizerImpl tokenizer,
         String content,
         boolean last)
@@ -89,5 +89,6 @@ public class JsonTokenizerWrapTest
         final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
         tokenizer.wrap(buffer, 0, bytes.length, last);
         tokenizer.window(bytes.length);
+        return buffer;
     }
 }

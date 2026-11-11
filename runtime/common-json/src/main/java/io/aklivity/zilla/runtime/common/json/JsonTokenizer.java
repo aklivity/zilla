@@ -46,27 +46,26 @@ public interface JsonTokenizer
 
     void clearEvent();
 
-    String stringValue();
+    // The current key, string or number as a range of the wrapped window, so its chars are read in place and never
+    // copied: where it begins, how many encoded bytes it spans, how many decoded chars it holds, and whether each
+    // char is the one byte that encodes it, with no escape or multi-byte character. The length is -1 when the token
+    // is not read in place, as a string streamed as segments. Valid until the tokenizer advances or the window
+    // is replaced.
+    int tokenOffset();
 
-    // Non-allocating view of the current string token (a deferred key or a readable value), valid while the
-    // decoded chars are still retained because nobody has materialized them yet.
-    CharSequence stringView();
+    int tokenLength();
 
-    // The parser reports, before a resuming advance, how many chars of the current fragment the consumer took,
-    // so resume keeps the unconsumed remainder rather than discarding the whole fragment.
-    void markScratchConsumed(
-        int consumed);
+    int tokenChars();
 
-    // The consumer has taken consumed chars of the pending string fragment, which is read from the window: the
-    // position moves to the first byte it left, so the caller re-presents the rest with the next window.
-    void positionAfter(
-        int consumed);
+    boolean tokenPlain();
+
+    // The consumer left the last bytes of the pending string fragment, which is read from the window: the position
+    // moves back to the first byte it left, so the caller re-presents the rest with the next window.
+    void decline(
+        int bytes);
 
     // Whether the consumer left part of the pending string fragment.
     boolean declined();
-
-    // The window is being replaced, so the part of the fragment the consumer left is no longer pending.
-    void acceptDeclined();
 
     long streamOffset();
 
