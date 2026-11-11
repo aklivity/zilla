@@ -1793,8 +1793,10 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             try
             {
-                final CharSequence chunkSizeHex = new AsciiSequenceView(buffer, offset, chunkSizeLength);
-                server.decodableChunkSize = Integer.parseInt(chunkSizeHex, 0, chunkSizeLength, 16);
+                final int chunkSize = HttpUtil.parseHex(buffer, offset, chunkSizeLength);
+                server.decodableChunkSize = chunkSize != -1
+                    ? chunkSize
+                    : Integer.parseInt(new AsciiSequenceView(buffer, offset, chunkSizeLength), 0, chunkSizeLength, 16);
                 server.decoder = server.decodableChunkSize != 0 ? decodeChunkBody : decodeTrailers;
                 progress = chunkHeaderLimit;
             }
@@ -3274,7 +3276,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final OctetsFW payload = encodeEventComment();
                 final int size = payload.sizeof();
-                final int chunking = exchange.responseChunked ? Integer.toHexString(size).length() + 4 : 0;
+                final int chunking = exchange.responseChunked ? HttpUtil.hexLength(size) + 4 : 0;
 
                 if (claimReply(traceId, size + chunking + replyPad))
                 {
@@ -3336,8 +3338,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 //if ((flags & 0x01) != 0)
                 {
-                    final String chunkSizeHex = Integer.toHexString(payload.sizeof());
-                    chunkLimit += codecBuffer.putStringWithoutLengthAscii(chunkLimit, chunkSizeHex);
+                    chunkLimit += HttpUtil.putHex(codecBuffer, chunkLimit, payload.sizeof());
                     codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
                     chunkLimit += 2;
                 }

@@ -224,5 +224,47 @@ public class HttpUtilTest
         assertTrue(HttpUtil.isPathValid(new UnsafeBufferEx(ascii0)));
     }
 
-}
+    @Test
+    public void shouldPutHexLikeToHexString()
+    {
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[16]);
+        final int[] values = {0, 1, 9, 10, 15, 16, 255, 256, 4095, 4096, 65535, 65536, 0x7fffff, 0x0fffffff, Integer.MAX_VALUE};
 
+        for (int value : values)
+        {
+            final String expected = Integer.toHexString(value);
+
+            final int length = HttpUtil.putHex(buffer, 3, value);
+
+            assertEquals(expected.length(), length);
+            assertEquals(expected, buffer.getStringWithoutLengthAscii(3, length));
+            assertEquals(expected.length(), HttpUtil.hexLength(value));
+        }
+    }
+
+    @Test
+    public void shouldParseHexLikeParseInt()
+    {
+        final String[] values = {"0", "1", "a", "A", "f", "F", "10", "ff", "FF", "100", "7fffff", "abcdef", "0123456", "fffffff"};
+
+        for (String value : values)
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(("xx" + value + "yy").getBytes(US_ASCII));
+
+            assertEquals(Integer.parseInt(value, 16), HttpUtil.parseHex(buffer, 2, value.length()));
+        }
+    }
+
+    @Test
+    public void shouldNotParseHexWhenNotPlainHexDigits()
+    {
+        final String[] values = {"", "g", "-1", "+1", " 1", "1 ", "0x1", "12345678", "ffffffff", "1;ext"};
+
+        for (String value : values)
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(value.getBytes(US_ASCII));
+
+            assertEquals(-1, HttpUtil.parseHex(buffer, 0, value.length()));
+        }
+    }
+}
