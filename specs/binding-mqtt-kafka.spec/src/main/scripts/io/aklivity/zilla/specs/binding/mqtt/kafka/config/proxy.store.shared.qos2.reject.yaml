@@ -22,12 +22,12 @@ stores:
       assertions:
         - op: put
           key: "zilla:test-mqtt0:tickets:client"
-          value: ASIAAAABAAAAAQABDQBtcXR0LW1lc3NhZ2VzAAAAAAUAAAAAAAAA
+          value: ATkAAAABAAAAAQABCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABQAAAAAAAAA
         - op: delete
           key: "zilla:test-mqtt0:tickets:client"
         - op: put
           key: "zilla:test-mqtt0:tickets:client"
-          value: ASIAAAABAAAAAgABDQBtcXR0LW1lc3NhZ2VzAAAAAAYAAAAAAAAA
+          value: ATkAAAABAAAAAgABCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABgAAAAAAAAA
 bindings:
   mqtt0:
     type: mqtt-kafka
