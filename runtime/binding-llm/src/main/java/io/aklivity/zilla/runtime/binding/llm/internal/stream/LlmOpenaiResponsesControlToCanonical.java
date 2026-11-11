@@ -346,8 +346,6 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
                 emitPreceding())
             {
                 format = FORMAT_FLATTENING;
-                preceding.clear();
-                precedingSize = 0;
             }
 
             status = Status.ADVANCED;
