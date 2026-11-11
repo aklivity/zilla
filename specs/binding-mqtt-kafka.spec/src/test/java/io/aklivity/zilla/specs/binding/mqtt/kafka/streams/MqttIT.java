@@ -1300,4 +1300,22 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.restore.membership/client",
+        "${mqtt}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembership() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.join.new.life/client",
+        "${mqtt}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
+    {
+        k3po.finish();
+    }
 }

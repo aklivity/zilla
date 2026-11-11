@@ -292,4 +292,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinNewLife()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.new.life.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

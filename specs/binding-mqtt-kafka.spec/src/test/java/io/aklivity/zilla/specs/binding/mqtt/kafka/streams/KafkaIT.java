@@ -1455,4 +1455,22 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.restore.membership/client",
+        "${kafka}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembership() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.join.new.life/client",
+        "${kafka}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
+    {
+        k3po.finish();
+    }
 }
