@@ -57,7 +57,7 @@ public class MqttKafkaConditionConfigAdapterTest
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.kind, equalTo(MqttKafkaConditionKind.SUBSCRIBE));
+        assertThat(condition.kind(), equalTo(MqttKafkaConditionKind.SUBSCRIBE));
         assertThat(condition.subscribes, not(nullValue()));
         assertThat(condition.subscribes.size(), equalTo(1));
         assertThat(condition.subscribes.get(0).topic, equalTo("test"));
@@ -80,7 +80,7 @@ public class MqttKafkaConditionConfigAdapterTest
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.kind, equalTo(MqttKafkaConditionKind.PUBLISH));
+        assertThat(condition.kind(), equalTo(MqttKafkaConditionKind.PUBLISH));
         assertThat(condition.publishes, not(nullValue()));
         assertThat(condition.publishes.size(), equalTo(1));
         assertThat(condition.publishes.get(0), equalTo("test"));
