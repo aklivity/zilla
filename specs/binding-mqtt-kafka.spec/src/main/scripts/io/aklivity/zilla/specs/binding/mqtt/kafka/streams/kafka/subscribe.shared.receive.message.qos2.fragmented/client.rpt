@@ -13,13 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .share()
                                 .groupId("zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:0")
@@ -35,7 +33,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .share()
                                 .groupId("zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:0")
@@ -44,22 +42,38 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .port(9092)
                                 .build()
                             .build()}
-write flush
 
-write zilla:data.ext ${kafka:dataEx()
+read option zilla:flags "init"
+read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .share()
-                                .timestamp(kafka:timestamp())
-                                .deliveryCount(1)
+                                .deferred(3)
                                 .partition(0, 5)
                                 .key("sensor/one")
                                 .header("zilla:filter", "sensor")
                                 .header("zilla:filter", "one")
                                 .header("zilla:format", "TEXT")
-                                .header("zilla:qos", "1")
+                                .header("zilla:qos", "2")
                                 .build()
                             .build()}
-write "message"
-write flush
+read "mess"
 
-read aborted
+read option zilla:flags "fin"
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .share()
+                                .partition(0, 5)
+                                .build()
+                            .build()}
+read "age"
+
+write advise zilla:flush ${kafka:flushEx()
+                            .typeId(zilla:id("kafka"))
+                            .share()
+                                .partition(0, 5)
+                                .type("ACCEPT")
+                                .build()
+                            .build()}
+
+write close
+read closed
