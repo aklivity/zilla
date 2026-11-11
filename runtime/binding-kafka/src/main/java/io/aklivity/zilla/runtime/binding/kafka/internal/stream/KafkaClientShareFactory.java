@@ -1154,6 +1154,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             {
                 leader.lockTimeoutMillis = response.acquisitionLockTimeoutMillis();
                 leader.decodableTopics = response.topicCount();
+                leader.onDecodeFetchAccepted(traceId);
                 client.decoder = decodeShareFetchTopics;
             }
             else
@@ -1970,6 +1971,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private final List<SharePartition> partitions;
         private final List<LeaderClient> leaders;
         private final IntArrayList assignment;
+        private final IntArrayList fetched;
         private final BootstrapClient bootstrap;
 
         private CoordinatorClient coordinator;
@@ -2024,6 +2026,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
             this.partitions = new ArrayList<>();
             this.leaders = new ArrayList<>();
             this.assignment = new IntArrayList();
+            this.fetched = new IntArrayList();
             this.bootstrap = new BootstrapClient(this, originId, resolvedId, servers, sasl, guard);
         }
 
@@ -2330,6 +2333,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                         }
 
                         partitions.remove(index);
+                        fetched.removeInt(partition.id);
                     }
                 }
 
@@ -2342,10 +2346,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                     }
                 }
 
-                if (!partitions.isEmpty())
-                {
-                    doApplicationBegin(traceId);
-                }
+                onPartitionsFetched(traceId);
 
                 for (int index = 0; index < partitions.size(); index++)
                 {
@@ -2370,6 +2371,24 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 index++;
             }
             partitions.add(index, partition);
+        }
+
+        private void onPartitionFetched(
+            int partitionId)
+        {
+            if (!fetched.containsInt(partitionId))
+            {
+                fetched.addInt(partitionId);
+            }
+        }
+
+        private void onPartitionsFetched(
+            long traceId)
+        {
+            if (!partitions.isEmpty() && fetched.size() == partitions.size())
+            {
+                doApplicationBegin(traceId);
+            }
         }
 
         private void ensureLeader(
@@ -4148,7 +4167,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         private boolean fetchable()
         {
             return assignedCount() != 0 &&
-                StreamState.replyOpening(delegate.state);
+                (sessionEpoch == SHARE_SESSION_EPOCH_INITIAL || StreamState.replyOpening(delegate.state));
         }
 
         private void onAssignmentChanged(
@@ -4550,6 +4569,21 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
                 delegate.cleanup(traceId, errorCode);
                 break;
             }
+        }
+
+        private void onDecodeFetchAccepted(
+            long traceId)
+        {
+            for (int index = 0; index < delegate.partitions.size(); index++)
+            {
+                final SharePartition partition = delegate.partitions.get(index);
+                if (partition.leaderId == nodeId)
+                {
+                    delegate.onPartitionFetched(partition.id);
+                }
+            }
+
+            delegate.onPartitionsFetched(traceId);
         }
 
         private boolean onDecodePartition(
