@@ -406,4 +406,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
 }
