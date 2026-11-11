@@ -166,4 +166,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.stream.reset/client",
+        "${net}/unsubscribe.stream.reset/server"})
+    public void shouldUnsubscribeStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.stream.abort/client",
+        "${net}/unsubscribe.stream.abort/server"})
+    public void shouldUnsubscribeStreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
