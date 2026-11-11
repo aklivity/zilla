@@ -1661,4 +1661,13 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client",
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/server"})
+    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+    {
+        k3po.finish();
+    }
 }
