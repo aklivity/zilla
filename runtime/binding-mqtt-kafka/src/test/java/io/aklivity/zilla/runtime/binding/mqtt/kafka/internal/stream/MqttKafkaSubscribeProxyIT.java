@@ -924,6 +924,16 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.shared.qos2.unreadable.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
+    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.store.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
