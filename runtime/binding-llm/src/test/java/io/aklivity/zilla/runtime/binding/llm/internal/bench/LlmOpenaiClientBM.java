@@ -68,6 +68,11 @@ import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
  * and the canonical response is received to its end. Each {@code leave} operation opens one request, sends
  * it completely and leaves it in flight while the provider withholds the response.
  * <p>
+ * The provider response is a chat completion for {@code dialect} {@code auto} and {@code chat}, which differ
+ * only in whether the binding declares its apis, and a response for {@code dialect} {@code responses}, whose
+ * streaming variant is the typed event stream. {@code request} is the canonical section the caller sends and
+ * {@code response} the content the provider returns, each either text or a tool call.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does
  * not depend on {@code streaming} or {@code response}, so run it with {@code -p streaming=false -p response=text}.
@@ -361,16 +366,16 @@ public class LlmOpenaiClientBM
                 events.add(chatCompletion(text, toolCall).getBytes(UTF_8));
             }
 
-            final byte[][] sectionEx = new byte[events.size()][];
-            Arrays.fill(sectionEx, NO_BYTES);
+            final byte[][] eventExtensions = new byte[events.size()][];
+            Arrays.fill(eventExtensions, NO_BYTES);
             for (int event = 0; event < eventEx.size(); event++)
             {
-                sectionEx[event] = eventEx.get(event);
+                eventExtensions[event] = eventEx.get(event);
             }
 
             return new Response(
                 httpResponseBeginEx(httpTypeId, streaming ? "text/event-stream" : "application/json"),
-                sectionEx,
+                eventExtensions,
                 events.toArray(byte[][]::new),
                 NO_BYTES,
                 0);
