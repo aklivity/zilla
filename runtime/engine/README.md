@@ -10,6 +10,8 @@ profiler measures the engine worker's own allocation.
 | `EchoServerBM` | `binding-echo` | Floor for engine, ring buffer and stream cost; no application hop |
 | `ProxyServerBM` | `binding-proxy` | PROXY v2 header decode and an application hop |
 | `LlmOpenaiServerBM` | `binding-llm` | HTTP request in, mock provider response out |
+| `LlmOpenaiResponsesServerBM`, `LlmAnthropicServerBM`, `LlmGeminiServerBM` | `binding-llm` | The same for the openai responses, anthropic and gemini server dialects |
+| `LlmOpenaiClientBM`, `LlmOpenaiResponsesClientBM`, `LlmAnthropicClientBM`, `LlmGeminiClientBM` | `binding-llm` | Canonical request in, mock provider reply out, for each client dialect |
 
 `echo` and `proxy` are raw full-duplex relays, so they are measured per stream and per message. `llm` is
 HTTP-shaped, so it is measured per whole request.
@@ -18,7 +20,7 @@ HTTP-shaped, so it is measured per whole request.
 | --- | --- | --- |
 | `open` | `EchoServerBM`, `ProxyServerBM` | A stream opened and closed with no data. Does not depend on `size`; use `-p size=small` |
 | `stream` | `EchoServerBM`, `ProxyServerBM` | One message of `size` sent on a single long-lived stream while the reflected bytes flow back, paced only by the credit the binding grants |
-| `exchange` | `LlmOpenaiServerBM` | A request sent and its response received to the end |
+| `exchange` | `LlmOpenaiServerBM` and the other `llm` server and client benchmarks | A request sent and its response received to the end |
 | `leave` | all | A stream opened with a body and left in flight (the mock application withholds the reply; `echo` cannot, so it leaves the stream open) |
 
 Read `gc.alloc.rate.norm` (B/op) from the `gc` profiler for `open`, `stream` and `exchange`, and
