@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json.view;
 
 import java.nio.ByteOrder;
 
@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.common.json.JsonStringView;
  * The view is a flyweight that is reused for every value and is valid only while the bytes it wraps are
  * unchanged. It assumes the bytes are a valid JSON string body, as the tokenizer has already checked them.
  */
-final class EncodedStringView implements JsonStringView
+public final class EncodedStringView implements JsonStringView
 {
     private static final int RUN = 64;
     private static final int STRETCH = Long.BYTES;
@@ -59,7 +59,7 @@ final class EncodedStringView implements JsonStringView
     private int nextChar;
     private int nextByte;
 
-    EncodedStringView wrap(
+    public EncodedStringView wrap(
         DirectBufferEx buffer,
         int offset,
         int byteLength)
@@ -93,7 +93,7 @@ final class EncodedStringView implements JsonStringView
         return wrap(buffer, offset, byteLength, chars, ascii);
     }
 
-    EncodedStringView wrap(
+    public EncodedStringView wrap(
         DirectBufferEx buffer,
         int offset,
         int byteLength,
@@ -170,7 +170,7 @@ final class EncodedStringView implements JsonStringView
     /**
      * Whether the encoded form is exactly the decoded chars: ASCII with no escapes.
      */
-    boolean plain()
+    public boolean plain()
     {
         return plain;
     }
@@ -207,7 +207,7 @@ final class EncodedStringView implements JsonStringView
      * The offset in the buffer of the unit that holds the char at {@code charIndex}: the start of the pair when the
      * char is the second half of a raw four-byte sequence.
      */
-    int floorOffsetOf(
+    public int floorOffsetOf(
         int charIndex)
     {
         return byteOffsetOf(charIndex, false);

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json.view;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * The view is a flyweight that is reused for every value and is valid only while the bytes it wraps are unchanged.
  * It assumes the bytes are a valid string body, as the tokenizer has already checked them.
  */
-final class EscapedStringView implements CharSequence
+public final class EscapedStringView implements CharSequence
 {
     private DirectBufferEx buffer;
     private int offset;
@@ -46,7 +46,7 @@ final class EscapedStringView implements CharSequence
     private int unitIndex;
     private int unitCount;
 
-    EscapedStringView wrap(
+    public EscapedStringView wrap(
         DirectBufferEx buffer,
         int offset,
         int byteLength,
@@ -120,7 +120,7 @@ final class EscapedStringView implements CharSequence
      * The offset in the buffer of the unit that holds the char at {@code charIndex}: where the escape or the
      * character begins, and the start of the pair when the char is the second half of a surrogate pair.
      */
-    int floorOffsetOf(
+    public int floorOffsetOf(
         int charIndex)
     {
         restart();

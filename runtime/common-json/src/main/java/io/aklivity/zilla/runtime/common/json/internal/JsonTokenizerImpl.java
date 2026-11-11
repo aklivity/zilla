@@ -23,6 +23,7 @@ import jakarta.json.stream.JsonParsingException;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
+import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
 
 final class JsonTokenizerImpl implements JsonTokenizer
 {

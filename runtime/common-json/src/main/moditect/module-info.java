@@ -19,6 +19,7 @@ module io.aklivity.zilla.runtime.common.json
     requires io.aklivity.zilla.runtime.common.agrona;
 
     exports io.aklivity.zilla.runtime.common.json;
+    exports io.aklivity.zilla.runtime.common.json.view;
 
     uses io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 

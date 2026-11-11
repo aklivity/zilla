@@ -47,6 +47,8 @@ import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
+import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.EscapedStringView;
 
 public final class JsonParserImpl implements JsonParserEx
 {

@@ -12,9 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json.view;
 
-import static io.aklivity.zilla.runtime.common.json.internal.JsonEscapeLens.NEEDS_MORE;
+import static io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens.NEEDS_MORE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;

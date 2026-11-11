@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonStringView;
+import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
 
 class JsonParserStringViewTest
 {
