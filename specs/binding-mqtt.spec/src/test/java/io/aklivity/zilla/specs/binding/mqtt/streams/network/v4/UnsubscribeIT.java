@@ -139,4 +139,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.inflight.message.qos1/client",
+        "${net}/unsubscribe.inflight.message.qos1/server"})
+    public void shouldUnsubscribeInflightMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }
