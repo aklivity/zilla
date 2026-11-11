@@ -70,5 +70,11 @@ public final class TestStoreContext implements StoreContext
     public void detach(
         StoreConfig store)
     {
+        final Queue<Assertion> assertions = supplyAssertions.apply(store.id, null);
+
+        if (assertions != null && !assertions.isEmpty())
+        {
+            throw new AssertionError(String.format("missing %d expected store operations", assertions.size()));
+        }
     }
 }

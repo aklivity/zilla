@@ -82,6 +82,6 @@ public final class TestStore implements Store
     {
         return assertions != null
             ? storageAssertions.computeIfAbsent(storeId, id -> new ConcurrentLinkedQueue<>(assertions))
-            : null;
+            : storageAssertions.get(storeId);
     }
 }
