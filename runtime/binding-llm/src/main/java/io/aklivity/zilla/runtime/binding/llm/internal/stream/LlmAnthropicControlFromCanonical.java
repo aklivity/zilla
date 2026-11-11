@@ -151,12 +151,6 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     public void reset()
     {
         super.reset();

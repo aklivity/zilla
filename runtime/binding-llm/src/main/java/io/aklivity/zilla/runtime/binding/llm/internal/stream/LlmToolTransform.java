@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 
 import jakarta.json.stream.JsonLocation;
 
@@ -68,7 +67,6 @@ abstract class LlmToolTransform implements JsonTransform
     private static final String DATA_URI_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
     private static final int NONE = -1;
-    private static final int QUEUE_CAPACITY = 16;
     private static final int BASE_SHIFT = 18;
     private static final int BASE_BITS = -1 << BASE_SHIFT;
     private static final int BIT_ELEMENT = 1 << BASE_SHIFT;
@@ -103,10 +101,6 @@ abstract class LlmToolTransform implements JsonTransform
 
     private LlmModelCapability legality;
 
-    private JsonEvent[] queueEvents;
-    private String[] queueTexts;
-    private boolean[] queueSources;
-    private boolean[] queueFragments;
     private JsonController control;
     private JsonSource source;
     private JsonSink sink;
@@ -116,8 +110,6 @@ abstract class LlmToolTransform implements JsonTransform
     private int looped;
     private int loopOrdinal;
     private int nameCount;
-    private int queueHead;
-    private int queueTail;
     private int depth;
     private int pending;
     private boolean passing;
@@ -177,10 +169,6 @@ abstract class LlmToolTransform implements JsonTransform
         this.mode = mode;
         this.dialect = dialect;
         this.extractDepth = extractDepth;
-        this.queueEvents = new JsonEvent[QUEUE_CAPACITY];
-        this.queueTexts = new String[QUEUE_CAPACITY];
-        this.queueSources = new boolean[QUEUE_CAPACITY];
-        this.queueFragments = new boolean[QUEUE_CAPACITY];
         this.captured = new LlmCapturedValue();
         this.captureLimit = HELD_MAX;
         this.literalSource = new LiteralSource();
@@ -191,11 +179,6 @@ abstract class LlmToolTransform implements JsonTransform
         this.legality = LlmModelCapability.UNSPECIFIED;
         this.pending = NONE;
         this.outcome = Status.ADVANCED;
-    }
-
-    protected boolean resumable()
-    {
-        return false;
     }
 
     protected abstract int member(
@@ -327,32 +310,6 @@ abstract class LlmToolTransform implements JsonTransform
         String text)
     {
         return accept(owned(bit), event, text, false, false);
-    }
-
-    protected final boolean pass(
-        JsonEvent event)
-    {
-        return accept(NO_BIT, event, null, true, false);
-    }
-
-    protected final boolean emit(
-        JsonEvent event)
-    {
-        return accept(NO_BIT, event, null, false, false);
-    }
-
-    protected final boolean emitFragment(
-        JsonEvent event,
-        String text)
-    {
-        return accept(NO_BIT, event, text, false, true);
-    }
-
-    protected final boolean emit(
-        JsonEvent event,
-        String text)
-    {
-        return accept(NO_BIT, event, text, false, false);
     }
 
     protected final boolean emitted(
@@ -646,23 +603,6 @@ abstract class LlmToolTransform implements JsonTransform
         return delivered;
     }
 
-    protected final boolean emitCaptured(
-        LlmCapturedValue value,
-        int index)
-    {
-        final int end = value.end(index);
-        boolean delivered = true;
-
-        for (int at = index; delivered && at < end; at++)
-        {
-            final String text = value.text(at);
-
-            delivered = text != null ? emit(value.event(at), text) : emit(value.event(at));
-        }
-
-        return delivered;
-    }
-
     protected final String name(
         CharSequence value)
     {
@@ -761,8 +701,6 @@ abstract class LlmToolTransform implements JsonTransform
     @Override
     public void reset()
     {
-        queueHead = 0;
-        queueTail = 0;
         outcome = Status.ADVANCED;
         mask = 0;
         inflight = NO_BIT;
@@ -823,30 +761,7 @@ abstract class LlmToolTransform implements JsonTransform
         this.source = source;
         this.sink = sink;
 
-        Status status = Status.ADVANCED;
-
-        if (resumable())
-        {
-            status = process(event);
-        }
-        else if (queueHead < queueTail)
-        {
-            status = queueSources[queueHead]
-                ? sink.resume(control, source, event)
-                : sink.resume(literalControl, literalSource, queueEvents[queueHead]);
-
-            if (status != Status.SUSPENDED)
-            {
-                queueHead++;
-            }
-
-            if (status == Status.ADVANCED)
-            {
-                status = drain();
-            }
-        }
-
-        return status;
+        return process(event);
     }
 
     private Status process(
@@ -882,7 +797,7 @@ abstract class LlmToolTransform implements JsonTransform
             commit();
         }
 
-        return resumable() ? settle(status) : status == Status.ADVANCED ? drain() : status;
+        return settle(status);
     }
 
     private Status settle(
@@ -2065,11 +1980,6 @@ abstract class LlmToolTransform implements JsonTransform
         JsonEvent event,
         String text)
     {
-        if (!resumable())
-        {
-            throw new IllegalStateException("loop emits require a resumable transform");
-        }
-
         final int ordinal = loopOrdinal++;
         boolean accepted = (mask & loop) != 0 || ordinal < looped;
 
@@ -2112,16 +2022,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         boolean accepted = true;
 
-        if (!resumable())
-        {
-            store(event, text, fromSource, fragment);
-            mask |= bit;
-        }
-        else if (bit == NO_BIT)
-        {
-            throw new IllegalStateException("resumable transform emits require a bit");
-        }
-        else if ((mask & bit) == 0 || !record)
+        if ((mask & bit) == 0 || !record)
         {
             accepted = delivered();
 
@@ -2151,55 +2052,6 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         return accepted;
-    }
-
-    private void store(
-        JsonEvent event,
-        String text,
-        boolean fromSource,
-        boolean fragment)
-    {
-        if (queueTail == queueEvents.length)
-        {
-            final int capacity = queueTail << 1;
-
-            queueEvents = Arrays.copyOf(queueEvents, capacity);
-            queueTexts = Arrays.copyOf(queueTexts, capacity);
-            queueSources = Arrays.copyOf(queueSources, capacity);
-            queueFragments = Arrays.copyOf(queueFragments, capacity);
-        }
-
-        queueEvents[queueTail] = event;
-        queueTexts[queueTail] = text;
-        queueSources[queueTail] = fromSource;
-        queueFragments[queueTail] = fragment;
-        queueTail++;
-    }
-
-    private Status drain()
-    {
-        Status status = Status.ADVANCED;
-
-        while (status == Status.ADVANCED && queueHead < queueTail)
-        {
-            status = queueSources[queueHead]
-                ? sink.transform(control, source, queueEvents[queueHead])
-                : sink.transform(literalControl, literalSource.with(queueTexts[queueHead], queueFragments[queueHead]),
-                    queueEvents[queueHead]);
-
-            if (status != Status.SUSPENDED)
-            {
-                queueHead++;
-            }
-        }
-
-        if (queueHead == queueTail)
-        {
-            queueHead = 0;
-            queueTail = 0;
-        }
-
-        return status;
     }
 
     private final class LiteralControl implements JsonController

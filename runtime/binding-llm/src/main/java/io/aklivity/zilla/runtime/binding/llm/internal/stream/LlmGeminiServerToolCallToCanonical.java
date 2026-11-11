@@ -26,12 +26,6 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     private static final int BIT_WIRE_ID_VALUE = 1 << 2;
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int member(
         int depth,
         CharSequence key)

@@ -104,12 +104,6 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int member(
         int depth,
         CharSequence key)

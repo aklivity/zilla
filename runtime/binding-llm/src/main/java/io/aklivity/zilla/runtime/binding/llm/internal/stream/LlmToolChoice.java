@@ -26,8 +26,6 @@ final class LlmToolChoice
     static final int FUNCTION = 2;
     static final int ALLOWED = 3;
 
-    static final int QUEUED = 0;
-
     static final String MODE_AUTO = "auto";
     static final String MODE_REQUIRED = "required";
     static final String MODE_NONE = "none";
@@ -162,12 +160,6 @@ final class LlmToolChoice
         return kind != UNRECOGNIZED;
     }
 
-    void emitCanonical(
-        LlmToolTransform transform)
-    {
-        emitCanonical(transform, QUEUED);
-    }
-
     boolean emitCanonical(
         LlmToolTransform transform,
         int loopBit)
@@ -192,7 +184,7 @@ final class LlmToolChoice
             break;
         }
 
-        return loopBit == QUEUED || transform.endLoop(loopBit);
+        return transform.endLoop(loopBit);
     }
 
     boolean emitResponses(
@@ -379,14 +371,7 @@ final class LlmToolChoice
         int loopBit,
         JsonEvent event)
     {
-        if (loopBit == QUEUED)
-        {
-            transform.emit(event);
-        }
-        else
-        {
-            transform.emitLoop(loopBit, event);
-        }
+        transform.emitLoop(loopBit, event);
     }
 
     private static void emit(
@@ -395,13 +380,6 @@ final class LlmToolChoice
         JsonEvent event,
         String text)
     {
-        if (loopBit == QUEUED)
-        {
-            transform.emit(event, text);
-        }
-        else
-        {
-            transform.emitLoop(loopBit, event, text);
-        }
+        transform.emitLoop(loopBit, event, text);
     }
 }

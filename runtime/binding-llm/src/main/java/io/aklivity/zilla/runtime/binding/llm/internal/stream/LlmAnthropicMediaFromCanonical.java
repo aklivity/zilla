@@ -94,12 +94,6 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int shared(
         CharSequence member)
     {
