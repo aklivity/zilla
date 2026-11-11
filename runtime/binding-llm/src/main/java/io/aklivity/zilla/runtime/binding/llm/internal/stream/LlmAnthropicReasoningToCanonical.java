@@ -20,6 +20,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicReasoningToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
+    }
 
     @Override
     protected int member(
@@ -62,7 +69,7 @@ final class LlmAnthropicReasoningToCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

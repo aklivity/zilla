@@ -19,6 +19,8 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesToolDefinitionFromCanonical extends LlmToolTransform
 {
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
+
 
     private boolean named;
 
@@ -33,6 +35,12 @@ final class LlmOpenaiResponsesToolDefinitionFromCanonical extends LlmToolTransfo
     {
         super.reset();
         named = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -90,7 +98,7 @@ final class LlmOpenaiResponsesToolDefinitionFromCanonical extends LlmToolTransfo
         {
             if (named)
             {
-                pass(JsonEvent.END_OBJECT);
+                pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
             }
             else
             {

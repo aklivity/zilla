@@ -34,6 +34,20 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final int REPLACING_OPTIONS = 2;
     private static final int REPLACING_USAGE = 3;
     private static final int REPLACING_OBFUSCATION = 4;
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_EMIT_KEY_NAME_2 = 1 << 2;
+    private static final int BIT_EMIT_CAPTURED_CAPTURED = 1 << 3;
+    private static final int BIT_EMIT_KEY_NAME_3 = 1 << 4;
+    private static final int BIT_EMIT_EVENT = 1 << 5;
+    private static final int BIT_EMIT_KEY_NAME_4 = 1 << 6;
+    private static final int BIT_EMIT_START_OBJECT = 1 << 7;
+    private static final int BIT_EMIT_END_OBJECT = 1 << 8;
+    private static final int BIT_EMIT_KEY_NAME_5 = 1 << 9;
+    private static final int BIT_EMIT_EVENT_2 = 1 << 10;
+    private static final int BIT_PASS_END_OBJECT = 1 << 11;
+    private static final int BIT_EMIT_KEY_NAME_6 = 1 << 12;
+    private static final int BIT_EMIT_VALUE_TRUE = 1 << 13;
 
     private final String dialect;
 
@@ -87,6 +101,12 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         usageSeen = false;
         usageRequested = false;
         obfuscationDisabled = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -145,13 +165,13 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
 
         if (tier != null)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
-            emit(JsonEvent.VALUE_STRING, tier);
+            emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
+            emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, tier);
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
-            emitCaptured(value, 0);
+            emit(BIT_EMIT_KEY_NAME_2, JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
+            emitCaptured(BIT_EMIT_CAPTURED_CAPTURED, value, 0);
         }
 
         return Status.ADVANCED;
@@ -186,8 +206,8 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             {
                 streamSeen = true;
                 streaming = event == JsonEvent.VALUE_TRUE;
-                emit(JsonEvent.KEY_NAME, MEMBER_STREAM);
-                emit(event);
+                emit(BIT_EMIT_KEY_NAME_3, JsonEvent.KEY_NAME, MEMBER_STREAM);
+                emit(BIT_EMIT_EVENT, event);
                 status = Status.ADVANCED;
             }
             break;
@@ -195,10 +215,10 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             if (event == JsonEvent.VALUE_NULL)
             {
                 optionsSeen = true;
-                emit(JsonEvent.KEY_NAME, MEMBER_STREAM_OPTIONS);
-                emit(JsonEvent.START_OBJECT);
+                emit(BIT_EMIT_KEY_NAME_4, JsonEvent.KEY_NAME, MEMBER_STREAM_OPTIONS);
+                emit(BIT_EMIT_START_OBJECT, JsonEvent.START_OBJECT);
                 emitIncludeUsage();
-                emit(JsonEvent.END_OBJECT);
+                emit(BIT_EMIT_END_OBJECT, JsonEvent.END_OBJECT);
                 status = Status.ADVANCED;
             }
             break;
@@ -215,8 +235,8 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             if (flag)
             {
                 obfuscationDisabled = event == JsonEvent.VALUE_FALSE;
-                emit(JsonEvent.KEY_NAME, target);
-                emit(event);
+                emit(BIT_EMIT_KEY_NAME_5, JsonEvent.KEY_NAME, target);
+                emit(BIT_EMIT_EVENT_2, event);
                 status = Status.ADVANCED;
             }
             break;
@@ -236,14 +256,14 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             emitIncludeUsage();
         }
 
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }
 
     private void emitIncludeUsage()
     {
-        emit(JsonEvent.KEY_NAME, MEMBER_INCLUDE_USAGE);
-        emit(JsonEvent.VALUE_TRUE);
+        emit(BIT_EMIT_KEY_NAME_6, JsonEvent.KEY_NAME, MEMBER_INCLUDE_USAGE);
+        emit(BIT_EMIT_VALUE_TRUE, JsonEvent.VALUE_TRUE);
     }
 }
