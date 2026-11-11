@@ -123,6 +123,15 @@ public class CircuitBreakerIT
 
     @Test
     @Specification({
+        "${app}/ignore.rejected.connection/client",
+        "${app}/ignore.rejected.connection/server" })
+    public void shouldIgnoreRejectedConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/ignore.circuit.id.zero/client",
         "${app}/ignore.circuit.id.zero/server" })
     public void shouldIgnoreCircuitIdZero() throws Exception

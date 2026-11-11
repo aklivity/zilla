@@ -158,6 +158,17 @@ public class CircuitBreakerIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME, value = "2")
     @Specification({
+        "${app}/ignore.rejected.connection/client",
+        "${net}/ignore.rejected.connection/server" })
+    public void shouldIgnoreRejectedConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_CLIENT_BREAKER_FAILURE_THRESHOLD_NAME, value = "2")
+    @Specification({
         "${app}/ignore.circuit.id.zero/client",
         "${net}/ignore.circuit.id.zero/server" })
     public void shouldIgnoreCircuitIdZero() throws Exception

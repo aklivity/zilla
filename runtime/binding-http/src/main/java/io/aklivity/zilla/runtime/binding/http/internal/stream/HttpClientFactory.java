@@ -3064,13 +3064,21 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
+            final boolean unreached = !StreamState.replyOpened(state) && !StreamState.replyClosed(state);
 
             state = StreamState.closeInitial(state);
 
             requestCredit = null;
             cleanupEncodeSlotIfNecessary();
 
-            exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
+            if (unreached)
+            {
+                exchanges.forEach((id, exchange) -> exchange.cleanupUnreached(traceId, authorization));
+            }
+            else
+            {
+                exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
+            }
 
             if (!StreamState.replyClosing(state))
             {
@@ -5241,6 +5249,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private boolean responseEventStream;
         private boolean responseWindowed;
+        private boolean unreached;
         private boolean responseFramingDecided;
         private boolean responseFraming;
         private boolean responseEndPending;
@@ -5672,7 +5681,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            if (circuitId != 0L)
+            if (circuitId != 0L && !unreached)
             {
                 onCircuitOutcome(traceId, beginEx.headers());
             }
@@ -6044,6 +6053,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+        }
+
+        private void cleanupUnreached(
+            long traceId,
+            long authorization)
+        {
+            unreached = true;
+            cleanup(traceId, authorization);
         }
 
         private int doResponseEvents(
