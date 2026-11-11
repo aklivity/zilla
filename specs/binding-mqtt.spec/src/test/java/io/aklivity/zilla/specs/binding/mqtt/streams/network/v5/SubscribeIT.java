@@ -377,6 +377,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.redeliver.message.qos1/client",
+        "${net}/subscribe.redeliver.message.qos1/server"})
+    public void shouldRedeliverMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.message.qos0.published.qos/client",
         "${net}/subscribe.receive.message.qos0.published.qos/server"})
     public void shouldReceiveMessageQoS0PublishedAsQoS1() throws Exception
@@ -389,6 +398,15 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.qos2/client",
         "${net}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.redeliver.message.qos2/client",
+        "${net}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
     {
         k3po.finish();
     }
