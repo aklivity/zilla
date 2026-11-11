@@ -12,48 +12,44 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.view;
+package io.aklivity.zilla.runtime.common.lang;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.lang.foreign.MemorySegment;
 
 /**
- * A {@link CharSequenceEx} over the raw UTF-8 bytes of a string in a buffer, as bytes that carry no escapes, so the
- * chars are read in place and nothing is copied or allocated.
- * <p>
- * A transfer hands over the bytes of the chars as they are, raw UTF-8 with no escapes, so a writer that needs an
- * encoding of its own reads the chars and encodes them itself.
+ * A {@link StringView} over raw UTF-8 bytes, which carry no escapes. A transfer hands over the bytes of the chars
+ * as they are, so a writer that needs an encoding of its own reads the chars and encodes them itself.
  * <p>
  * Bytes that are not well-formed UTF-8 read as U+FFFD, a char for each byte that is not part of a well-formed
  * sequence.
- * <p>
- * The chars are read in order, and a char just read can be read again. Reading further back starts again from the
- * start of the value. The view is a flyweight that is reused for every value and is valid only while the bytes it
- * wraps are unchanged.
  */
-public final class Utf8StringView implements CharSequenceEx
+final class Utf8StringView implements StringView
 {
-    private static final char REPLACEMENT = '�';
+    private static final char REPLACEMENT = '\ufffd';
 
-    private DirectBufferEx buffer;
-    private int offset;
-    private int limit;
+    private MemorySegment segment;
+    private long offset;
+    private long limit;
     private int length;
     private boolean ascii;
 
     private int cursorChar;
-    private int position;
+    private long position;
     private char pending;
     private char previous;
 
+    @Override
     public Utf8StringView wrap(
-        DirectBufferEx buffer,
-        int offset,
-        int byteLength)
+        MemorySegment segment,
+        long offset,
+        int length)
     {
-        this.buffer = buffer;
+        this.segment = segment;
         this.offset = offset;
-        this.limit = offset + byteLength;
+        this.limit = offset + length;
 
         scan();
 
@@ -79,7 +75,7 @@ public final class Utf8StringView implements CharSequenceEx
 
         if (ascii)
         {
-            c = (char) buffer.getByte(offset + index);
+            c = (char) segment.get(JAVA_BYTE, offset + index);
         }
         else
         {
@@ -113,7 +109,7 @@ public final class Utf8StringView implements CharSequenceEx
 
         if (ascii)
         {
-            chars = buffer.getStringWithoutLengthUtf8(offset + start, end - start);
+            chars = new String(segment.asSlice(offset + start, end - start).toArray(JAVA_BYTE), UTF_8);
         }
         else
         {
@@ -143,7 +139,7 @@ public final class Utf8StringView implements CharSequenceEx
     {
         check(fromChar, toChar);
 
-        return boundary(toChar) - boundary(fromChar);
+        return (int) (boundary(toChar) - boundary(fromChar));
     }
 
     @Override
@@ -154,15 +150,16 @@ public final class Utf8StringView implements CharSequenceEx
     {
         check(fromChar, toChar);
 
-        final int start = boundary(fromChar);
-        final int end = boundary(toChar);
+        final long start = boundary(fromChar);
+        final long end = boundary(toChar);
+        final int transferred = (int) (end - start);
 
-        if (end > start)
+        if (transferred > 0)
         {
-            target.accept(buffer.segment(), buffer.wrapAdjustment() + start, end - start);
+            target.accept(segment, start, transferred);
         }
 
-        return end - start;
+        return transferred;
     }
 
     private void check(
@@ -179,16 +176,16 @@ public final class Utf8StringView implements CharSequenceEx
     {
         boolean ascii = true;
 
-        for (int index = offset; ascii && index < limit; index++)
+        for (long index = offset; ascii && index < limit; index++)
         {
-            ascii = buffer.getByte(index) >= 0;
+            ascii = segment.get(JAVA_BYTE, index) >= 0;
         }
 
         this.ascii = ascii;
 
         if (ascii)
         {
-            this.length = limit - offset;
+            this.length = (int) (limit - offset);
         }
         else
         {
@@ -204,10 +201,10 @@ public final class Utf8StringView implements CharSequenceEx
         }
     }
 
-    private int boundary(
+    private long boundary(
         int charIndex)
     {
-        final int boundary;
+        final long boundary;
 
         if (ascii)
         {
@@ -253,7 +250,7 @@ public final class Utf8StringView implements CharSequenceEx
         }
         else
         {
-            final int lead = buffer.getByte(position) & 0xff;
+            final int lead = segment.get(JAVA_BYTE, position) & 0xff;
             final int continuations = continuations(lead);
 
             if (continuations == 0)
@@ -272,7 +269,7 @@ public final class Utf8StringView implements CharSequenceEx
 
                 for (int continuation = 1; continuation <= continuations; continuation++)
                 {
-                    codePoint = codePoint << 6 | buffer.getByte(position + continuation) & 0x3f;
+                    codePoint = codePoint << 6 | segment.get(JAVA_BYTE, position + continuation) & 0x3f;
                 }
 
                 position += continuations + 1;
@@ -314,14 +311,14 @@ public final class Utf8StringView implements CharSequenceEx
     }
 
     private boolean continued(
-        int from,
+        long from,
         int count)
     {
         boolean continued = from + count <= limit;
 
-        for (int index = from; continued && index < from + count; index++)
+        for (long index = from; continued && index < from + count; index++)
         {
-            continued = (buffer.getByte(index) & 0xc0) == 0x80;
+            continued = (segment.get(JAVA_BYTE, index) & 0xc0) == 0x80;
         }
 
         return continued;

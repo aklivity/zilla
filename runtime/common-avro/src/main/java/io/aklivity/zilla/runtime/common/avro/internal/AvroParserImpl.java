@@ -37,6 +37,7 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -49,8 +50,8 @@ import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
-import io.aklivity.zilla.runtime.common.json.view.Utf8StringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.lang.StringView;
 
 /**
  * The pull cursor ({@link AvroParser}) that decodes the Avro wire into a typed event stream and reads
@@ -85,7 +86,7 @@ public final class AvroParserImpl implements AvroParser
     private final UnsafeBufferEx segmentView;
     private final AvroLocationImpl location;
     private final CharText chars;
-    private final Utf8StringView utf8View = new Utf8StringView();
+    private final StringView utf8View = StringView.of(UTF_8);
     private final JsonStringView.Decoded stringView = new JsonStringView.Decoded();
 
     private DirectBufferEx buffer;
@@ -983,7 +984,7 @@ public final class AvroParserImpl implements AvroParser
         }
         else if (valueLength > 0)
         {
-            value = utf8View.wrap(buffer, valueOffset, valueLength);
+            value = utf8View.wrap(buffer.segment(), buffer.wrapAdjustment() + valueOffset, valueLength);
         }
 
         return value;
