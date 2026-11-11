@@ -1268,4 +1268,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.suback.after.stream.begin.v4/client",
+        "${app}/subscribe.suback.after.stream.begin.v4/server"})
+    public void shouldSubackAfterStreamBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
 }

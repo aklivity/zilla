@@ -675,7 +675,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.suback.after.stream.begin/client",
-        "${app}/subscribe.suback.after.stream.begin/server"})
+        "${app}/subscribe.suback.after.stream.begin.v4/server"})
     public void shouldSubackAfterStreamBegin() throws Exception
     {
         k3po.finish();
@@ -685,7 +685,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reject.stream.reset.before.begin/client",
-        "${app}/subscribe.reject.stream.reset.before.begin/server"})
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/server"})
     public void shouldRejectSubscribeWhenStreamResetBeforeBegin() throws Exception
     {
         k3po.finish();
