@@ -87,7 +87,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -2741,6 +2743,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
+        private final Deque<MqttPublishStream> unAckedReceivedPublishes;
 
         private IntArrayList unreleasedPacketIds;
 
@@ -2789,6 +2792,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Object2IntHashMap<>(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
+            this.unAckedReceivedPublishes = new ArrayDeque<>();
             this.unsubscribePacketFilters = new Int2ObjectHashMap<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
@@ -5153,6 +5157,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             return frameLength;
         }
 
+        private void acknowledgePublishPackets(
+            long traceId,
+            long authorization)
+        {
+            MqttPublishStream stream = unAckedReceivedPublishes.peek();
+            while (stream != null && stream.acknowledged())
+            {
+                unAckedReceivedPublishes.remove();
+                stream.doEncodePublishAck(traceId, authorization);
+                stream = unAckedReceivedPublishes.peek();
+            }
+        }
+
         private void doEncodePubackV4(
             long traceId,
             long authorization,
@@ -6695,6 +6712,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pendingAckSequences.addLong(initialSeq);
                     pendingAckPacketIds.addInt(packetId);
                     pendingAckReasonCodes.addInt(SUCCESS);
+                    unAckedReceivedPublishes.add(this);
                 }
 
                 doSignalPublishExpiration(traceId);
@@ -6854,50 +6872,51 @@ public final class MqttServerFactory implements MqttStreamFactory
                     decodeNetwork(traceId);
                 }
 
-                acknowledgePublishPackets(acknowledge, traceId, authorization);
+                acknowledgePublishPackets(traceId, authorization);
             }
 
-            private void acknowledgePublishPackets(
-                long acknowledge,
+            private boolean acknowledged()
+            {
+                return pendingAckSequences.getLong(0) <= initialAck;
+            }
+
+            private void doEncodePublishAck(
                 long traceId,
                 long authorization)
             {
-                while (!pendingAckSequences.isEmpty() && pendingAckSequences.getLong(0) <= acknowledge)
+                final int packetId = pendingAckPacketIds.getInt(0);
+                final int reasonCode = pendingAckReasonCodes.getInt(0);
+                pendingAckSequences.removeAt(0);
+                pendingAckPacketIds.removeAt(0);
+                pendingAckReasonCodes.removeAt(0);
+
+                if (qos == 1)
                 {
-                    final int packetId = pendingAckPacketIds.getInt(0);
-                    final int reasonCode = pendingAckReasonCodes.getInt(0);
-                    pendingAckSequences.removeAt(0);
-                    pendingAckPacketIds.removeAt(0);
-                    pendingAckReasonCodes.removeAt(0);
-
-                    if (qos == 1)
+                    switch (version)
                     {
-                        switch (version)
-                        {
-                        case 4:
-                            doEncodePubackV4(traceId, authorization, packetId);
-                            break;
-                        case 5:
-                            doEncodePubackV5(traceId, authorization, packetId, reasonCode);
-                            break;
-                        }
+                    case 4:
+                        doEncodePubackV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubackV5(traceId, authorization, packetId, reasonCode);
+                        break;
                     }
-                    else
+                }
+                else
+                {
+                    switch (version)
                     {
-                        switch (version)
-                        {
-                        case 4:
-                            doEncodePubrecV4(traceId, authorization, packetId);
-                            break;
-                        case 5:
-                            doEncodePubrecV5(traceId, authorization, packetId, reasonCode);
-                            break;
-                        }
+                    case 4:
+                        doEncodePubrecV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrecV5(traceId, authorization, packetId, reasonCode);
+                        break;
+                    }
 
-                        if (reasonCode < FAILURE_REASON_CODE_MIN)
-                        {
-                            unreleasedPacketIds.add(packetId);
-                        }
+                    if (reasonCode < FAILURE_REASON_CODE_MIN)
+                    {
+                        unreleasedPacketIds.add(packetId);
                     }
                 }
             }
@@ -6970,9 +6989,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     for (int index = 0; index < pendingAckReasonCodes.size(); index++)
                     {
                         pendingAckReasonCodes.setInt(index, failureReasonCode);
+                        pendingAckSequences.setLong(index, 0L);
                     }
 
-                    acknowledgePublishPackets(Long.MAX_VALUE, traceId, authorization);
+                    acknowledgePublishPackets(traceId, authorization);
 
                     if (decodePublisherKey == topicKey && decoder == decodePublishPayload)
                     {
