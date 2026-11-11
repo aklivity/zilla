@@ -252,4 +252,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.shared.stream.end/client",
+        "${app}/unsubscribe.shared.stream.end/server"})
+    public void shouldUnsubscribeSharedStreamEnd() throws Exception
+    {
+        k3po.finish();
+    }
 }

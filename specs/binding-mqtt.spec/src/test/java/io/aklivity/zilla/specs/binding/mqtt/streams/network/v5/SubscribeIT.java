@@ -957,4 +957,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription.disconnect/client",
+        "${net}/subscribe.shared.subscription.disconnect/server"})
+    public void shouldSubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -292,4 +292,31 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.subscription.disconnect/client",
+        "${net}/unsubscribe.shared.subscription.disconnect/server"})
+    public void shouldUnsubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.resubscribe.change.qos.disconnect/client",
+        "${net}/unsubscribe.shared.resubscribe.change.qos.disconnect/server"})
+    public void shouldUnsubscribeSharedResubscribeChangeQosDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.stream.end/client",
+        "${net}/unsubscribe.shared.stream.end/server"})
+    public void shouldUnsubscribeSharedStreamEnd() throws Exception
+    {
+        k3po.finish();
+    }
 }
