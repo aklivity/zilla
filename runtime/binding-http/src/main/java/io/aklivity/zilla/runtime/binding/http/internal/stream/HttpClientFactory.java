@@ -130,6 +130,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExF
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -1112,8 +1113,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             try
             {
-                final CharSequence chunkSizeHex = new AsciiSequenceView(buffer, offset, chunkSizeLength);
-                client.decodableChunkSize = Integer.parseInt(chunkSizeHex, 0, chunkSizeLength, 16);
+                final int chunkSize = HttpUtil.parseHex(buffer, offset, chunkSizeLength);
+                client.decodableChunkSize = chunkSize != -1
+                    ? chunkSize
+                    : Integer.parseInt(new AsciiSequenceView(buffer, offset, chunkSizeLength), 0, chunkSizeLength, 16);
                 client.decoder = client.decodableChunkSize != 0 ? decodeHttp11ChunkBody : decodeHttp11Trailers;
                 progress = chunkHeaderLimit;
             }
@@ -3452,8 +3455,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 if (hasFin(flags))
                 {
-                    final String chunkSizeHex = Integer.toHexString(payload.sizeof());
-                    chunkLimit += codecBuffer.putStringWithoutLengthAscii(chunkLimit, chunkSizeHex);
+                    chunkLimit += HttpUtil.putHex(codecBuffer, chunkLimit, payload.sizeof());
                     codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
                     chunkLimit += 2;
                 }

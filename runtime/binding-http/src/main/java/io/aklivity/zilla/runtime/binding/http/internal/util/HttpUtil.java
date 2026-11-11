@@ -16,8 +16,10 @@
 package io.aklivity.zilla.runtime.binding.http.internal.util;
 
 import static java.lang.Character.toUpperCase;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 public final class HttpUtil
 {
@@ -45,6 +47,49 @@ public final class HttpUtil
     private static final byte ASCII_UPPERCASE_F = 0x46;
     private static final byte ASCII_LOWERCASE_A = 0x61;
     private static final byte ASCII_LOWERCASE_F = 0x66;
+
+    private static final int MAXIMUM_PARSED_HEX_LENGTH = 7;
+    private static final byte[] HEX_DIGITS = "0123456789abcdef".getBytes(US_ASCII);
+
+    public static int hexLength(
+        int value)
+    {
+        return Math.max((Integer.SIZE - Integer.numberOfLeadingZeros(value) + 3) >> 2, 1);
+    }
+
+    public static int putHex(
+        MutableDirectBufferEx buffer,
+        int index,
+        int value)
+    {
+        final int length = hexLength(value);
+
+        for (int digit = length - 1, remaining = value; digit >= 0; digit--, remaining >>>= 4)
+        {
+            buffer.putByte(index + digit, HEX_DIGITS[remaining & 0x0f]);
+        }
+
+        return length;
+    }
+
+    /**
+     * @return the value of a plain run of one to seven hexadecimal digits, or -1 for anything else
+     */
+    public static int parseHex(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        int value = length >= 1 && length <= MAXIMUM_PARSED_HEX_LENGTH ? 0 : -1;
+
+        for (int index = 0; value != -1 && index < length; index++)
+        {
+            final int digit = Character.digit(buffer.getByte(offset + index), 16);
+            value = digit != -1 ? (value << 4) | digit : -1;
+        }
+
+        return value;
+    }
 
     public static void appendHeader(
         StringBuilder payload,
