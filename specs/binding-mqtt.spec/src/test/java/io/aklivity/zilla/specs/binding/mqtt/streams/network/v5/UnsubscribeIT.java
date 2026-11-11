@@ -130,4 +130,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.before.suback.after.stream.begin/client",
+        "${net}/unsubscribe.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
