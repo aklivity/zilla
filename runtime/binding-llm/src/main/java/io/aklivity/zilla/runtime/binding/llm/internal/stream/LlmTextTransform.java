@@ -34,7 +34,7 @@ final class LlmTextTransform extends LlmToolTransform
         boolean optional,
         LlmCacheBreakpoint breakpoints)
     {
-        super(MODE_EXTRACT);
+        super(MODE_EXTRACT, null, 1, breakpoints != null ? new LlmCapturedValue() : null);
         this.optional = optional;
         this.breakpoints = breakpoints;
     }

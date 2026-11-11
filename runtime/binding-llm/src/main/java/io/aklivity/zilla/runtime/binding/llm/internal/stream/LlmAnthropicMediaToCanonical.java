@@ -20,6 +20,9 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicMediaToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_END_OBJECT = 1 << 2;
 
     private final String canonicalType;
     private final String container;
@@ -42,6 +45,7 @@ final class LlmAnthropicMediaToCanonical extends LlmToolTransform
         String dataMember,
         String urlMember)
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.canonicalType = canonicalType;
         this.container = container;
         this.dataMember = dataMember;
@@ -118,15 +122,15 @@ final class LlmAnthropicMediaToCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, canonicalType);
+        emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+        emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, canonicalType);
     }
 
     @Override
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

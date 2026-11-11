@@ -47,7 +47,7 @@ public class McpSchemeExcluderTest
         // to this fix: JsonSource#skipValue() scans the dropped member's value in one shot with no ability
         // to starve mid-value, so the window in which the (possibly reassembled) key completes must still
         // have enough bytes left to also cover the whole dropped value -- the same pre-existing, orthogonal
-        // window-vs-content-size constraint JsonProjectorTest documents for MAX_VALUE_SIZE.
+        // window-vs-content-size constraint JsonProjectorTest documents.
         String arrayKey = "x".repeat(40);
         String json = "{\"" + arrayKey + "\":[{\"securitySchemes\":{\"a\":1},\"other\":1}]}";
         assertEquals("{\"" + arrayKey + "\":[{\"other\":1}]}", excludeWindowed(arrayKey, json, 12));

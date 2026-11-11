@@ -104,23 +104,6 @@ class JsonEscapedPipelineTest
     }
 
     @Test
-    void shouldRoundTripNestedMarkersFromParserToGenerator()
-    {
-        final String inner = "{\"c\":" + quote(DOCUMENT) + ",\"e\":2}";
-        final String json = "{\"a\":" + quote(inner) + "}";
-
-        for (int window = 1; window <= json.length() + 1; window += 5)
-        {
-            final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(true, "a", "c"));
-
-            final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, window, 48);
-
-            assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
-            assertEquals(json, outcome.output(), "window " + window);
-        }
-    }
-
-    @Test
     void shouldRoundTripEmptyContent()
     {
         final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(true, "a"));
@@ -230,16 +213,13 @@ class JsonEscapedPipelineTest
     }
 
     @Test
-    void shouldProjectWithinNestedStringifiedDocuments()
+    void shouldRejectProjectionWithinNestedStringifiedDocuments()
     {
         final String json = "{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"e\\\\\\\":1,\\\\\\\"f\\\\\\\":2}\\\"}\"}";
 
         for (int window = 1; window <= json.length() + 1; window += 2)
         {
-            final Outcome outcome = project(List.of("/a/c/e"), json, window, "a", "c");
-
-            assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
-            assertEquals("{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"e\\\\\\\":1}\\\"}\"}", outcome.output(), "window " + window);
+            assertEquals(Status.REJECTED, project(List.of("/a/c/e"), json, window, "a", "c").status(), "window " + window);
         }
     }
 

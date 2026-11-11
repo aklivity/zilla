@@ -109,38 +109,20 @@ class JsonFlattenerTest
         // directly (no upstream projector) so the fragmenting key reaches this stage's own onKey() rather
         // than being reassembled and decided by the projector first.
         String key = "x".repeat(40);
-        assertEquals("{\"y\":1}", flattenWindowed(Map.of(key, "y"), "{\"" + key + "\":1}", 8, -1));
-    }
-
-    @Test
-    void shouldDropHugeNonMatchingKeyWithoutHittingValueSizeCap()
-    {
-        // root's only child is "y" (maxKeyLength 1): a 500-char unrelated key can never match, so onKey
-        // decides "dead branch" as soon as the fragment exceeds 1 char and drains the rest without ever
-        // buffering it -- completion here never depends on MAX_VALUE_SIZE, set far smaller than the dropped
-        // key to prove it (see the matching JsonProjectorTest case for the shared, pre-existing constraint
-        // this value must still clear: one window's worth of scanned-but-undecided tokenizer content).
-        String hugeKey = "x".repeat(500);
-        assertEquals("{\"z\":2}",
-            flattenWindowed(Map.of("y", "z"), "{\"" + hugeKey + "\":1,\"y\":2}", 8, 50));
+        assertEquals("{\"y\":1}", flattenWindowed(Map.of(key, "y"), "{\"" + key + "\":1}", 8));
     }
 
     // Drives flatten() (without an upstream projector) through fixed-size input windows, carrying the
-    // unconsumed tail (pipeline.remaining()) across STARVED feeds the way a real caller does. maxValueSize
-    // configures the parser's MAX_VALUE_SIZE when non-negative, otherwise the parser default applies.
+    // unconsumed tail (pipeline.remaining()) across STARVED feeds the way a real caller does.
     private static String flattenWindowed(
         Map<String, String> accessorTargets,
         String input,
-        int window,
-        int maxValueSize)
+        int window)
     {
         JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
-        JsonParserEx parser = maxValueSize < 0
-            ? JsonEx.createParser()
-            : JsonEx.createParser(Map.of(JsonParserEx.MAX_VALUE_SIZE, maxValueSize));
-        JsonPipeline pipeline = JsonEx.stream(parser)
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonTransforms.flatten(accessorTargets))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
         pipeline.reset();

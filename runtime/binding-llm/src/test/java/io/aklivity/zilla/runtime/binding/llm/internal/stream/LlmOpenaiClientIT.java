@@ -1524,6 +1524,17 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/ccs\""})
     @Specification({
+        "${app}/openai.transform.response.reasoning.escaped/client",
+        "${net}/openai.transform.response.reasoning.escaped/server"})
+    public void shouldTransformResponseReasoningEscapedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai/ccs\""})
+    @Specification({
         "${app}/openai.transform.response.text.and.tool.call/client",
         "${net}/openai.transform.response.text.and.tool.call.sse/server"})
     public void shouldTransformResponseTextAndToolCallSseAsOpenai() throws Exception

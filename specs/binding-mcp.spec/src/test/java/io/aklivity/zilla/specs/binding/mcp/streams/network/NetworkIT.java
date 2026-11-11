@@ -776,6 +776,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.notify.resources.updated.oversize/client",
+        "${net}/lifecycle.notify.resources.updated.oversize/server"})
+    public void shouldSuspendWhenNotifiedResourceUriIsOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.notify.resources.updated.unknown.param/client",
         "${net}/lifecycle.notify.resources.updated.unknown.param/server"})
     public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception

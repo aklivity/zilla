@@ -184,6 +184,24 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     }
 
     @Test
+    public void shouldKeepConsecutiveTextMembersInOneResidue()
+    {
+        assertTransforms(transform,
+            json("{'text':{'verbosity':'low','other':1,'format':{'type':'text'},'more':2,'last':3}}"),
+            json("{'openai/rs:text':{'verbosity':'low','other':1},'x:response_format':{'type':'text'}," +
+                "'openai/rs:text':{'more':2,'last':3}}"));
+    }
+
+    @Test
+    public void shouldKeepConsecutiveReasoningMembersInOneResidue()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'summary':'auto','other':1,'effort':'low','more':2,'last':3}}"),
+            json("{'openai/rs:reasoning':{'summary':'auto','other':1},'x:reasoning_effort':'low'," +
+                "'openai/rs:reasoning':{'more':2,'last':3}}"));
+    }
+
+    @Test
     public void shouldSplitTextResidueAroundFormat()
     {
         assertTransforms(transform,

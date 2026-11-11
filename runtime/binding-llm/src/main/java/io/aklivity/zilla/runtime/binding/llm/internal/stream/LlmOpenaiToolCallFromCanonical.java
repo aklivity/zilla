@@ -19,6 +19,20 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
 {
+    private static final int BIT_ID_KEY = 1 << 0;
+    private static final int BIT_ID_VALUE = 1 << 1;
+    private static final int BIT_TYPE_KEY = 1 << 2;
+    private static final int BIT_TYPE_VALUE = 1 << 3;
+    private static final int BIT_FUNCTION_KEY = 1 << 4;
+    private static final int BIT_FUNCTION_START = 1 << 5;
+    private static final int BIT_FUNCTION_NAME_KEY = 1 << 6;
+    private static final int BIT_FUNCTION_NAME_VALUE = 1 << 7;
+    private static final int BIT_ARGUMENTS_KEY = 1 << 8;
+    private static final int BIT_ARGUMENTS_VALUE = 1 << 9;
+    private static final int BIT_LATE_NAME_KEY = 1 << 10;
+    private static final int BIT_LATE_NAME_VALUE = 1 << 11;
+    private static final int BIT_FUNCTION_END = 1 << 12;
+    private static final int BIT_END_OBJECT = 1 << 13;
 
     private String toolCallId;
     private String toolName;
@@ -69,18 +83,17 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        opened = true;
-        toolCallId = attribute("tool-call-id");
-        toolName = attribute("tool-name");
+        final String openId = attribute("tool-call-id");
+        final String openName = attribute("tool-name");
 
-        if (toolCallId != null)
+        if (emitId(openId) &&
+            emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, "function"))
         {
-            emit(JsonEvent.KEY_NAME, "id");
-            emit(JsonEvent.VALUE_STRING, toolCallId);
+            opened = true;
+            toolCallId = openId;
+            toolName = openName;
         }
-
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "function");
     }
 
     @Override
@@ -106,29 +119,19 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
 
         if (opened)
         {
-            if (!argumented)
+            final boolean closing = functioned || !argumented;
+            final String lateName = toolName == null && closing ? attribute("tool-name") : null;
+            final String lateId = toolCallId == null ? attribute("tool-call-id") : null;
+
+            final boolean closed =
+                (functioned || argumented || emitFunctionOpen(toolName)) &&
+                (argumented || emitEmptyArguments()) &&
+                (!closing || emitFunctionClose(lateName)) &&
+                emitId(lateId);
+
+            if (closed && (toolCallId != null || lateId != null) && (toolName != null || lateName != null) &&
+                emit(BIT_END_OBJECT, JsonEvent.END_OBJECT))
             {
-                openFunction();
-                emit(JsonEvent.KEY_NAME, "arguments");
-                emit(JsonEvent.VALUE_STRING, "{}");
-            }
-
-            closeFunction();
-
-            if (toolCallId == null)
-            {
-                toolCallId = attribute("tool-call-id");
-
-                if (toolCallId != null)
-                {
-                    emit(JsonEvent.KEY_NAME, "id");
-                    emit(JsonEvent.VALUE_STRING, toolCallId);
-                }
-            }
-
-            if (toolCallId != null && toolName != null)
-            {
-                emit(JsonEvent.END_OBJECT);
                 status = Status.ADVANCED;
             }
         }
@@ -138,18 +141,9 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
 
     private void openFunction()
     {
-        if (!functioned)
+        if (!functioned && emitFunctionOpen(toolName))
         {
             functioned = true;
-
-            emit(JsonEvent.KEY_NAME, "function");
-            emit(JsonEvent.START_OBJECT);
-
-            if (toolName != null)
-            {
-                emit(JsonEvent.KEY_NAME, "name");
-                emit(JsonEvent.VALUE_STRING, toolName);
-            }
         }
     }
 
@@ -157,20 +151,50 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     {
         if (functioned)
         {
-            functioned = false;
+            final String lateName = toolName == null ? attribute("tool-name") : null;
 
-            if (toolName == null)
+            if (emitFunctionClose(lateName))
             {
-                toolName = attribute("tool-name");
+                functioned = false;
 
-                if (toolName != null)
+                if (lateName != null)
                 {
-                    emit(JsonEvent.KEY_NAME, "name");
-                    emit(JsonEvent.VALUE_STRING, toolName);
+                    toolName = lateName;
                 }
             }
-
-            emit(JsonEvent.END_OBJECT);
         }
+    }
+
+    private boolean emitId(
+        String id)
+    {
+        return id == null ||
+            emit(BIT_ID_KEY, JsonEvent.KEY_NAME, "id") &&
+            emit(BIT_ID_VALUE, JsonEvent.VALUE_STRING, id);
+    }
+
+    private boolean emitEmptyArguments()
+    {
+        return emit(BIT_ARGUMENTS_KEY, JsonEvent.KEY_NAME, "arguments") &&
+            emit(BIT_ARGUMENTS_VALUE, JsonEvent.VALUE_STRING, "{}");
+    }
+
+    private boolean emitFunctionOpen(
+        String name)
+    {
+        return emit(BIT_FUNCTION_KEY, JsonEvent.KEY_NAME, "function") &&
+            emit(BIT_FUNCTION_START, JsonEvent.START_OBJECT) &&
+            (name == null ||
+                emit(BIT_FUNCTION_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
+                emit(BIT_FUNCTION_NAME_VALUE, JsonEvent.VALUE_STRING, name));
+    }
+
+    private boolean emitFunctionClose(
+        String lateName)
+    {
+        return (lateName == null ||
+            emit(BIT_LATE_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
+            emit(BIT_LATE_NAME_VALUE, JsonEvent.VALUE_STRING, lateName)) &&
+            emit(BIT_FUNCTION_END, JsonEvent.END_OBJECT);
     }
 }

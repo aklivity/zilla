@@ -43,6 +43,21 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     private static final String MEMBER_SAFETY_IDENTIFIER = "safety_identifier";
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final int SAFETY_IDENTIFIER_MAX = 128;
+    private static final int BIT_FORMAT_KEY = 1 << 0;
+    private static final int BIT_FORMAT_START = 1 << 1;
+    private static final int BIT_FORMAT_OBJECT_KEY = 1 << 2;
+    private static final int BIT_FORMAT_OBJECT_START = 1 << 3;
+    private static final int BIT_FORMAT_TYPE_KEY = 1 << 4;
+    private static final int BIT_FORMAT_TYPE_VALUE = 1 << 5;
+    private static final int BIT_FORMAT_OBJECT_END = 1 << 6;
+    private static final int BIT_FORMAT_END = 1 << 7;
+    private static final int BIT_STREAM_OPTIONS_KEY = 1 << 8;
+    private static final int BIT_STREAM_OPTIONS_START = 1 << 9;
+    private static final int BIT_TOOL_CHOICE_KEY = 1 << 10;
+    private static final int BIT_PASS_END_STREAM_OPTIONS = 1 << 11;
+    private static final int BIT_PASS_END_OBJECT = 1 << 12;
+    private static final int BIT_EMIT_VALUE_NULL = 1 << 13;
+    private static final int BIT_TOOL_CHOICE_VALUE = 1 << 14;
 
     private final boolean members;
     private final LlmToolChoice choice;
@@ -64,7 +79,8 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         String dialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect);
+        super(mode, dialect, mode == MODE_OBJECT ? new LlmCapturedValue() : null,
+            mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.capability = capability;
@@ -140,15 +156,12 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
             }
             else if (action != DROP && !optionsOpen)
             {
-                optionsOpen = true;
-                member = MEMBER_STREAM_OPTIONS;
-
-                if (members)
+                if ((!members || emit(BIT_STREAM_OPTIONS_KEY, JsonEvent.KEY_NAME, MEMBER_STREAM_OPTIONS)) &&
+                    emit(BIT_STREAM_OPTIONS_START, JsonEvent.START_OBJECT))
                 {
-                    emit(JsonEvent.KEY_NAME, MEMBER_STREAM_OPTIONS);
+                    optionsOpen = true;
+                    member = MEMBER_STREAM_OPTIONS;
                 }
-
-                emit(JsonEvent.START_OBJECT);
             }
         }
 
@@ -179,7 +192,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, TOOL_CHOICE))
             {
@@ -223,22 +236,22 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     }
 
     @Override
-    protected void openFormat(
+    protected boolean openFormat(
         int kind)
     {
-        emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_FORMAT);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-        emit(JsonEvent.VALUE_STRING, typeOf(kind));
+        return emit(BIT_FORMAT_KEY, JsonEvent.KEY_NAME, MEMBER_TEXT) &&
+            emit(BIT_FORMAT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_OBJECT_KEY, JsonEvent.KEY_NAME, MEMBER_FORMAT) &&
+            emit(BIT_FORMAT_OBJECT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+            emit(BIT_FORMAT_TYPE_VALUE, JsonEvent.VALUE_STRING, typeOf(kind));
     }
 
     @Override
-    protected void closeFormat()
+    protected boolean closeFormat()
     {
-        emit(JsonEvent.END_OBJECT);
-        emit(JsonEvent.END_OBJECT);
+        return emit(BIT_FORMAT_OBJECT_END, JsonEvent.END_OBJECT) &&
+            emit(BIT_FORMAT_END, JsonEvent.END_OBJECT);
     }
 
     @Override
@@ -258,10 +271,10 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
-        Status status = Status.ADVANCED;
+        Status status;
 
         if (matches(capturedMember(), MEMBER_TYPE))
         {
@@ -272,15 +285,27 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
             effort = LlmReasoning.effortOf(value);
             status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
         }
-        else if (matches(capturedMember(), THINKING_BUDGET_TOKENS))
+        else
         {
             budget = LlmReasoning.budgetOf(value);
             status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
         }
-        else if (choice.parseCanonical(value))
+
+        return status;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        Status status = Status.ADVANCED;
+
+        if (choice.parseCanonical(value))
         {
-            emit(JsonEvent.KEY_NAME, TOOL_CHOICE);
-            choice.emitResponses(this);
+            if (emit(BIT_TOOL_CHOICE_KEY, JsonEvent.KEY_NAME, TOOL_CHOICE))
+            {
+                choice.emitResponses(this, BIT_TOOL_CHOICE_VALUE);
+            }
         }
         else
         {
@@ -309,16 +334,16 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         {
             if (optionsOpen)
             {
-                pass(JsonEvent.END_OBJECT);
+                pass(BIT_PASS_END_STREAM_OPTIONS, JsonEvent.END_OBJECT);
             }
         }
         else if (members)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
-            emit(JsonEvent.VALUE_NULL);
+            emit(BIT_EMIT_VALUE_NULL, JsonEvent.VALUE_NULL);
         }
 
         return status;

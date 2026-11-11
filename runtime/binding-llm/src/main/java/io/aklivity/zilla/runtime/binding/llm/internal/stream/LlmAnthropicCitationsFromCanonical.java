@@ -22,6 +22,8 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
     private static final String DIALECT = "anthropic";
     private static final String TYPE_URL = "url_citation";
     private static final String TYPE_URL_NATIVE = "web_search_result_location";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
 
     private boolean typed;
 
@@ -95,11 +97,10 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
 
     private void emitType()
     {
-        if (held() != null && !typed)
+        if (held() != null && !typed && emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_URL_NATIVE))
         {
             typed = true;
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, TYPE_URL_NATIVE);
         }
     }
 }

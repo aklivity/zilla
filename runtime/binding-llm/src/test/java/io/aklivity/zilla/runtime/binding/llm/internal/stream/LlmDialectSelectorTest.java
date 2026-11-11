@@ -18,8 +18,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
-import java.util.List;
-
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
@@ -35,13 +33,15 @@ public class LlmDialectSelectorTest
         final LlmDialectHandler matching = new Detecting(true, 1);
         final LlmDialectHandler other = new Detecting(false, 0);
 
-        assertThat(LlmDialectSelector.select(List.of(other, matching), null), sameInstance(matching));
+        assertThat(LlmDialectSelector.select(new LlmDialectHandler[] { other, matching }, null), sameInstance(matching));
     }
 
     @Test
     public void shouldSelectNoneWhenNoDialectDetects()
     {
-        assertThat(LlmDialectSelector.select(List.of(new Detecting(false, 0), new Detecting(false, 0)), null), nullValue());
+        final LlmDialectHandler[] candidates = { new Detecting(false, 0), new Detecting(false, 0) };
+
+        assertThat(LlmDialectSelector.select(candidates, null), nullValue());
     }
 
     @Test
@@ -50,8 +50,8 @@ public class LlmDialectSelectorTest
         final LlmDialectHandler generic = new Detecting(true, 1);
         final LlmDialectHandler specific = new Detecting(true, 2);
 
-        assertThat(LlmDialectSelector.select(List.of(generic, specific), null), sameInstance(specific));
-        assertThat(LlmDialectSelector.select(List.of(specific, generic), null), sameInstance(specific));
+        assertThat(LlmDialectSelector.select(new LlmDialectHandler[] { generic, specific }, null), sameInstance(specific));
+        assertThat(LlmDialectSelector.select(new LlmDialectHandler[] { specific, generic }, null), sameInstance(specific));
     }
 
     @Test
@@ -60,8 +60,10 @@ public class LlmDialectSelectorTest
         final LlmDialectHandler generic = new Defaulted(true);
         final LlmDialectHandler specific = new Detecting(true, 2);
 
-        assertThat(LlmDialectSelector.select(List.of(generic, specific), null), sameInstance(specific));
-        assertThat(LlmDialectSelector.select(List.of(generic, new Defaulted(false)), null), sameInstance(generic));
+        assertThat(LlmDialectSelector.select(new LlmDialectHandler[] { generic, specific }, null), sameInstance(specific));
+        final LlmDialectHandler[] defaulted = { generic, new Defaulted(false) };
+
+        assertThat(LlmDialectSelector.select(defaulted, null), sameInstance(generic));
     }
 
     @Test
@@ -71,7 +73,7 @@ public class LlmDialectSelectorTest
         final LlmDialectHandler second = new Detecting(true, 2);
         final LlmDialectHandler generic = new Detecting(true, 1);
 
-        assertThat(LlmDialectSelector.select(List.of(first, second, generic), null), nullValue());
+        assertThat(LlmDialectSelector.select(new LlmDialectHandler[] { first, second, generic }, null), nullValue());
     }
 
     private static class Defaulted implements LlmDialectHandler

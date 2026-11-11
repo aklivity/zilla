@@ -48,6 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
@@ -2547,6 +2548,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public void escaped()
+        {
+            throw new JsonException("escaped scope not supported");
+        }
+
+        @Override
         public CharSequence getStringView()
         {
             return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
@@ -2809,25 +2816,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 // are the escaped form of it
                 scope(event);
                 status = leniently(sink.transform(decline, source, event));
-            }
-            else if (event == JsonEvent.KEY_NAME && source.deferredBytes())
-            {
-                // unlike a scalar value, a key has no needsContent-style shortcut — every object position
-                // must route to a property schema / required-set by the whole key, so a fragmented key
-                // always needs reassembly. Decline the fragment (consumed(0), do not forward) so the source
-                // accumulates it and re-presents it whole on a later window; only then feed eval.
-                //
-                // A decline-to-N bound (as used by JsonProjectorImpl/JsonFlattenerImpl) is intentionally not
-                // applied here: this eval and every combinator branch fed alongside it (allOf/anyOf/oneOf,
-                // $ref, dependentSchemas, ...) independently track their own propertyKeys/requiredKeys via
-                // feedCombinators, all reading the same live JsonSource. A per-position bound would need to
-                // be the max across that entire branch tree, not just this eval's own simpleObject keys —
-                // deciding "no candidate can match" from a narrower bound risks feeding a still-fragmenting
-                // key to a sibling branch expecting the complete key, corrupting its property/required match.
-                // simpleObject (fastKeys) does not preclude sibling combinators being present, so no bound
-                // computed from this eval alone is safe. Reassembly stays bounded by maxValueSize instead.
-                control.consumed(0);
-                status = Status.STARVED;
             }
             else
             {

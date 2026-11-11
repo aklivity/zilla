@@ -69,6 +69,28 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final String[] LEVELS = {"MINIMAL", "LOW", "MEDIUM", "HIGH"};
     private static final String[] EFFORTS = {"minimal", "low", "medium", "high"};
 
+    // One dispatch runs one hook branch, so branches reuse bits by role: the wrapper bits also open the thinking and
+    // tool config residue, captured bits serve every lifted or passed capture, object bits serve the format lift
+    // and the schema lift, end bits close whichever object the branch opened.
+    private static final int BIT_RESIDUE_KEY = 1 << 0;
+    private static final int BIT_RESIDUE_START = 1 << 1;
+    private static final int BIT_FORMAT_KEY = 1 << 2;
+    private static final int BIT_FORMAT_START = 1 << 3;
+    private static final int BIT_TEXT_KEY = 1 << 4;
+    private static final int BIT_TEXT_START = 1 << 5;
+    private static final int BIT_CAPTURED_KEY = 1 << 6;
+    private static final int BIT_CAPTURED_VALUE = 1 << 7;
+    private static final int BIT_CHOICE = 1 << 8;
+    private static final int BIT_MEMBERS = 1 << 9;
+    private static final int BIT_END = 1 << 10;
+    private static final int BIT_END_OUTER = 1 << 11;
+    private static final int BIT_TYPE_KEY = 1 << 12;
+    private static final int BIT_TYPE_VALUE = 1 << 13;
+    private static final int BIT_OBJECT_KEY = 1 << 14;
+    private static final int BIT_OBJECT_START = 1 << 15;
+    private static final int BIT_NAME_KEY = 1 << 16;
+    private static final int BIT_NAME_VALUE = 1 << 17;
+
     private static final int FORMAT_OFF = 0;
     private static final int FORMAT_UNDECIDED = 1;
     private static final int FORMAT_RESIDUE = 2;
@@ -98,6 +120,7 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
     LlmGeminiControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.choice = new LlmToolChoice();
         this.residueKey = MEMBER_NATIVE_GENERATION_CONFIG;
         captureLimit(CAPTURE_MAX);
@@ -218,13 +241,17 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
         if (tier != null)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
-            emit(JsonEvent.VALUE_STRING, tier);
+            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER))
+            {
+                emit(BIT_CAPTURED_VALUE, JsonEvent.VALUE_STRING, tier);
+            }
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, serviceTierKey);
-            emitCaptured(value, 0);
+            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, serviceTierKey))
+            {
+                emitCaptured(BIT_CAPTURED_VALUE, value, 0);
+            }
         }
     }
 
@@ -241,8 +268,10 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, residueKey);
-            emitCaptured(value, 0);
+            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, residueKey))
+            {
+                emitCaptured(BIT_CAPTURED_VALUE, value, 0);
+            }
         }
     }
 
@@ -269,7 +298,7 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -289,9 +318,13 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else
         {
-            openThinkingResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openThinkingResidue())
+            {
+                thinking = THINKING_RESIDUE;
+            }
         }
 
         return action;
@@ -307,65 +340,62 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
         if (effort != null)
         {
-            closeThinkingResidue();
-            thinking = THINKING_LIFTED;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
-            emit(JsonEvent.VALUE_STRING, effort);
+            liftThinking(MEMBER_SHARED_REASONING_EFFORT, JsonEvent.VALUE_STRING, effort);
         }
         else if (budget == 0)
         {
-            closeThinkingResidue();
-            thinking = THINKING_LIFTED;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
-            emit(JsonEvent.VALUE_STRING, LlmEffort.nameOf(LlmEffort.NONE));
+            liftThinking(MEMBER_SHARED_REASONING_EFFORT, JsonEvent.VALUE_STRING, LlmEffort.nameOf(LlmEffort.NONE));
         }
         else if (budget > 0)
         {
-            closeThinkingResidue();
-            thinking = THINKING_LIFTED;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_THINKING_BUDGET);
-            emit(JsonEvent.VALUE_NUMBER, value.text(0));
+            liftThinking(MEMBER_SHARED_THINKING_BUDGET, JsonEvent.VALUE_NUMBER, value.text(0));
         }
-        else
+        else if (openThinkingResidue() &&
+            emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, member) &&
+            emitCaptured(BIT_CAPTURED_VALUE, value, 0))
         {
-            openThinkingResidue();
-            emit(JsonEvent.KEY_NAME, member);
-            emitCaptured(value, 0);
+            thinking = THINKING_RESIDUE;
+        }
+    }
+
+    private void liftThinking(
+        String key,
+        JsonEvent event,
+        String text)
+    {
+        if (closeThinkingResidue() &&
+            emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, key) &&
+            emit(BIT_CAPTURED_VALUE, event, text))
+        {
+            thinking = THINKING_LIFTED;
         }
     }
 
     private void onThinkingClose()
     {
-        if (thinking == THINKING_RESIDUE)
-        {
-            emit(JsonEvent.END_OBJECT);
-        }
-        else if (thinking == THINKING_NONE)
-        {
-            emit(JsonEvent.KEY_NAME, thinkingKey);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
-        }
+        final boolean closed = thinking == THINKING_RESIDUE
+            ? emit(BIT_END, JsonEvent.END_OBJECT)
+            : thinking != THINKING_NONE ||
+                emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, thinkingKey) &&
+                emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT) &&
+                emit(BIT_END, JsonEvent.END_OBJECT);
 
-        thinking = THINKING_NONE;
-    }
-
-    private void openThinkingResidue()
-    {
-        if (thinking != THINKING_RESIDUE)
+        if (closed)
         {
-            thinking = THINKING_RESIDUE;
-            emit(JsonEvent.KEY_NAME, thinkingKey);
-            emit(JsonEvent.START_OBJECT);
+            thinking = THINKING_NONE;
         }
     }
 
-    private void closeThinkingResidue()
+    private boolean openThinkingResidue()
     {
-        if (thinking == THINKING_RESIDUE)
-        {
-            emit(JsonEvent.END_OBJECT);
-        }
+        return thinking == THINKING_RESIDUE ||
+            emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, thinkingKey) &&
+            emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT);
+    }
+
+    private boolean closeThinkingResidue()
+    {
+        return thinking != THINKING_RESIDUE || emit(BIT_END, JsonEvent.END_OBJECT);
     }
 
     private static String effortOf(
@@ -392,10 +422,13 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else if (format == FORMAT_UNDECIDED || format == FORMAT_RESIDUE)
         {
-            openWrapper(false);
-            format = FORMAT_RESIDUE;
             target = name(key);
             action = PASS_VALUE;
+
+            if (openWrapper(false))
+            {
+                format = FORMAT_RESIDUE;
+            }
         }
         else
         {
@@ -416,22 +449,28 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else if (format == FORMAT_TEXT || format == FORMAT_RESIDUE_TEXT)
         {
-            openWrapper(true);
-            format = FORMAT_RESIDUE_TEXT;
             target = name(key);
             action = PASS_VALUE;
+
+            if (openWrapper(true))
+            {
+                format = FORMAT_RESIDUE_TEXT;
+            }
         }
         else if (format == FORMAT_LIFTED && matches(key, MEMBER_SCHEMA))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
-            emit(JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_NAME);
-            emit(JsonEvent.VALUE_STRING, DEFAULT_NAME);
-            format = FORMAT_SCHEMA;
             target = MEMBER_SCHEMA;
             action = PASS_VALUE;
+
+            if (emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA) &&
+                emit(BIT_OBJECT_KEY, JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA) &&
+                emit(BIT_OBJECT_START, JsonEvent.START_OBJECT) &&
+                emit(BIT_NAME_KEY, JsonEvent.KEY_NAME, MEMBER_NAME) &&
+                emit(BIT_NAME_VALUE, JsonEvent.VALUE_STRING, DEFAULT_NAME))
+            {
+                format = FORMAT_SCHEMA;
+            }
         }
 
         return action;
@@ -444,16 +483,17 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
         if (MIME_JSON.equalsIgnoreCase(mime) || MIME_JSON_ENUM.equals(mime))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT);
-            emit(JsonEvent.START_OBJECT);
-            format = FORMAT_LIFTED;
+            if (emit(BIT_OBJECT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT) &&
+                emit(BIT_OBJECT_START, JsonEvent.START_OBJECT))
+            {
+                format = FORMAT_LIFTED;
+            }
         }
-        else
+        else if (openWrapper(true) &&
+            emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, capturedMember()) &&
+            emitCaptured(BIT_CAPTURED_VALUE, value, 0))
         {
-            openWrapper(true);
             format = FORMAT_RESIDUE_TEXT;
-            emit(JsonEvent.KEY_NAME, capturedMember());
-            emitCaptured(value, 0);
         }
     }
 
@@ -462,61 +502,60 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         switch (format)
         {
         case FORMAT_TEXT:
-            openWrapper(true);
-            emit(JsonEvent.END_OBJECT);
-            format = FORMAT_RESIDUE;
+            if (openWrapper(true) && emit(BIT_END, JsonEvent.END_OBJECT))
+            {
+                format = FORMAT_RESIDUE;
+            }
             break;
         case FORMAT_LIFTED:
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, TYPE_JSON_OBJECT);
-            emit(JsonEvent.END_OBJECT);
-            format = FORMAT_LIFTED_CLOSED;
+            if (emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_JSON_OBJECT) &&
+                emit(BIT_END, JsonEvent.END_OBJECT))
+            {
+                format = FORMAT_LIFTED_CLOSED;
+            }
             break;
         case FORMAT_SCHEMA:
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
-            format = FORMAT_LIFTED_CLOSED;
+            if (emit(BIT_END, JsonEvent.END_OBJECT) && emit(BIT_END_OUTER, JsonEvent.END_OBJECT))
+            {
+                format = FORMAT_LIFTED_CLOSED;
+            }
             break;
         default:
-            emit(JsonEvent.END_OBJECT);
-            format = FORMAT_RESIDUE;
+            if (emit(BIT_END, JsonEvent.END_OBJECT))
+            {
+                format = FORMAT_RESIDUE;
+            }
             break;
         }
     }
 
     private void onFormatClose()
     {
-        if (format == FORMAT_UNDECIDED)
-        {
-            openWrapper(false);
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
-        }
-        else if (format == FORMAT_RESIDUE)
-        {
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
-        }
+        final boolean closed = format != FORMAT_UNDECIDED && format != FORMAT_RESIDUE ||
+            openWrapper(false) &&
+            emit(BIT_END, JsonEvent.END_OBJECT) &&
+            emit(BIT_END_OUTER, JsonEvent.END_OBJECT);
 
-        format = FORMAT_OFF;
+        if (closed)
+        {
+            format = FORMAT_OFF;
+        }
     }
 
-    private void openWrapper(
+    private boolean openWrapper(
         boolean text)
     {
-        if (format == FORMAT_UNDECIDED || format == FORMAT_TEXT)
-        {
-            emit(JsonEvent.KEY_NAME, residueKey);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, formatKey);
-            emit(JsonEvent.START_OBJECT);
-        }
+        final boolean wrapped = format != FORMAT_UNDECIDED && format != FORMAT_TEXT ||
+            emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey) &&
+            emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_KEY, JsonEvent.KEY_NAME, formatKey) &&
+            emit(BIT_FORMAT_START, JsonEvent.START_OBJECT);
 
-        if (text && format != FORMAT_RESIDUE_TEXT)
-        {
-            emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
-            emit(JsonEvent.START_OBJECT);
-        }
+        return wrapped &&
+            (!text || format == FORMAT_RESIDUE_TEXT ||
+                emit(BIT_TEXT_KEY, JsonEvent.KEY_NAME, MEMBER_TEXT) &&
+                emit(BIT_TEXT_START, JsonEvent.START_OBJECT));
     }
 
     private void splitToolConfig(
@@ -532,42 +571,52 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
         final boolean lifted = config != LlmCapturedValue.ABSENT && parseCallingConfig(value, config);
 
-        if (lifted)
+        if (!lifted ||
+            emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE) &&
+            choice.emitCanonical(this, BIT_CHOICE))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE);
-            choice.emitCanonical(this);
+            emitResidue(value, residueKey, lifted ? config : LlmCapturedValue.ABSENT);
         }
+    }
 
+    private void emitResidue(
+        LlmCapturedValue value,
+        String residueKey,
+        int liftedAt)
+    {
         boolean residue = false;
         int index = 1;
 
         while (value.event(index) == JsonEvent.KEY_NAME)
         {
-            if (!lifted || index + 1 != config)
+            if (index + 1 != liftedAt)
             {
                 if (!residue)
                 {
                     residue = true;
-                    emit(JsonEvent.KEY_NAME, residueKey);
-                    emit(JsonEvent.START_OBJECT);
+                    emitLoop(BIT_MEMBERS, JsonEvent.KEY_NAME, residueKey);
+                    emitLoop(BIT_MEMBERS, JsonEvent.START_OBJECT);
                 }
 
-                emit(JsonEvent.KEY_NAME, value.text(index));
-                emitCaptured(value, index + 1);
+                emitLoop(BIT_MEMBERS, JsonEvent.KEY_NAME, value.text(index));
+                emitLoopCaptured(BIT_MEMBERS, value, index + 1);
             }
 
             index = value.end(index + 1);
         }
 
-        if (residue)
+        if (endLoop(BIT_MEMBERS))
         {
-            emit(JsonEvent.END_OBJECT);
-        }
-        else if (!lifted)
-        {
-            emit(JsonEvent.KEY_NAME, residueKey);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            if (residue)
+            {
+                emit(BIT_END, JsonEvent.END_OBJECT);
+            }
+            else if (liftedAt == LlmCapturedValue.ABSENT)
+            {
+                emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey);
+                emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT);
+                emit(BIT_END, JsonEvent.END_OBJECT);
+            }
         }
     }
 

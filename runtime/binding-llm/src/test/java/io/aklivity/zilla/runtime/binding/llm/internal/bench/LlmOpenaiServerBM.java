@@ -74,7 +74,8 @@ import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 @OutputTimeUnit(SECONDS)
 public class LlmOpenaiServerBM
 {
-    private static final String CONFIGURATION = "io/aklivity/zilla/specs/binding/llm/config/server.yaml";
+    private static final String CONFIGURATION_AUTO = "io/aklivity/zilla/specs/binding/llm/config/server.yaml";
+    private static final String CONFIGURATION_CHAT = "io/aklivity/zilla/specs/binding/llm/config/server.openai.chat.yaml";
     private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
     private static final int STREAMING_FRAGMENT_LENGTH = 256;
     private static final int IN_FLIGHT = 5_000;
@@ -114,6 +115,12 @@ public class LlmOpenaiServerBM
         @Param({"false", "true"})
         public boolean streaming;
 
+        @Param({"text", "toolCall"})
+        public String request;
+
+        @Param({"auto", "chat"})
+        public String dialect;
+
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
         private final boolean respond;
@@ -138,7 +145,7 @@ public class LlmOpenaiServerBM
                 .directory("target/zilla-bench")
                 .external("app0")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .start(CONFIGURATION);
+                .start("auto".equals(dialect) ? CONFIGURATION_AUTO : CONFIGURATION_CHAT);
 
             beginEx = httpBeginEx(bench.labelId("http"));
             requestBody = new UnsafeBufferEx(requestBody(text).getBytes(UTF_8));
@@ -170,6 +177,13 @@ public class LlmOpenaiServerBM
             String text)
         {
             final String stream = streaming ? "\"stream\":true," : "";
+
+            if ("toolCall".equals(request))
+            {
+                return String.format("{\"model\":\"gpt-4\",%s\"messages\":[{\"role\":\"assistant\",\"tool_calls\":" +
+                    "[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\"," +
+                    "\"arguments\":\"{\\\"query\\\":\\\"%s\\\"}\"}}]}]}", stream, text);
+            }
 
             return String.format("{\"model\":\"gpt-4\",%s\"messages\":[{\"role\":\"user\",\"content\":\"%s\"}]}", stream, text);
         }

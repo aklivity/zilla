@@ -208,4 +208,15 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.with.duplicate.headers/client",
+        "${net}/response.with.duplicate.headers/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void responseWithDuplicateHeaders() throws Exception
+    {
+        k3po.finish();
+    }
 }

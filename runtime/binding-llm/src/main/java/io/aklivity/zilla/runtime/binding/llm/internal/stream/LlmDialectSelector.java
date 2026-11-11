@@ -14,15 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import java.util.Collection;
-
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 final class LlmDialectSelector
 {
     static LlmDialectHandler select(
-        Collection<LlmDialectHandler> candidates,
+        LlmDialectHandler[] candidates,
         JsonEnvelope headers)
     {
         LlmDialectHandler selected = null;

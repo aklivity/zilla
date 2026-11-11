@@ -60,6 +60,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsEventContext;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
+import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsServerAliasCachedX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyAddressFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
@@ -174,15 +175,22 @@ public final class TlsBindingConfig
             {
                 keyManagers = keys.getKeyManagers();
 
-                if (keyManagers != null && kind == KindConfig.CLIENT)
+                if (keyManagers != null)
                 {
                     for (int i = 0; i < keyManagers.length; i++)
                     {
                         if (keyManagers[i] instanceof X509ExtendedKeyManager)
                         {
-                            X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
-                            this.clientKeyManager = new TlsClientX509ExtendedKeyManager(config, keyManager);
-                            keyManagers[i] = clientKeyManager;
+                            X509ExtendedKeyManager keyManager =
+                                new TlsServerAliasCachedX509ExtendedKeyManager((X509ExtendedKeyManager) keyManagers[i]);
+
+                            if (kind == KindConfig.CLIENT)
+                            {
+                                this.clientKeyManager = new TlsClientX509ExtendedKeyManager(config, keyManager);
+                                keyManager = clientKeyManager;
+                            }
+
+                            keyManagers[i] = keyManager;
                         }
                     }
                 }

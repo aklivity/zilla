@@ -103,6 +103,42 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${net}/request.with.lowercase.method/client",
+        "${net}/request.with.lowercase.method/server" })
+    public void requestWithLowercaseMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.whitespace.separated.start.line/client",
+        "${net}/request.with.whitespace.separated.start.line/server" })
+    public void requestWithWhitespaceSeparatedStartLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.whitespace.before.header.value/client",
+        "${net}/request.with.whitespace.before.header.value/server" })
+    public void requestWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.mixed.case.header.name/client",
+        "${net}/request.with.mixed.case.header.name/server" })
+    public void requestWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/invalid.request.missing.target/client",
         "${net}/invalid.request.missing.target/server" })
     public void invalidRequestMissingTarget() throws Exception
@@ -293,6 +329,69 @@ public class MessageFormatIT
         "${net}/response.chunk.header.invalid/client",
         "${net}/response.chunk.header.invalid/server" })
     public void shouldRejectResponseWithInvalidChunkHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.content.length.exceeded/client",
+        "${net}/request.with.content.length.exceeded/server"})
+    public void shouldRequestWithContentLengthExceeded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.content.length.incomplete/client",
+        "${net}/request.with.content.length.incomplete/server"})
+    public void shouldRequestWithContentLengthIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.whitespace.separated.status.line/client",
+        "${net}/response.with.whitespace.separated.status.line/server" })
+    public void responseWithWhitespaceSeparatedStatusLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.whitespace.before.header.value/client",
+        "${net}/response.with.whitespace.before.header.value/server" })
+    public void responseWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.mixed.case.header.name/client",
+        "${net}/response.with.mixed.case.header.name/server" })
+    public void responseWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.empty.reason.phrase/client",
+        "${net}/response.with.empty.reason.phrase/server" })
+    public void responseWithEmptyReasonPhrase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.vertical.whitespace.before.header.value/client",
+        "${net}/request.with.vertical.whitespace.before.header.value/server" })
+    public void requestWithVerticalWhitespaceBeforeHeaderValue() throws Exception
     {
         k3po.finish();
     }

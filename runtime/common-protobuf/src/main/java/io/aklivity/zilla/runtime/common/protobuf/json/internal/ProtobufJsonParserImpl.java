@@ -477,12 +477,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         {
             progress = starve();
         }
-        else if ((token == JsonEvent.VALUE_STRING || token == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+        else if (token == JsonEvent.VALUE_STRING && parser.deferredBytes())
         {
-            // this scalar value needs its whole lexeme before it can be dispatched; a fragment still
-            // incomplete (parser.deferredBytes()) is left unacted-on and re-pulled next step, the same as
-            // messageStep's/mapStep's KEY_NAME handling -- the parser's own accumulation reassembles it, so
-            // the eventually-delivered event carries the whole value, never a prefix
+            // this string value needs all of its chars before it can be dispatched, so a fragment still
+            // incomplete (parser.deferredBytes()) is pushed back with consumed(0): the caller presents it
+            // again with more of it, and the eventually-delivered event carries the whole value, never a prefix
+            parser.consumed(0);
             progress = true;
         }
         else
@@ -508,9 +508,10 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             depth--;
             progress = true;
         }
-        else if ((token == JsonEvent.VALUE_STRING || token == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+        else if (token == JsonEvent.VALUE_STRING && parser.deferredBytes())
         {
-            // see valueStep(): a fragment still incomplete is left unacted-on and re-pulled next step
+            // see valueStep(): a fragment still incomplete is pushed back
+            parser.consumed(0);
             progress = true;
         }
         else

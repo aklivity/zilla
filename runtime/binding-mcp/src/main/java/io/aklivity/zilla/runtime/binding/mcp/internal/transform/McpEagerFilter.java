@@ -144,27 +144,15 @@ public final class McpEagerFilter implements JsonTransform
         return status;
     }
 
-    // the arm key is forwarded either way (every outer key passes through unconditionally), so a fragmented
-    // key is declined until complete before the arm decision and forward, rather than deciding on a prefix
     private Status onOuterKey(
         JsonSource source,
         JsonSink sink)
     {
-        Status status;
-        if (depth == 1 && source.deferredBytes())
+        if (depth == 1)
         {
-            mediator.delegate.consumed(0);
-            status = Status.STARVED;
+            itemsArmed = arrayKey.contentEquals(source.getStringView());
         }
-        else
-        {
-            if (depth == 1)
-            {
-                itemsArmed = arrayKey.contentEquals(source.getStringView());
-            }
-            status = sink.transform(mediator, source, JsonEvent.KEY_NAME);
-        }
-        return status;
+        return sink.transform(mediator, source, JsonEvent.KEY_NAME);
     }
 
     // between items in the target array: each item object defers its emission until its name resolves
@@ -307,25 +295,11 @@ public final class McpEagerFilter implements JsonTransform
         return Status.ADVANCED;
     }
 
-    // the key is swallowed either way (a synthetic "name" key replaces it once resolveItem() fires, or it
-    // is simply dropped if some other key preceded "name"), so there is no forwarded content whose byte
-    // fidelity a fragmented key could compromise -- decline the fragment so the source accumulates it whole
-    // and re-presents it complete on a later window, then decide once total.
     private Status onNameKey(
         JsonSource source)
     {
-        Status status;
-        if (source.deferredBytes())
-        {
-            mediator.delegate.consumed(0);
-            status = Status.STARVED;
-        }
-        else
-        {
-            nameArmed = NAME_KEY.contentEquals(source.getStringView());
-            status = Status.ADVANCED;
-        }
-        return status;
+        nameArmed = NAME_KEY.contentEquals(source.getStringView());
+        return Status.ADVANCED;
     }
 
     private Status resolveItem(

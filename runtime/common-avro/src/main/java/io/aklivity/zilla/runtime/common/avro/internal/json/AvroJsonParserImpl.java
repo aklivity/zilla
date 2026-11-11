@@ -739,13 +739,13 @@ public final class AvroJsonParserImpl implements AvroParser
     // structural and value events. Returns null (and arms STARVED) when the window is exhausted mid-datum
     // and more input will follow; a truncation under last == true is a reject.
     //
-    // A key or scalar value large enough to fragment across input windows is never exposed mid-fragment
-    // (json.deferredBytes() true): this parser never calls json.consumed(), so an undelivered fragment's
-    // chars stay in json's own accumulation buffer rather than being discarded, and looping back here for
-    // more re-presents the same logical event, growing, until it completes -- at which point every existing
-    // whole-token read in this class (contentEquals, parseLong, getStringView/getString) sees the complete
-    // content, exactly as if it had never fragmented. This also naturally starves (rather than spuriously
-    // matching or rejecting on a partial prefix) when the window itself runs out mid-fragment.
+    // A string value large enough to fragment across input windows is never exposed mid-fragment
+    // (json.deferredBytes() true): the fragment is pushed back with json.consumed(0), so the caller presents it
+    // again with more of it, and looping back here for more re-presents the same logical event, growing, until it
+    // completes -- at which point every existing whole-token read in this class (contentEquals, parseLong,
+    // getStringView/getString) sees the complete content, exactly as if it had never fragmented. This also
+    // naturally starves (rather than spuriously matching or rejecting on a partial prefix) when the window itself
+    // runs out mid-fragment. A key or number is never fragmented.
     private JsonEvent peek()
     {
         while (!havePending && !starved)
@@ -753,7 +753,11 @@ public final class AvroJsonParserImpl implements AvroParser
             if (advance())
             {
                 JsonEvent next = pull();
-                if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT && !json.deferredBytes())
+                if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT && json.deferredBytes())
+                {
+                    json.consumed(0);
+                }
+                else if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT)
                 {
                     pendingEvent = next;
                     havePending = true;

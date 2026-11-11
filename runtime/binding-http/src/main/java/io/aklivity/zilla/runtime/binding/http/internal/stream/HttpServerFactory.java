@@ -55,7 +55,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -207,7 +206,23 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte COLON_BYTE = ':';
     private static final byte HYPHEN_BYTE = '-';
     private static final byte COMMA_BYTE = ',';
+    private static final int HUFFMAN_DECODE_CAPACITY = 4096;
     private static final byte SPACE_BYTE = ' ';
+    private static final byte TAB_BYTE = '\t';
+    private static final byte VERTICAL_TAB_BYTE = 0x0b;
+    private static final byte FORM_FEED_BYTE = 0x0c;
+    private static final byte SLASH_BYTE = '/';
+    private static final byte DELETE_BYTE = 0x7f;
+    private static final byte[] HTTP_1_PREFIX_BYTES = "HTTP/1.".getBytes(US_ASCII);
+    private static final byte[] HOST_NAME_BYTES = "host".getBytes(US_ASCII);
+    private static final byte[][] LINE_DECODED_HEADER_NAMES =
+    {
+        "connection".getBytes(US_ASCII),
+        "content-length".getBytes(US_ASCII),
+        "http2-settings".getBytes(US_ASCII),
+        "transfer-encoding".getBytes(US_ASCII),
+        "upgrade".getBytes(US_ASCII)
+    };
     private static final byte ZERO_BYTE = '0';
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
@@ -351,6 +366,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                                  "TRACE"));
 
     private static final int MAXIMUM_METHOD_LENGTH = SUPPORTED_METHODS.stream().mapToInt(String::length).max().getAsInt();
+
+    private static final byte[][] SUPPORTED_METHOD_BYTES =
+        SUPPORTED_METHODS.stream().map(method -> method.getBytes(US_ASCII)).toArray(byte[][]::new);
 
     static
     {
@@ -620,6 +638,23 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Matcher requestLine;
     private final Matcher versionPart;
     private final Matcher headerLine;
+    private final HttpRequestHeaders requestHeaders = new HttpRequestHeaders();
+    private final MutableDirectBufferEx decodedNameBuffer = new UnsafeBufferEx(new byte[256]);
+    private String16FW decodedScheme;
+    private DirectBufferEx decodedValueBuffer;
+    private int decodedValueOffset;
+    private int decodedValueLength;
+    private int decodedNameLength;
+    private final Consumer<HttpHeaderFW.Builder> decodedSchemeItem = h -> h.name(HEADER_SCHEME).value(decodedScheme);
+    private final Consumer<HttpHeaderFW.Builder> decodedMethodItem =
+        h -> h.name(HEADER_METHOD).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
+    private final Consumer<HttpHeaderFW.Builder> decodedPathItem =
+        h -> h.name(HEADER_PATH).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
+    private final Consumer<HttpHeaderFW.Builder> decodedAuthorityItem =
+        h -> h.name(HEADER_AUTHORITY).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
+    private final Consumer<HttpHeaderFW.Builder> decodedHeaderItem =
+        h -> h.name(decodedNameBuffer, 0, decodedNameLength).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
+
     private final Matcher connectionClose;
     private final int maximumHeadersSize;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
@@ -1146,7 +1181,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             hasAuthority.value = false;
-            error = decodeStartLine(buffer, offset, endOfStartAt, httpBeginEx, hasAuthority, server.decodeScheme);
+            error = endOfStartAt - offset < maximumHeadersSize &&
+                    decodeStartLineAscii(buffer, offset, endOfStartAt, httpBeginEx, server.decodeScheme)
+                ? null
+                : decodeStartLine(buffer, offset, endOfStartAt, httpBeginEx, hasAuthority, server.decodeScheme);
         }
         else if (limit - offset >= maximumHeadersSize)
         {
@@ -1183,8 +1221,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                     startOfLineAt = endOfLineAt,
                     endOfLineAt = limitOfBytes(buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES))
             {
-                error = decodeHeaderLine(server, buffer, offset, startOfLineAt, endOfLineAt,
-                                         httpBeginEx, hasAuthority, connectionRef);
+                error = endOfLineAt - offset <= maximumHeadersSize &&
+                        decodeHeaderLineAscii(buffer, startOfLineAt, endOfLineAt, httpBeginEx, hasAuthority)
+                    ? null
+                    : decodeHeaderLine(server, buffer, offset, startOfLineAt, endOfLineAt,
+                                       httpBeginEx, hasAuthority, connectionRef);
             }
 
             if (error == null && !hasAuthority.value)
@@ -1196,8 +1237,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 HttpBeginExFW beginEx = httpBeginEx.build();
 
-                final Map<String, String> headers = new LinkedHashMap<>();
-                beginEx.headers().forEach(h -> headers.put(h.name().asString().toLowerCase(), h.value().asString()));
+                final HttpRequestHeaders headers = requestHeaders;
+                headers.reset(beginEx.headers());
 
                 HttpBindingConfig binding = server.binding;
                 GuardHandler guard = server.guard;
@@ -1205,11 +1246,11 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (isUpgradeH2c(server))
                 {
-                    server.onDecodeUpgrade(traceId, authorization, headers);
+                    server.onDecodeUpgrade(traceId, authorization, headers.materialize());
                 }
                 else if (isCorsPreflightRequest(headers))
                 {
-                    server.onDecodeCorsPreflight(traceId, authorization, headers);
+                    server.onDecodeCorsPreflight(traceId, authorization, headers.materialize());
                     server.decoder = decodeEmptyLines;
                 }
                 else if (!isCorsRequestAllowed(server.binding, headers))
@@ -1248,22 +1289,25 @@ public final class HttpServerFactory implements HttpStreamFactory
                         if (route != null)
                         {
                             Map<String8FW, String16FW> overrides = route.overrides();
-                            if (overrides != null)
+                            Map<String, String> routeHeaders = headers;
+                            if (overrides != null && (!overrides.isEmpty() || headers.duplicates()))
                             {
-                                overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                                final Map<String, String> merged = headers.materialize();
+                                overrides.forEach((k, v) -> merged.put(k.asString(), v.asString()));
 
                                 final HttpBeginExFW.Builder newBeginEx = newBeginExRW
                                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                                     .typeId(httpTypeId);
-                                headers.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
+                                merged.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
                                 beginEx = newBeginEx.build();
+                                routeHeaders = merged;
                             }
 
                             // route discovered after HttpBeginEx construction started
                             codecBuffer.putLong(beginEx.offset() + HttpBeginExFW.FIELD_OFFSET_COMPOSITE_ID, route.compositeId());
 
-                            HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
-                            final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
+                            HttpPolicyConfig policy = binding.access().effectivePolicy(routeHeaders);
+                            final String origin = policy == CROSS_ORIGIN ? routeHeaders.get(HEADER_NAME_ORIGIN) : null;
 
                             final HttpRouteAffinity resolved = route.resolve();
 
@@ -1287,7 +1331,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
         else if (error == null && limit - offset >= maximumHeadersSize)
         {
-            error = ERROR_414_REQUEST_URI_TOO_LONG;
+            error = ERROR_431_HEADERS_TOO_LARGE;
         }
 
         if (error != null)
@@ -1305,6 +1349,226 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         return !headers.containsKey(HEADER_NAME_ORIGIN) ||
                binding.access().allowRequest(headers);
+    }
+
+    private void writeHeaders(
+        Map<String, String> headers,
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> items)
+    {
+        if (headers instanceof HttpHeaderTable table)
+        {
+            table.writeTo(items);
+        }
+        else
+        {
+            headers.forEach((n, v) -> items.item(h -> h.name(n).value(v)));
+        }
+    }
+
+    private boolean decodeStartLineAscii(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        HttpBeginExFW.Builder httpBeginEx,
+        String16FW scheme)
+    {
+        int methodLimit = offset;
+        while (methodLimit < limit && buffer.getByte(methodLimit) >= 'A' && buffer.getByte(methodLimit) <= 'Z')
+        {
+            methodLimit++;
+        }
+
+        final int targetAt = skipBlanks(buffer, methodLimit, limit);
+        int targetLimit = targetAt;
+        while (targetLimit < limit && isTargetByte(buffer.getByte(targetLimit)))
+        {
+            targetLimit++;
+        }
+
+        final int versionAt = skipBlanks(buffer, targetLimit, limit);
+
+        final boolean decoded =
+            methodLimit > offset &&
+            targetAt > methodLimit &&
+            supportedMethod(buffer, offset, methodLimit - offset) &&
+            targetLimit > targetAt &&
+            buffer.getByte(targetAt) == SLASH_BYTE &&
+            (targetLimit - targetAt == 1 || buffer.getByte(targetAt + 1) != SLASH_BYTE) &&
+            versionAt > targetLimit &&
+            limit - versionAt == HTTP_1_PREFIX_BYTES.length + 1 + CRLF_BYTES.length &&
+            equalsBytes(buffer, versionAt, HTTP_1_PREFIX_BYTES) &&
+            buffer.getByte(versionAt + HTTP_1_PREFIX_BYTES.length) >= '0' &&
+            buffer.getByte(versionAt + HTTP_1_PREFIX_BYTES.length) <= '9';
+
+        if (decoded)
+        {
+            decodedScheme = scheme;
+            httpBeginEx.headersItem(decodedSchemeItem);
+
+            decodedValueBuffer = buffer;
+            decodedValueOffset = offset;
+            decodedValueLength = methodLimit - offset;
+            httpBeginEx.headersItem(decodedMethodItem);
+
+            decodedValueOffset = targetAt;
+            decodedValueLength = targetLimit - targetAt;
+            httpBeginEx.headersItem(decodedPathItem);
+        }
+
+        return decoded;
+    }
+
+    private boolean decodeHeaderLineAscii(
+        DirectBufferEx buffer,
+        int startOfLineAt,
+        int endOfLineAt,
+        HttpBeginExFW.Builder httpBeginEx,
+        MutableBoolean hasAuthority)
+    {
+        final int endOfValueAt = endOfLineAt - CRLF_BYTES.length;
+
+        int nameLength = 0;
+        int progress = startOfLineAt;
+        while (progress < endOfValueAt &&
+               nameLength < decodedNameBuffer.capacity() &&
+               isHeaderNameByte(buffer.getByte(progress)))
+        {
+            final byte octet = buffer.getByte(progress++);
+            decodedNameBuffer.putByte(nameLength++, octet >= 'A' && octet <= 'Z' ? (byte) (octet + 32) : octet);
+        }
+
+        boolean decoded = nameLength > 0 && progress < endOfValueAt && buffer.getByte(progress) == COLON_BYTE;
+
+        if (decoded)
+        {
+            progress = skipBlanks(buffer, progress + 1, endOfValueAt);
+
+            decodedValueBuffer = buffer;
+            decodedValueOffset = progress;
+            decodedValueLength = endOfValueAt - progress;
+            decodedNameLength = nameLength;
+
+            decoded = isHeaderValue(buffer, progress, endOfValueAt);
+        }
+
+        if (decoded)
+        {
+            if (nameEquals(HOST_NAME_BYTES))
+            {
+                final boolean explicitPort = indexOfByte(buffer, progress, endOfValueAt, COLON_BYTE) != -1;
+
+                decoded = hasAuthority.value || explicitPort;
+
+                if (decoded && !hasAuthority.value)
+                {
+                    httpBeginEx.headersItem(decodedAuthorityItem);
+                    hasAuthority.value = true;
+                }
+            }
+            else
+            {
+                decoded = !isDecodedByLine();
+
+                if (decoded)
+                {
+                    httpBeginEx.headersItem(decodedHeaderItem);
+                }
+            }
+        }
+
+        return decoded;
+    }
+
+    private int skipBlanks(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+        while (progress < limit && isBlank(buffer.getByte(progress)))
+        {
+            progress++;
+        }
+        return progress;
+    }
+
+    private boolean isDecodedByLine()
+    {
+        boolean line = false;
+        for (int index = 0; !line && index < LINE_DECODED_HEADER_NAMES.length; index++)
+        {
+            line = nameEquals(LINE_DECODED_HEADER_NAMES[index]);
+        }
+        return line;
+    }
+
+    private boolean nameEquals(
+        byte[] expected)
+    {
+        return decodedNameLength == expected.length && equalsBytes(decodedNameBuffer, 0, expected);
+    }
+
+    private boolean supportedMethod(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        boolean supported = false;
+        for (int index = 0; !supported && index < SUPPORTED_METHOD_BYTES.length; index++)
+        {
+            final byte[] method = SUPPORTED_METHOD_BYTES[index];
+            supported = method.length == length && equalsBytes(buffer, offset, method);
+        }
+        return supported;
+    }
+
+    private static boolean equalsBytes(
+        DirectBufferEx buffer,
+        int offset,
+        byte[] expected)
+    {
+        boolean equals = true;
+        for (int index = 0; equals && index < expected.length; index++)
+        {
+            equals = buffer.getByte(offset + index) == expected[index];
+        }
+        return equals;
+    }
+
+    private static boolean isBlank(
+        byte octet)
+    {
+        return octet == SPACE_BYTE || octet == TAB_BYTE || octet == VERTICAL_TAB_BYTE || octet == FORM_FEED_BYTE;
+    }
+
+    private static boolean isTargetByte(
+        byte octet)
+    {
+        return octet >= 'a' && octet <= 'z' ||
+               octet >= 'A' && octet <= 'Z' ||
+               octet >= '0' && octet <= '9' ||
+               octet == '-' || octet == '.' || octet == '_' || octet == '~' ||
+               octet == '/' || octet == '?' || octet == '=' || octet == '&' || octet == '+' || octet == ',' || octet == ';';
+    }
+
+    private static boolean isHeaderNameByte(
+        byte octet)
+    {
+        return octet > SPACE_BYTE && octet < DELETE_BYTE && octet != COLON_BYTE;
+    }
+
+    private static boolean isHeaderValue(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        boolean valid = true;
+        for (int index = offset; valid && index < limit; index++)
+        {
+            final byte octet = buffer.getByte(index);
+            valid = octet >= 0 && octet != '\r' && octet != '\n';
+        }
+        return valid;
     }
 
     private DirectBufferEx decodeStartLine(
@@ -1531,8 +1795,10 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             try
             {
-                final CharSequence chunkSizeHex = new AsciiSequenceView(buffer, offset, chunkSizeLength);
-                server.decodableChunkSize = Integer.parseInt(chunkSizeHex, 0, chunkSizeLength, 16);
+                final int chunkSize = HttpUtil.parseHex(buffer, offset, chunkSizeLength);
+                server.decodableChunkSize = chunkSize != -1
+                    ? chunkSize
+                    : Integer.parseInt(new AsciiSequenceView(buffer, offset, chunkSizeLength), 0, chunkSizeLength, 16);
                 server.decoder = server.decodableChunkSize != 0 ? decodeChunkBody : decodeTrailers;
                 progress = chunkHeaderLimit;
             }
@@ -3012,7 +3278,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final OctetsFW payload = encodeEventComment();
                 final int size = payload.sizeof();
-                final int chunking = exchange.responseChunked ? Integer.toHexString(size).length() + 4 : 0;
+                final int chunking = exchange.responseChunked ? HttpUtil.hexLength(size) + 4 : 0;
 
                 if (claimReply(traceId, size + chunking + replyPad))
                 {
@@ -3074,8 +3340,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 //if ((flags & 0x01) != 0)
                 {
-                    final String chunkSizeHex = Integer.toHexString(payload.sizeof());
-                    chunkLimit += codecBuffer.putStringWithoutLengthAscii(chunkLimit, chunkSizeHex);
+                    chunkLimit += HttpUtil.putHex(codecBuffer, chunkLimit, payload.sizeof());
                     codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
                     chunkLimit += 2;
                 }
@@ -3135,7 +3400,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     codecOffset.value++;
                     codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
                     codecOffset.value += CRLF_BYTES.length;
-                    trailers.forEach(h -> codecOffset.value = doEncodeHeader(writeBuffer, codecOffset.value, h));
+                    trailers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
                     codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
                     codecOffset.value += CRLF_BYTES.length;
 
@@ -5953,7 +6218,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 .wrap(extBuffer, 0, extBuffer.capacity())
                                 .compositeId(route.compositeId())
                                 .typeId(httpTypeId)
-                                .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                                .headers(hs -> writeHeaders(headers, hs))
                                 .build();
 
                         HttpRequestType requestType = binding.resolveRequestType(beginEx);
@@ -6058,7 +6323,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             Http2HeadersFW http2Trailers)
         {
-            final int streamId = http2Trailers.parentStream();
+            final int streamId = http2Trailers.streamId();
             final int dataLength = http2Trailers.dataLength();
 
             Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
@@ -6370,7 +6635,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .compositeId(route.compositeId())
                             .typeId(httpTypeId)
-                            .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
+                            .headers(hs -> writeHeaders(headers, hs))
                             .build();
 
                     exchange.doRequestBegin(traceId, beginEx);
@@ -7555,8 +7820,13 @@ public final class HttpServerFactory implements HttpStreamFactory
         Http2ErrorCode streamError;
         Array32FW<HttpHeaderFW> httpErrorHeader;
 
-        final Map<String, String> headers = new LinkedHashMap<>();
+        final HttpHeaderTable headers = new HttpHeaderTable();
         long contentLength = -1;
+
+        private final MutableDirectBufferEx huffmanNameBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final MutableDirectBufferEx huffmanValueBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final UnsafeBufferEx huffmanNameView = new UnsafeBufferEx(new byte[0]);
+        private final UnsafeBufferEx huffmanValueView = new UnsafeBufferEx(new byte[0]);
 
         private Http2HeadersDecoder()
         {
@@ -7732,6 +8002,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     streamError = Http2ErrorCode.PROTOCOL_ERROR;
                     return;
                 }
+                collectHeaders(name, value);
             }
         }
 
@@ -7791,10 +8062,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             if (!error())
             {
-                String nameStr = name.getStringWithoutLengthUtf8(0, name.capacity());
-                String valueStr = value.getStringWithoutLengthUtf8(0, value.capacity());
                 // TODO cookie needs to be appended with ';'
-                headers.merge(nameStr, valueStr, (o, n) -> String.format("%s, %s", o, n));
+                headers.add(name, value);
             }
         }
 
@@ -7854,14 +8123,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        int length = HpackHuffman.decode(value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
@@ -7870,27 +8139,27 @@ public final class HttpServerFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(name, dst);
+                        int length = HpackHuffman.decode(name, huffmanNameBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        name = new UnsafeBufferEx(dst, 0, length);
+                        huffmanNameView.wrap(huffmanNameBuffer, 0, length);
+                        name = huffmanNameView;
                     }
 
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        int length = HpackHuffman.decode(value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
@@ -7923,13 +8192,24 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .andThen(this::serverHeader)
                 .andThen(this::connectionHeaders);
 
+        private final Consumer<HttpHeaderFW> encodeAll = this::encodeAll;
+        private final Consumer<HttpHeaderFW> encodeIncluded = this::encodeIncluded;
+        private final Consumer<HpackHeaderFieldFW.Builder> encodeCurrent = this::encodeCurrent;
+        private final Consumer<HpackLiteralHeaderFieldFW.Builder> encodeCurrentLiteral = this::encodeCurrentLiteral;
+
+        private HpackHeaderBlockFW.Builder block;
+        private HttpHeaderFW encoding;
+        private DirectBufferEx literalName;
+        private DirectBufferEx literalValue;
+
         void encodePromise(
             HpackContext encodeContext,
             Array32FW<HttpHeaderFW> headers,
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+            block = headerBlock;
+            headers.forEach(encodeAll);
         }
 
         void encodeHeaders(
@@ -7950,13 +8230,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 headerBlock.header(b -> b.indexed(8));
             }
 
-            headers.forEach(h ->
-            {
-                if (includeHeader(h))
-                {
-                    headerBlock.header(b -> encodeHeader(h, b));
-                }
-            });
+            block = headerBlock;
+            headers.forEach(encodeIncluded);
 
             // add configured Server header if there is no Server header in response
             if (config.serverHeader() != null && !serverHeader)
@@ -8017,7 +8292,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+            block = headerBlock;
+            headers.forEach(encodeAll);
         }
 
         private void reset(HpackContext encodeContext)
@@ -8083,12 +8359,41 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             // Excluding header if nominated by connection header field
-            if (connectionHeaders.contains(name.asString()))
+            if (!connectionHeaders.isEmpty() && connectionHeaders.contains(name.asString()))
             {
                 return false;
             }
 
             return true;
+        }
+
+        private void encodeAll(
+            HttpHeaderFW header)
+        {
+            encoding = header;
+            block.header(encodeCurrent);
+        }
+
+        private void encodeIncluded(
+            HttpHeaderFW header)
+        {
+            if (includeHeader(header))
+            {
+                encoding = header;
+                block.header(encodeCurrent);
+            }
+        }
+
+        private void encodeCurrent(
+            HpackHeaderFieldFW.Builder builder)
+        {
+            encodeHeader(encoding, builder);
+        }
+
+        private void encodeCurrentLiteral(
+            HpackLiteralHeaderFieldFW.Builder builder)
+        {
+            encodeLiteral(builder, context, literalName, literalValue);
         }
 
         private void encodeHeader(
@@ -8105,7 +8410,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                builder.literal(literal -> encodeLiteral(literal, context, name.value(), value.value()));
+                literalName = name.value();
+                literalValue = value.value();
+                builder.literal(encodeCurrentLiteral);
             }
         }
 

@@ -147,6 +147,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.streaming.reply.padded/client",
+        "${net}/openai.streaming.reply.padded/server"})
+    public void shouldEncodeOpenaiStreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.reply.window.small/client",
+        "${net}/openai.streaming.reply.window.small/server"})
+    public void shouldEncodeOpenaiStreamingWithSmallReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.padded/client",
         "${net}/openai.request.padded/server"})
     public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
@@ -249,6 +267,24 @@ public class NetworkIT
         "${net}/openai.10k/client",
         "${net}/openai.10k/server"})
     public void shouldEncodeOpenai10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history.escaped/client",
+        "${net}/openai.section.assistant.reasoning.history.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history.large/client",
+        "${net}/openai.section.assistant.reasoning.history.large/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryLarge() throws Exception
     {
         k3po.finish();
     }
@@ -681,6 +717,15 @@ public class NetworkIT
         "${net}/openai.section.user.text.escaped/client",
         "${net}/openai.section.user.text.escaped/server"})
     public void shouldOpenaiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.text.escaped.fragmented/client",
+        "${net}/openai.section.user.text.escaped.fragmented/server"})
+    public void shouldDecodeOpenaiSectionUserTextEscapedFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -2769,6 +2814,15 @@ public class NetworkIT
         "${net}/openai.transform.response.reasoning/client",
         "${net}/openai.transform.response.reasoning/server"})
     public void shouldOpenaiTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.escaped/client",
+        "${net}/openai.transform.response.reasoning.escaped/server"})
+    public void shouldOpenaiTransformResponseReasoningEscaped() throws Exception
     {
         k3po.finish();
     }

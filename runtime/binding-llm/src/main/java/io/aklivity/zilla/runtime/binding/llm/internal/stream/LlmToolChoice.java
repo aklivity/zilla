@@ -160,51 +160,57 @@ final class LlmToolChoice
         return kind != UNRECOGNIZED;
     }
 
-    void emitCanonical(
-        LlmToolTransform transform)
+    boolean emitCanonical(
+        LlmToolTransform transform,
+        int loopBit)
     {
         switch (kind)
         {
         case MODE:
-            transform.emit(JsonEvent.VALUE_STRING, mode);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, mode);
             break;
         case FUNCTION:
-            emitFunction(transform, name, false);
+            emitFunction(transform, loopBit, name, false);
             break;
         case ALLOWED:
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, TYPE);
-            transform.emit(JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
-            transform.emit(JsonEvent.KEY_NAME, ALLOWED_TOOLS);
-            emitAllowedBody(transform, false);
-            transform.emit(JsonEvent.END_OBJECT);
+            emit(transform, loopBit, JsonEvent.START_OBJECT);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, TYPE);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, ALLOWED_TOOLS);
+            emitAllowedBody(transform, loopBit, false);
+            emit(transform, loopBit, JsonEvent.END_OBJECT);
             break;
         default:
             break;
         }
+
+        return transform.endLoop(loopBit);
     }
 
-    void emitResponses(
-        LlmToolTransform transform)
+    boolean emitResponses(
+        LlmToolTransform transform,
+        int loopBit)
     {
         switch (kind)
         {
         case MODE:
-            transform.emit(JsonEvent.VALUE_STRING, mode);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, mode);
             break;
         case FUNCTION:
-            emitFunction(transform, name, true);
+            emitFunction(transform, loopBit, name, true);
             break;
         case ALLOWED:
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, TYPE);
-            transform.emit(JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
-            emitAllowedMembers(transform, true);
-            transform.emit(JsonEvent.END_OBJECT);
+            emit(transform, loopBit, JsonEvent.START_OBJECT);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, TYPE);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
+            emitAllowedMembers(transform, loopBit, true);
+            emit(transform, loopBit, JsonEvent.END_OBJECT);
             break;
         default:
             break;
         }
+
+        return transform.endLoop(loopBit);
     }
 
     private void parseMode(
@@ -307,53 +313,73 @@ final class LlmToolChoice
 
     private static void emitFunction(
         LlmToolTransform transform,
+        int loopBit,
         String function,
         boolean flat)
     {
-        transform.emit(JsonEvent.START_OBJECT);
-        transform.emit(JsonEvent.KEY_NAME, TYPE);
-        transform.emit(JsonEvent.VALUE_STRING, FUNCTION_MEMBER);
+        emit(transform, loopBit, JsonEvent.START_OBJECT);
+        emit(transform, loopBit, JsonEvent.KEY_NAME, TYPE);
+        emit(transform, loopBit, JsonEvent.VALUE_STRING, FUNCTION_MEMBER);
 
         if (flat)
         {
-            transform.emit(JsonEvent.KEY_NAME, NAME);
-            transform.emit(JsonEvent.VALUE_STRING, function);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, NAME);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, function);
         }
         else
         {
-            transform.emit(JsonEvent.KEY_NAME, FUNCTION_MEMBER);
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, NAME);
-            transform.emit(JsonEvent.VALUE_STRING, function);
-            transform.emit(JsonEvent.END_OBJECT);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, FUNCTION_MEMBER);
+            emit(transform, loopBit, JsonEvent.START_OBJECT);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, NAME);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, function);
+            emit(transform, loopBit, JsonEvent.END_OBJECT);
         }
 
-        transform.emit(JsonEvent.END_OBJECT);
+        emit(transform, loopBit, JsonEvent.END_OBJECT);
     }
 
     private void emitAllowedBody(
         LlmToolTransform transform,
+        int loopBit,
         boolean flat)
     {
-        transform.emit(JsonEvent.START_OBJECT);
-        emitAllowedMembers(transform, flat);
-        transform.emit(JsonEvent.END_OBJECT);
+        emit(transform, loopBit, JsonEvent.START_OBJECT);
+        emitAllowedMembers(transform, loopBit, flat);
+        emit(transform, loopBit, JsonEvent.END_OBJECT);
     }
 
     private void emitAllowedMembers(
         LlmToolTransform transform,
+        int loopBit,
         boolean flat)
     {
-        transform.emit(JsonEvent.KEY_NAME, MODE_MEMBER);
-        transform.emit(JsonEvent.VALUE_STRING, mode);
-        transform.emit(JsonEvent.KEY_NAME, TOOLS);
-        transform.emit(JsonEvent.START_ARRAY);
+        emit(transform, loopBit, JsonEvent.KEY_NAME, MODE_MEMBER);
+        emit(transform, loopBit, JsonEvent.VALUE_STRING, mode);
+        emit(transform, loopBit, JsonEvent.KEY_NAME, TOOLS);
+        emit(transform, loopBit, JsonEvent.START_ARRAY);
 
         for (int index = 0; index < names.size(); index++)
         {
-            emitFunction(transform, names.get(index), flat);
+            emitFunction(transform, loopBit, names.get(index), flat);
         }
 
-        transform.emit(JsonEvent.END_ARRAY);
+        emit(transform, loopBit, JsonEvent.END_ARRAY);
+    }
+
+    private static void emit(
+        LlmToolTransform transform,
+        int loopBit,
+        JsonEvent event)
+    {
+        transform.emitLoop(loopBit, event);
+    }
+
+    private static void emit(
+        LlmToolTransform transform,
+        int loopBit,
+        JsonEvent event,
+        String text)
+    {
+        transform.emitLoop(loopBit, event, text);
     }
 }

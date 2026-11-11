@@ -21,8 +21,19 @@ final class LlmAnthropicToolDefinitionToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
     private static final String TYPE_CUSTOM = "custom";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_FUNCTION_KEY = 1 << 2;
+    private static final int BIT_FUNCTION_START = 1 << 3;
+    private static final int BIT_FUNCTION_END = 1 << 4;
+    private static final int BIT_END_OBJECT = 1 << 5;
 
     private boolean named;
+
+    LlmAnthropicToolDefinitionToCanonical()
+    {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
+    }
 
     @Override
     public void reset()
@@ -87,10 +98,10 @@ final class LlmAnthropicToolDefinitionToCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "function");
-        emit(JsonEvent.KEY_NAME, "function");
-        emit(JsonEvent.START_OBJECT);
+        emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+        emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, "function");
+        emit(BIT_FUNCTION_KEY, JsonEvent.KEY_NAME, "function");
+        emit(BIT_FUNCTION_START, JsonEvent.START_OBJECT);
     }
 
     @Override
@@ -101,8 +112,8 @@ final class LlmAnthropicToolDefinitionToCanonical extends LlmToolTransform
 
         if (named && (held() == null || TYPE_CUSTOM.equals(held())))
         {
-            emit(JsonEvent.END_OBJECT);
-            pass(JsonEvent.END_OBJECT);
+            emit(BIT_FUNCTION_END, JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 

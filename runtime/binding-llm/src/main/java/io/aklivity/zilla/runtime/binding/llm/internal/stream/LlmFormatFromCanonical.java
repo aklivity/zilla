@@ -41,19 +41,21 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
     protected LlmFormatFromCanonical(
         int mode,
-        String dialect)
+        String dialect,
+        LlmCapturedValue captured,
+        LlmCapturedScalar scalar)
     {
-        super(mode, dialect);
+        super(mode, dialect, 1, captured, scalar);
     }
 
     protected abstract boolean formatObject();
 
     protected abstract boolean formatText();
 
-    protected abstract void openFormat(
+    protected abstract boolean openFormat(
         int kind);
 
-    protected abstract void closeFormat();
+    protected abstract boolean closeFormat();
 
     protected abstract int schemaMember(
         CharSequence key);
@@ -88,7 +90,7 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
         {
             if (matches(key, MEMBER_TYPE))
             {
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, MEMBER_JSON_SCHEMA))
             {
@@ -104,9 +106,9 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
     }
 
     protected final Status formatCaptured(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final String type = value.string(0);
+        final String type = value.string();
         final int kind = kindOf(type);
 
         return kind != FORMAT_OFF && open(kind) ? Status.ADVANCED : rejected(RESPONSE_FORMAT);
@@ -119,16 +121,18 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
         if (depth == 2)
         {
+            boolean closed = true;
+
             if (format == FORMAT_UNSET)
             {
                 status = rejected(RESPONSE_FORMAT);
             }
             else if (format != FORMAT_OMITTED)
             {
-                closeFormat();
+                closed = closeFormat();
             }
 
-            format = FORMAT_OFF;
+            format = closed ? FORMAT_OFF : format;
         }
 
         return status;
@@ -160,10 +164,9 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
             {
                 format = FORMAT_OMITTED;
             }
-            else
+            else if (openFormat(kind))
             {
                 format = kind;
-                openFormat(kind);
             }
         }
         else

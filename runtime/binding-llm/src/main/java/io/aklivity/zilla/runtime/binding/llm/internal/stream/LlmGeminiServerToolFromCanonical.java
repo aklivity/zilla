@@ -19,6 +19,8 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmGeminiServerToolFromCanonical extends LlmToolTransform
 {
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
+
     @Override
     protected int member(
         int depth,
@@ -38,7 +40,7 @@ final class LlmGeminiServerToolFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

@@ -19,6 +19,16 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesToolCallFromCanonical extends LlmToolTransform
 {
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_EMIT_KEY_NAME_2 = 1 << 2;
+    private static final int BIT_EMIT_VALUE_STRING_2 = 1 << 3;
+    private static final int BIT_EMIT_KEY_NAME_3 = 1 << 4;
+    private static final int BIT_EMIT_VALUE_STRING_3 = 1 << 5;
+    private static final int BIT_EMIT_KEY_NAME_4 = 1 << 6;
+    private static final int BIT_EMIT_VALUE_STRING_4 = 1 << 7;
+    private static final int BIT_EMIT_END_OBJECT = 1 << 8;
+
 
     private boolean opened;
     private boolean argumented;
@@ -63,8 +73,8 @@ final class LlmOpenaiResponsesToolCallFromCanonical extends LlmToolTransform
     {
         opened = true;
 
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "function_call");
+        emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "type");
+        emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, "function_call");
     }
 
     @Override
@@ -88,15 +98,15 @@ final class LlmOpenaiResponsesToolCallFromCanonical extends LlmToolTransform
             {
                 if (!argumented)
                 {
-                    emit(JsonEvent.KEY_NAME, "arguments");
-                    emit(JsonEvent.VALUE_STRING, "{}");
+                    emit(BIT_EMIT_KEY_NAME_2, JsonEvent.KEY_NAME, "arguments");
+                    emit(BIT_EMIT_VALUE_STRING_2, JsonEvent.VALUE_STRING, "{}");
                 }
 
-                emit(JsonEvent.KEY_NAME, "call_id");
-                emit(JsonEvent.VALUE_STRING, toolCallId);
-                emit(JsonEvent.KEY_NAME, "name");
-                emit(JsonEvent.VALUE_STRING, toolName);
-                emit(JsonEvent.END_OBJECT);
+                emit(BIT_EMIT_KEY_NAME_3, JsonEvent.KEY_NAME, "call_id");
+                emit(BIT_EMIT_VALUE_STRING_3, JsonEvent.VALUE_STRING, toolCallId);
+                emit(BIT_EMIT_KEY_NAME_4, JsonEvent.KEY_NAME, "name");
+                emit(BIT_EMIT_VALUE_STRING_4, JsonEvent.VALUE_STRING, toolName);
+                emit(BIT_EMIT_END_OBJECT, JsonEvent.END_OBJECT);
                 status = Status.ADVANCED;
             }
         }

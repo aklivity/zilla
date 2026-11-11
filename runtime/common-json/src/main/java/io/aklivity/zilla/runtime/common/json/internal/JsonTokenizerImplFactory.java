@@ -22,10 +22,9 @@ public final class JsonTokenizerImplFactory implements JsonTokenizerFactory
 {
     @Override
     public JsonTokenizer create(
-        int maxValueSize,
         boolean quoted)
     {
-        return new JsonTokenizerImpl(maxValueSize, quoted);
+        return new JsonTokenizerImpl(quoted);
     }
 
     @Override

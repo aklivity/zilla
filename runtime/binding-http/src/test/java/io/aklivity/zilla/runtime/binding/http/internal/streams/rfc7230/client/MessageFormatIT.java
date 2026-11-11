@@ -193,4 +193,64 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.with.content.length.exceeded/client",
+        "${net}/request.with.content.length.exceeded/server" })
+    public void shouldRequestWithContentLengthExceeded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.with.content.length.incomplete/client",
+        "${net}/request.with.content.length.incomplete/server" })
+    public void shouldRequestWithContentLengthIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.with.headers/client",
+        "${net}/response.with.whitespace.separated.status.line/server" })
+    public void responseWithWhitespaceSeparatedStatusLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.with.headers/client",
+        "${net}/response.with.whitespace.before.header.value/server" })
+    public void responseWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.with.headers/client",
+        "${net}/response.with.mixed.case.header.name/server" })
+    public void responseWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.with.headers/client",
+        "${net}/response.with.empty.reason.phrase/server" })
+    public void responseWithEmptyReasonPhrase() throws Exception
+    {
+        k3po.finish();
+    }
 }

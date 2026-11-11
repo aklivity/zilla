@@ -59,6 +59,17 @@ public interface JsonTokenizer
     void markScratchConsumed(
         int consumed);
 
+    // The consumer has taken consumed chars of the pending string fragment, which is read from the window: the
+    // position moves to the first byte it left, so the caller re-presents the rest with the next window.
+    void positionAfter(
+        int consumed);
+
+    // Whether the consumer left part of the pending string fragment.
+    boolean declined();
+
+    // The window is being replaced, so the part of the fragment the consumer left is no longer pending.
+    void acceptDeclined();
+
     long streamOffset();
 
     long line();
@@ -70,6 +81,22 @@ public interface JsonTokenizer
     long valueStreamEnd();
 
     boolean done();
+
+    // Arms the string value that follows to be read as a document of its own, in place: the tokenizer reads the
+    // string with its escapes undone, delivering START_ESCAPED and END_ESCAPED as markers around the events of the
+    // document.
+    void escape();
+
+    // Whether an event, or a scope marker, is waiting to be taken.
+    boolean pending();
+
+    // The scope marker waiting to be taken, or null.
+    JsonEvent marker();
+
+    void clearMarker();
+
+    // Whether the tokenizer is reading the document of an escaped scope.
+    boolean inScope();
 
     long documentEndOffset();
 

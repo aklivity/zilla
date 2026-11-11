@@ -176,6 +176,15 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
+    public void shouldOpenStreamOptionsAfterPrecedingMember()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'stream_options':{'include_usage':true," +
+                "'openai/rs:include_obfuscation':false,'openai/rs:extra':1}}"),
+            json("{'temperature':0.7,'stream_options':{'include_obfuscation':false,'extra':1}}"));
+    }
+
+    @Test
     public void shouldRestoreSharedSamplingMembers()
     {
         assertTransforms(foreignMembers,
@@ -248,6 +257,27 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
                 "'function':{'name':'b'}}]}}}"),
             json("{'tool_choice':{'type':'allowed_tools','mode':'required'," +
                 "'tools':[{'type':'function','name':'a'},{'type':'function','name':'b'}]}}"));
+    }
+
+    @Test
+    public void shouldFlattenAllowedToolsWithManyNamesFollowedByAnotherMember()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'bb'}},{'type':'function','function':{'name':'ccc'}}]}}," +
+                "'x:parallel_tool_calls':true}"),
+            json("{'tool_choice':{'type':'allowed_tools','mode':'auto'," +
+                "'tools':[{'type':'function','name':'a'},{'type':'function','name':'bb'}," +
+                "{'type':'function','name':'ccc'}]},'parallel_tool_calls':true}"));
+    }
+
+    @Test
+    public void shouldFlattenAllowedToolsWithoutNames()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto','tools':[]}}}"),
+            json("{'tool_choice':{'type':'allowed_tools','mode':'auto','tools':[]}}"));
     }
 
     @Test

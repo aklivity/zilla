@@ -43,6 +43,23 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
     private static final int CAPTURE_MAX = 2048;
 
+    private static final int BIT_RESIDUE_KEY = 1 << 0;
+    private static final int BIT_RESIDUE_START = 1 << 1;
+    private static final int BIT_RESIDUE_END = 1 << 2;
+    private static final int BIT_FORMAT_KEY = 1 << 3;
+    private static final int BIT_FORMAT_START = 1 << 4;
+    private static final int BIT_TYPE_KEY = 1 << 5;
+    private static final int BIT_TYPE_VALUE = 1 << 6;
+    private static final int BIT_SCHEMA_KEY = 1 << 7;
+    private static final int BIT_SCHEMA_START = 1 << 8;
+    private static final int BIT_PRECEDING = 1 << 9;
+    private static final int BIT_CAPTURED_KEY = 1 << 10;
+    private static final int BIT_CAPTURED_VALUE = 1 << 11;
+    private static final int BIT_CHOICE = 1 << 12;
+    private static final int BIT_SCHEMA_END = 1 << 13;
+    private static final int BIT_FORMAT_END = 1 << 14;
+    private static final int BIT_ROOT_END = 1 << 15;
+
     private static final int TEXT_NONE = 0;
     private static final int TEXT_RESIDUE = 1;
     private static final int TEXT_LIFTED = 2;
@@ -64,6 +81,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
     LlmOpenaiResponsesControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue(), new LlmCapturedScalar());
         this.choice = new LlmToolChoice();
         this.preceding = new LlmCapturedValue();
         captureLimit(CAPTURE_MAX);
@@ -132,7 +150,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
             format = FORMAT_AWAITING;
             preceding.clear();
             precedingSize = 0;
-            emit(JsonEvent.START_OBJECT);
+            emit(BIT_FORMAT_START, JsonEvent.START_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -153,18 +171,18 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         {
             if (choice.parseResponses(value))
             {
-                emit(JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE);
-                choice.emitCanonical(this);
+                if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE))
+                {
+                    choice.emitCanonical(this, BIT_CHOICE);
+                }
             }
             else
             {
-                emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
-                emitCaptured(value, 0);
+                if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE))
+                {
+                    emitCaptured(BIT_CAPTURED_VALUE, value, 0);
+                }
             }
-        }
-        else if (matches(member, MEMBER_TYPE))
-        {
-            status = onFormatType(value.string(0));
         }
         else
         {
@@ -172,6 +190,13 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
 
         return status;
+    }
+
+    @Override
+    protected Status onScalar(
+        LlmCapturedScalar value)
+    {
+        return onFormatType(value.string());
     }
 
     @Override
@@ -195,7 +220,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
         else
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_ROOT_END, JsonEvent.END_OBJECT);
         }
 
         return status;
@@ -208,13 +233,17 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (tier != null)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
-            emit(JsonEvent.VALUE_STRING, tier);
+            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER))
+            {
+                emit(BIT_CAPTURED_VALUE, JsonEvent.VALUE_STRING, tier);
+            }
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
-            emitCaptured(value, 0);
+            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER))
+            {
+                emitCaptured(BIT_CAPTURED_VALUE, value, 0);
+            }
         }
     }
 
@@ -225,16 +254,23 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_EFFORT))
         {
-            closeResidue();
-            text = TEXT_LIFTED;
             target = MEMBER_SHARED_REASONING_EFFORT;
             action = PASS_STRING_OR_DROP;
+
+            if (closeResidue())
+            {
+                text = TEXT_LIFTED;
+            }
         }
         else
         {
-            openResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openResidue())
+            {
+                text = TEXT_RESIDUE;
+            }
         }
 
         return action;
@@ -247,16 +283,22 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_FORMAT))
         {
-            closeResidue();
-            text = TEXT_LIFTED;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT);
             action = DESCEND_OR_REPLACE;
+
+            if (closeResidue() && emit(BIT_FORMAT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT))
+            {
+                text = TEXT_LIFTED;
+            }
         }
         else
         {
-            openResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openResidue())
+            {
+                text = TEXT_RESIDUE;
+            }
         }
 
         return action;
@@ -269,7 +311,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_TYPE))
         {
-            action = capture(key);
+            action = captureScalar(key);
         }
         else if (format == FORMAT_FLATTENING)
         {
@@ -295,19 +337,25 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (TYPE_JSON_SCHEMA.equals(type))
         {
-            format = FORMAT_FLATTENING;
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
-            emit(JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA);
-            emit(JsonEvent.START_OBJECT);
-            emitPreceding();
+            if (emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA) &&
+                emit(BIT_SCHEMA_KEY, JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA) &&
+                emit(BIT_SCHEMA_START, JsonEvent.START_OBJECT) &&
+                emitPreceding())
+            {
+                format = FORMAT_FLATTENING;
+            }
+
             status = Status.ADVANCED;
         }
         else if (TYPE_TEXT.equals(type) || TYPE_JSON_OBJECT.equals(type))
         {
-            format = FORMAT_PLAIN;
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, type);
+            if (emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, type))
+            {
+                format = FORMAT_PLAIN;
+            }
+
             status = Status.ADVANCED;
         }
 
@@ -338,24 +386,14 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         return status;
     }
 
-    private void emitPreceding()
+    private boolean emitPreceding()
     {
         for (int index = 0; index < preceding.count(); index++)
         {
-            final String text = preceding.text(index);
-
-            if (text != null)
-            {
-                emit(preceding.event(index), text);
-            }
-            else
-            {
-                emit(preceding.event(index));
-            }
+            emitLoop(BIT_PRECEDING, preceding.event(index), preceding.text(index));
         }
 
-        preceding.clear();
-        precedingSize = 0;
+        return endLoop(BIT_PRECEDING);
     }
 
     private Status onFormatClose()
@@ -364,12 +402,14 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
         if (format == FORMAT_FLATTENING)
         {
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            if (emit(BIT_SCHEMA_END, JsonEvent.END_OBJECT))
+            {
+                emit(BIT_FORMAT_END, JsonEvent.END_OBJECT);
+            }
         }
         else if (format == FORMAT_PLAIN)
         {
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_FORMAT_END, JsonEvent.END_OBJECT);
         }
         else
         {
@@ -383,16 +423,16 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     {
         if (text == TEXT_RESIDUE)
         {
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
         }
         else if (text == TEXT_NONE)
         {
-            emit(JsonEvent.KEY_NAME, residueKey());
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            if (emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey()) &&
+                emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT))
+            {
+                emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
+            }
         }
-
-        text = TEXT_NONE;
     }
 
     private String residueKey()
@@ -400,21 +440,15 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         return container == CONTAINER_REASONING ? MEMBER_NATIVE_REASONING : MEMBER_NATIVE_TEXT;
     }
 
-    private void openResidue()
+    private boolean openResidue()
     {
-        if (text != TEXT_RESIDUE)
-        {
-            text = TEXT_RESIDUE;
-            emit(JsonEvent.KEY_NAME, residueKey());
-            emit(JsonEvent.START_OBJECT);
-        }
+        return text == TEXT_RESIDUE ||
+            emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey()) &&
+            emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT);
     }
 
-    private void closeResidue()
+    private boolean closeResidue()
     {
-        if (text == TEXT_RESIDUE)
-        {
-            emit(JsonEvent.END_OBJECT);
-        }
+        return text != TEXT_RESIDUE || emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
     }
 }

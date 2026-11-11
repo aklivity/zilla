@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 
@@ -32,21 +30,6 @@ class JsonParserNumberRetentionTest
     // the parser delivers a VALUE_NUMBER with bytes still deferred rather than the whole value
     private static final byte[] LONG_NUMBER =
         "12345678901234567890123456789012345678901234567890".getBytes(UTF_8);
-
-    @Test
-    void shouldAssertGetBigDecimalWhileValueDeferred()
-    {
-        JsonParserEx parser = JsonEx.createParser();
-        parser.wrap(new UnsafeBufferEx(LONG_NUMBER), 0, LONG_NUMBER.length, false);
-
-        assertEquals(JsonEvent.START_DOCUMENT, parser.nextEvent());
-        assertEquals(JsonEvent.VALUE_NUMBER, parser.nextEvent());
-        assertTrue(parser.deferredBytes());
-
-        // getBigDecimal() promises the whole value; calling it while bytes are still deferred is a
-        // contract violation, caught by assertion rather than silently returning a partial number
-        assertThrows(AssertionError.class, parser::getBigDecimal);
-    }
 
     @Test
     void shouldReturnWholeBigDecimalWhenComplete()

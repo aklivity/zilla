@@ -41,6 +41,8 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final int SAFETY_IDENTIFIER_MAX = 128;
     private static final int STOP_ENTRIES_MAX = 4;
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
+    private static final int BIT_EMIT_VALUE_NULL = 1 << 1;
 
     private final boolean members;
     private final boolean foreign;
@@ -64,7 +66,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect);
+        super(mode, dialect, 1, null, mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.capability = capability;
@@ -163,7 +165,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, SEED) ||
                 matches(key, FREQUENCY_PENALTY) ||
@@ -211,8 +213,8 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         Status status = Status.ADVANCED;
 
@@ -241,11 +243,11 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     {
         if (depth == 2 || members)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
-            emit(JsonEvent.VALUE_NULL);
+            emit(BIT_EMIT_VALUE_NULL, JsonEvent.VALUE_NULL);
         }
 
         return Status.ADVANCED;

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
@@ -47,9 +48,13 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
+    private static final int REPLACEMENT = 0xfffd;
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
     // any document is stringified
     private static final int MAX_ESCAPE_DEPTH = 16;
+    // the escape levels and open scopes the first scope sets aside room for: a document stringified more than a
+    // couple of times is rare, and the state grows to what a deeper one needs
+    private static final int INITIAL_ESCAPE_LEVELS = 4;
     // worst-case ASCII lexeme width for write(int)/write(long): Integer.MIN_VALUE and Long.MIN_VALUE
     private static final int MAX_INT_DIGITS = 11;
     private static final int MAX_LONG_DIGITS = 20;
@@ -318,7 +323,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             push(false);
             if (scopeFrames == null)
             {
-                scopeFrames = new int[MAX_DEPTH];
+                scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
+            }
+            else if (scopeCount == scopeFrames.length)
+            {
+                scopeFrames = Arrays.copyOf(scopeFrames, scopeCount << 1);
             }
             scopeFrames[scopeCount++] = depth - 1;
             bind(escapeDepth + 1);
@@ -720,6 +729,29 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
+        CharSequence value,
+        int from,
+        int to)
+    {
+        final int escapedBackslash = 1 << escapeDepth;
+
+        int index = from;
+        while (index < to)
+        {
+            final int codePoint = scalar(codePointAt(value, index, to));
+            if (limit - progress < contentWidth(codePoint, escapedBackslash))
+            {
+                break;
+            }
+            writeUtf8(codePoint);
+            index += Character.charCount(codePoint);
+        }
+        consumed += index - from;
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
         DirectBufferEx source,
         int index,
         int length,
@@ -944,7 +976,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int length = value.length();
         while (index < length)
         {
-            final int codePoint = Character.codePointAt(value, index);
+            final int codePoint = scalar(Character.codePointAt(value, index));
             if (budget - progress < codePointWidth(codePoint))
             {
                 break;
@@ -1079,6 +1111,48 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             width = codePoint < 0x20 ? escapedBackslash + 5 : verbatimCodePointWidth(codePoint);
             break;
         }
+        return width;
+    }
+
+    // The code point a char sequence holds at index, without reading past the end of the range: a high surrogate
+    // is paired only with the low surrogate that follows it within the range.
+    private static int codePointAt(
+        CharSequence value,
+        int index,
+        int to)
+    {
+        final char high = value.charAt(index);
+
+        return Character.isHighSurrogate(high) && index + 1 < to && Character.isLowSurrogate(value.charAt(index + 1))
+            ? Character.toCodePoint(high, value.charAt(index + 1))
+            : high;
+    }
+
+    // A surrogate that is left over once pairs are combined has no UTF-8 form, so it is written as U+FFFD, which
+    // takes the same three bytes its own invalid encoding would.
+    private static int scalar(
+        int codePoint)
+    {
+        return codePoint >= Character.MIN_SURROGATE && codePoint <= Character.MAX_SURROGATE ? REPLACEMENT : codePoint;
+    }
+
+    // Output byte width of a code point appended as content: its UTF-8 bytes, each escaped to the level in force
+    // when it is a byte that has an escape, which only an ASCII code point can be.
+    private int contentWidth(
+        int codePoint,
+        int escapedBackslash)
+    {
+        final int width;
+
+        if (codePoint < 0x80)
+        {
+            width = escapeDepth == 0 ? 1 : escapedWidth(codePoint, escapedBackslash);
+        }
+        else
+        {
+            width = codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+        }
+
         return width;
     }
 
@@ -1289,8 +1363,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (escapePuts == null)
         {
-            escapePuts = new IntConsumer[MAX_DEPTH];
-            escapeSegments = new SegmentWriter[MAX_DEPTH];
+            escapePuts = new IntConsumer[Math.max(level + 1, INITIAL_ESCAPE_LEVELS)];
+            escapeSegments = new SegmentWriter[escapePuts.length];
+        }
+        else if (level >= escapePuts.length)
+        {
+            final int capacity = Math.max(level + 1, escapePuts.length << 1);
+
+            escapePuts = Arrays.copyOf(escapePuts, capacity);
+            escapeSegments = Arrays.copyOf(escapeSegments, capacity);
         }
         for (int index = 0; index <= level; index++)
         {

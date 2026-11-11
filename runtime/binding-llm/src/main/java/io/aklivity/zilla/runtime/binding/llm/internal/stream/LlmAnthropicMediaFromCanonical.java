@@ -20,6 +20,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_SOURCE_TYPE_KEY = 1 << 2;
+    private static final int BIT_SOURCE_TYPE_VALUE = 1 << 3;
+    private static final int BIT_MEDIA_TYPE_KEY = 1 << 4;
+    private static final int BIT_MEDIA_TYPE_VALUE = 1 << 5;
+    private static final int BIT_END_OBJECT = 1 << 6;
 
     private final String part;
     private final String container;
@@ -65,7 +72,7 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmCacheBreakpoint breakpoints)
     {
-        super(MODE_OBJECT, sameDialect ? DIALECT : null);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null, 1, citable || breakpoints != null ? new LlmCapturedValue() : null);
         this.part = part;
         this.container = container;
         this.dataMember = dataMember;
@@ -106,7 +113,10 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     {
         if (matches(capturedMember(), LlmCitationsEnabled.MEMBER))
         {
-            cited |= LlmCitationsEnabled.emit(this, value, LlmCitationsEnabled.MEMBER);
+            if (LlmCitationsEnabled.emit(this, value, LlmCitationsEnabled.MEMBER))
+            {
+                cited |= LlmCitationsEnabled.enabled(value);
+            }
         }
         else
         {
@@ -163,8 +173,8 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, part);
+        emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+        emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, part);
     }
 
     @Override
@@ -176,20 +186,20 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
 
         if (mediaType != null)
         {
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, "base64");
-            emit(JsonEvent.KEY_NAME, "media_type");
-            emit(JsonEvent.VALUE_STRING, mediaType);
+            emit(BIT_SOURCE_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+            emit(BIT_SOURCE_TYPE_VALUE, JsonEvent.VALUE_STRING, "base64");
+            emit(BIT_MEDIA_TYPE_KEY, JsonEvent.KEY_NAME, "media_type");
+            emit(BIT_MEDIA_TYPE_VALUE, JsonEvent.VALUE_STRING, mediaType);
         }
         else if (attributeEquals("source", LlmSectionAttributes.SOURCE_URL))
         {
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, "url");
+            emit(BIT_SOURCE_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+            emit(BIT_SOURCE_TYPE_VALUE, JsonEvent.VALUE_STRING, "url");
         }
         else if (attributeEquals("source", LlmSectionAttributes.SOURCE_REFERENCE))
         {
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, "file");
+            emit(BIT_SOURCE_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+            emit(BIT_SOURCE_TYPE_VALUE, JsonEvent.VALUE_STRING, "file");
         }
         else
         {
@@ -203,7 +213,7 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

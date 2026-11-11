@@ -26,6 +26,6 @@ write "Host: " "localhost:8080" "\r\n"
 write "header: " ${http:randomAscii(headerSize)} "\r\n"
 write "\r\n"
 
-read "HTTP/1.1 " /4\d\d/ /.*/ "\r\n"
+read "HTTP/1.1 431 " /.*/ "\r\n"
 read "Connection: close\r\n\r\n"
 read closed

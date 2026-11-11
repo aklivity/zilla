@@ -93,6 +93,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.streaming.reply.padded/client",
+        "${app}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldForwardOpenaiStreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.reply.window.small/client",
+        "${app}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldForwardOpenaiStreamingWithSmallReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.10k/client",
         "${app}/openai.10k/server"})
     public void shouldForwardOpenai10k() throws Exception
@@ -343,6 +363,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.history.escaped/client",
+        "${app}/openai.section.assistant.reasoning.history.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history.large/client",
+        "${app}/openai.section.assistant.reasoning.history.large/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistoryLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.assistant.refusal/client",
         "${app}/openai.section.assistant.refusal/server"})
     public void shouldDecodeOpenaiSectionAssistantRefusal() throws Exception
@@ -486,6 +526,16 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.user.text.escaped/client",
         "${app}/openai.section.user.text.escaped/server"})
     public void shouldDecodeOpenaiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.text.escaped.fragmented/client",
+        "${app}/openai.section.user.text.escaped.fragmented/server"})
+    public void shouldDecodeOpenaiSectionUserTextEscapedFragmented() throws Exception
     {
         k3po.finish();
     }

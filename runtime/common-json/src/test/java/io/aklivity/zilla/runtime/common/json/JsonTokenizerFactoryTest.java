@@ -70,7 +70,6 @@ public class JsonTokenizerFactoryTest
         {
             @Override
             public JsonTokenizer create(
-                int maxValueSize,
                 boolean quoted)
             {
                 throw new UnsupportedOperationException();

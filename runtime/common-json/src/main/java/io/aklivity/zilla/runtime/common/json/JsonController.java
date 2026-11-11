@@ -67,8 +67,8 @@ public interface JsonController
      * The content must be exactly one complete JSON value, with optional surrounding whitespace; an empty
      * string delivers the two markers with no events between. A value that is not a string, or content that is
      * malformed or incomplete, rejects the pipeline. A stage asks while the key is the current event and
-     * complete, once it has decided from the whole key. The default rejects, for an upstream that cannot parse
-     * a string as a document.
+     * complete, once it has decided from the whole key. A request made while a scope is open rejects the
+     * pipeline. The default rejects, for an upstream that cannot parse a string as a document.
      */
     default void escaped()
     {

@@ -125,6 +125,45 @@ public class MessageFormatIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/request.with.lowercase.method/client"})
+    public void requestWithLowercaseMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.with.whitespace.separated.start.line/client",
+        "${app}/request.with.headers/server" })
+    public void requestWithWhitespaceSeparatedStartLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.with.whitespace.before.header.value/client",
+        "${app}/request.with.headers/server" })
+    public void requestWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.with.mixed.case.header.name/client",
+        "${app}/request.with.headers/server" })
+    public void requestWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/invalid.request.missing.target/client"})
     public void invalidRequestMissingTarget() throws Exception
     {
@@ -296,6 +335,16 @@ public class MessageFormatIT
         "${proxy}/proxy.should.preserve.unrecongnized.headers/proxy" })
     @Ignore("proxy tests not implemented")
     public void proxyShouldPreserveUnrecognizedHeaders() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.with.vertical.whitespace.before.header.value/client",
+        "${app}/request.with.headers/server" })
+    public void requestWithVerticalWhitespaceBeforeHeaderValue() throws Exception
     {
         k3po.finish();
     }

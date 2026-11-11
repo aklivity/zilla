@@ -65,6 +65,33 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     private static final int STOP_ENTRIES_MAX = 5;
     private static final double SEED_MINIMUM = Integer.MIN_VALUE;
     private static final double SEED_MAXIMUM = Integer.MAX_VALUE;
+    // tool choice, format open and format close run in separate dispatches, so they reuse the same bit values
+    private static final int BIT_TOOL_CONFIG_KEY = 1 << 0;
+    private static final int BIT_TOOL_CONFIG_START = 1 << 1;
+    private static final int BIT_FUNCTION_CALLING_KEY = 1 << 2;
+    private static final int BIT_FUNCTION_CALLING_START = 1 << 3;
+    private static final int BIT_MODE_KEY = 1 << 4;
+    private static final int BIT_MODE_VALUE = 1 << 5;
+    private static final int BIT_ALLOWED_NAMES_KEY = 1 << 6;
+    private static final int BIT_ALLOWED_NAMES_START = 1 << 7;
+    private static final int BIT_ALLOWED_FUNCTION_NAME = 1 << 8;
+    private static final int BIT_ALLOWED_NAMES_END = 1 << 9;
+    private static final int BIT_FUNCTION_CALLING_END = 1 << 10;
+    private static final int BIT_TOOL_CONFIG_END = 1 << 11;
+    private static final int BIT_ALLOWED_FUNCTION_NAMES = 1 << 12;
+    private static final int BIT_FORMAT_CONFIG_KEY = 1 << 0;
+    private static final int BIT_FORMAT_CONFIG_START = 1 << 1;
+    private static final int BIT_FORMAT_KEY = 1 << 2;
+    private static final int BIT_FORMAT_START = 1 << 3;
+    private static final int BIT_FORMAT_TEXT_KEY = 1 << 4;
+    private static final int BIT_FORMAT_TEXT_START = 1 << 5;
+    private static final int BIT_FORMAT_MIME_KEY = 1 << 6;
+    private static final int BIT_FORMAT_MIME_VALUE = 1 << 7;
+    private static final int BIT_FORMAT_TEXT_END = 1 << 0;
+    private static final int BIT_FORMAT_END = 1 << 1;
+    private static final int BIT_FORMAT_CONFIG_END = 1 << 2;
+    private static final int BIT_PASS_END_OBJECT = 1 << 3;
+    private static final int BIT_EMIT_VALUE_NULL = 1 << 4;
 
     private final boolean members;
     private final boolean foreign;
@@ -88,7 +115,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect ? DIALECT : null);
+        super(mode, sameDialect ? DIALECT : null, mode == MODE_OBJECT ? new LlmCapturedValue() : null,
+            mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.choice = new LlmToolChoice();
@@ -188,10 +216,15 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     {
         int action = DROP;
 
-        if (members && (matches(key, TOOL_CHOICE) || matches(key, PARALLEL_TOOL_CALLS)))
+        if (members && matches(key, TOOL_CHOICE))
         {
             target = MEMBER_TOOL_CONFIG;
             action = capture(key);
+        }
+        else if (members && matches(key, PARALLEL_TOOL_CALLS))
+        {
+            target = MEMBER_TOOL_CONFIG;
+            action = captureScalar(key);
         }
         else if (members && matches(key, RESPONSE_FORMAT))
         {
@@ -201,7 +234,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         else if (members && (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS)))
         {
             target = null;
-            action = capture(key);
+            action = captureScalar(key);
         }
         else if (members && matches(key, SERVICE_TIER))
         {
@@ -281,25 +314,25 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected void openFormat(
+    protected boolean openFormat(
         int kind)
     {
-        emit(JsonEvent.KEY_NAME, MEMBER_GENERATION_CONFIG);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_RESPONSE_FORMAT);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_MIME_TYPE);
-        emit(JsonEvent.VALUE_STRING, MIME_JSON);
+        return emit(BIT_FORMAT_CONFIG_KEY, JsonEvent.KEY_NAME, MEMBER_GENERATION_CONFIG) &&
+            emit(BIT_FORMAT_CONFIG_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_KEY, JsonEvent.KEY_NAME, MEMBER_RESPONSE_FORMAT) &&
+            emit(BIT_FORMAT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_TEXT_KEY, JsonEvent.KEY_NAME, MEMBER_TEXT) &&
+            emit(BIT_FORMAT_TEXT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_MIME_KEY, JsonEvent.KEY_NAME, MEMBER_MIME_TYPE) &&
+            emit(BIT_FORMAT_MIME_VALUE, JsonEvent.VALUE_STRING, MIME_JSON);
     }
 
     @Override
-    protected void closeFormat()
+    protected boolean closeFormat()
     {
-        emit(JsonEvent.END_OBJECT);
-        emit(JsonEvent.END_OBJECT);
-        emit(JsonEvent.END_OBJECT);
+        return emit(BIT_FORMAT_TEXT_END, JsonEvent.END_OBJECT) &&
+            emit(BIT_FORMAT_END, JsonEvent.END_OBJECT) &&
+            emit(BIT_FORMAT_CONFIG_END, JsonEvent.END_OBJECT);
     }
 
     @Override
@@ -326,8 +359,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         final String captured = capturedMember();
         Status status;
@@ -344,12 +377,17 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         }
         else
         {
-            status = matches(captured, MEMBER_TYPE)
-                ? formatCaptured(value)
-                : matches(captured, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+            status = matches(captured, MEMBER_TYPE) ? formatCaptured(value) : onParallelCalls(value);
         }
 
         return status;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        return onToolChoice(value);
     }
 
     @Override
@@ -369,11 +407,11 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         }
         else if (members)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
-            emit(JsonEvent.VALUE_NULL);
+            emit(BIT_EMIT_VALUE_NULL, JsonEvent.VALUE_NULL);
         }
 
         return status;
@@ -386,35 +424,37 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
 
         if (choice.parseCanonical(value))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_TOOL_CONFIG);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_FUNCTION_CALLING_CONFIG);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_MODE);
-            emit(JsonEvent.VALUE_STRING, modeOf(choice));
+            emit(BIT_TOOL_CONFIG_KEY, JsonEvent.KEY_NAME, MEMBER_TOOL_CONFIG);
+            emit(BIT_TOOL_CONFIG_START, JsonEvent.START_OBJECT);
+            emit(BIT_FUNCTION_CALLING_KEY, JsonEvent.KEY_NAME, MEMBER_FUNCTION_CALLING_CONFIG);
+            emit(BIT_FUNCTION_CALLING_START, JsonEvent.START_OBJECT);
+            emit(BIT_MODE_KEY, JsonEvent.KEY_NAME, MEMBER_MODE);
+            emit(BIT_MODE_VALUE, JsonEvent.VALUE_STRING, modeOf(choice));
 
             if (choice.kind() == LlmToolChoice.FUNCTION || choice.kind() == LlmToolChoice.ALLOWED && !choice.names().isEmpty())
             {
-                emit(JsonEvent.KEY_NAME, MEMBER_ALLOWED_FUNCTION_NAMES);
-                emit(JsonEvent.START_ARRAY);
+                emit(BIT_ALLOWED_NAMES_KEY, JsonEvent.KEY_NAME, MEMBER_ALLOWED_FUNCTION_NAMES);
+                emit(BIT_ALLOWED_NAMES_START, JsonEvent.START_ARRAY);
 
                 if (choice.kind() == LlmToolChoice.FUNCTION)
                 {
-                    emit(JsonEvent.VALUE_STRING, choice.name());
+                    emit(BIT_ALLOWED_FUNCTION_NAME, JsonEvent.VALUE_STRING, choice.name());
                 }
                 else
                 {
                     for (int index = 0; index < choice.names().size(); index++)
                     {
-                        emit(JsonEvent.VALUE_STRING, choice.names().get(index));
+                        emitLoop(BIT_ALLOWED_FUNCTION_NAMES, JsonEvent.VALUE_STRING, choice.names().get(index));
                     }
+
+                    endLoop(BIT_ALLOWED_FUNCTION_NAMES);
                 }
 
-                emit(JsonEvent.END_ARRAY);
+                emit(BIT_ALLOWED_NAMES_END, JsonEvent.END_ARRAY);
             }
 
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_FUNCTION_CALLING_END, JsonEvent.END_OBJECT);
+            emit(BIT_TOOL_CONFIG_END, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
@@ -422,9 +462,9 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     }
 
     private Status onParallelCalls(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event(0);
+        final JsonEvent event = value.event();
 
         return event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_NULL ? Status.ADVANCED : rejected(PARALLEL_TOOL_CALLS);
     }

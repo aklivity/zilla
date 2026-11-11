@@ -26,8 +26,9 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
  * materializing a DOM or buffering the whole request.
  * <p>
  * One instance is created per stream and fed every frame in order. Per {@link JsonParserEx}'s
- * windowed contract, a value that straddles a window boundary is declined ({@code consumed(0)})
- * until it arrives whole, so {@link #name} is only ever assigned a complete value, never a fragment.
+ * windowed contract, a key that straddles a window boundary is presented whole once it arrives, and
+ * a string value that straddles one is declined ({@code consumed(0)}) until it arrives whole, so
+ * {@link #name} is only ever assigned a complete value, never a fragment.
  */
 public final class McpDescribeToolCallScanner
 {
@@ -144,21 +145,14 @@ public final class McpDescribeToolCallScanner
 
     private void onKey()
     {
-        if (parser.deferredBytes())
+        final CharSequence key = parser.getStringView();
+        if (depth == 1)
         {
-            parser.consumed(0);
+            argumentsArmed = ARGUMENTS_NAME.contentEquals(key);
         }
-        else
+        else if (depth == argumentsDepth)
         {
-            final CharSequence key = parser.getStringView();
-            if (depth == 1)
-            {
-                argumentsArmed = ARGUMENTS_NAME.contentEquals(key);
-            }
-            else if (depth == argumentsDepth)
-            {
-                nameArmed = NAME_NAME.contentEquals(key);
-            }
+            nameArmed = NAME_NAME.contentEquals(key);
         }
     }
 

@@ -58,6 +58,25 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
     private static final String MEMBER_NATIVE_SERVICE_TIER = "anthropic:service_tier";
 
+    private static final int BIT_RESIDUE_KEY = 1 << 0;
+    private static final int BIT_RESIDUE_START = 1 << 1;
+    private static final int BIT_RESIDUE_END = 1 << 2;
+    private static final int BIT_KEY = 1 << 3;
+    private static final int BIT_VALUE = 1 << 4;
+    private static final int BIT_CHOICE = 1 << 5;
+    private static final int BIT_PARALLEL_KEY = 1 << 6;
+    private static final int BIT_PARALLEL_VALUE = 1 << 7;
+    private static final int BIT_RESIDUE_MEMBERS = 1 << 8;
+    private static final int BIT_FORMAT_START = 1 << 9;
+    private static final int BIT_FORMAT_TYPE_KEY = 1 << 10;
+    private static final int BIT_FORMAT_TYPE_VALUE = 1 << 11;
+    private static final int BIT_FORMAT_SCHEMA_KEY = 1 << 12;
+    private static final int BIT_FORMAT_SCHEMA_START = 1 << 13;
+    private static final int BIT_FORMAT_NAME_KEY = 1 << 14;
+    private static final int BIT_FORMAT_NAME_VALUE = 1 << 15;
+    private static final int BIT_END_INNER = 1 << 16;
+    private static final int BIT_END = 1 << 17;
+
     private static final int REPLACING_STREAM = 0;
     private static final int REPLACING_FORMAT = 1;
 
@@ -84,6 +103,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     LlmAnthropicControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue(), new LlmCapturedScalar());
         this.choice = new LlmToolChoice();
     }
 
@@ -179,13 +199,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else
         {
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
-            emit(JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_NAME);
-            emit(JsonEvent.VALUE_STRING, DEFAULT_NAME);
+            emitFormatWrapper();
         }
 
         return Status.ADVANCED;
@@ -195,26 +209,27 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     protected Status onCaptured(
         LlmCapturedValue value)
     {
-        Status status = Status.ADVANCED;
-
         if (matches(capturedMember(), SERVICE_TIER))
         {
             onServiceTier(value);
         }
-        else if (matches(capturedMember(), MEMBER_TYPE) && container == CONTAINER_THINKING)
-        {
-            onThinkingType(value);
-        }
         else if (matches(capturedMember(), MEMBER_TYPE))
         {
-            status = TYPE_JSON_SCHEMA.equals(value.string(0)) ? Status.ADVANCED : Status.REJECTED;
+            onThinkingType(value);
         }
         else
         {
             onToolChoiceCaptured(value);
         }
 
-        return status;
+        return Status.ADVANCED;
+    }
+
+    @Override
+    protected Status onScalar(
+        LlmCapturedScalar value)
+    {
+        return TYPE_JSON_SCHEMA.equals(value.string()) ? Status.ADVANCED : Status.REJECTED;
     }
 
     private void onToolChoiceCaptured(
@@ -226,8 +241,10 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
-            emitCaptured(value, 0);
+            if (emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE))
+            {
+                emitCaptured(BIT_VALUE, value, 0);
+            }
         }
     }
 
@@ -245,10 +262,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (replacing == REPLACING_STREAM && flag)
         {
-            streamSeen = true;
-            streaming = event == JsonEvent.VALUE_TRUE;
-            emit(JsonEvent.KEY_NAME, MEMBER_STREAM);
-            emit(event);
+            if (emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_STREAM) && emit(BIT_VALUE, event))
+            {
+                streamSeen = true;
+                streaming = event == JsonEvent.VALUE_TRUE;
+            }
+
             status = Status.ADVANCED;
         }
 
@@ -261,8 +280,10 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     {
         if (depth == 3)
         {
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            if (emit(BIT_END_INNER, JsonEvent.END_OBJECT))
+            {
+                emit(BIT_END, JsonEvent.END_OBJECT);
+            }
         }
         else if (depth == 2)
         {
@@ -270,7 +291,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -283,24 +304,33 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_FORMAT))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
             replacing = REPLACING_FORMAT;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT);
             action = DESCEND_OR_REPLACE;
+
+            if (closeResidue() && emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT))
+            {
+                output = OUTPUT_LIFTED;
+            }
         }
         else if (matches(key, MEMBER_EFFORT))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
             target = MEMBER_SHARED_REASONING_EFFORT;
             action = PASS_STRING_OR_DROP;
+
+            if (closeResidue())
+            {
+                output = OUTPUT_LIFTED;
+            }
         }
         else
         {
-            openResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openResidue())
+            {
+                output = OUTPUT_RESIDUE;
+            }
         }
 
         return action;
@@ -317,16 +347,23 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else if (matches(key, MEMBER_BUDGET_TOKENS))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
-            thinkingType = TYPE_BUDGET;
             action = rangeInteger(MEMBER_SHARED_THINKING_BUDGET, 0, Integer.MAX_VALUE);
+
+            if (closeResidue())
+            {
+                output = OUTPUT_LIFTED;
+                thinkingType = TYPE_BUDGET;
+            }
         }
         else
         {
-            openResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openResidue())
+            {
+                output = OUTPUT_RESIDUE;
+            }
         }
 
         return action;
@@ -339,16 +376,23 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (matches(key, MEMBER_USER_ID))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
             target = MEMBER_SHARED_USER;
             action = PASS_STRING_OR_DROP;
+
+            if (closeResidue())
+            {
+                output = OUTPUT_LIFTED;
+            }
         }
         else
         {
-            openResidue();
             target = name(key);
             action = PASS_VALUE;
+
+            if (openResidue())
+            {
+                output = OUTPUT_RESIDUE;
+            }
         }
 
         return action;
@@ -361,13 +405,17 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (tier != null)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
-            emit(JsonEvent.VALUE_STRING, tier);
+            if (emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER))
+            {
+                emit(BIT_VALUE, JsonEvent.VALUE_STRING, tier);
+            }
         }
         else
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
-            emitCaptured(value, 0);
+            if (emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER))
+            {
+                emitCaptured(BIT_VALUE, value, 0);
+            }
         }
     }
 
@@ -378,10 +426,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (TYPE_DISABLED.equals(type))
         {
-            closeResidue();
-            output = OUTPUT_LIFTED;
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
-            emit(JsonEvent.VALUE_STRING, EFFORT_NONE);
+            if (closeResidue() &&
+                emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT) &&
+                emit(BIT_VALUE, JsonEvent.VALUE_STRING, EFFORT_NONE))
+            {
+                output = OUTPUT_LIFTED;
+            }
         }
         else if (TYPE_ENABLED.equals(type))
         {
@@ -389,9 +439,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else
         {
-            openResidue();
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emitCaptured(value, 0);
+            if (openResidue() &&
+                emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emitCaptured(BIT_VALUE, value, 0))
+            {
+                output = OUTPUT_RESIDUE;
+            }
         }
     }
 
@@ -407,7 +460,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else if (matches(key, MEMBER_TYPE))
         {
-            action = capture(key);
+            action = captureScalar(key);
         }
 
         return action;
@@ -415,26 +468,34 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     private void onContainerClose()
     {
-        if (thinkingType == TYPE_PENDING)
-        {
-            openResidue();
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, TYPE_ENABLED);
-        }
+        final boolean enabled = thinkingType == TYPE_PENDING;
+        final boolean opened = output == OUTPUT_RESIDUE;
+        boolean closed = true;
 
-        if (output == OUTPUT_RESIDUE)
+        if (enabled)
         {
-            emit(JsonEvent.END_OBJECT);
+            closed = (opened || emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey()) &&
+                emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT)) &&
+                emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+                emit(BIT_VALUE, JsonEvent.VALUE_STRING, TYPE_ENABLED) &&
+                emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
+        }
+        else if (opened)
+        {
+            closed = emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
         }
         else if (output == OUTPUT_NONE)
         {
-            emit(JsonEvent.KEY_NAME, residueKey());
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            closed = emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey()) &&
+                emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT) &&
+                emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
         }
 
-        output = OUTPUT_NONE;
-        thinkingType = TYPE_UNSET;
+        if (closed)
+        {
+            output = OUTPUT_NONE;
+            thinkingType = TYPE_UNSET;
+        }
     }
 
     private String residueKey()
@@ -447,22 +508,16 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         };
     }
 
-    private void openResidue()
+    private boolean openResidue()
     {
-        if (output != OUTPUT_RESIDUE)
-        {
-            output = OUTPUT_RESIDUE;
-            emit(JsonEvent.KEY_NAME, residueKey());
-            emit(JsonEvent.START_OBJECT);
-        }
+        return output == OUTPUT_RESIDUE ||
+            emit(BIT_RESIDUE_KEY, JsonEvent.KEY_NAME, residueKey()) &&
+            emit(BIT_RESIDUE_START, JsonEvent.START_OBJECT);
     }
 
-    private void closeResidue()
+    private boolean closeResidue()
     {
-        if (output == OUTPUT_RESIDUE)
-        {
-            emit(JsonEvent.END_OBJECT);
-        }
+        return output != OUTPUT_RESIDUE || emit(BIT_RESIDUE_END, JsonEvent.END_OBJECT);
     }
 
     private void splitToolChoice(
@@ -496,22 +551,37 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         final boolean named = choice.kind() == LlmToolChoice.FUNCTION;
         final boolean flagged = disabled == JsonEvent.VALUE_TRUE || disabled == JsonEvent.VALUE_FALSE;
 
-        if (typed)
+        if (emitLifted(typed, flagged, disabled))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE);
-            choice.emitCanonical(this);
+            emitResidue(value, typed, named, flagged);
         }
-
-        if (flagged)
-        {
-            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_PARALLEL);
-            emit(disabled == JsonEvent.VALUE_TRUE ? JsonEvent.VALUE_FALSE : JsonEvent.VALUE_TRUE);
-        }
-
-        emitResidue(value, typed, named, flagged);
     }
 
-    private void emitResidue(
+    private boolean emitLifted(
+        boolean typed,
+        boolean flagged,
+        JsonEvent disabled)
+    {
+        return (!typed ||
+                emit(BIT_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_TOOL_CHOICE) &&
+                choice.emitCanonical(this, BIT_CHOICE)) &&
+            (!flagged ||
+                emit(BIT_PARALLEL_KEY, JsonEvent.KEY_NAME, MEMBER_SHARED_PARALLEL) &&
+                emit(BIT_PARALLEL_VALUE, disabled == JsonEvent.VALUE_TRUE ? JsonEvent.VALUE_FALSE : JsonEvent.VALUE_TRUE));
+    }
+
+    private boolean emitFormatWrapper()
+    {
+        return emit(BIT_FORMAT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+            emit(BIT_FORMAT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA) &&
+            emit(BIT_FORMAT_SCHEMA_KEY, JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA) &&
+            emit(BIT_FORMAT_SCHEMA_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_NAME_KEY, JsonEvent.KEY_NAME, MEMBER_NAME) &&
+            emit(BIT_FORMAT_NAME_VALUE, JsonEvent.VALUE_STRING, DEFAULT_NAME);
+    }
+
+    private boolean emitResidue(
         LlmCapturedValue value,
         boolean typed,
         boolean named,
@@ -532,12 +602,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
                 if (!residue)
                 {
                     residue = true;
-                    emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
-                    emit(JsonEvent.START_OBJECT);
+                    emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
+                    emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.START_OBJECT);
                 }
 
-                emit(JsonEvent.KEY_NAME, key);
-                emitCaptured(value, index + 1);
+                emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.KEY_NAME, key);
+                emitLoopCaptured(BIT_RESIDUE_MEMBERS, value, index + 1);
             }
 
             index = value.end(index + 1);
@@ -545,13 +615,15 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
         if (residue)
         {
-            emit(JsonEvent.END_OBJECT);
+            emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.END_OBJECT);
         }
         else if (!typed && !flagged)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
+            emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.START_OBJECT);
+            emitLoop(BIT_RESIDUE_MEMBERS, JsonEvent.END_OBJECT);
         }
+
+        return endLoop(BIT_RESIDUE_MEMBERS);
     }
 }

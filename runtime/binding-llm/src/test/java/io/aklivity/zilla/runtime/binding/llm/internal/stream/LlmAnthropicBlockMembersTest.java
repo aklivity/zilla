@@ -162,6 +162,17 @@ public class LlmAnthropicBlockMembersTest
     }
 
     @Test
+    public void shouldEncodeDocumentCitationsWithoutBreakpoints()
+    {
+        final LlmAnthropicMediaFromCanonical document = LlmAnthropicMediaFromCanonical.document(false);
+
+        assertTransforms(document, reference, null,
+            json("{'type':'file','x:citations':{'enabled':true},'file':{'file_id':'file_1'}}"),
+            json("{'type':'document','citations':{'enabled':true},'source':{'type':'file','file_id':'file_1'}}"));
+        assertThat(document.cited(), is(true));
+    }
+
+    @Test
     public void shouldNotEncodeCitationsThatAreNotEnabled()
     {
         final LlmAnthropicMediaFromCanonical document = LlmAnthropicMediaFromCanonical.document(false, breakpoints);

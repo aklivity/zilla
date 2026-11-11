@@ -278,6 +278,26 @@ public class LlmGeminiControlFromCanonicalTest
     }
 
     @Test
+    public void shouldRestoreAllowedWithManyNamesFollowedByParallelToolCalls()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'bb'}},{'type':'function','function':{'name':'ccc'}}]}}," +
+                "'x:temperature':0.5}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'AUTO','allowedFunctionNames':['a','bb','ccc']}}," +
+                "'generationConfig':{'temperature':0.5}}"));
+    }
+
+    @Test
+    public void shouldRestoreAllowedWithoutNamesAsModeOnly()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'required','tools':[]}}}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'ANY'}}}"));
+    }
+
+    @Test
     public void shouldRejectUnrecognizedToolChoice()
     {
         assertRejects(foreignMembers, json("{'x:tool_choice':'bogus'}"));

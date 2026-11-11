@@ -97,6 +97,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         Pattern.compile("^/(v1(?:beta)?)/models/((?:[^/?%]|%[0-9A-Fa-f]{2})+):" +
             "(generateContent|streamGenerateContent)(?:\\?(.*))?$");
     private static final String OPERATION_STREAM = "streamGenerateContent";
+    private static final String PATH_PREFIX_V1 = "/v1/models/";
+    private static final String PATH_PREFIX_V1BETA = "/v1beta/models/";
+    private static final String SUFFIX_GENERATE = ":generateContent";
+    private static final String SUFFIX_STREAM = ":streamGenerateContent";
     private static final String QUERY_ALT_SSE = "alt=sse";
     private static final String STATUS_OK = "200";
     private static final int STATUS_BAD_REQUEST = 400;
@@ -106,7 +110,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
     private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream;space=1";
     private static final Set<String> STATUSES = Set.of("INVALID_ARGUMENT", "FAILED_PRECONDITION", "OUT_OF_RANGE",
         "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "ABORTED", "ALREADY_EXISTS", "RESOURCE_EXHAUSTED", "CANCELLED",
@@ -220,6 +223,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -248,7 +252,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -312,7 +315,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
@@ -345,8 +347,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     public boolean detect(
         JsonEnvelope headers)
     {
-        return METHOD_POST.equalsIgnoreCase(header(headers, HEADER_METHOD)) &&
-            operation(header(headers, HEADER_PATH)) != null;
+        return LlmHeaderBytes.equalToIgnoreCase(headers.get(HEADER_METHOD, 0), METHOD_POST) &&
+            operates(headers.get(HEADER_PATH, 0));
     }
 
     @Override
@@ -370,7 +372,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         if (binding != null && httpBeginEx != null)
         {
-            final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
+            final LlmRequestHeaders headers = headersRO.wrap(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
             final Matcher operation = operation(header(headers, HEADER_PATH));
 
@@ -379,7 +381,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 newStream = new LlmGeminiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_NOT_FOUND), errorBody(STATUS_NOT_FOUND, null, null))::onNetMessage;
             }
-            else if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
+            else if (!LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON))
             {
                 newStream = new LlmGeminiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
@@ -474,7 +476,123 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return new UnsafeBufferEx(value.getBytes(UTF_8));
     }
 
-    private static Matcher operation(
+    static boolean operates(
+        DirectBufferEx path)
+    {
+        boolean matched = false;
+
+        if (path != null)
+        {
+            final int length = path.capacity();
+
+            int pathEnd = 0;
+
+            while (pathEnd < length && path.getByte(pathEnd) != '?')
+            {
+                pathEnd++;
+            }
+
+            final int modelStart = modelStart(path, pathEnd);
+            final int operationLength = operationLength(path, pathEnd);
+            final int modelEnd = pathEnd - operationLength;
+
+            matched = modelStart != -1 &&
+                operationLength != 0 &&
+                modelEnd > modelStart &&
+                modelEncoded(path, modelStart, modelEnd) &&
+                singleLine(path, pathEnd, length);
+        }
+
+        return matched;
+    }
+
+    private static int modelStart(
+        DirectBufferEx path,
+        int pathEnd)
+    {
+        int start = -1;
+
+        if (LlmHeaderBytes.startsWith(path, 0, pathEnd, PATH_PREFIX_V1))
+        {
+            start = PATH_PREFIX_V1.length();
+        }
+        else if (LlmHeaderBytes.startsWith(path, 0, pathEnd, PATH_PREFIX_V1BETA))
+        {
+            start = PATH_PREFIX_V1BETA.length();
+        }
+
+        return start;
+    }
+
+    private static int operationLength(
+        DirectBufferEx path,
+        int pathEnd)
+    {
+        int length = 0;
+
+        if (LlmHeaderBytes.endsWith(path, pathEnd, SUFFIX_GENERATE))
+        {
+            length = SUFFIX_GENERATE.length();
+        }
+        else if (LlmHeaderBytes.endsWith(path, pathEnd, SUFFIX_STREAM))
+        {
+            length = SUFFIX_STREAM.length();
+        }
+
+        return length;
+    }
+
+    private static boolean modelEncoded(
+        DirectBufferEx path,
+        int from,
+        int to)
+    {
+        boolean encoded = true;
+
+        for (int position = from; encoded && position < to; position++)
+        {
+            final byte b = path.getByte(position);
+
+            if (b == '%')
+            {
+                encoded = position + 2 < to &&
+                    hexadecimal(path.getByte(position + 1)) &&
+                    hexadecimal(path.getByte(position + 2));
+                position += 2;
+            }
+            else
+            {
+                encoded = b != '/';
+            }
+        }
+
+        return encoded;
+    }
+
+    private static boolean hexadecimal(
+        byte b)
+    {
+        return b >= '0' && b <= '9' || b >= 'a' && b <= 'f' || b >= 'A' && b <= 'F';
+    }
+
+    private static boolean singleLine(
+        DirectBufferEx path,
+        int from,
+        int to)
+    {
+        boolean single = true;
+
+        for (int position = from; single && position < to; position++)
+        {
+            final byte b = path.getByte(position);
+
+            single = b != '\n' && b != '\r';
+        }
+
+        return single;
+    }
+
+    static Matcher operation(
         String path)
     {
         final Matcher matcher = path != null ? PATH_OPERATION.matcher(path) : null;
@@ -636,10 +754,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeRootKey(parser.getStringView());
                 break;
             case END_OBJECT:
@@ -675,10 +789,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (isConfig(key))
                 {
@@ -873,17 +983,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 break;
             case KEY_NAME:
-                roleKey = false;
-                if (!parser.deferredBytes())
+                final CharSequence member = parser.getStringView();
+
+                roleKey = level == LEVEL_CONTENT_MEMBER && matches(member, "role");
+
+                if (level == LEVEL_PART_MEMBER && media(member))
                 {
-                    final CharSequence member = parser.getStringView();
-
-                    roleKey = level == LEVEL_CONTENT_MEMBER && matches(member, "role");
-
-                    if (level == LEVEL_PART_MEMBER && media(member))
-                    {
-                        role = ROLE_USER;
-                    }
+                    role = ROLE_USER;
                 }
                 break;
             case VALUE_STRING:
@@ -976,10 +1082,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, "role"))
                 {
@@ -1110,10 +1212,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 if (matches(parser.getStringView(), "parts"))
                 {
                     server.partsThen = decodeSystem;
@@ -1242,18 +1340,15 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 depth--;
                 break;
             case KEY_NAME:
-                if (!parser.deferredBytes())
+                final CharSequence member = parser.getStringView();
+                final boolean signature = matches(member, MEMBER_THOUGHT_SIGNATURE) ||
+                    matches(member, MEMBER_THOUGHT_SIGNATURE_SNAKE);
+
+                thoughtKey = matches(member, MEMBER_THOUGHT);
+
+                if (!thoughtKey && !signature)
                 {
-                    final CharSequence member = parser.getStringView();
-                    final boolean signature = matches(member, MEMBER_THOUGHT_SIGNATURE) ||
-                        matches(member, MEMBER_THOUGHT_SIGNATURE_SNAKE);
-
-                    thoughtKey = matches(member, MEMBER_THOUGHT);
-
-                    if (!thoughtKey && !signature)
-                    {
-                        key = member.toString();
-                    }
+                    key = member.toString();
                 }
                 break;
             case VALUE_TRUE:
@@ -1604,10 +1699,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 ended = true;
                 break;
             case KEY_NAME:
-                if (!parser.deferredBytes())
-                {
-                    key = parser.getStringView().toString();
-                }
+                key = parser.getStringView().toString();
                 break;
             default:
                 server.onDecodeParseError(traceId);
@@ -1697,10 +1789,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (!parser.deferredBytes())
-                {
-                    server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_UNSUPPORTED);
-                }
+                server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_UNSUPPORTED);
                 break;
             case END_OBJECT:
                 server.decoder = decodeTools;
@@ -1947,10 +2036,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), false);
                 break;
             case END_OBJECT:
@@ -1986,10 +2071,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), true);
                 break;
             case END_OBJECT:
@@ -2026,10 +2107,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeConfigKey(parser.getStringView(), false);
                 break;
             case END_OBJECT:
@@ -2203,32 +2280,25 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             final JsonEvent event = parser.nextEvent();
 
-            if (event == JsonEvent.VALUE_NUMBER && parser.deferredBytes())
+            final boolean deferred;
+
+            if (event == JsonEvent.VALUE_NUMBER)
             {
-                parser.consumed(0);
+                server.maxOutputTokens = parser.getInt();
+                deferred = false;
             }
             else
             {
-                final boolean deferred;
+                deferred = onCaptureEvent(server, event);
+            }
 
-                if (event == JsonEvent.VALUE_NUMBER)
-                {
-                    server.maxOutputTokens = parser.getInt();
-                    deferred = false;
-                }
-                else
-                {
-                    deferred = onCaptureEvent(server, event);
-                }
-
-                if (server.captureDepth == 0 && !deferred)
-                {
-                    server.endConfigValue(traceId, authorization, decodeConfigOpen);
-                }
-                else
-                {
-                    server.decoder = decodeConfigResidue;
-                }
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endConfigValue(traceId, authorization, decodeConfigOpen);
+            }
+            else
+            {
+                server.decoder = decodeConfigResidue;
             }
         }
 
@@ -2240,8 +2310,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         JsonEvent event)
     {
         final JsonParserEx parser = server.parser;
-        final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
-            parser.deferredBytes();
+        final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
         switch (event)
         {
@@ -2253,7 +2322,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         case END_ARRAY:
             server.captureDepth--;
             break;
-        case VALUE_STRING, VALUE_NUMBER:
+        case VALUE_STRING:
             if (deferred)
             {
                 parser.consumed(parser.getStringView().length());
@@ -5525,13 +5594,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
     }
 
-    private String mediaType(
-        String contentType)
-    {
-        contentTypeMatcher.reset(contentType != null ? contentType : "");
-
-        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
-    }
 
     private final class LlmGeminiRejectHandler
     {

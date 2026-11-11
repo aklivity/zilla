@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonException;
@@ -105,7 +103,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String UNAUTHORIZED_BODY = "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
         "\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"}}";
@@ -218,6 +215,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -246,7 +244,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -319,7 +316,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.accumulatePool = context.bufferPool().duplicate();
@@ -355,13 +351,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     public boolean detect(
         JsonEnvelope headers)
     {
-        final String method = header(headers, HEADER_METHOD);
-        final String path = header(headers, HEADER_PATH);
-        final String contentType = header(headers, HEADER_CONTENT_TYPE);
-
-        return METHOD_POST.equalsIgnoreCase(method) &&
-            PATH_RESPONSES.equals(path) &&
-            CONTENT_TYPE_JSON.equals(mediaType(contentType));
+        return LlmHeaderBytes.equalToIgnoreCase(headers.get(HEADER_METHOD, 0), METHOD_POST) &&
+            LlmHeaderBytes.equalTo(headers.get(HEADER_PATH, 0), PATH_RESPONSES) &&
+            LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON);
     }
 
     @Override
@@ -385,10 +377,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (binding != null && httpBeginEx != null)
         {
-            final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
+            final LlmRequestHeaders headers = headersRO.wrap(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
-            if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
+            if (!LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON))
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
@@ -587,7 +579,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     }
                     break;
                 case KEY_NAME:
-                    modelValue = depth == 1 && !parser.deferredBytes() && matches(parser.getStringView(), "model");
+                    modelValue = depth == 1 && matches(parser.getStringView(), "model");
                     break;
                 case VALUE_STRING:
                     if (parser.deferredBytes())
@@ -696,10 +688,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 server.onDecodeRootKey(parser.getStringView());
                 break;
             case END_OBJECT:
@@ -735,10 +723,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (isRootControl(key))
                 {
@@ -925,7 +909,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 break;
             case KEY_NAME:
                 typeKey = false;
-                if (depth == 0 && !parser.deferredBytes())
+                if (depth == 0)
                 {
                     final CharSequence key = parser.getStringView();
 
@@ -1059,10 +1043,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, MEMBER_TYPE))
                 {
@@ -1309,11 +1289,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 break lookahead;
             }
 
-            if (parser.deferredBytes())
-            {
-                break lookahead;
-            }
-
             if (!matches(parser.getStringView(), MEMBER_TYPE))
             {
                 server.onDecodeInvalidRequest(traceId, MESSAGE_PART_TYPE_ORDER);
@@ -1424,10 +1399,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, MEMBER_TEXT))
                 {
@@ -1477,10 +1448,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 if (matches(parser.getStringView(), MEMBER_REFUSAL))
                 {
                     server.text(LlmSectionType.ASSISTANT_REFUSAL, decodeRefusalPart);
@@ -1561,10 +1528,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, MEMBER_ID))
                 {
@@ -1777,10 +1740,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 if (matches(parser.getStringView(), MEMBER_TEXT))
                 {
                     server.onDecodeReasoningPart(traceId, authorization);
@@ -2022,7 +1981,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 missing = depth < 0;
                 break;
             case KEY_NAME:
-                typeKey = depth == 0 && !parser.deferredBytes() && matches(parser.getStringView(), MEMBER_TYPE);
+                typeKey = depth == 0 && matches(parser.getStringView(), MEMBER_TYPE);
                 break;
             case VALUE_STRING:
                 if (parser.deferredBytes())
@@ -2138,7 +2097,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (event == JsonEvent.KEY_NAME &&
                 server.probe.depth() == 1 &&
-                !parser.deferredBytes() &&
                 server.blockSection == LlmSectionType.SERVER_TOOL_CALL &&
                 LlmOpenaiResponsesItems.resultMember(server.itemType, parser.getStringView()))
             {
@@ -2209,10 +2167,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    break;
-                }
                 final CharSequence key = parser.getStringView();
                 if (matches(key, MEMBER_CALL_ID))
                 {
@@ -2410,15 +2364,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case VALUE_NUMBER:
-                if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
-                else
-                {
-                    server.maxOutputTokens = parser.getInt();
-                    server.decoder = decodeRoot;
-                }
+                server.maxOutputTokens = parser.getInt();
+                server.decoder = decodeRoot;
                 break;
             case START_OBJECT:
             case START_ARRAY:
@@ -2477,8 +2424,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         while (server.decoder == decodeControlValue && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
-            final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
-                parser.deferredBytes();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
             switch (event)
             {
@@ -2490,7 +2436,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case END_ARRAY:
                 server.captureDepth--;
                 break;
-            case VALUE_STRING, VALUE_NUMBER:
+            case VALUE_STRING:
                 if (deferred)
                 {
                     parser.consumed(parser.getStringView().length());
@@ -8066,13 +8012,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     }
 
 
-    private String mediaType(
-        String contentType)
-    {
-        contentTypeMatcher.reset(contentType != null ? contentType : "");
-
-        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
-    }
 
     private final class LlmOpenaiRejectHandler
     {
