@@ -116,7 +116,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final String16FW EMPTY_STRING = new String16FW("");
     private static final int OFFSET_METADATA_VERSION = 2;
     private static final int MQTT_REASON_CODE_ERROR = 0x80;
-    private static final String SHARE_INCARNATION = "0";
+    private static final String SHARE_EPOCH = "0";
     private static final int NO_PACKET_ID = 0;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
@@ -3502,12 +3502,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String pattern)
     {
         final String encodedFilter = Base64.getUrlEncoder().withoutPadding().encodeToString(pattern.getBytes(UTF_8));
-        return String.format("%s:share:%s:%s:%s", groupIdPrefix, shareName, encodedFilter, shareIncarnation());
+        return String.format("%s:share:%s:%s:%s", groupIdPrefix, shareName, encodedFilter, shareEpoch());
     }
 
-    private String shareIncarnation()
+    private String shareEpoch()
     {
-        return SHARE_INCARNATION;
+        return SHARE_EPOCH;
     }
 
     private static boolean isShared(
