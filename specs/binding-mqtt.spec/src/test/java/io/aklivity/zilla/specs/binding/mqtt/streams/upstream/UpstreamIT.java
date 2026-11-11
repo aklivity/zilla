@@ -180,4 +180,22 @@ public class UpstreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.subscription.qos1/client",
+        "${upstream}/unsubscribe.shared.subscription.qos1/server"})
+    public void shouldUnsubscribeSharedSubscriptionQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.subscription.qos2/client",
+        "${upstream}/unsubscribe.shared.subscription.qos2/server"})
+    public void shouldUnsubscribeSharedSubscriptionQos2() throws Exception
+    {
+        k3po.finish();
+    }
 }
