@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.bench;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -33,18 +34,21 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.test.EngineBench;
 
 /**
- * Accepts an {@code mcp} {@code tools/call} stream and replies with a resumable flush and a progress flush
- * before the result, as a backend that reports progress does, then ends the reply. The result is sent within
- * the reply credit it is granted, in fragments of {@code fragmentLength} bytes when that is not zero. It does
- * not allocate in steady state: stream state is pooled and frames are built into a reused buffer.
+ * Accepts an {@code mcp} {@code tools/call} stream and replies once the whole request has arrived, as counted by
+ * the content length of its begin extension, without waiting for the request to end. The reply is its begin,
+ * a resumable flush and a progress flush when the backend reports progress, the result and its end. The result
+ * is sent within the reply credit it is granted, in fragments of {@code fragmentLength} bytes when that is not
+ * zero. A {@code null} result withholds the reply so the request stays in flight. It does not allocate in
+ * steady state: stream state is pooled and frames are built into a reused buffer.
  */
-final class McpProgressPeer implements BindingHandler
+final class McpToolsCallPeer implements BindingHandler
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
 
     private final BeginFW beginRO = new BeginFW();
+    private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final WindowFW windowRO = new WindowFW();
     private final DataFW dataRO = new DataFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -53,21 +57,24 @@ final class McpProgressPeer implements BindingHandler
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[WRITE_BUFFER_CAPACITY]);
-    private final Queue<ProgressStream> idleStreams = new ArrayDeque<>();
+    private final Queue<CallStream> idleStreams = new ArrayDeque<>();
+    private final DirectBufferEx beginEx;
     private final DirectBufferEx resumableEx;
     private final DirectBufferEx progressEx;
     private final DirectBufferEx result;
     private final int fragmentLength;
 
-    McpProgressPeer(
+    McpToolsCallPeer(
+        byte[] beginEx,
         byte[] resumableEx,
         byte[] progressEx,
         byte[] result,
         int fragmentLength)
     {
-        this.resumableEx = new UnsafeBufferEx(resumableEx);
-        this.progressEx = new UnsafeBufferEx(progressEx);
-        this.result = new UnsafeBufferEx(result);
+        this.beginEx = new UnsafeBufferEx(beginEx);
+        this.resumableEx = resumableEx != null ? new UnsafeBufferEx(resumableEx) : null;
+        this.progressEx = progressEx != null ? new UnsafeBufferEx(progressEx) : null;
+        this.result = result != null ? new UnsafeBufferEx(result) : null;
         this.fragmentLength = fragmentLength;
     }
 
@@ -79,17 +86,17 @@ final class McpProgressPeer implements BindingHandler
         int length,
         MessageConsumer sender)
     {
-        ProgressStream stream = idleStreams.poll();
+        CallStream stream = idleStreams.poll();
 
         if (stream == null)
         {
-            stream = new ProgressStream();
+            stream = new CallStream();
         }
 
         return stream.reset(sender);
     }
 
-    private final class ProgressStream
+    private final class CallStream
     {
         private final MessageConsumer consumer = this::onMessage;
 
@@ -104,6 +111,8 @@ final class McpProgressPeer implements BindingHandler
         private long replyAck;
         private int replyMax;
         private int replyPad;
+        private int requestLength;
+        private int requestReceived;
         private boolean replying;
         private int offset;
 
@@ -117,6 +126,8 @@ final class McpProgressPeer implements BindingHandler
             this.replyAck = 0L;
             this.replyMax = 0;
             this.replyPad = 0;
+            this.requestLength = 0;
+            this.requestReceived = 0;
             this.replying = false;
             this.offset = 0;
             return consumer;
@@ -138,14 +149,16 @@ final class McpProgressPeer implements BindingHandler
                 this.replyId = initialId & ~1L;
                 state = StreamState.openInitial(state);
                 doInitialWindow();
-                doReplyBegin();
-                doReplyFlush(resumableEx);
-                doReplyFlush(progressEx);
-                replying = true;
+                requestLength = mcpBeginExRO.wrap(begin.extension().buffer(), begin.extension().offset(),
+                    begin.extension().limit()).toolsCall().contentLength();
+                doReplyWhenRequestReceived();
                 break;
             case DataFW.TYPE_ID:
-                initialSeq += dataRO.wrap(buffer, index, index + length).reserved();
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                initialSeq += data.reserved();
+                requestReceived += Math.max(data.length(), 0);
                 doInitialWindow();
+                doReplyWhenRequestReceived();
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
@@ -167,6 +180,22 @@ final class McpProgressPeer implements BindingHandler
                 break;
             default:
                 break;
+            }
+        }
+
+        private void doReplyWhenRequestReceived()
+        {
+            if (result != null && requestReceived >= requestLength && !StreamState.replyOpening(state))
+            {
+                doReplyBegin();
+
+                if (resumableEx != null)
+                {
+                    doReplyFlush(resumableEx);
+                    doReplyFlush(progressEx);
+                }
+
+                replying = true;
             }
         }
 
@@ -224,6 +253,7 @@ final class McpProgressPeer implements BindingHandler
                 .state(state)
                 .maximum(0)
                 .affinity(0L)
+                .extension(beginEx, 0, beginEx.capacity())
                 .build();
 
             sender.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());

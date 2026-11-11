@@ -91,14 +91,14 @@ public class McpProxyBM
     public void toolsCall(
         Replying fixture)
     {
-        fixture.driver.toolsCall(fixture.next()).awaitReplyEnd();
+        fixture.driver.exchangeToolsCall(fixture.next());
     }
 
     @Benchmark
     public void toolsList(
         Replying fixture)
     {
-        fixture.driver.toolsList(fixture.next()).awaitReplyEnd();
+        fixture.driver.exchangeToolsList(fixture.next());
     }
 
     @Benchmark
@@ -164,8 +164,12 @@ public class McpProxyBM
                 new McpLifecyclePeer(McpBenchMessages.lifecycleReplyEx(mcpTypeId)),
                 responder(McpBenchMessages.toolsListEx(mcpTypeId, McpBenchMessages.APP_SESSION_ID).byteArray(),
                     respond ? McpBenchMessages.toolsListResult(size) : null, streaming),
-                responder(McpBenchMessages.toolsCallEx(mcpTypeId, McpBenchMessages.APP_SESSION_ID, 0).byteArray(),
-                    respond ? McpBenchMessages.toolsCallResult(size) : null, streaming)));
+                new McpToolsCallPeer(
+                    McpBenchMessages.toolsCallEx(mcpTypeId, McpBenchMessages.APP_SESSION_ID, 0).byteArray(),
+                    null,
+                    null,
+                    respond ? McpBenchMessages.bytes(McpBenchMessages.toolsCallResult(size)) : null,
+                    streaming ? STREAMING_FRAGMENT_LENGTH : 0)));
 
             driver = new McpApplicationDriver(bench, bench.bindingId("app0"), mcpTypeId, ids, size, requests);
 

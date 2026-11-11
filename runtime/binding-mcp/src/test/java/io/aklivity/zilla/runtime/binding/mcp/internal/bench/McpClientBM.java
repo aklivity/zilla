@@ -88,14 +88,14 @@ public class McpClientBM
     public void toolsCall(
         Replying fixture)
     {
-        fixture.driver.toolsCall(fixture.next()).awaitReplyEnd();
+        fixture.driver.exchangeToolsCall(fixture.next());
     }
 
     @Benchmark
     public void toolsList(
         Replying fixture)
     {
-        fixture.driver.toolsList(fixture.next()).awaitReplyEnd();
+        fixture.driver.exchangeToolsList(fixture.next());
     }
 
     @Benchmark

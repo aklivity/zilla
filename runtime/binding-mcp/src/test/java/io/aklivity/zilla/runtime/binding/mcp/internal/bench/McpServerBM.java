@@ -168,13 +168,12 @@ public class McpServerBM
             bench.newServer("app0", new McpApplicationPeer(
                 new McpLifecyclePeer(McpBenchMessages.lifecycleReplyEx(mcpTypeId)),
                 responder(respond ? McpBenchMessages.toolsListResult(size) : null, streaming),
-                progress && respond
-                    ? new McpProgressPeer(
-                        McpBenchMessages.resumableFlushEx(mcpTypeId),
-                        McpBenchMessages.progressFlushEx(mcpTypeId),
-                        McpBenchMessages.bytes(McpBenchMessages.toolsCallResult(size)),
-                        streaming ? STREAMING_FRAGMENT_LENGTH : 0)
-                    : responder(respond ? McpBenchMessages.toolsCallResult(size) : null, streaming)));
+                new McpToolsCallPeer(
+                    new byte[0],
+                    progress ? McpBenchMessages.resumableFlushEx(mcpTypeId) : null,
+                    progress ? McpBenchMessages.progressFlushEx(mcpTypeId) : null,
+                    respond ? McpBenchMessages.bytes(McpBenchMessages.toolsCallResult(size)) : null,
+                    streaming ? STREAMING_FRAGMENT_LENGTH : 0)));
 
             driver = new McpHttpDriver(
                 bench, bench.bindingId("net0"), bench.labelId("http"), ids, size, progress, shutdown, requests);

@@ -26,9 +26,10 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
 
 /**
  * Sends the application stream requests of an {@code mcp} client to a proxy or client binding: a lifecycle
- * stream that holds the session, and one stream per request. Request extensions are built ahead of time for the
- * {@code ids} session identifiers that {@link McpBenchSessions} cycles through, so a request allocates nothing
- * in the driver.
+ * stream that holds the session, and one stream per request. A request ends only after its reply has ended,
+ * so the request side stays open for frames that may still flow on it while the reply is sent. Request
+ * extensions are built ahead of time for the {@code ids} session identifiers that {@link McpBenchSessions}
+ * cycles through, so a request allocates nothing in the driver.
  */
 final class McpApplicationDriver
 {
@@ -100,6 +101,18 @@ final class McpApplicationDriver
         close(open());
     }
 
+    void exchangeToolsCall(
+        int ordinal)
+    {
+        completeAfterReply(toolsCall(ordinal));
+    }
+
+    void exchangeToolsList(
+        int ordinal)
+    {
+        completeAfterReply(toolsList(ordinal));
+    }
+
     Client toolsCall(
         int ordinal)
     {
@@ -108,7 +121,6 @@ final class McpApplicationDriver
         client.begin(callEx[ordinal & mask], 0, callEx[ordinal & mask].capacity());
         client.replyWindow(DEFAULT_WINDOW);
         client.send(callBody, 0, callBody.capacity());
-        client.end();
 
         return client;
     }
@@ -120,9 +132,15 @@ final class McpApplicationDriver
 
         client.begin(listEx[ordinal & mask], 0, listEx[ordinal & mask].capacity());
         client.replyWindow(DEFAULT_WINDOW);
-        client.end();
 
         return client;
+    }
+
+    private void completeAfterReply(
+        Client client)
+    {
+        client.awaitReplyEnd();
+        client.end();
     }
 
     private boolean established()
