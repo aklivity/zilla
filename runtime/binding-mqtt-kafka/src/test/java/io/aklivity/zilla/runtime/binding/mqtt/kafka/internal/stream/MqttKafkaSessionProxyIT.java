@@ -467,9 +467,9 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
-        "${mqtt}/session.subscribe.shared.cap.qos/client",
-        "${kafka}/session.subscribe.shared.cap.qos/server"})
-    public void shouldSessionSubscribeSharedCapQos() throws Exception
+        "${mqtt}/session.subscribe.shared.granted.qos2/client",
+        "${kafka}/session.subscribe.shared.granted.qos2/server"})
+    public void shouldSessionSubscribeSharedGrantedQos2() throws Exception
     {
         k3po.finish();
     }
