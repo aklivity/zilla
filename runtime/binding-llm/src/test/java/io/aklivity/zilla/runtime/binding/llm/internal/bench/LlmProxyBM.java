@@ -77,6 +77,11 @@ import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
  * engine test model so that no external model service is needed. {@code disclose} guards sections of a fixed
  * length and runs only with {@code size=10k}.
  * <p>
+ * {@code request} is the canonical section the caller sends ({@code text} as {@code USER_TEXT}, {@code toolCall}
+ * as {@code TOOL_CALL}, {@code image} as {@code USER_IMAGE} carrying an inline base64 image) and {@code response}
+ * is the section the exit replies with, followed by a {@code CONTROL} usage section and the end extension. With
+ * {@code streaming} the request and the response are sent in fragments of 256 bytes.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does
  * not depend on {@code streaming} or on the {@code response}, so run it with {@code -p streaming=false}.
@@ -143,7 +148,7 @@ public class LlmProxyBM
         @Param({"false", "true"})
         public boolean streaming;
 
-        @Param({"text", "toolCall"})
+        @Param({"text", "toolCall", "image"})
         public String request;
 
         @Param({"text", "toolCall"})
@@ -277,27 +282,49 @@ public class LlmProxyBM
         private byte[] requestEx(
             int llmTypeId)
         {
-            return "toolCall".equals(request)
-                ? LlmFunctions.dataEx()
+            final byte[] extension;
+
+            if ("toolCall".equals(request))
+            {
+                extension = LlmFunctions.dataEx()
                     .typeId(llmTypeId)
                     .type("TOOL_CALL")
                     .message(0)
                     .attribute("tool-name", "lookup")
                     .attribute("tool-call-id", "call_1")
-                    .build()
-                : LlmFunctions.dataEx()
+                    .build();
+            }
+            else
+            {
+                extension = LlmFunctions.dataEx()
                     .typeId(llmTypeId)
-                    .type("USER_TEXT")
+                    .type("image".equals(request) ? "USER_IMAGE" : "USER_TEXT")
                     .message(0)
                     .build();
+            }
+
+            return extension;
         }
 
         private String requestPayload(
             String text)
         {
-            return "toolCall".equals(request)
-                ? String.format("{\"arguments\":{\"query\":\"%s\"}}", text)
-                : String.format("{\"text\":\"%s\"}", text);
+            final String payload;
+
+            if ("toolCall".equals(request))
+            {
+                payload = String.format("{\"arguments\":{\"query\":\"%s\"}}", text);
+            }
+            else if ("image".equals(request))
+            {
+                payload = String.format("{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,%s\"}}", text);
+            }
+            else
+            {
+                payload = String.format("{\"text\":\"%s\"}", text);
+            }
+
+            return payload;
         }
 
         private Response response(
