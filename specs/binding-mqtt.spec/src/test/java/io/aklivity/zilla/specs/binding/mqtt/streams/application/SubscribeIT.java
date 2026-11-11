@@ -657,4 +657,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.reconnect.non.clean.start/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/client",
+        "${app}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/server"})
+    public void shouldRestoreOnlyAcceptedSharedFilterOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }
