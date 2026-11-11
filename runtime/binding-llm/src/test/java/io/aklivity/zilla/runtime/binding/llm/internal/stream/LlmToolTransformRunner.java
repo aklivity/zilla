@@ -30,6 +30,9 @@ final class LlmToolTransformRunner
 {
     private static final int[] WINDOWS = {1, 7, 13, 64, 65, 100, 128, 1000};
     private static final int[] BOUNDS = {24, 40, 64, 4096};
+    private static final int[] SWEEP_WINDOWS = {1, 7, 64, 1000};
+    private static final int SWEEP_BOUND_MIN = 20;
+    private static final int SWEEP_BOUND_MAX = 160;
     private static final int REJECT_BOUND = 4096;
 
     static void assertTransforms(
@@ -61,6 +64,18 @@ final class LlmToolTransformRunner
                     assertThat("window " + window + " bound " + bound + " emptyLast " + emptyLast,
                         output.toString(UTF_8), equalTo(expected));
                 }
+            }
+        }
+
+        for (int window : SWEEP_WINDOWS)
+        {
+            for (int bound = SWEEP_BOUND_MIN; bound <= SWEEP_BOUND_MAX; bound++)
+            {
+                final ByteArrayOutputStream output = new ByteArrayOutputStream();
+                final boolean accepted = run(transform, early, late, json, window, bound, false, output);
+
+                assertThat("sweep accepted window " + window + " bound " + bound, accepted, is(true));
+                assertThat("sweep window " + window + " bound " + bound, output.toString(UTF_8), equalTo(expected));
             }
         }
     }
