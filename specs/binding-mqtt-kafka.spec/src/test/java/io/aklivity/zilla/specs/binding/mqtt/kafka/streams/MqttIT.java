@@ -1215,6 +1215,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentBeyondEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
         "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/server"})
     public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception

@@ -77,7 +77,7 @@ write zilla:begin.ext ${kafka:beginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt-messages")
-                                .partition(0, 5)
+                                .partition(0, 5, -2)
                                 .build()
                             .build()}
 
