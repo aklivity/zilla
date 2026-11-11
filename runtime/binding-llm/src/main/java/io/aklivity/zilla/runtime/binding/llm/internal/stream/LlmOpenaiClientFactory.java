@@ -1347,11 +1347,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         found = scanDepth == 0;
                         break;
                     case KEY_NAME:
-                        if (parser.deferredBytes())
-                        {
-                            parser.consumed(0);
-                        }
-                        else if (scanDepth == 1)
+                        if (scanDepth == 1)
                         {
                             scanKey = parser.getString();
                             scanError = MEMBER_ERROR.equals(scanKey);
@@ -1362,7 +1358,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     case VALUE_STRING:
                         if (parser.deferredBytes())
                         {
-                            parser.consumed(deferredLength(event));
+                            parser.consumed(parser.getStringView().length());
                         }
                         else if (scanDepth == 1 && scanKey != null)
                         {
@@ -1481,10 +1477,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     commitDocument();
                     decoder = decodeEnd;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -1622,10 +1614,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeChoices;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -1753,10 +1741,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeChoice;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     decodeScopeMember(parser.getStringView(), decodeDelta);
@@ -1778,10 +1762,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = decodeChoice;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -1920,10 +1900,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     decoder = decodeToolCalls;
                     registerToolCall();
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2022,10 +1998,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     decoder = decodeToolCall;
                     registerToolCall();
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else
                 {
                     final CharSequence member = parser.getStringView();
@@ -2118,7 +2090,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (captureDepth == 0)
                 {
@@ -2151,11 +2123,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (deferredScalar(event))
                 {
-                    parser.consumed(deferredLength(event));
-                }
-                else if (event == JsonEvent.KEY_NAME && parser.deferredBytes())
-                {
-                    parser.consumed(0);
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (event != JsonEvent.KEY_NAME && skipDepth == 0)
                 {
@@ -2240,10 +2208,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeIgnore;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (USAGE.contentEquals(parser.getStringView()))
                 {
                     beginUsage();
@@ -2301,10 +2265,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeEnd;
                 }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
                 else if (MEMBER_ERROR.contentEquals(parser.getStringView()))
                 {
                     errorThen = decodeErrorRoot;
@@ -2353,10 +2313,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.END_OBJECT)
                 {
                     decoder = errorThen;
-                }
-                else if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
                 }
                 else
                 {
@@ -2484,10 +2440,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 skipAfter(event, then);
             }
-            else if (parser.deferredBytes())
-            {
-                parser.consumed(0);
-            }
             else
             {
                 value = parser.getInt();
@@ -2517,13 +2469,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean deferredScalar(
             JsonEvent event)
         {
-            return (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) && parser.deferredBytes();
-        }
-
-        private int deferredLength(
-            JsonEvent event)
-        {
-            return event == JsonEvent.VALUE_STRING ? parser.getStringView().length() : 0;
+            return event == JsonEvent.VALUE_STRING && parser.deferredBytes();
         }
 
         private void beginUsage()
@@ -2553,14 +2499,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 usagePath.setLength(usageMark[--usageDepth]);
                 break;
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    parser.consumed(0);
-                }
-                else
-                {
-                    usageKey = parser.getString();
-                }
+                usageKey = parser.getString();
                 break;
             case VALUE_NUMBER:
                 if (usageKey != null)
@@ -2568,7 +2507,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     final int length = usagePath.length();
 
                     usagePath.append('.').append(usageKey);
-                    decodeUsageNumber(usagePath.toString(), parser.deferredBytes());
+                    decodeUsageNumber(usagePath.toString());
                     usagePath.setLength(length);
                     usageKey = null;
                 }
@@ -2585,35 +2524,27 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void decodeUsageNumber(
-            String field,
-            boolean deferred)
+            String field)
         {
-            if (deferred)
+            switch (field)
             {
-                parser.consumed(0);
-            }
-            else
-            {
-                switch (field)
-                {
-                case "usage.prompt_tokens":
-                    documentInputTokens = parser.getInt();
-                    break;
-                case "usage.completion_tokens":
-                    documentOutputTokens = parser.getInt();
-                    break;
-                case "usage.total_tokens":
-                    documentTotalTokens = parser.getInt();
-                    break;
-                case "usage.prompt_tokens_details.cached_tokens":
-                    documentCacheReadTokens = parser.getInt();
-                    break;
-                case "usage.completion_tokens_details.reasoning_tokens":
-                    documentReasoningTokens = parser.getInt();
-                    break;
-                default:
-                    break;
-                }
+            case "usage.prompt_tokens":
+                documentInputTokens = parser.getInt();
+                break;
+            case "usage.completion_tokens":
+                documentOutputTokens = parser.getInt();
+                break;
+            case "usage.total_tokens":
+                documentTotalTokens = parser.getInt();
+                break;
+            case "usage.prompt_tokens_details.cached_tokens":
+                documentCacheReadTokens = parser.getInt();
+                break;
+            case "usage.completion_tokens_details.reasoning_tokens":
+                documentReasoningTokens = parser.getInt();
+                break;
+            default:
+                break;
             }
         }
 
@@ -3295,7 +3226,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {
@@ -3321,7 +3252,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (deferred)
                 {
-                    parser.consumed(deferredLength(event));
+                    parser.consumed(parser.getStringView().length());
                 }
                 else if (controlDepth == 0)
                 {

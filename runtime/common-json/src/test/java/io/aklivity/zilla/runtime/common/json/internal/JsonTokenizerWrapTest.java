@@ -32,7 +32,7 @@ public class JsonTokenizerWrapTest
     @Test
     public void shouldRejectRewindOnceTheMarkedWindowHasBeenReplaced()
     {
-        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(Integer.MAX_VALUE, false);
+        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(false);
         wrap(tokenizer, "{\"a\":1}", false);
 
         assertTrue(tokenizer.advance());
@@ -57,7 +57,7 @@ public class JsonTokenizerWrapTest
     @Test
     public void shouldAlignOnTheValueBoundaryAfterAQuotedKeySpansWindows()
     {
-        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(Integer.MAX_VALUE, true);
+        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(true);
         wrap(tokenizer, "{\"a\"", false);
 
         assertTrue(tokenizer.advance());

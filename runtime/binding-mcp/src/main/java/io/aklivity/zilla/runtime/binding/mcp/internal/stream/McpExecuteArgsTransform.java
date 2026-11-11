@@ -171,11 +171,6 @@ final class McpExecuteArgsTransform implements JsonTransform
         {
             status = sink.transform(control, source, JsonEvent.KEY_NAME);
         }
-        else if (source.deferredBytes())
-        {
-            control.consumed(0);
-            status = Status.STARVED;
-        }
         else
         {
             final CharSequence key = source.getStringView();

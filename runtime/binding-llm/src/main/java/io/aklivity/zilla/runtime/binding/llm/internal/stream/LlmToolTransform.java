@@ -878,7 +878,7 @@ abstract class LlmToolTransform implements JsonTransform
                 relay(BIT_PASS, JsonEvent.KEY_NAME);
             }
         }
-        else if (!skipping && !source.deferredBytes())
+        else if (!skipping)
         {
             nested = null;
 
@@ -1727,7 +1727,8 @@ abstract class LlmToolTransform implements JsonTransform
             final boolean text = event == JsonEvent.KEY_NAME ||
                 event == JsonEvent.VALUE_STRING ||
                 event == JsonEvent.VALUE_NUMBER;
-            final String keyword = scanner.scan(event, text ? source.getStringView() : null, text && source.deferredBytes());
+            final boolean deferred = event == JsonEvent.VALUE_STRING && source.deferredBytes();
+            final String keyword = scanner.scan(event, text ? source.getStringView() : null, deferred);
 
             if (keyword != null)
             {
@@ -1833,7 +1834,6 @@ abstract class LlmToolTransform implements JsonTransform
             depth++;
             break;
         case VALUE_STRING:
-        case VALUE_NUMBER:
             if (source.deferredBytes())
             {
                 skipping = true;
@@ -1865,7 +1865,6 @@ abstract class LlmToolTransform implements JsonTransform
             skipping = depth != skipDepth;
             break;
         case VALUE_STRING:
-        case VALUE_NUMBER:
             if (source.deferredBytes())
             {
                 status = drop();

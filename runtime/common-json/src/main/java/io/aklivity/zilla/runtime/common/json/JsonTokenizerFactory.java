@@ -22,11 +22,9 @@ import java.util.ServiceLoader;
 // happens once per JVM, not once per parser.
 public interface JsonTokenizerFactory
 {
-    // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed. quoted holds
-    // a key back until its separator, whitespace and the value's first byte are in the window, so the position
-    // after a key is the start of its (possibly quoted) value token.
+    // quoted holds a key back until its separator, whitespace and the value's first byte are in the window, so the
+    // position after a key is the start of its (possibly quoted) value token.
     JsonTokenizer create(
-        int maxValueSize,
         boolean quoted);
 
     // Higher wins among available() candidates.

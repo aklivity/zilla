@@ -29,10 +29,9 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * equivalent, already-reviewed re-rooting {@code McpHttpArguments} performs in {@code binding-mcp-http} for
  * the same reason ({@link io.aklivity.zilla.runtime.common.json.JsonTransforms#projector(java.util.List)}
  * keeps the wrapper key -- confirmed empirically against its own test suite -- so a dedicated re-rooting
- * stage is required rather than the generic projector); this stage adds the fragmented-key STARVED handling
- * {@code McpHttpArguments} does not need (no upstream schema validator there rejects on a mismatched key) and
- * the {@link #noArgumentsClosed} signal a caller uses to run a separate default-{@code "{}"} validation when
- * the {@code arguments} key never arrives at all.
+ * stage is required rather than the generic projector); this stage adds the {@link #noArgumentsClosed}
+ * signal a caller uses to run a separate default-{@code "{}"} validation when the {@code arguments} key
+ * never arrives at all.
  * <p>
  * {@code depth} tracks nesting of the outer {@code params} object/array; a key is compared against {@code
  * "arguments"} only at {@code depth == 1} (a direct child of {@code params}), matching {@code
@@ -127,13 +126,6 @@ final class McpToolCallArgsTransform implements JsonTransform
         if (forwarding)
         {
             status = sink.transform(control, source, JsonEvent.KEY_NAME);
-        }
-        else if (source.deferredBytes())
-        {
-            // a key straddling this window and the next cannot yet be compared against "arguments" --
-            // decline the fragment so the source accumulates it whole and re-presents it complete later
-            control.consumed(0);
-            status = Status.STARVED;
         }
         else
         {

@@ -39,13 +39,11 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  * <p>
  * The retained pointer set is compiled once into a {@link Node trie}: each node has children keyed by
  * segment plus a {@code keepAll} terminal flag (a pointer ends here, so the whole subtree is retained), and
- * a {@code maxKeyLength} (the longest child key at that position). Descent tracks a per-depth stack of node
+ * flags. Descent tracks a per-depth stack of node
  * references ({@code frameNode}) rather than the absolute path, so matching a key is an {@code O(children)}
  * lookup of the live {@link JsonSource#getStringView()} in the current node's children — no ancestor key
- * chain is ever retained and no absolute pointer is manifested. A key that fragments across input windows is
- * declined (never buffered) while it is still short enough that some child could still match; once it
- * strictly exceeds {@code maxKeyLength} while still incomplete, no child can possibly match regardless of
- * what follows, so the remaining fragments are drained without ever being buffered or compared.
+ * chain is ever retained and no absolute pointer is manifested. A key is never fragmented, so it is always
+ * matched whole.
  */
 public final class JsonProjectorImpl implements JsonTransform
 {
@@ -101,7 +99,6 @@ public final class JsonProjectorImpl implements JsonTransform
     private boolean scalarEmit;
     // true once a key has been proven longer than every candidate at the current position (see onKey): the
     // remaining fragments are drained without inspection until the key completes.
-    private boolean keySkipping;
     // true while a buffered key is being forwarded downstream: the parser delivered that key live and already
     // moved on, so the sink's consumed() pushback for it must be absorbed rather than relayed to the parser's
     // now-current (value) char cursor
@@ -148,7 +145,6 @@ public final class JsonProjectorImpl implements JsonTransform
         scalarPending = false;
         scalarEmit = false;
         forwardingKey = false;
-        keySkipping = false;
     }
 
     private void onDownstreamSegmentable()
@@ -393,75 +389,26 @@ public final class JsonProjectorImpl implements JsonTransform
         else
         {
             // parentNode is null for a container already decided SKIP as a whole (frameKeepAll false,
-            // its own valueNode was null) — every key beneath it drops too, regardless of content, so
-            // maxKeyLength defaults to 0 and the very first fragment already exceeds it.
+            // its own valueNode was null) — every key beneath it drops too, regardless of content
             Node parentNode = containers > 0 ? frameNode[containers - 1] : root;
-            int maxKeyLength = parentNode == null ? 0 : parentNode.maxKeyLength;
             CharSequence view = source.getStringView();
-            boolean complete = !source.deferredBytes();
-            if (keySkipping)
+            keyNode = lookup(parentNode, view);
+            Decision d = decide(keyNode);
+            keyDecision = d;
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            if (parentEmit && d == Decision.KEEP_ALL)
             {
-                onKeySkip(control, view, complete);
-            }
-            else if (!complete && view.length() <= maxKeyLength)
-            {
-                // still short enough that some child could yet match once more of the key arrives; decline
-                // the fragment (consumed(0)) so the source accumulates it whole and re-presents it on a
-                // later window, the same fallback a content-needing scalar value uses.
-                control.consumed(0);
-                downstream = Status.STARVED;
-            }
-            else if (!complete)
-            {
-                // already longer than the longest child at this position, so no child can match regardless
-                // of what the rest of the key contains — drop this fragment and every one that follows
-                // without ever buffering the key.
-                keyNode = null;
-                keyDecision = Decision.SKIP;
-                pendingKey = null;
-                control.consumed(view.length());
-                keySkipping = true;
-                downstream = Status.STARVED;
+                // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid
+                // view, then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
+                forwardKey(control, source, sink);
             }
             else
             {
-                keyNode = lookup(parentNode, view);
-                Decision d = decide(keyNode);
-                keyDecision = d;
-                boolean parentEmit = containers == 0 || frameEmit[containers - 1];
-                if (parentEmit && d == Decision.KEEP_ALL)
-                {
-                    // A KEEP_ALL value is always emitted, so the key is forwarded live from the still-valid
-                    // view, then arm the kept value for verbatim segment delivery (best-effort, demand-gated).
-                    forwardKey(control, source, sink);
-                }
-                else
-                {
-                    // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a
-                    // scalar under a deeper-only pointer is dropped, so the key cannot be forwarded until
-                    // the value event. A SKIP key copies nothing.
-                    pendingKey = d == Decision.SKIP ? null : copyKey(view);
-                }
+                // A DESCEND key is buffered for deferral: its value's kind is still unknown, and a
+                // scalar under a deeper-only pointer is dropped, so the key cannot be forwarded until
+                // the value event. A SKIP key copies nothing.
+                pendingKey = d == Decision.SKIP ? null : copyKey(view);
             }
-        }
-    }
-
-    // Drains a fragment of a key already proven longer than every child at this position, without ever
-    // inspecting or buffering it; keySkipping clears once the key completes, leaving keyNode/keyDecision
-    // (SKIP) already set from when the excess length was first detected.
-    private void onKeySkip(
-        JsonController control,
-        CharSequence view,
-        boolean complete)
-    {
-        control.consumed(view.length());
-        if (complete)
-        {
-            keySkipping = false;
-        }
-        else
-        {
-            downstream = Status.STARVED;
         }
     }
 
@@ -882,16 +829,13 @@ public final class JsonProjectorImpl implements JsonTransform
 
     // An immutable trie node: children are parallel key/node arrays scanned linearly (a handful of children
     // per node), keepAll marks a node where a retained pointer terminates, rejected marks a node where a
-    // rejected pointer terminates (and always wins over this same node's own keepAll, see decide()), and
-    // maxKeyLength is the longest of this node's own children's keys — the bound onKey declines a
-    // fragmenting child key against.
+    // rejected pointer terminates (and always wins over this same node's own keepAll, see decide()).
     private static final class Node
     {
         private final String[] keys;
         private final Node[] nodes;
         private final boolean keepAll;
         private final boolean rejected;
-        private final int maxKeyLength;
 
         private Node(
             String[] keys,
@@ -903,17 +847,6 @@ public final class JsonProjectorImpl implements JsonTransform
             this.nodes = nodes;
             this.keepAll = keepAll;
             this.rejected = rejected;
-            int longest = 0;
-            boolean wildcard = false;
-            for (String key : keys)
-            {
-                longest = Math.max(longest, key.length());
-                wildcard |= WILDCARD_PROPERTY.equals(key);
-            }
-            // a "*" child matches a key of any length, so a fragment already longer than every named
-            // sibling still can't be ruled out early -- only a closed enumeration (no wildcard) can use
-            // the max-named-length bound to declare SKIP before the key is fully reassembled
-            this.maxKeyLength = wildcard ? Integer.MAX_VALUE : longest;
         }
     }
 

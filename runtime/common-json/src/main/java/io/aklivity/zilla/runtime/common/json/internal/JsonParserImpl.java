@@ -53,10 +53,6 @@ public final class JsonParserImpl implements JsonParserEx
     // reject anything longer as too large for a primitive, directing the caller to getBigDecimal()
     private static final int LONG_DIGITS = 19;
 
-    // default cap on the decoded chars retained for one value/key when no MAX_VALUE_SIZE config is given:
-    // generous enough for any reasonable value, bounding only adversarial accumulation
-    private static final int DEFAULT_MAX_VALUE_SIZE = 1 << 24;
-
     // selected once per JVM, not once per parser: ServiceLoader lookup (and an implementation's own
     // availability probe) would otherwise run on every JsonParserImpl construction
     private static final JsonTokenizerFactory TOKENIZER_FACTORY = JsonTokenizerFactory.instantiate();
@@ -193,7 +189,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.terminal = false;
-        this.tokenizer = TOKENIZER_FACTORY.create(maxValueSize(config), quoted(config));
+        this.tokenizer = TOKENIZER_FACTORY.create(quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -213,7 +209,7 @@ public final class JsonParserImpl implements JsonParserEx
         Map<String, ?> config)
     {
         this.terminal = !(in instanceof DirectBufferInputStreamEx);
-        this.tokenizer = TOKENIZER_FACTORY.create(maxValueSize(config), quoted(config));
+        this.tokenizer = TOKENIZER_FACTORY.create(quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
         if (in instanceof DirectBufferInputStreamEx dbis)
         {
@@ -224,13 +220,6 @@ public final class JsonParserImpl implements JsonParserEx
             this.ownedInput = new DirectBufferInputStreamEx();
             this.unmaterializedInput = in;
         }
-    }
-
-    private static int maxValueSize(
-        Map<String, ?> config)
-    {
-        final Object value = config.get(JsonParserEx.MAX_VALUE_SIZE);
-        return value instanceof Integer size ? size : DEFAULT_MAX_VALUE_SIZE;
     }
 
     private static boolean quoted(
@@ -245,6 +234,13 @@ public final class JsonParserImpl implements JsonParserEx
         int offset,
         int limit)
     {
+        // the bytes a consumer left of a fragment read from the window went back to the caller, who re-presents them
+        if (tokenizer.declined())
+        {
+            tokenizer.acceptDeclined();
+            stringViewOffset = 0;
+        }
+
         ownedInput.wrap(buffer, offset, limit - offset);
         windowLast = true;
         // every explicit wrap() is unconditionally a new window, unlike the lazy sync syncInput() performs
@@ -460,7 +456,8 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 tokenizer.markScratchConsumed(stringViewOffset);
             }
-            result = tokenizer.advance();
+            // a fragment the consumer left is read again from the next window, so there is nothing to scan until then
+            result = !tokenizer.declined() && tokenizer.advance();
         }
         return result;
     }
@@ -814,6 +811,10 @@ public final class JsonParserImpl implements JsonParserEx
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
+            if (tokenizer.fragmenting())
+            {
+                tokenizer.positionAfter(stringViewOffset);
+            }
             if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
             {
                 takeBackKey();
@@ -849,7 +850,7 @@ public final class JsonParserImpl implements JsonParserEx
         // while rendering a decoded char-scalar (key or value), expose the unconsumed char remainder from the
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
-        return charScalar()
+        return charScalar() && stringViewOffset > 0
             ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
             : tokenizer.stringView();
     }

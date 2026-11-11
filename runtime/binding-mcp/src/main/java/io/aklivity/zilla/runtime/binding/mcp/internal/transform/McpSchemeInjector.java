@@ -141,27 +141,15 @@ public final class McpSchemeInjector implements JsonTransform
         return status;
     }
 
-    // the arm key is forwarded either way (every outer key passes through unconditionally), so a fragmented
-    // key is declined until complete before the arm decision and forward, rather than deciding on a prefix
     private Status onOuterKey(
         JsonSource source,
         JsonSink sink)
     {
-        Status status;
-        if (depth == 1 && source.deferredBytes())
+        if (depth == 1)
         {
-            mediator.delegate.consumed(0);
-            status = Status.STARVED;
+            itemsArmed = arrayKey.contentEquals(source.getStringView());
         }
-        else
-        {
-            if (depth == 1)
-            {
-                itemsArmed = arrayKey.contentEquals(source.getStringView());
-            }
-            status = sink.transform(mediator, source, JsonEvent.KEY_NAME);
-        }
-        return status;
+        return sink.transform(mediator, source, JsonEvent.KEY_NAME);
     }
 
     // between elements of the target array: a direct child object becomes an injection element
@@ -239,30 +227,17 @@ public final class McpSchemeInjector implements JsonTransform
         return status;
     }
 
-    // every element key is forwarded live regardless of match, and this stage does not deliver verbatim
-    // bytes (Control#verbatim is a no-op), so a fragmented "name" key is simply declined until complete
-    // before the arm decision and forward, rather than deciding -- and forwarding -- on a prefix
     private Status onElementKey(
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
-        Status status;
-        if (itemDepth == 1 && source.deferredBytes())
-        {
-            mediator.delegate.consumed(0);
-            status = Status.STARVED;
-        }
-        else
-        {
-            nameArmed = itemDepth == 1 && "name".contentEquals(source.getStringView());
-            status = sink.transform(mediator, source, event);
-        }
-        return status;
+        nameArmed = itemDepth == 1 && "name".contentEquals(source.getStringView());
+        return sink.transform(mediator, source, event);
     }
 
-    // rolesByTool needs the whole name value; a fragmenting value is declined the same way onElementKey
-    // declines a fragmenting key, then resolved and forwarded once complete
+    // rolesByTool needs the whole name value; a fragmenting value is declined until complete,
+    // then resolved and forwarded
     private Status onElementNameValue(
         JsonSource source,
         JsonEvent event,

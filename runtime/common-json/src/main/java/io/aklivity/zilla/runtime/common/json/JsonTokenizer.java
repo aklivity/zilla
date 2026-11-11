@@ -59,6 +59,17 @@ public interface JsonTokenizer
     void markScratchConsumed(
         int consumed);
 
+    // The consumer has taken consumed chars of the pending string fragment, which is read from the window: the
+    // position moves to the first byte it left, so the caller re-presents the rest with the next window.
+    void positionAfter(
+        int consumed);
+
+    // Whether the consumer left part of the pending string fragment.
+    boolean declined();
+
+    // The window is being replaced, so the part of the fragment the consumer left is no longer pending.
+    void acceptDeclined();
+
     long streamOffset();
 
     long line();

@@ -89,6 +89,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -353,7 +354,7 @@ public final class McpClientFactory implements McpStreamFactory
     private interface HttpResponseDecoder
     {
         int decode(
-            McpHttpStream http,
+            HttpStream http,
             long traceId,
             long authorization,
             long budgetId,
@@ -476,7 +477,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpc(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -500,7 +501,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -510,13 +511,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -532,7 +534,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcNext(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -542,15 +544,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
-            case JsonParser.Event.KEY_NAME:
+            case JsonEvent.KEY_NAME:
                 final String key = parser.getString();
                 switch (key)
                 {
@@ -575,7 +578,7 @@ public final class McpClientFactory implements McpStreamFactory
                     break decode;
                 }
                 break;
-            case JsonParser.Event.END_OBJECT:
+            case JsonEvent.END_OBJECT:
                 http.decoder = decodeJsonRpcEnd;
                 break;
             default:
@@ -590,7 +593,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcEnd(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -600,11 +603,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         decode:
         {
-            if (parser.hasNext())
+            if (nextBodyEvent(parser) != null)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -627,27 +630,57 @@ public final class McpClientFactory implements McpStreamFactory
         return progress;
     }
 
-    // a scalar (string or number lexeme) whose bytes fill the input window before completing is
-    // delivered as fragments, the same event repeated with deferredBytes() true until it completes --
-    // accumulate every fragment and only hand back the value once the whole scalar has arrived, so a
-    // long value straddling a window boundary is never mistaken for a complete one
-    private String accumulateJsonRpcStringValue(
-        McpHttpStream http)
+    // the document framing events carry no value, so they are taken as they come; the first event with a value, or
+    // null when the window has none yet
+    private static JsonEvent nextBodyEvent(
+        JsonParserEx parser)
     {
-        http.sseJsonValue.append(http.decodableJson.getString());
+        JsonEvent event = null;
 
-        String value = null;
-        if (!http.decodableJson.deferredBytes())
+        while (event == null && parser.hasNextEvent())
         {
-            value = http.sseJsonValue.toString();
-            http.sseJsonValue.setLength(0);
+            final JsonEvent next = parser.nextEvent();
+
+            if (next != JsonEvent.START_DOCUMENT && next != JsonEvent.END_DOCUMENT)
+            {
+                event = next;
+            }
+        }
+
+        return event;
+    }
+
+    // a string whose bytes fill the input window before completing is delivered as fragments, the same event
+    // repeated with deferredBytes() true until it completes -- a fragment is pushed back, so the stream's decode
+    // slot keeps its bytes and the value is only handed back once the whole string has arrived; a string that
+    // would fill the slot can never be held whole, so it is a parse error
+    private String jsonRpcStringValue(
+        HttpStream http,
+        long traceId,
+        long authorization)
+    {
+        String value = null;
+
+        if (http.decodableJson.deferredBytes())
+        {
+            http.decodableJson.consumed(0);
+
+            if (http.decodableJson.remaining() >= decodeMax)
+            {
+                http.onDecodeParseError(traceId, authorization);
+                http.decoder = decodeIgnore;
+            }
+        }
+        else
+        {
+            value = http.decodableJson.getString();
         }
 
         return value;
     }
 
     private int decodeJsonRpcVersion(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -657,20 +690,21 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING)
+            if (event != JsonEvent.VALUE_STRING)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
 
-            final String version = accumulateJsonRpcStringValue(http);
+            final String version = jsonRpcStringValue(http, traceId, authorization);
             if (version != null)
             {
                 if (!JSON_RPC_VERSION.equals(version))
@@ -690,7 +724,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcId(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -700,21 +734,22 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING &&
-                event != JsonParser.Event.VALUE_NUMBER)
+            if (event != JsonEvent.VALUE_STRING &&
+                event != JsonEvent.VALUE_NUMBER)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
 
-            final String id = accumulateJsonRpcStringValue(http);
+            final String id = jsonRpcStringValue(http, traceId, authorization);
             if (id != null)
             {
                 http.sseEventJsonId = id;
@@ -728,7 +763,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -738,13 +773,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -764,7 +800,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcResultEnd(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -774,7 +810,7 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         final int decodedResultProgress = (int) parser.getLocation().getStreamOffset();
         if (decodedResultProgress > http.decodedResultProgress)
@@ -798,7 +834,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcSkipObject(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -808,16 +844,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        while (parser.hasNext())
+        JsonEvent event = nextBodyEvent(parser);
+        while (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event == JsonParser.Event.START_OBJECT)
+            if (event == JsonEvent.START_OBJECT)
             {
                 http.decodedSkipObjectDepth++;
             }
-            else if (event == JsonParser.Event.END_OBJECT)
+            else if (event == JsonEvent.END_OBJECT)
             {
                 http.decodedSkipObjectDepth--;
                 if (http.decodedSkipObjectDepth == 0)
@@ -830,10 +866,10 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 if (http.decodedResultErrorKey)
                 {
-                    http.responseError = event == JsonParser.Event.VALUE_TRUE;
+                    http.responseError = event == JsonEvent.VALUE_TRUE;
                     http.decodedResultErrorKey = false;
                 }
-                else if (event == JsonParser.Event.KEY_NAME &&
+                else if (event == JsonEvent.KEY_NAME &&
                     http.decodedSkipObjectDepth == 1 &&
                     "isError".equals(parser.getString()))
                 {
@@ -845,6 +881,8 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 http.onDecodeResultEvent(event, parser, http.decodedSkipObjectDepth);
             }
+
+            event = nextBodyEvent(parser);
         }
 
         final int decodedResultProgress = (int) parser.getLocation().getStreamOffset();
@@ -864,7 +902,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcMethod(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -874,19 +912,20 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING)
+            if (event != JsonEvent.VALUE_STRING)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
-            final String method = accumulateJsonRpcStringValue(http);
+            final String method = jsonRpcStringValue(http, traceId, authorization);
             if (method != null)
             {
                 if ("notifications/progress".equals(method))
@@ -906,7 +945,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsStart(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -916,13 +955,14 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.START_OBJECT)
+            if (event != JsonEvent.START_OBJECT)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
@@ -936,7 +976,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsNext(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -946,15 +986,16 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
+
+        final JsonEvent event = nextBodyEvent(parser);
 
         decode:
-        if (parser.hasNext())
+        if (event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
-            case JsonParser.Event.KEY_NAME:
+            case JsonEvent.KEY_NAME:
                 final String key = parser.getString();
                 switch (key)
                 {
@@ -993,7 +1034,7 @@ public final class McpClientFactory implements McpStreamFactory
                     break;
                 }
                 break;
-            case JsonParser.Event.END_OBJECT:
+            case JsonEvent.END_OBJECT:
                 http.decoder = decodeJsonRpcNext;
                 break;
             default:
@@ -1008,7 +1049,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsSkipValue(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1018,12 +1059,12 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
         boolean complete = false;
-        while (!complete && parser.hasNext())
+        JsonEvent event = nextBodyEvent(parser);
+        while (!complete && event != null)
         {
-            final JsonParser.Event event = parser.next();
             switch (event)
             {
             case START_OBJECT:
@@ -1037,13 +1078,14 @@ public final class McpClientFactory implements McpStreamFactory
                 break;
             case VALUE_STRING:
             case VALUE_NUMBER:
-                parser.getString();
-                complete = http.decodedSkipValueDepth == 0 && !http.decodableJson.deferredBytes();
+                complete = http.decodedSkipValueDepth == 0 && !parser.deferredBytes();
                 break;
             default:
                 complete = http.decodedSkipValueDepth == 0;
                 break;
             }
+
+            event = complete ? null : nextBodyEvent(parser);
         }
 
         if (complete)
@@ -1055,7 +1097,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsToken(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1065,12 +1107,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String token = accumulateJsonRpcStringValue(http);
+            final String token = jsonRpcStringValue(http, traceId, authorization);
             if (token != null)
             {
                 http.sseProgressToken = token;
@@ -1083,7 +1124,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsProgress(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1093,11 +1134,10 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
             http.sseProgress = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
@@ -1107,7 +1147,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsTotal(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1117,11 +1157,10 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
             http.sseProgressTotal = parser.getLong();
             http.decoder = decodeJsonRpcParamsNext;
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
@@ -1131,7 +1170,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsMessage(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1141,12 +1180,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String message = accumulateJsonRpcStringValue(http);
+            final String message = jsonRpcStringValue(http, traceId, authorization);
             if (message != null)
             {
                 http.sseProgressMessage = message;
@@ -1159,7 +1197,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsElicitationId(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1169,12 +1207,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String elicitationId = accumulateJsonRpcStringValue(http);
+            final String elicitationId = jsonRpcStringValue(http, traceId, authorization);
             if (elicitationId != null)
             {
                 http.sseElicitationId = elicitationId;
@@ -1187,7 +1224,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsUrl(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1197,12 +1234,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String url = accumulateJsonRpcStringValue(http);
+            final String url = jsonRpcStringValue(http, traceId, authorization);
             if (url != null)
             {
                 http.sseElicitUrl = url;
@@ -1215,7 +1251,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsMode(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1225,12 +1261,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String mode = accumulateJsonRpcStringValue(http);
+            final String mode = jsonRpcStringValue(http, traceId, authorization);
             if (mode != null)
             {
                 http.sseElicitMode = mode;
@@ -1243,7 +1278,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeJsonRpcParamsUri(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1253,12 +1288,11 @@ public final class McpClientFactory implements McpStreamFactory
         int progress,
         int limit)
     {
-        JsonParser parser = http.decodableJson;
+        JsonParserEx parser = http.decodableJson;
 
-        if (parser.hasNext())
+        if (nextBodyEvent(parser) != null)
         {
-            parser.next();
-            final String uri = accumulateJsonRpcStringValue(http);
+            final String uri = jsonRpcStringValue(http, traceId, authorization);
             if (uri != null)
             {
                 http.sseResourceUri = uri;
@@ -1271,7 +1305,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private int decodeIgnore(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization,
         long budgetId,
@@ -1285,7 +1319,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void finalizeSseEvent(
-        McpHttpStream http,
+        HttpStream http,
         long traceId,
         long authorization)
     {
@@ -1333,7 +1367,7 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private void resetSseEvent(
-        McpHttpStream http)
+        HttpStream http)
     {
         http.sseEventId = null;
         http.sseEventRetry = -1L;
@@ -1349,7 +1383,6 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseElicitUrl = null;
         http.sseElicitMode = null;
         http.sseResourceUri = null;
-        http.sseJsonValue.setLength(0);
     }
 
     private static String stripSseEventIdPrefix(
@@ -1506,7 +1539,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected final long affinity;
         protected final String sessionId;
 
-        protected HttpStream http;
+        protected HttpJsonStream http;
         protected String credentials;
         protected long guardSessionId = GuardHandler.NOT_AUTHORIZED;
         protected int clientCapabilities;
@@ -1537,7 +1570,7 @@ public final class McpClientFactory implements McpStreamFactory
             long resolvedId,
             long affinity,
             String sessionId,
-            Function<McpStream, HttpStream> httpFactory)
+            Function<McpStream, HttpJsonStream> httpFactory)
         {
             this.sender = sender;
             this.originId = originId;
@@ -1698,7 +1731,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
         }
 
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return null;
         }
@@ -1973,7 +2006,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -1981,7 +2014,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         void onNetReset(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2187,7 +2220,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long keepaliveId = Signaler.NO_CANCEL_ID;
         private long lastActiveAt;
         private int failedKeepalives;
-        private HttpEventStream sse;
+        private HttpSseStream sse;
         boolean eventsUnsupported;
 
         private boolean pendingConnect;
@@ -2276,7 +2309,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return sse;
         }
@@ -2465,7 +2498,7 @@ public final class McpClientFactory implements McpStreamFactory
                     {
                         final String16FW resumeId = challengeEx.resume().id();
                         final String lastEventId = resumeId != null ? resumeId.asString() : null;
-                        sse = new HttpEventStream(this, lastEventId);
+                        sse = new HttpSseStream(this, lastEventId);
                         sse.doNetStart(traceId, authorization);
                         scheduleKeepalive(traceId);
                     }
@@ -2768,7 +2801,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2784,7 +2817,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetReset(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -2911,7 +2944,7 @@ public final class McpClientFactory implements McpStreamFactory
         final int requestId;
         int contentLength = -1;
         long timeout;
-        private HttpEventStream sse;
+        private HttpSseStream sse;
 
         JsonParserEx paramsParser;
         long paramsParserProgress;
@@ -2980,7 +3013,7 @@ public final class McpClientFactory implements McpStreamFactory
             long initialId,
             long resolvedId,
             long affinity,
-            Function<McpStream, HttpStream> httpFactory)
+            Function<McpStream, HttpJsonStream> httpFactory)
         {
             super(sender, originId, routedId, initialId, resolvedId, affinity,
                 session.sessionId, httpFactory);
@@ -3439,7 +3472,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
-        HttpEventStream sseRef()
+        HttpSseStream sseRef()
         {
             return sse;
         }
@@ -3472,7 +3505,7 @@ public final class McpClientFactory implements McpStreamFactory
                         final String prefixedId = suffix != null && !suffix.isEmpty()
                             ? requestId + ":" + suffix
                             : null;
-                        sse = new HttpEventStream(this, prefixedId);
+                        sse = new HttpSseStream(this, prefixedId);
                         sse.doNetStart(traceId, authorization);
                     }
                     break;
@@ -3656,7 +3689,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onNetAbort(
-            HttpStream http,
+            HttpJsonStream http,
             long traceId,
             long authorization)
         {
@@ -3943,7 +3976,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class McpHttpStream
+    private abstract class HttpStream
     {
         protected final McpStream mcp;
         protected final long originId;
@@ -3979,7 +4012,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected boolean sseMode;
         protected String sseEventId;
         protected long sseEventRetry = -1L;
-        protected final StringBuilder sseJsonValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
         protected String sseEventMethod;
@@ -3995,7 +4027,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected int state;
 
-        McpHttpStream(
+        HttpStream(
             McpStream mcp)
         {
             this.mcp = mcp;
@@ -4098,10 +4130,58 @@ public final class McpClientFactory implements McpStreamFactory
             boolean endOfInput);
 
         void onDecodeResultEvent(
-            JsonParser.Event event,
+            JsonEvent event,
             JsonParser parser,
             int depth)
         {
+        }
+
+        abstract void cleanupNet(
+            long traceId,
+            long authorization);
+
+        void decodeNet(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            HttpResponseDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+            }
+
+            decodedParserProgress += progress - offset;
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(replyId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
+                }
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
         }
 
         protected void cleanupDecodeSlot()
@@ -4116,7 +4196,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class HttpStream extends McpHttpStream
+    private abstract class HttpJsonStream extends HttpStream
     {
         private int initialPad;
 
@@ -4125,7 +4205,7 @@ public final class McpClientFactory implements McpStreamFactory
         private long encodeSlotTraceId;
         private long encodeSlotAuthorization;
 
-        HttpStream(
+        HttpJsonStream(
             McpStream mcp)
         {
             super(mcp);
@@ -4338,6 +4418,7 @@ public final class McpClientFactory implements McpStreamFactory
             flushNetWindow(traceId, authorization, budgetId);
         }
 
+        @Override
         void decodeNet(
             long traceId,
             long authorization,
@@ -4347,39 +4428,7 @@ public final class McpClientFactory implements McpStreamFactory
             int offset,
             int limit)
         {
-            HttpResponseDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-            }
-
-            decodedParserProgress += progress - offset;
-
-            if (progress < limit)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(replyId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupNet(traceId, authorization);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
-                }
-            }
-            else
-            {
-                cleanupDecodeSlot();
-            }
+            super.decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
 
             if (StreamState.replyClosing(state) &&
                 decodeSlot == BufferPool.NO_SLOT &&
@@ -4749,7 +4798,8 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void cleanupNet(
+        @Override
+        void cleanupNet(
             long traceId,
             long authorization)
         {
@@ -4759,7 +4809,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpInitializeRequest extends HttpStream
+    private final class HttpInitializeRequest extends HttpJsonStream
     {
         private boolean inCapabilities;
         private String capabilityCategory;
@@ -4841,7 +4891,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         @Override
         void onDecodeResultEvent(
-            JsonParser.Event event,
+            JsonEvent event,
             JsonParser parser,
             int depth)
         {
@@ -4927,7 +4977,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpNotifyInitialized extends HttpStream
+    private final class HttpNotifyInitialized extends HttpJsonStream
     {
         HttpNotifyInitialized(
             McpStream mcp)
@@ -4963,7 +5013,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpKeepalive extends HttpStream
+    private final class HttpKeepalive extends HttpJsonStream
     {
         HttpKeepalive(
             McpStream mcp)
@@ -5003,11 +5053,11 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private final class HttpEventStream extends McpHttpStream
+    private final class HttpSseStream extends HttpStream
     {
         private final String lastEventId;
 
-        HttpEventStream(
+        HttpSseStream(
             McpStream mcp,
             String lastEventId)
         {
@@ -5203,50 +5253,6 @@ public final class McpClientFactory implements McpStreamFactory
             flushNetWindow(traceId, authorization, budgetId);
         }
 
-        private void decodeNet(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            DirectBufferEx buffer,
-            int offset,
-            int limit)
-        {
-            HttpResponseDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-            }
-
-            decodedParserProgress += progress - offset;
-
-            if (progress < limit)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(replyId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupNet(traceId, authorization);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
-                }
-            }
-            else
-            {
-                cleanupDecodeSlot();
-            }
-        }
-
         private void onNetEnd(
             EndFW end)
         {
@@ -5347,7 +5353,8 @@ public final class McpClientFactory implements McpStreamFactory
             return mcp.doAppData(traceId, authorization, buffer, offset, limit);
         }
 
-        private void cleanupNet(
+        @Override
+        void cleanupNet(
             long traceId,
             long authorization)
         {
@@ -5369,7 +5376,7 @@ public final class McpClientFactory implements McpStreamFactory
         }
     }
 
-    private abstract class HttpRequestStream extends HttpStream
+    private abstract class HttpRequestStream extends HttpJsonStream
     {
         protected final McpRequestStream request;
         protected int paramsForwarded;
