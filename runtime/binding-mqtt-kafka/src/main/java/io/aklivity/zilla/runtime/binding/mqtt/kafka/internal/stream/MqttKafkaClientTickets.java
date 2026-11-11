@@ -123,6 +123,14 @@ final class MqttKafkaClientTickets
         tickets.removeIf(t -> t.packetId == packetId);
     }
 
+    void abandon(
+        int packetId,
+        Runnable completion)
+    {
+        remove(packetId);
+        write(completion);
+    }
+
     List<MqttKafkaTicket> clear()
     {
         final List<MqttKafkaTicket> cleared = tickets != null ? tickets : new ArrayList<>();
