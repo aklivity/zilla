@@ -116,7 +116,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int STATUS_BAD_GATEWAY = 502;
     private static final int NONE = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
-    private static final byte[] HEX_DIGITS = "0123456789abcdef".getBytes(UTF_8);
     private static final String FINISH_REASON = "finish_reason";
     private static final String USAGE = "usage";
     private static final String MEMBER_ID = "id";
@@ -2703,35 +2702,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             return starts;
         }
 
-        private static int escapedWidth(
-            char c)
-        {
-            final int width;
-
-            if (c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f')
-            {
-                width = 2;
-            }
-            else if (c < 0x20)
-            {
-                width = 6;
-            }
-            else if (c < 0x80)
-            {
-                width = 1;
-            }
-            else if (c < 0x800)
-            {
-                width = 2;
-            }
-            else
-            {
-                width = 3;
-            }
-
-            return width;
-        }
-
         @Override
         public void text(
             JsonStringView chars,
@@ -3652,136 +3622,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 pieceBytes = new byte[capacity];
                 pieceBuffer = new UnsafeBufferEx(pieceBytes);
             }
-        }
-
-        private int escape(
-            JsonStringView chars,
-            int from,
-            int to,
-            int position)
-        {
-            int next = position;
-            int index = from;
-
-            while (index < to)
-            {
-                final char c = chars.charAt(index++);
-                int codePoint = c;
-
-                if (Character.isHighSurrogate(c))
-                {
-                    if (index < to && Character.isLowSurrogate(chars.charAt(index)))
-                    {
-                        codePoint = Character.toCodePoint(c, chars.charAt(index));
-                        index++;
-                    }
-                    else
-                    {
-                        codePoint = REPLACEMENT_CHARACTER;
-                    }
-                }
-                else if (Character.isLowSurrogate(c))
-                {
-                    codePoint = REPLACEMENT_CHARACTER;
-                }
-
-                next = putEscaped(codePoint, next);
-            }
-
-            return next;
-        }
-
-        private int putEscaped(
-            int codePoint,
-            int position)
-        {
-            int next = position;
-
-            switch (codePoint)
-            {
-            case '"':
-                next = putShort('"', next);
-                break;
-            case '\\':
-                next = putShort('\\', next);
-                break;
-            case '\n':
-                next = putShort('n', next);
-                break;
-            case '\r':
-                next = putShort('r', next);
-                break;
-            case '\t':
-                next = putShort('t', next);
-                break;
-            case '\b':
-                next = putShort('b', next);
-                break;
-            case '\f':
-                next = putShort('f', next);
-                break;
-            default:
-                next = codePoint < 0x20 ? putControl(codePoint, next) : putUtf8(codePoint, next);
-                break;
-            }
-
-            return next;
-        }
-
-        private int putShort(
-            int escape,
-            int position)
-        {
-            pieceBytes[position] = '\\';
-            pieceBytes[position + 1] = (byte) escape;
-
-            return position + 2;
-        }
-
-        private int putControl(
-            int codePoint,
-            int position)
-        {
-            pieceBytes[position] = '\\';
-            pieceBytes[position + 1] = 'u';
-            pieceBytes[position + 2] = '0';
-            pieceBytes[position + 3] = '0';
-            pieceBytes[position + 4] = HEX_DIGITS[codePoint >> 4 & 0xf];
-            pieceBytes[position + 5] = HEX_DIGITS[codePoint & 0xf];
-
-            return position + 6;
-        }
-
-        private int putUtf8(
-            int codePoint,
-            int position)
-        {
-            int next = position;
-
-            if (codePoint < 0x80)
-            {
-                pieceBytes[next++] = (byte) codePoint;
-            }
-            else if (codePoint < 0x800)
-            {
-                pieceBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-            }
-            else if (codePoint < 0x10000)
-            {
-                pieceBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-            }
-            else
-            {
-                pieceBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-                pieceBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-            }
-
-            return next;
         }
 
         private int encodeText(
