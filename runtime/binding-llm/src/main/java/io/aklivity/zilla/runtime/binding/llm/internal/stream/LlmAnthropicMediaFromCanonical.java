@@ -72,7 +72,7 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmCacheBreakpoint breakpoints)
     {
-        super(MODE_OBJECT, sameDialect ? DIALECT : null);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null, 1, citable || breakpoints != null ? new LlmCapturedValue() : null);
         this.part = part;
         this.container = container;
         this.dataMember = dataMember;

@@ -120,6 +120,7 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
     LlmGeminiControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.choice = new LlmToolChoice();
         this.residueKey = MEMBER_NATIVE_GENERATION_CONFIG;
         captureLimit(CAPTURE_MAX);

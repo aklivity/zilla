@@ -42,7 +42,7 @@ final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmCacheBreakpoint breakpoints)
     {
-        super(MODE_OBJECT, sameDialect ? DIALECT : null);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null, 1, breakpoints != null ? new LlmCapturedValue() : null);
         this.breakpoints = breakpoints;
     }
 

@@ -103,6 +103,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     LlmAnthropicControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.choice = new LlmToolChoice();
     }
 

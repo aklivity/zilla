@@ -650,7 +650,7 @@ public class LlmToolTransformResumeTest
             int mode,
             int extractDepth)
         {
-            super(mode, null, extractDepth);
+            super(mode, null, extractDepth, new LlmCapturedValue());
             this.shape = mode;
             this.extractDepth = extractDepth;
             this.opened = new int[8];
@@ -663,7 +663,7 @@ public class LlmToolTransformResumeTest
         private Probe(
             Probe that)
         {
-            super(that.shape, null, that.extractDepth);
+            super(that.shape, null, that.extractDepth, new LlmCapturedValue());
             this.shape = that.shape;
             this.extractDepth = that.extractDepth;
             this.opened = new int[8];

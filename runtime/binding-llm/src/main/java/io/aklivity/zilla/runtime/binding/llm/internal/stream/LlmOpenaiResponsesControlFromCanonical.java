@@ -79,7 +79,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         String dialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect);
+        super(mode, dialect, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.capability = capability;

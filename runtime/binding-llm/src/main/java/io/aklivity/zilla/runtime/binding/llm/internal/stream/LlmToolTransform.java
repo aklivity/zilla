@@ -169,10 +169,19 @@ abstract class LlmToolTransform implements JsonTransform
         String dialect,
         int extractDepth)
     {
+        this(mode, dialect, extractDepth, null);
+    }
+
+    protected LlmToolTransform(
+        int mode,
+        String dialect,
+        int extractDepth,
+        LlmCapturedValue captured)
+    {
         this.mode = mode;
         this.dialect = dialect;
         this.extractDepth = extractDepth;
-        this.captured = new LlmCapturedValue();
+        this.captured = captured;
         this.captureLimit = HELD_MAX;
         this.literalSource = new LiteralSource();
         this.literalControl = new LiteralControl();

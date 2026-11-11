@@ -81,6 +81,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 
     LlmOpenaiResponsesControlToCanonical()
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.choice = new LlmToolChoice();
         this.preceding = new LlmCapturedValue();
         captureLimit(CAPTURE_MAX);
