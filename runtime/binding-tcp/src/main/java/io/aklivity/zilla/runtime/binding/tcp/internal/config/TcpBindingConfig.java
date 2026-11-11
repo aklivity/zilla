@@ -96,10 +96,18 @@ public final class TcpBindingConfig
     public TcpRouteConfig resolve(
         InetSocketAddress address)
     {
-        return routes.stream()
-            .filter(r -> r.matches(address))
-            .findFirst()
-            .orElse(null);
+        TcpRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final TcpRouteConfig route = routes.get(index);
+            if (route.matches(address))
+            {
+                resolved = route;
+            }
+        }
+
+        return resolved;
     }
 
     public InetSocketAddress resolve(
