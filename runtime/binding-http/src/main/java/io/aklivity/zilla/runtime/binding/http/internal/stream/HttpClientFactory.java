@@ -6264,7 +6264,16 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final class Http2HeadersEncoder
     {
+        private final Map<String8FW, String16FW> encodeHeadersMap = new LinkedHashMap<>();
+        private final BiConsumer<String8FW, String16FW> encodeEntry = this::encodeEntry;
+        private final Consumer<HttpHeaderFW> encodeAll = this::encodeAll;
+        private final Consumer<HpackHeaderFieldFW.Builder> encodeCurrent = this::encodeCurrent;
+        private final Consumer<HpackLiteralHeaderFieldFW.Builder> encodeCurrentLiteral = this::encodeCurrentLiteral;
+
         private HpackContext context;
+        private HpackHeaderBlockFW.Builder block;
+        private String8FW encodingName;
+        private String16FW encodingValue;
 
         void encodeHeaders(
             HpackContext encodeContext,
@@ -6274,12 +6283,16 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             reset(encodeContext);
 
-            Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
+            final Map<String8FW, String16FW> headersMap = encodeHeadersMap;
+            headersMap.clear();
             putHeaders(headersMap, headers);
-            mergeOverrides(headersMap, overrides);
+            if (!overrides.isEmpty())
+            {
+                mergeOverrides(headersMap, overrides);
+            }
 
             final String16FW authority = headersMap.get(HEADER_AUTHORITY);
-            if (authority != null)
+            if (authority != null && mayHaveDefaultPort(authority.value()))
             {
                 final String authorityValue = authority.asString();
                 final int columnIndex = authorityValue.indexOf(':');
@@ -6295,7 +6308,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 headersMap.put(HEADER_USER_AGENT, userAgentHeader);
             }
 
-            headersMap.forEach((n, v) -> headerBlock.header(b -> encodeHeader(n, v, b)));
+            block = headerBlock;
+            headersMap.forEach(encodeEntry);
         }
 
         void encodeTrailers(
@@ -6304,7 +6318,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
+            block = headerBlock;
+            headers.forEach(encodeAll);
         }
 
         private boolean isDefaultPort(
@@ -6321,20 +6336,59 @@ public final class HttpClientFactory implements HttpStreamFactory
             context = encodeContext;
         }
 
-        private void encodeHeader(
+        private boolean mayHaveDefaultPort(
+            DirectBufferEx authority)
+        {
+            final int length = authority.capacity();
+
+            int colonAt = 0;
+            while (colonAt < length && authority.getByte(colonAt) != ':')
+            {
+                colonAt++;
+            }
+
+            final int portLength = length - colonAt;
+
+            return portLength == 3 && authority.getByte(colonAt + 1) == '8' && authority.getByte(colonAt + 2) == '0' ||
+                   portLength == 4 && authority.getByte(colonAt + 1) == '4' &&
+                       authority.getByte(colonAt + 2) == '4' && authority.getByte(colonAt + 3) == '3';
+        }
+
+        private void encodeEntry(
             String8FW name,
-            String16FW value,
+            String16FW value)
+        {
+            encodingName = name;
+            encodingValue = value;
+            block.header(encodeCurrent);
+        }
+
+        private void encodeAll(
+            HttpHeaderFW header)
+        {
+            encodingName = header.name();
+            encodingValue = header.value();
+            block.header(encodeCurrent);
+        }
+
+        private void encodeCurrent(
             HpackHeaderFieldFW.Builder builder)
         {
-            final int index = context.index(name.value(), value.value());
+            final int index = context.index(encodingName.value(), encodingValue.value());
             if (index != -1)
             {
                 builder.indexed(index);
             }
             else
             {
-                builder.literal(literal -> encodeLiteral(literal, context, name.value(), value.value()));
+                builder.literal(encodeCurrentLiteral);
             }
+        }
+
+        private void encodeCurrentLiteral(
+            HpackLiteralHeaderFieldFW.Builder builder)
+        {
+            encodeLiteral(builder, context, encodingName.value(), encodingValue.value());
         }
 
         // TODO dynamic table, Huffman, never indexed
