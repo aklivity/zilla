@@ -48,6 +48,7 @@ public final class BufferUtil
         {
             if (buffer.getByte(cursor) != value[matchedBytes])
             {
+                cursor -= matchedBytes;
                 matchedBytes = 0;
                 continue;
             }
