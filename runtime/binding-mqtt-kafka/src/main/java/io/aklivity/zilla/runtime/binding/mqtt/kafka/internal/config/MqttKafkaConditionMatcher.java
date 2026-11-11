@@ -35,11 +35,9 @@ public class MqttKafkaConditionMatcher
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.matchers = new ArrayList<>(condition.topics.size());
-        for (int i = 0; i < condition.topics.size(); i++)
-        {
-            matchers.add(new TopicMatcher(condition.topics.get(i), condition.shares.get(i)));
-        }
+        this.matchers = new ArrayList<>(condition.subscribes.size() + condition.publishes.size());
+        condition.subscribes.forEach(s -> matchers.add(new TopicMatcher(s.topic, s.share)));
+        condition.publishes.forEach(p -> matchers.add(new TopicMatcher(p, null)));
         this.kind = condition.kind;
     }
 

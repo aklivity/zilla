@@ -21,8 +21,8 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public class MqttKafkaConditionConfig extends ConditionConfig
 {
-    public final List<String> topics;
-    public final List<String> shares;
+    public final List<MqttKafkaSubscribeConfig> subscribes;
+    public final List<String> publishes;
     public final MqttKafkaConditionKind kind;
 
     public static MqttKafkaConditionConfigBuilder<MqttKafkaConditionConfig> builder()
@@ -37,12 +37,12 @@ public class MqttKafkaConditionConfig extends ConditionConfig
     }
 
     MqttKafkaConditionConfig(
-        List<String> topics,
-        List<String> shares,
-        MqttKafkaConditionKind kind)
+        List<MqttKafkaSubscribeConfig> subscribes,
+        List<String> publishes)
     {
-        this.topics = topics;
-        this.shares = shares;
-        this.kind = kind;
+        this.subscribes = subscribes;
+        this.publishes = publishes;
+        this.kind = !subscribes.isEmpty() ? MqttKafkaConditionKind.SUBSCRIBE
+            : !publishes.isEmpty() ? MqttKafkaConditionKind.PUBLISH : null;
     }
 }
