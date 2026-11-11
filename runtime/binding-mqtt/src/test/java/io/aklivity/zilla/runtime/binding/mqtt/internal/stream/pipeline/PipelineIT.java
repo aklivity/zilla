@@ -310,4 +310,34 @@ public class PipelineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.subscription.disconnect/client",
+        "${upstream}/unsubscribe.shared.subscription.disconnect/server"})
+    public void shouldUnsubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.subscription.disconnect/client",
+        "${upstream}/subscribe.shared.subscription.disconnect/server"})
+    public void shouldSubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.resubscribe.change.qos.disconnect/client",
+        "${upstream}/unsubscribe.shared.resubscribe.change.qos.disconnect/server"})
+    public void shouldUnsubscribeSharedResubscribeChangeQosDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }
