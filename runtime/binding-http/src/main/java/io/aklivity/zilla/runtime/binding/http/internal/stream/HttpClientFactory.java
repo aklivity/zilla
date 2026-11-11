@@ -152,6 +152,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final Pattern HEADER_LINE_PATTERN = Pattern.compile("(?<name>[^\\s:]+):\\s*(?<value>[^\r\n]*)\r\n");
     private static final Pattern CONNECTION_CLOSE_PATTERN = Pattern.compile("(^|\\s*,\\s*)close(\\s*,\\s*|$)");
     private static final Pattern AUTHORITY_PATTERN = Pattern.compile("(?<host>[^:]+):(?<port>\\d+)");
+    private static final int HUFFMAN_DECODE_CAPACITY = 4096;
     private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
     private static final byte[] HOST_BYTES = "Host".getBytes(US_ASCII);
@@ -3816,7 +3817,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                        .headers(hs -> writeHeaders(headers, hs))
                         .build();
 
                 exchange.resolveResponse(beginEx);
@@ -3893,7 +3894,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         ex -> ex.set((b, o, l) -> flushExRW.wrap(b, o, l)
                         .typeId(httpTypeId)
                         .promiseId(promiseId)
-                        .promise(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                        .promise(hs -> writeHeaders(headers, hs))
                         .build().sizeof()));
 
                 if (endPromise)
@@ -6371,8 +6372,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         Http2ErrorCode streamError;
         Array32FW<HttpHeaderFW> httpErrorHeader;
 
-        final Map<String, String> headers = new LinkedHashMap<>();
+        final HttpHeaderTable headers = new HttpHeaderTable();
         long contentLength = -1;
+
+        private final MutableDirectBufferEx huffmanNameBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final MutableDirectBufferEx huffmanValueBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final UnsafeBufferEx huffmanNameView = new UnsafeBufferEx(new byte[0]);
+        private final UnsafeBufferEx huffmanValueView = new UnsafeBufferEx(new byte[0]);
 
         private Http2HeadersDecoder()
         {
@@ -6547,10 +6553,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             if (!error())
             {
-                String nameStr = name.getStringWithoutLengthUtf8(0, name.capacity());
-                String valueStr = value.getStringWithoutLengthUtf8(0, value.capacity());
                 // TODO cookie needs to be appended with ';'
-                headers.merge(nameStr, valueStr, (o, n) -> String.format("%s, %s", o, n));
+                headers.add(name, value);
             }
         }
 
@@ -6610,15 +6614,15 @@ public final class HttpClientFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            value, dst);
+                            value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
@@ -6627,29 +6631,29 @@ public final class HttpClientFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            name, dst);
+                            name, huffmanNameBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        name = new UnsafeBufferEx(dst, 0, length);
+                        huffmanNameView.wrap(huffmanNameBuffer, 0, length);
+                        name = huffmanNameView;
                     }
 
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
                         int length = HpackHuffman.decode(
-                            value, dst);
+                            value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
@@ -6676,6 +6680,20 @@ public final class HttpClientFactory implements HttpStreamFactory
         final String method = headers.get(METHOD);
         final String contentLength = headers.get(CONTENT_LENGTH);
         return GET_METHOD.equals(method) || method.equals(HEAD_METHOD) && contentLength == null;
+    }
+
+    private void writeHeaders(
+        Map<String, String> headers,
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> items)
+    {
+        if (headers instanceof HttpHeaderTable table)
+        {
+            table.writeTo(items);
+        }
+        else
+        {
+            headers.forEach((n, v) -> items.item(h -> h.name(n).value(v)));
+        }
     }
 
     private void putHeaders(

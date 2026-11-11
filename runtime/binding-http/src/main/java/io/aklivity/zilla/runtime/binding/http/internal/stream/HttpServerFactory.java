@@ -55,7 +55,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -207,6 +206,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte COLON_BYTE = ':';
     private static final byte HYPHEN_BYTE = '-';
     private static final byte COMMA_BYTE = ',';
+    private static final int HUFFMAN_DECODE_CAPACITY = 4096;
     private static final byte SPACE_BYTE = ' ';
     private static final byte TAB_BYTE = '\t';
     private static final byte SLASH_BYTE = '/';
@@ -1347,6 +1347,20 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         return !headers.containsKey(HEADER_NAME_ORIGIN) ||
                binding.access().allowRequest(headers);
+    }
+
+    private void writeHeaders(
+        Map<String, String> headers,
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> items)
+    {
+        if (headers instanceof HttpHeaderTable table)
+        {
+            table.writeTo(items);
+        }
+        else
+        {
+            headers.forEach((n, v) -> items.item(h -> h.name(n).value(v)));
+        }
     }
 
     private boolean decodeStartLineAscii(
@@ -6201,7 +6215,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 .wrap(extBuffer, 0, extBuffer.capacity())
                                 .compositeId(route.compositeId())
                                 .typeId(httpTypeId)
-                                .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                                .headers(hs -> writeHeaders(headers, hs))
                                 .build();
 
                         HttpRequestType requestType = binding.resolveRequestType(beginEx);
@@ -6618,7 +6632,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .compositeId(route.compositeId())
                             .typeId(httpTypeId)
-                            .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
+                            .headers(hs -> writeHeaders(headers, hs))
                             .build();
 
                     exchange.doRequestBegin(traceId, beginEx);
@@ -7803,8 +7817,13 @@ public final class HttpServerFactory implements HttpStreamFactory
         Http2ErrorCode streamError;
         Array32FW<HttpHeaderFW> httpErrorHeader;
 
-        final Map<String, String> headers = new LinkedHashMap<>();
+        final HttpHeaderTable headers = new HttpHeaderTable();
         long contentLength = -1;
+
+        private final MutableDirectBufferEx huffmanNameBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final MutableDirectBufferEx huffmanValueBuffer = new UnsafeBufferEx(new byte[HUFFMAN_DECODE_CAPACITY]);
+        private final UnsafeBufferEx huffmanNameView = new UnsafeBufferEx(new byte[0]);
+        private final UnsafeBufferEx huffmanValueView = new UnsafeBufferEx(new byte[0]);
 
         private Http2HeadersDecoder()
         {
@@ -8040,10 +8059,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             if (!error())
             {
-                String nameStr = name.getStringWithoutLengthUtf8(0, name.capacity());
-                String valueStr = value.getStringWithoutLengthUtf8(0, value.capacity());
                 // TODO cookie needs to be appended with ';'
-                headers.merge(nameStr, valueStr, (o, n) -> String.format("%s, %s", o, n));
+                headers.add(name, value);
             }
         }
 
@@ -8103,14 +8120,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        int length = HpackHuffman.decode(value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
@@ -8119,27 +8136,27 @@ public final class HttpServerFactory implements HttpStreamFactory
                     name = hpackName.payload();
                     if (hpackName.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(name, dst);
+                        int length = HpackHuffman.decode(name, huffmanNameBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        name = new UnsafeBufferEx(dst, 0, length);
+                        huffmanNameView.wrap(huffmanNameBuffer, 0, length);
+                        name = huffmanNameView;
                     }
 
                     value = hpackValue.payload();
                     if (hpackValue.huffman())
                     {
-                        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4096]); // TODO
-                        int length = HpackHuffman.decode(value, dst);
+                        int length = HpackHuffman.decode(value, huffmanValueBuffer);
                         if (length == -1)
                         {
                             connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                             return;
                         }
-                        value = new UnsafeBufferEx(dst, 0, length);
+                        huffmanValueView.wrap(huffmanValueBuffer, 0, length);
+                        value = huffmanValueView;
                     }
                     nameValue.accept(name, value);
                     break;
