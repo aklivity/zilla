@@ -34,6 +34,11 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 public class LlmUnsupportedMembersTest
 {
     private static final String HUGE_SCHEMA = "x".repeat(5000);
+    private static final int TYPE_TEXT_FOOTPRINT = 36;
+    private static final String CHAT_HARMLESS =
+        "{'openai/ccs:n':1,'openai/ccs:logprobs':false,'openai/ccs:audio':null,'openai/ccs:modalities':null}";
+    private static final String RESPONSES_HARMLESS =
+        "{'openai/rs:background':false,'openai/rs:previous_response_id':null,'openai/rs:conversation':null}";
 
     private static final List<Function<LlmModelCapability, LlmToolTransform>> DIALECTS = List.of(
         capability -> LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
@@ -147,6 +152,88 @@ public class LlmUnsupportedMembersTest
     }
 
     @Test
+    public void shouldAcceptJudgedValueExactlyAtCaptureLimit()
+    {
+        final String padding = "x".repeat(LlmToolTransform.HELD_MAX - TYPE_TEXT_FOOTPRINT);
+
+        for (Function<LlmModelCapability, LlmToolTransform> dialect : DIALECTS)
+        {
+            final LlmToolTransform transform = dialect.apply(unsupported("response_format"));
+
+            assertTransforms(transform, json("{'x:response_format':{'type':'text','type':'" + padding + "'}}"), "{}");
+            assertThat(transform.rejectedMember(), nullValue());
+        }
+    }
+
+    @Test
+    public void shouldRejectJudgedValueOneOverCaptureLimit()
+    {
+        final String padding = "x".repeat(LlmToolTransform.HELD_MAX - TYPE_TEXT_FOOTPRINT + 1);
+
+        for (Function<LlmModelCapability, LlmToolTransform> dialect : DIALECTS)
+        {
+            final LlmToolTransform transform = dialect.apply(unsupported("response_format"));
+
+            assertRejects(transform, json("{'x:response_format':{'type':'text','type':'" + padding + "'}}"));
+            assertThat(transform.rejectedMember(), equalTo("response_format"));
+        }
+    }
+
+    @Test
+    public void shouldRejectJudgedStringLongerThanCaptureLimit()
+    {
+        final String padding = "x".repeat(LlmToolTransform.HELD_MAX + 1);
+
+        for (Function<LlmModelCapability, LlmToolTransform> dialect : DIALECTS)
+        {
+            final LlmToolTransform transform = dialect.apply(unsupported("tool_choice"));
+
+            assertRejects(transform, json("{'x:tool_choice':'" + padding + "'}"));
+            assertThat(transform.rejectedMember(), equalTo("tool_choice"));
+        }
+    }
+
+    @Test
+    public void shouldJudgeFirstTypeMemberOfResponseFormat()
+    {
+        assertDropped("response_format", "{'type':'text','type':'json_object'}");
+        assertRejected("response_format", "{'type':'json_object','type':'text'}");
+        assertRejected("response_format", "{'type':{'type':'text'}}");
+        assertRejected("response_format", "{'extra':true,'type':'text'}");
+        assertDropped("response_format", "{'type':'text','type':{'extra':true}}");
+    }
+
+    @Test
+    public void shouldDropHarmlessBehaviouralMemberOfOtherVariant()
+    {
+        final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+
+        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
+            json(RESPONSES_HARMLESS), "{}");
+        assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
+            json(CHAT_HARMLESS), "{}");
+        assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
+        assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(RESPONSES_HARMLESS), "{}");
+        assertTransforms(LlmGeminiControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
+        assertTransforms(LlmGeminiControlFromCanonical.members(false, capability), json(RESPONSES_HARMLESS), "{}");
+    }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfOtherVariantCarryingBehaviourChange()
+    {
+        assertForeignRejected("openai/ccs:n", "2");
+        assertForeignRejected("openai/ccs:n", "1.0");
+        assertForeignRejected("openai/ccs:n", "'1'");
+        assertForeignRejected("openai/ccs:logprobs", "true");
+        assertForeignRejected("openai/ccs:logprobs", "0");
+        assertForeignRejected("openai/ccs:audio", "false");
+        assertForeignRejected("openai/ccs:modalities", "['text']");
+        assertForeignRejected("openai/rs:background", "true");
+        assertForeignRejected("openai/rs:previous_response_id", "'resp_1'");
+        assertForeignRejected("openai/rs:conversation", "{'id':'c'}");
+    }
+
+    @Test
     public void shouldNotApplyMembersThatAreNotListed()
     {
         final LlmModelCapability capability = unsupported("seed");
@@ -182,6 +269,26 @@ public class LlmUnsupportedMembersTest
             final LlmToolTransform transform = dialect.apply(unsupported(member));
 
             assertRejects(transform, json("{'x:" + member + "':" + value + "}"));
+            assertThat(member + " " + value, transform.rejectedMember(), equalTo(member));
+        }
+    }
+
+    private static void assertForeignRejected(
+        String member,
+        String value)
+    {
+        final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+        final List<LlmToolTransform> transforms = member.startsWith("openai/ccs")
+            ? List.of(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
+                LlmAnthropicControlFromCanonical.members(false, capability),
+                LlmGeminiControlFromCanonical.members(false, capability))
+            : List.of(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
+                LlmAnthropicControlFromCanonical.members(false, capability),
+                LlmGeminiControlFromCanonical.members(false, capability));
+
+        for (LlmToolTransform transform : transforms)
+        {
+            assertRejects(transform, json("{'" + member + "':" + value + "}"));
             assertThat(member + " " + value, transform.rejectedMember(), equalTo(member));
         }
     }

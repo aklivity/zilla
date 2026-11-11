@@ -39,13 +39,12 @@ final class LlmBehaviour
 
     static boolean harmless(
         CharSequence key,
-        LlmCapturedValue value)
+        JsonEvent event,
+        CharSequence text)
     {
         final int from = indexOf(key, PREFIX_END) + 1;
-        final JsonEvent event = value.event(0);
 
-        return event == JsonEvent.VALUE_NULL ||
-            region(key, from, MEMBER_N) && event == JsonEvent.VALUE_NUMBER && "1".equals(value.text(0)) ||
+        return region(key, from, MEMBER_N) && event == JsonEvent.VALUE_NUMBER && "1".contentEquals(text) ||
             (region(key, from, MEMBER_LOGPROBS) || region(key, from, MEMBER_BACKGROUND)) && event == JsonEvent.VALUE_FALSE;
     }
 
