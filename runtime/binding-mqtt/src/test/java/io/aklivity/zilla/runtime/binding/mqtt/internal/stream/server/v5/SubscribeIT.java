@@ -934,4 +934,44 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.shared.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSharedSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.filters.reject.one.stream.abort.before.begin/client",
+        "${app}/subscribe.shared.filters.reject.one.stream.abort.before.begin/server"})
+    public void shouldRejectOneOfSharedFiltersWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
 }
