@@ -6249,6 +6249,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 sessionSubscriptions.forEach(subscription -> subscription.reasonCode = SUCCESS);
 
                                 openSubscribeStreams(0, traceId, authorization, sessionSubscriptions, true);
+                                session.setSubscriptions(sessionSubscriptions);
                                 sessionPresent = true;
                             }
                         }
