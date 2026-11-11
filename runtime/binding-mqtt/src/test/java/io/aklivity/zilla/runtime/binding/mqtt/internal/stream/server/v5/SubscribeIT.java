@@ -904,4 +904,34 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
 }
