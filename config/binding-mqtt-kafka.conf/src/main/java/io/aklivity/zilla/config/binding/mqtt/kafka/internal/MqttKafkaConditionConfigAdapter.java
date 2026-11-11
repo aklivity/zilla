@@ -23,6 +23,7 @@ import jakarta.json.JsonObjectBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaSubscribeConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 
@@ -38,29 +39,31 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
         ConditionConfig condition)
     {
         MqttKafkaConditionConfig mqttKafkaCondition = (MqttKafkaConditionConfig) condition;
-        JsonArrayBuilder topics = Json.createArrayBuilder();
-
-        for (int i = 0; i < mqttKafkaCondition.topics.size(); i++)
-        {
-            JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
-            subscribeJson.add(TOPIC_NAME, mqttKafkaCondition.topics.get(i));
-            final String share = mqttKafkaCondition.shares.get(i);
-            if (share != null)
-            {
-                subscribeJson.add(SHARE_NAME, share);
-            }
-            topics.add(subscribeJson);
-        }
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         if (mqttKafkaCondition.kind == MqttKafkaConditionKind.SUBSCRIBE)
         {
-            object.add(SUBSCRIBE_NAME, topics);
+            JsonArrayBuilder subscribes = Json.createArrayBuilder();
+
+            mqttKafkaCondition.subscribes.forEach(sub ->
+            {
+                JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
+                subscribeJson.add(TOPIC_NAME, sub.topic);
+                if (sub.share != null)
+                {
+                    subscribeJson.add(SHARE_NAME, sub.share);
+                }
+                subscribes.add(subscribeJson);
+            });
+            object.add(SUBSCRIBE_NAME, subscribes);
         }
         else if (mqttKafkaCondition.kind == MqttKafkaConditionKind.PUBLISH)
         {
-            object.add(PUBLISH_NAME, topics);
+            JsonArrayBuilder publishes = Json.createArrayBuilder();
+
+            mqttKafkaCondition.publishes.forEach(topic -> publishes.add(Json.createObjectBuilder().add(TOPIC_NAME, topic)));
+            object.add(PUBLISH_NAME, publishes);
         }
 
         return object.build();
@@ -74,16 +77,27 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
 
         if (object.containsKey(SUBSCRIBE_NAME))
         {
-            builder.kind(MqttKafkaConditionKind.SUBSCRIBE);
             JsonArray subscribesJson = object.getJsonArray(SUBSCRIBE_NAME);
-            subscribesJson.forEach(s -> builder.topic(
-                s.asJsonObject().getString(TOPIC_NAME), s.asJsonObject().getString(SHARE_NAME, null)));
+            subscribesJson.forEach(s ->
+            {
+                JsonObject subscribeJson = s.asJsonObject();
+
+                MqttKafkaSubscribeConfigBuilder<?> subscribe = builder
+                    .subscribe()
+                    .topic(subscribeJson.getString(TOPIC_NAME));
+
+                if (subscribeJson.containsKey(SHARE_NAME))
+                {
+                    subscribe.share(subscribeJson.getString(SHARE_NAME));
+                }
+
+                subscribe.build();
+            });
         }
         else if (object.containsKey(PUBLISH_NAME))
         {
-            builder.kind(MqttKafkaConditionKind.PUBLISH);
             JsonArray publishesJson = object.getJsonArray(PUBLISH_NAME);
-            publishesJson.forEach(p -> builder.topic(p.asJsonObject().getString(TOPIC_NAME)));
+            publishesJson.forEach(p -> builder.publish(p.asJsonObject().getString(TOPIC_NAME)));
         }
 
         return builder.build();

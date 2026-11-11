@@ -24,16 +24,15 @@ import io.aklivity.zilla.config.engine.ConfigBuilder;
 public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, MqttKafkaConditionConfigBuilder<T>>
 {
     private final Function<ConditionConfig, T> mapper;
-    private final List<String> topics;
-    private final List<String> shares;
-    private MqttKafkaConditionKind kind;
+    private final List<MqttKafkaSubscribeConfig> subscribes;
+    private final List<String> publishes;
 
     MqttKafkaConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
-        this.topics = new ArrayList<>();
-        this.shares = new ArrayList<>();
+        this.subscribes = new ArrayList<>();
+        this.publishes = new ArrayList<>();
     }
 
     @Override
@@ -43,31 +42,28 @@ public final class MqttKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, M
         return (Class<MqttKafkaConditionConfigBuilder<T>>) getClass();
     }
 
-    public MqttKafkaConditionConfigBuilder<T> topic(
-        String topic)
+    public MqttKafkaConditionConfigBuilder<T> subscribe(
+        MqttKafkaSubscribeConfig subscribe)
     {
-        return topic(topic, null);
-    }
-
-    public MqttKafkaConditionConfigBuilder<T> topic(
-        String topic,
-        String share)
-    {
-        this.topics.add(topic);
-        this.shares.add(share);
+        this.subscribes.add(subscribe);
         return this;
     }
 
-    public MqttKafkaConditionConfigBuilder<T> kind(
-        MqttKafkaConditionKind kind)
+    public MqttKafkaSubscribeConfigBuilder<MqttKafkaConditionConfigBuilder<T>> subscribe()
     {
-        this.kind = kind;
+        return new MqttKafkaSubscribeConfigBuilder<>(this::subscribe);
+    }
+
+    public MqttKafkaConditionConfigBuilder<T> publish(
+        String topic)
+    {
+        this.publishes.add(topic);
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new MqttKafkaConditionConfig(topics, shares, kind));
+        return mapper.apply(new MqttKafkaConditionConfig(subscribes, publishes));
     }
 }
