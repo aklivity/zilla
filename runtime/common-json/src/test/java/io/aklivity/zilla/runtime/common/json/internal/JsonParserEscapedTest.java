@@ -36,11 +36,6 @@ class JsonParserEscapedTest
 {
     private static final int WHOLE = 4096;
 
-    JsonParserEx createParser()
-    {
-        return new JsonParserImpl();
-    }
-
     @Test
     void shouldParseStringifiedObject()
     {
@@ -204,7 +199,7 @@ class JsonParserEscapedTest
         }
     }
 
-    void assertRejected(
+    private static void assertRejected(
         String message,
         String json)
     {
@@ -216,7 +211,7 @@ class JsonParserEscapedTest
         }
     }
 
-    void assertEvents(
+    private static void assertEvents(
         String expected,
         String json,
         String... keys)
@@ -227,7 +222,7 @@ class JsonParserEscapedTest
         }
     }
 
-    List<String> events(
+    private static List<String> events(
         String json,
         int window,
         String... keys)
@@ -235,7 +230,7 @@ class JsonParserEscapedTest
         final Set<String> escaped = Set.of(keys);
         final byte[] bytes = (json + " ").getBytes(UTF_8);
         final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
-        final JsonParserEx parser = createParser();
+        final JsonParserEx parser = new JsonParserImpl();
         final List<String> events = new ArrayList<>();
         final StringBuilder text = new StringBuilder();
 

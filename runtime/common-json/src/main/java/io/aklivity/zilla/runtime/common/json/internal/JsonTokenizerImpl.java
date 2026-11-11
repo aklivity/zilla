@@ -23,8 +23,9 @@ import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 
-final class JsonTokenizerImpl implements JsonScopeTokenizer
+final class JsonTokenizerImpl implements JsonTokenizer
 {
     private enum ParseState
     {
@@ -787,50 +788,6 @@ final class JsonTokenizerImpl implements JsonScopeTokenizer
     public boolean inScope()
     {
         return lens;
-    }
-
-    @Override
-    public void skip(
-        long streamOffset,
-        long line,
-        long column)
-    {
-        if (state != ParseState.OBJ_AFTER_KEY && state != ParseState.OBJ_AFTER_COLON)
-        {
-            throw new IllegalStateException("skip requires a key just delivered");
-        }
-
-        pendingEvent = null;
-        pendingString = null;
-        valuePending = false;
-        viewPending = false;
-        this.streamOffset = streamOffset;
-        this.line = line;
-        this.column = column;
-        state = ParseState.OBJ_AFTER_VALUE;
-    }
-
-    // Begins reading the string value that follows a key as the document of an escaped scope, from the window
-    // [offset, limit) whose first byte is at streamOffset: a tokenizer that stands in for one that cannot read a scope
-    // does so over the same window, and its markers bracket the scope's events. separated says the key's separator
-    // and whitespace have been taken already.
-    void scope(
-        DirectBufferEx buffer,
-        int offset,
-        int limit,
-        boolean last,
-        long streamOffset,
-        long line,
-        long column,
-        boolean separated)
-    {
-        reset();
-        this.streamOffset = streamOffset;
-        this.line = line;
-        this.column = column;
-        wrap(buffer, offset, limit, last);
-        state = separated ? ParseState.OBJ_AFTER_COLON : ParseState.OBJ_AFTER_KEY;
-        escapeArmed = true;
     }
 
     @Override

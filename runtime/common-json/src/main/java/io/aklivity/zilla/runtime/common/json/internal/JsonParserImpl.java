@@ -63,7 +63,7 @@ public final class JsonParserImpl implements JsonParserEx
     private static final JsonVerbatim DRAINED = new DrainedVerbatim();
 
     private final DirectBufferInputStreamEx ownedInput;
-    private final JsonScopeTokenizer tokenizer;
+    private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
     // whether the current/next wrapped window is the feed's final one; tracked here (not just passed
     // through) because the plain 3-arg wrap() must keep re-asserting it to the tokenizer on every call
@@ -192,16 +192,9 @@ public final class JsonParserImpl implements JsonParserEx
     public JsonParserImpl(
         Map<String, ?> config)
     {
-        this(TOKENIZER_FACTORY, config);
-    }
-
-    JsonParserImpl(
-        JsonTokenizerFactory factory,
-        Map<String, ?> config)
-    {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.terminal = false;
-        this.tokenizer = scopeTokenizer(factory, quoted(config));
+        this.tokenizer = TOKENIZER_FACTORY.create(quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -221,7 +214,7 @@ public final class JsonParserImpl implements JsonParserEx
         Map<String, ?> config)
     {
         this.terminal = !(in instanceof DirectBufferInputStreamEx);
-        this.tokenizer = scopeTokenizer(TOKENIZER_FACTORY, quoted(config));
+        this.tokenizer = TOKENIZER_FACTORY.create(quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
         if (in instanceof DirectBufferInputStreamEx dbis)
         {
@@ -232,15 +225,6 @@ public final class JsonParserImpl implements JsonParserEx
             this.ownedInput = new DirectBufferInputStreamEx();
             this.unmaterializedInput = in;
         }
-    }
-
-    private static JsonScopeTokenizer scopeTokenizer(
-        JsonTokenizerFactory factory,
-        boolean quoted)
-    {
-        final JsonTokenizer tokenizer = factory.create(quoted);
-
-        return tokenizer instanceof JsonScopeTokenizer scope ? scope : new ScopedJsonTokenizer(tokenizer, quoted);
     }
 
     private static boolean quoted(
