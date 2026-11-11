@@ -250,4 +250,64 @@ public class PipelineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.sequential.receive.messages.qos1/client",
+        "${upstream}/subscribe.shared.sequential.receive.messages.qos1/server"})
+    public void shouldSubscribeSharedSequentialReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.then.non.shared.receive.messages.qos1/client",
+        "${upstream}/subscribe.shared.then.non.shared.receive.messages.qos1/server"})
+    public void shouldSubscribeSharedThenNonSharedReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.non.shared.then.shared.receive.messages.qos1/client",
+        "${upstream}/subscribe.non.shared.then.shared.receive.messages.qos1/server"})
+    public void shouldSubscribeNonSharedThenSharedReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos1/client",
+        "${upstream}/subscribe.non.shared.sequential.receive.messages.qos1/server"})
+    public void shouldSubscribeNonSharedSequentialReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos2/client",
+        "${upstream}/subscribe.non.shared.sequential.receive.messages.qos2/server"})
+    public void shouldSubscribeNonSharedSequentialReceiveMessagesQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.change.qos.receive.messages/client",
+        "${upstream}/subscribe.shared.resubscribe.change.qos.receive.messages/server"})
+    public void shouldSubscribeSharedResubscribeChangeQosReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
 }
