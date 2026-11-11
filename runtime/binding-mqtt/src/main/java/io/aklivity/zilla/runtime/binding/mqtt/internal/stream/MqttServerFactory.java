@@ -7150,7 +7150,24 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    subscribes.remove(routedId);
+                    removeNonShared();
+                }
+            }
+
+            private void removeNonShared()
+            {
+                final Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes = subscribes.get(routedId);
+                if (routeSubscribes != null)
+                {
+                    if (routeSubscribes.get(qos) == this)
+                    {
+                        routeSubscribes.remove(qos);
+                    }
+
+                    if (routeSubscribes.isEmpty())
+                    {
+                        subscribes.remove(routedId);
+                    }
                 }
             }
 
