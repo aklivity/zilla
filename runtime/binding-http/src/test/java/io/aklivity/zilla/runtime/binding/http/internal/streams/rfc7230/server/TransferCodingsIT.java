@@ -73,7 +73,6 @@ public class TransferCodingsIT
     @Specification({
         "${net}/response.transfer.encoding.chunked/client",
         "${app}/response.transfer.encoding.chunked/server" })
-    @Ignore // TODO: implement encoding chunked responses
     public void responseTransferEncodingChunked() throws Exception
     {
         k3po.finish();
@@ -109,7 +108,6 @@ public class TransferCodingsIT
     @Specification({
         "${net}/response.transfer.encoding.chunked.with.trailer/client",
         "${app}/response.transfer.encoding.chunked.with.trailer/server" })
-    @Ignore // TODO: implement encoding chunked responses
     public void responseTransferEncodingChunkedWithTrailer() throws Exception
     {
         k3po.finish();
