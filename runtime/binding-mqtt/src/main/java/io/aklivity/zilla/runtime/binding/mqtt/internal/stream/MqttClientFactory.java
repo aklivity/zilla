@@ -3824,10 +3824,16 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (!subscriptions.isEmpty())
+            final List<Subscription> subscribed = client.sessionStream.subscriptions.stream()
+                .filter(s -> subscriptions.stream().anyMatch(n -> n.filter.equals(s.filter)))
+                .collect(Collectors.toList());
+
+            if (!subscribed.isEmpty())
             {
+                client.sessionStream.subscriptions.removeAll(subscribed);
+
                 final int packetId = client.nextPacketId();
-                client.doEncodeUnsubscribe(traceId, authorization, subscriptions, packetId);
+                client.doEncodeUnsubscribe(traceId, authorization, subscribed, packetId);
             }
 
             doSubscribeEnd(traceId, authorization);
