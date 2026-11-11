@@ -166,4 +166,14 @@ public class UnsubscribeIT
     {
         return ++subscriptionId;
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.inflight.message.qos1/client",
+        "${app}/unsubscribe.inflight.message.qos1/server"})
+    public void shouldUnsubscribeInflightMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }
