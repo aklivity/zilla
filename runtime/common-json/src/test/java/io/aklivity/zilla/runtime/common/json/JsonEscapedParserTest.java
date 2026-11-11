@@ -181,29 +181,14 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldUnescapeNestedDocuments()
+    void shouldRejectScopeWithinScope()
     {
         final String json = "{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"d\\\\\\\":1}\\\"}\"}";
 
         for (int window = 1; window <= json.length() + 1; window++)
         {
-            final Outcome outcome = unescape(json, window, BOUND, "a", "c");
-
-            assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
-            assertEquals("{\"a\":{\"c\":{\"d\":1}}}", outcome.output(), "window " + window);
+            assertEquals(Status.REJECTED, unescape(json, window, BOUND, "a", "c").status(), "window " + window);
         }
-    }
-
-    @Test
-    void shouldDeliverNestedMarkers()
-    {
-        final String json = "{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"d\\\\\\\":1}\\\"}\"}";
-
-        final Outcome outcome = record(stream(true, "a", "c"), new Recorder(), json, WHOLE);
-
-        assertEquals(Status.COMPLETED, outcome.status());
-        assertEquals("START_OBJECT KEY_NAME(a) START_ESCAPED START_OBJECT KEY_NAME(c) START_ESCAPED START_OBJECT " +
-            "KEY_NAME(d) VALUE_NUMBER(1) END_OBJECT END_ESCAPED END_OBJECT END_ESCAPED END_OBJECT", outcome.output());
     }
 
     @Test
@@ -234,7 +219,7 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldLocateWithinDecodedContent()
+    void shouldLocateContentAtItsSourceOffsets()
     {
         final List<Long> offsets = new ArrayList<>();
         final JsonTransform locator = new JsonTransform()
@@ -266,7 +251,7 @@ class JsonEscapedParserTest
         final Outcome outcome = record(stream, new Recorder(), "{\"a\":\"{\\\"b\\\":1}\"}", WHOLE);
 
         assertEquals(Status.COMPLETED, outcome.status());
-        assertEquals(List.of(7L, 17L), offsets);
+        assertEquals(List.of(15L, 17L), offsets);
     }
 
     @Test

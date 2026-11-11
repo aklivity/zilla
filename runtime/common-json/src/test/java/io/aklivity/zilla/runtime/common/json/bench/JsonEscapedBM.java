@@ -15,8 +15,11 @@
 package io.aklivity.zilla.runtime.common.json.bench;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -25,10 +28,13 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -54,7 +60,11 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * markers, {@code unescapeForward} forwards them so the generator renders the string again, {@code escape}
  * renders a plain value as the string, and {@code unescapeWindowed} feeds {@code unescape} through windows
  * narrower than the string so the document is carried across fragments. After warm-up each should allocate
- * nothing under {@code -prof gc}, as the control does.
+ * nothing under {@code -prof gc}, as the control does. {@code leavePlain} and {@code leaveUnescape} each build a
+ * pipeline, run the document through it once and keep it, as a stream that stays open does, so what an escaped
+ * scope holds is read as the difference in {@code retained.heap.norm} (B/op) between them; run them with
+ * {@code -prof io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler}. {@code padding} lengthens the text
+ * inside the document.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -64,14 +74,20 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 @OutputTimeUnit(SECONDS)
 public class JsonEscapedBM
 {
-    private static final String PLAIN = "{\"a\":{\"b\":1,\"c\":[1,2,3],\"e\":\"text\"},\"d\":4}";
-    private static final String STRINGIFIED = "{\"a\":\"{\\\"b\\\":1,\\\"c\\\":[1,2,3],\\\"e\\\":\\\"text\\\"}\",\"d\":4}";
+    private static final String PLAIN = "{\"a\":{\"b\":1,\"c\":[1,2,3],\"e\":\"text%s\"},\"d\":4}";
+    private static final String STRINGIFIED =
+        "{\"a\":\"{\\\"b\\\":1,\\\"c\\\":[1,2,3],\\\"e\\\":\\\"text%s\\\"}\",\"d\":4}";
 
     private static final int WINDOW = 16;
+    private static final int IN_FLIGHT = 2_000;
+
+    @Param({"0", "10000"})
+    public int padding;
 
     private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     private final JsonSink sink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.STRUCTURED));
+    private final List<JsonPipeline> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
     private JsonPipeline plainPipeline;
     private JsonPipeline unescapePipeline;
@@ -92,8 +108,9 @@ public class JsonEscapedBM
         unescapeForwardPipeline = JsonEx.stream(JsonEx.createParser()).transform(new Unescape(true)).into(sink);
         escapePipeline = JsonEx.stream(JsonEx.createParser()).transform(new Escape()).into(sink);
 
-        byte[] plainBytes = PLAIN.getBytes(UTF_8);
-        byte[] stringifiedBytes = STRINGIFIED.getBytes(UTF_8);
+        final String fill = "x".repeat(padding);
+        byte[] plainBytes = String.format(PLAIN, fill).getBytes(UTF_8);
+        byte[] stringifiedBytes = String.format(STRINGIFIED, fill).getBytes(UTF_8);
 
         plainBuffer = new UnsafeBufferEx(plainBytes);
         stringifiedBuffer = new UnsafeBufferEx(stringifiedBytes);
@@ -112,6 +129,46 @@ public class JsonEscapedBM
     public int unescape()
     {
         return run(unescapePipeline, stringifiedBuffer, stringifiedLength);
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(MILLISECONDS)
+    @Warmup(iterations = 1)
+    @Measurement(iterations = 3)
+    @OperationsPerInvocation(IN_FLIGHT)
+    public void leavePlain()
+    {
+        for (int pipeline = 0; pipeline < IN_FLIGHT; pipeline++)
+        {
+            final JsonPipeline plain = JsonEx.stream(JsonEx.createParser()).into(sink);
+
+            run(plain, plainBuffer, plainLength);
+            inflight.add(plain);
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(MILLISECONDS)
+    @Warmup(iterations = 1)
+    @Measurement(iterations = 3)
+    @OperationsPerInvocation(IN_FLIGHT)
+    public void leaveUnescape()
+    {
+        for (int pipeline = 0; pipeline < IN_FLIGHT; pipeline++)
+        {
+            final JsonPipeline unescape = JsonEx.stream(JsonEx.createParser()).transform(new Unescape(false)).into(sink);
+
+            run(unescape, stringifiedBuffer, stringifiedLength);
+            inflight.add(unescape);
+        }
+    }
+
+    @TearDown(Level.Trial)
+    public void release()
+    {
+        inflight.clear();
     }
 
     @Benchmark

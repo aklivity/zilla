@@ -210,6 +210,17 @@ public interface JsonParserEx extends JsonParser
     CharSequence getStringView();
 
     /**
+     * Arms the string value that follows the current {@link JsonEvent#KEY_NAME} to be parsed as a stringified
+     * JSON document: in place of the string value the parser delivers {@link JsonEvent#START_ESCAPED}, the events of
+     * the document held by the string, and {@link JsonEvent#END_ESCAPED}. The content is read where it lies, with
+     * the escapes of the string undone as it is tokenized, so it is never copied. The content must be exactly one
+     * complete JSON value, with optional surrounding whitespace, and an empty string delivers the two markers with
+     * nothing between. A value that is not a string, content that is malformed or incomplete, or a request made
+     * while a scope is open, is an error.
+     */
+    void escaped();
+
+    /**
      * Valid only when the current event is {@link JsonEvent#segmented()}; non-owning view of the current
      * contiguous slice, valid on-stack only. The {@link JsonSource#getSegment()} accessor promoted onto the
      * parser surface so a pipeline exposes it to a stage without narrowing to {@link JsonSource}.

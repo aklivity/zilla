@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.json.internal.JsonParserFactoryImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonSinkImpl;
 import io.aklivity.zilla.runtime.common.json.internal.JsonStreamImpl;
+import io.aklivity.zilla.runtime.common.json.internal.JsonValueParser;
 
 /**
  * Entry point for {@code common-json}'s streaming JSON parsing over Agrona buffers.
@@ -136,5 +137,19 @@ public final class JsonEx
         JsonParserEx parser)
     {
         return new JsonStreamImpl(parser);
+    }
+
+    /**
+     * Presents the next value of {@code parser}, which is already running, as a document of its own, so a
+     * pipeline built with {@link #stream(JsonParserEx)} can be driven over part of a stream. Its events are the
+     * parser's, between a {@link JsonEvent#START_DOCUMENT} and an {@link JsonEvent#END_DOCUMENT} made up for the
+     * value, and when the value closes {@code parser} is left right after it. The owner of {@code parser} keeps
+     * wrapping it with the bytes it reads, the returned parser never does, and {@code reset()} on it re-arms the
+     * document without resetting {@code parser}.
+     */
+    public static JsonParserEx createValueParser(
+        JsonParserEx parser)
+    {
+        return new JsonValueParser(parser);
     }
 }

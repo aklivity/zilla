@@ -134,6 +134,31 @@ class JsonGeneratorEscapedScopeTest
     }
 
     @Test
+    void shouldEscapeScopesNestedDeeperThanTheInitialLevels()
+    {
+        for (int levels = 1; levels <= 7; levels++)
+        {
+            final JsonGeneratorEx generator = generator();
+            String expected = "42";
+
+            for (int level = 0; level < levels; level++)
+            {
+                generator.writeStartEscaped();
+                expected = "\"" + expected.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+            }
+
+            generator.write(42);
+
+            for (int level = 0; level < levels; level++)
+            {
+                generator.writeEndEscaped();
+            }
+
+            assertEquals(expected, output(generator), "levels " + levels);
+        }
+    }
+
+    @Test
     void shouldEscapeScopeInsideConfiguredEscape()
     {
         final JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));

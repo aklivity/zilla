@@ -48,6 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
@@ -2544,6 +2545,12 @@ public final class JsonSchemaImpl implements JsonSchema
             Mode mode)
         {
             return delegateEx.nextEvent(mode);
+        }
+
+        @Override
+        public void escaped()
+        {
+            throw new JsonException("escaped scope not supported");
         }
 
         @Override
