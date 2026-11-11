@@ -1480,7 +1480,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
             {
                 dataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .share(s -> setRecordInit(s, record, entry, deferred, last))
+                    .share(s -> setRecordInit(s, record, entry, deferred))
                     .build();
             }
             else if (last)
@@ -1529,8 +1529,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
             KafkaShareDataExFW.Builder share,
             KafkaShareRecord record,
             KafkaCacheEntryFW entry,
-            int deferred,
-            boolean complete)
+            int deferred)
         {
             share.deferred(deferred)
                  .timestamp(record.timestamp)
@@ -1538,10 +1537,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
                  .partition(p -> p.partitionId(record.partitionId).partitionOffset(record.partitionOffset))
                  .key(k -> k.set(entry.paddedKey().key()));
 
-            if (complete)
-            {
-                entry.headers().forEach(h -> share.headersItem(i -> i.set(h)));
-            }
+            entry.headers().forEach(h -> share.headersItem(i -> i.set(h)));
         }
 
         private void setRecordFin(
