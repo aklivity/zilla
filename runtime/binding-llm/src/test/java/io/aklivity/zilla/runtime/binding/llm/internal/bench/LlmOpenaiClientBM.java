@@ -48,6 +48,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -95,6 +96,10 @@ public class LlmOpenaiClientBM
     private static final String CHUNK = "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",";
     private static final String USAGE =
         "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}";
+    private static final String RESPONSES_USAGE =
+        "{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}";
+    private static final String ARGUMENTS_PREFIX = "{\\\"query\\\":\\\"";
+    private static final String ARGUMENTS_SUFFIX = "\\\"}";
 
     @Benchmark
     public void exchange(
@@ -133,7 +138,7 @@ public class LlmOpenaiClientBM
         @Param({"text", "toolCall"})
         public String response;
 
-        @Param({"auto", "chat"})
+        @Param({"auto", "chat", "responses"})
         public String dialect;
 
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
@@ -164,13 +169,13 @@ public class LlmOpenaiClientBM
                 .directory("target/zilla-bench")
                 .external("net0")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .start("auto".equals(dialect) ? CONFIGURATION_AUTO : CONFIGURATION_CHAT);
+                .start("chat".equals(dialect) ? CONFIGURATION_CHAT : CONFIGURATION_AUTO);
 
             final int llmTypeId = bench.labelId("llm");
 
             beginEx = new UnsafeBufferEx(LlmFunctions.beginEx()
                 .typeId(llmTypeId)
-                .dialect("openai/ccs")
+                .dialect(responses() ? "openai/rs" : "openai/ccs")
                 .model("gpt-4")
                 .build());
             appId = bench.bindingId("app0");
@@ -194,8 +199,9 @@ public class LlmOpenaiClientBM
 
             if (streaming)
             {
-                add(exs, payloads, controlEx(llmTypeId),
-                    "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}");
+                add(exs, payloads, controlEx(llmTypeId), responses()
+                    ? "{\"stream_options\":{\"include_usage\":true}}"
+                    : "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}");
             }
 
             sectionEx = exs.toArray(UnsafeBufferEx[]::new);
@@ -325,33 +331,52 @@ public class LlmOpenaiClientBM
             client.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
         }
 
+        private boolean responses()
+        {
+            return "responses".equals(dialect);
+        }
+
         private Response response(
             String text)
         {
             final boolean toolCall = "toolCall".equals(response);
             final List<byte[]> events = new ArrayList<>();
+            final List<byte[]> eventEx = new ArrayList<>();
+            final int httpTypeId = bench.labelId("http");
 
-            if (streaming)
+            if (responses() && streaming)
             {
-                streamingEvents(events, text, toolCall);
+                responsesStreamingEvents(events, eventEx, httpTypeId, text, toolCall);
+            }
+            else if (responses())
+            {
+                events.add(responsesCompletion(text, toolCall).getBytes(UTF_8));
+            }
+            else if (streaming)
+            {
+                chatStreamingEvents(events, text, toolCall);
             }
             else
             {
-                events.add(completion(text, toolCall).getBytes(UTF_8));
+                events.add(chatCompletion(text, toolCall).getBytes(UTF_8));
             }
 
             final byte[][] sectionEx = new byte[events.size()][];
             Arrays.fill(sectionEx, NO_BYTES);
+            for (int event = 0; event < eventEx.size(); event++)
+            {
+                sectionEx[event] = eventEx.get(event);
+            }
 
             return new Response(
-                httpResponseBeginEx(bench.labelId("http"), streaming ? "text/event-stream" : "application/json"),
+                httpResponseBeginEx(httpTypeId, streaming ? "text/event-stream" : "application/json"),
                 sectionEx,
                 events.toArray(byte[][]::new),
                 NO_BYTES,
                 0);
         }
 
-        private static String completion(
+        private static String chatCompletion(
             String text,
             boolean toolCall)
         {
@@ -366,7 +391,7 @@ public class LlmOpenaiClientBM
                 message, toolCall ? "tool_calls" : "stop", USAGE);
         }
 
-        private static void streamingEvents(
+        private static void chatStreamingEvents(
             List<byte[]> events,
             String text,
             boolean toolCall)
@@ -379,13 +404,11 @@ public class LlmOpenaiClientBM
                 events.add((CHUNK + "\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_1\"," +
                     "\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"\"}}]},\"finish_reason\":null}]}")
                     .getBytes(UTF_8));
-                events.add(toolCallDelta("{\\\"query\\\":\\\""));
+                events.add(toolCallDelta(ARGUMENTS_PREFIX));
             }
 
-            for (int offset = 0; offset < text.length(); offset += STREAMING_FRAGMENT_LENGTH)
+            for (String fragment : fragments(text))
             {
-                final String fragment = text.substring(offset, Math.min(offset + STREAMING_FRAGMENT_LENGTH, text.length()));
-
                 events.add(toolCall
                     ? toolCallDelta(fragment)
                     : (CHUNK + "\"choices\":[{\"index\":0,\"delta\":{\"content\":\"" + fragment +
@@ -394,13 +417,131 @@ public class LlmOpenaiClientBM
 
             if (toolCall)
             {
-                events.add(toolCallDelta("\\\"}"));
+                events.add(toolCallDelta(ARGUMENTS_SUFFIX));
             }
 
             events.add((CHUNK + "\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"" +
                 (toolCall ? "tool_calls" : "stop") + "\"}]}").getBytes(UTF_8));
             events.add((CHUNK + "\"choices\":[],\"usage\":" + USAGE + "}").getBytes(UTF_8));
             events.add("[DONE]".getBytes(UTF_8));
+        }
+
+        private static String responsesCompletion(
+            String text,
+            boolean toolCall)
+        {
+            final String item = toolCall
+                ? String.format("{\"id\":\"fc_1\",\"type\":\"function_call\",\"arguments\":\"%s%s%s\"," +
+                    "\"call_id\":\"call_1\",\"name\":\"lookup\",\"status\":\"completed\"}",
+                    ARGUMENTS_PREFIX, text, ARGUMENTS_SUFFIX)
+                : String.format("{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\"," +
+                    "\"text\":\"%s\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}",
+                    text);
+
+            return String.format("{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[%s]," +
+                "\"status\":\"completed\",\"usage\":%s}", item, RESPONSES_USAGE);
+        }
+
+        private static void responsesStreamingEvents(
+            List<byte[]> events,
+            List<byte[]> eventEx,
+            int httpTypeId,
+            String text,
+            boolean toolCall)
+        {
+            final String progress = "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\"," +
+                "\"status\":\"in_progress\",\"output\":[]}";
+            final String added = toolCall
+                ? "\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"in_progress\"," +
+                    "\"arguments\":\"\",\"call_id\":\"call_1\",\"name\":\"lookup\"}"
+                : "\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"in_progress\",\"content\":[]," +
+                    "\"role\":\"assistant\"}";
+            final String done = toolCall
+                ? String.format("\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\"," +
+                    "\"arguments\":\"%s%s%s\",\"call_id\":\"call_1\",\"name\":\"lookup\"}",
+                    ARGUMENTS_PREFIX, text, ARGUMENTS_SUFFIX)
+                : String.format("\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"completed\"," +
+                    "\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"%s\"}]," +
+                    "\"role\":\"assistant\"}", text);
+
+            int sequence = 0;
+            sequence = responsesEvent(events, eventEx, httpTypeId, "response.created", progress, sequence);
+            sequence = responsesEvent(events, eventEx, httpTypeId, "response.in_progress", progress, sequence);
+            sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_item.added",
+                added + ",\"output_index\":0", sequence);
+
+            if (toolCall)
+            {
+                final List<String> deltas = new ArrayList<>();
+                deltas.add(ARGUMENTS_PREFIX);
+                deltas.addAll(fragments(text));
+                deltas.add(ARGUMENTS_SUFFIX);
+
+                for (String delta : deltas)
+                {
+                    sequence = responsesEvent(events, eventEx, httpTypeId, "response.function_call_arguments.delta",
+                        "\"delta\":\"" + delta + "\",\"item_id\":\"fc_1\",\"obfuscation\":\"abcdefghij\",\"output_index\":0",
+                        sequence);
+                }
+
+                sequence = responsesEvent(events, eventEx, httpTypeId, "response.function_call_arguments.done",
+                    "\"arguments\":\"" + ARGUMENTS_PREFIX + text + ARGUMENTS_SUFFIX + "\",\"item_id\":\"fc_1\"," +
+                    "\"output_index\":0", sequence);
+            }
+            else
+            {
+                sequence = responsesEvent(events, eventEx, httpTypeId, "response.content_part.added",
+                    "\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\"," +
+                    "\"annotations\":[],\"logprobs\":[],\"text\":\"\"}", sequence);
+
+                for (String fragment : fragments(text))
+                {
+                    sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_text.delta",
+                        "\"content_index\":0,\"delta\":\"" + fragment + "\",\"item_id\":\"msg_1\",\"logprobs\":[]," +
+                        "\"obfuscation\":\"abcdefghij\",\"output_index\":0", sequence);
+                }
+
+                sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_text.done",
+                    "\"content_index\":0,\"item_id\":\"msg_1\",\"logprobs\":[],\"output_index\":0,\"text\":\"" +
+                    text + "\"", sequence);
+                sequence = responsesEvent(events, eventEx, httpTypeId, "response.content_part.done",
+                    "\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\"," +
+                    "\"annotations\":[],\"logprobs\":[],\"text\":\"" + text + "\"}", sequence);
+            }
+
+            sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_item.done",
+                done + ",\"output_index\":0", sequence);
+            responsesEvent(events, eventEx, httpTypeId, "response.completed",
+                "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[" + done.substring(
+                    "\"item\":".length()) + "],\"status\":\"completed\",\"usage\":" + RESPONSES_USAGE + "}", sequence);
+        }
+
+        private static int responsesEvent(
+            List<byte[]> events,
+            List<byte[]> eventEx,
+            int httpTypeId,
+            String type,
+            String members,
+            int sequence)
+        {
+            events.add(String.format("{\"type\":\"%s\",%s,\"sequence_number\":%d}", type, members, sequence)
+                .getBytes(UTF_8));
+            eventEx.add(httpDataEx(httpTypeId, type));
+
+            return sequence + 1;
+        }
+
+        private static List<String> fragments(
+            String text)
+        {
+            final List<String> fragments = new ArrayList<>();
+
+            for (int offset = 0; offset < text.length(); offset += STREAMING_FRAGMENT_LENGTH)
+            {
+                fragments.add(text.substring(offset, Math.min(offset + STREAMING_FRAGMENT_LENGTH, text.length())));
+            }
+
+            return fragments;
         }
 
         private static byte[] toolCallDelta(
@@ -451,6 +592,23 @@ public class LlmOpenaiClientBM
             new Random(0L).nextBytes(random);
 
             return Base64.getEncoder().withoutPadding().encodeToString(random).substring(0, length);
+        }
+
+        private static byte[] httpDataEx(
+            int httpTypeId,
+            String type)
+        {
+            final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[128]);
+
+            final HttpDataExFW httpDataEx = new HttpDataExFW.Builder().wrap(buffer, 0, buffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name("type").value(type))
+                .build();
+
+            final byte[] encoded = new byte[httpDataEx.sizeof()];
+            buffer.getBytes(0, encoded);
+
+            return encoded;
         }
 
         private static byte[] httpResponseBeginEx(
