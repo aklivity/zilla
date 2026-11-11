@@ -21,7 +21,7 @@ stores:
     options:
       entries:
         "zilla:test-mqtt0:memberships:client": ARsAAAABAAAACQBjb25zdW1lcnMKAHNlbnNvci9vbmU
-        "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry": 0:1
+        "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry": "2:1"
       assertions: []
 bindings:
   mqtt0:

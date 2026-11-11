@@ -20,7 +20,7 @@ stores:
     type: test
     options:
       entries:
-        "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry": x
+        "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry": "x"
       assertions: []
 bindings:
   mqtt0:
