@@ -68,6 +68,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithStoreSharedUnreadableTickets()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.unreadable.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWithStoreSharedNoTickets()
     {
         JsonObject config = schema.validate("proxy.store.shared.no.tickets.yaml");
