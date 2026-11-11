@@ -286,6 +286,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/http.authority.bare.host/client",
+        "${app}/http.authority.bare.host/server"
+    })
+    public void bareHostAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/http.unknown.authority/client",
         "${app}/http.unknown.authority/server"
     })

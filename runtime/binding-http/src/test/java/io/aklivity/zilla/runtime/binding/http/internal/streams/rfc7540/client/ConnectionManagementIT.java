@@ -296,6 +296,17 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("client.authority.yaml")
+    @Specification({
+        "${app}/http.authority.bare.host/client",
+        "${net}/http.authority.bare.host/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void bareHostAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.path.prefix.yaml")
     @Specification({
         "${app}/http.path.prefix/client",

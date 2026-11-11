@@ -324,6 +324,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/http.authority.bare.host/client",
+        "${net}/http.authority.bare.host/server"
+    })
+    public void bareHostAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/http.path.prefix/client",
         "${net}/http.path.prefix/server",
     })
