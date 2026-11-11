@@ -204,4 +204,24 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/request.with.duplicate.headers/client",
+        "${app}/request.with.duplicate.headers/server"
+    })
+    public void requestWithDuplicateHeaders() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.with.duplicate.headers/client",
+        "${app}/response.with.duplicate.headers/server"
+    })
+    public void responseWithDuplicateHeaders() throws Exception
+    {
+        k3po.finish();
+    }
 }
