@@ -66,7 +66,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect);
+        super(mode, dialect, 1, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.capability = capability;

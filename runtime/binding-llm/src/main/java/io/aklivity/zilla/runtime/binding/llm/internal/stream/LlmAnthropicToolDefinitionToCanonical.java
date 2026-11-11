@@ -30,6 +30,11 @@ final class LlmAnthropicToolDefinitionToCanonical extends LlmToolTransform
 
     private boolean named;
 
+    LlmAnthropicToolDefinitionToCanonical()
+    {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
+    }
+
     @Override
     public void reset()
     {

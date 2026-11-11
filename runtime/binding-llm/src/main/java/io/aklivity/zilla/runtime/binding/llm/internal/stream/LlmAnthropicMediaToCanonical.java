@@ -45,6 +45,7 @@ final class LlmAnthropicMediaToCanonical extends LlmToolTransform
         String dataMember,
         String urlMember)
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.canonicalType = canonicalType;
         this.container = container;
         this.dataMember = dataMember;
