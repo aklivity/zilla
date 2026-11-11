@@ -50,7 +50,10 @@ public final class TestStoreOptionsConfig extends OptionsConfig
     {
         public final String op;
         public final String key;
+        public final List<String> keys;
         public final String value;
+        public final String expected;
+        public final long delta;
         public final Duration ttl;
 
         public Assertion(
@@ -59,9 +62,24 @@ public final class TestStoreOptionsConfig extends OptionsConfig
             String value,
             Duration ttl)
         {
+            this(op, key, null, value, null, 0L, ttl);
+        }
+
+        public Assertion(
+            String op,
+            String key,
+            List<String> keys,
+            String value,
+            String expected,
+            long delta,
+            Duration ttl)
+        {
             this.op = op;
             this.key = key;
+            this.keys = keys;
             this.value = value;
+            this.expected = expected;
+            this.delta = delta;
             this.ttl = ttl;
         }
     }

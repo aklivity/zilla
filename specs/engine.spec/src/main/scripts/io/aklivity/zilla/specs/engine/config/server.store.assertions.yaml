@@ -27,8 +27,25 @@ stores:
                   key: key1
                   value: value1
                   ttl: PT1H
+                - op: putIfAbsent
+                  key: key2
+                  value: value2
+                - op: getAndDelete
+                  key: key2
+                - op: increment
+                  key: counter
+                  delta: -2
+                  value: "3"
+                  ttl: PT1M
+                - op: replace
+                  key: key1
+                  expected: value1
+                  value: value3
+                  ttl: PT1H
                 - op: delete
                   key: key1
+                - op: delete
+                  keys: [key1, key2]
 bindings:
     net0:
         type: test

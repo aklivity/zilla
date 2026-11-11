@@ -31,11 +31,15 @@ import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptio
 
 public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
+    private static final String INCREMENT_OP = "increment";
     private static final String ENTRIES_NAME = "entries";
     private static final String ASSERTIONS_NAME = "assertions";
     private static final String OP_NAME = "op";
     private static final String KEY_NAME = "key";
+    private static final String KEYS_NAME = "keys";
     private static final String VALUE_NAME = "value";
+    private static final String EXPECTED_NAME = "expected";
+    private static final String DELTA_NAME = "delta";
     private static final String TTL_NAME = "ttl";
 
     @Override
@@ -61,7 +65,24 @@ public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsCo
             {
                 JsonObjectBuilder assertion = Json.createObjectBuilder();
                 assertion.add(OP_NAME, a.op);
-                assertion.add(KEY_NAME, a.key);
+                if (a.key != null)
+                {
+                    assertion.add(KEY_NAME, a.key);
+                }
+                if (a.keys != null)
+                {
+                    JsonArrayBuilder keys = Json.createArrayBuilder();
+                    a.keys.forEach(keys::add);
+                    assertion.add(KEYS_NAME, keys);
+                }
+                if (a.expected != null)
+                {
+                    assertion.add(EXPECTED_NAME, a.expected);
+                }
+                if (INCREMENT_OP.equals(a.op))
+                {
+                    assertion.add(DELTA_NAME, a.delta);
+                }
                 if (a.value != null)
                 {
                     assertion.add(VALUE_NAME, a.value);
@@ -97,10 +118,18 @@ public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsCo
             for (int i = 0; i < array.size(); i++)
             {
                 final JsonObject assertion = array.getJsonObject(i);
+                final List<String> keys = assertion.containsKey(KEYS_NAME)
+                    ? assertion.getJsonArray(KEYS_NAME).getValuesAs(JsonString.class).stream()
+                        .map(JsonString::getString)
+                        .toList()
+                    : null;
                 assertions.add(new Assertion(
                     assertion.getString(OP_NAME),
-                    assertion.getString(KEY_NAME),
+                    assertion.getString(KEY_NAME, null),
+                    keys,
                     assertion.getString(VALUE_NAME, null),
+                    assertion.getString(EXPECTED_NAME, null),
+                    assertion.containsKey(DELTA_NAME) ? assertion.getJsonNumber(DELTA_NAME).longValue() : 0L,
                     assertion.containsKey(TTL_NAME) ? Duration.parse(assertion.getString(TTL_NAME)) : null));
             }
             testOptions.assertions(assertions);
