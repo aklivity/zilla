@@ -1017,6 +1017,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.expire.message.fragmented/client",
+        "${mqtt}/subscribe.shared.expire.message.fragmented/server"})
+    public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos0/client",
         "${mqtt}/subscribe.shared.receive.message.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos0() throws Exception
@@ -1026,9 +1035,27 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1/client",
         "${mqtt}/subscribe.shared.receive.message.qos1/server"})
     public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Fragmented() throws Exception
     {
         k3po.finish();
     }
@@ -1062,18 +1089,18 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
-        "${mqtt}/subscribe.shared.reject.filter.mismatch/server"})
-    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncodeFragmented() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.shared.reject.fragmented.message/client",
-        "${mqtt}/subscribe.shared.reject.fragmented.message/server"})
-    public void shouldSubscribeSharedRejectFragmentedMessage() throws Exception
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
     {
         k3po.finish();
     }
