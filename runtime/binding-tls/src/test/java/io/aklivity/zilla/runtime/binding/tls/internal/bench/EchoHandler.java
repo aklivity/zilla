@@ -61,6 +61,7 @@ final class EchoHandler implements BindingHandler
         void reset();
     }
 
+    private static final DirectBufferEx EMPTY_EXTENSION = new UnsafeBufferEx(new byte[0]);
     private static final int FLAGS_INIT_FIN = 0x03;
     private static final int WRITE_BUFFER_CAPACITY = 128 * 1024;
     private static final int PENDING_CAPACITY = 256 * 1024;
@@ -77,10 +78,19 @@ final class EchoHandler implements BindingHandler
     private final Queue<EchoStream> idleStreams = new ArrayDeque<>();
     private final Queue<MutableDirectBufferEx> idleBuffers = new ArrayDeque<>();
     private final Function<Sink, Endpoint> endpoints;
+    private final DirectBufferEx replyBeginEx;
 
     EchoHandler(
         Function<Sink, Endpoint> endpoints)
     {
+        this(EMPTY_EXTENSION, endpoints);
+    }
+
+    EchoHandler(
+        DirectBufferEx replyBeginEx,
+        Function<Sink, Endpoint> endpoints)
+    {
+        this.replyBeginEx = replyBeginEx;
         this.endpoints = endpoints;
     }
 
@@ -296,6 +306,7 @@ final class EchoHandler implements BindingHandler
                 .state(state)
                 .maximum(0)
                 .affinity(0L)
+                .extension(replyBeginEx, 0, replyBeginEx.capacity())
                 .build();
 
             sender.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());

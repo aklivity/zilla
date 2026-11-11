@@ -156,7 +156,8 @@ public class TlsClientBM
             final TlsPeers peers = new TlsPeers();
             final TlsPeer.Scratch scratch = new TlsPeer.Scratch(512 * 1024);
 
-            bench.newServer("net0", new EchoHandler(sink -> new PeerEndpoint(sink, peers, scratch, version, retire)));
+            bench.newServer("net0", new EchoHandler(TlsPeers.proxyInetBeginEx(bench.labelId("proxy")),
+                sink -> new PeerEndpoint(sink, peers, scratch, version, retire)));
 
             setup();
         }
