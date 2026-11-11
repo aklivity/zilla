@@ -416,6 +416,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.reject.reconnect.non.clean.start/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/ack.pubrec.unknown.packet.id/client",
         "${app}/session.connect/server"})
     public void shouldReleasePubrecWithUnknownPacketId() throws Exception
