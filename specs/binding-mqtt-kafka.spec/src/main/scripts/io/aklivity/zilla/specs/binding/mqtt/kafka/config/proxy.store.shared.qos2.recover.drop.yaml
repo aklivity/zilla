@@ -26,7 +26,7 @@ stores:
           key: "zilla:test-mqtt0:tickets:client"
         - op: put
           key: "zilla:test-mqtt0:tickets:client"
-          value: ATkAAAABAAAAAgABCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABgAAAAAAAAA
+          value: ATkAAAABAAAAAQABCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABgAAAAAAAAA
 bindings:
   mqtt0:
     type: mqtt-kafka
