@@ -41,9 +41,11 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
     protected LlmFormatFromCanonical(
         int mode,
-        String dialect)
+        String dialect,
+        LlmCapturedValue captured,
+        LlmCapturedScalar scalar)
     {
-        super(mode, dialect);
+        super(mode, dialect, 1, captured, scalar);
     }
 
     protected abstract boolean formatObject();
@@ -88,7 +90,7 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
         {
             if (matches(key, MEMBER_TYPE))
             {
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, MEMBER_JSON_SCHEMA))
             {
@@ -104,9 +106,9 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
     }
 
     protected final Status formatCaptured(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final String type = value.string(0);
+        final String type = value.string();
         final int kind = kindOf(type);
 
         return kind != FORMAT_OFF && open(kind) ? Status.ADVANCED : rejected(RESPONSE_FORMAT);

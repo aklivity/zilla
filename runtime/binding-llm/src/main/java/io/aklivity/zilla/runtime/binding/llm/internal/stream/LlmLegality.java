@@ -22,35 +22,103 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 
 final class LlmLegality
 {
+    static final int UNDECIDED = 0;
+
+    private static final int STARTED = 1 << 0;
+    private static final int HARMLESS = 1 << 1;
+    private static final int ONLY_TYPE = 1 << 2;
+    private static final int TYPE_PENDING = 1 << 3;
+    private static final int TYPE_SEEN = 1 << 4;
+    private static final int TYPE_TEXT = 1 << 5;
+    private static final int MEMBER_DEPTH = 1;
     private static final String TOOL_CHOICE_AUTO = "auto";
     private static final String MEMBER_TYPE = "type";
-    private static final String TYPE_TEXT = "text";
-    private static final String[] TYPE_ONLY = {MEMBER_TYPE};
+    private static final String TYPE_TEXT_VALUE = "text";
+
+    static int advance(
+        CharSequence member,
+        int state,
+        int depth,
+        JsonEvent event,
+        CharSequence text)
+    {
+        int next = state;
+
+        if ((state & STARTED) == 0)
+        {
+            next = STARTED | first(member, event, text);
+        }
+        else if ((state & ONLY_TYPE) != 0)
+        {
+            next = type(state, depth, event, text);
+        }
+
+        return next;
+    }
 
     static boolean harmless(
-        CharSequence member,
-        LlmCapturedValue value)
+        int state)
     {
-        boolean harmless = value.event(0) == JsonEvent.VALUE_NULL;
+        return (state & HARMLESS) != 0 || (state & (ONLY_TYPE | TYPE_TEXT)) == (ONLY_TYPE | TYPE_TEXT);
+    }
 
-        if (!harmless && LlmBehaviour.listed(member))
+    private static int first(
+        CharSequence member,
+        JsonEvent event,
+        CharSequence text)
+    {
+        int state = 0;
+
+        if (event == JsonEvent.VALUE_NULL)
         {
-            harmless = LlmBehaviour.harmless(member, value);
+            state = HARMLESS;
         }
-        else if (!harmless && LlmSharedMembers.matches(member, PARALLEL_TOOL_CALLS))
+        else if (LlmBehaviour.listed(member))
         {
-            harmless = value.event(0) == JsonEvent.VALUE_TRUE;
+            state = LlmBehaviour.harmless(member, event, text) ? HARMLESS : 0;
         }
-        else if (!harmless && LlmSharedMembers.matches(member, TOOL_CHOICE))
+        else if (LlmSharedMembers.matches(member, PARALLEL_TOOL_CALLS))
         {
-            harmless = value.isString(0, TOOL_CHOICE_AUTO);
+            state = event == JsonEvent.VALUE_TRUE ? HARMLESS : 0;
         }
-        else if (!harmless && LlmSharedMembers.matches(member, RESPONSE_FORMAT))
+        else if (LlmSharedMembers.matches(member, TOOL_CHOICE))
         {
-            harmless = value.onlyMembers(0, TYPE_ONLY) && value.isString(value.member(0, MEMBER_TYPE), TYPE_TEXT);
+            state = event == JsonEvent.VALUE_STRING && TOOL_CHOICE_AUTO.contentEquals(text) ? HARMLESS : 0;
+        }
+        else if (LlmSharedMembers.matches(member, RESPONSE_FORMAT))
+        {
+            state = ONLY_TYPE;
         }
 
-        return harmless;
+        return state;
+    }
+
+    private static int type(
+        int state,
+        int depth,
+        JsonEvent event,
+        CharSequence text)
+    {
+        int next = state;
+
+        if ((state & TYPE_PENDING) != 0)
+        {
+            next = state & ~TYPE_PENDING | TYPE_SEEN;
+            next |= event == JsonEvent.VALUE_STRING && TYPE_TEXT_VALUE.contentEquals(text) ? TYPE_TEXT : 0;
+        }
+        else if (event == JsonEvent.KEY_NAME && depth == MEMBER_DEPTH)
+        {
+            if (!MEMBER_TYPE.contentEquals(text))
+            {
+                next = state & ~ONLY_TYPE;
+            }
+            else if ((state & TYPE_SEEN) == 0)
+            {
+                next = state | TYPE_PENDING;
+            }
+        }
+
+        return next;
     }
 
     private LlmLegality()

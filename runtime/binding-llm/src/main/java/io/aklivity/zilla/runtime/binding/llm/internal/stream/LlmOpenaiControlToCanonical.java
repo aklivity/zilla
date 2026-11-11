@@ -62,6 +62,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     LlmOpenaiControlToCanonical(
         String dialect)
     {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
         this.dialect = dialect;
     }
 

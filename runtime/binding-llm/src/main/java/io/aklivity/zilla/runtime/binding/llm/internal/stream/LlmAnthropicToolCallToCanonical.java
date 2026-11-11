@@ -27,6 +27,11 @@ final class LlmAnthropicToolCallToCanonical extends LlmToolTransform
 
     private boolean inputted;
 
+    LlmAnthropicToolCallToCanonical()
+    {
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
+    }
+
     @Override
     public void reset()
     {

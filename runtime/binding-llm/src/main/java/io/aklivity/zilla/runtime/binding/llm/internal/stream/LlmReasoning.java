@@ -54,9 +54,9 @@ final class LlmReasoning
     }
 
     static int effortOf(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event(0);
+        final JsonEvent event = value.event();
         int effort = LlmEffort.INVALID;
 
         if (event == JsonEvent.VALUE_NULL)
@@ -65,16 +65,16 @@ final class LlmReasoning
         }
         else if (event == JsonEvent.VALUE_STRING)
         {
-            effort = LlmEffort.of(value.text(0));
+            effort = LlmEffort.of(value.text());
         }
 
         return effort;
     }
 
     static int budgetOf(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event(0);
+        final JsonEvent event = value.event();
         int budget = LlmEffort.INVALID;
 
         if (event == JsonEvent.VALUE_NULL)
@@ -83,7 +83,7 @@ final class LlmReasoning
         }
         else if (event == JsonEvent.VALUE_NUMBER)
         {
-            budget = budgetOf(value.text(0));
+            budget = budgetOf(value.text());
         }
 
         return budget;
