@@ -14,14 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.function.Consumer;
+
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmCacheBreakpointTest
 {
@@ -131,6 +140,36 @@ public class LlmCacheBreakpointTest
         assertThat(breakpoints.admit(value), is(true));
     }
 
+    @Test
+    public void shouldCountEachDeliveredToolCallBreakpointOnceAtTheLimit()
+    {
+        final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(1, "5m", "1h");
+        final Consumer<LlmSectionAttributes> both = attributes ->
+        {
+            attributes.toolCallId("toolu_1");
+            attributes.toolName("get_weather");
+        };
+        final LlmAnthropicToolCallFromCanonical toolCall = new LlmAnthropicToolCallFromCanonical("tool_use", false, breakpoints);
+
+        assertTransforms(new ResettingTransform(breakpoints, toolCall), both, null,
+            json("{'prompt_cache_breakpoint':{'mode':'explicit','ttl':'1h'}," +
+                "'prompt_cache_breakpoint':{'mode':'explicit','ttl':'5m'},'arguments':{'a':1}}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather'," +
+                "'cache_control':{'type':'ephemeral','ttl':'1h'},'input':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldCountEachDeliveredToolDefinitionBreakpointOnceAtTheLimit()
+    {
+        final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(1, "5m", "1h");
+
+        assertTransforms(new ResettingTransform(breakpoints, new LlmAnthropicToolDefinitionFromCanonical(false, breakpoints)),
+            json("{'type':'function','function':{'name':'ping'," +
+                "'prompt_cache_breakpoint':{'mode':'explicit'},'prompt_cache_breakpoint':{'mode':'explicit','ttl':'5m'}," +
+                "'parameters':{'type':'object'}}}"),
+            json("{'name':'ping','cache_control':{'type':'ephemeral'},'input_schema':{'type':'object'}}"));
+    }
+
     private void breakpoint(
         String mode,
         String ttl)
@@ -147,5 +186,61 @@ public class LlmCacheBreakpointTest
         }
 
         value.add(JsonEvent.END_OBJECT, null, LIMIT);
+    }
+
+    private static final class ResettingTransform implements JsonTransform
+    {
+        private final LlmCacheBreakpoint breakpoints;
+        private final JsonTransform delegate;
+
+        private ResettingTransform(
+            LlmCacheBreakpoint breakpoints,
+            JsonTransform delegate)
+        {
+            this.breakpoints = breakpoints;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            return delegate.transform(control, source, event, sink);
+        }
+
+        @Override
+        public Status resume(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            return delegate.resume(control, source, event, sink);
+        }
+
+        @Override
+        public Status flush(
+            JsonController control,
+            JsonSource source,
+            JsonSink sink)
+        {
+            return delegate.flush(control, source, sink);
+        }
+
+        @Override
+        public void reset()
+        {
+            breakpoints.reset();
+            delegate.reset();
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return delegate.deterministic();
+        }
     }
 }
