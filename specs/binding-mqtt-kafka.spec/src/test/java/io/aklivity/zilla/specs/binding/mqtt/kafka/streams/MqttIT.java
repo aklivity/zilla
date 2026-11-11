@@ -1188,6 +1188,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client",
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/server"})
+    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.reject.unsupported.version/client",
         "${mqtt}/subscribe.shared.reject.unsupported.version/server"})
     public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
