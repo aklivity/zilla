@@ -33,6 +33,7 @@ import java.nio.channels.SocketChannel;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToIntFunction;
 
 import org.agrona.CloseHelper;
 import org.agrona.LangUtil;
@@ -100,6 +101,8 @@ public class TcpServerFactory implements TcpStreamFactory
     private final int windowThreshold;
     private final int proxyTypeId;
     private final BindingHandler streamFactory;
+    private final ToIntFunction<PollerKey> netReadable = this::handleNetReadable;
+    private final ToIntFunction<PollerKey> netWritable = this::handleNetWritable;
 
     public TcpServerFactory(
         TcpConfiguration config,
@@ -193,6 +196,18 @@ public class TcpServerFactory implements TcpStreamFactory
         usage.released();
     }
 
+    private int handleNetReadable(
+        PollerKey key)
+    {
+        return ((TcpServer) key.attachment()).onNetReadable(key);
+    }
+
+    private int handleNetWritable(
+        PollerKey key)
+    {
+        return ((TcpServer) key.attachment()).onNetWritable(key);
+    }
+
     private final class TcpServer
     {
         private final long originId;
@@ -235,8 +250,9 @@ public class TcpServerFactory implements TcpStreamFactory
         {
             try
             {
-                key.handler(OP_READ, this::onNetReadable);
-                key.handler(OP_WRITE, this::onNetWritable);
+                key.attach(this);
+                key.handler(OP_READ, netReadable);
+                key.handler(OP_WRITE, netWritable);
 
                 doAppBegin();
             }

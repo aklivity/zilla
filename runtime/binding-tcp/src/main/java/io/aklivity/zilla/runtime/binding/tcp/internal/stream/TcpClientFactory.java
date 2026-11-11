@@ -37,6 +37,7 @@ import java.nio.channels.UnresolvedAddressException;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToIntFunction;
 
 import org.agrona.CloseHelper;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -99,6 +100,9 @@ public class TcpClientFactory implements TcpStreamFactory
     private final Function<SelectableChannel, PollerKey>  supplyPollerKey;
     private final Function<String, InetAddress[]> resolveHost;
     private final int proxyTypeId;
+    private final ToIntFunction<PollerKey> netConnect = this::handleNetConnect;
+    private final ToIntFunction<PollerKey> netReadable = this::handleNetReadable;
+    private final ToIntFunction<PollerKey> netWritable = this::handleNetWritable;
     private final int windowThreshold;
     private final int initialMax;
     private final Long2ObjectHashMap<TcpBindingConfig> bindingsById;
@@ -230,6 +234,24 @@ public class TcpClientFactory implements TcpStreamFactory
         usage.released();
     }
 
+    private int handleNetConnect(
+        PollerKey key)
+    {
+        return ((TcpClient) key.attachment()).onNetConnect(key);
+    }
+
+    private int handleNetReadable(
+        PollerKey key)
+    {
+        return ((TcpClient) key.attachment()).onNetReadable(key);
+    }
+
+    private int handleNetWritable(
+        PollerKey key)
+    {
+        return ((TcpClient) key.attachment()).onNetWritable(key);
+    }
+
     private final class TcpClient
     {
         private final MessageConsumer app;
@@ -278,6 +300,7 @@ public class TcpClientFactory implements TcpStreamFactory
             try
             {
                 networkKey = supplyPollerKey.apply(net);
+                networkKey.attach(this);
 
                 if (net.connect(remoteAddress))
                 {
@@ -285,7 +308,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 }
                 else
                 {
-                    networkKey.handler(OP_CONNECT, this::onNetConnect);
+                    networkKey.handler(OP_CONNECT, netConnect);
                     networkKey.register(OP_CONNECT);
                 }
             }
@@ -322,8 +345,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
             try
             {
-                networkKey.handler(OP_READ, this::onNetReadable);
-                networkKey.handler(OP_WRITE, this::onNetWritable);
+                networkKey.handler(OP_READ, netReadable);
+                networkKey.handler(OP_WRITE, netWritable);
 
                 final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
                 final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
