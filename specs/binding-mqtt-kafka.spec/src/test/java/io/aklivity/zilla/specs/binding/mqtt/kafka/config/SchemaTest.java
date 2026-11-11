@@ -100,6 +100,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithStoreSessionTicketsDiscard()
+    {
+        JsonObject config = schema.validate("proxy.store.session.discard.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSessionTicketsKeep()
+    {
+        JsonObject config = schema.validate("proxy.store.session.keep.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWithStoreSharedUnreadableTickets()
     {
         JsonObject config = schema.validate("proxy.store.shared.qos2.unreadable.yaml");
