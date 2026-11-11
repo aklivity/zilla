@@ -652,6 +652,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/client",
+        "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/server"})
+    public void shouldSessionQos2OffsetFetchDataThenCaughtUp() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
         "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
