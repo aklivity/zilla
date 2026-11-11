@@ -51,6 +51,23 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     private static final String MEMBER_USER_ID = "user_id";
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final int USER_ID_MAX = 256;
+    private static final int BIT_FORMAT_CONFIG_KEY = 1 << 0;
+    private static final int BIT_FORMAT_CONFIG_START = 1 << 1;
+    private static final int BIT_FORMAT_KEY = 1 << 2;
+    private static final int BIT_FORMAT_START = 1 << 3;
+    private static final int BIT_FORMAT_TYPE_KEY = 1 << 4;
+    private static final int BIT_FORMAT_TYPE_VALUE = 1 << 5;
+    private static final int BIT_FORMAT_END = 1 << 6;
+    private static final int BIT_FORMAT_CONFIG_END = 1 << 7;
+    private static final int BIT_TOOL_CHOICE_KEY = 1 << 8;
+    private static final int BIT_TOOL_CHOICE_START = 1 << 9;
+    private static final int BIT_TOOL_CHOICE_TYPE_KEY = 1 << 10;
+    private static final int BIT_TOOL_CHOICE_TYPE_VALUE = 1 << 11;
+    private static final int BIT_TOOL_CHOICE_NAME_KEY = 1 << 12;
+    private static final int BIT_TOOL_CHOICE_NAME_VALUE = 1 << 13;
+    private static final int BIT_TOOL_CHOICE_END = 1 << 14;
+    private static final int BIT_PASS_END_OBJECT = 1 << 15;
+    private static final int BIT_EMIT_VALUE_NULL = 1 << 16;
 
     static final int PARALLEL_UNSET = -1;
     static final int PARALLEL_DISABLED = 0;
@@ -131,6 +148,12 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     boolean structured()
     {
         return structured;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -242,23 +265,30 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected void openFormat(
+    protected boolean openFormat(
         int kind)
     {
-        structured = true;
-        emit(JsonEvent.KEY_NAME, MEMBER_OUTPUT_CONFIG);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_FORMAT);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-        emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
+        final boolean opened =
+            emit(BIT_FORMAT_CONFIG_KEY, JsonEvent.KEY_NAME, MEMBER_OUTPUT_CONFIG) &&
+            emit(BIT_FORMAT_CONFIG_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_KEY, JsonEvent.KEY_NAME, MEMBER_FORMAT) &&
+            emit(BIT_FORMAT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_FORMAT_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE) &&
+            emit(BIT_FORMAT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
+
+        if (opened)
+        {
+            structured = true;
+        }
+
+        return opened;
     }
 
     @Override
-    protected void closeFormat()
+    protected boolean closeFormat()
     {
-        emit(JsonEvent.END_OBJECT);
-        emit(JsonEvent.END_OBJECT);
+        return emit(BIT_FORMAT_END, JsonEvent.END_OBJECT) &&
+            emit(BIT_FORMAT_CONFIG_END, JsonEvent.END_OBJECT);
     }
 
     @Override
@@ -328,11 +358,11 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         }
         else if (members)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
-            emit(JsonEvent.VALUE_NULL);
+            emit(BIT_EMIT_VALUE_NULL, JsonEvent.VALUE_NULL);
         }
 
         return status;
@@ -347,18 +377,18 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         {
             choiceType = choice.kind() == LlmToolChoice.FUNCTION ? TYPE_TOOL : typeOf(choice.mode());
 
-            emit(JsonEvent.KEY_NAME, TOOL_CHOICE);
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
-            emit(JsonEvent.VALUE_STRING, choiceType);
+            emit(BIT_TOOL_CHOICE_KEY, JsonEvent.KEY_NAME, TOOL_CHOICE);
+            emit(BIT_TOOL_CHOICE_START, JsonEvent.START_OBJECT);
+            emit(BIT_TOOL_CHOICE_TYPE_KEY, JsonEvent.KEY_NAME, MEMBER_TYPE);
+            emit(BIT_TOOL_CHOICE_TYPE_VALUE, JsonEvent.VALUE_STRING, choiceType);
 
             if (choice.kind() == LlmToolChoice.FUNCTION)
             {
-                emit(JsonEvent.KEY_NAME, MEMBER_NAME);
-                emit(JsonEvent.VALUE_STRING, choice.name());
+                emit(BIT_TOOL_CHOICE_NAME_KEY, JsonEvent.KEY_NAME, MEMBER_NAME);
+                emit(BIT_TOOL_CHOICE_NAME_VALUE, JsonEvent.VALUE_STRING, choice.name());
             }
 
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_TOOL_CHOICE_END, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
