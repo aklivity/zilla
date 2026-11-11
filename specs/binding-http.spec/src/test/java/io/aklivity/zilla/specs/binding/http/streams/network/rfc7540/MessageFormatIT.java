@@ -234,4 +234,14 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.trailer/client",
+        "${net}/request.trailer/server"
+    })
+    public void shouldForwardRequestTrailer() throws Exception
+    {
+        k3po.finish();
+    }
 }
