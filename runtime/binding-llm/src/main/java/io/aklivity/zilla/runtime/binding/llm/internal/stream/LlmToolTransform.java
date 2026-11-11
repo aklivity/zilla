@@ -114,6 +114,7 @@ abstract class LlmToolTransform implements JsonTransform
     private int mask;
     private int inflight;
     private int looped;
+    private int loopOrdinal;
     private int nameCount;
     private int queueHead;
     private int queueTail;
@@ -581,6 +582,70 @@ abstract class LlmToolTransform implements JsonTransform
         return delivered;
     }
 
+    /**
+     * Emits one event of a loop whose number of emits depends on data. The whole loop shares the single bit
+     * {@code loopBit}, set by {@link #endLoop(int)} once every emit of the loop has been delivered, plus a cursor of
+     * delivered emits. Each call is identified by its position in the loop, so the loop must be a pure function of
+     * its input: the same emits, in the same order, on every replay. Every emit of the loop goes through
+     * {@code emitLoop} or {@link #emitLoopCaptured(int, LlmCapturedValue, int)}, including extra events emitted on only
+     * some iterations. Returns true when the event was delivered now or earlier, false when the sink cannot take it.
+     */
+    protected final boolean emitLoop(
+        int loopBit,
+        JsonEvent event)
+    {
+        return acceptLoop(owned(loopBit), event, null);
+    }
+
+    protected final boolean emitLoop(
+        int loopBit,
+        JsonEvent event,
+        String text)
+    {
+        return acceptLoop(owned(loopBit), event, text);
+    }
+
+    protected final boolean emitLoopCaptured(
+        int loopBit,
+        LlmCapturedValue value,
+        int index)
+    {
+        final int loop = owned(loopBit);
+        final int end = value.end(index);
+        boolean delivered = true;
+
+        for (int at = index; delivered && at < end; at++)
+        {
+            delivered = acceptLoop(loop, value.event(at), value.text(at));
+        }
+
+        return delivered;
+    }
+
+    /**
+     * Closes the loop begun by its {@code emitLoop} calls: when every emit of the pass has been delivered it sets
+     * {@code loopBit} and clears the cursor so a following loop starts from its first emit. Returns true when the loop
+     * is delivered. Call it after the loop, even when the loop emitted nothing, and chain later emits and state
+     * changes on its result.
+     */
+    protected final boolean endLoop(
+        int loopBit)
+    {
+        final int loop = owned(loopBit);
+        boolean delivered = (mask & loop) != 0;
+
+        if (!delivered && loopOrdinal == looped)
+        {
+            mask |= loop;
+            looped = 0;
+            delivered = true;
+        }
+
+        loopOrdinal = 0;
+
+        return delivered;
+    }
+
     protected final boolean emitCaptured(
         LlmCapturedValue value,
         int index)
@@ -702,6 +767,7 @@ abstract class LlmToolTransform implements JsonTransform
         mask = 0;
         inflight = NO_BIT;
         looped = 0;
+        loopOrdinal = 0;
         depth = 0;
         pending = NONE;
         passing = false;
@@ -787,6 +853,7 @@ abstract class LlmToolTransform implements JsonTransform
         JsonEvent event)
     {
         this.outcome = Status.ADVANCED;
+        this.loopOrdinal = 0;
 
         Status status = Status.ADVANCED;
 
@@ -1994,6 +2061,38 @@ abstract class LlmToolTransform implements JsonTransform
         return (mask & bit) != 0 || inflight == bit;
     }
 
+    private boolean acceptLoop(
+        int loop,
+        JsonEvent event,
+        String text)
+    {
+        if (!resumable())
+        {
+            throw new IllegalStateException("loop emits require a resumable transform");
+        }
+
+        final int ordinal = loopOrdinal++;
+        boolean accepted = (mask & loop) != 0 || ordinal < looped;
+
+        if (!accepted && ordinal == looped && opened())
+        {
+            accepted = write(loop, event, text, false, false, false);
+
+            if (accepted)
+            {
+                looped++;
+            }
+        }
+
+        return accepted;
+    }
+
+    private boolean opened()
+    {
+        return !elementPending || (mask & BIT_ELEMENT) != 0 ||
+            write(BIT_ELEMENT, JsonEvent.START_OBJECT, null, false, false, true);
+    }
+
     private boolean accept(
         int bit,
         JsonEvent event,
@@ -2001,9 +2100,7 @@ abstract class LlmToolTransform implements JsonTransform
         boolean fromSource,
         boolean fragment)
     {
-        return (!elementPending || (mask & BIT_ELEMENT) != 0 ||
-            write(BIT_ELEMENT, JsonEvent.START_OBJECT, null, false, false, true)) &&
-            write(bit, event, text, fromSource, fragment, true);
+        return opened() && write(bit, event, text, fromSource, fragment, true);
     }
 
     private boolean write(
