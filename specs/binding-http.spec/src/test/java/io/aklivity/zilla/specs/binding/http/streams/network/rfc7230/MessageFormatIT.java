@@ -103,6 +103,42 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${net}/request.with.lowercase.method/client",
+        "${net}/request.with.lowercase.method/server" })
+    public void requestWithLowercaseMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.whitespace.separated.start.line/client",
+        "${net}/request.with.whitespace.separated.start.line/server" })
+    public void requestWithWhitespaceSeparatedStartLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.whitespace.before.header.value/client",
+        "${net}/request.with.whitespace.before.header.value/server" })
+    public void requestWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.mixed.case.header.name/client",
+        "${net}/request.with.mixed.case.header.name/server" })
+    public void requestWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/invalid.request.missing.target/client",
         "${net}/invalid.request.missing.target/server" })
     public void invalidRequestMissingTarget() throws Exception
