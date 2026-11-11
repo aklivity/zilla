@@ -3724,8 +3724,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             packetIds.forEachOrderedInt(mqtt.clientPacketIds.inflight::release);
             packetIds.clear();
+            abandonTickets();
             gates.clear();
             releaseHeld();
+        }
+
+        private void abandonTickets()
+        {
+            final MqttKafkaClientTickets tickets = mqtt.clientPacketIds.tickets;
+
+            gates.forEach(g -> tickets.abandon(g.packetId, () -> mqtt.clientPacketIds.inflight.release(g.packetId)));
         }
 
         private void releaseHeld()
