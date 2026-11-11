@@ -100,4 +100,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.stream.end/server",
+        "${app}/unsubscribe.shared.stream.end/client"})
+    public void shouldUnsubscribeSharedStreamEnd() throws Exception
+    {
+        k3po.finish();
+    }
 }
