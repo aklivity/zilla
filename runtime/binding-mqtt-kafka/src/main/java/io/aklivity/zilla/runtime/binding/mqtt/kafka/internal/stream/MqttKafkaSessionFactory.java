@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -125,6 +126,7 @@ import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
@@ -282,6 +284,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
     private final MqttKafkaEventContext events;
+    private final BiConsumer<String, StoreHandler> discardClientTickets;
 
     private final String replicaId;
 
@@ -294,7 +297,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         EngineContext context,
         InstanceId instanceId,
         LongFunction<MqttKafkaBindingConfig> supplyBinding,
-        Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata)
+        Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata,
+        BiConsumer<String, StoreHandler> discardClientTickets)
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -340,6 +344,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.events = new MqttKafkaEventContext(context);
+        this.discardClientTickets = discardClientTickets;
     }
 
     @Override
@@ -464,6 +469,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final List<KafkaTopicPartition> fetchedPartitions;
         private final List<KafkaTopicPartition> initializablePartitions;
         private final Long2LongHashMap leaderEpochs;
+        private final StoreHandler store;
 
         private IntArrayQueue unackedPacketIds;
         private String lifetimeId;
@@ -543,6 +549,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.fetchedPartitions = new ArrayList<>();
             this.initializablePartitions = new ArrayList<>();
             final MqttKafkaBindingConfig binding = supplyBinding.apply(bindingId);
+            this.store = binding.store;
             final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
             this.capabilities = capabilities(binding);
@@ -642,6 +649,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             willPadding += expirySignalSize;
 
             this.affinity = affinity;
+
+            if (isSetCleanStart(sessionFlags))
+            {
+                discardTickets();
+            }
+
             if (publishQosMax == 2)
             {
                 doMqttWindow(authorization, traceId, 0, 0, 0);
@@ -888,6 +901,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            if (sessionExpiryMillis == 0)
+            {
+                discardTickets();
+            }
+
             if (isSetWillFlag(sessionFlags))
             {
                 // Cleanup will message + will signal
@@ -979,6 +997,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            if (sessionExpiryMillis == 0)
+            {
+                discardTickets();
+            }
+
             if (isSetWillFlag(sessionFlags))
             {
                 session.sendWillSignal(traceId, authorization);
@@ -1049,6 +1072,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void onMqttSignal(
             SignalFW signal)
         {
+        }
+
+        private void discardTickets()
+        {
+            if (store != null)
+            {
+                discardClientTickets.accept(clientId.asString(), store);
+            }
         }
 
         private void onMqttWindow(
@@ -1877,6 +1908,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             SignalFW signal)
         {
             String16FW clientId = expiryClientIds.get(signal.contextId());
+            final StoreHandler store = supplyBinding.apply(originId).store;
+
+            if (store != null)
+            {
+                discardClientTickets.accept(clientId.asString(), store);
+            }
 
             Flyweight expireSessionKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
