@@ -8019,17 +8019,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int subackReasonCode = reasoned ? mqttResetEx.reasonCode() : UNSPECIFIED_ERROR;
                 final int disconnectReasonCode = reasoned ? mqttResetEx.reasonCode() : IMPLEMENTATION_SPECIFIC_ERROR;
 
-                if (onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode))
-                {
-                    doSubscribeReset(traceId);
-                }
-                else
+                onSubscribeRejected(traceId, authorization, subackReasonCode, disconnectReasonCode);
+            }
+
+            private void onSubscribeRejected(
+                long traceId,
+                long authorization,
+                int subackReasonCode,
+                int disconnectReasonCode)
+            {
+                if (!onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode))
                 {
                     onDecodeError(traceId, authorization, disconnectReasonCode);
                     decoder = decodeIgnoreAll;
                     decodeNetwork(traceId);
-                    cleanupAbort(traceId);
                 }
+
+                cleanupAbort(traceId);
             }
 
             private void onSubscribeWindow(
@@ -8074,8 +8080,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert !StreamState.replyClosed(state);
 
+                final boolean beforeBegin = !StreamState.replyOpening(state);
+
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
+
+                if (beforeBegin)
+                {
+                    onSubscribeRejected(end.traceId(), end.authorization(), UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
+                }
             }
 
             private void onSubscribeAbort(
@@ -8083,13 +8096,22 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert !StreamState.replyClosed(state);
 
+                final boolean beforeBegin = !StreamState.replyOpening(state);
+
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
 
                 final long traceId = abort.traceId();
                 final long authorization = abort.authorization();
 
-                cleanupAbort(traceId);
+                if (beforeBegin)
+                {
+                    onSubscribeRejected(traceId, authorization, UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
+                }
+                else
+                {
+                    cleanupAbort(traceId);
+                }
             }
 
             private void cleanupAbort(
