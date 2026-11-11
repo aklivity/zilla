@@ -3249,7 +3249,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Map<String8FW, String16FW> headers)
         {
             final String16FW contentLength = headers.get(HEADER_CONTENT_LENGTH);
-            exchange.requestRemaining = contentLength != null ? parseInt(contentLength.asString()) : Integer.MAX_VALUE;
+            exchange.requestRemaining = contentLength != null ? parseInt(contentLength.asString()) : NO_CONTENT_LENGTH;
 
             String16FW transferEncoding = headers.get(HEADER_TRANSFER_ENCODING);
             if (transferEncoding == null && contentLength == null && !isBodilessMethod(headers))
@@ -3397,8 +3397,19 @@ public final class HttpClientFactory implements HttpStreamFactory
             int length,
             OctetsFW payload)
         {
-            exchange.requestRemaining -= length;
-            assert exchange.requestRemaining >= 0;
+            final boolean promised = exchange.requestRemaining != NO_CONTENT_LENGTH;
+
+            if (promised && length > exchange.requestRemaining)
+            {
+                exchange.doRequestReset(traceId, authorization);
+                doNetworkAbort(traceId, authorization);
+                return;
+            }
+
+            if (promised)
+            {
+                exchange.requestRemaining -= length;
+            }
 
             DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
@@ -3441,6 +3452,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             long budgetId,
             Array32FW<HttpHeaderFW> trailers)
         {
+            if (exchange.requestRemaining != NO_CONTENT_LENGTH && exchange.requestRemaining > 0)
+            {
+                encoder.doEncodeRequestAbort(this, exchange, traceId, authorization);
+                return;
+            }
+
             if (exchange.requestChunked)
             {
                 DirectBufferEx buffer = ZERO_CHUNK;
@@ -5362,19 +5379,16 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void doRequestWindow(
             long traceId)
         {
-            long requestAckMax = Math.max(requestSeq - client.initialPendingAck() - client.encodeSlotOffset, requestAck);
-            int requestNoAckMin = (int)(requestSeq - requestAckMax);
-            long requestRemainingWithPad = (long) requestRemaining - requestNoAckMin + client.initialPad;
-            int minRequestMax = (int) Math.min(requestRemainingWithPad, client.initialMax);
+            final long requestAckMax = Math.max(requestSeq - client.initialPendingAck() - client.encodeSlotOffset, requestAck);
+            final int requestMaxMin = Math.max(client.initialMax, requestMax - (int) (requestAckMax - requestAck));
 
             if (requestAckMax > requestAck ||
-                minRequestMax > requestMax && client.encodeSlotOffset == 0 ||
-                minRequestMax == 0 && requestRemaining == 0 && !StreamState.initialOpened(state))
+                requestMaxMin > requestMax && client.encodeSlotOffset == 0)
             {
                 requestAck = requestAckMax;
                 assert requestAck <= requestSeq;
 
-                requestMax = minRequestMax;
+                requestMax = requestMaxMin;
                 assert requestMax >= 0;
 
                 state = StreamState.openInitial(state);
