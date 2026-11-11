@@ -28,7 +28,7 @@ read "Host: localhost:8080\r\n"
 read "header: " [0..${headerSize}] "\r\n"
 read "\r\n"
 
-write "HTTP/1.1 400 Bad Request\r\n"
+write "HTTP/1.1 431 Request Header Fields Too Large\r\n"
 write "Connection: close\r\n"
 write "\r\n"
 
