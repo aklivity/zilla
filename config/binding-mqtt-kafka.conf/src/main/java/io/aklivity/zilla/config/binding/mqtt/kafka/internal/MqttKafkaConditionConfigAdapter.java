@@ -42,7 +42,7 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (mqttKafkaCondition.kind == MqttKafkaConditionKind.SUBSCRIBE)
+        if (mqttKafkaCondition.kind() == MqttKafkaConditionKind.SUBSCRIBE)
         {
             JsonArrayBuilder subscribes = Json.createArrayBuilder();
 
@@ -58,7 +58,7 @@ public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConf
             });
             object.add(SUBSCRIBE_NAME, subscribes);
         }
-        else if (mqttKafkaCondition.kind == MqttKafkaConditionKind.PUBLISH)
+        else if (mqttKafkaCondition.kind() == MqttKafkaConditionKind.PUBLISH)
         {
             JsonArrayBuilder publishes = Json.createArrayBuilder();
 

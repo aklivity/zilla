@@ -38,7 +38,7 @@ public class MqttKafkaConditionMatcher
         this.matchers = new ArrayList<>(condition.subscribes.size() + condition.publishes.size());
         condition.subscribes.forEach(s -> matchers.add(new TopicMatcher(s.topic, s.share)));
         condition.publishes.forEach(p -> matchers.add(new TopicMatcher(p, null)));
-        this.kind = condition.kind;
+        this.kind = condition.kind();
     }
 
     public boolean matches(
