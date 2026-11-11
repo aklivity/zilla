@@ -21,6 +21,12 @@ final class LlmOpenaiResponsesToolDefinitionToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = LlmOpenaiResponsesDialectFactorySpi.NAME;
     private static final String TYPE_FUNCTION = "function";
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_EMIT_KEY_NAME_2 = 1 << 2;
+    private static final int BIT_EMIT_START_OBJECT = 1 << 3;
+    private static final int BIT_EMIT_END_OBJECT = 1 << 4;
+    private static final int BIT_PASS_END_OBJECT = 1 << 5;
 
     private boolean named;
 
@@ -29,6 +35,12 @@ final class LlmOpenaiResponsesToolDefinitionToCanonical extends LlmToolTransform
     {
         super.reset();
         named = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -74,10 +86,10 @@ final class LlmOpenaiResponsesToolDefinitionToCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, TYPE_FUNCTION);
-        emit(JsonEvent.KEY_NAME, "function");
-        emit(JsonEvent.START_OBJECT);
+        emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "type");
+        emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, TYPE_FUNCTION);
+        emit(BIT_EMIT_KEY_NAME_2, JsonEvent.KEY_NAME, "function");
+        emit(BIT_EMIT_START_OBJECT, JsonEvent.START_OBJECT);
     }
 
     @Override
@@ -88,8 +100,8 @@ final class LlmOpenaiResponsesToolDefinitionToCanonical extends LlmToolTransform
 
         if (named && TYPE_FUNCTION.equals(held()))
         {
-            emit(JsonEvent.END_OBJECT);
-            pass(JsonEvent.END_OBJECT);
+            emit(BIT_EMIT_END_OBJECT, JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 

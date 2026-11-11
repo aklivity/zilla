@@ -23,6 +23,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_EMIT_KEY_NAME_2 = 1 << 2;
+    private static final int BIT_EMIT_START_OBJECT = 1 << 3;
+    private static final int BIT_PASS_END_OBJECT = 1 << 4;
+    private static final int BIT_EMIT_END_OBJECT = 1 << 5;
+    private static final int BIT_PASS_END_OBJECT_2 = 1 << 6;
 
     private final BitSet names;
     private final BitSet types;
@@ -42,6 +49,12 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
         named = false;
         names.clear();
         types.clear();
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -173,10 +186,10 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "function");
-        emit(JsonEvent.KEY_NAME, "function");
-        emit(JsonEvent.START_OBJECT);
+        emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "type");
+        emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, "function");
+        emit(BIT_EMIT_KEY_NAME_2, JsonEvent.KEY_NAME, "function");
+        emit(BIT_EMIT_START_OBJECT, JsonEvent.START_OBJECT);
     }
 
     @Override
@@ -187,13 +200,13 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
 
         if (depth > 1)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
         else if (named)
         {
-            emit(JsonEvent.END_OBJECT);
-            pass(JsonEvent.END_OBJECT);
+            emit(BIT_EMIT_END_OBJECT, JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT_2, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 

@@ -41,6 +41,8 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final int SAFETY_IDENTIFIER_MAX = 128;
     private static final int STOP_ENTRIES_MAX = 4;
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
+    private static final int BIT_EMIT_VALUE_NULL = 1 << 1;
 
     private final boolean members;
     private final boolean foreign;
@@ -111,6 +113,12 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         stopEntries = 0;
         effort = LlmEffort.ABSENT;
         budget = LlmEffort.ABSENT;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -241,11 +249,11 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     {
         if (depth == 2 || members)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
-            emit(JsonEvent.VALUE_NULL);
+            emit(BIT_EMIT_VALUE_NULL, JsonEvent.VALUE_NULL);
         }
 
         return Status.ADVANCED;

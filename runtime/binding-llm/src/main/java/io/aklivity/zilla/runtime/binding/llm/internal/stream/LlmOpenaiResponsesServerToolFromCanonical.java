@@ -26,6 +26,19 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
     static final int PART_EXTRAS = 4;
 
     private static final String STATUS_COMPLETED = "completed";
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_EMIT_KEY_NAME_2 = 1 << 2;
+    private static final int BIT_EMIT_VALUE_STRING_2 = 1 << 3;
+    private static final int BIT_EMIT_KEY_NAME_3 = 1 << 4;
+    private static final int BIT_EMIT_VALUE_STRING_3 = 1 << 5;
+    private static final int BIT_EMIT_KEY_NAME_4 = 1 << 6;
+    private static final int BIT_EMIT_VALUE_STRING_4 = 1 << 7;
+    private static final int BIT_EMIT_KEY_NAME_5 = 1 << 8;
+    private static final int BIT_EMIT_VALUE_STRING_5 = 1 << 9;
+    private static final int BIT_EMIT_KEY_NAME_6 = 1 << 10;
+    private static final int BIT_EMIT_VALUE_STRING_6 = 1 << 11;
+    private static final int BIT_PASS_END_OBJECT = 1 << 12;
 
     private int part;
     private String itemType;
@@ -45,6 +58,12 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
         this.part = part;
         this.itemType = itemType;
         this.exclude = exclude;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -85,26 +104,26 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
     {
         if (part == PART_CALL || part == PART_OUTPUT)
         {
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, itemType);
+            emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "type");
+            emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, itemType);
 
             if (part == PART_OUTPUT)
             {
-                emit(JsonEvent.KEY_NAME, "call_id");
-                emit(JsonEvent.VALUE_STRING, attribute("tool-call-id"));
+                emit(BIT_EMIT_KEY_NAME_2, JsonEvent.KEY_NAME, "call_id");
+                emit(BIT_EMIT_VALUE_STRING_2, JsonEvent.VALUE_STRING, attribute("tool-call-id"));
             }
             else
             {
                 if (!LlmOpenaiResponsesItems.hasCallId(itemType))
                 {
-                    emit(JsonEvent.KEY_NAME, "id");
-                    emit(JsonEvent.VALUE_STRING, attribute("tool-call-id"));
+                    emit(BIT_EMIT_KEY_NAME_3, JsonEvent.KEY_NAME, "id");
+                    emit(BIT_EMIT_VALUE_STRING_3, JsonEvent.VALUE_STRING, attribute("tool-call-id"));
                 }
 
                 if (LlmOpenaiResponsesItems.hasStatus(itemType))
                 {
-                    emit(JsonEvent.KEY_NAME, "status");
-                    emit(JsonEvent.VALUE_STRING, STATUS_COMPLETED);
+                    emit(BIT_EMIT_KEY_NAME_4, JsonEvent.KEY_NAME, "status");
+                    emit(BIT_EMIT_VALUE_STRING_4, JsonEvent.VALUE_STRING, STATUS_COMPLETED);
                 }
             }
         }
@@ -122,18 +141,18 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
             {
                 if (LlmOpenaiResponsesItems.hasCallId(itemType))
                 {
-                    emit(JsonEvent.KEY_NAME, "call_id");
-                    emit(JsonEvent.VALUE_STRING, attribute("tool-call-id"));
+                    emit(BIT_EMIT_KEY_NAME_5, JsonEvent.KEY_NAME, "call_id");
+                    emit(BIT_EMIT_VALUE_STRING_5, JsonEvent.VALUE_STRING, attribute("tool-call-id"));
                 }
 
                 if (LlmOpenaiResponsesItems.hasName(itemType))
                 {
-                    emit(JsonEvent.KEY_NAME, "name");
-                    emit(JsonEvent.VALUE_STRING, attribute("tool-name"));
+                    emit(BIT_EMIT_KEY_NAME_6, JsonEvent.KEY_NAME, "name");
+                    emit(BIT_EMIT_VALUE_STRING_6, JsonEvent.VALUE_STRING, attribute("tool-name"));
                 }
             }
 
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
 
         return status;

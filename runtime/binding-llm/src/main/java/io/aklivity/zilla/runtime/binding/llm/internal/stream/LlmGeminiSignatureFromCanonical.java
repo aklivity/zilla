@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiSignatureFromCanonical extends LlmToolTransform
 {
     private static final String MEMBER_SIGNATURE = "gemini:thoughtSignature";
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
 
     static boolean plain(
         String signature)
@@ -46,6 +47,12 @@ final class LlmGeminiSignatureFromCanonical extends LlmToolTransform
     }
 
     @Override
+    protected boolean resumable()
+    {
+        return true;
+    }
+
+    @Override
     protected int member(
         int depth,
         CharSequence key)
@@ -62,7 +69,7 @@ final class LlmGeminiSignatureFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }
