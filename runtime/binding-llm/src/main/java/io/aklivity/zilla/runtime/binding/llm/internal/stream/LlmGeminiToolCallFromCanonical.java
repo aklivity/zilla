@@ -164,33 +164,18 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
     private boolean emitName()
     {
         final String toolName = attribute("tool-name");
-        boolean written = named || toolName == null;
 
-        if (!written &&
+        return named || toolName == null ||
             emit(BIT_CALL_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
-            emit(BIT_CALL_NAME_VALUE, JsonEvent.VALUE_STRING, toolName))
-        {
-            named = true;
-            written = true;
-        }
-
-        return written;
+            emit(BIT_CALL_NAME_VALUE, JsonEvent.VALUE_STRING, toolName);
     }
 
     private boolean emitArguments()
     {
-        boolean written = argumented;
-
-        if (!written &&
+        return argumented ||
             emit(BIT_CALL_ARGS_KEY, JsonEvent.KEY_NAME, "args") &&
             emit(BIT_CALL_ARGS_START, JsonEvent.START_OBJECT) &&
-            emit(BIT_CALL_ARGS_END, JsonEvent.END_OBJECT))
-        {
-            argumented = true;
-            written = true;
-        }
-
-        return written;
+            emit(BIT_CALL_ARGS_END, JsonEvent.END_OBJECT);
     }
 
     private boolean emitId()
