@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 
 import java.time.Duration;
 
@@ -53,7 +54,7 @@ public class HttpConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.http");
-        HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
+        HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", HttpConfiguration::defaultMaximumConnections);
         HTTP_CONCURRENT_STREAMS = config.property("concurrent.streams", Integer.MAX_VALUE);
         HTTP_STREAM_INITIAL_WINDOW = config.property("stream.initial.window", 0);
         HTTP_CONNECTION_WINDOW = config.property("connection.window", Integer.MAX_VALUE);
@@ -192,5 +193,11 @@ public class HttpConfiguration extends Configuration
         Configuration config)
     {
         return ENGINE_VERBOSE.getAsBoolean(config);
+    }
+
+    private static int defaultMaximumConnections(
+        Configuration config)
+    {
+        return Math.max(ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config) / 2, 1);
     }
 }
