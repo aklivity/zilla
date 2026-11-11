@@ -1141,6 +1141,69 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/client",
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/server"})
+    public void shouldSubscribeSharedRecoverQos2PubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentOffsetMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/server"})
+    public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/client",
         "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/server"})
     public void shouldSubscribeSharedReceiveMessageQos2Fragmented() throws Exception
