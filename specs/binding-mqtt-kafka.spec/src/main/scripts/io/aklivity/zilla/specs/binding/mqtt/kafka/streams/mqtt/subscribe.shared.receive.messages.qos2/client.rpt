@@ -13,42 +13,44 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/mqtt0"
+connect "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${mqtt:matchBeginEx()
+write zilla:begin.ext ${mqtt:beginEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .clientId("client")
-                                .qos("AT_LEAST_ONCE")
-                                .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                                .qos("EXACTLY_ONCE")
+                                .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
                                 .build()
                             .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .topic("sensor/one")
                                 .packetId(1)
-                                .qos("AT_LEAST_ONCE")
+                                .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
                                 .build()
                             .build()}
-write "message"
+read "message1"
 
-read advised zilla:flush ${mqtt:flushEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
+                                .topic("sensor/one")
+                                .packetId(2)
                                 .qos("EXACTLY_ONCE")
-                                .packetId(1)
-                                .state("INCOMPLETE")
+                                .subscriptionId(1)
+                                .format("TEXT")
                                 .build()
                             .build()}
+read "message2"
 
-write aborted
+write close
+read closed

@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/kafka0"
+accept "zilla://streams/kafka0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .share()
                                 .groupId("zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:0")
@@ -33,7 +35,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .share()
                                 .groupId("zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:0")
@@ -42,18 +44,57 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .port(9092)
                                 .build()
                             .build()}
+write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
+write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .share()
+                                .timestamp(kafka:timestamp())
+                                .deliveryCount(1)
                                 .partition(0, 5)
                                 .key("sensor/one")
                                 .header("zilla:filter", "sensor")
                                 .header("zilla:filter", "one")
                                 .header("zilla:format", "TEXT")
-                                .header("zilla:qos", "1")
+                                .header("zilla:qos", "2")
                                 .build()
                             .build()}
-read "message"
+write "message1"
+write flush
 
-write abort
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .share()
+                                .timestamp(kafka:timestamp())
+                                .deliveryCount(1)
+                                .partition(0, 6)
+                                .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:format", "TEXT")
+                                .header("zilla:qos", "2")
+                                .build()
+                            .build()}
+write "message2"
+write flush
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                            .typeId(zilla:id("kafka"))
+                            .share()
+                                .partition(0, 5)
+                                .type("ACCEPT")
+                                .correlationId(-1)
+                                .build()
+                            .build()}
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                            .typeId(zilla:id("kafka"))
+                            .share()
+                                .partition(0, 6)
+                                .type("ACCEPT")
+                                .correlationId(-1)
+                                .build()
+                            .build()}
+
+read closed
+write close
