@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 final class LlmMembersOutput implements LlmSectionPipeline.Output
 {
     private static final int NONE = -1;
+    private static final DirectBufferEx BYTE_VALUES = new UnsafeBufferEx(byteValues());
 
     @FunctionalInterface
     interface Members
@@ -31,8 +32,6 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
     }
 
     private final Members members;
-    private final UnsafeBufferEx heldBuffer;
-    private final byte[] heldBytes;
 
     private boolean opened;
     private int held;
@@ -41,8 +40,6 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
         Members members)
     {
         this.members = members;
-        this.heldBytes = new byte[1];
-        this.heldBuffer = new UnsafeBufferEx(heldBytes);
         this.held = NONE;
     }
 
@@ -75,8 +72,7 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
 
             if (held != NONE)
             {
-                heldBytes[0] = (byte) held;
-                members.put(heldBuffer, 0, 1);
+                members.put(BYTE_VALUES, held & 0xFF, 1);
             }
 
             if (remaining > 1)
@@ -91,5 +87,17 @@ final class LlmMembersOutput implements LlmSectionPipeline.Output
         {
             held = NONE;
         }
+    }
+
+    private static byte[] byteValues()
+    {
+        final byte[] values = new byte[256];
+
+        for (int value = 0; value < values.length; value++)
+        {
+            values[value] = (byte) value;
+        }
+
+        return values;
     }
 }
