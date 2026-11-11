@@ -350,4 +350,40 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.with.whitespace.separated.status.line/client",
+        "${net}/response.with.whitespace.separated.status.line/server" })
+    public void responseWithWhitespaceSeparatedStatusLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.whitespace.before.header.value/client",
+        "${net}/response.with.whitespace.before.header.value/server" })
+    public void responseWithWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.mixed.case.header.name/client",
+        "${net}/response.with.mixed.case.header.name/server" })
+    public void responseWithMixedCaseHeaderName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.with.empty.reason.phrase/client",
+        "${net}/response.with.empty.reason.phrase/server" })
+    public void responseWithEmptyReasonPhrase() throws Exception
+    {
+        k3po.finish();
+    }
 }
