@@ -62,7 +62,6 @@ public final class FlyweightGenerator extends ClassSpecGenerator
         return classBuilder
             .addField(bufferField())
             .addField(segmentField())
-            .addField(emptyBytesField())
             .addField(offsetField())
             .addField(maxLimitField())
             .addField(compareBufferField())
@@ -76,6 +75,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
             .addMethod(wrapMethod())
             .addMethod(wrapWithArrayMethod())
             .addMethod(checkLimitMethod())
+            .addMethod(compareBufferMethod())
             .addMethod(equalsMethod())
             .addMethod(hashCodeMethod())
             .addType(visitorInterface())
@@ -122,16 +122,19 @@ public final class FlyweightGenerator extends ClassSpecGenerator
 
     private FieldSpec compareBufferField()
     {
-        return FieldSpec.builder(UNSAFE_BUFFER_EX_TYPE, "compareBuffer", PRIVATE)
-                .initializer("new UnsafeBufferEx(EMPTY_BYTES)")
-                .build();
+        return FieldSpec.builder(UNSAFE_BUFFER_EX_TYPE, "compareBuffer", PRIVATE).build();
     }
 
-    private FieldSpec emptyBytesField()
+    private MethodSpec compareBufferMethod()
     {
-        return FieldSpec.builder(byte[].class, "EMPTY_BYTES", PRIVATE, STATIC)
-                .initializer("new byte[0]")
-                .build();
+        return methodBuilder("compareBuffer")
+                  .addModifiers(PRIVATE)
+                  .returns(UNSAFE_BUFFER_EX_TYPE)
+                  .beginControlFlow("if (compareBuffer == null)")
+                  .addStatement("compareBuffer = new $T()", UNSAFE_BUFFER_EX_TYPE)
+                  .endControlFlow()
+                  .addStatement("return compareBuffer")
+                  .build();
     }
 
     private MethodSpec maxLimitMethod()
@@ -268,9 +271,9 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                   .addStatement("return false")
                   .nextControlFlow("else")
                   .addStatement("Flyweight that = (Flyweight) obj")
-                  .addStatement("compareBuffer.wrap(buffer, offset, sizeof())")
-                  .addStatement("that.compareBuffer.wrap(that.buffer, that.offset, that.sizeof())")
-                  .addStatement("return compareBuffer.equals(that.compareBuffer)")
+                  .addStatement("compareBuffer().wrap(buffer, offset, sizeof())")
+                  .addStatement("that.compareBuffer().wrap(that.buffer, that.offset, that.sizeof())")
+                  .addStatement("return compareBuffer().equals(that.compareBuffer())")
                   .endControlFlow()
                   .build();
     }
