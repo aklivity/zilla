@@ -58,6 +58,8 @@ public class LlmToolTransformResumeTest
     private static final int BIT_CAPTURED_VALUE = 1 << 12;
     private static final int BIT_CAPTURED_AGAIN_KEY = 1 << 13;
     private static final int BIT_CAPTURED_AGAIN_VALUE = 1 << 14;
+    private static final int BIT_LOOP_ITEMS = 1 << 15;
+    private static final int BIT_LOOP_COPY = 1 << 16;
 
     @Test
     public void shouldPassValues()
@@ -494,6 +496,67 @@ public class LlmToolTransformResumeTest
             json("{'d':1}"));
     }
 
+    @Test
+    public void shouldLoopOverNoItems()
+    {
+        assertResumesLiteral(
+            loopProbe(),
+            json("{'c':[]}"),
+            json("{'between':'b','copy':[],'end':'e'}"));
+    }
+
+    @Test
+    public void shouldLoopOverOneItem()
+    {
+        assertResumesLiteral(
+            loopProbe(),
+            json("{'c':[2]}"),
+            json("{'k2':2,'between':'b','copy':[2],'end':'e'}"));
+    }
+
+    @Test
+    public void shouldLoopWithExtraEventsOnSomeIterations()
+    {
+        assertResumesLiteral(
+            loopProbe(),
+            json("{'c':[1,2,3,4,5]}"),
+            json("{'k1':1,'odd1':true,'k2':2,'k3':3,'odd3':true,'k4':4,'k5':5,'odd5':true," +
+                "'between':'b','copy':[1,2,3,4,5],'end':'e'}"));
+    }
+
+    @Test
+    public void shouldLoopAgainInTheNextDispatch()
+    {
+        assertResumesLiteral(
+            loopProbe(),
+            json("{'c':[1,2],'d':[3]}"),
+            json("{'k1':1,'odd1':true,'k2':2,'between':'b','copy':[1,2],'end':'e'," +
+                "'k3':3,'odd3':true,'between':'b','copy':[3],'end':'e'}"));
+    }
+
+    @Test
+    public void shouldRequireResumableToLoop()
+    {
+        final Probe probe = loopProbe().resumable(false);
+        final LlmSectionPipeline pipeline = new LlmSectionPipeline(probe, new UnsafeBufferEx(new byte[RENDER_BOUND]));
+        final byte[] bytes = json("{'c':[1]}").getBytes(UTF_8);
+
+        pipeline.begin(new LlmSectionAttributes());
+
+        assertThrows(IllegalStateException.class, () ->
+            pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true, (buffer, index, size, done) ->
+            {
+            }));
+    }
+
+    private static Probe loopProbe()
+    {
+        return probe(LlmToolTransform.MODE_OBJECT)
+            .looping()
+            .action("c", LlmToolTransform.CAPTURE_VALUE)
+            .action("d", LlmToolTransform.CAPTURE_VALUE);
+    }
+
     private static Probe probe(
         int mode)
     {
@@ -512,6 +575,15 @@ public class LlmToolTransformResumeTest
         String json)
     {
         assertResumes(probe, null, json);
+    }
+
+    private static void assertResumesLiteral(
+        Probe probe,
+        String json,
+        String literal)
+    {
+        assertThat(render(probe.copy().resumable(true), null, json), equalTo(literal));
+        assertTransforms(probe.copy().resumable(true), null, null, json, literal);
     }
 
     private static void assertResumesAs(
@@ -610,6 +682,7 @@ public class LlmToolTransformResumeTest
         private boolean marking;
         private boolean closing;
         private boolean repeating;
+        private boolean looping;
         private int closes;
 
         private Probe(
@@ -640,6 +713,7 @@ public class LlmToolTransformResumeTest
             this.marking = that.marking;
             this.closing = that.closing;
             this.repeating = that.repeating;
+            this.looping = that.looping;
         }
 
         private Probe copy()
@@ -663,6 +737,12 @@ public class LlmToolTransformResumeTest
         private Probe repeating()
         {
             this.repeating = true;
+            return this;
+        }
+
+        private Probe looping()
+        {
+            this.looping = true;
             return this;
         }
 
@@ -826,7 +906,11 @@ public class LlmToolTransformResumeTest
         protected Status onCaptured(
             LlmCapturedValue value)
         {
-            if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, capturedMember()) &&
+            if (looping)
+            {
+                onLooped(value);
+            }
+            else if (emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, capturedMember()) &&
                 emitCaptured(BIT_CAPTURED_VALUE, value, 0) &&
                 repeating &&
                 emit(BIT_CAPTURED_AGAIN_KEY, JsonEvent.KEY_NAME, "again"))
@@ -849,6 +933,50 @@ public class LlmToolTransformResumeTest
             String value)
         {
             return '<' + value + '>';
+        }
+
+        private void onLooped(
+            LlmCapturedValue value)
+        {
+            if (emitItems(value) &&
+                emit(BIT_CAPTURED_KEY, JsonEvent.KEY_NAME, "between") &&
+                emit(BIT_CAPTURED_VALUE, JsonEvent.VALUE_STRING, "b") &&
+                emitCopy(value) &&
+                emit(BIT_CAPTURED_AGAIN_KEY, JsonEvent.KEY_NAME, "end"))
+            {
+                emit(BIT_CAPTURED_AGAIN_VALUE, JsonEvent.VALUE_STRING, "e");
+            }
+        }
+
+        private boolean emitItems(
+            LlmCapturedValue value)
+        {
+            final int last = value.end(0) - 1;
+
+            for (int at = 1; at < last; at++)
+            {
+                final String number = value.text(at);
+                final boolean odd = Integer.parseInt(number) % 2 != 0;
+
+                if (emitLoop(BIT_LOOP_ITEMS, JsonEvent.KEY_NAME, "k" + number) &&
+                    emitLoop(BIT_LOOP_ITEMS, JsonEvent.VALUE_NUMBER, number) &&
+                    odd &&
+                    emitLoop(BIT_LOOP_ITEMS, JsonEvent.KEY_NAME, "odd" + number))
+                {
+                    emitLoop(BIT_LOOP_ITEMS, JsonEvent.VALUE_TRUE);
+                }
+            }
+
+            return endLoop(BIT_LOOP_ITEMS);
+        }
+
+        private boolean emitCopy(
+            LlmCapturedValue value)
+        {
+            emitLoop(BIT_LOOP_COPY, JsonEvent.KEY_NAME, "copy");
+            emitLoopCaptured(BIT_LOOP_COPY, value, 0);
+
+            return endLoop(BIT_LOOP_COPY);
         }
 
         private boolean ends(
