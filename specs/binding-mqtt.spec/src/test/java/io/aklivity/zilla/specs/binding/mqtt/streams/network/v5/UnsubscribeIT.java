@@ -148,4 +148,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.resubscribe.previous.stream.abort/client",
+        "${net}/unsubscribe.shared.resubscribe.previous.stream.abort/server"})
+    public void shouldUnsubscribeSharedResubscribePreviousStreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
