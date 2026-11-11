@@ -32,20 +32,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:begin.ext ${kafka:matchBeginEx()
-                               .typeId(zilla:id("kafka"))
-                               .share()
-                                   .groupId("test")
-                                   .memberId("AAECAwQFBgcICQoLDA0ODw")
-                                   .topic("test")
-                                   .host("broker1.example.com")
-                                   .port(9092)
-                                   .build()
-                               .build()}
-
 read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
                            .error(35)
                            .build()}
 write aborted
-read aborted
