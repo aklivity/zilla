@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class BufferUtilTest
 {
+    private static final byte[] CRLF = "\r\n".getBytes(US_ASCII);
     private static final byte[] CRLFCRLF = "\r\n\r\n".getBytes(US_ASCII);
 
     @Test
@@ -54,6 +55,27 @@ public class BufferUtilTest
         DirectBufferEx buffer2 = new UnsafeBufferEx("a nice warm cookie cutter".getBytes(US_ASCII));
         assertEquals(-1, BufferUtil.limitOfBytes(buffer2, 0, buffer2.capacity(),
                 "a nice warm cookie cutter indeed".getBytes()));
+    }
+
+    @Test
+    public void shouldLocateLimitWhenFirstByteRepeatsBeforeValue()
+    {
+        DirectBufferEx buffer = new UnsafeBufferEx("a\r\r\nb".getBytes(US_ASCII));
+        assertEquals("a\r\r\n".length(), BufferUtil.limitOfBytes(buffer, 0, buffer.capacity(), CRLF));
+    }
+
+    @Test
+    public void shouldLocateLimitWhenPrefixRepeatsBeforeValue()
+    {
+        DirectBufferEx buffer = new UnsafeBufferEx("\r\n\r\r\n\r\nb".getBytes(US_ASCII));
+        assertEquals("\r\n\r\r\n\r\n".length(), BufferUtil.limitOfBytes(buffer, 0, buffer.capacity(), CRLFCRLF));
+    }
+
+    @Test
+    public void shouldLocateLimitWhenValueFollowsPartialMatch()
+    {
+        DirectBufferEx buffer = new UnsafeBufferEx("aaab".getBytes(US_ASCII));
+        assertEquals(buffer.capacity(), BufferUtil.limitOfBytes(buffer, 0, buffer.capacity(), "aab".getBytes(US_ASCII)));
     }
 
     @Test
