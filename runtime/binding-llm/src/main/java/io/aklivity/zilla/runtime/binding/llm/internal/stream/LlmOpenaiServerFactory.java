@@ -4570,8 +4570,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int controlMode;
         private boolean controlOpen;
         private final LlmMemberSplitter splitter = new LlmMemberSplitter(this::onEncodeMember);
-        private final byte[] obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
-        private final UnsafeBufferEx obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
         private int heldSlot = NO_SLOT;
         private boolean usageVerbatim;
@@ -5027,13 +5025,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final ThreadLocalRandom random = ThreadLocalRandom.current();
             final int length = OBFUSCATION_MIN + random.nextInt(OBFUSCATION_RANGE);
 
+            generator.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
+
             for (int index = 0; index < length; index++)
             {
-                obfuscationBytes[index] = (byte) OBFUSCATION_ALPHABET.charAt(random.nextInt(OBFUSCATION_ALPHABET.length()));
+                final int character = random.nextInt(OBFUSCATION_ALPHABET.length());
+
+                generator.writeSegment(OBFUSCATION_ALPHABET, character, character + 1);
             }
 
-            generator.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
-            generator.writeSegment(obfuscationBuffer, 0, length);
             generator.writeEndEscaped();
         }
 
