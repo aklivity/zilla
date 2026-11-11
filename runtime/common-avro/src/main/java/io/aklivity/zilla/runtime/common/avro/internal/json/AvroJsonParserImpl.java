@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.common.lang.Numbers;
 
 /**
@@ -107,7 +108,7 @@ public final class AvroJsonParserImpl implements AvroParser
     private long longValue;
     private float floatValue;
     private double doubleValue;
-    private CharSequence valueChars;
+    private CharSequenceEx valueChars;
     private String fieldName;
     private CharSequence keyChars;
     private AvroType currentType;
@@ -249,7 +250,7 @@ public final class AvroJsonParserImpl implements AvroParser
     }
 
     @Override
-    public CharSequence getStringView()
+    public CharSequenceEx getStringView()
     {
         return valueChars;
     }
@@ -618,7 +619,7 @@ public final class AvroJsonParserImpl implements AvroParser
     private AvroEvent readEnum(
         AvroType type)
     {
-        CharSequence symbol = json.getStringView();
+        CharSequenceEx symbol = json.getStringView();
         List<String> symbols = symbols(type);
         int ordinal = -1;
         for (int i = 0; ordinal < 0 && i < symbols.size(); i++)

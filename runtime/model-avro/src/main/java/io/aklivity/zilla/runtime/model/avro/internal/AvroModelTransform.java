@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
+import io.aklivity.zilla.runtime.common.json.view.Utf8StringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
@@ -698,6 +700,7 @@ final class AvroModelTransform implements AvroTransform
     private final class Emitter implements AvroSource, AvroController
     {
         private final UnsafeBufferEx view;
+        private final Utf8StringView utf8View = new Utf8StringView();
 
         private AvroType type;
         private DirectBufferEx buffer;
@@ -844,9 +847,9 @@ final class AvroModelTransform implements AvroTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return getString();
+            return utf8View.wrap(buffer, offset, length);
         }
 
         @Override

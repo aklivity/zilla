@@ -48,6 +48,9 @@ import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.Utf8StringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * The pull cursor ({@link AvroParser}) that decodes the Avro wire into a typed event stream and reads
@@ -82,6 +85,8 @@ public final class AvroParserImpl implements AvroParser
     private final UnsafeBufferEx segmentView;
     private final AvroLocationImpl location;
     private final CharText chars;
+    private final Utf8StringView utf8View = new Utf8StringView();
+    private final DecodedStringView stringView = new DecodedStringView();
 
     private DirectBufferEx buffer;
     private int offset;
@@ -968,14 +973,19 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
-    public CharSequence getStringView()
+    public CharSequenceEx getStringView()
     {
-        CharSequence value = string;
-        if (value == null && valueLength > 0)
+        CharSequenceEx value = null;
+
+        if (string != null)
         {
-            chars.utf8(buffer, valueOffset, valueLength);
-            value = chars;
+            value = stringView.wrap(string);
         }
+        else if (valueLength > 0)
+        {
+            value = utf8View.wrap(buffer, valueOffset, valueLength);
+        }
+
         return value;
     }
 
