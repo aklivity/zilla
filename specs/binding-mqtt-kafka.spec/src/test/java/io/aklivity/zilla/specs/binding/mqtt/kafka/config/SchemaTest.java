@@ -68,6 +68,38 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithStoreSharedQos2RecoverPubrel()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.pubrel.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedQos2RecoverPublish()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.publish.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedQos2RecoverDrop()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.drop.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedQos2RecoverThenReceive()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.then.receive.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWithStoreSharedUnreadableTickets()
     {
         JsonObject config = schema.validate("proxy.store.shared.qos2.unreadable.yaml");

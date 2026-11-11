@@ -1323,6 +1323,69 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.pubrel.pending/client",
+        "${kafka}/subscribe.shared.recover.qos2.pubrel.pending/server"})
+    public void shouldSubscribeSharedRecoverQos2PubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.fragmented/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentOffsetMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.expired/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.expired/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.missing/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.missing/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.recover.qos2.then.receive.message/client",
+        "${kafka}/subscribe.shared.recover.qos2.then.receive.message/server"})
+    public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.shared.receive.message.qos2.fragmented/client",
         "${kafka}/subscribe.shared.receive.message.qos2.fragmented/server"})
     public void shouldSubscribeSharedReceiveMessageQos2Fragmented() throws Exception
