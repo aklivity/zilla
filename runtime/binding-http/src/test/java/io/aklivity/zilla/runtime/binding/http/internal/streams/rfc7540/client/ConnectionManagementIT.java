@@ -296,7 +296,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.authority.yaml")
+    @Configuration("client.authority.bare.host.yaml")
     @Specification({
         "${app}/http.authority.bare.host/client",
         "${net}/http.authority.bare.host/server" })
