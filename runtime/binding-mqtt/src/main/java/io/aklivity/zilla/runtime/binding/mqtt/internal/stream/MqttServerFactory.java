@@ -39,6 +39,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
@@ -2564,6 +2565,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
         private final Int2ObjectHashMap<List<Subscription>> subscribeRequests;
+        private final Int2ObjectHashMap<PendingSuback> pendingSubacks;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
@@ -2709,6 +2711,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribes = new Long2ObjectHashMap<>();
             this.sharedSubscribes = new Long2ObjectHashMap<>();
             this.subscribeRequests = new Int2ObjectHashMap<>();
+            this.pendingSubacks = new Int2ObjectHashMap<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
@@ -4181,6 +4184,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             boolean implicitSubscribe)
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
+            final List<MqttSubscribeStream> awaitingStreams = new ArrayList<>();
 
             suback:
             {
@@ -4205,31 +4209,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
 
-                if (!implicitSubscribe)
-                {
-                    final byte[] subscriptionPayload = new byte[subscriptions.size()];
-                    for (int i = 0; i < subscriptionPayload.length; i++)
-                    {
-                        final Subscription subscription = subscriptions.get(i);
-                        byte reasonCode = (byte) subscriptions.get(i).reasonCode;
-                        if (version == 4 && (reasonCode & 0xff) > GRANTED_QOS_2)
-                        {
-                            reasonCode = SUBACK_FAILURE_CODE_V4;
-                        }
-                        subscriptionPayload[i] = reasonCode == 0 ? (byte) subscription.qos : reasonCode;
-                    }
-
-                    switch (version)
-                    {
-                    case 4:
-                        doEncodeSubackV4(traceId, sessionId, packetId, subscriptionPayload);
-                        break;
-                    case 5:
-                        doEncodeSubackV5(traceId, sessionId, packetId, subscriptionPayload);
-                        break;
-                    }
-                }
-
                 subscriptionsByRouteId.forEach((key, value) ->
                 {
                     Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes =
@@ -4250,17 +4229,127 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     s -> new MqttSubscribeStream(routedId, key, compositeId, implicitSubscribe, qos, null));
                                 subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
+                                awaitReply(awaitingStreams, stream);
                             }
                         });
 
                     value.stream()
                         .filter(s -> s.shared() && s.reasonCode <= GRANTED_QOS_2)
-                        .forEach(s -> openSharedSubscribeStream(traceId, key, implicitSubscribe, s));
+                        .forEach(s -> awaitReply(awaitingStreams,
+                            openSharedSubscribeStream(traceId, key, implicitSubscribe, s)));
                 });
+
+                if (!implicitSubscribe)
+                {
+                    final byte[] reasonCodes = subackReasonCodes(subscriptions);
+                    if (awaitingStreams.isEmpty())
+                    {
+                        doEncodeSuback(traceId, packetId, reasonCodes);
+                    }
+                    else
+                    {
+                        pendingSubacks.put(packetId, new PendingSuback(packetId, subscriptions, reasonCodes, awaitingStreams));
+                    }
+                }
             }
         }
 
-        private void openSharedSubscribeStream(
+        private void awaitReply(
+            List<MqttSubscribeStream> awaitingStreams,
+            MqttSubscribeStream stream)
+        {
+            if (!StreamState.replyOpening(stream.state) && !awaitingStreams.contains(stream))
+            {
+                awaitingStreams.add(stream);
+            }
+        }
+
+        private byte[] subackReasonCodes(
+            List<Subscription> subscriptions)
+        {
+            final byte[] reasonCodes = new byte[subscriptions.size()];
+            for (int i = 0; i < reasonCodes.length; i++)
+            {
+                final Subscription subscription = subscriptions.get(i);
+                final byte reasonCode = subackReasonCode(subscription.reasonCode);
+                reasonCodes[i] = reasonCode == 0 ? (byte) subscription.qos : reasonCode;
+            }
+            return reasonCodes;
+        }
+
+        private byte subackReasonCode(
+            int reasonCode)
+        {
+            return version == 4 && (reasonCode & 0xff) > GRANTED_QOS_2 ? SUBACK_FAILURE_CODE_V4 : (byte) reasonCode;
+        }
+
+        private void doEncodeSuback(
+            long traceId,
+            int packetId,
+            byte[] reasonCodes)
+        {
+            switch (version)
+            {
+            case 4:
+                doEncodeSubackV4(traceId, sessionId, packetId, reasonCodes);
+                break;
+            case 5:
+                doEncodeSubackV5(traceId, sessionId, packetId, reasonCodes);
+                break;
+            }
+        }
+
+        private void onSubscribeStreamBegin(
+            long traceId,
+            MqttSubscribeStream stream)
+        {
+            final Iterator<PendingSuback> iterator = pendingSubacks.values().iterator();
+            while (iterator.hasNext())
+            {
+                final PendingSuback suback = iterator.next();
+                if (suback.streams.remove(stream) && suback.streams.isEmpty())
+                {
+                    iterator.remove();
+                    doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
+                }
+            }
+        }
+
+        private boolean onSubscribeStreamRejected(
+            long traceId,
+            MqttSubscribeStream stream,
+            int reasonCode)
+        {
+            boolean rejected = false;
+
+            final byte failureCode = subackReasonCode(reasonCode);
+            final Iterator<PendingSuback> iterator = pendingSubacks.values().iterator();
+            while (iterator.hasNext())
+            {
+                final PendingSuback suback = iterator.next();
+                if (suback.streams.remove(stream))
+                {
+                    rejected = true;
+                    for (int i = 0; i < suback.reasonCodes.length; i++)
+                    {
+                        if (stream.subscriptions.contains(suback.subscriptions.get(i)))
+                        {
+                            suback.reasonCodes[i] = failureCode;
+                        }
+                    }
+
+                    if (suback.streams.isEmpty())
+                    {
+                        iterator.remove();
+                        doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
+                    }
+                }
+            }
+
+            return rejected;
+        }
+
+        private MqttSubscribeStream openSharedSubscribeStream(
             long traceId,
             long routeId,
             boolean implicitSubscribe,
@@ -4278,6 +4367,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             stream.doSubscribeBeginOrFlush(traceId, affinity, List.of(subscription));
+
+            return stream;
         }
 
         private Collection<MqttSubscribeStream> subscribeStreams(
@@ -5676,6 +5767,26 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return mqttSessionStateRW.build();
+        }
+
+        private final class PendingSuback
+        {
+            private final int packetId;
+            private final List<Subscription> subscriptions;
+            private final byte[] reasonCodes;
+            private final List<MqttSubscribeStream> streams;
+
+            private PendingSuback(
+                int packetId,
+                List<Subscription> subscriptions,
+                byte[] reasonCodes,
+                List<MqttSubscribeStream> streams)
+            {
+                this.packetId = packetId;
+                this.subscriptions = subscriptions;
+                this.reasonCodes = reasonCodes;
+                this.streams = streams;
+            }
         }
 
         private final class Subscription
@@ -7199,6 +7310,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
 
+                onSubscribeStreamBegin(traceId, this);
+
                 if (!acknowledged)
                 {
                     doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
@@ -7329,11 +7442,24 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
+                final OctetsFW extension = reset.extension();
+                final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
-                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
-                decoder = decodeIgnoreAll;
-                decodeNetwork(traceId);
-                cleanupAbort(traceId);
+                final int reasonCode = mqttResetEx != null && mqttResetEx.reasonCode() != SUCCESS
+                    ? mqttResetEx.reasonCode()
+                    : UNSPECIFIED_ERROR;
+
+                if (onSubscribeStreamRejected(traceId, this, reasonCode))
+                {
+                    doSubscribeReset(traceId);
+                }
+                else
+                {
+                    onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
+                    decoder = decodeIgnoreAll;
+                    decodeNetwork(traceId);
+                    cleanupAbort(traceId);
+                }
             }
 
             private void onSubscribeWindow(
