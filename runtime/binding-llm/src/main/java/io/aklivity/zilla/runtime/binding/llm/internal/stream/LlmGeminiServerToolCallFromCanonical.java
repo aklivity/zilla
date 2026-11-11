@@ -21,6 +21,12 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
     private static final String MEMBER_WIRE_ID = "gemini:id";
+    private static final int BIT_OPEN_KEY = 1 << 0;
+    private static final int BIT_OPEN_START = 1 << 1;
+    private static final int BIT_ID_KEY = 1 << 2;
+    private static final int BIT_ID_VALUE = 1 << 3;
+    private static final int BIT_CALL_END = 1 << 4;
+    private static final int BIT_END_OBJECT = 1 << 5;
 
     private boolean opened;
     private boolean called;
@@ -37,6 +43,12 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
         super.reset();
         opened = false;
         called = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -72,10 +84,11 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        opened = true;
-
-        emit(JsonEvent.KEY_NAME, "executableCode");
-        emit(JsonEvent.START_OBJECT);
+        if (emit(BIT_OPEN_KEY, JsonEvent.KEY_NAME, "executableCode") &&
+            emit(BIT_OPEN_START, JsonEvent.START_OBJECT))
+        {
+            opened = true;
+        }
     }
 
     @Override
@@ -93,7 +106,7 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
         if (opened)
         {
             endCall();
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
@@ -102,18 +115,17 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
 
     private void endCall()
     {
-        if (opened && !called)
+        if (opened && !called && emitId() && emit(BIT_CALL_END, JsonEvent.END_OBJECT))
         {
             called = true;
-
-            if (held() != null)
-            {
-                emit(JsonEvent.KEY_NAME, "id");
-                emit(JsonEvent.VALUE_STRING, held());
-            }
-
-            emit(JsonEvent.END_OBJECT);
         }
+    }
+
+    private boolean emitId()
+    {
+        return held() == null ||
+            emit(BIT_ID_KEY, JsonEvent.KEY_NAME, "id") &&
+            emit(BIT_ID_VALUE, JsonEvent.VALUE_STRING, held());
     }
 
     private static boolean contains(

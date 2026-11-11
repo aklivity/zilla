@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmOpenaiResponsesCitationsFromCanonical extends LlmToolTransform
 {
     private static final String TYPE_URL = "url_citation";
+    private static final int BIT_END_OBJECT = 1 << 0;
 
     private final boolean object;
 
@@ -42,6 +43,12 @@ final class LlmOpenaiResponsesCitationsFromCanonical extends LlmToolTransform
     {
         super(mode, dialect);
         this.object = object;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -74,7 +81,7 @@ final class LlmOpenaiResponsesCitationsFromCanonical extends LlmToolTransform
     {
         if (object && depth == 1)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;

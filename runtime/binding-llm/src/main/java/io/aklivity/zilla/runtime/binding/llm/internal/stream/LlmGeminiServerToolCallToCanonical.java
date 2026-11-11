@@ -21,6 +21,15 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
     private static final String MEMBER_WIRE_ID = "gemini:id";
+    private static final int BIT_END_OBJECT = 1 << 0;
+    private static final int BIT_WIRE_ID_KEY = 1 << 1;
+    private static final int BIT_WIRE_ID_VALUE = 1 << 2;
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
+    }
 
     @Override
     protected int member(
@@ -60,12 +69,12 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
 
-        if (depth == 2 && held() != null)
+        if (depth == 2 && held() != null &&
+            emit(BIT_WIRE_ID_KEY, JsonEvent.KEY_NAME, MEMBER_WIRE_ID) &&
+            emit(BIT_WIRE_ID_VALUE, JsonEvent.VALUE_STRING, held()))
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_WIRE_ID);
-            emit(JsonEvent.VALUE_STRING, held());
             clearHeld();
         }
 

@@ -24,6 +24,21 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
     private static final String DIALECT = "gemini";
     private static final String MEMBER_SIGNATURE = "thoughtSignature";
     private static final String MEMBER_WIRE_ID = "gemini:id";
+    private static final int BIT_OPEN_KEY = 1 << 0;
+    private static final int BIT_OPEN_START = 1 << 1;
+    private static final int BIT_OPEN_NAME_KEY = 1 << 2;
+    private static final int BIT_OPEN_NAME_VALUE = 1 << 3;
+    private static final int BIT_CALL_NAME_KEY = 1 << 4;
+    private static final int BIT_CALL_NAME_VALUE = 1 << 5;
+    private static final int BIT_CALL_ARGS_KEY = 1 << 6;
+    private static final int BIT_CALL_ARGS_START = 1 << 7;
+    private static final int BIT_CALL_ARGS_END = 1 << 8;
+    private static final int BIT_CALL_ID_KEY = 1 << 9;
+    private static final int BIT_CALL_ID_VALUE = 1 << 10;
+    private static final int BIT_CALL_END = 1 << 11;
+    private static final int BIT_SIGNATURE_KEY = 1 << 12;
+    private static final int BIT_SIGNATURE_VALUE = 1 << 13;
+    private static final int BIT_END_OBJECT = 1 << 14;
 
     private boolean placeholder;
     private boolean opened;
@@ -53,6 +68,12 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
         argumented = false;
         called = false;
         signed = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -90,18 +111,16 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        opened = true;
-
-        emit(JsonEvent.KEY_NAME, "functionCall");
-        emit(JsonEvent.START_OBJECT);
-
         final String toolName = attribute("tool-name");
 
-        if (toolName != null)
+        if (emit(BIT_OPEN_KEY, JsonEvent.KEY_NAME, "functionCall") &&
+            emit(BIT_OPEN_START, JsonEvent.START_OBJECT) &&
+            (toolName == null ||
+                emit(BIT_OPEN_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
+                emit(BIT_OPEN_NAME_VALUE, JsonEvent.VALUE_STRING, toolName)))
         {
-            named = true;
-            emit(JsonEvent.KEY_NAME, "name");
-            emit(JsonEvent.VALUE_STRING, toolName);
+            opened = true;
+            named = toolName != null;
         }
     }
 
@@ -123,11 +142,11 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
 
             if (placeholder && !signed)
             {
-                emit(JsonEvent.KEY_NAME, MEMBER_SIGNATURE);
-                emit(JsonEvent.VALUE_STRING, SIGNATURE_PLACEHOLDER);
+                emit(BIT_SIGNATURE_KEY, JsonEvent.KEY_NAME, MEMBER_SIGNATURE);
+                emit(BIT_SIGNATURE_VALUE, JsonEvent.VALUE_STRING, SIGNATURE_PLACEHOLDER);
             }
 
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
@@ -136,37 +155,50 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
 
     private void endCall()
     {
-        if (opened && !called)
+        if (opened && !called && emitName() && emitArguments() && emitId() && emit(BIT_CALL_END, JsonEvent.END_OBJECT))
         {
             called = true;
-
-            final String toolName = attribute("tool-name");
-
-            if (!named && toolName != null)
-            {
-                named = true;
-                emit(JsonEvent.KEY_NAME, "name");
-                emit(JsonEvent.VALUE_STRING, toolName);
-            }
-
-            if (!argumented)
-            {
-                argumented = true;
-
-                emit(JsonEvent.KEY_NAME, "args");
-                emit(JsonEvent.START_OBJECT);
-                emit(JsonEvent.END_OBJECT);
-            }
-
-            final String toolCallId = held() != null ? held() : attribute("tool-call-id");
-
-            if (toolCallId != null)
-            {
-                emit(JsonEvent.KEY_NAME, "id");
-                emit(JsonEvent.VALUE_STRING, toolCallId);
-            }
-
-            emit(JsonEvent.END_OBJECT);
         }
+    }
+
+    private boolean emitName()
+    {
+        final String toolName = attribute("tool-name");
+        boolean written = named || toolName == null;
+
+        if (!written &&
+            emit(BIT_CALL_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
+            emit(BIT_CALL_NAME_VALUE, JsonEvent.VALUE_STRING, toolName))
+        {
+            named = true;
+            written = true;
+        }
+
+        return written;
+    }
+
+    private boolean emitArguments()
+    {
+        boolean written = argumented;
+
+        if (!written &&
+            emit(BIT_CALL_ARGS_KEY, JsonEvent.KEY_NAME, "args") &&
+            emit(BIT_CALL_ARGS_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_CALL_ARGS_END, JsonEvent.END_OBJECT))
+        {
+            argumented = true;
+            written = true;
+        }
+
+        return written;
+    }
+
+    private boolean emitId()
+    {
+        final String toolCallId = held() != null ? held() : attribute("tool-call-id");
+
+        return toolCallId == null ||
+            emit(BIT_CALL_ID_KEY, JsonEvent.KEY_NAME, "id") &&
+            emit(BIT_CALL_ID_VALUE, JsonEvent.VALUE_STRING, toolCallId);
     }
 }
