@@ -62,6 +62,7 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -414,6 +415,12 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     private final Map<String8FW, String16FW> headersMap;
+    private final HttpRequestHeaders requestHeaders = new HttpRequestHeaders();
+    private final Function<String, String> requestHeaderLookup = requestHeaders::get;
+    private final List<String8FW> pooledNames = new ArrayList<>();
+    private final List<String16FW> pooledValues = new ArrayList<>();
+    private int pooledNameCursor;
+    private int pooledValueCursor;
     private final String16FW h2cSettingsPayload;
     private final HttpConfiguration config;
     private final int connectionWindow;
@@ -554,9 +561,12 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         if (binding != null)
         {
-            // TODO: avoid object creation
-            final Map<String, String> headers = beginEx != null ? asHeadersMap(beginEx.headers()) : EMPTY_HEADERS;
-            route = binding.resolve(authorization, headers::get);
+            if (beginEx != null)
+            {
+                requestHeaders.reset(beginEx.headers());
+            }
+
+            route = binding.resolve(authorization, beginEx != null ? requestHeaderLookup : EMPTY_HEADERS::get);
         }
 
         MessageConsumer newStream = null;
@@ -3219,7 +3229,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Map<String8FW, String16FW> overrides)
         {
             final Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
-            headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
+            putHeaders(headersMap, headers);
             mergeOverrides(headersMap, overrides);
 
             headersMap.put(HEADER_UPGRADE, UPGRADE_H2C);
@@ -3237,7 +3247,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Map<String8FW, String16FW> overrides)
         {
             headersMap.clear();
-            headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
+            putHeaders(headersMap, headers);
             mergeOverrides(headersMap, overrides);
             doEncodeHttp11Headers(traceId, authorization, budgetId, headersMap);
         }
@@ -6278,7 +6288,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             reset(encodeContext);
 
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
-            headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
+            putHeaders(headersMap, headers);
             mergeOverrides(headersMap, overrides);
 
             final String16FW authority = headersMap.get(HEADER_AUTHORITY);
@@ -6682,24 +6692,35 @@ public final class HttpClientFactory implements HttpStreamFactory
         return GET_METHOD.equals(method) || method.equals(HEAD_METHOD) && contentLength == null;
     }
 
-    private Map<String, String> asHeadersMap(
+    private void putHeaders(
+        Map<String8FW, String16FW> headersMap,
         Array32FW<HttpHeaderFW> headers)
     {
-        Map<String, String> headersMap = new LinkedHashMap<>();
-        headers.forEach(h -> headersMap.put(h.name().asString(), h.value().asString()));
-        return headersMap;
+        pooledNameCursor = 0;
+        pooledValueCursor = 0;
+        headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
     }
 
     private String8FW newString8FW(
         String8FW value)
     {
-        return new String8FW().wrap(value.buffer(), value.offset(), value.limit());
+        if (pooledNameCursor == pooledNames.size())
+        {
+            pooledNames.add(new String8FW());
+        }
+
+        return pooledNames.get(pooledNameCursor++).wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private String16FW newString16FW(
         String16FW value)
     {
-        return new String16FW().wrap(value.buffer(), value.offset(), value.limit());
+        if (pooledValueCursor == pooledValues.size())
+        {
+            pooledValues.add(new String16FW());
+        }
+
+        return pooledValues.get(pooledValueCursor++).wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private static void mergeOverrides(
