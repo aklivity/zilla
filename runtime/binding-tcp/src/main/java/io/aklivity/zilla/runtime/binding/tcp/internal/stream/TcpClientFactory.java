@@ -374,7 +374,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
                     doAppEnd(supplyTraceId.getAsLong());
 
-                    if (net.socket().isOutputShutdown())
+                    if (StreamState.initialClosed(state))
                     {
                         closeNet(net);
                     }
@@ -497,7 +497,7 @@ public class TcpClientFactory implements TcpStreamFactory
                     networkKey.clear(OP_WRITE);
                     net.shutdownOutput();
 
-                    if (net.socket().isInputShutdown())
+                    if (StreamState.replyClosed(state))
                     {
                         closeNet(net);
                     }
