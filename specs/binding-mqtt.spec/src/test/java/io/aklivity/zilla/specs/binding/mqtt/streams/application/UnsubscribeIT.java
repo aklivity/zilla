@@ -188,4 +188,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.before.suback.after.stream.begin.v4/client",
+        "${app}/unsubscribe.before.suback.after.stream.begin.v4/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin.v4/client",
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin.v4/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
 }
