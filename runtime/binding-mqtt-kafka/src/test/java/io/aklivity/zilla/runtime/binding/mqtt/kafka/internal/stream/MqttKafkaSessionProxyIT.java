@@ -519,4 +519,40 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.store.session.shared.unsubscribe.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared/client",
+        "${kafka}/session.unsubscribe.shared/server"})
+    public void shouldLeaveSharedSubscriptionOnUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.session.shared.unsubscribe.second.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared/client",
+        "${kafka}/session.unsubscribe.shared/server"})
+    public void shouldLeaveSharedSubscriptionOnUnsubscribeWithOtherMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.session.shared.resubscribe.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.resubscribe.shared/client",
+        "${kafka}/session.resubscribe.shared/server"})
+    public void shouldBeginNewLifeOfSharedSubscriptionOnResubscribe() throws Exception
+    {
+        k3po.finish();
+    }
 }
