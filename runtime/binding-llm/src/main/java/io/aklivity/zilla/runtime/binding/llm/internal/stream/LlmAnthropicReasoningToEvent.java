@@ -19,6 +19,19 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmAnthropicReasoningToEvent extends LlmToolTransform
 {
+    private static final int BIT_EVENT_START = 1 << 0;
+    private static final int BIT_EVENT_TYPE_KEY = 1 << 1;
+    private static final int BIT_EVENT_TYPE_VALUE = 1 << 2;
+    private static final int BIT_INDEX_KEY = 1 << 3;
+    private static final int BIT_INDEX_VALUE = 1 << 4;
+    private static final int BIT_OBJECT_KEY = 1 << 5;
+    private static final int BIT_OBJECT_START = 1 << 6;
+    private static final int BIT_OBJECT_TYPE_KEY = 1 << 7;
+    private static final int BIT_OBJECT_TYPE_VALUE = 1 << 8;
+    private static final int BIT_VALUE_KEY = 1 << 9;
+    private static final int BIT_OBJECT_END = 1 << 10;
+    private static final int BIT_EVENT_END = 1 << 11;
+
     private final String member;
     private final String eventType;
     private final String objectKey;
@@ -69,6 +82,12 @@ final class LlmAnthropicReasoningToEvent extends LlmToolTransform
     }
 
     @Override
+    protected boolean resumable()
+    {
+        return true;
+    }
+
+    @Override
     protected int member(
         int depth,
         CharSequence key)
@@ -77,8 +96,11 @@ final class LlmAnthropicReasoningToEvent extends LlmToolTransform
 
         if (!opened && matches(key, member))
         {
-            open();
-            emit(JsonEvent.KEY_NAME, valueKey);
+            if (open() && emit(BIT_VALUE_KEY, JsonEvent.KEY_NAME, valueKey))
+            {
+                opened = true;
+            }
+
             action = PASS_STRING;
         }
 
@@ -98,26 +120,24 @@ final class LlmAnthropicReasoningToEvent extends LlmToolTransform
 
         if (opened)
         {
-            emit(JsonEvent.END_OBJECT);
-            emit(JsonEvent.END_OBJECT);
+            emit(BIT_OBJECT_END, JsonEvent.END_OBJECT);
+            emit(BIT_EVENT_END, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
         return status;
     }
 
-    private void open()
+    private boolean open()
     {
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, eventType);
-        emit(JsonEvent.KEY_NAME, "index");
-        emit(JsonEvent.VALUE_NUMBER, Integer.toString(index));
-        emit(JsonEvent.KEY_NAME, objectKey);
-        emit(JsonEvent.START_OBJECT);
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, objectType);
-
-        opened = true;
+        return emit(BIT_EVENT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_EVENT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_EVENT_TYPE_VALUE, JsonEvent.VALUE_STRING, eventType) &&
+            emit(BIT_INDEX_KEY, JsonEvent.KEY_NAME, "index") &&
+            emit(BIT_INDEX_VALUE, JsonEvent.VALUE_NUMBER, Integer.toString(index)) &&
+            emit(BIT_OBJECT_KEY, JsonEvent.KEY_NAME, objectKey) &&
+            emit(BIT_OBJECT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_OBJECT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_OBJECT_TYPE_VALUE, JsonEvent.VALUE_STRING, objectType);
     }
 }

@@ -25,6 +25,12 @@ final class LlmOpenaiResponsesCitationsToCanonical extends LlmToolTransform
     private static final int KIND_NONE = 0;
     private static final int KIND_URL = 1;
     private static final int KIND_OTHER = 2;
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_NESTED_KEY = 1 << 2;
+    private static final int BIT_NESTED_START = 1 << 3;
+    private static final int BIT_NESTED_END = 1 << 4;
+    private static final int BIT_END_OBJECT = 1 << 5;
 
     private final boolean object;
 
@@ -57,6 +63,12 @@ final class LlmOpenaiResponsesCitationsToCanonical extends LlmToolTransform
         kind = KIND_NONE;
         nested = false;
         nestedClosed = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -123,7 +135,7 @@ final class LlmOpenaiResponsesCitationsToCanonical extends LlmToolTransform
 
         if (object)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -142,28 +154,27 @@ final class LlmOpenaiResponsesCitationsToCanonical extends LlmToolTransform
         {
             final boolean url = TYPE_URL.equals(held());
 
-            kind = url ? KIND_URL : KIND_OTHER;
-
-            emit(JsonEvent.KEY_NAME, url ? "type" : TYPE_OTHER);
-            emit(JsonEvent.VALUE_STRING, held());
+            if (emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, url ? "type" : TYPE_OTHER) &&
+                emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, held()))
+            {
+                kind = url ? KIND_URL : KIND_OTHER;
+            }
         }
     }
 
     private void openNested()
     {
-        if (!nested)
+        if (!nested && emit(BIT_NESTED_KEY, JsonEvent.KEY_NAME, TYPE_URL) &&
+            emit(BIT_NESTED_START, JsonEvent.START_OBJECT))
         {
-            emit(JsonEvent.KEY_NAME, TYPE_URL);
-            emit(JsonEvent.START_OBJECT);
             nested = true;
         }
     }
 
     private void closeNested()
     {
-        if (nested)
+        if (nested && emit(BIT_NESTED_END, JsonEvent.END_OBJECT))
         {
-            emit(JsonEvent.END_OBJECT);
             nested = false;
             nestedClosed = true;
         }

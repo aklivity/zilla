@@ -20,6 +20,9 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
 {
     private static final String TYPE_URL = "url_citation";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_END_OBJECT = 1 << 2;
 
     private boolean typed;
 
@@ -34,6 +37,12 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
     {
         super.reset();
         typed = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -83,7 +92,7 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
     {
         if (depth > 1)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -91,11 +100,10 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
 
     private void emitType()
     {
-        if (!typed)
+        if (!typed && emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, TYPE_URL))
         {
             typed = true;
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, TYPE_URL);
         }
     }
 }
