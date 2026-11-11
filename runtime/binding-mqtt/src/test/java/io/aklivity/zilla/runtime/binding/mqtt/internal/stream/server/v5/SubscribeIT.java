@@ -894,4 +894,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/client",
+        "${app}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/server"})
+    public void shouldDeliverQos1WhenQos2StreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
