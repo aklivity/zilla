@@ -20,6 +20,10 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = LlmOpenaiDialectFactorySpi.NAME;
+    private static final int BIT_ARGUMENTS_KEY = 1 << 0;
+    private static final int BIT_ARGUMENTS_START = 1 << 1;
+    private static final int BIT_ARGUMENTS_END = 1 << 2;
+    private static final int BIT_FUNCTION_END = 1 << 3;
 
     private boolean functioned;
     private boolean argumented;
@@ -30,6 +34,12 @@ final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
         super.reset();
         functioned = false;
         argumented = false;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -76,14 +86,14 @@ final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
         {
             if (!argumented)
             {
-                emit(JsonEvent.KEY_NAME, "arguments");
-                emit(JsonEvent.START_OBJECT);
-                emit(JsonEvent.END_OBJECT);
+                emit(BIT_ARGUMENTS_KEY, JsonEvent.KEY_NAME, "arguments");
+                emit(BIT_ARGUMENTS_START, JsonEvent.START_OBJECT);
+                emit(BIT_ARGUMENTS_END, JsonEvent.END_OBJECT);
             }
         }
         else if (functioned)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_FUNCTION_END, JsonEvent.END_OBJECT);
         }
         else
         {
