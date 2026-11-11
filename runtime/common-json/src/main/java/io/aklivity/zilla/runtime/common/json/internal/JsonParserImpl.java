@@ -47,8 +47,10 @@ import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
 import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
 import io.aklivity.zilla.runtime.common.json.view.EscapedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 public final class JsonParserImpl implements JsonParserEx
 {
@@ -110,7 +112,7 @@ public final class JsonParserImpl implements JsonParserEx
     // the leading separator off the new-first surviving sibling so the survivors stay well-formed
     private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
-    private final StringView plainViewRO = new StringView();
+    private final DecodedStringView emptyView = new DecodedStringView().wrap("");
     private final EncodedStringView encodedView = new EncodedStringView();
     private final EscapedStringView escapedView = new EscapedStringView();
     private String stringCache;
@@ -869,7 +871,7 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public CharSequence getStringView()
+    public CharSequenceEx getStringView()
     {
         // valid on both drives: the pump tracks lastEvent, a jakarta next() tracks currentEvent
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
@@ -880,20 +882,20 @@ public final class JsonParserImpl implements JsonParserEx
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
         return charScalar() && stringViewOffset > 0
-            ? stringViewRO.wrap(tokenView(), stringViewOffset)
-            : tokenView();
+            ? stringViewRO.wrap(spanView(), stringViewOffset)
+            : spanView();
     }
 
     // the current token as the chars the tokenizer read in place from the window; a token that is not read in place
     // has none
-    private CharSequence spanView()
+    private CharSequenceEx spanView()
     {
         final int length = tokenizer.tokenLength();
-        final CharSequence view;
+        final CharSequenceEx view;
 
         if (length < 0)
         {
-            view = "";
+            view = emptyView;
         }
         else if (tokenizer.inScope())
         {
@@ -906,14 +908,6 @@ public final class JsonParserImpl implements JsonParserEx
         }
 
         return view;
-    }
-
-    // only a string value parsed whole from the window is a JsonStringView; a key and a number are plain chars
-    private CharSequence tokenView()
-    {
-        final CharSequence view = spanView();
-
-        return lastEvent == JsonEvent.VALUE_STRING || tokenizer.tokenLength() < 0 ? view : plainViewRO.wrap(view, 0);
     }
 
     private int declinedBytes(
@@ -1517,13 +1511,13 @@ public final class JsonParserImpl implements JsonParserEx
         }
     }
 
-    private static final class StringView implements CharSequence
+    private static final class StringView implements CharSequenceEx
     {
-        private CharSequence base;
+        private CharSequenceEx base;
         private int offset;
 
         private StringView wrap(
-            CharSequence base,
+            CharSequenceEx base,
             int offset)
         {
             this.base = base;
@@ -1550,6 +1544,23 @@ public final class JsonParserImpl implements JsonParserEx
             int end)
         {
             return base.subSequence(offset + start, offset + end);
+        }
+
+        @Override
+        public int transferLength(
+            int fromChar,
+            int toChar)
+        {
+            return base.transferLength(offset + fromChar, offset + toChar);
+        }
+
+        @Override
+        public int transferTo(
+            int fromChar,
+            int toChar,
+            TransferTarget target)
+        {
+            return base.transferTo(offset + fromChar, offset + toChar, target);
         }
 
         @Override

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 // Hands chars to a consumer that takes UTF-8 bytes. Only the consumers that have not moved to chars use it, and it
 // goes with the last of them.
@@ -41,7 +42,7 @@ final class LlmUtf8Output implements LlmTextPipeline.CharOutput
 
     @Override
     public void put(
-        CharSequence chars,
+        CharSequenceEx chars,
         int from,
         int to)
     {

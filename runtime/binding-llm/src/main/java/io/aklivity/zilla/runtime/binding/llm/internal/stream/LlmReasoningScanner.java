@@ -16,12 +16,15 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import java.util.Collection;
 
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+
 final class LlmReasoningScanner
 {
     interface Visitor
     {
         void text(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to);
 
@@ -29,7 +32,7 @@ final class LlmReasoningScanner
             String tag);
 
         void reasoning(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to);
 
@@ -44,7 +47,7 @@ final class LlmReasoningScanner
     private final char[][] openDelimiters;
     private final char[][] closeDelimiters;
     private final char[] held;
-    private final CharSequence heldChars;
+    private final CharSequenceEx heldChars;
     private final int minBlock;
 
     private int heldLength;
@@ -91,7 +94,7 @@ final class LlmReasoningScanner
     }
 
     void accept(
-        CharSequence chars,
+        CharSequenceEx chars,
         int from,
         int to,
         Visitor visitor)
@@ -222,7 +225,7 @@ final class LlmReasoningScanner
 
     private void emit(
         Visitor visitor,
-        CharSequence chars,
+        CharSequenceEx chars,
         int from,
         int to)
     {
@@ -239,8 +242,10 @@ final class LlmReasoningScanner
         }
     }
 
-    private final class HeldChars implements CharSequence
+    private final class HeldChars implements CharSequenceEx
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         @Override
         public int length()
         {
@@ -260,6 +265,23 @@ final class LlmReasoningScanner
             int end)
         {
             return new String(held, start, end - start);
+        }
+
+        @Override
+        public int transferLength(
+            int fromChar,
+            int toChar)
+        {
+            return decoded.wrap(this).transferLength(fromChar, toChar);
+        }
+
+        @Override
+        public int transferTo(
+            int fromChar,
+            int toChar,
+            TransferTarget target)
+        {
+            return decoded.wrap(this).transferTo(fromChar, toChar, target);
         }
 
         @Override

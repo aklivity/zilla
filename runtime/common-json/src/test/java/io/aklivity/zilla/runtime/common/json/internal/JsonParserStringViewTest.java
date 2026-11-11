@@ -32,8 +32,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.JsonStringView;
 import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
 class JsonParserStringViewTest
 {
@@ -107,29 +108,32 @@ class JsonParserStringViewTest
         final String encoded = "a\\nb\u00e9\\u20ac\\\"z";
         wrap("{\"text\":\"" + encoded + "\"}");
 
-        final JsonStringView view = assertInstanceOf(JsonStringView.class, valueString());
+        final CharSequenceEx view = valueString();
         final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
 
-        final int length = view.transferTo(0, view.length(), dst, 3);
+        final int length = transfer(view, 0, view.length(), dst, 3);
 
-        assertEquals(length, view.encodedLength(0, view.length()));
+        assertEquals(length, view.transferLength(0, view.length()));
         assertEquals(encoded, dst.getStringWithoutLengthUtf8(3, length));
     }
 
     @Test
-    void shouldReadAPartlyConsumedStringAsPlainChars()
+    void shouldTransferWhatRemainsOfAPartlyConsumedString()
     {
         wrap("{\"text\":\"abc\"}");
 
         nextValueString();
         parser.consumed(1);
 
-        assertFalse(parser.getStringView() instanceof JsonStringView);
-        assertEquals("bc", parser.getStringView().toString());
+        final CharSequenceEx view = parser.getStringView();
+        final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);
+
+        assertEquals("bc", view.toString());
+        assertEquals("bc", dst.getStringWithoutLengthUtf8(0, transfer(view, 0, view.length(), dst, 0)));
     }
 
     @Test
-    void shouldNotReadAKeyInPlace()
+    void shouldTransferAKeyAsItIsWritten()
     {
         wrap("{\"te\\nxt\":1}");
 
@@ -137,8 +141,11 @@ class JsonParserStringViewTest
         assertEquals(JsonEvent.START_OBJECT, parser.nextEvent());
         assertEquals(JsonEvent.KEY_NAME, parser.nextEvent());
 
-        assertEquals("te\nxt", parser.getStringView().toString());
-        assertFalse(parser.getStringView() instanceof EncodedStringView);
+        final CharSequenceEx view = parser.getStringView();
+        final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        assertEquals("te\nxt", view.toString());
+        assertEquals("te\\nxt", dst.getStringWithoutLengthUtf8(0, transfer(view, 0, view.length(), dst, 0)));
     }
 
     @Test
@@ -189,7 +196,7 @@ class JsonParserStringViewTest
                 {
                     final CharSequence chars = windowed.getStringView();
 
-                    assertInstanceOf(JsonStringView.class, chars);
+                    assertInstanceOf(EncodedStringView.class, chars);
                     joined.append(chars);
                     windowed.consumed(chars.length());
                     fragments++;
@@ -295,6 +302,18 @@ class JsonParserStringViewTest
 
             assertEquals(value, declined(bytes, size), document + " size " + size);
         }
+    }
+
+    private static int transfer(
+        CharSequenceEx view,
+        int fromChar,
+        int toChar,
+        MutableDirectBufferEx dst,
+        int dstOffset)
+    {
+        final SegmentTransferTarget target = new SegmentTransferTarget().wrap(dst.segment(), dst.wrapAdjustment() + dstOffset);
+
+        return view.transferTo(fromChar, toChar, target);
     }
 
     private String declined(
@@ -587,15 +606,15 @@ class JsonParserStringViewTest
         parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
     }
 
-    private CharSequence valueString()
+    private CharSequenceEx valueString()
     {
         return valueString(parser);
     }
 
-    private CharSequence valueString(
+    private CharSequenceEx valueString(
         JsonParserEx parser)
     {
-        CharSequence view = null;
+        CharSequenceEx view = null;
 
         while (view == null && parser.hasNextEvent())
         {

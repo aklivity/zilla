@@ -71,7 +71,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
-import io.aklivity.zilla.runtime.common.json.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -257,6 +258,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private byte[] textBytes = new byte[1024];
     private UnsafeBufferEx textBuffer = new UnsafeBufferEx(textBytes);
     private byte[] pieceBytes = new byte[1024];
+    private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
     private UnsafeBufferEx pieceBuffer = new UnsafeBufferEx(pieceBytes);
 
     public LlmOpenaiClientFactory(
@@ -464,12 +466,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         case END_OBJECT, END_ARRAY -> -1;
         default -> 0;
         };
-    }
-
-    private static boolean verbatim(
-        CharSequence chars)
-    {
-        return chars instanceof JsonStringView;
     }
 
     private static boolean isWhitespace(
@@ -1486,7 +1482,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequence member = parser.getStringView();
+                    final CharSequenceEx member = parser.getStringView();
 
                     if (MEMBER_ID.contentEquals(member))
                     {
@@ -1622,7 +1618,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequence member = parser.getStringView();
+                    final CharSequenceEx member = parser.getStringView();
 
                     if (MEMBER_MESSAGE.contentEquals(member))
                     {
@@ -1779,7 +1775,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void decodeScopeMember(
-            CharSequence member,
+            CharSequenceEx member,
             LlmOpenaiResponseDecoder scope)
         {
             if (MEMBER_CONTENT.contentEquals(member))
@@ -1908,7 +1904,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequence member = parser.getStringView();
+                    final CharSequenceEx member = parser.getStringView();
 
                     if (MEMBER_INDEX.contentEquals(member))
                     {
@@ -2006,7 +2002,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequence member = parser.getStringView();
+                    final CharSequenceEx member = parser.getStringView();
 
                     if (MEMBER_NAME.contentEquals(member))
                     {
@@ -2322,7 +2318,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequence member = parser.getStringView();
+                    final CharSequenceEx member = parser.getStringView();
 
                     if (MEMBER_TYPE.contentEquals(member))
                     {
@@ -2558,7 +2554,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             boolean deferred,
             int eventFrom)
         {
-            final CharSequence chars = parser.getStringView();
+            final CharSequenceEx chars = parser.getStringView();
             final int length = chars.length();
 
             if (http.framing && length == 0 && !deferred && !sectionOpen)
@@ -2601,7 +2597,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void scan(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to)
         {
@@ -2623,7 +2619,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int textAllowance(
-            CharSequence chars,
+            CharSequenceEx chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -2638,10 +2634,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int index = 0;
             boolean fits = true;
 
-            if (scanning && verbatim(chars))
+            if (scanning)
             {
                 final int tail = !deferred && !http.framing ? REASONING_SUFFIX.length + replyPad + closing : 0;
-                final int total = cost + ((JsonStringView) chars).encodedLength(0, length) +
+                final int total = cost + chars.transferLength(0, length) +
                     delimiterStarts(chars) * boundary + tail;
 
                 if (total <= credit)
@@ -2682,17 +2678,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int outputWidth(
-            CharSequence chars,
+            CharSequenceEx chars,
             int index,
             int width)
         {
-            return verbatim(chars)
-                ? ((JsonStringView) chars).encodedLength(index, index + width)
-                : width == 2 ? 4 : escapedWidth(chars.charAt(index));
+            return chars.transferLength(index, index + width);
         }
 
         private int delimiterStarts(
-            CharSequence chars)
+            CharSequenceEx chars)
         {
             int starts = 0;
 
@@ -2738,7 +2732,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         @Override
         public void text(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to)
         {
@@ -2766,7 +2760,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         @Override
         public void reasoning(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to)
         {
@@ -2796,7 +2790,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             boolean deferred,
             int eventFrom)
         {
-            final CharSequence chars = parser.getStringView();
+            final CharSequenceEx chars = parser.getStringView();
             final ToolCall call = http.framing ? resolveToolCall() : null;
             final boolean stalled;
 
@@ -2818,7 +2812,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean streamArguments(
             ToolCall call,
-            CharSequence chars,
+            CharSequenceEx chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -2867,7 +2861,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean holdArguments(
             ToolCall call,
-            CharSequence chars,
+            CharSequenceEx chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -3091,7 +3085,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int argumentsAllowance(
-            CharSequence chars,
+            CharSequenceEx chars,
             boolean deferred,
             boolean started)
         {
@@ -3206,7 +3200,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void beginControl(
-            CharSequence member,
+            CharSequenceEx member,
             int message,
             LlmOpenaiResponseDecoder then)
         {
@@ -3221,7 +3215,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void openControl(
-            CharSequence member,
+            CharSequenceEx member,
             int message,
             LlmOpenaiResponseDecoder then)
         {
@@ -3619,27 +3613,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int encodePiece(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to)
         {
             final int prefix = sectionStarted ? 0 : REASONING_PREFIX.length;
             final int length;
 
-            if (verbatim(chars))
-            {
-                final JsonStringView view = (JsonStringView) chars;
+            reservePiece(prefix + chars.transferLength(from, to));
 
-                reservePiece(prefix + view.encodedLength(from, to));
-
-                length = prefix + view.transferTo(from, to, pieceBuffer, prefix);
-            }
-            else
-            {
-                reservePiece(prefix + (to - from) * REASONING_ESCAPE_EXPANSION);
-
-                length = escape(chars, from, to, prefix);
-            }
+            length = prefix + chars.transferTo(from, to,
+                pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + prefix));
 
             System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
 
@@ -3669,7 +3653,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int escape(
-            CharSequence chars,
+            CharSequenceEx chars,
             int from,
             int to,
             int position)
@@ -3799,7 +3783,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int encodeText(
-            CharSequence chars,
+            CharSequenceEx chars,
             int length,
             boolean last)
         {
@@ -6114,7 +6098,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void track(
-            CharSequence chars,
+            CharSequenceEx chars,
             int length)
         {
             for (int position = 0; position < length; position++)

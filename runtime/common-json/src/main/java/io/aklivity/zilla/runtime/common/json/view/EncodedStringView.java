@@ -17,8 +17,7 @@ package io.aklivity.zilla.runtime.common.json.view;
 import java.nio.ByteOrder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * A {@link CharSequence} over the bytes of a JSON string as they were written between its quotes, so the
@@ -36,7 +35,7 @@ import io.aklivity.zilla.runtime.common.json.JsonStringView;
  * The view is a flyweight that is reused for every value and is valid only while the bytes it wraps are
  * unchanged. It assumes the bytes are a valid JSON string body, as the tokenizer has already checked them.
  */
-public final class EncodedStringView implements JsonStringView
+public final class EncodedStringView implements CharSequenceEx
 {
     private static final int RUN = 64;
     private static final int STRETCH = Long.BYTES;
@@ -176,14 +175,11 @@ public final class EncodedStringView implements JsonStringView
     }
 
     @Override
-    public int encodedLength(
+    public int transferLength(
         int fromChar,
         int toChar)
     {
-        if (fromChar < 0 || toChar > length || fromChar > toChar)
-        {
-            throw new IndexOutOfBoundsException(fromChar + ", " + toChar);
-        }
+        check(fromChar, toChar);
 
         return byteOffsetOf(toChar) - byteOffsetOf(fromChar);
     }
@@ -192,15 +188,29 @@ public final class EncodedStringView implements JsonStringView
     public int transferTo(
         int fromChar,
         int toChar,
-        MutableDirectBufferEx dst,
-        int dstOffset)
+        TransferTarget target)
     {
+        check(fromChar, toChar);
+
         final int start = byteOffsetOf(fromChar);
         final int end = byteOffsetOf(toChar);
 
-        dst.putBytes(dstOffset, buffer, start, end - start);
+        if (end > start)
+        {
+            target.accept(buffer.segment(), buffer.wrapAdjustment() + start, end - start);
+        }
 
         return end - start;
+    }
+
+    private void check(
+        int fromChar,
+        int toChar)
+    {
+        if (fromChar < 0 || toChar > length || fromChar > toChar)
+        {
+            throw new IndexOutOfBoundsException(fromChar + ", " + toChar);
+        }
     }
 
     /**

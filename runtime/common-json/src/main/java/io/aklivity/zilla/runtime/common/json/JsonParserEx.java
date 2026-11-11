@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * A {@link JsonParser} extended with the streaming-over-buffers surface the standard
@@ -203,11 +204,12 @@ public interface JsonParserEx extends JsonParser
      * number lexeme, or an object key — valid until the parser advances. The zero-copy peer of
      * {@link #getString()}: a streaming caller reads or matches the value (or key) without materializing a
      * {@code String}. The backing buffer is reused across events, so copy out anything needed beyond the
-     * current event. A string value parsed whole from the input window is a {@link JsonStringView}. This
-     * promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
-     * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
+     * current event. The view transfers the chars as the bytes they are written as, and for a token read in place
+     * those are the bytes of the input exactly as they were written. This promotes the
+     * {@link JsonSource#getStringView()} accessor onto the parser surface so a caller holding a
+     * {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
-    CharSequence getStringView();
+    CharSequenceEx getStringView();
 
     /**
      * Arms the string value that follows the current {@link JsonEvent#KEY_NAME} to be parsed as a stringified

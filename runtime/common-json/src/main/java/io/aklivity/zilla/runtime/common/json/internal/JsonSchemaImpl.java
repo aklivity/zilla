@@ -71,6 +71,8 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -2372,6 +2374,8 @@ public final class JsonSchemaImpl implements JsonSchema
     // instance across documents by re-wrapping the delegate and calling reset()
     private final class ValidatingParser implements JsonParserEx
     {
+        private final DecodedStringView decodedView = new DecodedStringView();
+
         private final JsonParser delegate;
         private final JsonParserEx delegateEx;
         private final boolean throwing;
@@ -2554,9 +2558,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
+            return delegateEx != null ? delegateEx.getStringView() : decodedView.wrap(delegate.getString());
         }
 
         @Override

@@ -34,8 +34,7 @@ public interface JsonSource
      * Non-owning, on-stack char view of the current scalar token — a decoded string value, a number
      * lexeme, or an object key — valid only for the duration of the current event. The allocation-free
      * counterpart to {@link #getString()} for stages that read or re-emit the value (or key) without
-     * retaining it. A string value parsed whole from the input window is a {@link JsonStringView}, which also
-     * copies the value's encoded bytes verbatim.
+     * retaining it.
      */
     CharSequence getStringView();
 

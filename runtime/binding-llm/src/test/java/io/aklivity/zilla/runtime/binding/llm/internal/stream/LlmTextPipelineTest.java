@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 public class LlmTextPipelineTest
 {
@@ -306,7 +307,7 @@ public class LlmTextPipelineTest
     }
 
     private void collectChars(
-        CharSequence text,
+        CharSequenceEx text,
         int from,
         int to)
     {

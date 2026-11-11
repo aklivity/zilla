@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json.view;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * A {@link CharSequence} over the bytes of a JSON string inside the document that an escaped scope reads out of a
@@ -23,15 +24,16 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * layers as they are reached, and nothing is copied or allocated.
  * <p>
  * The chars are read in order, and a char just read can be read again. Reading further back starts again from the
- * start of the value. It is not a {@link io.aklivity.zilla.runtime.common.json.JsonStringView}: the bytes of a
- * string within a scope carry the outer escapes, so they are not bytes a caller can copy as the string's own, and
- * a caller reads the chars.
+ * start of the value. The bytes of a string within a scope carry the outer escapes, so they are not bytes a
+ * caller can copy as the string's own, and a transfer of the chars encodes them as a string body.
  * <p>
  * The view is a flyweight that is reused for every value and is valid only while the bytes it wraps are unchanged.
  * It assumes the bytes are a valid string body, as the tokenizer has already checked them.
  */
-public final class EscapedStringView implements CharSequence
+public final class EscapedStringView implements CharSequenceEx
 {
+    private final DecodedStringView decoded = new DecodedStringView();
+
     private DirectBufferEx buffer;
     private int offset;
     private int limit;
@@ -114,6 +116,23 @@ public final class EscapedStringView implements CharSequence
     public String toString()
     {
         return subSequence(0, length).toString();
+    }
+
+    @Override
+    public int transferLength(
+        int fromChar,
+        int toChar)
+    {
+        return decoded.wrap(this).transferLength(fromChar, toChar);
+    }
+
+    @Override
+    public int transferTo(
+        int fromChar,
+        int toChar,
+        TransferTarget target)
+    {
+        return decoded.wrap(this).transferTo(fromChar, toChar, target);
     }
 
     /**
