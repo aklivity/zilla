@@ -98,6 +98,33 @@ read ${mqtt:session()
                .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
                .build()}
 
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .fetch()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1")
+                               .build()
+                           .build()}
+write ${mqtt:session()
+               .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+               .build()}
+write flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1")
+                               .build()
+                           .build()}
+
+read ${mqtt:session()
+               .build()}
+
 write aborted
 
 
