@@ -50,6 +50,20 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateStoreAssertions()
+    {
+        JsonObject config = schema.validate("server.store.assertions.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectStoreAssertionsWithUnknownOperation()
+    {
+        schema.validate("server.store.assertions.unknown.op.yaml");
+    }
+
+    @Test
     public void shouldValidateServerMetrics()
     {
         JsonObject config = schema.validate("server.metrics.yaml");

@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,6 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
@@ -36,18 +38,21 @@ public final class TestStoreHandler implements StoreHandler
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
     private final Consumer<Runnable> dispatcher;
+    private final Queue<Assertion> assertions;
 
     public TestStoreHandler(
         StoreConfig store,
         Consumer<Runnable> dispatcher,
         ConcurrentMap<String, TestEntry> entries,
         ConcurrentMap<String, List<TestWatcher>> listeners,
-        ConcurrentMap<String, TestLockEntry> locks)
+        ConcurrentMap<String, TestLockEntry> locks,
+        Queue<Assertion> assertions)
     {
         this.entries = Objects.requireNonNull(entries);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.listeners = Objects.requireNonNull(listeners);
         this.locks = Objects.requireNonNull(locks);
+        this.assertions = assertions;
     }
 
     @Override
@@ -66,6 +71,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
+        assertOperation("put", key, value, ttl);
         // put and putIfAbsent never expire so bindings configured with short leases keep their records
         entries.put(key, new TestEntry(value, Long.MAX_VALUE));
         notifyListeners(key, value);
@@ -79,6 +85,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
+        assertOperation("putIfAbsent", key, value, ttl);
         final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
@@ -99,6 +106,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
+        assertOperation("delete", key, null, null);
         final TestEntry removed = entries.remove(key);
         if (removed != null)
         {
@@ -112,6 +120,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
+        assertOperation("getAndDelete", key, null, null);
         final TestEntry prior = entries.remove(key);
         if (prior != null)
         {
@@ -292,6 +301,33 @@ public final class TestStoreHandler implements StoreHandler
                 current.remove(watcher);
             }
         };
+    }
+
+    private void assertOperation(
+        String op,
+        String key,
+        String value,
+        Duration ttl)
+    {
+        if (assertions != null)
+        {
+            final Assertion expected = assertions.poll();
+
+            if (expected == null)
+            {
+                throw new AssertionError(String.format("unexpected store operation %s %s", op, key));
+            }
+
+            if (!expected.op.equals(op) ||
+                !expected.key.equals(key) ||
+                !Objects.equals(expected.value, value) ||
+                !Objects.equals(expected.ttl, ttl))
+            {
+                throw new AssertionError(String.format(
+                    "expected store operation %s %s value=%s ttl=%s, was %s %s value=%s ttl=%s",
+                    expected.op, expected.key, expected.value, expected.ttl, op, key, value, ttl));
+            }
+        }
     }
 
     private void notifyListeners(
