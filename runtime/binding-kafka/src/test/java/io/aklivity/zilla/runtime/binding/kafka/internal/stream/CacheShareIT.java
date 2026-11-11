@@ -91,6 +91,17 @@ public class CacheShareIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/receive.message.key.with.header.10k/client",
+        "${app}/member.receive.message.key.with.header.10k/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageKeyWithHeader10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/receive.message.values.outside.acquired/client",
         "${app}/member.receive.message.values.outside.acquired/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
