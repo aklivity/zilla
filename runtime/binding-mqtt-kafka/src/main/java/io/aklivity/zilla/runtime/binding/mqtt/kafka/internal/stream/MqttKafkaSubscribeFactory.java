@@ -2783,7 +2783,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             MqttKafkaTicket ticket,
             MqttSubscribeFlushExFW mqttSubscribeFlushEx)
         {
-            final ClientTickets tickets = clientHighWaterMarks.tickets;
+            final MqttKafkaClientTickets tickets = clientHighWaterMarks.tickets;
             final int packetId = ticket.packetId;
             final boolean received =
                 MqttOffsetStateFlags.valueOf(mqttSubscribeFlushEx.state()) == MqttOffsetStateFlags.INCOMPLETE;
@@ -3231,9 +3231,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            final ClientTickets tickets = mqtt.clientHighWaterMarks.tickets;
+            final MqttKafkaClientTickets tickets = mqtt.clientHighWaterMarks.tickets;
 
-            gates.add(new TicketGate(heldLimit, recordPartitionId, recordPartitionOffset));
+            gates.add(new TicketGate(recordPacketId, heldLimit, recordPartitionId, recordPartitionOffset));
             tickets.add(new MqttKafkaTicket(recordPacketId, MqttSharedTicketState.PUBLISH_SENT, shareName, pattern,
                 topicName, recordPartitionId, recordPartitionOffset));
             tickets.write(() -> onTicketDurable(traceId, authorization));
@@ -4353,7 +4353,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     {
         if (marks.tickets == null)
         {
-            marks.tickets = new ClientTickets(store, String.format("%s:tickets:%s", groupIdPrefix, marks.clientId), marks);
+            marks.tickets = new MqttKafkaClientTickets(store,
+                String.format("%s:tickets:%s", groupIdPrefix, marks.clientId), ticketCodec,
+                t -> marks.inflight.reserve(t.packetId, new PartitionOffset(0L, t.partitionId, t.partitionOffset)),
+                () -> removeClient(marks));
         }
     }
 
@@ -4399,159 +4402,20 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         }
     }
 
-    private final class ClientTickets
-    {
-        private final StoreHandler store;
-        private final String key;
-        private final ClientHighWaterMarks client;
-
-        private List<MqttKafkaTicket> tickets;
-        private List<Runnable> loading;
-        private List<Runnable> writing;
-        private List<Runnable> pending;
-
-        private ClientTickets(
-            StoreHandler store,
-            String key,
-            ClientHighWaterMarks client)
-        {
-            this.store = store;
-            this.key = key;
-            this.client = client;
-            this.loading = new ArrayList<>();
-            store.get(key, (k, value) -> onLoaded(value));
-        }
-
-        private void awaitLoaded(
-            Runnable continuation)
-        {
-            if (loading != null)
-            {
-                loading.add(continuation);
-            }
-            else
-            {
-                continuation.run();
-            }
-        }
-
-        private boolean ready()
-        {
-            return loading == null && tickets != null;
-        }
-
-        private boolean idle()
-        {
-            return writing == null && pending == null;
-        }
-
-        private MqttKafkaTicket find(
-            int packetId)
-        {
-            MqttKafkaTicket found = null;
-
-            for (int i = 0; found == null && ready() && i < tickets.size(); i++)
-            {
-                final MqttKafkaTicket ticket = tickets.get(i);
-                found = ticket.packetId == packetId ? ticket : null;
-            }
-
-            return found;
-        }
-
-        private void add(
-            MqttKafkaTicket ticket)
-        {
-            tickets.add(ticket);
-        }
-
-        private void replace(
-            MqttKafkaTicket ticket)
-        {
-            tickets.replaceAll(t -> t.packetId == ticket.packetId ? ticket : t);
-        }
-
-        private void remove(
-            int packetId)
-        {
-            tickets.removeIf(t -> t.packetId == packetId);
-        }
-
-        private void write(
-            Runnable completion)
-        {
-            if (pending == null)
-            {
-                pending = new ArrayList<>();
-            }
-
-            pending.add(completion);
-
-            if (writing == null)
-            {
-                doWrite();
-            }
-        }
-
-        private void onLoaded(
-            String value)
-        {
-            final List<Runnable> continuations = loading;
-
-            loading = null;
-            tickets = ticketCodec.decode(value);
-
-            if (tickets != null)
-            {
-                tickets.forEach(t ->
-                    client.inflight.reserve(t.packetId, new PartitionOffset(0L, t.partitionId, t.partitionOffset)));
-            }
-
-            continuations.forEach(Runnable::run);
-        }
-
-        private void doWrite()
-        {
-            writing = pending;
-            pending = null;
-
-            if (tickets.isEmpty())
-            {
-                store.delete(key, v -> onWritten());
-            }
-            else
-            {
-                store.put(key, ticketCodec.encode(tickets), null, v -> onWritten());
-            }
-        }
-
-        private void onWritten()
-        {
-            final List<Runnable> completions = writing;
-
-            writing = null;
-            completions.forEach(Runnable::run);
-
-            if (pending != null && writing == null)
-            {
-                doWrite();
-            }
-
-            removeClient(client);
-        }
-    }
-
     private static final class TicketGate
     {
+        private final int packetId;
         private final int position;
         private final int partitionId;
         private final long partitionOffset;
 
         TicketGate(
+            int packetId,
             int position,
             int partitionId,
             long partitionOffset)
         {
+            this.packetId = packetId;
             this.position = position;
             this.partitionId = partitionId;
             this.partitionOffset = partitionOffset;
@@ -4633,7 +4497,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         final List<MqttSubscribeProxy> streams;
         final MqttKafkaPacketIds<PartitionOffset> inflight;
 
-        private ClientTickets tickets;
+        private MqttKafkaClientTickets tickets;
         private int sharedStreams;
 
         ClientHighWaterMarks(
