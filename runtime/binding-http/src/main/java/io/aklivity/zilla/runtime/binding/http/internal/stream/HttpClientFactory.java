@@ -165,6 +165,17 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final byte COLON_BYTE = ':';
     private static final byte HYPHEN_BYTE = '-';
     private static final byte SPACE_BYTE = ' ';
+    private static final byte TAB_BYTE = '\t';
+    private static final byte VERTICAL_TAB_BYTE = 0x0b;
+    private static final byte FORM_FEED_BYTE = 0x0c;
+    private static final byte DELETE_BYTE = 0x7f;
+    private static final byte[] HTTP_1_PREFIX_BYTES = "HTTP/1.".getBytes(US_ASCII);
+    private static final byte[] CONTENT_LENGTH_NAME_BYTES = "content-length".getBytes(US_ASCII);
+    private static final byte[] TRANSFER_ENCODING_NAME_BYTES = "transfer-encoding".getBytes(US_ASCII);
+    private static final byte[] UPGRADE_NAME_BYTES = "upgrade".getBytes(US_ASCII);
+    private static final byte[] CHUNKED_BYTES = "chunked".getBytes(US_ASCII);
+    private static final byte[] SWITCHING_PROTOCOLS_BYTES = "101".getBytes(US_ASCII);
+    private static final int MAX_DECIMAL_DIGITS = 9;
     private static final byte ZERO_BYTE = '0';
 
     private static final int NO_CONTENT_LENGTH = -1;
@@ -454,6 +465,15 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher responseLine;
     private final Matcher versionPart;
     private final Matcher headerLine;
+    private final MutableDirectBufferEx decodedNameBuffer = new UnsafeBufferEx(new byte[256]);
+    private DirectBufferEx decodedValueBuffer;
+    private int decodedValueOffset;
+    private int decodedValueLength;
+    private int decodedNameLength;
+    private final Consumer<HttpHeaderFW.Builder> decodedStatusItem =
+        h -> h.name(HEADER_STATUS).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
+    private final Consumer<HttpHeaderFW.Builder> decodedHeaderItem =
+        h -> h.name(decodedNameBuffer, 0, decodedNameLength).value(decodedValueBuffer, decodedValueOffset, decodedValueLength);
     private final Matcher connectionClose;
     private final Matcher authorityPart;
     private final int httpTypeId;
@@ -967,14 +987,23 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (endOfStartAt != -1)
             {
-                final String status = decodeHttp1StartLine(buffer, offset, endOfStartAt);
-                if (status == null)
+                final boolean statusDecoded = decodeStartLineAscii(buffer, offset, endOfStartAt, httpBeginEx);
+                final String status = statusDecoded ? null : decodeHttp1StartLine(buffer, offset, endOfStartAt);
+                if (!statusDecoded && status == null)
                 {
                     client.decoder = decodeHttp11Ignore;
                     break decode;
                 }
 
-                httpBeginEx.headersItem(h -> h.name(HEADER_STATUS).value(status));
+                final boolean switching = statusDecoded
+                    ? decodedValueLength == SWITCHING_PROTOCOLS_BYTES.length &&
+                        equalsBytes(buffer, decodedValueOffset, SWITCHING_PROTOCOLS_BYTES)
+                    : "101".equals(status);
+
+                if (!statusDecoded)
+                {
+                    httpBeginEx.headersItem(h -> h.name(HEADER_STATUS).value(status));
+                }
 
                 client.decoder = decodeHttp11HeadersOnly;
 
@@ -986,6 +1015,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                         endOfLineAt = limitOfBytes(
                             buffer, startOfLineAt, endOfHeaderLinesAt, CRLF_BYTES))
                 {
+                    if (decodeHeaderLineAscii(client, buffer, startOfLineAt, endOfLineAt, httpBeginEx))
+                    {
+                        continue;
+                    }
+
                     final AsciiSequenceView ascii = asciiRO
                         .wrap(buffer, startOfLineAt, endOfLineAt - startOfLineAt);
                     if (!headerLine.reset(ascii).matches())
@@ -1021,7 +1055,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                     case "upgrade":
                         assert client.decoder == decodeHttp11HeadersOnly;
-                        if ("101".equals(status))
+                        if (switching)
                         {
                             if (!value.equals(client.protocolUpgrade))
                             {
@@ -1063,6 +1097,206 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         return progress;
+    }
+
+    private boolean decodeStartLineAscii(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        HttpBeginExFW.Builder httpBeginEx)
+    {
+        final int endOfReasonAt = limit - CRLF_BYTES.length;
+        final int versionLimit = offset + HTTP_1_PREFIX_BYTES.length + 1;
+
+        boolean decoded = limit - offset < decodeMax &&
+            versionLimit < endOfReasonAt &&
+            equalsBytes(buffer, offset, HTTP_1_PREFIX_BYTES) &&
+            isDigit(buffer.getByte(versionLimit - 1));
+
+        if (decoded)
+        {
+            final int statusAt = skipBlanks(buffer, versionLimit, endOfReasonAt);
+            int statusLimit = statusAt;
+            while (statusLimit < endOfReasonAt && isDigit(buffer.getByte(statusLimit)))
+            {
+                statusLimit++;
+            }
+
+            final int reasonAt = skipBlanks(buffer, statusLimit, endOfReasonAt);
+
+            decoded = statusAt > versionLimit &&
+                statusLimit > statusAt &&
+                reasonAt > statusLimit &&
+                isLineText(buffer, reasonAt, endOfReasonAt);
+
+            if (decoded)
+            {
+                decodedValueBuffer = buffer;
+                decodedValueOffset = statusAt;
+                decodedValueLength = statusLimit - statusAt;
+                httpBeginEx.headersItem(decodedStatusItem);
+            }
+        }
+
+        return decoded;
+    }
+
+    private boolean decodeHeaderLineAscii(
+        HttpClient client,
+        DirectBufferEx buffer,
+        int startOfLineAt,
+        int endOfLineAt,
+        HttpBeginExFW.Builder httpBeginEx)
+    {
+        final int endOfValueAt = endOfLineAt - CRLF_BYTES.length;
+
+        int nameLength = 0;
+        int progress = startOfLineAt;
+        while (progress < endOfValueAt &&
+               nameLength < decodedNameBuffer.capacity() &&
+               isHeaderNameByte(buffer.getByte(progress)))
+        {
+            final byte octet = buffer.getByte(progress++);
+            decodedNameBuffer.putByte(nameLength++, octet >= 'A' && octet <= 'Z' ? (byte) (octet + 32) : octet);
+        }
+
+        boolean decoded = nameLength > 0 && progress < endOfValueAt && buffer.getByte(progress) == COLON_BYTE;
+
+        if (decoded)
+        {
+            progress = skipBlanks(buffer, progress + 1, endOfValueAt);
+
+            decodedValueBuffer = buffer;
+            decodedValueOffset = progress;
+            decodedValueLength = endOfValueAt - progress;
+            decodedNameLength = nameLength;
+
+            decoded = isLineText(buffer, progress, endOfValueAt) && !nameEquals(UPGRADE_NAME_BYTES);
+        }
+
+        if (decoded)
+        {
+            if (nameEquals(CONTENT_LENGTH_NAME_BYTES))
+            {
+                decoded = decodedValueLength > 0 && decodedValueLength <= MAX_DECIMAL_DIGITS &&
+                    isDigits(buffer, progress, endOfValueAt);
+
+                if (decoded)
+                {
+                    final int contentLength = parseDecimal(buffer, progress, endOfValueAt);
+                    if (contentLength > 0)
+                    {
+                        client.decodableContentLength = contentLength;
+                        client.contentLength = contentLength;
+                        client.decoder = decodeHttp11Content;
+                    }
+                    httpBeginEx.headersItem(decodedHeaderItem);
+                }
+            }
+            else if (nameEquals(TRANSFER_ENCODING_NAME_BYTES))
+            {
+                if (decodedValueLength == CHUNKED_BYTES.length && equalsBytes(buffer, progress, CHUNKED_BYTES))
+                {
+                    client.decoder = decodeHttp11ChunkHeader;
+                }
+            }
+            else
+            {
+                httpBeginEx.headersItem(decodedHeaderItem);
+            }
+        }
+
+        return decoded;
+    }
+
+    private int skipBlanks(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+        while (progress < limit && isBlank(buffer.getByte(progress)))
+        {
+            progress++;
+        }
+        return progress;
+    }
+
+    private boolean nameEquals(
+        byte[] expected)
+    {
+        return decodedNameLength == expected.length && equalsBytes(decodedNameBuffer, 0, expected);
+    }
+
+    private static boolean equalsBytes(
+        DirectBufferEx buffer,
+        int offset,
+        byte[] expected)
+    {
+        boolean equals = true;
+        for (int index = 0; equals && index < expected.length; index++)
+        {
+            equals = buffer.getByte(offset + index) == expected[index];
+        }
+        return equals;
+    }
+
+    private static int parseDecimal(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int value = 0;
+        for (int index = offset; index < limit; index++)
+        {
+            value = value * 10 + buffer.getByte(index) - ZERO_BYTE;
+        }
+        return value;
+    }
+
+    private static boolean isDigits(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        boolean digits = true;
+        for (int index = offset; digits && index < limit; index++)
+        {
+            digits = isDigit(buffer.getByte(index));
+        }
+        return digits;
+    }
+
+    private static boolean isLineText(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        boolean valid = true;
+        for (int index = offset; valid && index < limit; index++)
+        {
+            final byte octet = buffer.getByte(index);
+            valid = octet >= 0 && octet != '\r' && octet != '\n';
+        }
+        return valid;
+    }
+
+    private static boolean isDigit(
+        byte octet)
+    {
+        return octet >= '0' && octet <= '9';
+    }
+
+    private static boolean isBlank(
+        byte octet)
+    {
+        return octet == SPACE_BYTE || octet == TAB_BYTE || octet == VERTICAL_TAB_BYTE || octet == FORM_FEED_BYTE;
+    }
+
+    private static boolean isHeaderNameByte(
+        byte octet)
+    {
+        return octet > SPACE_BYTE && octet < DELETE_BYTE && octet != COLON_BYTE;
     }
 
     private String decodeHttp1StartLine(
