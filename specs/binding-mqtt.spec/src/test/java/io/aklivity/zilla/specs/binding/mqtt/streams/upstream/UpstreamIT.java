@@ -270,4 +270,31 @@ public class UpstreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${upstream}/subscribe.shared.subscription.disconnect/client",
+        "${upstream}/subscribe.shared.subscription.disconnect/server"})
+    public void shouldSubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.subscription.disconnect/client",
+        "${upstream}/unsubscribe.shared.subscription.disconnect/server"})
+    public void shouldUnsubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.resubscribe.change.qos.disconnect/client",
+        "${upstream}/unsubscribe.shared.resubscribe.change.qos.disconnect/server"})
+    public void shouldUnsubscribeSharedResubscribeChangeQosDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }
