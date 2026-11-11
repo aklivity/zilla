@@ -53,6 +53,8 @@ scope mqtt_kafka
     {
          uint16 packetId;
          MqttSharedTicketState state;
+         string16 shareName;
+         string16 filter;
          string16 topic;
          int32 partitionId;
          int64 partitionOffset;
