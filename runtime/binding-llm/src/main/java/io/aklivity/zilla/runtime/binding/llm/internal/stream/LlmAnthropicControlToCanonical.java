@@ -103,7 +103,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     LlmAnthropicControlToCanonical()
     {
-        super(MODE_OBJECT, null, 1, new LlmCapturedValue());
+        super(MODE_OBJECT, null, 1, new LlmCapturedValue(), new LlmCapturedScalar());
         this.choice = new LlmToolChoice();
     }
 
@@ -209,26 +209,27 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     protected Status onCaptured(
         LlmCapturedValue value)
     {
-        Status status = Status.ADVANCED;
-
         if (matches(capturedMember(), SERVICE_TIER))
         {
             onServiceTier(value);
         }
-        else if (matches(capturedMember(), MEMBER_TYPE) && container == CONTAINER_THINKING)
-        {
-            onThinkingType(value);
-        }
         else if (matches(capturedMember(), MEMBER_TYPE))
         {
-            status = TYPE_JSON_SCHEMA.equals(value.string(0)) ? Status.ADVANCED : Status.REJECTED;
+            onThinkingType(value);
         }
         else
         {
             onToolChoiceCaptured(value);
         }
 
-        return status;
+        return Status.ADVANCED;
+    }
+
+    @Override
+    protected Status onScalar(
+        LlmCapturedScalar value)
+    {
+        return TYPE_JSON_SCHEMA.equals(value.string()) ? Status.ADVANCED : Status.REJECTED;
     }
 
     private void onToolChoiceCaptured(
@@ -459,7 +460,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         }
         else if (matches(key, MEMBER_TYPE))
         {
-            action = capture(key);
+            action = captureScalar(key);
         }
 
         return action;

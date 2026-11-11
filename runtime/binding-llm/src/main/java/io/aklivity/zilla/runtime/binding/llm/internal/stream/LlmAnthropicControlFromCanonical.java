@@ -96,7 +96,8 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect ? DIALECT : null, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
+        super(mode, sameDialect ? DIALECT : null, mode == MODE_OBJECT ? new LlmCapturedValue() : null,
+            mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
@@ -213,17 +214,22 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, STOP))
             {
                 target = MEMBER_STOP_SEQUENCES;
                 action = DESCEND_ELEMENTS;
             }
-            else if (matches(key, TOOL_CHOICE) || matches(key, PARALLEL_TOOL_CALLS))
+            else if (matches(key, TOOL_CHOICE))
             {
                 target = TOOL_CHOICE;
                 action = capture(key);
+            }
+            else if (matches(key, PARALLEL_TOOL_CALLS))
+            {
+                target = TOOL_CHOICE;
+                action = captureScalar(key);
             }
             else if (matches(key, RESPONSE_FORMAT))
             {
@@ -309,8 +315,8 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         final String member = capturedMember();
         Status status;
@@ -327,12 +333,17 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         }
         else
         {
-            status = matches(member, MEMBER_TYPE)
-                ? formatCaptured(value)
-                : matches(member, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+            status = matches(member, MEMBER_TYPE) ? formatCaptured(value) : onParallelCalls(value);
         }
 
         return status;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        return onToolChoice(value);
     }
 
     @Override
@@ -390,9 +401,9 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     }
 
     private Status onParallelCalls(
-        LlmCapturedValue value)
+        LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event(0);
+        final JsonEvent event = value.event();
         Status status = Status.ADVANCED;
 
         if (event == JsonEvent.VALUE_TRUE)

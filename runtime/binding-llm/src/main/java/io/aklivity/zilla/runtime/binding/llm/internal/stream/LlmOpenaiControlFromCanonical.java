@@ -66,7 +66,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, dialect, 1, mode == MODE_OBJECT ? new LlmCapturedValue() : null);
+        super(mode, dialect, 1, null, mode == MODE_OBJECT ? new LlmCapturedScalar() : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.capability = capability;
@@ -165,7 +165,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
             else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
             {
                 target = null;
-                action = capture(key);
+                action = captureScalar(key);
             }
             else if (matches(key, SEED) ||
                 matches(key, FREQUENCY_PENALTY) ||
@@ -213,8 +213,8 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     }
 
     @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         Status status = Status.ADVANCED;
 

@@ -58,6 +58,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int DESCEND_OR_REPLACE = 22;
     protected static final int DESCEND_OR_PASS = 23;
     protected static final int LIMIT_STRING = 24;
+    protected static final int CAPTURE_SCALAR = 25;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -66,7 +67,7 @@ abstract class LlmToolTransform implements JsonTransform
 
     private static final String DATA_URI_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
-    private static final int JUDGE_VALUE = 25;
+    private static final int JUDGE_VALUE = 26;
     private static final int NONE = -1;
     private static final int BASE_SHIFT = 18;
     private static final int BASE_BITS = -1 << BASE_SHIFT;
@@ -94,6 +95,7 @@ abstract class LlmToolTransform implements JsonTransform
     private final String dialect;
     private final int extractDepth;
     private final LlmCapturedValue captured;
+    private final LlmCapturedScalar scalar;
     private final LiteralSource literalSource;
     private final LiteralControl literalControl;
     private final StringBuilder heldBuilder;
@@ -169,7 +171,7 @@ abstract class LlmToolTransform implements JsonTransform
         String dialect,
         int extractDepth)
     {
-        this(mode, dialect, extractDepth, null);
+        this(mode, dialect, extractDepth, null, null);
     }
 
     protected LlmToolTransform(
@@ -178,10 +180,21 @@ abstract class LlmToolTransform implements JsonTransform
         int extractDepth,
         LlmCapturedValue captured)
     {
+        this(mode, dialect, extractDepth, captured, null);
+    }
+
+    protected LlmToolTransform(
+        int mode,
+        String dialect,
+        int extractDepth,
+        LlmCapturedValue captured,
+        LlmCapturedScalar scalar)
+    {
         this.mode = mode;
         this.dialect = dialect;
         this.extractDepth = extractDepth;
         this.captured = captured;
+        this.scalar = scalar;
         this.captureLimit = HELD_MAX;
         this.literalSource = new LiteralSource();
         this.literalControl = new LiteralControl();
@@ -493,6 +506,16 @@ abstract class LlmToolTransform implements JsonTransform
         return CAPTURE_VALUE;
     }
 
+    protected final int captureScalar(
+        CharSequence member)
+    {
+        captureMember = name(member);
+        captureDepth = 0;
+        scalar.clear();
+
+        return CAPTURE_SCALAR;
+    }
+
     protected final void captureLimit(
         int limit)
     {
@@ -514,6 +537,12 @@ abstract class LlmToolTransform implements JsonTransform
 
     protected Status onCaptured(
         LlmCapturedValue value)
+    {
+        return Status.REJECTED;
+    }
+
+    protected Status onScalar(
+        LlmCapturedScalar value)
     {
         return Status.REJECTED;
     }
@@ -1190,7 +1219,7 @@ abstract class LlmToolTransform implements JsonTransform
 
     private boolean capturing()
     {
-        return pending == CAPTURE_VALUE || pending == JUDGE_VALUE;
+        return pending == CAPTURE_VALUE || pending == CAPTURE_SCALAR || pending == JUDGE_VALUE;
     }
 
     private Status capture(
@@ -1224,7 +1253,12 @@ abstract class LlmToolTransform implements JsonTransform
 
         if (status == Status.ADVANCED && captureDepth == 0)
         {
-            status = pending == JUDGE_VALUE ? judged() : onCaptured(captured);
+            status = switch (pending)
+            {
+            case JUDGE_VALUE -> judged();
+            case CAPTURE_SCALAR -> onScalar(scalar);
+            default -> onCaptured(captured);
+            };
 
             if (delivered())
             {
@@ -1280,9 +1314,12 @@ abstract class LlmToolTransform implements JsonTransform
         JsonEvent event,
         String text)
     {
-        return pending == JUDGE_VALUE
-            ? decide(event, text)
-            : captured.add(event, text, captureLimit) ? Status.ADVANCED : Status.REJECTED;
+        return switch (pending)
+        {
+        case JUDGE_VALUE -> decide(event, text);
+        case CAPTURE_SCALAR -> scalar.add(event, text, captureLimit) ? Status.ADVANCED : Status.REJECTED;
+        default -> captured.add(event, text, captureLimit) ? Status.ADVANCED : Status.REJECTED;
+        };
     }
 
     private Status decide(
