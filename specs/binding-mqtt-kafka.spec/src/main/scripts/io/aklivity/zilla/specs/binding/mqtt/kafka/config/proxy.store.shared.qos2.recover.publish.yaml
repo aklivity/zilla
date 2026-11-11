@@ -22,6 +22,12 @@ stores:
       entries:
         "zilla:test-mqtt0:tickets:client": ATkAAAABAAAAAQABCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABQAAAAAAAAA
       assertions:
+        - op: putIfAbsent
+          key: "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry"
+          value: "0:1"
+        - op: put
+          key: "zilla:test-mqtt0:memberships:client"
+          value: ARsAAAABAAAACQBjb25zdW1lcnMKAHNlbnNvci9vbmU
         - op: put
           key: "zilla:test-mqtt0:tickets:client"
           value: ATkAAAABAAAAAQACCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABQAAAAAAAAA

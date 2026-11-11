@@ -220,4 +220,76 @@ public class SchemaTest
     {
         schema.validate("proxy.when.subscribe.share.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinFirst()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.first.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinSecond()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.second.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinRestored()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.restored.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinUnreadableRegistry()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.unreadable.registry.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinDistinctFilters()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.distinct.filters.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedJoinDistinctShareNames()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.join.distinct.share.names.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSessionSharedUnsubscribe()
+    {
+        JsonObject config = schema.validate("proxy.store.session.shared.unsubscribe.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSessionSharedUnsubscribeSecond()
+    {
+        JsonObject config = schema.validate("proxy.store.session.shared.unsubscribe.second.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSessionSharedResubscribe()
+    {
+        JsonObject config = schema.validate("proxy.store.session.shared.resubscribe.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
