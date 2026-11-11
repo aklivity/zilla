@@ -16,7 +16,6 @@
 module io.aklivity.zilla.runtime.common.agrona
 {
     requires transitive org.agrona;
-    requires transitive io.aklivity.zilla.runtime.common.lang;
 
     exports io.aklivity.zilla.runtime.common.agrona.buffer;
     exports io.aklivity.zilla.runtime.common.agrona.concurrent;
