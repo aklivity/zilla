@@ -117,6 +117,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int OFFSET_METADATA_VERSION = 2;
     private static final int MQTT_REASON_CODE_ERROR = 0x80;
     private static final String SHARE_INCARNATION = "0";
+    private static final int NO_PACKET_ID = 0;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -188,6 +189,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
+    private final KafkaSharedDecoder decodeRecordInit = this::decodeRecordInit;
+    private final KafkaSharedDecoder decodeRecordDeliver = this::decodeRecordDeliver;
+    private final KafkaSharedDecoder decodeRecordSkip = this::decodeRecordSkip;
 
     private int reconnectAttempt;
     private int nextPacketId;
@@ -2915,7 +2919,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final IntArrayList packetIds;
 
         private MessageConsumer kafka;
+        private KafkaSharedDecoder decoder;
         private int subscriptionId;
+        private int recordPartitionId;
+        private long recordPartitionOffset;
+        private int recordPacketId;
 
         private int state;
 
@@ -2939,6 +2947,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.packetIds = new IntArrayList();
+            this.decoder = decodeRecordInit;
         }
 
         private void onKafkaMessage(
@@ -3038,112 +3047,96 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final KafkaShareDataExFW kafkaShareDataEx =
                     kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_SHARE ? kafkaDataEx.share() : null;
 
-                if (kafkaShareDataEx != null && hasInit(flags) && hasFin(flags))
-                {
-                    onKafkaRecord(traceId, authorization, budgetId, reserved, flags, payload, kafkaShareDataEx);
-                }
-                else if (kafkaShareDataEx != null && hasFin(flags))
-                {
-                    final KafkaOffsetFW partition = kafkaShareDataEx.partition();
-                    doKafkaAcknowledge(traceId, authorization,
-                        partition.partitionId(), partition.partitionOffset(), KafkaShareAckType.REJECT);
-                }
+                decoder.decode(this, traceId, authorization, budgetId, reserved, flags, payload, kafkaShareDataEx);
 
                 doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
             }
         }
 
-        private void onKafkaRecord(
+        private void doMqttRecordInit(
             long traceId,
             long authorization,
             long budgetId,
             int reserved,
             int flags,
             OctetsFW payload,
-            KafkaShareDataExFW kafkaShareDataEx)
+            KafkaShareDataExFW kafkaShareDataEx,
+            long expireInterval)
         {
-            final KafkaOffsetFW partition = kafkaShareDataEx.partition();
-            final int partitionId = partition.partitionId();
-            final long partitionOffset = partition.partitionOffset();
-            final long timestamp = kafkaShareDataEx.timestamp();
+            final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
+            final boolean acknowledged = Math.min(messageQos, mqtt.qos) >= MqttQoS.AT_LEAST_ONCE.value();
 
-            helper.visit(kafkaShareDataEx.headers());
+            final String topicName = kafkaShareDataEx.key().value()
+                .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
 
-            final boolean expiring = helper.timeout != -1;
-            final long expireInterval = expiring ? timestamp + helper.timeout - now().toEpochMilli() : helper.timeout;
-
-            if (expiring && expireInterval < 0)
-            {
-                doKafkaAcknowledge(traceId, authorization, partitionId, partitionOffset, KafkaShareAckType.ACCEPT);
-            }
-            else
-            {
-                final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
-                final boolean acknowledged = Math.min(messageQos, mqtt.qos) >= MqttQoS.AT_LEAST_ONCE.value();
-
-                final String topicName = kafkaShareDataEx.key().value()
-                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
-
-                final Flyweight mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(mqttTypeId)
-                    .subscribe(b ->
-                    {
-                        b.deferred(kafkaShareDataEx.deferred());
-                        b.topic(topicName);
-                        if (acknowledged)
-                        {
-                            b.packetId(newPacketId(partitionId, partitionOffset));
-                            b.qos(messageQos);
-                        }
-
-                        subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
-                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
-                        b.subscriptionIds(subscriptionIdsRW.build());
-
-                        if (expireInterval != -1)
-                        {
-                            b.expiryInterval((int) expireInterval);
-                        }
-                        if (helper.contentType != null)
-                        {
-                            b.contentType(helper.contentType.buffer(), helper.contentType.offset(), helper.contentType.sizeof());
-                        }
-                        if (helper.format != null)
-                        {
-                            b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
-                        }
-                        if (helper.replyTo != null)
-                        {
-                            b.responseTopic(helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
-                        }
-                        if (helper.correlation != null)
-                        {
-                            b.correlation(c -> c.bytes(helper.correlation));
-                        }
-
-                        final DirectBufferEx buffer = kafkaShareDataEx.buffer();
-                        final int limit = kafkaShareDataEx.limit();
-                        helper.userPropertiesOffsets.forEach(o ->
-                        {
-                            final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
-                            final OctetsFW name = header.name();
-                            final OctetsFW value = header.value();
-                            if (value != null)
-                            {
-                                b.propertiesItem(pi -> pi
-                                    .key(name.buffer(), name.offset(), name.sizeof())
-                                    .value(value.buffer(), value.offset(), value.sizeof()));
-                            }
-                        });
-                    }).build();
-
-                mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
-
-                if (!acknowledged)
+            final Flyweight mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mqttTypeId)
+                .subscribe(b ->
                 {
-                    doKafkaAcknowledge(traceId, authorization, partitionId, partitionOffset, KafkaShareAckType.ACCEPT);
-                }
+                    b.deferred(kafkaShareDataEx.deferred());
+                    b.topic(topicName);
+                    if (acknowledged)
+                    {
+                        recordPacketId = newPacketId(recordPartitionId, recordPartitionOffset);
+                        b.packetId(recordPacketId);
+                        b.qos(messageQos);
+                    }
+
+                    subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
+                    subscriptionIdsRW.item(si -> si.set(subscriptionId));
+                    b.subscriptionIds(subscriptionIdsRW.build());
+
+                    if (expireInterval != -1)
+                    {
+                        b.expiryInterval((int) expireInterval);
+                    }
+                    if (helper.contentType != null)
+                    {
+                        b.contentType(helper.contentType.buffer(), helper.contentType.offset(), helper.contentType.sizeof());
+                    }
+                    if (helper.format != null)
+                    {
+                        b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
+                    }
+                    if (helper.replyTo != null)
+                    {
+                        b.responseTopic(helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
+                    }
+                    if (helper.correlation != null)
+                    {
+                        b.correlation(c -> c.bytes(helper.correlation));
+                    }
+
+                    final DirectBufferEx buffer = kafkaShareDataEx.buffer();
+                    final int limit = kafkaShareDataEx.limit();
+                    helper.userPropertiesOffsets.forEach(o ->
+                    {
+                        final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
+                        final OctetsFW name = header.name();
+                        final OctetsFW value = header.value();
+                        if (value != null)
+                        {
+                            b.propertiesItem(pi -> pi
+                                .key(name.buffer(), name.offset(), name.sizeof())
+                                .value(value.buffer(), value.offset(), value.sizeof()));
+                        }
+                    });
+                }).build();
+
+            mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
+        }
+
+        private void doKafkaRecordFin(
+            long traceId,
+            long authorization)
+        {
+            if (recordPacketId == NO_PACKET_ID)
+            {
+                doKafkaAcknowledge(traceId, authorization, recordPartitionId, recordPartitionOffset, KafkaShareAckType.ACCEPT);
             }
+
+            recordPacketId = NO_PACKET_ID;
+            decoder = decodeRecordInit;
         }
 
         private void onKafkaFlush(
@@ -3413,6 +3406,94 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             packetIds.forEachOrderedInt(offsetsPerPacketId::remove);
             packetIds.clear();
+        }
+    }
+
+    @FunctionalInterface
+    private interface KafkaSharedDecoder
+    {
+        void decode(
+            KafkaSharedProxy shared,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            KafkaShareDataExFW kafkaShareDataEx);
+    }
+
+    private void decodeRecordInit(
+        KafkaSharedProxy shared,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        KafkaShareDataExFW kafkaShareDataEx)
+    {
+        if (kafkaShareDataEx != null && hasInit(flags))
+        {
+            final KafkaOffsetFW partition = kafkaShareDataEx.partition();
+            shared.recordPartitionId = partition.partitionId();
+            shared.recordPartitionOffset = partition.partitionOffset();
+
+            helper.visit(kafkaShareDataEx.headers());
+
+            final boolean expiring = helper.timeout != -1;
+            final long expireInterval =
+                expiring ? kafkaShareDataEx.timestamp() + helper.timeout - now().toEpochMilli() : helper.timeout;
+
+            if (expiring && expireInterval < 0)
+            {
+                shared.decoder = decodeRecordSkip;
+            }
+            else
+            {
+                shared.doMqttRecordInit(traceId, authorization, budgetId, reserved, flags, payload, kafkaShareDataEx,
+                    expireInterval);
+                shared.decoder = decodeRecordDeliver;
+            }
+
+            if (hasFin(flags))
+            {
+                shared.doKafkaRecordFin(traceId, authorization);
+            }
+        }
+    }
+
+    private void decodeRecordDeliver(
+        KafkaSharedProxy shared,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        KafkaShareDataExFW kafkaShareDataEx)
+    {
+        shared.mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, EMPTY_OCTETS);
+
+        if (hasFin(flags))
+        {
+            shared.doKafkaRecordFin(traceId, authorization);
+        }
+    }
+
+    private void decodeRecordSkip(
+        KafkaSharedProxy shared,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        KafkaShareDataExFW kafkaShareDataEx)
+    {
+        if (hasFin(flags))
+        {
+            shared.doKafkaRecordFin(traceId, authorization);
         }
     }
 
