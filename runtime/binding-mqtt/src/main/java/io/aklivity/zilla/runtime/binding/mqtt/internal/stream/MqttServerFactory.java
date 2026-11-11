@@ -4320,11 +4320,13 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private boolean onSubscribeStreamRejected(
             long traceId,
+            long authorization,
             MqttSubscribeStream stream,
             int reasonCode)
         {
             boolean rejected = false;
 
+            final List<String> failedFilters = new ArrayList<>();
             final byte failureCode = subackReasonCode(reasonCode);
             final Iterator<PendingSuback> iterator = pendingSubacks.values().iterator();
             while (iterator.hasNext())
@@ -4335,9 +4337,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     rejected = true;
                     for (int i = 0; i < suback.reasonCodes.length; i++)
                     {
-                        if (stream.subscriptions.contains(suback.subscriptions.get(i)))
+                        final Subscription subscription = suback.subscriptions.get(i);
+                        if ((suback.reasonCodes[i] & 0xff) <= GRANTED_QOS_2 && stream.subscriptions.contains(subscription))
                         {
                             suback.reasonCodes[i] = failureCode;
+                            failedFilters.add(subscription.filter);
                         }
                     }
 
@@ -4348,6 +4352,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
             }
+
+            if (!failedFilters.isEmpty())
+            {
+                doSendSessionState(traceId, failedFilters);
+            }
+
+            releaseDeferredUnsubscribes(traceId, authorization);
 
             return rejected;
         }
@@ -7493,7 +7504,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     ? mqttResetEx.reasonCode()
                     : UNSPECIFIED_ERROR;
 
-                if (onSubscribeStreamRejected(traceId, this, reasonCode))
+                if (onSubscribeStreamRejected(traceId, authorization, this, reasonCode))
                 {
                     doSubscribeReset(traceId);
                 }
