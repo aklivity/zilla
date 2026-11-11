@@ -6225,43 +6225,41 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void onEncodeText(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (length > 0)
+            if (to > from)
             {
                 if (server.streaming)
                 {
-                    accumulate(payload, offset, length);
-
                     if (partKind == PART_KIND_REFUSAL)
                     {
-                        eventRefusalDelta(payload, offset, length);
+                        eventRefusalDelta(chars, from, to);
                     }
                     else
                     {
-                        eventTextDelta(payload, offset, length);
+                        eventTextDelta(chars, from, to);
                     }
                 }
                 else
                 {
-                    ensureEncodeRoom(length * RESPONSE_ESCAPE_EXPANSION);
-                    generator.writeSegment(payload, offset, length);
+                    ensureEncodeRoom((to - from) * RESPONSE_ESCAPE_EXPANSION);
+                    generator.writeSegment(chars, from, to);
                 }
             }
         }
 
-        private void accumulate(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+        private void writeDelta(
+            CharSequence chars,
+            int from,
+            int to)
         {
-            ensureEscape(length);
+            final int escapedOffset = generator.length();
 
-            final int escaped = LlmJsonEscape.escape(payload, offset, length, escapeBytes);
+            generator.writeSegment(chars, from, to);
 
-            accumulator.append(escapeBuffer, 0, escaped);
+            accumulator.append(copyBuffer, escapedOffset, generator.length() - escapedOffset);
         }
 
         private void ensureEscape(
@@ -7233,16 +7231,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventTextDelta(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             eventBegin(generator.length(), EVENT_TEXT_DELTA);
             generator.writeStartObject().write(MEMBER_TYPE, EVENT_TEXT_DELTA)
                 .write(MEMBER_CONTENT_INDEX, itemParts - 1)
                 .writeKey(MEMBER_DELTA)
                 .writeStartEscaped();
-            generator.writeSegment(payload, offset, length);
+            writeDelta(chars, from, to);
             generator.writeEndEscaped();
             generator.write(MEMBER_ITEM_ID, itemId(itemCount - 1))
                 .writeStartArray(MEMBER_LOGPROBS).writeEnd();
@@ -7346,11 +7344,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void onReasoningText(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (length > 0 && !membersStarted)
+            if (to > from && !membersStarted)
             {
                 if (partMode != PART_ACTIVE)
                 {
@@ -7359,12 +7357,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (server.streaming)
                 {
-                    accumulate(payload, offset, length);
-                    eventSummaryTextDelta(payload, offset, length);
+                    eventSummaryTextDelta(chars, from, to);
                 }
                 else
                 {
-                    generator.writeSegment(payload, offset, length);
+                    generator.writeSegment(chars, from, to);
                 }
             }
         }
@@ -7683,15 +7680,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventSummaryTextDelta(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             eventBegin(generator.length(), EVENT_SUMMARY_TEXT_DELTA);
             generator.writeStartObject().write(MEMBER_TYPE, EVENT_SUMMARY_TEXT_DELTA)
                 .writeKey(MEMBER_DELTA)
                 .writeStartEscaped();
-            generator.writeSegment(payload, offset, length);
+            writeDelta(chars, from, to);
             generator.writeEndEscaped();
             generator.write(MEMBER_ITEM_ID, itemId(itemCount - 1));
 
@@ -7739,16 +7736,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventRefusalDelta(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             eventBegin(generator.length(), EVENT_REFUSAL_DELTA);
             generator.writeStartObject().write(MEMBER_TYPE, EVENT_REFUSAL_DELTA)
                 .write(MEMBER_CONTENT_INDEX, itemParts - 1)
                 .writeKey(MEMBER_DELTA)
                 .writeStartEscaped();
-            generator.writeSegment(payload, offset, length);
+            writeDelta(chars, from, to);
             generator.writeEndEscaped();
             generator.write(MEMBER_ITEM_ID, itemId(itemCount - 1))
                 .write(MEMBER_OUTPUT_INDEX, itemCount - 1)
