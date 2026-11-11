@@ -3135,7 +3135,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     codecOffset.value++;
                     codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
                     codecOffset.value += CRLF_BYTES.length;
-                    trailers.forEach(h -> codecOffset.value = doEncodeHeader(writeBuffer, codecOffset.value, h));
+                    trailers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
                     codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
                     codecOffset.value += CRLF_BYTES.length;
 

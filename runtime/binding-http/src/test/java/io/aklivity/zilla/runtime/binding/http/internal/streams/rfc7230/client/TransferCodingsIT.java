@@ -117,7 +117,6 @@ public class TransferCodingsIT
     @Specification({
         "${app}/request.transfer.encoding.chunked.with.trailer/client",
         "${net}/request.transfer.encoding.chunked.with.trailer/server" })
-    @Ignore // TODO: implement chunked request encoding
     public void requestTransferEncodingChunkedWithTrailer() throws Exception
     {
         k3po.finish();
