@@ -25,9 +25,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -250,8 +248,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
         final KafkaCacheTopicConfig stagingConfig = new KafkaCacheTopicConfig(config);
         stagingConfig.segmentBytes = config.cacheServerShareStagingSegmentBytes();
 
-        final String staging = String.format("share-%d-%s-%s", context.index(),
-            URLEncoder.encode(groupId, UTF_8), URLEncoder.encode(topic, UTF_8));
+        final String staging = KafkaShareStaging.directory(context.index(), groupId, topic);
 
         final KafkaShareStaging stagingLog =
             new KafkaShareStaging(context, cacheTopic.newShareStaging(stagingConfig, staging), routedId, writeBuffer.capacity());
