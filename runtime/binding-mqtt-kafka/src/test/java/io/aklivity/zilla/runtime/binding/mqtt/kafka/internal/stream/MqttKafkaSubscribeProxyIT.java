@@ -704,7 +704,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.store.shared.join.distinct.filters.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.distinct.filters/client",
@@ -715,7 +715,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.store.shared.join.distinct.share.names.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.distinct.share.names/client",
@@ -1071,6 +1071,60 @@ public class MqttKafkaSubscribeProxyIT
     @Specification({
         "${mqtt}/subscribe.shared.reject.share.mismatch/client"})
     public void shouldSubscribeSharedRejectShareMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.first.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedJoinFirstSubscriber() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.second.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedJoinSecondSubscriber() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.restored.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.restore.membership/client",
+        "${kafka}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembershipWithoutJoining() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.unreadable.registry.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
+    public void shouldSubscribeSharedRejectUnreadableRegistry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.new.life.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.join.new.life/client",
+        "${kafka}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
     {
         k3po.finish();
     }
