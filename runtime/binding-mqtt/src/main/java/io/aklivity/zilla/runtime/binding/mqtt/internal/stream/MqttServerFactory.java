@@ -4859,7 +4859,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     Optional<Subscription> subscription = stream.getSubscriptionByFilter(topicFilter, newState);
 
                     subscription.ifPresent(value -> filtersByStream.computeIfAbsent(stream, s -> new ArrayList<>()).add(value));
-                    encodeReasonCode = subscription.isPresent() ? subscription.get().reasonCode : NO_SUBSCRIPTION_EXISTED;
+                    encodeReasonCode = subscription.isPresent()
+                        ? unsubackReasonCode(subscription.get().reasonCode)
+                        : NO_SUBSCRIPTION_EXISTED;
                 }
 
                 final MqttUnsubackPayloadFW mqttUnsubackPayload =
@@ -4892,6 +4894,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .findFirst()
                     .ifPresentOrElse(stream -> stream.pendingUnsubacks.add(unsuback), unsuback);
             }
+        }
+
+        private int unsubackReasonCode(
+            int reasonCode)
+        {
+            return reasonCode <= GRANTED_QOS_2 ? SUCCESS : reasonCode;
         }
 
         private void onDecodePingReq(
@@ -7732,7 +7740,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 for (Subscription subscription : unsubscribed)
                 {
-                    if (subscription.reasonCode == SUCCESS)
+                    if (subscription.reasonCode <= GRANTED_QOS_2)
                     {
                         this.subscriptions.remove(subscription);
                     }
