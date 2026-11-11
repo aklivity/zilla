@@ -6271,9 +6271,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (authority != null)
             {
                 final String authorityValue = authority.asString();
-                int columnIndex = authorityValue.indexOf(":");
-                final String port = authorityValue.substring(columnIndex);
-                if (":80".equals(port) || ":443".equals(port))
+                final int columnIndex = authorityValue.indexOf(':');
+                if (columnIndex != -1 && isDefaultPort(authorityValue, columnIndex))
                 {
                     headersMap.put(HEADER_AUTHORITY,  new String16FW(authorityValue.substring(0, columnIndex)));
                 }
@@ -6295,6 +6294,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             reset(encodeContext);
             headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
+        }
+
+        private boolean isDefaultPort(
+            String authorityValue,
+            int columnIndex)
+        {
+            final String port = authorityValue.substring(columnIndex);
+            return ":80".equals(port) || ":443".equals(port);
         }
 
         private void reset(
