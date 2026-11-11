@@ -42,12 +42,18 @@ final class LlmCapturedValue
         size = 0;
     }
 
+    static int cost(
+        CharSequence text)
+    {
+        return EVENT_COST + (text != null ? text.length() : 0);
+    }
+
     boolean add(
         JsonEvent event,
         String text,
         int limit)
     {
-        size += EVENT_COST + (text != null ? text.length() : 0);
+        size += cost(text);
 
         final boolean accepted = size <= limit;
 
