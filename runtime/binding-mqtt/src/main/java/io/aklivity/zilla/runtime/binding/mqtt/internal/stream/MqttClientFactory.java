@@ -3686,6 +3686,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 });
 
                 this.subscriptions = newSubscribeState;
+
+                client.decodeNetwork(flush.traceId());
             }
         }
 
