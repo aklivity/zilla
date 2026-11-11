@@ -234,4 +234,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.one.filter.message.removed.filter/client",
+        "${app}/unsubscribe.one.filter.message.removed.filter/server"})
+    public void shouldUnsubscribeOneFilterMessageRemovedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.inflight.resubscribe.qos1/client",
+        "${app}/unsubscribe.inflight.resubscribe.qos1/server"})
+    public void shouldUnsubscribeInflightResubscribeQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }
