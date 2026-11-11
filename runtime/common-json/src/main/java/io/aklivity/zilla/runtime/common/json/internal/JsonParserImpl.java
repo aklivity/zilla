@@ -323,7 +323,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public void mark()
     {
-        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.pending())
+        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.event() != null)
         {
             throw new IllegalStateException("mark requires an event boundary outside a skip, fragment or segment");
         }
@@ -452,7 +452,7 @@ public final class JsonParserImpl implements JsonParserEx
     private boolean tokenizerHasNext()
     {
         boolean result;
-        if (tokenizer.pending())
+        if (tokenizer.event() != null)
         {
             result = true;
         }
@@ -524,19 +524,24 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public Event next()
     {
+        return toEvent(takeEvent());
+    }
+
+    private JsonEvent takeEvent()
+    {
         if (skipping)
         {
             skipPending();
         }
 
-        if (skipping || !tokenizer.pending() && !tokenizerHasNext())
+        if (skipping || tokenizer.event() == null && !tokenizerHasNext())
         {
             throw new JsonParsingException("No more events", location);
         }
-        Event e = tokenizer.event();
+        final JsonEvent event = tokenizer.event();
         tokenizer.clearEvent();
-        currentEvent = e;
-        return e;
+        currentEvent = toEvent(event);
+        return event;
     }
 
     @Override
@@ -719,24 +724,6 @@ public final class JsonParserImpl implements JsonParserEx
         return result;
     }
 
-    private JsonEvent tokenEvent()
-    {
-        final JsonEvent marker = tokenizer.marker();
-        final JsonEvent event;
-
-        if (marker != null)
-        {
-            tokenizer.clearMarker();
-            event = marker;
-        }
-        else
-        {
-            event = JsonEvent.of(next());
-        }
-
-        return event;
-    }
-
     private JsonEvent nextToken()
     {
         JsonEvent event;
@@ -749,7 +736,7 @@ public final class JsonParserImpl implements JsonParserEx
             event = scanSegment(ownedInput.offset());
             break;
         default:
-            lastEvent = tokenEvent();
+            lastEvent = takeEvent();
             if (lastEvent == JsonEvent.VALUE_NUMBER ||
                 lastEvent == JsonEvent.KEY_NAME ||
                 lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
@@ -1072,13 +1059,13 @@ public final class JsonParserImpl implements JsonParserEx
     {
         while (skipping && tokenizerHasNext())
         {
-            final Event token = tokenizer.event();
+            final JsonEvent token = tokenizer.event();
             tokenizer.clearEvent();
-            if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+            if (token == JsonEvent.START_OBJECT || token == JsonEvent.START_ARRAY)
             {
                 skipDepth++;
             }
-            else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+            else if (token == JsonEvent.END_OBJECT || token == JsonEvent.END_ARRAY)
             {
                 skipDepth--;
             }

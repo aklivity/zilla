@@ -20,12 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import jakarta.json.stream.JsonParser;
-
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 
 public class JsonTokenizerWrapTest
 {
@@ -36,15 +35,15 @@ public class JsonTokenizerWrapTest
         wrap(tokenizer, "{\"a\":1}", false);
 
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.START_OBJECT, tokenizer.event());
+        assertEquals(JsonEvent.START_OBJECT, tokenizer.event());
         tokenizer.clearEvent();
         tokenizer.mark();
 
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.KEY_NAME, tokenizer.event());
+        assertEquals(JsonEvent.KEY_NAME, tokenizer.event());
         tokenizer.clearEvent();
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.VALUE_NUMBER, tokenizer.event());
+        assertEquals(JsonEvent.VALUE_NUMBER, tokenizer.event());
         tokenizer.clearEvent();
 
         // a later window replaces the one the mark was taken in, well past the marked offset
@@ -61,7 +60,7 @@ public class JsonTokenizerWrapTest
         wrap(tokenizer, "{\"a\"", false);
 
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.START_OBJECT, tokenizer.event());
+        assertEquals(JsonEvent.START_OBJECT, tokenizer.event());
         tokenizer.clearEvent();
 
         // the key itself is whole in this window, but its separator/whitespace/value start are not: the
@@ -71,13 +70,13 @@ public class JsonTokenizerWrapTest
         wrap(tokenizer, "\"a\":\"value\"}", true);
 
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.KEY_NAME, tokenizer.event());
+        assertEquals(JsonEvent.KEY_NAME, tokenizer.event());
         assertEquals("a", tokenizer.stringValue());
         final long positionAfterKey = tokenizer.streamOffset();
         tokenizer.clearEvent();
 
         assertTrue(tokenizer.advance());
-        assertEquals(JsonParser.Event.VALUE_STRING, tokenizer.event());
+        assertEquals(JsonEvent.VALUE_STRING, tokenizer.event());
         assertEquals(positionAfterKey, tokenizer.valueStreamStart());
     }
 

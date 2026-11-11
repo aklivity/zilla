@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 // Pluggable scan engine behind JsonParserImpl, selected per JVM via JsonTokenizerFactory. A tokenizer owns the
@@ -44,7 +42,7 @@ public interface JsonTokenizer
 
     boolean advance();
 
-    JsonParser.Event event();
+    JsonEvent event();
 
     void clearEvent();
 
@@ -86,14 +84,6 @@ public interface JsonTokenizer
     // string with its escapes undone, delivering START_ESCAPED and END_ESCAPED as markers around the events of the
     // document.
     void escape();
-
-    // Whether an event, or a scope marker, is waiting to be taken.
-    boolean pending();
-
-    // The scope marker waiting to be taken, or null.
-    JsonEvent marker();
-
-    void clearMarker();
 
     // Whether the tokenizer is reading the document of an escaped scope.
     boolean inScope();

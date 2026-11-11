@@ -18,7 +18,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 import jakarta.json.JsonException;
-import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -108,7 +107,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
-    private JsonParser.Event pendingEvent;
+    private JsonEvent pendingEvent;
     private String pendingString;
     private boolean valuePending;
     // a value-string that completes within the current window is not copied into scratch: its chars are read in
@@ -196,7 +195,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int lensIndex;
     private int lensCount;
     private int lensSize;
-    private JsonEvent marker;
     private final EscapedStringView escapedView = new EscapedStringView();
 
     // scalar resume state (valid when resumeOp != NONE)
@@ -296,7 +294,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         scopeEnded = false;
         lensIndex = 0;
         lensCount = 0;
-        marker = null;
     }
 
     // Tracks whether a segment scan is in progress so a value-string spanning frames is streamed as raw
@@ -425,7 +422,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pairOpen = mark.pairOpen;
         lens = mark.lens;
         scopeStart = mark.scopeStart;
-        marker = null;
         seek(mark.streamOffset, mark.line, mark.column);
 
         scratch.setLength(0);
@@ -507,7 +503,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         viewPending = false;
 
         boolean produced = true;
-        while (!starved && pendingEvent == null && marker == null && state != ParseState.DOC_DONE)
+        while (!starved && pendingEvent == null && state != ParseState.DOC_DONE)
         {
             if (resumeOp != ResumeOp.NONE)
             {
@@ -519,7 +515,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
         }
 
-        if (starved && pendingEvent == null && marker == null)
+        if (starved && pendingEvent == null)
         {
             produced = onScalarStarved();
         }
@@ -572,7 +568,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                     valueStreamStart = fragmentStart;
                     valueStreamEnd = streamOffset;
                     stringVerbatim = scalarSegment || segmenting;
-                    pendingEvent = JsonParser.Event.VALUE_STRING;
+                    pendingEvent = JsonEvent.VALUE_STRING;
                     // capture lazily: a verbatim/segmented consumer reads only getSegment() and never
                     // materializes the decoded chars, so leave them in scratch (cleared when the next
                     // fragment resumes) and let stringValue() take them on demand
@@ -673,7 +669,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     @Override
-    public JsonParser.Event event()
+    public JsonEvent event()
     {
         return pendingEvent;
     }
@@ -764,24 +760,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
 
         escapeArmed = true;
-    }
-
-    @Override
-    public boolean pending()
-    {
-        return pendingEvent != null || marker != null;
-    }
-
-    @Override
-    public JsonEvent marker()
-    {
-        return marker;
-    }
-
-    @Override
-    public void clearMarker()
-    {
-        marker = null;
     }
 
     @Override
@@ -955,7 +933,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("true");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                pendingEvent = JsonEvent.VALUE_TRUE;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -964,7 +942,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("false");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                pendingEvent = JsonEvent.VALUE_FALSE;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -973,7 +951,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("null");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_NULL;
+                pendingEvent = JsonEvent.VALUE_NULL;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -999,7 +977,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
         stringVerbatim = scalarSegment || segmenting;
-        pendingEvent = JsonParser.Event.VALUE_STRING;
+        pendingEvent = JsonEvent.VALUE_STRING;
         captureValue();
         endView();
         fragmenting = false;
@@ -1102,7 +1080,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         validateNumberComplete();
         valueStreamStart = fragmentStart;
         valueStreamEnd = streamOffset;
-        pendingEvent = JsonParser.Event.VALUE_NUMBER;
+        pendingEvent = JsonEvent.VALUE_NUMBER;
         captureValue();
         fragmenting = false;
         resumeOp = ResumeOp.NONE;
@@ -1114,7 +1092,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     // of a fragmented key, or a key that fit one window.
     private void finishKeyValue()
     {
-        pendingEvent = JsonParser.Event.KEY_NAME;
+        pendingEvent = JsonEvent.KEY_NAME;
         captureKey();
         fragmenting = false;
         resumeOp = ResumeOp.NONE;
@@ -1144,7 +1122,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             if (c == ']')
             {
-                emitEnd(JsonParser.Event.END_ARRAY);
+                emitEnd(JsonEvent.END_ARRAY);
             }
             else
             {
@@ -1169,7 +1147,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         {
             if (c == '}')
             {
-                emitEnd(JsonParser.Event.END_OBJECT);
+                emitEnd(JsonEvent.END_OBJECT);
             }
             else
             {
@@ -1203,7 +1181,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
             else if (inObject && c == '}' || !inObject && c == ']')
             {
-                emitEnd(inObject ? JsonParser.Event.END_OBJECT : JsonParser.Event.END_ARRAY);
+                emitEnd(inObject ? JsonEvent.END_OBJECT : JsonEvent.END_ARRAY);
             }
             else
             {
@@ -1229,12 +1207,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
         switch (c)
         {
         case '{':
-            pendingEvent = JsonParser.Event.START_OBJECT;
+            pendingEvent = JsonEvent.START_OBJECT;
             pushAndEnter(ParseState.OBJ_AFTER_OPEN);
             pushPath(false);
             break;
         case '[':
-            pendingEvent = JsonParser.Event.START_ARRAY;
+            pendingEvent = JsonEvent.START_ARRAY;
             pushAndEnter(ParseState.ARR_AFTER_OPEN);
             pushPath(true);
             break;
@@ -1257,7 +1235,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("true");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_TRUE;
+                pendingEvent = JsonEvent.VALUE_TRUE;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -1268,7 +1246,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("false");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_FALSE;
+                pendingEvent = JsonEvent.VALUE_FALSE;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -1279,7 +1257,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
             continueLiteral("null");
             if (!starved)
             {
-                pendingEvent = JsonParser.Event.VALUE_NULL;
+                pendingEvent = JsonEvent.VALUE_NULL;
                 resumeOp = ResumeOp.NONE;
                 afterValueConsumed();
             }
@@ -1444,7 +1422,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     private void emitEnd(
-        JsonParser.Event endEvent)
+        JsonEvent endEvent)
     {
         pendingEvent = endEvent;
         popPath();
@@ -1843,7 +1821,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         scopeStart = streamOffset;
         lensIndex = 0;
         lensCount = 0;
-        marker = JsonEvent.START_ESCAPED;
+        pendingEvent = JsonEvent.START_ESCAPED;
     }
 
     private void consumeScopeValue()
@@ -1890,7 +1868,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         column++;
         starved = false;
         state = stack.pop();
-        marker = JsonEvent.END_ESCAPED;
+        pendingEvent = JsonEvent.END_ESCAPED;
     }
 
     // how far back the first byte of the token just read began: a byte of the string as it is, or the whole of the
