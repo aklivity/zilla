@@ -205,7 +205,12 @@ public class TcpClientFactory implements TcpStreamFactory
             final SocketChannel channel = SocketChannel.open();
             channel.configureBlocking(false);
             channel.setOption(TCP_NODELAY, true);
-            channel.setOption(SO_KEEPALIVE, options != null && options.keepalive);
+
+            if (options != null && options.keepalive)
+            {
+                channel.setOption(SO_KEEPALIVE, true);
+            }
+
             return channel;
         }
         catch (IOException ex)
