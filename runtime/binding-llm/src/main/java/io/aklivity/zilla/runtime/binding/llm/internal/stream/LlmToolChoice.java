@@ -195,27 +195,30 @@ final class LlmToolChoice
         return loopBit == QUEUED || transform.endLoop(loopBit);
     }
 
-    void emitResponses(
-        LlmToolTransform transform)
+    boolean emitResponses(
+        LlmToolTransform transform,
+        int loopBit)
     {
         switch (kind)
         {
         case MODE:
-            emit(transform, QUEUED, JsonEvent.VALUE_STRING, mode);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, mode);
             break;
         case FUNCTION:
-            emitFunction(transform, QUEUED, name, true);
+            emitFunction(transform, loopBit, name, true);
             break;
         case ALLOWED:
-            emit(transform, QUEUED, JsonEvent.START_OBJECT);
-            emit(transform, QUEUED, JsonEvent.KEY_NAME, TYPE);
-            emit(transform, QUEUED, JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
-            emitAllowedMembers(transform, QUEUED, true);
-            emit(transform, QUEUED, JsonEvent.END_OBJECT);
+            emit(transform, loopBit, JsonEvent.START_OBJECT);
+            emit(transform, loopBit, JsonEvent.KEY_NAME, TYPE);
+            emit(transform, loopBit, JsonEvent.VALUE_STRING, ALLOWED_TOOLS);
+            emitAllowedMembers(transform, loopBit, true);
+            emit(transform, loopBit, JsonEvent.END_OBJECT);
             break;
         default:
             break;
         }
+
+        return transform.endLoop(loopBit);
     }
 
     private void parseMode(

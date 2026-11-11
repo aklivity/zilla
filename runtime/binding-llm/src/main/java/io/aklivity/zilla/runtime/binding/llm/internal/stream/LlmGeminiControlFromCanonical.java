@@ -78,6 +78,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     private static final int BIT_ALLOWED_NAMES_END = 1 << 9;
     private static final int BIT_FUNCTION_CALLING_END = 1 << 10;
     private static final int BIT_TOOL_CONFIG_END = 1 << 11;
+    private static final int BIT_ALLOWED_FUNCTION_NAMES = 1 << 12;
     private static final int BIT_FORMAT_CONFIG_KEY = 1 << 0;
     private static final int BIT_FORMAT_CONFIG_START = 1 << 1;
     private static final int BIT_FORMAT_KEY = 1 << 2;
@@ -151,6 +152,12 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     int budget()
     {
         return budget;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -432,8 +439,10 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
                 {
                     for (int index = 0; index < choice.names().size(); index++)
                     {
-                        emit(JsonEvent.VALUE_STRING, choice.names().get(index));
+                        emitLoop(BIT_ALLOWED_FUNCTION_NAMES, JsonEvent.VALUE_STRING, choice.names().get(index));
                     }
+
+                    endLoop(BIT_ALLOWED_FUNCTION_NAMES);
                 }
 
                 emit(BIT_ALLOWED_NAMES_END, JsonEvent.END_ARRAY);
