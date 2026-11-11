@@ -464,7 +464,7 @@ scope kafka
             int32 deliveryCount = 0;                        // INIT only, 0 when not reported
             KafkaOffset partition;                          // INIT only
             KafkaKey key;                                   // INIT only
-            KafkaHeader[] headers;                          // FIN only
+            KafkaHeader[] headers;                          // FIN, and INIT when staged in the cache
         }
 
         struct KafkaShareFlushEx
