@@ -267,6 +267,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.redeliver.message.qos2/client",
+        "${app}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.receive.message.qos1/client",
         "${app}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
