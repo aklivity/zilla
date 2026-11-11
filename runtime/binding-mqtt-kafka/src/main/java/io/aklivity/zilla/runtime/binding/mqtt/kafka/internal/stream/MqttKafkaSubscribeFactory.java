@@ -28,8 +28,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -62,11 +64,13 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedTicketState;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Varuint32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeFrameFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
@@ -102,6 +106,7 @@ import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 {
@@ -119,6 +124,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int OFFSET_METADATA_VERSION = 2;
     private static final int MQTT_REASON_CODE_ERROR = 0x80;
     private static final String SHARE_EPOCH = "0";
+    private static final int SHARED_FRAME_FIXED_SIZE = 13;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -139,6 +145,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final MqttSubscribeMessageFW.Builder mqttSubscribeMessageRW = new MqttSubscribeMessageFW.Builder();
+    private final MqttSubscribeFrameFW.Builder mqttSubscribeFrameRW = new MqttSubscribeFrameFW.Builder();
     private final MqttSubscribeOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttSubscribeOffsetMetadataFW.Builder();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
@@ -150,6 +157,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
     private final KafkaHeaderFW kafkaHeaderRO = new KafkaHeaderFW();
     private final MqttSubscribeMessageFW mqttSubscribeMessageRO = new MqttSubscribeMessageFW();
+    private final MqttSubscribeFrameFW mqttSubscribeFrameRO = new MqttSubscribeFrameFW();
     private final MqttSubscribeOffsetMetadataFW mqttOffsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
@@ -184,6 +192,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final List<KafkaMessagesBootstrap> bootstrapStreams;
     private final Int2ObjectHashMap<String16FW> qosNames;
     private final Object2ObjectHashMap<String, ClientPacketIds> packetIdsPerClient;
+    private final MqttKafkaTickets ticketCodec;
     private final Long2ObjectHashMap<OffsetHighWaterMark> highWaterMarks;
     private final Object2IntHashMap<String> qosLevels;
     private final String groupIdPrefixFormat;
@@ -222,6 +231,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.bootstrapStreams = new ArrayList<>();
         this.qosNames = new Int2ObjectHashMap<>();
         this.packetIdsPerClient = new Object2ObjectHashMap<>();
+        this.ticketCodec = new MqttKafkaTickets();
         this.highWaterMarks = new Long2ObjectHashMap<>();
         this.qosLevels = new Object2IntHashMap<>(-1);
         this.qosLevels.put("0", 0);
@@ -292,9 +302,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         if (routes != null && !routes.isEmpty())
         {
-            newStream = isShared(mqttSubscribeBeginEx.filters())
-                ? new MqttSharedProxy(mqtt, originId, routedId, initialId, routes.get(0))::onMqttMessage
-                : new MqttSubscribeProxy(mqtt, originId, routedId, initialId, routes)::onMqttMessage;
+            if (!isShared(mqttSubscribeBeginEx.filters()))
+            {
+                newStream = new MqttSubscribeProxy(mqtt, originId, routedId, initialId, routes)::onMqttMessage;
+            }
+            else if (binding.store != null)
+            {
+                newStream = new MqttSharedProxy(mqtt, originId, routedId, initialId, routes.get(0),
+                    binding.store)::onMqttMessage;
+            }
         }
 
         return newStream;
@@ -2579,6 +2595,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final KafkaSharedProxy shared;
+        private final StoreHandler store;
 
         private int state;
 
@@ -2600,8 +2617,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long originId,
             long routedId,
             long initialId,
-            MqttKafkaRouteConfig route)
+            MqttKafkaRouteConfig route,
+            StoreHandler store)
         {
+            this.store = store;
             this.mqtt = mqtt;
             this.originId = originId;
             this.routedId = routedId;
@@ -2674,10 +2693,37 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             assert mqttBeginEx.kind() == MqttBeginExFW.KIND_SUBSCRIBE;
             final MqttSubscribeBeginExFW mqttSubscribeBeginEx = mqttBeginEx.subscribe();
 
-            qos = mqttSubscribeBeginEx.qos();
-            clientPacketIds = attachPacketIds(mqttSubscribeBeginEx.clientId());
+            final MqttTopicFilterFW filter = mqttSubscribeBeginEx.filters().matchFirst(f -> true);
+            final String shareName = filter.shareName().asString();
+            final String pattern = filter.pattern().asString();
 
-            shared.doKafkaBegin(traceId, authorization, affinity, mqttSubscribeBeginEx.filters());
+            qos = mqttSubscribeBeginEx.qos();
+            shared.subscriptionId = (int) filter.subscriptionId();
+            clientPacketIds = attachPacketIds(mqttSubscribeBeginEx.clientId());
+            attachTickets(clientPacketIds, store);
+
+            clientPacketIds.tickets.awaitLoaded(() ->
+                onTicketsLoaded(traceId, authorization, affinity, shareName, pattern));
+        }
+
+        private void onTicketsLoaded(
+            long traceId,
+            long authorization,
+            long affinity,
+            String shareName,
+            String pattern)
+        {
+            if (!StreamState.initialClosed(state) && !StreamState.replyClosed(state))
+            {
+                if (clientPacketIds.tickets.ready())
+                {
+                    shared.doKafkaBegin(traceId, authorization, affinity, shareName, pattern);
+                }
+                else
+                {
+                    doMqttReset(traceId, EMPTY_OCTETS);
+                }
+            }
         }
 
         private void onMqttFlush(
@@ -2721,24 +2767,64 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long authorization,
             MqttSubscribeFlushExFW mqttSubscribeFlushEx)
         {
-            final PartitionOffset offset = shared.releasePacketId(mqttSubscribeFlushEx.packetId());
+            final int packetId = mqttSubscribeFlushEx.packetId();
+            final MqttKafkaTicket ticket = clientPacketIds.tickets.find(packetId);
 
-            if (offset != null)
+            if (ticket != null)
             {
-                if (mqttSubscribeFlushEx.reasonCode() >= MQTT_REASON_CODE_ERROR)
+                onTicketAcked(traceId, authorization, ticket, mqttSubscribeFlushEx);
+            }
+            else
+            {
+                final PartitionOffset offset = shared.releasePacketId(packetId);
+
+                if (offset != null)
                 {
-                    shared.doKafkaAcknowledge(traceId, authorization, offset, KafkaShareAckType.REJECT);
+                    final KafkaShareAckType type = mqttSubscribeFlushEx.reasonCode() >= MQTT_REASON_CODE_ERROR
+                        ? KafkaShareAckType.REJECT
+                        : KafkaShareAckType.ACCEPT;
+
+                    shared.doKafkaAcknowledge(traceId, authorization, offset, type);
                 }
-                else if (mqttSubscribeFlushEx.qos() == MqttQoS.EXACTLY_ONCE.value() ||
-                    MqttOffsetStateFlags.valueOf(mqttSubscribeFlushEx.state()) == MqttOffsetStateFlags.INCOMPLETE)
-                {
-                    doMqttReset(traceId, EMPTY_OCTETS);
-                    shared.doKafkaAbort(traceId, authorization);
-                }
-                else
-                {
-                    shared.doKafkaAcknowledge(traceId, authorization, offset, KafkaShareAckType.ACCEPT);
-                }
+            }
+        }
+
+        private void onTicketAcked(
+            long traceId,
+            long authorization,
+            MqttKafkaTicket ticket,
+            MqttSubscribeFlushExFW mqttSubscribeFlushEx)
+        {
+            final ClientTickets tickets = clientPacketIds.tickets;
+            final int packetId = ticket.packetId;
+            final boolean received =
+                MqttOffsetStateFlags.valueOf(mqttSubscribeFlushEx.state()) == MqttOffsetStateFlags.INCOMPLETE;
+
+            if (received && mqttSubscribeFlushEx.reasonCode() < MQTT_REASON_CODE_ERROR)
+            {
+                tickets.replace(ticket.pubrelPending());
+                tickets.write(() -> onTicketReceived(traceId, authorization, packetId));
+            }
+            else
+            {
+                tickets.remove(packetId);
+                tickets.write(() -> clientPacketIds.inflight.release(packetId));
+            }
+        }
+
+        private void onTicketReceived(
+            long traceId,
+            long authorization,
+            int packetId)
+        {
+            if (!StreamState.replyClosed(state))
+            {
+                final Flyweight mqttSubscribeFlushEx = mqttFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .subscribe(b -> b.packetId(packetId))
+                    .build();
+
+                doMqttFlush(traceId, authorization, replyBud, 0, mqttSubscribeFlushEx);
             }
         }
 
@@ -2847,6 +2933,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            shared.doMqttFlushHeld(traceId, authorization);
             shared.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -2879,6 +2966,17 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             replySeq += reserved;
 
             assert replySeq <= replyAck + replyMax;
+        }
+
+        private void doMqttFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            Flyweight extension)
+        {
+            doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, budgetId, reserved, extension);
         }
 
         private void doMqttAbort(
@@ -2955,6 +3053,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long replyId;
         private final MqttSharedProxy mqtt;
         private final IntArrayList packetIds;
+        private final Deque<TicketGate> gates;
+        private final String topicName;
 
         private MessageConsumer kafka;
         private KafkaSharedDecoder decoder;
@@ -2962,6 +3062,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int recordPartitionId;
         private long recordPartitionOffset;
         private int recordPacketId;
+
+        private int heldSlot = NO_SLOT;
+        private int heldLimit;
+        private int heldOffset;
+        private int heldReserved;
 
         private int state;
 
@@ -2985,6 +3090,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.packetIds = new IntArrayList();
+            this.gates = new ArrayDeque<>();
+            this.topicName = topic.asString();
             this.decoder = decodeRecordInit;
         }
 
@@ -3102,9 +3209,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long expireInterval)
         {
             final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
-            final boolean acknowledged = Math.min(messageQos, mqtt.qos) >= MqttQoS.AT_LEAST_ONCE.value();
+            final int deliveredQos = Math.min(messageQos, mqtt.qos);
+            final boolean acknowledged = deliveredQos >= MqttQoS.AT_LEAST_ONCE.value();
+            final boolean ticketed = deliveredQos == MqttQoS.EXACTLY_ONCE.value();
 
-            recordPacketId = acknowledged ? newPacketId(recordPartitionId, recordPartitionOffset) : NO_PACKET_ID;
+            recordPacketId = !acknowledged ? NO_PACKET_ID : ticketed
+                ? newTicketPacketId(recordPartitionId, recordPartitionOffset)
+                : newPacketId(recordPartitionId, recordPartitionOffset);
 
             if (acknowledged && recordPacketId == NO_PACKET_ID)
             {
@@ -3115,9 +3226,51 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             else
             {
                 decoder = decodeRecordDeliver;
+
+                if (ticketed)
+                {
+                    doTicketPublish(traceId, authorization);
+                }
+
                 doMqttRecordData(traceId, authorization, budgetId, reserved, flags, payload, kafkaShareDataEx,
                     expireInterval, messageQos);
             }
+        }
+
+        private void doTicketPublish(
+            long traceId,
+            long authorization)
+        {
+            final ClientTickets tickets = mqtt.clientPacketIds.tickets;
+
+            gates.add(new TicketGate(heldLimit, recordPartitionId, recordPartitionOffset));
+            tickets.add(new MqttKafkaTicket(recordPacketId, MqttSharedTicketState.PUBLISH_SENT, topicName,
+                recordPartitionId, recordPartitionOffset));
+            tickets.write(() -> onTicketDurable(traceId, authorization));
+        }
+
+        private void onTicketDurable(
+            long traceId,
+            long authorization)
+        {
+            final TicketGate gate = gates.poll();
+
+            if (gate != null)
+            {
+                doKafkaAcknowledge(traceId, authorization, gate.partitionId, gate.partitionOffset, KafkaShareAckType.ACCEPT);
+                doMqttFlushHeld(traceId, authorization);
+                doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
+            }
+        }
+
+        private void cleanup(
+            long traceId,
+            long authorization)
+        {
+            decoder = decodeRecordIgnore;
+            mqtt.doMqttAbort(traceId, authorization);
+            doKafkaAbort(traceId, authorization);
+            doKafkaReset(traceId);
         }
 
         private void doMqttRecordData(
@@ -3187,7 +3340,94 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     });
                 }).build();
 
-            mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
+            doMqttDeliver(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
+        }
+
+        private void doMqttDeliver(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            if (heldSlot == NO_SLOT && gates.isEmpty())
+            {
+                mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+            }
+            else
+            {
+                doHoldFrame(traceId, authorization, reserved, flags, payload, extension);
+            }
+        }
+
+        private void doHoldFrame(
+            long traceId,
+            long authorization,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            if (heldSlot == NO_SLOT)
+            {
+                heldSlot = bufferPool.acquire(initialId);
+            }
+
+            final int frameSize = SHARED_FRAME_FIXED_SIZE + extension.sizeof() + payload.sizeof();
+
+            if (heldSlot == NO_SLOT || heldLimit + frameSize > bufferPool.slotCapacity())
+            {
+                cleanup(traceId, authorization);
+            }
+            else
+            {
+                final MutableDirectBufferEx buffer = bufferPool.buffer(heldSlot);
+                final MqttSubscribeFrameFW frame = mqttSubscribeFrameRW.wrap(buffer, heldLimit, buffer.capacity())
+                    .flags(flags)
+                    .reserved(reserved)
+                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                    .payload(payload)
+                    .build();
+
+                heldLimit = frame.limit();
+                heldReserved += reserved;
+            }
+        }
+
+        private void doMqttFlushHeld(
+            long traceId,
+            long authorization)
+        {
+            if (heldSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx buffer = bufferPool.buffer(heldSlot);
+                final int forwardLimit = gates.isEmpty() ? heldLimit : gates.peek().position;
+
+                boolean forwarding = heldOffset < forwardLimit;
+                while (forwarding)
+                {
+                    final MqttSubscribeFrameFW frame = mqttSubscribeFrameRO.wrap(buffer, heldOffset, forwardLimit);
+
+                    forwarding = frame.reserved() <= mqtt.replyWindow();
+
+                    if (forwarding)
+                    {
+                        mqtt.doMqttData(traceId, authorization, mqtt.replyBud, frame.reserved(), frame.flags(),
+                            frame.payload(), frame.extension());
+
+                        heldOffset = frame.limit();
+                        heldReserved -= frame.reserved();
+                        forwarding = heldOffset < forwardLimit;
+                    }
+                }
+
+                if (heldOffset == heldLimit)
+                {
+                    releaseHeld();
+                }
+            }
         }
 
         private void doKafkaRecordFin(
@@ -3324,15 +3564,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization,
             long affinity,
-            Array32FW<MqttTopicFilterFW> filters)
+            String shareName,
+            String pattern)
         {
             if (!StreamState.initialOpening(state))
             {
-                final MqttTopicFilterFW filter = filters.matchFirst(f -> true);
-                final String pattern = filter.pattern().asString();
-
-                subscriptionId = (int) filter.subscriptionId();
-
                 initialSeq = mqtt.initialSeq;
                 initialAck = mqtt.initialAck;
                 initialMax = mqtt.initialMax;
@@ -3340,7 +3576,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                 kafka = newKafkaShareStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
                     initialMax, traceId, authorization, affinity, topic,
-                    shareGroupId(filter.shareName().asString(), pattern), pattern);
+                    shareGroupId(shareName, pattern), pattern);
             }
         }
 
@@ -3439,10 +3675,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                 if (replyCredit > 0)
                 {
-                    replyAck += Math.min(replySeq - replyAck, replyCredit);
+                    final int replyNoAck = (int) (replySeq - replyAck - heldReserved);
+                    replyAck += Math.min(replyNoAck, replyCredit);
                     assert replyAck <= replySeq;
 
-                    replyMax = newReplyWin + (int) (replySeq - replyAck);
+                    replyMax = newReplyWin + (int) (replySeq - replyAck - heldReserved);
                     assert replyMax >= 0;
 
                     state = StreamState.openReply(state);
@@ -3465,6 +3702,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             return packetId;
         }
 
+        private int newTicketPacketId(
+            int partitionId,
+            long partitionOffset)
+        {
+            return mqtt.clientPacketIds.inflight.allocate(new PartitionOffset(0L, partitionId, partitionOffset));
+        }
+
         private PartitionOffset releasePacketId(
             int packetId)
         {
@@ -3476,6 +3720,21 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             packetIds.forEachOrderedInt(mqtt.clientPacketIds.inflight::release);
             packetIds.clear();
+            gates.clear();
+            releaseHeld();
+        }
+
+        private void releaseHeld()
+        {
+            if (heldSlot != NO_SLOT)
+            {
+                bufferPool.release(heldSlot);
+                heldSlot = NO_SLOT;
+            }
+
+            heldLimit = 0;
+            heldOffset = 0;
+            heldReserved = 0;
         }
     }
 
@@ -3542,7 +3801,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         OctetsFW payload,
         KafkaShareDataExFW kafkaShareDataEx)
     {
-        shared.mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, EMPTY_OCTETS);
+        shared.doMqttDeliver(traceId, authorization, budgetId, reserved, flags, payload, EMPTY_OCTETS);
 
         if (hasFin(flags))
         {
@@ -4076,10 +4335,28 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         return packetIds;
     }
 
+    private void attachTickets(
+        ClientPacketIds packetIds,
+        StoreHandler store)
+    {
+        if (packetIds.tickets == null)
+        {
+            packetIds.tickets = new ClientTickets(store, String.format("%s:tickets:%s", groupIdPrefix, packetIds.clientId),
+                packetIds);
+        }
+    }
+
     private void detachPacketIds(
         ClientPacketIds packetIds)
     {
-        if (--packetIds.streams == 0)
+        packetIds.streams--;
+        removePacketIds(packetIds);
+    }
+
+    private void removePacketIds(
+        ClientPacketIds packetIds)
+    {
+        if (packetIds.streams == 0 && (packetIds.tickets == null || packetIds.tickets.idle()))
         {
             packetIdsPerClient.remove(packetIds.clientId);
         }
@@ -4116,6 +4393,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final String clientId;
         private final MqttKafkaPacketIds<PartitionOffset> inflight;
 
+        private ClientTickets tickets;
         private int streams;
 
         private ClientPacketIds(
@@ -4123,6 +4401,165 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             this.clientId = clientId;
             this.inflight = new MqttKafkaPacketIds<>();
+        }
+    }
+
+    private final class ClientTickets
+    {
+        private final StoreHandler store;
+        private final String key;
+        private final ClientPacketIds client;
+
+        private List<MqttKafkaTicket> tickets;
+        private List<Runnable> loading;
+        private List<Runnable> writing;
+        private List<Runnable> pending;
+
+        private ClientTickets(
+            StoreHandler store,
+            String key,
+            ClientPacketIds client)
+        {
+            this.store = store;
+            this.key = key;
+            this.client = client;
+            this.loading = new ArrayList<>();
+            store.get(key, (k, value) -> onLoaded(value));
+        }
+
+        private void awaitLoaded(
+            Runnable continuation)
+        {
+            if (loading != null)
+            {
+                loading.add(continuation);
+            }
+            else
+            {
+                continuation.run();
+            }
+        }
+
+        private boolean ready()
+        {
+            return loading == null && tickets != null;
+        }
+
+        private boolean idle()
+        {
+            return writing == null && pending == null;
+        }
+
+        private MqttKafkaTicket find(
+            int packetId)
+        {
+            MqttKafkaTicket found = null;
+
+            for (int i = 0; found == null && ready() && i < tickets.size(); i++)
+            {
+                final MqttKafkaTicket ticket = tickets.get(i);
+                found = ticket.packetId == packetId ? ticket : null;
+            }
+
+            return found;
+        }
+
+        private void add(
+            MqttKafkaTicket ticket)
+        {
+            tickets.add(ticket);
+        }
+
+        private void replace(
+            MqttKafkaTicket ticket)
+        {
+            tickets.replaceAll(t -> t.packetId == ticket.packetId ? ticket : t);
+        }
+
+        private void remove(
+            int packetId)
+        {
+            tickets.removeIf(t -> t.packetId == packetId);
+        }
+
+        private void write(
+            Runnable completion)
+        {
+            if (pending == null)
+            {
+                pending = new ArrayList<>();
+            }
+
+            pending.add(completion);
+
+            if (writing == null)
+            {
+                doWrite();
+            }
+        }
+
+        private void onLoaded(
+            String value)
+        {
+            final List<Runnable> continuations = loading;
+
+            loading = null;
+            tickets = ticketCodec.decode(value);
+
+            if (tickets != null)
+            {
+                tickets.forEach(t ->
+                    client.inflight.reserve(t.packetId, new PartitionOffset(0L, t.partitionId, t.partitionOffset)));
+            }
+
+            continuations.forEach(Runnable::run);
+        }
+
+        private void doWrite()
+        {
+            writing = pending;
+            pending = null;
+
+            if (tickets.isEmpty())
+            {
+                store.delete(key, v -> onWritten());
+            }
+            else
+            {
+                store.put(key, ticketCodec.encode(tickets), null, v -> onWritten());
+            }
+        }
+
+        private void onWritten()
+        {
+            final List<Runnable> completions = writing;
+
+            writing = null;
+            completions.forEach(Runnable::run);
+
+            if (pending != null && writing == null)
+            {
+                doWrite();
+            }
+
+            removePacketIds(client);
+        }
+    }
+
+    private static final class TicketGate
+    {
+        private final int position;
+        private final int partitionId;
+        private final long partitionOffset;
+
+        TicketGate(
+            int position,
+            int partitionId,
+            long partitionOffset)
+        {
+            this.position = position;
+            this.partitionId = partitionId;
+            this.partitionOffset = partitionOffset;
         }
     }
 

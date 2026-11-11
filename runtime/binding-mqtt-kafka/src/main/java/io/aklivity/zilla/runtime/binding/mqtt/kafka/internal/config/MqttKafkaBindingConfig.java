@@ -34,6 +34,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaBindingConfig
 {
@@ -44,6 +46,7 @@ public class MqttKafkaBindingConfig
     public final MqttKafkaOptionsConfig options;
     public final List<MqttKafkaRouteConfig> routes;
     public final List<Function<String, String>> clients;
+    public final StoreHandler store;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
 
@@ -53,7 +56,8 @@ public class MqttKafkaBindingConfig
     private final String16FW retainedTopic;
 
     public MqttKafkaBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.kind = binding.kind;
@@ -66,6 +70,9 @@ public class MqttKafkaBindingConfig
                 options.clients != null &&
                 options.clients.stream().anyMatch(r::matchesClient))
             .toList();
+        this.store = options.store != null
+            ? context.supplyStore(binding.resolveId.applyAsLong(options.store))
+            : null;
         this.publishQosMax = MqttQoS.valueOf(options.publish.qosMax.toUpperCase());
         this.messagesTopic = new String16FW(options.topics.messages);
         this.sessionsTopic = new String16FW(options.topics.sessions);

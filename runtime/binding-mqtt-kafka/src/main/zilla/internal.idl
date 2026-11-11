@@ -23,5 +23,15 @@
             uint32 payloadLength;
             octets[payloadLength] payload;
          }
+
+         struct MqttSubscribeFrame
+         {
+            uint8 flags;
+            int32 reserved;
+            uint32 extensionLength;
+            octets[extensionLength] extension;
+            uint32 payloadLength;
+            octets[payloadLength] payload;
+         }
      }
   }
