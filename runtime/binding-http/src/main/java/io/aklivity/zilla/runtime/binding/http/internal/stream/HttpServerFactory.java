@@ -209,6 +209,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int HUFFMAN_DECODE_CAPACITY = 4096;
     private static final byte SPACE_BYTE = ' ';
     private static final byte TAB_BYTE = '\t';
+    private static final byte VERTICAL_TAB_BYTE = 0x0b;
+    private static final byte FORM_FEED_BYTE = 0x0c;
     private static final byte SLASH_BYTE = '/';
     private static final byte DELETE_BYTE = 0x7f;
     private static final byte[] HTTP_1_PREFIX_BYTES = "HTTP/1.".getBytes(US_ASCII);
@@ -1536,7 +1538,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static boolean isBlank(
         byte octet)
     {
-        return octet == SPACE_BYTE || octet == TAB_BYTE;
+        return octet == SPACE_BYTE || octet == TAB_BYTE || octet == VERTICAL_TAB_BYTE || octet == FORM_FEED_BYTE;
     }
 
     private static boolean isTargetByte(

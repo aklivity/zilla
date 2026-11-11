@@ -386,4 +386,13 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.with.vertical.whitespace.before.header.value/client",
+        "${net}/request.with.vertical.whitespace.before.header.value/server" })
+    public void requestWithVerticalWhitespaceBeforeHeaderValue() throws Exception
+    {
+        k3po.finish();
+    }
 }
