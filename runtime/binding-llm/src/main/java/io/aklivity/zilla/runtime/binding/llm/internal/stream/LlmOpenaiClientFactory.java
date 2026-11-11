@@ -4409,17 +4409,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (text(sectionKind) && contentState == CONTENT_HELD && !sectionArrayPart)
             {
-                stageText(buffer, offset, length);
+                stageText(chars, from, to);
             }
             else if (beginEncode(0))
             {
-                putEscaped(buffer, offset, length);
+                putEscaped(chars, from, to);
                 endEncode();
             }
         }
@@ -4595,13 +4595,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void putEscaped(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (fits(length * ESCAPE_EXPANSION))
+            if (fits((to - from) * ESCAPE_EXPANSION))
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
             else
             {
@@ -4749,23 +4749,22 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void stageText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (holdLength + length > holdLimit)
+            if (holdLength + MutableDirectBufferEx.utf8Length(chars, from, to) > holdLimit)
             {
-                if (beginEncode(ENCODE_STRUCTURE + length * ESCAPE_EXPANSION))
+                if (beginEncode(ENCODE_STRUCTURE + (to - from) * ESCAPE_EXPANSION))
                 {
                     commitArray(true);
-                    putEscaped(buffer, offset, length);
+                    putEscaped(chars, from, to);
                     endEncode();
                 }
             }
             else if (holdSlot != NO_SLOT)
             {
-                stagePool.buffer(holdSlot).putBytes(holdLength, buffer, offset, length);
-                holdLength += length;
+                holdLength += stagePool.buffer(holdSlot).putStringWithoutLengthUtf8(holdLength, chars, from, to);
             }
         }
 
