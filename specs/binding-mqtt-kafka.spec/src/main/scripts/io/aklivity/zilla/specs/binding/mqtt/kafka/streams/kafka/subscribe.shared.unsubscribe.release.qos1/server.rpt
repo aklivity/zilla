@@ -73,5 +73,7 @@ read advised zilla:flush ${kafka:matchFlushEx()
                                 .build()
                             .build()}
 
+read notify RELEASED
+
 read closed
 write close
