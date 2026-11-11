@@ -34,6 +34,7 @@ write option zilla:flags "init"
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
+                                .deferred(3)
                                 .topic("sensor/one")
                                 .packetId(1)
                                 .qos("AT_LEAST_ONCE")
