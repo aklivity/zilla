@@ -14,36 +14,64 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.bench;
 
-import static io.aklivity.zilla.runtime.binding.llm.internal.bench.LlmServerFixture.IN_FLIGHT;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Random;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.test.EngineBench;
+import io.aklivity.zilla.runtime.engine.test.EngineBench.Client;
+import io.aklivity.zilla.runtime.engine.test.Responder;
+import io.aklivity.zilla.runtime.engine.test.Responder.Response;
+import io.aklivity.zilla.runtime.engine.test.Responder.Trigger;
 import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
+import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 
 /**
- * Drives an {@code llm} openai responses server through the real engine, in front of a mock provider that replays a
- * pre-built response. Each {@code exchange} operation is one whole request: the HTTP-shaped request is sent and
- * the response is received to its end. Each {@code leave} operation opens one request, sends it completely and
- * leaves it in flight while the provider withholds the response.
+ * Drives an {@code llm} openai responses server through the real engine, in front of a mock application that replays a
+ * pre-built canonical openai responses response. Each {@code exchange} operation is one whole request: the HTTP-shaped
+ * request is sent and the response is received to its end, and it fails when the reply is shorter than its text,
+ * so a request that the server rejects is never measured as a fast one. Each {@code leave} operation opens one
+ * request, sends it completely and leaves it in flight while the application withholds the response.
+ * <p>
+ * {@code request} is the content the caller sends and {@code response} the content the application returns,
+ * each either text or a tool call.
+ * {@code dialect} is {@code auto} for a server that detects the dialect of each request, or {@code openai} for a server
+ * fixed to the openai dialect; {@code api} is then {@code auto} for a server that serves every openai api, or
+ * {@code responses} for a server restricted to it, and has no effect when {@code dialect} is {@code auto}.
  * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does
- * not depend on {@code streaming}, so run it with {@code -p streaming=false}.
+ * not depend on {@code streaming} or {@code response}, so run it with {@code -p streaming=false -p response=text}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -53,6 +81,18 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 @OutputTimeUnit(SECONDS)
 public class LlmOpenaiResponsesServerBM
 {
+    private static final String CONFIGURATION_AUTO = "io/aklivity/zilla/specs/binding/llm/config/server.yaml";
+    private static final String CONFIGURATION_OPENAI = "io/aklivity/zilla/specs/binding/llm/config/server.openai.yaml";
+    private static final String CONFIGURATION_API =
+        "io/aklivity/zilla/specs/binding/llm/config/server.openai.responses.yaml";
+    private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
+    private static final int STREAMING_FRAGMENT_LENGTH = 256;
+    private static final int IN_FLIGHT = 5_000;
+    private static final int SMALL_LENGTH = 400;
+    private static final int LARGE_LENGTH = 10_000;
+    private static final String USAGE =
+        "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}";
+
     @Benchmark
     public void exchange(
         Replying fixture)
@@ -76,28 +116,115 @@ public class LlmOpenaiResponsesServerBM
     }
 
     @State(Scope.Benchmark)
-    public abstract static class Fixture extends LlmServerFixture
+    public abstract static class Fixture
     {
+        @Param({"small", "10k"})
+        public String size;
+
+        @Param({"false", "true"})
+        public boolean streaming;
+
+        @Param({"text", "toolCall"})
+        public String request;
+
+        @Param({"text", "toolCall"})
+        public String response;
+
+        @Param({"auto", "openai"})
+        public String dialect;
+
+        @Param({"auto", "responses"})
+        public String api;
+
+        final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
+
+        private final boolean respond;
+
+        private EngineBench bench;
+        private int textLength;
+        private long netId;
+        private UnsafeBufferEx beginEx;
+        private UnsafeBufferEx requestBody;
+
         Fixture(
             boolean respond)
         {
-            super(respond);
+            this.respond = respond;
         }
 
-        @Override
-        String configuration()
+        @Setup(Level.Trial)
+        public void init() throws Exception
         {
-            return "io/aklivity/zilla/specs/binding/llm/config/server.yaml";
+            textLength = "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
+
+            final String text = base64(textLength);
+
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("app0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(configuration());
+
+            beginEx = httpBeginEx(bench.labelId("http"));
+            requestBody = new UnsafeBufferEx(requestBody(text).getBytes(UTF_8));
+            netId = bench.bindingId("net0");
+
+            bench.newServer("app0", new Responder(Trigger.FLUSH, respond ? response(bench.labelId("llm"), text) : null));
         }
 
-        @Override
-        String path()
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            inflight.forEach(Client::abort);
+            bench.close();
+        }
+
+        void exchange()
+        {
+            final Client client = open();
+            client.awaitReplyEnd();
+
+            if (client.replyBytes() < textLength)
+            {
+                throw new IllegalStateException(String.format("reply of %d bytes is shorter than its %d chars of text",
+                    client.replyBytes(), textLength));
+            }
+        }
+
+        Client open()
+        {
+            final Client client = bench.newClient(netId, MessageConsumer.NOOP);
+
+            client.begin(beginEx, 0, beginEx.capacity());
+            client.replyWindow(DEFAULT_WINDOW);
+            client.send(requestBody, 0, requestBody.capacity());
+            client.end();
+
+            return client;
+        }
+
+        private String configuration()
+        {
+            final String configuration;
+
+            if ("auto".equals(dialect))
+            {
+                configuration = CONFIGURATION_AUTO;
+            }
+            else
+            {
+                configuration = "auto".equals(api) ? CONFIGURATION_OPENAI : CONFIGURATION_API;
+            }
+
+            return configuration;
+        }
+
+        private String path()
         {
             return "/v1/responses";
         }
 
-        @Override
-        String requestBody(
+        private String requestBody(
             String text)
         {
             final String stream = streaming ? "\"stream\":true," : "";
@@ -105,7 +232,87 @@ public class LlmOpenaiResponsesServerBM
             return "toolCall".equals(request)
                 ? String.format("{\"model\":\"gpt-4\",%s\"input\":[{\"type\":\"function_call\",\"call_id\":\"call_1\"," +
                     "\"name\":\"lookup\",\"arguments\":\"{\\\"query\\\":\\\"%s\\\"}\"}]}", stream, text)
-                : String.format("{\"model\":\"gpt-4\",%s\"input\":[{\"role\":\"user\",\"content\":\"%s\"}]}", stream, text);
+                : String.format("{\"model\":\"gpt-4\",%s\"input\":[{\"role\":\"user\",\"content\":\"%s\"}]}",
+                    stream, text);
+        }
+
+        private Response response(
+            int llmTypeId,
+            String text)
+        {
+            final boolean toolCall = "toolCall".equals(response);
+            final byte[] beginEx = LlmFunctions.beginEx()
+                .typeId(llmTypeId)
+                .dialect("openai/rs")
+                .model("gpt-4")
+                .id("resp_1")
+                .build();
+            final byte[] contentEx = toolCall
+                ? LlmFunctions.dataEx()
+                    .typeId(llmTypeId)
+                    .type("TOOL_CALL")
+                    .message(0)
+                    .attribute("tool-name", "lookup")
+                    .attribute("tool-call-id", "call_1")
+                    .build()
+                : LlmFunctions.dataEx()
+                    .typeId(llmTypeId)
+                    .type("ASSISTANT_TEXT")
+                    .message(0)
+                    .build();
+            final byte[] controlEx = LlmFunctions.dataEx()
+                .typeId(llmTypeId)
+                .type("CONTROL")
+                .message(-1)
+                .build();
+            final byte[] endEx = LlmFunctions.endEx()
+                .typeId(llmTypeId)
+                .inputTokens(25)
+                .outputTokens(15)
+                .totalTokens(40)
+                .finishReason(toolCall ? "tool-call" : "stop")
+                .build();
+            final String content = toolCall
+                ? String.format("{\"arguments\":{\"query\":\"%s\"}}", text)
+                : String.format("{\"text\":\"%s\"}", text);
+
+            return new Response(
+                beginEx,
+                new byte[][] { contentEx, controlEx },
+                new byte[][] { content.getBytes(UTF_8), USAGE.getBytes(UTF_8) },
+                endEx,
+                streaming ? STREAMING_FRAGMENT_LENGTH : 0);
+        }
+
+        private UnsafeBufferEx httpBeginEx(
+            int httpTypeId)
+        {
+            final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+
+            final HttpBeginExFW.Builder builder = new HttpBeginExFW.Builder().wrap(buffer, 0, buffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(":method").value("POST"))
+                .headersItem(h -> h.name(":scheme").value("http"))
+                .headersItem(h -> h.name(":authority").value("example.com:8080"))
+                .headersItem(h -> h.name(":path").value(path()));
+
+            final HttpBeginExFW httpBeginEx = builder
+                .headersItem(h -> h.name("content-type").value("application/json"))
+                .build();
+
+            final byte[] encoded = new byte[httpBeginEx.sizeof()];
+            buffer.getBytes(0, encoded);
+
+            return new UnsafeBufferEx(encoded);
+        }
+
+        private static String base64(
+            int length)
+        {
+            final byte[] random = new byte[length];
+            new Random(0L).nextBytes(random);
+
+            return Base64.getEncoder().withoutPadding().encodeToString(random).substring(0, length);
         }
     }
 

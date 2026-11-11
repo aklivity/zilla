@@ -9,9 +9,8 @@ profiler measures the engine worker's own allocation.
 | --- | --- | --- |
 | `EchoServerBM` | `binding-echo` | Floor for engine, ring buffer and stream cost; no application hop |
 | `ProxyServerBM` | `binding-proxy` | PROXY v2 header decode and an application hop |
-| `LlmOpenaiServerBM` | `binding-llm` | HTTP request in, mock provider response out |
-| `LlmOpenaiResponsesServerBM`, `LlmAnthropicServerBM`, `LlmGeminiServerBM` | `binding-llm` | The same for the openai responses, anthropic and gemini server dialects |
-| `LlmOpenaiClientBM`, `LlmOpenaiResponsesClientBM`, `LlmAnthropicClientBM`, `LlmGeminiClientBM` | `binding-llm` | Canonical request in, mock provider reply out, for each client dialect |
+| `LlmOpenaiServerBM`, `LlmOpenaiResponsesServerBM`, `LlmAnthropicServerBM`, `LlmGeminiServerBM` | `binding-llm` | HTTP request in, mock application response out. `-p dialect=` is `auto` (the server detects the dialect) or the dialect itself (fixed); for openai, `-p api=` is `auto` or the api (`chat/completions`, `responses`) and has no effect when `dialect=auto` |
+| `LlmOpenaiClientBM`, `LlmOpenaiResponsesClientBM`, `LlmAnthropicClientBM`, `LlmGeminiClientBM` | `binding-llm` | Canonical request in, mock provider reply out; for openai, `-p api=` is `auto` (every openai api admitted) or the api |
 
 `echo` and `proxy` are raw full-duplex relays, so they are measured per stream and per message. `llm` is
 HTTP-shaped, so it is measured per whole request.
