@@ -214,37 +214,70 @@ public class MqttKafkaClientTicketsTest
     }
 
     @Test
-    public void shouldClearTicketsAndDeleteEntry()
+    public void shouldDiscardStoredTicketsAndDeleteEntry()
     {
         seed(KEY, codec.encode(List.of(
             newTicket(1, PUBLISH_SENT, "consumers", 5L),
             newTicket(2, PUBREL_PENDING, "others", 6L))));
         final MqttKafkaClientTickets tickets = newTickets(newStore(new Assertion("delete", KEY, null, null)));
+        final List<Integer> discarded = new ArrayList<>();
+
+        tickets.discard(t -> discarded.add(t.packetId));
+        assertTrue(discarded.isEmpty());
         runTasks();
 
-        final List<MqttKafkaTicket> cleared = tickets.clear();
-        tickets.write(() -> events.add("cleared"));
-        runTasks();
-
-        assertEquals(2, cleared.size());
+        assertEquals(List.of(1, 2), discarded);
         assertNull(tickets.find(1));
-        assertEquals(List.of("cleared"), events);
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
+        assertNull(stored(KEY));
+        assertTrue(tickets.idle());
+    }
+
+    @Test
+    public void shouldNotWriteWhenNoTicketsToDiscard()
+    {
+        final MqttKafkaClientTickets tickets = newTickets(newStore());
+        final List<Integer> discarded = new ArrayList<>();
+
+        tickets.discard(t -> discarded.add(t.packetId));
+        runTasks();
+
+        assertTrue(discarded.isEmpty());
+        assertTrue(tickets.idle());
+    }
+
+    @Test
+    public void shouldDiscardUnreadableTicketsAndDeleteEntry()
+    {
+        seed(KEY, "AgQAAAAAAAAA");
+        final MqttKafkaClientTickets tickets = newTickets(newStore(new Assertion("delete", KEY, null, null)));
+        final List<Integer> discarded = new ArrayList<>();
+
+        tickets.discard(t -> discarded.add(t.packetId));
+        runTasks();
+
+        assertTrue(discarded.isEmpty());
+        assertTrue(tickets.ready());
         assertNull(stored(KEY));
     }
 
     @Test
-    public void shouldClearUnreadableTicketsAndDeleteEntry()
+    public void shouldDiscardTicketsAddedWhileWriting()
     {
-        seed(KEY, "AgQAAAAAAAAA");
-        final MqttKafkaClientTickets tickets = newTickets(newStore(new Assertion("delete", KEY, null, null)));
+        final MqttKafkaTicket sent = newTicket(1, PUBLISH_SENT, "consumers", 5L);
+        final MqttKafkaClientTickets tickets = newTickets(newStore(
+            new Assertion("put", KEY, codec.encode(List.of(sent)), null),
+            new Assertion("delete", KEY, null, null)));
+        final List<Integer> discarded = new ArrayList<>();
         runTasks();
 
-        final List<MqttKafkaTicket> cleared = tickets.clear();
-        tickets.write(() -> {});
+        tickets.add(sent);
+        tickets.write(() -> events.add("written"));
+        tickets.discard(t -> discarded.add(t.packetId));
         runTasks();
 
-        assertTrue(cleared.isEmpty());
-        assertTrue(tickets.ready());
+        assertEquals(List.of(1), discarded);
+        assertEquals(List.of("written"), events);
         assertNull(stored(KEY));
     }
 
