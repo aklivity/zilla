@@ -54,7 +54,7 @@ public class MqttKafkaClientTicketsTest
         runTasks();
 
         assertTrue(tickets.ready());
-        assertTrue(tickets.subscribed("consumers", "sensor/one").isEmpty());
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
     }
 
     @Test
@@ -68,8 +68,6 @@ public class MqttKafkaClientTicketsTest
         runTasks();
 
         assertEquals(List.of(1, 2), loaded);
-        assertEquals(1, tickets.subscribed("consumers", "sensor/one").size());
-        assertEquals(1, tickets.subscribed("consumers", "sensor/one").get(0).packetId);
         assertEquals(2, tickets.find(2).packetId);
         assertNull(tickets.find(3));
     }
@@ -83,7 +81,51 @@ public class MqttKafkaClientTicketsTest
         runTasks();
 
         assertFalse(tickets.ready());
-        assertTrue(tickets.subscribed("consumers", "sensor/one").isEmpty());
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
+    }
+
+    @Test
+    public void shouldRecoverLoadedTicketsOfSubscriptionOnce()
+    {
+        seed(KEY, codec.encode(List.of(
+            newTicket(1, PUBLISH_SENT, "consumers", 5L),
+            newTicket(2, PUBREL_PENDING, "others", 6L),
+            newTicket(3, PUBREL_PENDING, "consumers", 7L))));
+
+        final MqttKafkaClientTickets tickets = newTickets(newStore());
+        runTasks();
+
+        final List<MqttKafkaTicket> recovered = tickets.recover("consumers", "sensor/one");
+
+        assertEquals(2, recovered.size());
+        assertEquals(1, recovered.get(0).packetId);
+        assertEquals(3, recovered.get(1).packetId);
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
+        assertEquals(1, tickets.recover("others", "sensor/one").size());
+        assertTrue(tickets.recover("consumers", "sensor/two").isEmpty());
+    }
+
+    @Test
+    public void shouldNotRecoverTicketsAddedAfterLoaded()
+    {
+        final MqttKafkaClientTickets tickets = newTickets(newStore());
+        runTasks();
+
+        tickets.add(newTicket(1, PUBLISH_SENT, "consumers", 5L));
+
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
+    }
+
+    @Test
+    public void shouldNotRecoverTicketsRemovedAfterLoaded()
+    {
+        seed(KEY, codec.encode(List.of(newTicket(1, PUBLISH_SENT, "consumers", 5L))));
+
+        final MqttKafkaClientTickets tickets = newTickets(newStore());
+        runTasks();
+        tickets.remove(1);
+
+        assertTrue(tickets.recover("consumers", "sensor/one").isEmpty());
     }
 
     @Test
