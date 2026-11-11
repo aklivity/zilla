@@ -76,6 +76,20 @@ final class LlmTextPipeline
         this(output, false, null);
     }
 
+    LlmTextPipeline(
+        CharOutput output,
+        boolean optional)
+    {
+        this(output, optional, null);
+    }
+
+    LlmTextPipeline(
+        CharOutput output,
+        LlmCacheBreakpoint breakpoints)
+    {
+        this(output, false, breakpoints);
+    }
+
     private LlmTextPipeline(
         CharOutput output,
         boolean optional,
