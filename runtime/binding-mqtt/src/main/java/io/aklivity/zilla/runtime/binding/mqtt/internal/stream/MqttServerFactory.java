@@ -7148,7 +7148,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final Map<String, MqttSubscribeStream> routeShared = sharedSubscribes.get(routedId);
                 if (routeShared != null)
                 {
-                    routeShared.remove(sharedFilter);
+                    if (routeShared.get(sharedFilter) == this)
+                    {
+                        routeShared.remove(sharedFilter);
+                    }
+
                     if (routeShared.isEmpty())
                     {
                         sharedSubscribes.remove(routedId);
