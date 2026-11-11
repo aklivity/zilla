@@ -63,6 +63,32 @@ public class SchemaTest
         schema.validate("server.store.assertions.unknown.op.yaml");
     }
 
+    @Test(expected = JsonException.class)
+    public void shouldRejectStoreAssertionsWithIncrementWithoutDelta()
+    {
+        schema.validate("server.store.assertions.increment.no.delta.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectStoreAssertionsWithReplaceWithoutExpected()
+    {
+        schema.validate("server.store.assertions.replace.no.expected.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectStoreAssertionsWithDeleteWithoutKey()
+    {
+        schema.validate("server.store.assertions.delete.no.key.yaml");
+    }
+
+    @Test
+    public void shouldValidateStoreAssertionsWithBindingAssertions()
+    {
+        JsonObject config = schema.validate("server.store.assertions.atomic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test
     public void shouldValidateServerMetrics()
     {

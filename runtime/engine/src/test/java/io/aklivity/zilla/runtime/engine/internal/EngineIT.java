@@ -580,4 +580,14 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.store.assertions.atomic.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldAssertAtomicOperationsInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
 }
