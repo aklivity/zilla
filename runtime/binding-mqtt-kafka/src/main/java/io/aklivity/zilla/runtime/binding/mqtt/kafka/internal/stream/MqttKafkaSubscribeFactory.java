@@ -4891,19 +4891,37 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    void discardTickets(
+        String clientId,
+        StoreHandler store)
+    {
+        final ClientPacketIds packetIds = supplyPacketIds(clientId);
+
+        attachTickets(packetIds, store);
+        packetIds.tickets.discard(t -> packetIds.inflight.release(t.packetId));
+        packetIds.tickets.awaitLoaded(() -> removePacketIds(packetIds));
+    }
+
     private ClientPacketIds attachPacketIds(
         String16FW clientId)
     {
-        final String key = clientId.asString();
-        ClientPacketIds packetIds = packetIdsPerClient.get(key);
+        final ClientPacketIds packetIds = supplyPacketIds(clientId.asString());
+
+        packetIds.streams++;
+
+        return packetIds;
+    }
+
+    private ClientPacketIds supplyPacketIds(
+        String clientId)
+    {
+        ClientPacketIds packetIds = packetIdsPerClient.get(clientId);
 
         if (packetIds == null)
         {
-            packetIds = new ClientPacketIds(key);
-            packetIdsPerClient.put(key, packetIds);
+            packetIds = new ClientPacketIds(clientId);
+            packetIdsPerClient.put(clientId, packetIds);
         }
-
-        packetIds.streams++;
 
         return packetIds;
     }
