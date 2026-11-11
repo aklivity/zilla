@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * A {@link JsonParser} extended with the streaming-over-buffers surface the standard
@@ -209,7 +209,7 @@ public interface JsonParserEx extends JsonParser
      * {@link JsonSource#getStringView()} accessor onto the parser surface so a caller holding a
      * {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
-    CharSequenceEx getStringView();
+    JsonStringView getStringView();
 
     /**
      * Arms the string value that follows the current {@link JsonEvent#KEY_NAME} to be parsed as a stringified

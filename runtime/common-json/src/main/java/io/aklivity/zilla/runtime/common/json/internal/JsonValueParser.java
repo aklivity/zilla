@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Presents the next value of a parser that is already running, a container or a scalar, as a document of its
@@ -181,7 +181,7 @@ public final class JsonValueParser implements JsonParserEx
     }
 
     @Override
-    public CharSequenceEx getStringView()
+    public JsonStringView getStringView()
     {
         return parser.getStringView();
     }

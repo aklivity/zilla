@@ -30,8 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Resumable, event-driven {@link JsonTransform} that projects a document down to a set of retained
@@ -882,7 +881,7 @@ public final class JsonProjectorImpl implements JsonTransform
 
     private static final class KeySource implements JsonSource
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         private CharSequence key;
         private int offset;
@@ -910,7 +909,7 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
-        public CharSequenceEx getStringView()
+        public JsonStringView getStringView()
         {
             return key == null ? null : decoded.wrap(key.subSequence(offset, key.length()));
         }

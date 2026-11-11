@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroParsingException;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.json.view.Utf8StringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
@@ -86,7 +86,7 @@ public final class AvroParserImpl implements AvroParser
     private final AvroLocationImpl location;
     private final CharText chars;
     private final Utf8StringView utf8View = new Utf8StringView();
-    private final DecodedStringView stringView = new DecodedStringView();
+    private final JsonStringView.Decoded stringView = new JsonStringView.Decoded();
 
     private DirectBufferEx buffer;
     private int offset;

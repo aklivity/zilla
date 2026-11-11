@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Backs {@link JsonPipeline}: holds the bound root {@link JsonSink} and the {@link JsonParserEx}
@@ -311,7 +311,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public CharSequenceEx getStringView()
+        public JsonStringView getStringView()
         {
             return parser.getStringView();
         }

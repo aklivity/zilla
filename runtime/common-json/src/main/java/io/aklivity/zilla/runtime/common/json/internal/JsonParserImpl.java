@@ -47,10 +47,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
-import io.aklivity.zilla.runtime.common.json.view.EscapedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 public final class JsonParserImpl implements JsonParserEx
 {
@@ -112,9 +109,9 @@ public final class JsonParserImpl implements JsonParserEx
     // the leading separator off the new-first surviving sibling so the survivors stay well-formed
     private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
-    private final DecodedStringView emptyView = new DecodedStringView().wrap("");
-    private final EncodedStringView encodedView = new EncodedStringView();
-    private final EscapedStringView escapedView = new EscapedStringView();
+    private final JsonStringView.Decoded emptyView = new JsonStringView.Decoded().wrap("");
+    private final JsonStringView.Encoded encodedView = new JsonStringView.Encoded();
+    private final JsonStringView.Escaped escapedView = new JsonStringView.Escaped();
     private String stringCache;
     // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
     // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
@@ -871,7 +868,7 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public CharSequenceEx getStringView()
+    public JsonStringView getStringView()
     {
         // valid on both drives: the pump tracks lastEvent, a jakarta next() tracks currentEvent
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
@@ -888,10 +885,10 @@ public final class JsonParserImpl implements JsonParserEx
 
     // the current token as the chars the tokenizer read in place from the window; a token that is not read in place
     // has none
-    private CharSequenceEx spanView()
+    private JsonStringView spanView()
     {
         final int length = tokenizer.tokenLength();
-        final CharSequenceEx view;
+        final JsonStringView view;
 
         if (length < 0)
         {
@@ -1511,18 +1508,24 @@ public final class JsonParserImpl implements JsonParserEx
         }
     }
 
-    private static final class StringView implements CharSequenceEx
+    private static final class StringView implements JsonStringView
     {
-        private CharSequenceEx base;
+        private JsonStringView base;
         private int offset;
 
         private StringView wrap(
-            CharSequenceEx base,
+            JsonStringView base,
             int offset)
         {
             this.base = base;
             this.offset = offset;
             return this;
+        }
+
+        @Override
+        public Kind kind()
+        {
+            return base.kind();
         }
 
         @Override

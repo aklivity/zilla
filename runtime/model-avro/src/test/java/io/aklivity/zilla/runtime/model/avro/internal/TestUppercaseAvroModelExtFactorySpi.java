@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -212,7 +212,7 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
         // the synthesized view fed to the downstream sink in place of the original string value
         private final class Substitute implements AvroSource, AvroController
         {
-            private final DecodedStringView decoded = new DecodedStringView();
+            private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
             private final UnsafeBufferEx content;
             private final UnsafeBufferEx view;

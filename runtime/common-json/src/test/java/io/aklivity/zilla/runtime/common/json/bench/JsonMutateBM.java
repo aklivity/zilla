@@ -49,8 +49,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Measures the two mutating verbatim transforms — {@code skip} (Phase 2 prune, via
@@ -459,7 +458,7 @@ public class JsonMutateBM
     // event() is never consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         private final CharSequence text;
 
@@ -470,7 +469,7 @@ public class JsonMutateBM
         }
 
         @Override
-        public CharSequenceEx getStringView()
+        public JsonStringView getStringView()
         {
             return decoded.wrap(text);
         }

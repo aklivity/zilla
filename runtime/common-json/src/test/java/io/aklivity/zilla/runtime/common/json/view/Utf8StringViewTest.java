@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 public class Utf8StringViewTest
 {
     private final Utf8StringView view = new Utf8StringView();
-    private final DecodedStringView decoded = new DecodedStringView();
+    private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
     private final SegmentTransferTarget target = new SegmentTransferTarget();
 
     @Test
@@ -45,7 +45,7 @@ public class Utf8StringViewTest
     }
 
     @Test
-    void shouldTransferPlainAsciiAsTheBytesItWraps()
+    void shouldTransferAsciiAsTheBytesItWraps()
     {
         wrap("plain text");
 
@@ -54,12 +54,12 @@ public class Utf8StringViewTest
     }
 
     @Test
-    void shouldEscapeWhatAsciiNeedsEscaped()
+    void shouldTransferBytesWithoutEscapes()
     {
         wrap("a\"b\\c\n\u0001");
 
-        assertEquals("a\\\"b\\\\c\\n\\u0001", transferred(0, 7));
-        assertEquals(15, view.transferLength(0, 7));
+        assertEquals("a\"b\\c\n\u0001", transferred(0, 7));
+        assertEquals(7, view.transferLength(0, 7));
     }
 
     @Test

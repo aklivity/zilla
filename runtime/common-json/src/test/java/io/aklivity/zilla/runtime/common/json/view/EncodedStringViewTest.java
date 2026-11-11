@@ -34,7 +34,7 @@ class EncodedStringViewTest
 {
     private static final int PADDING = 3;
 
-    private final EncodedStringView view = new EncodedStringView();
+    private final JsonStringView.Encoded view = new JsonStringView.Encoded();
 
     @Test
     void shouldViewPlainAscii()

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 public class AvroGeneratorTest
@@ -71,7 +71,7 @@ public class AvroGeneratorTest
 
     private static final class ZeroSource implements AvroSource
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         private final UnsafeBufferEx empty;
 

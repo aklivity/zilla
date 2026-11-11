@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 public class LlmTextPipelineTest
 {
@@ -307,7 +307,7 @@ public class LlmTextPipelineTest
     }
 
     private void collectChars(
-        CharSequenceEx text,
+        JsonStringView text,
         int from,
         int to)
     {

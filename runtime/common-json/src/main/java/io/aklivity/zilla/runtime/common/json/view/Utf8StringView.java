@@ -21,10 +21,8 @@ import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
  * A {@link CharSequenceEx} over the raw UTF-8 bytes of a string in a buffer, as bytes that carry no escapes, so the
  * chars are read in place and nothing is copied or allocated.
  * <p>
- * A transfer encodes the chars as the body of a JSON string. When the bytes are ASCII and none needs an escape, the
- * bytes are the encoded form already, and a transfer hands them over as they are without decoding a char. Any other
- * value is transferred as the decoded chars are, with a quote, a backslash and a control char escaped, so the
- * result is valid whatever the bytes hold.
+ * A transfer hands over the bytes of the chars as they are, raw UTF-8 with no escapes, so a writer that needs an
+ * encoding of its own reads the chars and encodes them itself.
  * <p>
  * Bytes that are not well-formed UTF-8 read as U+FFFD, a char for each byte that is not part of a well-formed
  * sequence.
@@ -37,14 +35,11 @@ public final class Utf8StringView implements CharSequenceEx
 {
     private static final char REPLACEMENT = '�';
 
-    private final DecodedStringView decoded = new DecodedStringView();
-
     private DirectBufferEx buffer;
     private int offset;
     private int limit;
     private int length;
     private boolean ascii;
-    private boolean plain;
 
     private int cursorChar;
     private int position;
@@ -146,20 +141,9 @@ public final class Utf8StringView implements CharSequenceEx
         int fromChar,
         int toChar)
     {
-        final int transferLength;
+        check(fromChar, toChar);
 
-        if (ascii && plain)
-        {
-            check(fromChar, toChar);
-
-            transferLength = toChar - fromChar;
-        }
-        else
-        {
-            transferLength = decoded.wrap(this).transferLength(fromChar, toChar);
-        }
-
-        return transferLength;
+        return boundary(toChar) - boundary(fromChar);
     }
 
     @Override
@@ -168,25 +152,17 @@ public final class Utf8StringView implements CharSequenceEx
         int toChar,
         TransferTarget target)
     {
-        final int transferred;
+        check(fromChar, toChar);
 
-        if (ascii && plain)
+        final int start = boundary(fromChar);
+        final int end = boundary(toChar);
+
+        if (end > start)
         {
-            check(fromChar, toChar);
-
-            transferred = toChar - fromChar;
-
-            if (transferred > 0)
-            {
-                target.accept(buffer.segment(), buffer.wrapAdjustment() + offset + fromChar, transferred);
-            }
-        }
-        else
-        {
-            transferred = decoded.wrap(this).transferTo(fromChar, toChar, target);
+            target.accept(buffer.segment(), buffer.wrapAdjustment() + start, end - start);
         }
 
-        return transferred;
+        return end - start;
     }
 
     private void check(
@@ -202,18 +178,13 @@ public final class Utf8StringView implements CharSequenceEx
     private void scan()
     {
         boolean ascii = true;
-        boolean plain = true;
 
         for (int index = offset; ascii && index < limit; index++)
         {
-            final int b = buffer.getByte(index);
-
-            ascii = b >= 0;
-            plain &= b >= 0x20 && b != '"' && b != '\\';
+            ascii = buffer.getByte(index) >= 0;
         }
 
         this.ascii = ascii;
-        this.plain = plain;
 
         if (ascii)
         {
@@ -231,6 +202,38 @@ public final class Utf8StringView implements CharSequenceEx
             this.length = cursorChar;
             restart();
         }
+    }
+
+    private int boundary(
+        int charIndex)
+    {
+        final int boundary;
+
+        if (ascii)
+        {
+            boundary = offset + charIndex;
+        }
+        else
+        {
+            if (charIndex < cursorChar)
+            {
+                restart();
+            }
+
+            while (cursorChar < charIndex)
+            {
+                decodeNext();
+            }
+
+            if (pending != 0)
+            {
+                throw new IllegalArgumentException("index inside a character: " + charIndex);
+            }
+
+            boundary = cursorChar == 0 ? offset : position;
+        }
+
+        return boundary;
     }
 
     private void restart()

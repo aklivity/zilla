@@ -16,110 +16,105 @@ package io.aklivity.zilla.runtime.common.json.view;
 
 import java.lang.foreign.MemorySegment;
 
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx.TransferTarget;
 
 /**
- * A {@link CharSequenceEx} over chars that were not read from the bytes they were written as, so it transfers them
- * as the body of a JSON string: the chars in UTF-8, with a quote, a backslash and a control char escaped, and a lone
- * surrogate, which has no UTF-8 form, written as U+FFFD.
+ * Transfers the chars of a {@link JsonStringView} as the single-level body of a JSON string: a view whose bytes are
+ * already that form is handed over as they are, and the chars of any other are encoded in UTF-8, with a quote, a
+ * backslash and a control char escaped, and a lone surrogate, which has no UTF-8 form, written as U+FFFD.
  * <p>
- * The view is a flyweight that is reused for every sequence and holds the bytes of a transfer in an array it grows
- * to the largest it has been asked for.
+ * The writer is a flyweight that is reused for every transfer and holds the bytes of an encoded transfer in an array
+ * it grows to the largest it has been asked for.
  */
-public final class DecodedStringView implements CharSequenceEx
+public final class JsonStringBody
 {
     private static final int REPLACEMENT = 0xfffd;
     private static final byte[] HEX = "0123456789abcdef".getBytes();
 
-    private CharSequence chars;
     private byte[] bytes = new byte[64];
     private MemorySegment segment = MemorySegment.ofArray(bytes);
 
-    public DecodedStringView wrap(
-        CharSequence chars)
-    {
-        this.chars = chars;
-
-        return this;
-    }
-
-    @Override
-    public int length()
-    {
-        return chars.length();
-    }
-
-    @Override
-    public char charAt(
-        int index)
-    {
-        return chars.charAt(index);
-    }
-
-    @Override
-    public CharSequence subSequence(
-        int start,
-        int end)
-    {
-        return chars.subSequence(start, end);
-    }
-
-    @Override
-    public String toString()
-    {
-        return chars.toString();
-    }
-
-    @Override
-    public int transferLength(
+    /**
+     * The number of bytes that {@link #transfer} hands over for the chars from {@code fromChar} to {@code toChar}.
+     */
+    public int length(
+        JsonStringView chars,
         int fromChar,
         int toChar)
     {
-        check(fromChar, toChar);
+        final int length;
 
-        int length = 0;
-
-        for (int index = fromChar; index < toChar; )
+        if (chars.kind() == JsonStringView.Kind.ENCODED)
         {
-            final int codePoint = codePointAt(index, toChar);
+            length = chars.transferLength(fromChar, toChar);
+        }
+        else
+        {
+            check(chars, fromChar, toChar);
 
-            length += width(codePoint);
-            index += codePoint >= 0x10000 ? 2 : 1;
+            int total = 0;
+
+            for (int index = fromChar; index < toChar; )
+            {
+                final int codePoint = codePointAt(chars, index, toChar);
+
+                total += width(codePoint);
+                index += codePoint >= 0x10000 ? 2 : 1;
+            }
+
+            length = total;
         }
 
         return length;
     }
 
-    @Override
-    public int transferTo(
+    /**
+     * Hands the chars from {@code fromChar} to {@code toChar} to {@code target} as the body of a JSON string.
+     *
+     * @return the number of bytes handed over
+     */
+    public int transfer(
+        JsonStringView chars,
         int fromChar,
         int toChar,
         TransferTarget target)
     {
-        final int length = transferLength(fromChar, toChar);
+        final int transferred;
 
-        if (length > bytes.length)
+        if (chars.kind() == JsonStringView.Kind.ENCODED)
         {
-            bytes = new byte[Math.max(length, bytes.length << 1)];
-            segment = MemorySegment.ofArray(bytes);
+            transferred = chars.transferTo(fromChar, toChar, target);
+        }
+        else
+        {
+            final int length = length(chars, fromChar, toChar);
+
+            if (length > bytes.length)
+            {
+                bytes = new byte[Math.max(length, bytes.length << 1)];
+                segment = MemorySegment.ofArray(bytes);
+            }
+
+            int position = 0;
+
+            for (int index = fromChar; index < toChar; )
+            {
+                final int codePoint = codePointAt(chars, index, toChar);
+
+                position = put(codePoint, position);
+                index += codePoint >= 0x10000 ? 2 : 1;
+            }
+
+            target.accept(segment, 0, position);
+
+            transferred = position;
         }
 
-        int position = 0;
-
-        for (int index = fromChar; index < toChar; )
-        {
-            final int codePoint = codePointAt(index, toChar);
-
-            position = put(codePoint, position);
-            index += codePoint >= 0x10000 ? 2 : 1;
-        }
-
-        target.accept(segment, 0, position);
-
-        return position;
+        return transferred;
     }
 
-    private void check(
+    private static void check(
+        CharSequence chars,
         int fromChar,
         int toChar)
     {
@@ -137,7 +132,8 @@ public final class DecodedStringView implements CharSequenceEx
         }
     }
 
-    private boolean isPair(
+    private static boolean isPair(
+        CharSequence chars,
         int index,
         int limit)
     {
@@ -145,14 +141,15 @@ public final class DecodedStringView implements CharSequenceEx
             Character.isLowSurrogate(chars.charAt(index + 1));
     }
 
-    private int codePointAt(
+    private static int codePointAt(
+        CharSequence chars,
         int index,
         int limit)
     {
         final char c = chars.charAt(index);
         final int codePoint;
 
-        if (isPair(index, limit))
+        if (isPair(chars, index, limit))
         {
             codePoint = Character.toCodePoint(c, chars.charAt(index + 1));
         }

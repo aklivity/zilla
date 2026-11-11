@@ -34,8 +34,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 class JsonValidatorChainTest
 {
@@ -291,7 +290,7 @@ class JsonValidatorChainTest
     // Supplies a fixed injected scalar value with no real source bytes to advance.
     private static final class FixedSource implements JsonSource
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         private final CharSequence text;
 
@@ -302,7 +301,7 @@ class JsonValidatorChainTest
         }
 
         @Override
-        public CharSequenceEx getStringView()
+        public JsonStringView getStringView()
         {
             return decoded.wrap(text);
         }

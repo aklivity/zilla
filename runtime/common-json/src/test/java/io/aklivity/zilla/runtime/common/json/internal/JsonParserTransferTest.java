@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
@@ -48,11 +49,11 @@ class JsonParserTransferTest
     }
 
     @Test
-    void shouldTransferAStringReadInsideAnEscapedScopeAsAStringBody()
+    void shouldTransferAStringReadInsideAnEscapedScopeWithTheEscapesOfTheStringThatHoldsIt()
     {
         final String json = "{\"a\":\"{\\\"b\\\":\\\"x\\\\ny\\\"}\"}";
 
-        assertEquals("x\\ny", transfersInScope(json, "x\ny"));
+        assertEquals("x\\\\ny", transfersInScope(json, "x\ny"));
     }
 
     @Test
@@ -97,6 +98,7 @@ class JsonParserTransferTest
             else if (event == JsonEvent.VALUE_STRING)
             {
                 assertEquals(chars, parser.getStringView().toString());
+                assertEquals(JsonStringView.Kind.ESCAPED, parser.getStringView().kind());
                 transferred = transfer(parser.getStringView());
             }
         }

@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Immutable, read-only view of the value observed at the current event as a {@link JsonStream}
@@ -37,7 +37,7 @@ public interface JsonSource
      * counterpart to {@link #getString()} for stages that read or re-emit the value (or key) without
      * retaining it.
      */
-    CharSequenceEx getStringView();
+    JsonStringView getStringView();
 
     BigDecimal getBigDecimal();
 

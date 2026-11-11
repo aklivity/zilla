@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.view.EncodedStringView;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
@@ -50,7 +50,7 @@ class JsonParserStringViewTest
 
         final CharSequence view = valueString();
 
-        assertInstanceOf(EncodedStringView.class, view);
+        assertInstanceOf(JsonStringView.Encoded.class, view);
         assertEquals("hello world", view.toString());
     }
 
@@ -61,7 +61,7 @@ class JsonParserStringViewTest
 
         final CharSequence view = valueString();
 
-        assertInstanceOf(EncodedStringView.class, view);
+        assertInstanceOf(JsonStringView.Encoded.class, view);
         assertEquals("a\nb\"cé€😀", view.toString());
         assertEquals(9, view.length());
     }
@@ -73,7 +73,7 @@ class JsonParserStringViewTest
 
         final CharSequence view = valueString();
 
-        assertInstanceOf(EncodedStringView.class, view);
+        assertInstanceOf(JsonStringView.Encoded.class, view);
         assertEquals(0, view.length());
     }
 
@@ -196,7 +196,7 @@ class JsonParserStringViewTest
                 {
                     final CharSequence chars = windowed.getStringView();
 
-                    assertInstanceOf(EncodedStringView.class, chars);
+                    assertInstanceOf(JsonStringView.Encoded.class, chars);
                     joined.append(chars);
                     windowed.consumed(chars.length());
                     fragments++;

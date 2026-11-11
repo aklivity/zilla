@@ -26,12 +26,11 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 public class LlmReasoningScannerTest
 {
-    private final DecodedStringView decoded = new DecodedStringView();
+    private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
     private final LlmReasoningScanner scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
     private final List<String> pieces = new ArrayList<>();
@@ -39,7 +38,7 @@ public class LlmReasoningScannerTest
     {
         @Override
         public void text(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -55,7 +54,7 @@ public class LlmReasoningScannerTest
 
         @Override
         public void reasoning(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -326,7 +325,7 @@ public class LlmReasoningScannerTest
         {
             @Override
             public void text(
-                CharSequenceEx chars,
+                JsonStringView chars,
                 int from,
                 int to)
             {
@@ -341,7 +340,7 @@ public class LlmReasoningScannerTest
 
             @Override
             public void reasoning(
-                CharSequenceEx chars,
+                JsonStringView chars,
                 int from,
                 int to)
             {

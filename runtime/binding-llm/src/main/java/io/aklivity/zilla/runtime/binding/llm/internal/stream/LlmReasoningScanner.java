@@ -16,15 +16,14 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import java.util.Collection;
 
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 final class LlmReasoningScanner
 {
     interface Visitor
     {
         void text(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to);
 
@@ -32,7 +31,7 @@ final class LlmReasoningScanner
             String tag);
 
         void reasoning(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to);
 
@@ -47,7 +46,7 @@ final class LlmReasoningScanner
     private final char[][] openDelimiters;
     private final char[][] closeDelimiters;
     private final char[] held;
-    private final CharSequenceEx heldChars;
+    private final JsonStringView heldChars;
     private final int minBlock;
 
     private int heldLength;
@@ -94,7 +93,7 @@ final class LlmReasoningScanner
     }
 
     void accept(
-        CharSequenceEx chars,
+        JsonStringView chars,
         int from,
         int to,
         Visitor visitor)
@@ -225,7 +224,7 @@ final class LlmReasoningScanner
 
     private void emit(
         Visitor visitor,
-        CharSequenceEx chars,
+        JsonStringView chars,
         int from,
         int to)
     {
@@ -242,9 +241,9 @@ final class LlmReasoningScanner
         }
     }
 
-    private final class HeldChars implements CharSequenceEx
+    private final class HeldChars implements JsonStringView
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         @Override
         public int length()
@@ -265,6 +264,12 @@ final class LlmReasoningScanner
             int end)
         {
             return new String(held, start, end - start);
+        }
+
+        @Override
+        public Kind kind()
+        {
+            return Kind.DECODED;
         }
 
         @Override

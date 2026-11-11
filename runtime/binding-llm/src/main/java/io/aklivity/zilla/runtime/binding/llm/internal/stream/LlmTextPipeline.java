@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 final class LlmTextPipeline
 {
@@ -38,7 +38,7 @@ final class LlmTextPipeline
     interface CharOutput
     {
         void put(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to);
     }

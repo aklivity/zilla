@@ -29,8 +29,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
-import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 public final class McpScopeFilter implements JsonTransform
 {
@@ -370,7 +369,7 @@ public final class McpScopeFilter implements JsonTransform
 
     private static final class KeySource implements JsonSource
     {
-        private final DecodedStringView decoded = new DecodedStringView();
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
 
         private CharSequence key;
 
@@ -388,7 +387,7 @@ public final class McpScopeFilter implements JsonTransform
         }
 
         @Override
-        public CharSequenceEx getStringView()
+        public JsonStringView getStringView()
         {
             return decoded.wrap(key);
         }

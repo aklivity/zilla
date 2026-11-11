@@ -71,7 +71,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
-import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -259,6 +260,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private UnsafeBufferEx textBuffer = new UnsafeBufferEx(textBytes);
     private byte[] pieceBytes = new byte[1024];
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final JsonStringBody body = new JsonStringBody();
     private UnsafeBufferEx pieceBuffer = new UnsafeBufferEx(pieceBytes);
 
     public LlmOpenaiClientFactory(
@@ -1482,7 +1484,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequenceEx member = parser.getStringView();
+                    final JsonStringView member = parser.getStringView();
 
                     if (MEMBER_ID.contentEquals(member))
                     {
@@ -1618,7 +1620,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequenceEx member = parser.getStringView();
+                    final JsonStringView member = parser.getStringView();
 
                     if (MEMBER_MESSAGE.contentEquals(member))
                     {
@@ -1775,7 +1777,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void decodeScopeMember(
-            CharSequenceEx member,
+            JsonStringView member,
             LlmOpenaiResponseDecoder scope)
         {
             if (MEMBER_CONTENT.contentEquals(member))
@@ -1904,7 +1906,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequenceEx member = parser.getStringView();
+                    final JsonStringView member = parser.getStringView();
 
                     if (MEMBER_INDEX.contentEquals(member))
                     {
@@ -2002,7 +2004,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequenceEx member = parser.getStringView();
+                    final JsonStringView member = parser.getStringView();
 
                     if (MEMBER_NAME.contentEquals(member))
                     {
@@ -2318,7 +2320,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final CharSequenceEx member = parser.getStringView();
+                    final JsonStringView member = parser.getStringView();
 
                     if (MEMBER_TYPE.contentEquals(member))
                     {
@@ -2554,7 +2556,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             boolean deferred,
             int eventFrom)
         {
-            final CharSequenceEx chars = parser.getStringView();
+            final JsonStringView chars = parser.getStringView();
             final int length = chars.length();
 
             if (http.framing && length == 0 && !deferred && !sectionOpen)
@@ -2597,7 +2599,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void scan(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -2619,7 +2621,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int textAllowance(
-            CharSequenceEx chars,
+            JsonStringView chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -2637,7 +2639,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (scanning)
             {
                 final int tail = !deferred && !http.framing ? REASONING_SUFFIX.length + replyPad + closing : 0;
-                final int total = cost + chars.transferLength(0, length) +
+                final int total = cost + body.length(chars, 0, length) +
                     delimiterStarts(chars) * boundary + tail;
 
                 if (total <= credit)
@@ -2678,15 +2680,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int outputWidth(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int index,
             int width)
         {
-            return chars.transferLength(index, index + width);
+            return body.length(chars, index, index + width);
         }
 
         private int delimiterStarts(
-            CharSequenceEx chars)
+            JsonStringView chars)
         {
             int starts = 0;
 
@@ -2732,7 +2734,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         @Override
         public void text(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -2760,7 +2762,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         @Override
         public void reasoning(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -2790,7 +2792,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             boolean deferred,
             int eventFrom)
         {
-            final CharSequenceEx chars = parser.getStringView();
+            final JsonStringView chars = parser.getStringView();
             final ToolCall call = http.framing ? resolveToolCall() : null;
             final boolean stalled;
 
@@ -2812,7 +2814,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean streamArguments(
             ToolCall call,
-            CharSequenceEx chars,
+            JsonStringView chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -2861,7 +2863,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean holdArguments(
             ToolCall call,
-            CharSequenceEx chars,
+            JsonStringView chars,
             boolean deferred)
         {
             final int length = chars.length();
@@ -3085,7 +3087,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int argumentsAllowance(
-            CharSequenceEx chars,
+            JsonStringView chars,
             boolean deferred,
             boolean started)
         {
@@ -3200,7 +3202,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void beginControl(
-            CharSequenceEx member,
+            JsonStringView member,
             int message,
             LlmOpenaiResponseDecoder then)
         {
@@ -3215,7 +3217,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void openControl(
-            CharSequenceEx member,
+            JsonStringView member,
             int message,
             LlmOpenaiResponseDecoder then)
         {
@@ -3613,16 +3615,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int encodePiece(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to)
         {
             final int prefix = sectionStarted ? 0 : REASONING_PREFIX.length;
             final int length;
 
-            reservePiece(prefix + chars.transferLength(from, to));
+            reservePiece(prefix + body.length(chars, from, to));
 
-            length = prefix + chars.transferTo(from, to,
+            length = prefix + body.transfer(chars, from, to,
                 pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + prefix));
 
             System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
@@ -3653,7 +3655,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int escape(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int from,
             int to,
             int position)
@@ -3783,7 +3785,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private int encodeText(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int length,
             boolean last)
         {
@@ -6098,7 +6100,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void track(
-            CharSequenceEx chars,
+            JsonStringView chars,
             int length)
         {
             for (int position = 0; position < length; position++)

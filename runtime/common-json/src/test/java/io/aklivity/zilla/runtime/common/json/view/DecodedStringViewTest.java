@@ -18,21 +18,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.ByteArrayInputStream;
-import java.util.Random;
-
-import jakarta.json.stream.JsonParser.Event;
-
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
 public class DecodedStringViewTest
 {
-    private final DecodedStringView view = new DecodedStringView();
+    private final JsonStringView.Decoded view = new JsonStringView.Decoded();
 
     @Test
     void shouldReadTheCharsItWraps()
@@ -53,9 +46,15 @@ public class DecodedStringViewTest
     }
 
     @Test
-    void shouldEscapeQuoteBackslashAndControlChars()
+    void shouldTransferQuoteBackslashAndControlCharsWithoutEscapes()
     {
-        assertEquals("\\\"\\\\\\b\\f\\n\\r\\t\\u0001\\u001f", transferred("\"\\\b\f\n\r\t\u0001\u001f", 0, 9));
+        assertEquals("\"\\\b\f\n\r\t\u0001\u001f", transferred("\"\\\b\f\n\r\t\u0001\u001f", 0, 9));
+    }
+
+    @Test
+    void shouldBeDecoded()
+    {
+        assertEquals(JsonStringView.Kind.DECODED, view.kind());
     }
 
     @Test
@@ -77,7 +76,7 @@ public class DecodedStringViewTest
     @Test
     void shouldTransferARange()
     {
-        assertEquals("bc\\n", transferred("abc\nd", 1, 4));
+        assertEquals("bc\n", transferred("abc\nd", 1, 4));
         assertEquals("", transferred("abc", 2, 2));
     }
 
@@ -98,40 +97,6 @@ public class DecodedStringViewTest
 
         assertThrows(IllegalArgumentException.class, () -> view.transferLength(0, 2));
         assertThrows(IllegalArgumentException.class, () -> view.transferLength(2, 4));
-    }
-
-    @Test
-    void shouldTransferEverythingAParserReadsBackTheSame()
-    {
-        final Random random = new Random(11L);
-
-        for (int round = 0; round < 500; round++)
-        {
-            final StringBuilder chars = new StringBuilder();
-
-            for (int i = 0, length = random.nextInt(40); i < length; i++)
-            {
-                final int kind = random.nextInt(6);
-                chars.append(switch (kind)
-                {
-                case 0 -> (char) random.nextInt(0x20);
-                case 1 -> "\"\\/".charAt(random.nextInt(3));
-                case 2 -> (char) (0x20 + random.nextInt(0x5f));
-                case 3 -> (char) (0xa0 + random.nextInt(0x2000));
-                case 4 -> "😀";
-                default -> (char) ('a' + random.nextInt(26));
-                });
-            }
-
-            final String text = chars.toString();
-            final String body = transferred(text, 0, text.length());
-            final JsonParserEx parser = JsonEx.createParser(new ByteArrayInputStream(("[\"" + body + "\"]").getBytes(UTF_8)));
-
-            assertEquals(Event.START_ARRAY, parser.next());
-            assertEquals(Event.VALUE_STRING, parser.next());
-            assertEquals(text, parser.getString(), "round " + round);
-            assertEquals(body.getBytes(UTF_8).length, view.transferLength(0, text.length()));
-        }
     }
 
     private String transferred(
