@@ -2085,7 +2085,28 @@ public final class MqttClientFactory implements MqttStreamFactory
                 }
             }
 
-            return subscriber != null ? subscriber : subscribeStreams.get(qos);
+            if (subscriber == null && !subscribesShared(topic, subscriptionId))
+            {
+                subscriber = subscribeStreams.get(qos);
+            }
+
+            return subscriber;
+        }
+
+        private boolean subscribesShared(
+            String topic,
+            int subscriptionId)
+        {
+            boolean subscribes = false;
+
+            for (Subscription subscription : sessionStream.subscriptions)
+            {
+                subscribes |= subscription.shared() &&
+                    topicMatches(subscription.pattern(), topic) &&
+                    (subscriptionId == 0 || subscription.id == subscriptionId);
+            }
+
+            return subscribes;
         }
 
         private void onDecodeDisconnect(
