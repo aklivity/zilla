@@ -3801,8 +3801,12 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final int packetId = client.nextPacketId();
-            client.doEncodeUnsubscribe(traceId, authorization, subscriptions, packetId);
+            if (!subscriptions.isEmpty())
+            {
+                final int packetId = client.nextPacketId();
+                client.doEncodeUnsubscribe(traceId, authorization, subscriptions, packetId);
+            }
+
             doSubscribeEnd(traceId, authorization);
 
             if (sharedFilter != null)
