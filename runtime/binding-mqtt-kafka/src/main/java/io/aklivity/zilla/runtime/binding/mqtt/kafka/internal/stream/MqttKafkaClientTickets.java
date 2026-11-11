@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.agrona.collections.IntArrayList;
+
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MqttKafkaClientTickets
@@ -27,6 +29,7 @@ final class MqttKafkaClientTickets
     private final MqttKafkaTickets codec;
     private final Consumer<MqttKafkaTicket> onLoadedTicket;
     private final Runnable onWritten;
+    private final IntArrayList recoverable;
 
     private List<MqttKafkaTicket> tickets;
     private List<Runnable> loading;
@@ -45,6 +48,7 @@ final class MqttKafkaClientTickets
         this.codec = codec;
         this.onLoadedTicket = onLoadedTicket;
         this.onWritten = onWritten;
+        this.recoverable = new IntArrayList();
         this.loading = new ArrayList<>();
         store.get(key, (k, value) -> onLoaded(value));
     }
@@ -86,23 +90,32 @@ final class MqttKafkaClientTickets
         return found;
     }
 
-    List<MqttKafkaTicket> subscribed(
+    List<MqttKafkaTicket> recover(
         String shareName,
         String filter)
     {
-        final List<MqttKafkaTicket> subscribed = new ArrayList<>();
+        final List<MqttKafkaTicket> recovered = new ArrayList<>();
 
-        for (int i = 0; ready() && i < tickets.size(); i++)
+        for (int i = 0; ready() && i < recoverable.size(); )
         {
-            final MqttKafkaTicket ticket = tickets.get(i);
+            final MqttKafkaTicket ticket = find(recoverable.getInt(i));
 
-            if (ticket.subscribed(shareName, filter))
+            if (ticket == null || ticket.subscribed(shareName, filter))
             {
-                subscribed.add(ticket);
+                recoverable.removeAt(i);
+
+                if (ticket != null)
+                {
+                    recovered.add(ticket);
+                }
+            }
+            else
+            {
+                i++;
             }
         }
 
-        return subscribed;
+        return recovered;
     }
 
     void add(
@@ -166,7 +179,11 @@ final class MqttKafkaClientTickets
 
         if (tickets != null)
         {
-            tickets.forEach(onLoadedTicket);
+            tickets.forEach(t ->
+            {
+                onLoadedTicket.accept(t);
+                recoverable.addInt(t.packetId);
+            });
         }
 
         continuations.forEach(Runnable::run);
