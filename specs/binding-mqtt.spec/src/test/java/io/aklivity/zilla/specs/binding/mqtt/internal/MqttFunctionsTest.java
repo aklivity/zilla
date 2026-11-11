@@ -552,6 +552,69 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeDataExWithDeferred()
+    {
+        final byte[] array = MqttFunctions.dataEx()
+            .typeId(0)
+            .subscribe()
+            .deferred(100)
+            .topic("sensor/one")
+            .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(100, mqttDataEx.subscribe().deferred());
+        assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtensionWithDeferred() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .deferred(100)
+                .topic("sensor/one")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.deferred(100);
+                s.topic("sensor/one");
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchSubscribeDataExtensionWithDifferentDeferred() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .deferred(100)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s -> s.deferred(0))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldMatchSubscribeDataExtensionWithBytes() throws Exception
     {
         BytesMatcher matcher = MqttFunctions.matchDataEx()
