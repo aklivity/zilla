@@ -154,6 +154,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final TlsEventContext event;
 
     private final int decodeMax;
+    private final int encodeMax;
     private final int handshakeMax;
     private final long handshakeTimeoutMillis;
 
@@ -187,6 +188,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.replyPadAdjust = Math.max(context.bufferPool().slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
         this.decodeMax = decodePool.slotCapacity();
+        this.encodeMax = encodePool.slotCapacity();
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
@@ -2026,7 +2028,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 {
                     doAppReset(traceId);
                 }
-                else if (replySeq > replyAck + replyMax)
+                else if (replySeq > replyAck + Math.min(replyMax, encodeMax))
                 {
                     cleanupApp(traceId);
                     doNetAbort(traceId);
@@ -2058,7 +2060,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert replyAck <= replySeq;
 
-                if (replySeq > replyAck + replyMax)
+                if (replySeq > replyAck + Math.min(replyMax, encodeMax))
                 {
                     cleanupApp(traceId);
                     doNetAbort(traceId);
@@ -2367,7 +2369,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 state = StreamState.openReply(state);
 
                 final int replyPad = TlsServer.this.replyPad + replyPadAdjust;
-                doWindow(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId,
+                doWindow(app, originId, routedId, replyId, replySeq, replyAck, state, Math.min(replyMax, encodeMax), traceId,
                          authorization, replyBudgetId, replyPad);
             }
 
