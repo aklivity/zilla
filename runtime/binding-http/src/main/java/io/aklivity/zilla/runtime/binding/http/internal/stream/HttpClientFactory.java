@@ -3098,11 +3098,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             encoder.onNetworkWindow(this, traceId, authorization, budgetId, acknowledge, maximum, padding);
         }
 
-        private boolean reached()
-        {
-            return StreamState.replyOpened(state) || StreamState.replyClosed(state);
-        }
-
         private void flushNetworkIfBuffered(
             long traceId,
             long authorization,
@@ -5677,7 +5672,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            if (circuitId != 0L && client.reached())
+            if (circuitId != 0L && (StreamState.replyOpened(client.state) || StreamState.replyClosed(client.state)))
             {
                 onCircuitOutcome(traceId, beginEx.headers());
             }
