@@ -5050,18 +5050,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void onReasoningText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (length > 0)
+            if (to > from)
             {
                 if (!blockOpen)
                 {
                     openBlock(null, null);
                 }
 
-                dataChunk(buffer, offset, length);
+                dataChunk(chars, from, to);
             }
         }
 
@@ -5104,17 +5104,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (server.streaming)
             {
-                dataChunk(buffer, offset, length);
+                dataChunk(chars, from, to);
             }
             else
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
         }
 
@@ -5820,6 +5820,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             dataChunkStart();
 
             generator.writeSegment(payload, offset, length);
+            dataChunkEnd();
+        }
+
+        private void dataChunk(
+            CharSequence chars,
+            int from,
+            int to)
+        {
+            dataChunkStart();
+
+            generator.writeSegment(chars, from, to);
             dataChunkEnd();
         }
 
