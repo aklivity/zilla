@@ -116,6 +116,13 @@ public final class HttpRouteConfig
     boolean matches(
         Function<String, String> headerByName)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(headerByName));
+        boolean matches = when.isEmpty();
+
+        for (int index = 0; !matches && index < when.size(); index++)
+        {
+            matches = when.get(index).matches(headerByName);
+        }
+
+        return matches;
     }
 }

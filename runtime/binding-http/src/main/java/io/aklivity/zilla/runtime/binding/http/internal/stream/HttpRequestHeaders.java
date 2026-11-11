@@ -44,6 +44,7 @@ final class HttpRequestHeaders extends AbstractMap<String, String>
     private int[] nameLengths = new int[INITIAL_CAPACITY];
     private int[] valueOffsets = new int[INITIAL_CAPACITY];
     private int[] valueLengths = new int[INITIAL_CAPACITY];
+    private String[] values = new String[INITIAL_CAPACITY];
     private int[] slots = new int[INITIAL_CAPACITY * 2];
     private int count;
 
@@ -51,6 +52,7 @@ final class HttpRequestHeaders extends AbstractMap<String, String>
         Array32FW<HttpHeaderFW> headers)
     {
         this.buffer = headers.buffer();
+        Arrays.fill(values, 0, count, null);
         this.count = 0;
         headers.forEach(indexer);
     }
@@ -108,9 +110,18 @@ final class HttpRequestHeaders extends AbstractMap<String, String>
     {
         final int header = key instanceof String name ? lastIndexOf(name) : -1;
 
-        return header != -1
-            ? buffer.getStringWithoutLengthUtf8(valueOffsets[header], valueLengths[header])
-            : null;
+        String value = null;
+        if (header != -1)
+        {
+            value = values[header];
+            if (value == null)
+            {
+                value = buffer.getStringWithoutLengthUtf8(valueOffsets[header], valueLengths[header]);
+                values[header] = value;
+            }
+        }
+
+        return value;
     }
 
     @Override
@@ -136,6 +147,7 @@ final class HttpRequestHeaders extends AbstractMap<String, String>
             nameLengths = Arrays.copyOf(nameLengths, capacity);
             valueOffsets = Arrays.copyOf(valueOffsets, capacity);
             valueLengths = Arrays.copyOf(valueLengths, capacity);
+            values = Arrays.copyOf(values, capacity);
         }
 
         nameOffsets[count] = header.name().offset() + header.name().fieldSizeLength();
