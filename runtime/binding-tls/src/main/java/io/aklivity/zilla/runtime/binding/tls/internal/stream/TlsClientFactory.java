@@ -137,6 +137,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final TlsEventContext event;
 
     private final int decodeMax;
+    private final int encodeMax;
     private final int handshakeMax;
     private final long handshakeTimeoutMillis;
     private final boolean proactiveReplyBegin;
@@ -169,6 +170,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.decodeMax = decodePool.slotCapacity();
+        this.encodeMax = encodePool.slotCapacity();
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.initialPadAdjust = Math.max(context.bufferPool().slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
@@ -1033,7 +1035,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (initialSeq > initialAck + client.initialMax)
+            if (initialSeq > initialAck + Math.min(client.initialMax, encodeMax))
             {
                 cleanupApp(traceId);
                 client.doNetAbort(traceId);
@@ -1060,7 +1062,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (initialSeq > initialAck + client.initialMax)
+            if (initialSeq > initialAck + Math.min(client.initialMax, encodeMax))
             {
                 cleanupApp(traceId);
                 client.doNetAbort(traceId);
@@ -1283,8 +1285,8 @@ public final class TlsClientFactory implements TlsStreamFactory
             state = StreamState.openInitial(state);
 
             final int initialPad = client.initialPad + initialPadAdjust;
-            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, state, client.initialMax, traceId,
-                     initialAuth, budgetId, initialPad);
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, state,
+                     Math.min(client.initialMax, encodeMax), traceId, initialAuth, budgetId, initialPad);
         }
 
         private void flushAppWindow(
