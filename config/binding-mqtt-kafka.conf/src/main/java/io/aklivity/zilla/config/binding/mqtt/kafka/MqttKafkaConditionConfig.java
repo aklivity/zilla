@@ -23,7 +23,6 @@ public class MqttKafkaConditionConfig extends ConditionConfig
 {
     public final List<MqttKafkaSubscribeConfig> subscribes;
     public final List<String> publishes;
-    public final MqttKafkaConditionKind kind;
 
     public static MqttKafkaConditionConfigBuilder<MqttKafkaConditionConfig> builder()
     {
@@ -42,7 +41,11 @@ public class MqttKafkaConditionConfig extends ConditionConfig
     {
         this.subscribes = subscribes;
         this.publishes = publishes;
-        this.kind = !subscribes.isEmpty() ? MqttKafkaConditionKind.SUBSCRIBE
-            : !publishes.isEmpty() ? MqttKafkaConditionKind.PUBLISH : null;
+    }
+
+    public MqttKafkaConditionKind kind()
+    {
+        return !subscribes.isEmpty() ? MqttKafkaConditionKind.SUBSCRIBE :
+            !publishes.isEmpty() ? MqttKafkaConditionKind.PUBLISH : null;
     }
 }

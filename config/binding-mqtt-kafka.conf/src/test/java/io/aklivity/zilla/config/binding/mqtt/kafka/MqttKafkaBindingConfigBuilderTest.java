@@ -69,7 +69,7 @@ public class MqttKafkaBindingConfigBuilderTest
 
         ConditionConfig condition = route.when.get(0);
         assertThat(condition, instanceOf(MqttKafkaConditionConfig.class));
-        assertThat(((MqttKafkaConditionConfig) condition).kind, equalTo(PUBLISH));
+        assertThat(((MqttKafkaConditionConfig) condition).kind(), equalTo(PUBLISH));
         assertThat(((MqttKafkaConditionConfig) condition).publishes, equalTo(List.of("test")));
 
         assertThat(route.with, instanceOf(MqttKafkaWithConfig.class));
@@ -101,7 +101,7 @@ public class MqttKafkaBindingConfigBuilderTest
             .build();
 
         MqttKafkaConditionConfig condition = (MqttKafkaConditionConfig) binding.routes.get(0).when.get(0);
-        assertThat(condition.kind, equalTo(SUBSCRIBE));
+        assertThat(condition.kind(), equalTo(SUBSCRIBE));
         assertThat(condition.subscribes, hasSize(2));
         assertThat(condition.subscribes.get(0).topic, equalTo("sensor/one"));
         assertThat(condition.subscribes.get(0).share, equalTo("consumers"));
