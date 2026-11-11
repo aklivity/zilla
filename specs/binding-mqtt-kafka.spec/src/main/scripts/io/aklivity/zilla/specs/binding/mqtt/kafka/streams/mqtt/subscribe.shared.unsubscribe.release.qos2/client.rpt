@@ -36,5 +36,7 @@ write advise zilla:flush ${mqtt:flushEx()
 
 write notify STOPPED
 
+write await RELEASED
+
 write close
 read closed
