@@ -20,6 +20,9 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiMediaFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_PASS_END_OBJECT = 1 << 2;
 
     private final String container;
     private final String dataMember;
@@ -112,8 +115,8 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
 
         if (mediaType != null)
         {
-            emit(JsonEvent.KEY_NAME, "mimeType");
-            emit(JsonEvent.VALUE_STRING, mediaType);
+            emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "mimeType");
+            emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, mediaType);
         }
 
         return status;
@@ -123,7 +126,7 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

@@ -19,6 +19,10 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesMediaFromCanonical extends LlmToolTransform
 {
+    private static final int BIT_EMIT_KEY_NAME = 1 << 0;
+    private static final int BIT_EMIT_VALUE_STRING = 1 << 1;
+    private static final int BIT_PASS_END_OBJECT = 1 << 2;
+
 
     private final String part;
     private final String container;
@@ -76,8 +80,8 @@ final class LlmOpenaiResponsesMediaFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, part);
+        emit(BIT_EMIT_KEY_NAME, JsonEvent.KEY_NAME, "type");
+        emit(BIT_EMIT_VALUE_STRING, JsonEvent.VALUE_STRING, part);
     }
 
     @Override
@@ -86,7 +90,7 @@ final class LlmOpenaiResponsesMediaFromCanonical extends LlmToolTransform
     {
         if (depth == 1)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;

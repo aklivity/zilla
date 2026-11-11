@@ -20,6 +20,12 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final int BIT_SCHEMA_KEY = 1 << 0;
+    private static final int BIT_SCHEMA_START = 1 << 1;
+    private static final int BIT_SCHEMA_TYPE_KEY = 1 << 2;
+    private static final int BIT_SCHEMA_TYPE_VALUE = 1 << 3;
+    private static final int BIT_SCHEMA_END = 1 << 4;
+    private static final int BIT_END_OBJECT = 1 << 5;
 
     private final LlmCacheBreakpoint breakpoints;
 
@@ -119,16 +125,16 @@ final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
         {
             if (!parametrized)
             {
-                emit(JsonEvent.KEY_NAME, "input_schema");
-                emit(JsonEvent.START_OBJECT);
-                emit(JsonEvent.KEY_NAME, "type");
-                emit(JsonEvent.VALUE_STRING, "object");
-                emit(JsonEvent.END_OBJECT);
+                emit(BIT_SCHEMA_KEY, JsonEvent.KEY_NAME, "input_schema");
+                emit(BIT_SCHEMA_START, JsonEvent.START_OBJECT);
+                emit(BIT_SCHEMA_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+                emit(BIT_SCHEMA_TYPE_VALUE, JsonEvent.VALUE_STRING, "object");
+                emit(BIT_SCHEMA_END, JsonEvent.END_OBJECT);
             }
         }
         else if (named)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
         }
         else
         {

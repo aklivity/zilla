@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiTextFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
 
     LlmGeminiTextFromCanonical(
         boolean sameDialect)
@@ -44,7 +45,7 @@ final class LlmGeminiTextFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

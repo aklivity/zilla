@@ -430,6 +430,87 @@ public class LlmGeminiControlToCanonicalTest
     }
 
     @Test
+    public void shouldSplitConsecutiveToolConfigResidueAroundLiftedChoice()
+    {
+        assertTransforms(transform,
+            json("{'toolConfig':{'a':1,'b':[2],'functionCallingConfig':{'mode':'ANY'},'c':{'d':3},'e':4}}"),
+            json("{'x:tool_choice':'required','gemini:toolConfig':{'a':1,'b':[2],'c':{'d':3},'e':4}}"));
+    }
+
+    @Test
+    public void shouldKeepConsecutiveToolConfigMembersAroundUnliftedCallingConfig()
+    {
+        assertTransforms(transform,
+            json("{'toolConfig':{'a':1,'functionCallingConfig':{'mode':'VALIDATED'},'b':2}}"),
+            json("{'gemini:toolConfig':{'a':1,'functionCallingConfig':{'mode':'VALIDATED'},'b':2}}"));
+    }
+
+    @Test
+    public void shouldKeepConsecutiveResponseFormatMembersInOneResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'a':1,'b':2}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'a':1,'b':2}}}"));
+    }
+
+    @Test
+    public void shouldKeepConsecutiveTextMembersInOneResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'text/plain','other':1,'more':2}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'text':{'mimeType':'text/plain','other':1,'more':2}}}}"));
+    }
+
+    @Test
+    public void shouldKeepTextAfterResidueFormatMemberAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'a':1,'text':{'mimeType':'APPLICATION_JSON'}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'a':1,'text':{'mimeType':'APPLICATION_JSON'}}}}"));
+    }
+
+    @Test
+    public void shouldKeepMimeTypeAfterResidueTextMemberAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'other':1,'mimeType':'APPLICATION_JSON','more':2}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'text':{'other':1,'mimeType':'APPLICATION_JSON','more':2}}}}"));
+    }
+
+    @Test
+    public void shouldLiftConsecutiveThinkingMembers()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':'LOW','thinkingBudget':5}}"),
+            json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':5}"));
+    }
+
+    @Test
+    public void shouldReopenThinkingResidueForCapturedMemberAfterLifted()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':'LOW','thinkingBudget':-1,'thinkingLevel':'bogus'}}"),
+            json("{'x:reasoning_effort':'low','gemini:thinkingConfig':{'thinkingBudget':-1,'thinkingLevel':'bogus'}}"));
+    }
+
+    @Test
+    public void shouldSplitThinkingResidueAroundEveryLiftedMember()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'a':1,'thinkingLevel':'LOW','b':2,'thinkingBudget':5,'c':3}}"),
+            json("{'gemini:thinkingConfig':{'a':1},'x:reasoning_effort':'low','gemini:thinkingConfig':{'b':2}," +
+                "'x:thinking_budget_tokens':5,'gemini:thinkingConfig':{'c':3}}"));
+    }
+
+    @Test
+    public void shouldReopenThinkingResidueForPassedMemberAfterLifted()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingBudget':0,'a':1,'b':2}}"),
+            json("{'x:reasoning_effort':'none','gemini:thinkingConfig':{'a':1,'b':2}}"));
+    }
+
+    @Test
     public void shouldPromoteServiceTier()
     {
         assertTransforms(transform,

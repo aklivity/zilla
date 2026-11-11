@@ -22,6 +22,11 @@ final class LlmCitationsEnabled
     static final String SHARED_MEMBER = "x:citations";
 
     private static final String ENABLED = "enabled";
+    private static final int BIT_MEMBER_KEY = 1 << 11;
+    private static final int BIT_OBJECT_START = 1 << 12;
+    private static final int BIT_ENABLED_KEY = 1 << 13;
+    private static final int BIT_ENABLED_VALUE = 1 << 14;
+    private static final int BIT_OBJECT_END = 1 << 15;
 
     static boolean enabled(
         LlmCapturedValue value)
@@ -36,18 +41,12 @@ final class LlmCitationsEnabled
         LlmCapturedValue value,
         String member)
     {
-        final boolean enabled = enabled(value);
-
-        if (enabled)
-        {
-            transform.emit(JsonEvent.KEY_NAME, member);
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, ENABLED);
-            transform.emit(JsonEvent.VALUE_TRUE);
-            transform.emit(JsonEvent.END_OBJECT);
-        }
-
-        return enabled;
+        return !enabled(value) ||
+            transform.emit(BIT_MEMBER_KEY, JsonEvent.KEY_NAME, member) &&
+            transform.emit(BIT_OBJECT_START, JsonEvent.START_OBJECT) &&
+            transform.emit(BIT_ENABLED_KEY, JsonEvent.KEY_NAME, ENABLED) &&
+            transform.emit(BIT_ENABLED_VALUE, JsonEvent.VALUE_TRUE) &&
+            transform.emit(BIT_OBJECT_END, JsonEvent.END_OBJECT);
     }
 
     private LlmCitationsEnabled()

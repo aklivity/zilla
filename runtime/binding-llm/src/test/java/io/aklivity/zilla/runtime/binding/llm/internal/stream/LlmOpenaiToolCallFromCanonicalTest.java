@@ -97,6 +97,17 @@ public class LlmOpenaiToolCallFromCanonicalTest
     }
 
     @Test
+    public void shouldWriteNameBeforeMemberAfterArgumentsWhenNameKnownLate()
+    {
+        final String arguments = json("{'text':'" + HUGE + "'}");
+
+        assertTransforms(transform, id, name,
+            "{\"arguments\":" + arguments + ",\"openai/ccs:note\":\"n\"}",
+            json("{'id':'call_1','type':'function','function':{'arguments':") + quote(arguments) +
+                json(",'name':'get_weather'},'note':'n'}"));
+    }
+
+    @Test
     public void shouldWriteIdAndNameAfterArgumentsWhenKnownLate()
     {
         final String arguments = json("{'text':'" + HUGE + "'}");

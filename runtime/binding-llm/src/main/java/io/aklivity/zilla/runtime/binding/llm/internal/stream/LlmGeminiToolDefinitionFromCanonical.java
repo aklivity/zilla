@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiToolDefinitionFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final int BIT_PASS_END_OBJECT = 1 << 0;
 
     private boolean named;
 
@@ -94,7 +95,7 @@ final class LlmGeminiToolDefinitionFromCanonical extends LlmToolTransform
         {
             if (named)
             {
-                pass(JsonEvent.END_OBJECT);
+                pass(BIT_PASS_END_OBJECT, JsonEvent.END_OBJECT);
             }
             else
             {

@@ -50,10 +50,10 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
     protected abstract boolean formatText();
 
-    protected abstract void openFormat(
+    protected abstract boolean openFormat(
         int kind);
 
-    protected abstract void closeFormat();
+    protected abstract boolean closeFormat();
 
     protected abstract int schemaMember(
         CharSequence key);
@@ -119,16 +119,18 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
         if (depth == 2)
         {
+            boolean closed = true;
+
             if (format == FORMAT_UNSET)
             {
                 status = rejected(RESPONSE_FORMAT);
             }
             else if (format != FORMAT_OMITTED)
             {
-                closeFormat();
+                closed = closeFormat();
             }
 
-            format = FORMAT_OFF;
+            format = closed ? FORMAT_OFF : format;
         }
 
         return status;
@@ -160,10 +162,9 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
             {
                 format = FORMAT_OMITTED;
             }
-            else
+            else if (openFormat(kind))
             {
                 format = kind;
-                openFormat(kind);
             }
         }
         else

@@ -20,6 +20,16 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_ID_KEY = 1 << 2;
+    private static final int BIT_ID_VALUE = 1 << 3;
+    private static final int BIT_NAME_KEY = 1 << 4;
+    private static final int BIT_NAME_VALUE = 1 << 5;
+    private static final int BIT_INPUT_KEY = 1 << 6;
+    private static final int BIT_INPUT_START = 1 << 7;
+    private static final int BIT_INPUT_END = 1 << 8;
+    private static final int BIT_END_OBJECT = 1 << 9;
 
     private final String type;
     private final LlmCacheBreakpoint breakpoints;
@@ -100,19 +110,19 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         toolCallId = attribute("tool-call-id");
         toolName = attribute("tool-name");
 
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, type);
+        emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type");
+        emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, type);
 
         if (toolCallId != null)
         {
-            emit(JsonEvent.KEY_NAME, "id");
-            emit(JsonEvent.VALUE_STRING, toolCallId);
+            emit(BIT_ID_KEY, JsonEvent.KEY_NAME, "id");
+            emit(BIT_ID_VALUE, JsonEvent.VALUE_STRING, toolCallId);
         }
 
         if (toolName != null)
         {
-            emit(JsonEvent.KEY_NAME, "name");
-            emit(JsonEvent.VALUE_STRING, toolName);
+            emit(BIT_NAME_KEY, JsonEvent.KEY_NAME, "name");
+            emit(BIT_NAME_VALUE, JsonEvent.VALUE_STRING, toolName);
         }
     }
 
@@ -120,13 +130,12 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (!argumented)
+        if (!argumented &&
+            emit(BIT_INPUT_KEY, JsonEvent.KEY_NAME, "input") &&
+            emit(BIT_INPUT_START, JsonEvent.START_OBJECT) &&
+            emit(BIT_INPUT_END, JsonEvent.END_OBJECT))
         {
             argumented = true;
-
-            emit(JsonEvent.KEY_NAME, "input");
-            emit(JsonEvent.START_OBJECT);
-            emit(JsonEvent.END_OBJECT);
         }
 
         return Status.ADVANCED;
@@ -139,31 +148,18 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 
         if (opened)
         {
-            if (toolCallId == null)
+            final String lateId = toolCallId == null ? attribute("tool-call-id") : null;
+            final String lateName = toolName == null ? attribute("tool-name") : null;
+            final boolean identified = (lateId == null ||
+                    emit(BIT_ID_KEY, JsonEvent.KEY_NAME, "id") &&
+                    emit(BIT_ID_VALUE, JsonEvent.VALUE_STRING, lateId)) &&
+                (lateName == null ||
+                    emit(BIT_NAME_KEY, JsonEvent.KEY_NAME, "name") &&
+                    emit(BIT_NAME_VALUE, JsonEvent.VALUE_STRING, lateName));
+
+            if (identified && (toolCallId != null || lateId != null) && (toolName != null || lateName != null) &&
+                emit(BIT_END_OBJECT, JsonEvent.END_OBJECT))
             {
-                toolCallId = attribute("tool-call-id");
-
-                if (toolCallId != null)
-                {
-                    emit(JsonEvent.KEY_NAME, "id");
-                    emit(JsonEvent.VALUE_STRING, toolCallId);
-                }
-            }
-
-            if (toolName == null)
-            {
-                toolName = attribute("tool-name");
-
-                if (toolName != null)
-                {
-                    emit(JsonEvent.KEY_NAME, "name");
-                    emit(JsonEvent.VALUE_STRING, toolName);
-                }
-            }
-
-            if (toolCallId != null && toolName != null)
-            {
-                emit(JsonEvent.END_OBJECT);
                 status = Status.ADVANCED;
             }
         }

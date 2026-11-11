@@ -22,6 +22,11 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     private static final String DIALECT = "anthropic";
     private static final String TYPE_THINKING = "thinking";
     private static final String TYPE_REDACTED = "redacted_thinking";
+    private static final int BIT_TYPE_KEY = 1 << 0;
+    private static final int BIT_TYPE_VALUE = 1 << 1;
+    private static final int BIT_SIGNATURE_KEY = 1 << 2;
+    private static final int BIT_SIGNATURE_VALUE = 1 << 3;
+    private static final int BIT_END_OBJECT = 1 << 4;
 
     private final boolean unsigned;
 
@@ -109,11 +114,11 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
         {
             if (unsigned && !signed && TYPE_THINKING.equals(type))
             {
-                emit(JsonEvent.KEY_NAME, "signature");
-                emit(JsonEvent.VALUE_STRING, "");
+                emit(BIT_SIGNATURE_KEY, JsonEvent.KEY_NAME, "signature");
+                emit(BIT_SIGNATURE_VALUE, JsonEvent.VALUE_STRING, "");
             }
 
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END_OBJECT, JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
 
@@ -123,10 +128,9 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     private void emitType(
         String blockType)
     {
-        if (type == null)
+        if (type == null && emit(BIT_TYPE_KEY, JsonEvent.KEY_NAME, "type") &&
+            emit(BIT_TYPE_VALUE, JsonEvent.VALUE_STRING, blockType))
         {
-            emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, blockType);
             type = blockType;
         }
     }
