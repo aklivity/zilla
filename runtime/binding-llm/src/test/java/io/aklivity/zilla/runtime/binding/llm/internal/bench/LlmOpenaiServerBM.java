@@ -57,10 +57,10 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 
 /**
- * Drives an {@code llm} openai server through the real engine, in front of a mock provider that replays a
- * pre-built response. Each {@code exchange} operation is one whole request: the HTTP-shaped request is sent
- * and the response is received to its end. Each {@code leave} operation opens one request, sends it
- * completely and leaves it in flight while the provider withholds the response.
+ * Drives an {@code llm} server through the real engine, in the dialect given by {@code dialect}, in front of a
+ * mock provider that replays a pre-built response. Each {@code exchange} operation is one whole request: the
+ * HTTP-shaped request is sent and the response is received to its end. Each {@code leave} operation opens one
+ * request, sends it completely and leaves it in flight while the provider withholds the response.
  * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does
@@ -118,7 +118,7 @@ public class LlmOpenaiServerBM
         @Param({"text", "toolCall"})
         public String request;
 
-        @Param({"auto", "chat"})
+        @Param({"auto", "chat", "responses", "anthropic", "gemini"})
         public String dialect;
 
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
@@ -145,9 +145,9 @@ public class LlmOpenaiServerBM
                 .directory("target/zilla-bench")
                 .external("app0")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .start("auto".equals(dialect) ? CONFIGURATION_AUTO : CONFIGURATION_CHAT);
+                .start("chat".equals(dialect) ? CONFIGURATION_CHAT : CONFIGURATION_AUTO);
 
-            beginEx = httpBeginEx(bench.labelId("http"));
+            beginEx = httpBeginEx(bench.labelId("http"), path());
             requestBody = new UnsafeBufferEx(requestBody(text).getBytes(UTF_8));
             netId = bench.bindingId("net0");
 
@@ -173,10 +173,60 @@ public class LlmOpenaiServerBM
             return client;
         }
 
+        private String path()
+        {
+            final String path;
+
+            switch (dialect)
+            {
+            case "responses":
+                path = "/v1/responses";
+                break;
+            case "anthropic":
+                path = "/v1/messages";
+                break;
+            case "gemini":
+                path = streaming ? "/v1beta/models/gemini-2.0-flash:streamGenerateContent" :
+                    "/v1beta/models/gemini-2.0-flash:generateContent";
+                break;
+            default:
+                path = "/v1/chat/completions";
+                break;
+            }
+
+            return path;
+        }
+
         private String requestBody(
             String text)
         {
             final String stream = streaming ? "\"stream\":true," : "";
+
+            if ("responses".equals(dialect))
+            {
+                return "toolCall".equals(request)
+                    ? String.format("{\"model\":\"gpt-4\",%s\"input\":[{\"type\":\"function_call\",\"call_id\":\"call_1\"," +
+                        "\"name\":\"lookup\",\"arguments\":\"{\\\"query\\\":\\\"%s\\\"}\"}]}", stream, text)
+                    : String.format("{\"model\":\"gpt-4\",%s\"input\":[{\"role\":\"user\",\"content\":\"%s\"}]}", stream, text);
+            }
+
+            if ("anthropic".equals(dialect))
+            {
+                return "toolCall".equals(request)
+                    ? String.format("{\"model\":\"claude-sonnet\",\"max_tokens\":1024,%s\"messages\":[{\"role\":\"assistant\"," +
+                        "\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"lookup\"," +
+                        "\"input\":{\"query\":\"%s\"}}]}]}", stream, text)
+                    : String.format("{\"model\":\"claude-sonnet\",\"max_tokens\":1024,%s\"messages\":[{\"role\":\"user\"," +
+                        "\"content\":\"%s\"}]}", stream, text);
+            }
+
+            if ("gemini".equals(dialect))
+            {
+                return "toolCall".equals(request)
+                    ? String.format("{\"contents\":[{\"role\":\"model\",\"parts\":[{\"functionCall\":{\"name\":\"lookup\"," +
+                        "\"args\":{\"query\":\"%s\"}}}]}]}", text)
+                    : String.format("{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"%s\"}]}]}", text);
+            }
 
             if ("toolCall".equals(request))
             {
@@ -234,7 +284,8 @@ public class LlmOpenaiServerBM
         }
 
         private static UnsafeBufferEx httpBeginEx(
-            int httpTypeId)
+            int httpTypeId,
+            String path)
         {
             final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
 
@@ -243,7 +294,7 @@ public class LlmOpenaiServerBM
                 .headersItem(h -> h.name(":method").value("POST"))
                 .headersItem(h -> h.name(":scheme").value("http"))
                 .headersItem(h -> h.name(":authority").value("example.com:8080"))
-                .headersItem(h -> h.name(":path").value("/v1/chat/completions"))
+                .headersItem(h -> h.name(":path").value(path))
                 .headersItem(h -> h.name("content-type").value("application/json"))
                 .build();
 
