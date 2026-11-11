@@ -57,9 +57,11 @@ public class MqttKafkaConditionConfigAdapterTest
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topics, not(nullValue()));
-        assertThat(condition.topics.size(), equalTo(1));
-        assertThat(condition.topics.get(0), equalTo("test"));
+        assertThat(condition.kind, equalTo(MqttKafkaConditionKind.SUBSCRIBE));
+        assertThat(condition.subscribes, not(nullValue()));
+        assertThat(condition.subscribes.size(), equalTo(1));
+        assertThat(condition.subscribes.get(0).topic, equalTo("test"));
+        assertThat(condition.subscribes.get(0).share, nullValue());
     }
 
     @Test
@@ -78,17 +80,19 @@ public class MqttKafkaConditionConfigAdapterTest
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topics, not(nullValue()));
-        assertThat(condition.topics.size(), equalTo(1));
-        assertThat(condition.topics.get(0), equalTo("test"));
+        assertThat(condition.kind, equalTo(MqttKafkaConditionKind.PUBLISH));
+        assertThat(condition.publishes, not(nullValue()));
+        assertThat(condition.publishes.size(), equalTo(1));
+        assertThat(condition.publishes.get(0), equalTo("test"));
     }
 
     @Test
     public void shouldWriteSubscribeCondition()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("test")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("test")
+                .build()
             .build();
 
         String text = jsonb.toJson(condition);
@@ -109,8 +113,7 @@ public class MqttKafkaConditionConfigAdapterTest
     public void shouldWritePublishCondition()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("test")
-            .kind(MqttKafkaConditionKind.PUBLISH)
+            .publish("test")
             .build();
 
         String text = jsonb.toJson(condition);
@@ -147,20 +150,24 @@ public class MqttKafkaConditionConfigAdapterTest
         MqttKafkaConditionConfig condition = jsonb.fromJson(text, MqttKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.topics.size(), equalTo(2));
-        assertThat(condition.topics.get(0), equalTo("one"));
-        assertThat(condition.shares.get(0), equalTo("consumers"));
-        assertThat(condition.topics.get(1), equalTo("two"));
-        assertThat(condition.shares.get(1), nullValue());
+        assertThat(condition.subscribes.size(), equalTo(2));
+        assertThat(condition.subscribes.get(0).topic, equalTo("one"));
+        assertThat(condition.subscribes.get(0).share, equalTo("consumers"));
+        assertThat(condition.subscribes.get(1).topic, equalTo("two"));
+        assertThat(condition.subscribes.get(1).share, nullValue());
     }
 
     @Test
     public void shouldWriteSubscribeConditionWithShare()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("one", "consumers")
-            .topic("two")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("two")
+                .build()
             .build();
 
         String text = jsonb.toJson(condition);

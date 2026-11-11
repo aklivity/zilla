@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcherTest
 {
@@ -29,8 +28,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchSimpleConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic/name")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic/name")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -49,8 +49,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchSimpleConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic/name")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic/name")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -64,8 +65,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchSimpleConditions2()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -84,8 +86,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchSimpleConditions2()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -99,8 +102,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchWildcardConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("device/#")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("device/#")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -116,8 +120,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchWildcardConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("device/#")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("device/#")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -130,8 +135,10 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchShareExact()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "consumers")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -145,8 +152,10 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchShareConditionWhenNotShared()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "consumers")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -157,9 +166,14 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchShareWildcard()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "*")
-            .topic("sensor/two", "group-*")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("*")
+                .build()
+            .subscribe()
+                .topic("sensor/two")
+                .share("group-*")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -173,8 +187,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchSharedAndNonSharedWhenShareOmitted()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -186,8 +201,10 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchTopicIgnoringShare()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "consumers")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -198,9 +215,13 @@ public class MqttKafkaConditionMatcherTest
     public void shouldPairEachTopicWithItsShare()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "consumers")
-            .topic("device/#")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("device/#")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -214,9 +235,14 @@ public class MqttKafkaConditionMatcherTest
     public void shouldResolveParameterOfMatchedShareTopic()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("sensor/one", "consumers")
-            .topic("device/{id}", "consumers")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("device/{id}")
+                .share("consumers")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
