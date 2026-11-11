@@ -61,6 +61,8 @@ write ${mqtt:session()
               .build()}
 write flush
 
+read await STREAM_RESET
+
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
