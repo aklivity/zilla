@@ -1177,6 +1177,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightThenRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent/server"})
     public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
