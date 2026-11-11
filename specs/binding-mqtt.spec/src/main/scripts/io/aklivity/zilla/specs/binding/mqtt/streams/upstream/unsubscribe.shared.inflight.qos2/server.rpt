@@ -56,16 +56,6 @@ write [0x34 0x1a]                       # PUBLISH, qos = 2
       [0x01 0x01]                       # format = utf-8
       "message"                         # payload
 
-read  [0xa2 0x20]                       # UNSUBSCRIBE
-      [0x00 0x02]                       # packet id = 2
-      [0x00]                            # properties = none
-      [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
-
-write [0xb0 0x04]                       # UNSUBACK
-      [0x00 0x02]                       # packet id = 2
-      [0x00]                            # properties = none
-      [0x00]                            # unsubscribe = success
-
 read  [0x50 0x04]                       # PUBREC
       [0x00 0x01]                       # packet id = 1
       [0x00]                            # reason code
@@ -79,6 +69,16 @@ read  [0x70 0x04]                       # PUBCOMP
       [0x00 0x01]                       # packet id = 1
       [0x00]                            # reason code
       [0x00]                            # properties
+
+read  [0xa2 0x20]                       # UNSUBSCRIBE
+      [0x00 0x02]                       # packet id = 2
+      [0x00]                            # properties = none
+      [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
+
+write [0xb0 0x04]                       # UNSUBACK
+      [0x00 0x02]                       # packet id = 2
+      [0x00]                            # properties = none
+      [0x00]                            # unsubscribe = success
 
 read  [0xe0 0x02]                       # DISCONNECT
       [0x00]                            # reason code
