@@ -180,4 +180,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.before.suback.stream.abort.before.begin/client",
+        "${app}/unsubscribe.before.suback.stream.abort.before.begin/server"})
+    public void shouldUnsubscribeBeforeSubackWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }
