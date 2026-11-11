@@ -65,6 +65,7 @@ read advised zilla:flush ${mqtt:flushEx()
                             .build()}
 
 read abort
+read notify SHARE_ABORTED
 
 accept "zilla://streams/mqtt0"
         option zilla:window 8192
