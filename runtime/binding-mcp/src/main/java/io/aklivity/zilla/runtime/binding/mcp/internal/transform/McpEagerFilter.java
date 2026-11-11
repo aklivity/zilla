@@ -27,6 +27,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * Partitions items in a JSON-RPC list response into eager (copied through verbatim) and cold, per an
@@ -384,6 +386,8 @@ public final class McpEagerFilter implements JsonTransform
 
     private static final class KeySource implements JsonSource
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private CharSequence key;
 
         private KeySource with(
@@ -400,9 +404,9 @@ public final class McpEagerFilter implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return key;
+            return decoded.wrap(key);
         }
 
         @Override

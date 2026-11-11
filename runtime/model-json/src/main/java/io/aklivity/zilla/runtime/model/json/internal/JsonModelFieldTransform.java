@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
@@ -506,6 +508,8 @@ final class JsonModelFieldTransform implements JsonTransform
     // only the remainder through getStringView() rather than offering the whole text again from the start.
     private static class TextSource implements JsonSource, JsonController
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private CharSequence text;
         private int progress;
 
@@ -535,9 +539,9 @@ final class JsonModelFieldTransform implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return text.subSequence(progress, text.length());
+            return decoded.wrap(text.subSequence(progress, text.length()));
         }
 
         @Override

@@ -1413,6 +1413,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class ParserSource implements JsonSource
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private JsonParser parser;
         // non-null only when the delegate offers the zero-alloc char view; else getStringView falls back
         private JsonParserEx parserEx;
@@ -1432,9 +1434,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return parserEx != null ? parserEx.getStringView() : parser.getString();
+            return parserEx != null ? parserEx.getStringView() : decoded.wrap(parser.getString());
         }
 
         @Override
@@ -2214,6 +2216,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class TokenCursor implements JsonSource
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private Token token;
 
         @Override
@@ -2223,9 +2227,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return token.text;
+            return decoded.wrap(token.text);
         }
 
         @Override
@@ -2668,6 +2672,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // getStringView() — is unaffected either way)
         private final class KeySource implements JsonSource
         {
+            private final DecodedStringView decoded = new DecodedStringView();
+
             private JsonSource delegate;
 
             private KeySource wrap(
@@ -2684,9 +2690,9 @@ public final class JsonSchemaImpl implements JsonSchema
             }
 
             @Override
-            public CharSequence getStringView()
+            public CharSequenceEx getStringView()
             {
-                return keyCapture;
+                return decoded.wrap(keyCapture);
             }
 
             @Override

@@ -29,6 +29,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 public final class McpSchemeInjector implements JsonTransform
 {
@@ -351,6 +353,8 @@ public final class McpSchemeInjector implements JsonTransform
 
     private static final class TextSource implements JsonSource
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private CharSequence text;
 
         private TextSource with(
@@ -367,9 +371,9 @@ public final class McpSchemeInjector implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return text;
+            return decoded.wrap(text);
         }
 
         @Override

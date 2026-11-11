@@ -27,6 +27,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * Wraps a {@code tools/call} success response's {@code structuredContent} value into the full
@@ -362,6 +364,8 @@ public final class McpHttpToolResult implements JsonTransform
     // left off instead of re-presenting the whole value from the start.
     private static final class Resumable implements JsonSource
     {
+        private final DecodedStringView decoded = new DecodedStringView();
+
         private CharSequence value;
         private int offset;
 
@@ -386,9 +390,9 @@ public final class McpHttpToolResult implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
-            return value.subSequence(offset, value.length());
+            return decoded.wrap(value.subSequence(offset, value.length()));
         }
 
         @Override

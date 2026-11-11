@@ -28,6 +28,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.DecodedStringView;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
@@ -239,6 +241,8 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         // the synthesized view fed to the downstream sink in place of the original string value
         private static final class Substitute implements JsonSource, JsonController
         {
+            private final DecodedStringView decoded = new DecodedStringView();
+
             private JsonEvent event;
             private String content;
             private int progress;
@@ -270,9 +274,9 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
             }
 
             @Override
-            public CharSequence getStringView()
+            public CharSequenceEx getStringView()
             {
-                return content.subSequence(progress, content.length());
+                return decoded.wrap(content.subSequence(progress, content.length()));
             }
 
             @Override
