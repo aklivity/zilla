@@ -555,6 +555,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.resubscribe.identical/client",
+        "${net}/subscribe.resubscribe.identical/server"})
+    public void shouldSubscribeResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.identical/client",
+        "${net}/subscribe.shared.resubscribe.identical/server"})
+    public void shouldSubscribeSharedResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.reject.shared.subscription.name.empty/client",
         "${net}/subscribe.reject.shared.subscription.name.empty/server"})
     public void shouldSubscribeRejectSharedSubscriptionNameEmpty() throws Exception

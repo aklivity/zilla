@@ -471,6 +471,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.resubscribe.identical/client",
+        "${app}/subscribe.resubscribe.identical/server"})
+    public void shouldSubscribeResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.resubscribe.identical/client",
+        "${app}/subscribe.shared.resubscribe.identical/server"})
+    public void shouldSubscribeSharedResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.unroutable.shared.subscription/client",
         "${app}/subscribe.unroutable.shared.subscription/server"})
     public void shouldSubscribeUnroutableSharedSubscription() throws Exception
