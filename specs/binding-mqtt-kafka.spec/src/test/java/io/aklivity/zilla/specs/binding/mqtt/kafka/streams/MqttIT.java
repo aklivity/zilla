@@ -573,6 +573,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.expiry.zero/client",
+        "${mqtt}/session.close.expiry.zero/server"})
+    public void shouldSessionCloseExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception

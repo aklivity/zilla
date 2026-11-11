@@ -704,6 +704,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expiry.zero/client",
+        "${kafka}/session.close.expiry.zero/server"})
+    public void shouldSessionCloseExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.expire.session.state/client",
         "${kafka}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
