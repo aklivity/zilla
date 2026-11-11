@@ -36,5 +36,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                 .build()
                             .build()}
 
+read notify RELEASED
+
 read closed
 write close
