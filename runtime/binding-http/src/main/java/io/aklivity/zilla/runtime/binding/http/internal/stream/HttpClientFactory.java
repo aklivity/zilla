@@ -2343,8 +2343,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else if (queuedRequestLength <= client.availableSlotSize())
             {
-                final HttpPromise promise = client.promises.stream().filter(p -> p.matches(beginEx.headers()))
-                        .findFirst().orElse(null);
+                HttpPromise promise = null;
+                for (int index = 0; promise == null && index < client.promises.size(); index++)
+                {
+                    final HttpPromise candidate = client.promises.get(index);
+                    if (candidate.matches(beginEx.headers()))
+                    {
+                        promise = candidate;
+                    }
+                }
 
                 final long originId = begin.originId();
                 final long routedId = begin.routedId();
@@ -2415,10 +2422,14 @@ public final class HttpClientFactory implements HttpStreamFactory
             String scheme,
             String authority)
         {
-            HttpClient client = clients.stream()
-                .filter(c -> c.canServe(scheme, authority) && c.available(versions))
-                .findFirst()
-                .orElse(null);
+            HttpClient client = null;
+            for (HttpClient candidate : clients)
+            {
+                if (client == null && candidate.canServe(scheme, authority) && candidate.available(versions))
+                {
+                    client = candidate;
+                }
+            }
 
             if (client == null && countConnections(scheme, authority) < maximumConnectionsPerOrigin)
             {
@@ -2430,10 +2441,13 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (client == null)
             {
-                client = clients.stream()
-                    .filter(c -> c.canServe(scheme, authority) && c.reusable())
-                    .findFirst()
-                    .orElse(null);
+                for (HttpClient candidate : clients)
+                {
+                    if (client == null && candidate.canServe(scheme, authority) && candidate.reusable())
+                    {
+                        client = candidate;
+                    }
+                }
             }
 
             return client;
@@ -2449,9 +2463,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             String scheme,
             String authority)
         {
-            return clients.stream()
-                .filter(c -> c.canServe(scheme, authority))
-                .count();
+            long count = 0L;
+            for (HttpClient candidate : clients)
+            {
+                if (candidate.canServe(scheme, authority))
+                {
+                    count++;
+                }
+            }
+            return count;
         }
 
         private void onCreated(

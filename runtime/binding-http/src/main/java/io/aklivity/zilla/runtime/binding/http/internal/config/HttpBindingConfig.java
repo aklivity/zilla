@@ -121,10 +121,18 @@ public final class HttpBindingConfig
         long authorization,
         Function<String, String> headerByName)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization, headerByName) && r.matches(headerByName))
-            .findFirst()
-            .orElse(null);
+        HttpRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final HttpRouteConfig route = routes.get(index);
+            if (route.authorized(authorization, headerByName) && route.matches(headerByName))
+            {
+                resolved = route;
+            }
+        }
+
+        return resolved;
     }
 
     public SortedSet<HttpVersion>  versions()
