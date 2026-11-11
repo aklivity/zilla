@@ -6548,6 +6548,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             else
                             {
                                 openSubscribeStreams(0, traceId, authorization, sessionSubscriptions, true);
+                                session.setSubscriptions(sessionSubscriptions);
                                 sessionPresent = true;
                             }
                         }
