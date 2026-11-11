@@ -1211,6 +1211,8 @@ public final class TlsClientFactory implements TlsStreamFactory
                                                       })
                                                       .build()
                                                       .sizeof()));
+
+            client.extension = null;
         }
 
         private void doAppData(

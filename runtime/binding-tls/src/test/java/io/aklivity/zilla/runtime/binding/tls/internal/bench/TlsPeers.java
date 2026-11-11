@@ -38,6 +38,12 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyAddressProtocol;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 /**
  * Builds the in-memory TLS endpoints that sit opposite the binding under test, from the same key material the
  * binding spec configurations use: the {@code localhost} key chain signed by {@code serverca}. Session caches are
@@ -80,6 +86,26 @@ final class TlsPeers
         engine.setUseClientMode(false);
         engine.setEnabledProtocols(new String[] { version });
         return engine;
+    }
+
+    static DirectBufferEx proxyInetBeginEx(
+        int proxyTypeId)
+    {
+        final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+
+        final ProxyBeginExFW proxyBeginEx = new ProxyBeginExFW.Builder().wrap(buffer, 0, buffer.capacity())
+            .typeId(proxyTypeId)
+            .address(a -> a.inet(i -> i.protocol(p -> p.set(ProxyAddressProtocol.STREAM))
+                                       .source("192.168.0.1")
+                                       .destination("192.168.0.2")
+                                       .sourcePort(443)
+                                       .destinationPort(49152)))
+            .build();
+
+        final byte[] encoded = new byte[proxyBeginEx.sizeof()];
+        buffer.getBytes(0, encoded);
+
+        return new UnsafeBufferEx(encoded);
     }
 
     private static SSLContext context(
