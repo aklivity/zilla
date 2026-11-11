@@ -60,12 +60,12 @@ write [0xa2 0x20]                       # UNSUBSCRIBE
       [0x00]                            # properties = none
       [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
 
+write await STREAM_RESET
+
 read  [0xb0 0x04]                       # UNSUBACK
       [0x00 0x02]                       # packet id = 2
       [0x00]                            # properties = none
       [0x00]                            # unsubscribe = success
-
-write await STREAM_RESET
 
 write [0xc0 0x00]                       # PINGREQ
 
