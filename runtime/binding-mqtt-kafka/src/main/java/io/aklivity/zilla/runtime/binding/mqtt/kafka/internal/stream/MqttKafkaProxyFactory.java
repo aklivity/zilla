@@ -40,6 +40,7 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
     private final int mqttTypeId;
     private final Int2ObjectHashMap<MqttKafkaStreamFactory> factories;
     private final Long2ObjectHashMap<MqttKafkaBindingConfig> bindings;
+    private final EngineContext context;
 
     public MqttKafkaProxyFactory(
         MqttKafkaConfiguration config,
@@ -66,13 +67,14 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.factories = factories;
         this.bindings = bindings;
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding);
+        MqttKafkaBindingConfig kafkaBinding = new MqttKafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
 
         factories.values().forEach(streamFactory -> streamFactory.onAttached(binding.id));
