@@ -61,6 +61,20 @@ write ${mqtt:session()
                .build()}
 write flush
 
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
+read ${mqtt:session()
+               .build()}
+
+write ${mqtt:session()
+               .build()}
+write flush
+
 rejected zilla:reset.ext ${mqtt:resetEx()
                                 .typeId(zilla:id("mqtt"))
                                 .reasonCode(135)
