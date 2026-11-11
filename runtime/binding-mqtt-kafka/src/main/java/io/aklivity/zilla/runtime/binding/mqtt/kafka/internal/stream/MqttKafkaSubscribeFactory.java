@@ -114,10 +114,11 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
-public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
+public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKafkaSharedClients
 {
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
+    private static final String SHARE_REGISTRY = "registry";
     private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
     private static final String MQTT_MULTI_LEVEL_WILDCARD = "#";
     private static final String MQTT_PARENT_LEVEL_WILDCARD_SUFFIX = "/#";
@@ -130,7 +131,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final String16FW EMPTY_STRING = new String16FW("");
     private static final int OFFSET_METADATA_VERSION = 2;
     private static final int MQTT_REASON_CODE_ERROR = 0x80;
-    private static final String SHARE_EPOCH = "0";
     private static final int SHARED_FRAME_FIXED_SIZE = 13;
     private static final int DUP_FLAG = 1 << DUP.ordinal();
 
@@ -202,6 +202,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     //TODO: rename
     private final Map<String, ClientHighWaterMarks> highWaterMarksByClient;
     private final MqttKafkaTickets ticketCodec;
+    private final MqttKafkaMemberships membershipCodec;
     private final Object2IntHashMap<String> qosLevels;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
@@ -243,6 +244,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.qosNames = new Int2ObjectHashMap<>();
         this.highWaterMarksByClient = new HashMap<>();
         this.ticketCodec = new MqttKafkaTickets();
+        this.membershipCodec = new MqttKafkaMemberships();
         this.qosLevels = new Object2IntHashMap<>(-1);
         this.qosLevels.put("0", 0);
         this.qosLevels.put("1", 1);
@@ -2695,6 +2697,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             shared.subscriptionId = (int) filter.subscriptionId();
             clientHighWaterMarks = attachSharedStream(mqttSubscribeBeginEx.clientId());
             attachTickets(clientHighWaterMarks, store);
+            attachMemberships(clientHighWaterMarks, store);
 
             clientHighWaterMarks.tickets.awaitLoaded(() ->
                 onTicketsLoaded(traceId, authorization, affinity, shareName, pattern));
@@ -2711,13 +2714,38 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             {
                 if (clientHighWaterMarks.tickets.ready())
                 {
-                    shared.recoverable.addAll(clientHighWaterMarks.tickets.recover(shareName, pattern));
-                    shared.doKafkaBegin(traceId, authorization, affinity, shareName, pattern);
+                    clientHighWaterMarks.memberships.join(shareName, pattern,
+                        epoch -> onSharedJoined(traceId, authorization, affinity, shareName, pattern, epoch),
+                        () -> onSharedRefused(traceId));
                 }
                 else
                 {
                     doMqttReset(traceId, EMPTY_OCTETS);
                 }
+            }
+        }
+
+        private void onSharedJoined(
+            long traceId,
+            long authorization,
+            long affinity,
+            String shareName,
+            String pattern,
+            long epoch)
+        {
+            if (!StreamState.initialClosed(state) && !StreamState.replyClosed(state))
+            {
+                shared.recoverable.addAll(clientHighWaterMarks.tickets.recover(shareName, pattern));
+                shared.doKafkaBegin(traceId, authorization, affinity, shareName, pattern, epoch);
+            }
+        }
+
+        private void onSharedRefused(
+            long traceId)
+        {
+            if (!StreamState.initialClosed(state) && !StreamState.replyClosed(state))
+            {
+                doMqttReset(traceId, EMPTY_OCTETS);
             }
         }
 
@@ -3566,7 +3594,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long authorization,
             long affinity,
             String shareName,
-            String pattern)
+            String pattern,
+            long epoch)
         {
             if (!StreamState.initialOpening(state))
             {
@@ -3577,7 +3606,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                 kafka = newKafkaShareStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
                     initialMax, traceId, authorization, affinity, topic,
-                    shareGroupId(shareName, pattern), pattern);
+                    shareGroupId(shareName, pattern, epoch), pattern);
             }
         }
 
@@ -4352,15 +4381,26 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
     private String shareGroupId(
         String shareName,
-        String pattern)
+        String pattern,
+        long epoch)
     {
-        final String encodedFilter = Base64.getUrlEncoder().withoutPadding().encodeToString(pattern.getBytes(UTF_8));
-        return String.format("%s:share:%s:%s:%s", groupIdPrefix, shareName, encodedFilter, shareEpoch());
+        return shareKey(shareName, pattern, Long.toString(epoch));
     }
 
-    private String shareEpoch()
+    private String shareRegistryKey(
+        String shareName,
+        String pattern)
     {
-        return SHARE_EPOCH;
+        return shareKey(shareName, pattern, SHARE_REGISTRY);
+    }
+
+    private String shareKey(
+        String shareName,
+        String pattern,
+        String suffix)
+    {
+        final String encodedFilter = Base64.getUrlEncoder().withoutPadding().encodeToString(pattern.getBytes(UTF_8));
+        return String.format("%s:share:%s:%s:%s", groupIdPrefix, shareName, encodedFilter, suffix);
     }
 
     private static boolean isShared(
@@ -4907,14 +4947,29 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    void discardTickets(
+    @Override
+    public void reconcile(
+        String clientId,
+        StoreHandler store,
+        List<MqttKafkaMembership> subscribed)
+    {
+        final ClientHighWaterMarks packetIds = supplyClientMarks(clientId);
+
+        attachMemberships(packetIds, store);
+        packetIds.memberships.reconcile(subscribed);
+    }
+
+    @Override
+    public void discard(
         String clientId,
         StoreHandler store)
     {
         final ClientHighWaterMarks marks = supplyClientMarks(clientId);
 
         attachTickets(marks, store);
+        attachMemberships(marks, store);
         marks.tickets.discard(t -> marks.inflight.release(t.packetId));
+        marks.memberships.discard();
         marks.tickets.awaitLoaded(() -> removeClient(marks));
     }
 
@@ -4943,6 +4998,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 String.format("%s:tickets:%s", groupIdPrefix, marks.clientId), ticketCodec,
                 t -> marks.inflight.reserve(t.packetId, new PartitionOffset(0L, t.partitionId, t.partitionOffset)),
                 () -> removeClient(marks));
+        }
+    }
+
+    private void attachMemberships(
+        ClientHighWaterMarks marks,
+        StoreHandler store)
+    {
+        if (marks.memberships == null)
+        {
+            marks.memberships = new MqttKafkaClientMemberships(store,
+                String.format("%s:memberships:%s", groupIdPrefix, marks.clientId), membershipCodec,
+                new MqttKafkaRegistry(store), this::shareRegistryKey, () -> removeClient(marks));
         }
     }
 
@@ -5084,6 +5151,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         final MqttKafkaPacketIds<PartitionOffset> inflight;
 
         private MqttKafkaClientTickets tickets;
+        private MqttKafkaClientMemberships memberships;
         private int sharedStreams;
 
         ClientHighWaterMarks(
@@ -5097,7 +5165,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private boolean unused()
         {
-            return streams.isEmpty() && sharedStreams == 0 && (tickets == null || tickets.idle());
+            return streams.isEmpty() && sharedStreams == 0 &&
+                (tickets == null || tickets.idle()) &&
+                (memberships == null || memberships.idle());
         }
     }
 
