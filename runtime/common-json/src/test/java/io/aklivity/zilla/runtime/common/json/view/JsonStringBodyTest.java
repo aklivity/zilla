@@ -70,8 +70,8 @@ public class JsonStringBodyTest
     {
         decoded.wrap("a😀b");
 
-        assertThrows(IllegalArgumentException.class, () -> body.length(decoded, 0, 2));
-        assertThrows(IllegalArgumentException.class, () -> body.length(decoded, 2, 4));
+        assertThrows(AssertionError.class, () -> body.length(decoded, 0, 2));
+        assertThrows(AssertionError.class, () -> body.length(decoded, 2, 4));
     }
 
     @Test

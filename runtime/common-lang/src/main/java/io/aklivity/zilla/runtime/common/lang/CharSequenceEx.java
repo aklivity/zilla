@@ -28,7 +28,8 @@ import java.lang.foreign.MemorySegment;
  * <p>
  * A char index addresses a position in the chars, and every index handed to {@link #transferLength(int, int)}
  * and {@link #transferTo(int, int, TransferTarget)} must fall between two units of the transfer. A unit is one
- * char, except where the bytes spell a code point with more than one char, which cannot be split.
+ * char, except where the bytes spell a code point with more than one char, which cannot be split. A caller is
+ * responsible for this, and an implementation checks it only with assertions enabled.
  */
 public interface CharSequenceEx extends CharSequence
 {
@@ -42,7 +43,6 @@ public interface CharSequenceEx extends CharSequence
      * @return the number of bytes in the transfer
      *
      * @throws IndexOutOfBoundsException  if the range is not within this sequence
-     * @throws IllegalArgumentException   if an index falls inside a unit of the transfer
      */
     int transferLength(
         int fromChar,
@@ -59,7 +59,6 @@ public interface CharSequenceEx extends CharSequence
      * @return the number of bytes transferred, which is {@link #transferLength(int, int)}
      *
      * @throws IndexOutOfBoundsException  if the range is not within this sequence
-     * @throws IllegalArgumentException   if an index falls inside a unit of the transfer
      */
     int transferTo(
         int fromChar,

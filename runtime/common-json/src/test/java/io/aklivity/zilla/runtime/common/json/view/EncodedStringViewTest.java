@@ -210,8 +210,8 @@ class EncodedStringViewTest
 
         assertEquals(5, transfer(view, 0, 3, dst, 0));
         assertEquals(1, transfer(view, 3, 4, dst, 5));
-        assertThrows(IllegalArgumentException.class, () -> transfer(view, 0, 2, dst, 0));
-        assertThrows(IllegalArgumentException.class, () -> transfer(view, 2, 4, dst, 0));
+        assertThrows(AssertionError.class, () -> transfer(view, 0, 2, dst, 0));
+        assertThrows(AssertionError.class, () -> transfer(view, 2, 4, dst, 0));
     }
 
     @Test

@@ -311,10 +311,7 @@ public interface JsonStringView extends CharSequenceEx
 
                         if (size == 4 && index + 1 == charIndex)
                         {
-                            if (strict)
-                            {
-                                throw new IllegalArgumentException("char " + charIndex + " is inside a four-byte sequence");
-                            }
+                            assert !strict : "char " + charIndex + " is inside a four-byte sequence";
 
                             index = charIndex;
                         }
@@ -671,10 +668,7 @@ public interface JsonStringView extends CharSequenceEx
                 decodeNext();
             }
 
-            if (pending != 0 || unitIndex < unitCount)
-            {
-                throw new IllegalArgumentException("index inside a character: " + charIndex);
-            }
+            assert pending == 0 && unitIndex == unitCount : "index inside a character: " + charIndex;
 
             return cursorChar == 0 ? offset : position;
         }
@@ -941,13 +935,17 @@ public interface JsonStringView extends CharSequenceEx
                 throw new IndexOutOfBoundsException(fromChar + ", " + toChar);
             }
 
-            if (fromChar > 0 && fromChar < chars.length() &&
+            assert !splitsPair(fromChar, toChar) : "index inside a surrogate pair: " + fromChar + ", " + toChar;
+        }
+
+        private boolean splitsPair(
+            int fromChar,
+            int toChar)
+        {
+            return fromChar > 0 && fromChar < chars.length() &&
                 Character.isLowSurrogate(chars.charAt(fromChar)) && Character.isHighSurrogate(chars.charAt(fromChar - 1)) ||
                 toChar > 0 && toChar < chars.length() &&
-                Character.isHighSurrogate(chars.charAt(toChar - 1)) && Character.isLowSurrogate(chars.charAt(toChar)))
-            {
-                throw new IllegalArgumentException("index inside a surrogate pair: " + fromChar + ", " + toChar);
-            }
+                Character.isHighSurrogate(chars.charAt(toChar - 1)) && Character.isLowSurrogate(chars.charAt(toChar));
         }
 
         private boolean isPair(

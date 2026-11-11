@@ -222,10 +222,7 @@ final class Utf8StringView implements StringView
                 decodeNext();
             }
 
-            if (pending != 0)
-            {
-                throw new IllegalArgumentException("index inside a character: " + charIndex);
-            }
+            assert pending == 0 : "index inside a character: " + charIndex;
 
             boundary = cursorChar == 0 ? offset : position;
         }

@@ -95,8 +95,8 @@ public class DecodedStringViewTest
     {
         view.wrap("a😀b");
 
-        assertThrows(IllegalArgumentException.class, () -> view.transferLength(0, 2));
-        assertThrows(IllegalArgumentException.class, () -> view.transferLength(2, 4));
+        assertThrows(AssertionError.class, () -> view.transferLength(0, 2));
+        assertThrows(AssertionError.class, () -> view.transferLength(2, 4));
     }
 
     private String transferred(

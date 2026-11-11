@@ -123,13 +123,18 @@ public final class JsonStringBody
             throw new IndexOutOfBoundsException(fromChar + ", " + toChar);
         }
 
-        if (fromChar > 0 && fromChar < chars.length() &&
+        assert !splitsPair(chars, fromChar, toChar) : "index inside a surrogate pair: " + fromChar + ", " + toChar;
+    }
+
+    private static boolean splitsPair(
+        CharSequence chars,
+        int fromChar,
+        int toChar)
+    {
+        return fromChar > 0 && fromChar < chars.length() &&
             Character.isLowSurrogate(chars.charAt(fromChar)) && Character.isHighSurrogate(chars.charAt(fromChar - 1)) ||
             toChar > 0 && toChar < chars.length() &&
-            Character.isHighSurrogate(chars.charAt(toChar - 1)) && Character.isLowSurrogate(chars.charAt(toChar)))
-        {
-            throw new IllegalArgumentException("index inside a surrogate pair: " + fromChar + ", " + toChar);
-        }
+            Character.isHighSurrogate(chars.charAt(toChar - 1)) && Character.isLowSurrogate(chars.charAt(toChar));
     }
 
     private static boolean isPair(

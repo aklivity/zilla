@@ -142,8 +142,8 @@ public class StringViewTest
     {
         wrap("a😀b");
 
-        assertThrows(IllegalArgumentException.class, () -> view.transferLength(0, 2));
-        assertThrows(IllegalArgumentException.class, () -> view.transferTo(2, 3, target));
+        assertThrows(AssertionError.class, () -> view.transferLength(0, 2));
+        assertThrows(AssertionError.class, () -> view.transferTo(2, 3, target));
     }
 
     @Test
