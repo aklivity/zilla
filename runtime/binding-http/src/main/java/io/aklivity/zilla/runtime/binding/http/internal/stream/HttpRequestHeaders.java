@@ -180,7 +180,7 @@ final class HttpRequestHeaders extends AbstractMap<String, String>
     {
         final String decoded = buffer.getStringWithoutLengthUtf8(nameOffsets[header], nameLengths[header]);
 
-        return decoded.toLowerCase().equals(name);
+        return decoded.equals(name);
     }
 
     private boolean sameName(
