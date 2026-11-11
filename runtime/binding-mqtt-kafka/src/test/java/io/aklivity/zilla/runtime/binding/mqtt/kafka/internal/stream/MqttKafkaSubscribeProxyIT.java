@@ -957,6 +957,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.beyond.end/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentBeyondEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.store.shared.qos2.recover.then.receive.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
