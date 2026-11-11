@@ -57,6 +57,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     private static final int BIT_PASS_END_STREAM_OPTIONS = 1 << 11;
     private static final int BIT_PASS_END_OBJECT = 1 << 12;
     private static final int BIT_EMIT_VALUE_NULL = 1 << 13;
+    private static final int BIT_TOOL_CHOICE_VALUE = 1 << 14;
 
     private final boolean members;
     private final LlmToolChoice choice;
@@ -113,6 +114,12 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     int budget()
     {
         return budget;
+    }
+
+    @Override
+    protected boolean resumable()
+    {
+        return true;
     }
 
     @Override
@@ -290,8 +297,10 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         }
         else if (choice.parseCanonical(value))
         {
-            emit(BIT_TOOL_CHOICE_KEY, JsonEvent.KEY_NAME, TOOL_CHOICE);
-            choice.emitResponses(this);
+            if (emit(BIT_TOOL_CHOICE_KEY, JsonEvent.KEY_NAME, TOOL_CHOICE))
+            {
+                choice.emitResponses(this, BIT_TOOL_CHOICE_VALUE);
+            }
         }
         else
         {
