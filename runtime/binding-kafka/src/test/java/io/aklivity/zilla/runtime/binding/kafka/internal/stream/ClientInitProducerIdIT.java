@@ -57,4 +57,14 @@ public class ClientInitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id/client",
+        "${net}/produce.new.id.coordinator.load.in.progress/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorLoadInProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }
