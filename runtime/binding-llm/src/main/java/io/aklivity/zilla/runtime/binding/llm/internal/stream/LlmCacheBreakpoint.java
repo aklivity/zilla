@@ -26,6 +26,15 @@ final class LlmCacheBreakpoint
     static final String NATIVE_TYPE = "type";
     static final String NATIVE_EPHEMERAL = "ephemeral";
 
+    // top of the subclass bit range, clear of the bits a calling transform uses for its own emits
+    private static final int BIT_MEMBER_KEY = 1 << 11;
+    private static final int BIT_OBJECT_START = 1 << 12;
+    private static final int BIT_MODE_KEY = 1 << 13;
+    private static final int BIT_MODE_VALUE = 1 << 14;
+    private static final int BIT_TTL_KEY = 1 << 15;
+    private static final int BIT_TTL_VALUE = 1 << 16;
+    private static final int BIT_OBJECT_END = 1 << 17;
+
     private static final int NOT_A_DURATION = -1;
     private static final int DURATION_DIGITS_MAX = 9;
     private static final int SECONDS_PER_MINUTE = 60;
@@ -55,15 +64,11 @@ final class LlmCacheBreakpoint
     boolean admit(
         LlmCapturedValue value)
     {
-        final int mode = value.member(0, MODE);
-        final boolean explicit = mode != LlmCapturedValue.ABSENT && value.isString(mode, MODE_EXPLICIT);
-        final boolean admit = explicit && admitted < limit;
+        final boolean admit = permits(value);
 
         if (admit)
         {
-            final int requested = value.member(0, TTL);
-
-            ttl = requested != LlmCapturedValue.ABSENT ? select(value.string(requested), ttls) : null;
+            ttl = selectedTtl(value);
             admitted++;
         }
 
@@ -75,51 +80,75 @@ final class LlmCacheBreakpoint
         return ttl;
     }
 
-    static void toCanonical(
+    static boolean toCanonical(
         LlmToolTransform transform,
         LlmCapturedValue value)
     {
         final int type = value.member(0, NATIVE_TYPE);
+        boolean delivered = true;
 
         if (type != LlmCapturedValue.ABSENT && value.isString(type, NATIVE_EPHEMERAL))
         {
             final int requested = value.member(0, TTL);
             final String ttl = requested != LlmCapturedValue.ABSENT ? value.string(requested) : null;
 
-            transform.emit(JsonEvent.KEY_NAME, MEMBER);
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, MODE);
-            transform.emit(JsonEvent.VALUE_STRING, MODE_EXPLICIT);
-
-            if (ttl != null)
-            {
-                transform.emit(JsonEvent.KEY_NAME, TTL);
-                transform.emit(JsonEvent.VALUE_STRING, ttl);
-            }
-
-            transform.emit(JsonEvent.END_OBJECT);
+            delivered = transform.emit(BIT_MEMBER_KEY, JsonEvent.KEY_NAME, MEMBER) &&
+                transform.emit(BIT_OBJECT_START, JsonEvent.START_OBJECT) &&
+                transform.emit(BIT_MODE_KEY, JsonEvent.KEY_NAME, MODE) &&
+                transform.emit(BIT_MODE_VALUE, JsonEvent.VALUE_STRING, MODE_EXPLICIT) &&
+                (ttl == null ||
+                    transform.emit(BIT_TTL_KEY, JsonEvent.KEY_NAME, TTL) &&
+                    transform.emit(BIT_TTL_VALUE, JsonEvent.VALUE_STRING, ttl)) &&
+                transform.emit(BIT_OBJECT_END, JsonEvent.END_OBJECT);
         }
+
+        return delivered;
     }
 
-    void fromCanonical(
+    boolean fromCanonical(
         LlmToolTransform transform,
         LlmCapturedValue value)
     {
-        if (admit(value))
+        boolean delivered = true;
+
+        if (permits(value))
         {
-            transform.emit(JsonEvent.KEY_NAME, NATIVE_MEMBER);
-            transform.emit(JsonEvent.START_OBJECT);
-            transform.emit(JsonEvent.KEY_NAME, NATIVE_TYPE);
-            transform.emit(JsonEvent.VALUE_STRING, NATIVE_EPHEMERAL);
+            final String selected = selectedTtl(value);
+            final boolean counted = transform.emitted(BIT_OBJECT_END);
 
-            if (ttl != null)
+            delivered = transform.emit(BIT_MEMBER_KEY, JsonEvent.KEY_NAME, NATIVE_MEMBER) &&
+                transform.emit(BIT_OBJECT_START, JsonEvent.START_OBJECT) &&
+                transform.emit(BIT_MODE_KEY, JsonEvent.KEY_NAME, NATIVE_TYPE) &&
+                transform.emit(BIT_MODE_VALUE, JsonEvent.VALUE_STRING, NATIVE_EPHEMERAL) &&
+                (selected == null ||
+                    transform.emit(BIT_TTL_KEY, JsonEvent.KEY_NAME, TTL) &&
+                    transform.emit(BIT_TTL_VALUE, JsonEvent.VALUE_STRING, selected)) &&
+                transform.emit(BIT_OBJECT_END, JsonEvent.END_OBJECT);
+
+            if (delivered && !counted)
             {
-                transform.emit(JsonEvent.KEY_NAME, TTL);
-                transform.emit(JsonEvent.VALUE_STRING, ttl);
+                ttl = selected;
+                admitted++;
             }
-
-            transform.emit(JsonEvent.END_OBJECT);
         }
+
+        return delivered;
+    }
+
+    private boolean permits(
+        LlmCapturedValue value)
+    {
+        final int mode = value.member(0, MODE);
+
+        return mode != LlmCapturedValue.ABSENT && value.isString(mode, MODE_EXPLICIT) && admitted < limit;
+    }
+
+    private String selectedTtl(
+        LlmCapturedValue value)
+    {
+        final int requested = value.member(0, TTL);
+
+        return requested != LlmCapturedValue.ABSENT ? select(value.string(requested), ttls) : null;
     }
 
     static String select(
