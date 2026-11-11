@@ -5979,18 +5979,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 Subscription other = (Subscription) obj;
                 return this.id == other.id && Objects.equals(this.filter, other.filter) &&
-                    this.qos == other.qos && this.flags == other.flags && this.reasonCode == other.reasonCode;
+                    this.qos == other.qos && this.flags == other.flags && this.outcome() == other.outcome();
             }
 
             @Override
             public int hashCode()
             {
-                return Objects.hash(this.id, this.filter, this.qos, this.flags, this.reasonCode);
+                return Objects.hash(this.id, this.filter, this.qos, this.flags, this.outcome());
             }
 
             public int qos()
             {
                 return qos;
+            }
+
+            private int outcome()
+            {
+                return unsubackReasonCode(reasonCode);
             }
 
             public Subscription withCompositeId(
