@@ -69,6 +69,9 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final String[] LEVELS = {"MINIMAL", "LOW", "MEDIUM", "HIGH"};
     private static final String[] EFFORTS = {"minimal", "low", "medium", "high"};
 
+    // One dispatch runs one hook branch, so branches reuse bits by role: the wrapper bits also open the thinking and
+    // tool config residue, captured bits serve every lifted or passed capture, object bits serve the format lift
+    // and the schema lift, end bits close whichever object the branch opened.
     private static final int BIT_RESIDUE_KEY = 1 << 0;
     private static final int BIT_RESIDUE_START = 1 << 1;
     private static final int BIT_FORMAT_KEY = 1 << 2;
