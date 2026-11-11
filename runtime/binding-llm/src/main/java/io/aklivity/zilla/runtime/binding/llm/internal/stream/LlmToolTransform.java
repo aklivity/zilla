@@ -86,6 +86,7 @@ abstract class LlmToolTransform implements JsonTransform
     private static final int NO_BIT = 0;
     static final int HELD_MAX = 4096;
     private static final int NAMES_CAPACITY = 32;
+    private static final int NAME_LENGTH_MAX = 64;
     private static final String SHARED_DIALECT = "x";
     private static final int SHARED_PREFIX_LENGTH = SHARED_DIALECT.length();
 
@@ -684,7 +685,7 @@ abstract class LlmToolTransform implements JsonTransform
         {
             found = (dialect != null ? dialect + ":" : "") + key.subSequence(from, to);
 
-            if (nameCount < NAMES_CAPACITY)
+            if (nameCount < NAMES_CAPACITY && found.length() <= NAME_LENGTH_MAX)
             {
                 names[nameCount++] = found;
             }
