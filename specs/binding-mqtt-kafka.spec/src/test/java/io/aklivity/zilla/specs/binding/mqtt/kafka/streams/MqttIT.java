@@ -790,6 +790,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.receive.message.qos1.multiple.clients/client",
+        "${mqtt}/subscribe.receive.message.qos1.multiple.clients/server"})
+    public void shouldReceiveMessageQoS1FromMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/client",
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception

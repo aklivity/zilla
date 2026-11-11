@@ -990,6 +990,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.message.qos1.multiple.clients/client",
+        "${kafka}/subscribe.receive.message.qos1.multiple.clients/server"})
+    public void shouldReceiveMessageQoS1FromMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.qos1.published.qos2/client",
         "${kafka}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
