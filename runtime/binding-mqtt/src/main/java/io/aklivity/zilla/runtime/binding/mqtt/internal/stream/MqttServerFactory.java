@@ -7671,18 +7671,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 int reserved)
             {
-                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, sessionId, 0L, reserved,
-                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                        .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder ->
-                            subscribeBuilder.filters(builder ->
-                                subscriptions.forEach(subscription -> builder.item(subscription::asTopicFilter))))
-                        .build()
-                        .sizeof()));
+                if (!StreamState.initialClosed(state))
+                {
+                    doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                        traceId, sessionId, 0L, reserved,
+                        ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                            .typeId(mqttTypeId)
+                            .subscribe(subscribeBuilder ->
+                                subscribeBuilder.filters(builder ->
+                                    subscriptions.forEach(subscription -> builder.item(subscription::asTopicFilter))))
+                            .build()
+                            .sizeof()));
 
-                initialSeq += reserved;
-                assert initialSeq <= initialAck + initialMax;
+                    initialSeq += reserved;
+                    assert initialSeq <= initialAck + initialMax;
+                }
             }
 
             private void doSubscribeFlush(
@@ -7693,20 +7696,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int offsetState,
                 int reasonCode)
             {
-                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, sessionId, 0L, reserved,
-                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                        .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder -> subscribeBuilder
-                            .qos(qos)
-                            .packetId(packetId)
-                            .state(offsetState)
-                            .reasonCode(reasonCode))
-                        .build()
-                        .sizeof()));
+                if (!StreamState.initialClosed(state))
+                {
+                    doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                        traceId, sessionId, 0L, reserved,
+                        ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                            .typeId(mqttTypeId)
+                            .subscribe(subscribeBuilder -> subscribeBuilder
+                                .qos(qos)
+                                .packetId(packetId)
+                                .state(offsetState)
+                                .reasonCode(reasonCode))
+                            .build()
+                            .sizeof()));
 
-                initialSeq += reserved;
-                assert initialSeq <= initialAck + initialMax;
+                    initialSeq += reserved;
+                    assert initialSeq <= initialAck + initialMax;
+                }
             }
 
             private void doSubscribeComplete(
@@ -8008,7 +8014,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void onSubscribeReset(
                 ResetFW reset)
             {
-                setNetClosed();
+                if (!StreamState.initialClosed(state))
+                {
+                    setNetClosed();
+                }
 
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
@@ -8164,8 +8173,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
                 {
+                    setNetClosed();
+
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck,
-                        StreamState.closeInitial(state), initialMax,
+                        state, initialMax,
                         traceId, sessionId, EMPTY_OCTETS);
                 }
             }
