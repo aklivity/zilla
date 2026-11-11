@@ -22,12 +22,6 @@ final class LlmGeminiServerToolFromCanonical extends LlmToolTransform
     private static final int BIT_PASS_END_OBJECT = 1 << 0;
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int member(
         int depth,
         CharSequence key)

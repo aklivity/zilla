@@ -140,6 +140,8 @@ public class LlmSharedMemberTest
 
     private static final class ToShared extends LlmToolTransform
     {
+        private static final int BIT_END = 1 << 0;
+
         @Override
         protected int member(
             int depth,
@@ -159,7 +161,7 @@ public class LlmSharedMemberTest
         protected Status onClose(
             int depth)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END, JsonEvent.END_OBJECT);
 
             return Status.ADVANCED;
         }
@@ -167,6 +169,8 @@ public class LlmSharedMemberTest
 
     private static final class FromShared extends LlmToolTransform
     {
+        private static final int BIT_END = 1 << 0;
+
         FromShared(
             String dialect)
         {
@@ -213,7 +217,7 @@ public class LlmSharedMemberTest
         protected Status onClose(
             int depth)
         {
-            pass(JsonEvent.END_OBJECT);
+            pass(BIT_END, JsonEvent.END_OBJECT);
 
             return Status.ADVANCED;
         }

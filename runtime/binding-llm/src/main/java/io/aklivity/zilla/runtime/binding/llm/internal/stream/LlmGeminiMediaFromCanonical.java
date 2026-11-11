@@ -68,12 +68,6 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int member(
         int depth,
         CharSequence key)

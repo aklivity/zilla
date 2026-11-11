@@ -106,12 +106,6 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         this.choice = new LlmToolChoice();
     }
 
-    @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
     boolean streamSeen()
     {
         return streamSeen;

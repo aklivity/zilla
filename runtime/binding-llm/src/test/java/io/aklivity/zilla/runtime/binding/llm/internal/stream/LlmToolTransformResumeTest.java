@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
@@ -428,7 +427,6 @@ public class LlmToolTransformResumeTest
         assertRejects(
             probe(LlmToolTransform.MODE_OBJECT)
                 .scanned("schema")
-                .resumable(true)
                 .action("schema", LlmToolTransform.PASS_VALUE),
             json("{'schema':{'properties':{'a':{'not':{'type':'string'}}},'type':'object'}}"));
     }
@@ -439,7 +437,6 @@ public class LlmToolTransformResumeTest
         assertRejectsAcrossBounds(
             probe(LlmToolTransform.MODE_OBJECT)
                 .scanned("schema")
-                .resumable(true)
                 .action("schema", LlmToolTransform.PASS_VALUE),
             json("{'schema':{'properties':{'a':{'type':'string'},'b':{'not':{'type':'string'}}},'type':'object'}}"));
     }
@@ -450,24 +447,8 @@ public class LlmToolTransformResumeTest
         assertRejectsAcrossBounds(
             probe(LlmToolTransform.MODE_OBJECT)
                 .scanned("schema")
-                .resumable(true)
                 .action("schema", LlmToolTransform.ESCAPE_OBJECT),
             json("{'schema':{'properties':{'a':{'type':'string'},'b':{'if':{'type':'string'}}},'type':'object'}}"));
-    }
-
-    @Test
-    public void shouldRequireBitToEmitWhenResumable()
-    {
-        final Probe probe = probe(LlmToolTransform.MODE_OBJECT).unbitted().resumable(true);
-        final LlmSectionPipeline pipeline = new LlmSectionPipeline(probe, new UnsafeBufferEx(new byte[RENDER_BOUND]));
-        final byte[] bytes = json("{'a':1}").getBytes(UTF_8);
-
-        pipeline.begin(new LlmSectionAttributes());
-
-        assertThrows(IllegalStateException.class, () ->
-            pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true, (buffer, index, size, done) ->
-            {
-            }));
     }
 
     @Test
@@ -475,7 +456,6 @@ public class LlmToolTransformResumeTest
     {
         assertRejects(
             probe(LlmToolTransform.MODE_OBJECT)
-                .resumable(true)
                 .action("r", LlmToolTransform.REJECT)
                 .action("a", LlmToolTransform.PASS_VALUE),
             json("{'a':1,'r':2}"));
@@ -486,12 +466,10 @@ public class LlmToolTransformResumeTest
     {
         assertRejects(
             probe(LlmToolTransform.MODE_OBJECT)
-                .resumable(true)
                 .action("s", LlmToolTransform.PASS_STRING),
             json("{'s':1}"));
         assertRejects(
             probe(LlmToolTransform.MODE_OBJECT)
-                .resumable(true)
                 .action("d", LlmToolTransform.DESCEND_KEPT),
             json("{'d':1}"));
     }
@@ -534,21 +512,6 @@ public class LlmToolTransformResumeTest
                 "'k3':3,'odd3':true,'between':'b','copy':[3],'end':'e'}"));
     }
 
-    @Test
-    public void shouldRequireResumableToLoop()
-    {
-        final Probe probe = loopProbe().resumable(false);
-        final LlmSectionPipeline pipeline = new LlmSectionPipeline(probe, new UnsafeBufferEx(new byte[RENDER_BOUND]));
-        final byte[] bytes = json("{'c':[1]}").getBytes(UTF_8);
-
-        pipeline.begin(new LlmSectionAttributes());
-
-        assertThrows(IllegalStateException.class, () ->
-            pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true, (buffer, index, size, done) ->
-            {
-            }));
-    }
-
     private static Probe loopProbe()
     {
         return probe(LlmToolTransform.MODE_OBJECT)
@@ -582,8 +545,8 @@ public class LlmToolTransformResumeTest
         String json,
         String literal)
     {
-        assertThat(render(probe.copy().resumable(true), null, json), equalTo(literal));
-        assertTransforms(probe.copy().resumable(true), null, null, json, literal);
+        assertThat(render(probe.copy(), null, json), equalTo(literal));
+        assertTransforms(probe.copy(), null, null, json, literal);
     }
 
     private static void assertResumesAs(
@@ -591,7 +554,7 @@ public class LlmToolTransformResumeTest
         String json,
         String literal)
     {
-        assertThat(render(probe.copy().resumable(false), null, json), equalTo(literal));
+        assertThat(render(probe.copy(), null, json), equalTo(literal));
         assertResumes(probe, null, json);
     }
 
@@ -600,10 +563,10 @@ public class LlmToolTransformResumeTest
         Consumer<LlmSectionAttributes> early,
         String json)
     {
-        final String expected = render(probe.copy().resumable(false), early, json);
+        final String expected = render(probe.copy(), early, json);
 
         assertThat(expected, not(emptyString()));
-        assertTransforms(probe.copy().resumable(true), early, null, json, expected);
+        assertTransforms(probe.copy(), early, null, json, expected);
     }
 
     private static void assertRejectsAcrossBounds(
@@ -677,8 +640,6 @@ public class LlmToolTransformResumeTest
         private final int shape;
         private final int extractDepth;
 
-        private boolean resumable;
-        private boolean unbitted;
         private boolean marking;
         private boolean closing;
         private boolean repeating;
@@ -719,19 +680,6 @@ public class LlmToolTransformResumeTest
         private Probe copy()
         {
             return new Probe(this);
-        }
-
-        private Probe resumable(
-            boolean resumable)
-        {
-            this.resumable = resumable;
-            return this;
-        }
-
-        private Probe unbitted()
-        {
-            this.unbitted = true;
-            return this;
         }
 
         private Probe repeating()
@@ -779,12 +727,6 @@ public class LlmToolTransformResumeTest
         {
             scans.add(key);
             return this;
-        }
-
-        @Override
-        protected boolean resumable()
-        {
-            return resumable;
         }
 
         @Override
@@ -840,11 +782,6 @@ public class LlmToolTransformResumeTest
         @Override
         protected void onOpen()
         {
-            if (unbitted)
-            {
-                emit(JsonEvent.KEY_NAME, "k");
-            }
-
             if (marking)
             {
                 mark(BIT_OPEN_KEY, BIT_OPEN_VALUE, "open", "o");

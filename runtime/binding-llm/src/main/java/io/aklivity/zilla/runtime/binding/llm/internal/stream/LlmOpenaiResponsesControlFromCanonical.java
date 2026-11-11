@@ -117,12 +117,6 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     public void reset()
     {
         super.reset();

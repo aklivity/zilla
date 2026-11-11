@@ -38,12 +38,6 @@ final class LlmOpenaiResponsesToolDefinitionFromCanonical extends LlmToolTransfo
     }
 
     @Override
-    protected boolean resumable()
-    {
-        return true;
-    }
-
-    @Override
     protected int member(
         int depth,
         CharSequence key)
