@@ -554,4 +554,82 @@ public class LlmAnthropicControlToCanonicalTest
             json("{'metadata':null}"),
             json("{'anthropic:metadata':null}"));
     }
+
+    @Test
+    public void shouldKeepConsecutiveToolChoiceResidueMembers()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto','a':1,'b':[2,{'c':'" + LONG + "'}],'d':'x'}}"),
+            json("{'x:tool_choice':'auto','anthropic:tool_choice':{'a':1,'b':[2,{'c':'" + LONG + "'}],'d':'x'}}"));
+    }
+
+    @Test
+    public void shouldKeepToolChoiceResidueAroundType()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'a':1,'type':'tool','name':'f','b':2}}"),
+            json("{'x:tool_choice':{'type':'function','function':{'name':'f'}},'anthropic:tool_choice':{'a':1,'b':2}}"));
+    }
+
+    @Test
+    public void shouldSplitToolChoiceIntoChoiceParallelAndResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'tool','name':'f','disable_parallel_tool_use':true,'cache':{'t':1}}}"),
+            json("{'x:tool_choice':{'type':'function','function':{'name':'f'}},'x:parallel_tool_calls':false," +
+                "'anthropic:tool_choice':{'cache':{'t':1}}}"));
+    }
+
+    @Test
+    public void shouldKeepUntypedToolChoiceMembersAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'a':1,'b':'" + LONG + "'}}"),
+            json("{'anthropic:tool_choice':{'a':1,'b':'" + LONG + "'}}"));
+    }
+
+    @Test
+    public void shouldSplitRepeatedToolChoice()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto','a':1},'tool_choice':{'type':'any','b':2}}"),
+            json("{'x:tool_choice':'auto','anthropic:tool_choice':{'a':1}," +
+                "'x:tool_choice':'required','anthropic:tool_choice':{'b':2}}"));
+    }
+
+    @Test
+    public void shouldKeepEnabledThinkingAfterDisabledAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'disabled','type':'enabled'}}"),
+            json("{'x:reasoning_effort':'none','anthropic:thinking':{'type':'enabled'}}"));
+    }
+
+    @Test
+    public void shouldKeepAdaptiveThinkingAfterOtherMembersAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'display':'omitted','type':'adaptive'}}"),
+            json("{'anthropic:thinking':{'display':'omitted','type':'adaptive'}}"));
+    }
+
+    @Test
+    public void shouldCloseThinkingResidueBeforeBudgetAfterEnabledType()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'display':'omitted','type':'enabled','budget_tokens':5}}"),
+            json("{'anthropic:thinking':{'display':'omitted'},'x:thinking_budget_tokens':5}"));
+    }
+
+    @Test
+    public void shouldTransformEveryControlMemberTogether()
+    {
+        assertTransforms(transform,
+            json("{'stream':true,'tool_choice':{'type':'auto','disable_parallel_tool_use':true,'k':1}," +
+                "'thinking':{'type':'enabled'},'metadata':{'user_id':'u','k':1}," +
+                "'output_config':{'effort':'low','other':true}}"),
+            json("{'stream':true,'x:tool_choice':'auto','x:parallel_tool_calls':false,'anthropic:tool_choice':{'k':1}," +
+                "'anthropic:thinking':{'type':'enabled'},'x:user':'u','anthropic:metadata':{'k':1}," +
+                "'x:reasoning_effort':'low','anthropic:output_config':{'other':true}}"));
+    }
 }
