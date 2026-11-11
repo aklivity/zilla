@@ -55,6 +55,6 @@ read ${mqtt:session()
                .build()}
 
 write ${mqtt:session()
-               .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+               .sharedSubscription("consumers", "sensor/one", 1, "EXACTLY_ONCE")
                .build()}
 write flush

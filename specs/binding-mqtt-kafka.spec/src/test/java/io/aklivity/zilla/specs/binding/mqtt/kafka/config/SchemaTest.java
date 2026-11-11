@@ -52,6 +52,30 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithStoreSharedQos2()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedQos2ExistingTickets()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.qos2.existing.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithStoreSharedNoTickets()
+    {
+        JsonObject config = schema.validate("proxy.store.shared.no.tickets.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWithPublishQosMax()
     {
         JsonObject config = schema.validate("proxy.publish.qos.max.yaml");

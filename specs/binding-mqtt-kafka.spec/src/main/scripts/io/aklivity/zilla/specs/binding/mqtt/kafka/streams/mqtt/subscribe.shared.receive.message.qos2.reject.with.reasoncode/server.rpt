@@ -13,40 +13,56 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/mqtt0"
+accept "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-write zilla:begin.ext ${mqtt:beginEx()
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .clientId("client")
-                                .qos("AT_LEAST_ONCE")
-                                .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                                .qos("EXACTLY_ONCE")
+                                .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
                                 .build()
                             .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .topic("sensor/one")
                                 .packetId(1)
-                                .qos("AT_LEAST_ONCE")
+                                .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
                                 .build()
                             .build()}
-read "message"
+write "message1"
 
-write advise zilla:flush ${mqtt:flushEx()
+read advised zilla:flush ${mqtt:flushEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .qos("EXACTLY_ONCE")
                                 .packetId(1)
                                 .state("INCOMPLETE")
+                                .reasonCode(131)
                                 .build()
                             .build()}
 
-read abort
+write zilla:data.ext ${mqtt:dataEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .topic("sensor/one")
+                                .packetId(2)
+                                .qos("EXACTLY_ONCE")
+                                .subscriptionId(1)
+                                .format("TEXT")
+                                .build()
+                            .build()}
+write "message2"
+
+read closed
+write close
