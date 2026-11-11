@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_BREAKER_RETRY_AFTER_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONNECTION_WINDOW;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAXIMUM_CONNECTIONS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_FRAME_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_HEADER_LIST_SIZE;
@@ -30,6 +31,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAMS_CLEANUP_DELAY;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAM_INITIAL_WINDOW;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_USER_AGENT_HEADER;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY_LIMIT;
 import static org.junit.Assert.assertEquals;
 
 import java.time.Duration;
@@ -42,6 +44,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class HttpConfigurationTest
 {
     // needed by test annotations
+    public static final String HTTP_MAXIMUM_CONNECTIONS_NAME = "zilla.binding.http.maximum.connections";
     public static final String HTTP_SERVER_HEADER_NAME = "zilla.binding.http.server.header";
     public static final String HTTP_USER_AGENT_HEADER_NAME = "zilla.binding.http.user.agent.header";
     public static final String HTTP_CONCURRENT_STREAMS_NAME = "zilla.binding.http.concurrent.streams";
@@ -63,6 +66,7 @@ public class HttpConfigurationTest
     @Test
     public void shouldVerifyConstants() throws Exception
     {
+        assertEquals(HTTP_MAXIMUM_CONNECTIONS.name(), HTTP_MAXIMUM_CONNECTIONS_NAME);
         assertEquals(HTTP_SERVER_HEADER.name(), HTTP_SERVER_HEADER_NAME);
         assertEquals(HTTP_USER_AGENT_HEADER.name(), HTTP_USER_AGENT_HEADER_NAME);
         assertEquals(HTTP_CONCURRENT_STREAMS.name(), HTTP_CONCURRENT_STREAMS_NAME);
@@ -106,6 +110,40 @@ public class HttpConfigurationTest
         assertEquals(Duration.ofMillis(500), config.clientBreakerCooldown());
         assertEquals(Duration.ofMinutes(2), config.clientBreakerRetryAfterMaximum());
         assertEquals(16, config.clientBreakerCircuitsMaximum());
+    }
+
+    @Test
+    public void shouldDefaultMaximumConnectionsToHalfWorkerCapacityLimit() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(ENGINE_WORKER_CAPACITY_LIMIT.name(), "4096");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(2048, config.maximumConnectionsPerOrigin());
+    }
+
+    @Test
+    public void shouldDefaultMaximumConnectionsToAtLeastOne() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(ENGINE_WORKER_CAPACITY_LIMIT.name(), "1");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(1, config.maximumConnectionsPerOrigin());
+    }
+
+    @Test
+    public void shouldHonorConfiguredMaximumConnections() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(ENGINE_WORKER_CAPACITY_LIMIT.name(), "4096");
+        properties.setProperty(HTTP_MAXIMUM_CONNECTIONS_NAME, "5000");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(5000, config.maximumConnectionsPerOrigin());
     }
 
     @Test
