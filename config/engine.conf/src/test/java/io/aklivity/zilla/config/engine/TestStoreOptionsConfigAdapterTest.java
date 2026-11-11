@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
 import java.time.Duration;
+import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -62,6 +63,60 @@ public class TestStoreOptionsConfigAdapterTest
         assertThat(delete.op, equalTo("delete"));
         assertThat(delete.value, nullValue());
         assertThat(delete.ttl, nullValue());
+    }
+
+    @Test
+    public void shouldReadAtomicAssertions()
+    {
+        String text =
+            "{" +
+                "\"assertions\":" +
+                "[" +
+                    "{\"op\": \"increment\", \"key\": \"counter\", \"delta\": -2, \"value\": \"3\", \"ttl\": \"PT1M\"}," +
+                    "{\"op\": \"replace\", \"key\": \"key\", \"expected\": \"old\", \"value\": \"new\"}," +
+                    "{\"op\": \"delete\", \"keys\": [\"a\", \"b\"]}" +
+                "]" +
+            "}";
+
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
+        TestStoreOptionsConfig options = (TestStoreOptionsConfig) adapter.adaptFromJson(object);
+
+        assertThat(options.assertions, hasSize(3));
+        Assertion increment = options.assertions.get(0);
+        assertThat(increment.op, equalTo("increment"));
+        assertThat(increment.key, equalTo("counter"));
+        assertThat(increment.delta, equalTo(-2L));
+        assertThat(increment.value, equalTo("3"));
+        assertThat(increment.ttl, equalTo(Duration.ofMinutes(1)));
+        assertThat(increment.keys, nullValue());
+        assertThat(increment.expected, nullValue());
+        Assertion replace = options.assertions.get(1);
+        assertThat(replace.op, equalTo("replace"));
+        assertThat(replace.expected, equalTo("old"));
+        assertThat(replace.value, equalTo("new"));
+        assertThat(replace.delta, equalTo(0L));
+        Assertion delete = options.assertions.get(2);
+        assertThat(delete.op, equalTo("delete"));
+        assertThat(delete.key, nullValue());
+        assertThat(delete.keys, equalTo(List.of("a", "b")));
+    }
+
+    @Test
+    public void shouldWriteAtomicAssertions()
+    {
+        TestStoreOptionsConfig options = TestStoreOptionsConfig.builder()
+            .assertion("increment", "counter", null, "3", null, -2L, Duration.ofMinutes(1))
+            .assertion("replace", "key", null, "new", "old", 0L, null)
+            .assertion("delete", null, List.of("a", "b"), null, null, 0L, null)
+            .build();
+
+        JsonObject object = adapter.adaptToJson(options);
+
+        assertThat(object.toString(), equalTo(
+            "{\"assertions\":[" +
+                "{\"op\":\"increment\",\"key\":\"counter\",\"delta\":-2,\"value\":\"3\",\"ttl\":\"PT1M\"}," +
+                "{\"op\":\"replace\",\"key\":\"key\",\"expected\":\"old\",\"value\":\"new\"}," +
+                "{\"op\":\"delete\",\"keys\":[\"a\",\"b\"]}]}"));
     }
 
     @Test
