@@ -4907,13 +4907,30 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    void discardTickets(
+        String clientId,
+        StoreHandler store)
+    {
+        final ClientHighWaterMarks marks = supplyClientMarks(clientId);
+
+        attachTickets(marks, store);
+        marks.tickets.discard(t -> marks.inflight.release(t.packetId));
+        marks.tickets.awaitLoaded(() -> removeClient(marks));
+    }
+
     private ClientHighWaterMarks attachSharedStream(
         String16FW clientId)
     {
-        final ClientHighWaterMarks marks = highWaterMarksByClient.computeIfAbsent(clientId.asString(), ClientHighWaterMarks::new);
+        final ClientHighWaterMarks marks = supplyClientMarks(clientId.asString());
         marks.sharedStreams++;
 
         return marks;
+    }
+
+    private ClientHighWaterMarks supplyClientMarks(
+        String clientId)
+    {
+        return highWaterMarksByClient.computeIfAbsent(clientId, ClientHighWaterMarks::new);
     }
 
     private void attachTickets(

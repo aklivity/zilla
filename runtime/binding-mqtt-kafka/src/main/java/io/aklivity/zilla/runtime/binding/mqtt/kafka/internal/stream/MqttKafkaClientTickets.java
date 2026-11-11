@@ -144,13 +144,25 @@ final class MqttKafkaClientTickets
         write(completion);
     }
 
-    List<MqttKafkaTicket> clear()
+    void discard(
+        Consumer<MqttKafkaTicket> discarded)
     {
-        final List<MqttKafkaTicket> cleared = tickets != null ? tickets : new ArrayList<>();
+        awaitLoaded(() ->
+        {
+            final List<MqttKafkaTicket> stored = tickets;
 
-        tickets = new ArrayList<>();
+            if (stored == null || !stored.isEmpty())
+            {
+                if (stored != null)
+                {
+                    stored.forEach(discarded);
+                }
 
-        return cleared;
+                tickets = new ArrayList<>();
+                recoverable.clear();
+                write(() -> {});
+            }
+        });
     }
 
     void write(
