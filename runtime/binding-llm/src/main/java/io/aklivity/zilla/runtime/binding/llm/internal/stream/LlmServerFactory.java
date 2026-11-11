@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.util.stream.Collectors.toMap;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +40,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final EngineContext context;
     private final Map<String, LlmDialectContext> dialects;
@@ -119,7 +118,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (httpBeginEx != null)
             {
-                final LlmDialectHandler handler = binding.resolve(LlmRequestHeaders.of(httpBeginEx));
+                final LlmDialectHandler handler = binding.resolve(headersRO.wrap(httpBeginEx));
 
                 if (handler != null)
                 {
@@ -133,7 +132,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
     private static final class LlmServerBinding
     {
-        private final Map<String, LlmDialectHandler> candidates;
+        private final LlmDialectHandler[] candidates;
         private final LlmDialectHandler fixed;
 
         private LlmServerBinding(
@@ -141,13 +140,12 @@ public final class LlmServerFactory implements LlmStreamFactory
             List<String> apis,
             Map<String, LlmDialectHandler> handlers)
         {
-            this.candidates = dialect == null
-                ? handlers
-                : handlers.entrySet().stream()
-                    .filter(e -> LlmDialectNames.admits(dialect, e.getKey()))
-                    .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
-            this.fixed = dialect != null && apis == null && candidates.size() == 1
-                ? candidates.values().iterator().next()
+            this.candidates = handlers.entrySet().stream()
+                .filter(e -> dialect == null || LlmDialectNames.admits(dialect, e.getKey()))
+                .map(Map.Entry::getValue)
+                .toArray(LlmDialectHandler[]::new);
+            this.fixed = dialect != null && apis == null && candidates.length == 1
+                ? candidates[0]
                 : null;
         }
 
@@ -160,7 +158,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private LlmDialectHandler detect(
             JsonEnvelope headers)
         {
-            return LlmDialectSelector.select(candidates.values(), headers);
+            return LlmDialectSelector.select(candidates, headers);
         }
     }
 }

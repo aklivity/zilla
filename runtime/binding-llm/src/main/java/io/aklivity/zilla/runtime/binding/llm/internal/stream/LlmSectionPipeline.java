@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
@@ -29,6 +30,8 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 final class LlmSectionPipeline
 {
+    private static final DirectBufferEx NO_INPUT = new UnsafeBufferEx(new byte[0]);
+
     @FunctionalInterface
     interface Output
     {
@@ -46,6 +49,7 @@ final class LlmSectionPipeline
 
     private byte[] window;
     private int tailLength;
+    private int unconsumedLength;
     private boolean completed;
     private boolean closed;
 
@@ -58,6 +62,21 @@ final class LlmSectionPipeline
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
         this.pipeline = JsonEx.stream(JsonEx.createParser())
+            .envelope(envelope)
+            .transform(stage)
+            .into(JsonEx.createGenerator(), Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED));
+    }
+
+    LlmSectionPipeline(
+        JsonTransform stage,
+        MutableDirectBufferEx outputBuffer,
+        JsonParserEx source)
+    {
+        this.envelope = new LlmSectionEnvelope();
+        this.outputBuffer = outputBuffer;
+        this.windowBuffer = null;
+        this.window = null;
+        this.pipeline = JsonEx.stream(JsonEx.createValueParser(source))
             .envelope(envelope)
             .transform(stage)
             .into(JsonEx.createGenerator(), Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED));
@@ -80,7 +99,21 @@ final class LlmSectionPipeline
         boolean last,
         Output output)
     {
+        return feed(buffer, offset, length, last, output, true);
+    }
+
+    // The bytes the parser has not consumed are kept for the next feed unless the caller holds them, in which
+    // case unconsumed() reports how many of the last bytes fed it should present again.
+    boolean feed(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last,
+        Output output,
+        boolean retain)
+    {
         final int windowLength = tailLength + length;
+        unconsumedLength = 0;
 
         if (completed)
         {
@@ -119,7 +152,8 @@ final class LlmSectionPipeline
 
             // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
             // slot, so what the parser has not consumed is kept before the output is put
-            tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+            unconsumedLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+            tailLength = retain ? unconsumedLength : 0;
             retain(input, progress);
 
             final boolean done = status == Status.COMPLETED && last;
@@ -135,6 +169,43 @@ final class LlmSectionPipeline
         completed = status == Status.COMPLETED;
 
         return status != Status.REJECTED;
+    }
+
+    // Drives the next value of the source parser this pipeline was built over, which keeps the window, the
+    // bytes not yet consumed and any pushed-back fragment, so nothing is held here between calls.
+    boolean pump(
+        Output output)
+    {
+        Status status;
+
+        do
+        {
+            final JsonPipelineResult result = pipeline.transform(NO_INPUT, 0, 0, false,
+                outputBuffer, 0, outputBuffer.capacity());
+            status = result.status();
+
+            final boolean done = status == Status.COMPLETED;
+
+            if (result.produced() > 0 || done)
+            {
+                output.put(outputBuffer, 0, result.produced(), done);
+            }
+        }
+        while (status == Status.SUSPENDED);
+
+        completed = status == Status.COMPLETED;
+
+        return status != Status.REJECTED;
+    }
+
+    boolean completed()
+    {
+        return completed;
+    }
+
+    int unconsumed()
+    {
+        return unconsumedLength;
     }
 
     private void retain(

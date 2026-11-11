@@ -4478,12 +4478,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             while (decoder == decodeCitations && progress && !rejected())
             {
+                progress = false;
+
                 final int remaining = annotations.remaining();
                 final int take = Math.min(remaining, citationsAllowance());
 
-                progress = take > 0;
-
-                if (progress)
+                if (take > 0)
                 {
                     final boolean last = take == remaining;
 
@@ -4492,12 +4492,14 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                         decoder = annotationThen;
                     }
 
-                    if (!annotationPipeline.feed(annotations.buffer(), annotations.offset(), take, last, citationsOutput))
+                    if (!annotationPipeline.feed(annotations.buffer(), annotations.offset(), take, last, citationsOutput, false))
                     {
                         rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
                     }
 
-                    annotations.consumed(take);
+                    final int consumed = take - annotationPipeline.unconsumed();
+                    annotations.consumed(consumed);
+                    progress = consumed > 0;
 
                     if (last)
                     {

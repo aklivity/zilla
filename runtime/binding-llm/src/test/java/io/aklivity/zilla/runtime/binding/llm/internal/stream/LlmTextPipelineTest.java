@@ -33,7 +33,9 @@ public class LlmTextPipelineTest
     private static final String TEXT = "Let me think. ".repeat(400);
 
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
+    private final StringBuilder chars = new StringBuilder();
     private final LlmTextPipeline pipeline = new LlmTextPipeline(this::collect);
+    private final LlmTextPipeline charPipeline = new LlmTextPipeline(this::collectChars);
     private final LlmTextPipeline optional = new LlmTextPipeline(this::collect, true);
     private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(4, "5m", "1h");
     private final LlmTextPipeline breakpointed = new LlmTextPipeline(this::collect, breakpoints);
@@ -62,6 +64,40 @@ public class LlmTextPipelineTest
     public void shouldDeliverContentLargerThanWindow()
     {
         assertDelivers(json("{'text':'" + TEXT + "'}"), TEXT);
+    }
+
+    @Test
+    public void shouldDeliverDecodedCharsAcrossWindows()
+    {
+        assertDeliversChars(json("{'text':'line one\\nline \\\"two\\\"\\ttab\\\\ \\u0001'}"),
+            "line one\nline \"two\"\ttab\\ \u0001");
+    }
+
+    @Test
+    public void shouldDeliverUnicodeCharsAcrossWindows()
+    {
+        assertDeliversChars(json("{'text':'café 😀 \\ud83d\\ude00 \\u00e9'}"), "café 😀 😀 é");
+    }
+
+    @Test
+    public void shouldDeliverCharsLargerThanWindow()
+    {
+        assertDeliversChars(json("{'text':'" + TEXT + "'}"), TEXT);
+    }
+
+    @Test
+    public void shouldDeliverSeveralSectionsOfCharsInOrder()
+    {
+        chars.setLength(0);
+
+        for (String json : new String[] {json("{'text':'A '}"), json("{'text':'B'}")})
+        {
+            charPipeline.begin();
+            final byte[] bytes = json.getBytes(UTF_8);
+            assertThat(charPipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true), is(true));
+        }
+
+        assertThat(chars.toString(), equalTo("A B"));
     }
 
     @Test
@@ -241,6 +277,40 @@ public class LlmTextPipelineTest
             assertThat("accepted window " + window, accepted, is(true));
             assertThat("window " + window, output.toString(UTF_8), equalTo(expected));
         }
+    }
+
+    private void assertDeliversChars(
+        String json,
+        String expected)
+    {
+        for (int window : WINDOWS)
+        {
+            final byte[] bytes = json.getBytes(UTF_8);
+            final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+
+            chars.setLength(0);
+            charPipeline.begin();
+
+            boolean accepted = true;
+
+            for (int offset = 0; accepted && offset < bytes.length; offset += window)
+            {
+                final int length = Math.min(window, bytes.length - offset);
+
+                accepted = charPipeline.feed(input, offset, length, offset + length == bytes.length);
+            }
+
+            assertThat("accepted window " + window, accepted, is(true));
+            assertThat("window " + window, chars.toString(), equalTo(expected));
+        }
+    }
+
+    private void collectChars(
+        CharSequence text,
+        int from,
+        int to)
+    {
+        chars.append(text, from, to);
     }
 
     private void collect(

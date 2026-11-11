@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonException;
@@ -105,7 +103,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String UNAUTHORIZED_BODY = "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
         "\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"}}";
@@ -218,6 +215,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final LlmRequestHeaders headersRO = new LlmRequestHeaders();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -246,7 +244,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -319,7 +316,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.accumulatePool = context.bufferPool().duplicate();
@@ -355,13 +351,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     public boolean detect(
         JsonEnvelope headers)
     {
-        final String method = header(headers, HEADER_METHOD);
-        final String path = header(headers, HEADER_PATH);
-        final String contentType = header(headers, HEADER_CONTENT_TYPE);
-
-        return METHOD_POST.equalsIgnoreCase(method) &&
-            PATH_RESPONSES.equals(path) &&
-            CONTENT_TYPE_JSON.equals(mediaType(contentType));
+        return LlmHeaderBytes.equalToIgnoreCase(headers.get(HEADER_METHOD, 0), METHOD_POST) &&
+            LlmHeaderBytes.equalTo(headers.get(HEADER_PATH, 0), PATH_RESPONSES) &&
+            LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON);
     }
 
     @Override
@@ -385,10 +377,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (binding != null && httpBeginEx != null)
         {
-            final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
+            final LlmRequestHeaders headers = headersRO.wrap(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
-            if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
+            if (!LlmHeaderBytes.isMediaType(headers.get(HEADER_CONTENT_TYPE, 0), CONTENT_TYPE_JSON))
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
@@ -8020,13 +8012,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     }
 
 
-    private String mediaType(
-        String contentType)
-    {
-        contentTypeMatcher.reset(contentType != null ? contentType : "");
-
-        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
-    }
 
     private final class LlmOpenaiRejectHandler
     {

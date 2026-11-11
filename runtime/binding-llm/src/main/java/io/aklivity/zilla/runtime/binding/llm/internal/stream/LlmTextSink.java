@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -23,27 +22,15 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 final class LlmTextSink implements JsonSink
 {
-    private static final char REPLACEMENT_CHARACTER = '�';
-
-    private final LlmTextPipeline.Output output;
+    private final LlmTextPipeline.CharOutput output;
     private final boolean completing;
-    private final byte[] initialBytes;
-    private final UnsafeBufferEx initialBuffer;
-
-    private byte[] bytes;
-    private UnsafeBufferEx buffer;
-    private char highSurrogate;
 
     LlmTextSink(
-        LlmTextPipeline.Output output,
+        LlmTextPipeline.CharOutput output,
         boolean completing)
     {
         this.output = output;
         this.completing = completing;
-        this.initialBytes = new byte[1024];
-        this.initialBuffer = new UnsafeBufferEx(initialBytes);
-        this.bytes = initialBytes;
-        this.buffer = initialBuffer;
     }
 
     @Override
@@ -58,21 +45,14 @@ final class LlmTextSink implements JsonSink
         {
             final boolean deferred = source.deferredBytes();
             final CharSequence chars = source.getStringView();
+            final int length = chars.length();
 
-            final int encoded = encode(chars, !deferred);
-
-            if (encoded > 0)
+            if (length > 0)
             {
-                output.put(buffer, 0, encoded);
+                output.put(chars, 0, length);
             }
 
-            if (bytes != initialBytes)
-            {
-                bytes = initialBytes;
-                buffer = initialBuffer;
-            }
-
-            control.consumed(chars.length());
+            control.consumed(length);
 
             status = deferred || !completing ? Status.ADVANCED : Status.COMPLETED;
         }
@@ -85,12 +65,6 @@ final class LlmTextSink implements JsonSink
     }
 
     @Override
-    public void reset()
-    {
-        highSurrogate = 0;
-    }
-
-    @Override
     public boolean identity()
     {
         return false;
@@ -100,114 +74,5 @@ final class LlmTextSink implements JsonSink
     public boolean deterministic()
     {
         return true;
-    }
-
-    private int encode(
-        CharSequence chars,
-        boolean last)
-    {
-        final int length = chars.length();
-
-        if (bytes.length < length * 3 + 8)
-        {
-            bytes = new byte[length * 3 + 8];
-            buffer = new UnsafeBufferEx(bytes);
-        }
-
-        int position = 0;
-        int index = 0;
-
-        if (highSurrogate != 0 && length > 0)
-        {
-            final char c = chars.charAt(0);
-            if (Character.isLowSurrogate(c))
-            {
-                position = putCodePoint(Character.toCodePoint(highSurrogate, c), position);
-                index = 1;
-            }
-            else
-            {
-                position = putCodePoint(REPLACEMENT_CHARACTER, position);
-            }
-            highSurrogate = 0;
-        }
-
-        while (index < length)
-        {
-            final char c = chars.charAt(index++);
-
-            if (Character.isHighSurrogate(c))
-            {
-                if (index < length)
-                {
-                    final char d = chars.charAt(index);
-                    if (Character.isLowSurrogate(d))
-                    {
-                        position = putCodePoint(Character.toCodePoint(c, d), position);
-                        index++;
-                    }
-                    else
-                    {
-                        position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                    }
-                }
-                else if (last)
-                {
-                    position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                }
-                else
-                {
-                    highSurrogate = c;
-                }
-            }
-            else if (Character.isLowSurrogate(c))
-            {
-                position = putCodePoint(REPLACEMENT_CHARACTER, position);
-            }
-            else
-            {
-                position = putCodePoint(c, position);
-            }
-        }
-
-        if (last && highSurrogate != 0)
-        {
-            position = putCodePoint(REPLACEMENT_CHARACTER, position);
-            highSurrogate = 0;
-        }
-
-        return position;
-    }
-
-    private int putCodePoint(
-        int codePoint,
-        int position)
-    {
-        int next = position;
-
-        if (codePoint < 0x80)
-        {
-            bytes[next++] = (byte) codePoint;
-        }
-        else if (codePoint < 0x800)
-        {
-            bytes[next++] = (byte) (0xC0 | codePoint >> 6);
-            bytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else if (codePoint < 0x10000)
-        {
-            bytes[next++] = (byte) (0xE0 | codePoint >> 12);
-            bytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            bytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else
-        {
-            bytes[next++] = (byte) (0xF0 | codePoint >> 18);
-            bytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-            bytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            bytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-
-        return next;
     }
 }
