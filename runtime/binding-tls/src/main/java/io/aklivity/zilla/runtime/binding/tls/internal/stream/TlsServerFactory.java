@@ -82,6 +82,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsServerFactory implements TlsStreamFactory
 {
+    private static final int MAXIMUM_TLS_RECORD_LENGTH = 16 * 1024 + 256 + 5;
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final int MAXIMUM_HEADER_SIZE = 5 + 20 + 256;    // TODO version + MAC + padding
@@ -104,6 +105,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
 
     private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
+    private final ProxyBeginExFW proxyExtensionRO = new ProxyBeginExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -989,8 +991,6 @@ public final class TlsServerFactory implements TlsStreamFactory
         private final long replyId;
         private long affinity;
 
-        private ProxyBeginExFW extension;
-
         private final SSLEngine tlsEngine;
 
         private long handshakeTaskFutureId = NO_CANCEL_ID;
@@ -999,6 +999,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
         private int decodeSlotReserved;
+        private int decodeSlotAdjust;
         private long decodeSlotBudgetId;
 
         private int decodableRecordBytes;
@@ -1105,13 +1106,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             final long traceId = begin.traceId();
             final ProxyBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
-            if (beginEx != null && beginEx.typeId() == proxyTypeId)
-            {
-                // TODO: use decodeSlot instead of allocation
-                MutableDirectBufferEx bufferEx = new UnsafeBufferEx(new byte[beginEx.sizeof()]);
-                bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
-                extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
-            }
+            final boolean proxied = beginEx != null && beginEx.typeId() == proxyTypeId;
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -1124,19 +1119,37 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            doNetWindow(traceId, 0L, 0, handshakeMax);
-            doNetBegin(traceId);
-
-            if (handshakeTimeoutMillis > 0L)
+            if (proxied)
             {
-                assert handshakeTimeoutFutureId == NO_CANCEL_ID;
-                handshakeTimeoutFutureId = signaler.signalAt(
-                    currentTimeMillis() + handshakeTimeoutMillis,
-                    originId,
-                    routedId,
-                    replyId,
-                    traceId,
-                    NET_SIGNAL_HANDSHAKE_TIMEOUT, 0);
+                decodeSlot = decodePool.acquire(initialId);
+            }
+
+            if (proxied && (decodeSlot == NO_SLOT || decodeMax - beginEx.sizeof() < MAXIMUM_TLS_RECORD_LENGTH))
+            {
+                cleanupNet(traceId);
+            }
+            else
+            {
+                if (proxied)
+                {
+                    decodePool.buffer(decodeSlot).putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
+                    decodeSlotAdjust = beginEx.sizeof();
+                }
+
+                doNetWindow(traceId, 0L, 0, initialMax());
+                doNetBegin(traceId);
+
+                if (handshakeTimeoutMillis > 0L)
+                {
+                    assert handshakeTimeoutFutureId == NO_CANCEL_ID;
+                    handshakeTimeoutFutureId = signaler.signalAt(
+                        currentTimeMillis() + handshakeTimeoutMillis,
+                        originId,
+                        routedId,
+                        replyId,
+                        traceId,
+                        NET_SIGNAL_HANDSHAKE_TIMEOUT, 0);
+                }
             }
         }
 
@@ -1156,7 +1169,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (initialSeq > initialAck + decodeMax)
+            if (initialSeq > initialAck + decodeCapacity())
             {
                 cleanupNet(traceId);
             }
@@ -1179,13 +1192,13 @@ public final class TlsServerFactory implements TlsStreamFactory
                     int limit = payload.limit();
 
                     final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
-                    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
+                    buffer.putBytes(decodeSlotAdjust + decodeSlotOffset, payload.buffer(), offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
                     decodeSlotBudgetId = budgetId;
 
-                    offset = 0;
-                    limit = decodeSlotOffset;
+                    offset = decodeSlotAdjust;
+                    limit = decodeSlotAdjust + decodeSlotOffset;
                     reserved = decodeSlotReserved;
 
                     decodeNet(traceId, budgetId, reserved, buffer, offset, limit);
@@ -1211,7 +1224,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (initialSeq > initialAck + decodeMax)
+            if (initialSeq > initialAck + decodeCapacity())
             {
                 cleanupNet(traceId);
             }
@@ -1239,7 +1252,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (decodeSlot == NO_SLOT || !stream.isPresent())
+            if (decodeSlotOffset == 0 || !stream.isPresent())
             {
                 cleanupDecodeSlot();
 
@@ -1388,7 +1401,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 reserved = decodeSlotReserved;
                 buffer = decodePool.buffer(decodeSlot);
-                limit = decodeSlotOffset;
+                offset = decodeSlotAdjust;
+                limit = decodeSlotAdjust + decodeSlotOffset;
             }
 
             decodeNet(traceId, budgetId, reserved, buffer, offset, limit);
@@ -1481,7 +1495,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
+                final int initialMax = initialMax();
                 state = StreamState.closeInitial(state);
                 doReset(net, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
@@ -1506,8 +1520,8 @@ public final class TlsServerFactory implements TlsStreamFactory
             long budgetId,
             int initialPad)
         {
-            final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
-            final int decodable = decodeMax - initialMax;
+            final int initialMax = initialMax();
+            final int decodable = decodeCapacity() - initialMax;
 
             final long initialAckMax = Math.min(initialAck + decodable, initialSeq);
             if (initialAckMax > initialAck)
@@ -1605,14 +1619,22 @@ public final class TlsServerFactory implements TlsStreamFactory
                 else
                 {
                     final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
-                    decodeBuffer.putBytes(0, buffer, progress, limit - progress);
+                    decodeBuffer.putBytes(decodeSlotAdjust, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (limit - progress) * (reserved / (limit - offset));
                 }
             }
             else
             {
-                cleanupDecodeSlot();
+                if (decodeSlotAdjust != 0)
+                {
+                    decodeSlotOffset = 0;
+                    decodeSlotReserved = 0;
+                }
+                else
+                {
+                    cleanupDecodeSlot();
+                }
 
                 if (StreamState.initialClosed(state))
                 {
@@ -1634,9 +1656,9 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             if (!tlsEngine.isInboundDone())
             {
-                final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
+                final int initialMax = initialMax();
                 final int decoded = reserved - decodeSlotReserved;
-                final int decodable = decodeMax - initialMax;
+                final int decodable = decodeCapacity() - initialMax;
 
                 final long initialAckMax = Math.min(initialAck + decoded + decodable, initialSeq);
                 if (initialAckMax > initialAck)
@@ -1658,8 +1680,8 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
                 final int reserved = decodeSlotReserved;
-                final int offset = 0;
-                final int limit = decodeSlotOffset;
+                final int offset = decodeSlotAdjust;
+                final int limit = decodeSlotAdjust + decodeSlotOffset;
 
                 decodeNet(traceId, budgetId, reserved, buffer, offset, limit);
             }
@@ -1729,6 +1751,15 @@ public final class TlsServerFactory implements TlsStreamFactory
                 final TlsStream stream = new TlsStream(binding.id, route.id, sessionAuth);
 
                 stream.doAppBegin(traceId, tlsHostname, tlsProtocol, name);
+
+                if (decodeSlotOffset == 0)
+                {
+                    cleanupDecodeSlot();
+                }
+                else
+                {
+                    decodeSlotAdjust = 0;
+                }
             }
             else
             {
@@ -1870,9 +1901,20 @@ public final class TlsServerFactory implements TlsStreamFactory
             {
                 decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
+                decodeSlotAdjust = 0;
                 decodeSlotOffset = 0;
                 decodeSlotReserved = 0;
             }
+        }
+
+        private int decodeCapacity()
+        {
+            return decodeMax - decodeSlotAdjust;
+        }
+
+        private int initialMax()
+        {
+            return Math.min(stream.isPresent() ? decodeMax : handshakeMax, decodeCapacity());
         }
 
         private void cleanupEncodeSlot()
@@ -2201,6 +2243,10 @@ public final class TlsServerFactory implements TlsStreamFactory
                 stream = Optional.of(this);
                 state = StreamState.openingInitial(state);
 
+                final ProxyBeginExFW extension = decodeSlotAdjust != 0
+                    ? proxyExtensionRO.wrap(decodePool.buffer(decodeSlot), 0, decodeSlotAdjust)
+                    : null;
+
                 app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity,
                     ex -> ex.set((b, o, l) -> beginExRW.wrap(b, o, l)
@@ -2267,7 +2313,6 @@ public final class TlsServerFactory implements TlsStreamFactory
                                                           })
                                                           .build()
                                                           .sizeof()));
-                extension = null;
                 doAppWindow(traceId);
             }
 
