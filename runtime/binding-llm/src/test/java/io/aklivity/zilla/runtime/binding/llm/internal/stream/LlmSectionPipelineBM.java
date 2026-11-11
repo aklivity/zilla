@@ -140,7 +140,7 @@ public class LlmSectionPipelineBM
 
     private final LlmSectionPipeline.Output counter = (buffer, offset, length, last) -> produced += length;
     private final LlmTextPipeline textPipeline =
-        new LlmTextPipeline((DirectBufferEx buffer, int offset, int length) -> produced += length);
+        new LlmTextPipeline((CharSequence chars, int from, int to) -> produced += to - from);
 
     private final LlmTextModelPipeline guardedPipeline = new LlmTextModelPipeline(new GuardChain(),
         new LlmTestBufferPool(32 * 1024, 1), 1L, new UnsafeBufferEx(new byte[OUTPUT]), true);

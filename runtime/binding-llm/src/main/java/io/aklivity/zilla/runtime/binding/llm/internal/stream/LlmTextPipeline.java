@@ -25,15 +25,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmTextPipeline
 {
     @FunctionalInterface
-    interface Output
-    {
-        void put(
-            DirectBufferEx buffer,
-            int offset,
-            int length);
-    }
-
-    @FunctionalInterface
     interface CharOutput
     {
         void put(
@@ -49,26 +40,6 @@ final class LlmTextPipeline
     private byte[] window;
     private int tailLength;
     private boolean completed;
-
-    LlmTextPipeline(
-        Output output)
-    {
-        this(new LlmUtf8Output(output), false, null);
-    }
-
-    LlmTextPipeline(
-        Output output,
-        boolean optional)
-    {
-        this(new LlmUtf8Output(output), optional, null);
-    }
-
-    LlmTextPipeline(
-        Output output,
-        LlmCacheBreakpoint breakpoints)
-    {
-        this(new LlmUtf8Output(output), false, breakpoints);
-    }
 
     LlmTextPipeline(
         CharOutput output)
