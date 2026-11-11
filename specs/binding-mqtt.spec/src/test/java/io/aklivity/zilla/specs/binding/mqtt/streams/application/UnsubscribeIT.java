@@ -332,4 +332,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.inflight.message.qos1.v4/client",
+        "${app}/unsubscribe.inflight.message.qos1.v4/server"})
+    public void shouldUnsubscribeInflightMessageQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
 }

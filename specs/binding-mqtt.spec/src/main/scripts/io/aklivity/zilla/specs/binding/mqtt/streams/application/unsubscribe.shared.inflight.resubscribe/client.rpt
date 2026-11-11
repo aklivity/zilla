@@ -55,7 +55,7 @@ write ${mqtt:session()
 write flush
 
 read ${mqtt:session()
-             .sharedSubscriptionWithReasonCode("consumer1", "sensor/one", 1, 1, "AT_LEAST_ONCE")
+             .sharedSubscription("consumer1", "sensor/one", 1, "AT_LEAST_ONCE")
              .build()}
 read notify RECEIVED_SESSION_STATE
 
@@ -86,7 +86,7 @@ write ${mqtt:session()
 write flush
 
 read ${mqtt:session()
-             .sharedSubscriptionWithReasonCode("consumer1", "sensor/one", 2, 1, "AT_LEAST_ONCE")
+             .sharedSubscription("consumer1", "sensor/one", 2, "AT_LEAST_ONCE")
              .build()}
 read notify RECEIVED_RESUBSCRIBE_SESSION_STATE
 

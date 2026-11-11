@@ -60,12 +60,12 @@ write [0xa2 0x20]                       # UNSUBSCRIBE
       [0x00]                            # properties = none
       [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
 
+read  "age"                             # payload
+
 read  [0xb0 0x04]                       # UNSUBACK
       [0x00 0x02]                       # packet id = 2
       [0x00]                            # properties = none
       [0x00]                            # unsubscribe = success
-
-read  "age"                             # payload
 
 write [0x40 0x04]                       # PUBACK
       [0x00 0x01]                       # packet id = 1
