@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedTicketState.PUBLISH_SENT;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedTicketState.PUBREL_PENDING;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -39,12 +40,14 @@ public class MqttKafkaTicketsTest
     @Test
     public void shouldEncodeSingleTicket()
     {
-        final String encoded = tickets.encode(List.of(new MqttKafkaTicket(1, PUBLISH_SENT, "mqtt-messages", 0, 5L)));
+        final String encoded = tickets.encode(List.of(
+            new MqttKafkaTicket(1, PUBLISH_SENT, "consumers", "sensor/one", "mqtt-messages", 0, 5L)));
 
         assertEquals(
             "01" +
-            "22000000" + "01000000" +
-            "0100" + "01" + "0d00" + "6d7174742d6d657373616765" + "73" +
+            "39000000" + "01000000" +
+            "0100" + "01" + "0900" + "636f6e73756d657273" + "0a00" + "73656e736f722f6f6e65" +
+            "0d00" + "6d7174742d6d657373616765" + "73" +
             "00000000" +
             "0500000000000000",
             hex(encoded));
@@ -54,14 +57,14 @@ public class MqttKafkaTicketsTest
     public void shouldEncodeTicketsInOrder()
     {
         final String encoded = tickets.encode(List.of(
-            new MqttKafkaTicket(1, PUBREL_PENDING, "t", 2, 4294967296L),
-            new MqttKafkaTicket(65535, PUBLISH_SENT, "ab", -1, 7L)));
+            new MqttKafkaTicket(1, PUBREL_PENDING, "g", "a/#", "t", 2, 4294967296L),
+            new MqttKafkaTicket(65535, PUBLISH_SENT, "h", "b", "ab", -1, 7L)));
 
         assertEquals(
             "01" +
-            "29000000" + "02000000" +
-            "0100" + "02" + "0100" + "74" + "02000000" + "0000000001000000" +
-            "ffff" + "01" + "0200" + "6162" + "ffffffff" + "0700000000000000",
+            "37000000" + "02000000" +
+            "0100" + "02" + "0100" + "67" + "0300" + "612f23" + "0100" + "74" + "02000000" + "0000000001000000" +
+            "ffff" + "01" + "0100" + "68" + "0100" + "62" + "0200" + "6162" + "ffffffff" + "0700000000000000",
             hex(encoded));
     }
 
@@ -69,8 +72,8 @@ public class MqttKafkaTicketsTest
     public void shouldDecodeEncodedTickets()
     {
         final List<MqttKafkaTicket> expected = List.of(
-            new MqttKafkaTicket(1, PUBREL_PENDING, "mqtt-messages", 2, 4294967296L),
-            new MqttKafkaTicket(65535, PUBLISH_SENT, "other/topic", -1, 7L));
+            new MqttKafkaTicket(1, PUBREL_PENDING, "consumers", "sensor/#", "mqtt-messages", 2, 4294967296L),
+            new MqttKafkaTicket(65535, PUBLISH_SENT, "others", "+/one", "other/topic", -1, 7L));
 
         final List<MqttKafkaTicket> actual = tickets.decode(tickets.encode(expected));
 
@@ -79,6 +82,8 @@ public class MqttKafkaTicketsTest
         {
             assertEquals(expected.get(i).packetId, actual.get(i).packetId);
             assertEquals(expected.get(i).state, actual.get(i).state);
+            assertEquals(expected.get(i).shareName, actual.get(i).shareName);
+            assertEquals(expected.get(i).filter, actual.get(i).filter);
             assertEquals(expected.get(i).topic, actual.get(i).topic);
             assertEquals(expected.get(i).partitionId, actual.get(i).partitionId);
             assertEquals(expected.get(i).partitionOffset, actual.get(i).partitionOffset);
@@ -108,15 +113,27 @@ public class MqttKafkaTicketsTest
     @Test
     public void shouldMarkTicketPubrelPending()
     {
-        final MqttKafkaTicket sent = new MqttKafkaTicket(3, PUBLISH_SENT, "mqtt-messages", 1, 9L);
+        final MqttKafkaTicket sent = new MqttKafkaTicket(3, PUBLISH_SENT, "consumers", "sensor/one", "mqtt-messages", 1, 9L);
 
         final MqttKafkaTicket pending = sent.pubrelPending();
 
         assertEquals(PUBREL_PENDING, pending.state);
         assertEquals(3, pending.packetId);
+        assertEquals("consumers", pending.shareName);
+        assertEquals("sensor/one", pending.filter);
         assertEquals("mqtt-messages", pending.topic);
         assertEquals(1, pending.partitionId);
         assertEquals(9L, pending.partitionOffset);
+    }
+
+    @Test
+    public void shouldMatchSubscriptionOfTicket()
+    {
+        final MqttKafkaTicket ticket = new MqttKafkaTicket(3, PUBLISH_SENT, "consumers", "sensor/one", "mqtt-messages", 1, 9L);
+
+        assertTrue(ticket.subscribed("consumers", "sensor/one"));
+        assertFalse(ticket.subscribed("others", "sensor/one"));
+        assertFalse(ticket.subscribed("consumers", "sensor/two"));
     }
 
     private static String hex(
