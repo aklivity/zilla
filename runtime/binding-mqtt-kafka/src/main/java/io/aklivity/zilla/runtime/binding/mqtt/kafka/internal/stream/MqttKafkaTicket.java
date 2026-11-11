@@ -20,6 +20,8 @@ final class MqttKafkaTicket
 {
     final int packetId;
     final MqttSharedTicketState state;
+    final String shareName;
+    final String filter;
     final String topic;
     final int partitionId;
     final long partitionOffset;
@@ -27,12 +29,16 @@ final class MqttKafkaTicket
     MqttKafkaTicket(
         int packetId,
         MqttSharedTicketState state,
+        String shareName,
+        String filter,
         String topic,
         int partitionId,
         long partitionOffset)
     {
         this.packetId = packetId;
         this.state = state;
+        this.shareName = shareName;
+        this.filter = filter;
         this.topic = topic;
         this.partitionId = partitionId;
         this.partitionOffset = partitionOffset;
@@ -40,6 +46,14 @@ final class MqttKafkaTicket
 
     MqttKafkaTicket pubrelPending()
     {
-        return new MqttKafkaTicket(packetId, MqttSharedTicketState.PUBREL_PENDING, topic, partitionId, partitionOffset);
+        return new MqttKafkaTicket(packetId, MqttSharedTicketState.PUBREL_PENDING, shareName, filter, topic,
+            partitionId, partitionOffset);
+    }
+
+    boolean subscribed(
+        String shareName,
+        String filter)
+    {
+        return this.shareName.equals(shareName) && this.filter.equals(filter);
     }
 }

@@ -2698,6 +2698,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final String pattern = filter.pattern().asString();
 
             qos = mqttSubscribeBeginEx.qos();
+            shared.shareName = shareName;
+            shared.pattern = pattern;
             shared.subscriptionId = (int) filter.subscriptionId();
             clientPacketIds = attachPacketIds(mqttSubscribeBeginEx.clientId());
             attachTickets(clientPacketIds, store);
@@ -3058,6 +3060,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private MessageConsumer kafka;
         private KafkaSharedDecoder decoder;
+        private String shareName;
+        private String pattern;
         private int subscriptionId;
         private int recordPartitionId;
         private long recordPartitionOffset;
@@ -3244,8 +3248,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final ClientTickets tickets = mqtt.clientPacketIds.tickets;
 
             gates.add(new TicketGate(heldLimit, recordPartitionId, recordPartitionOffset));
-            tickets.add(new MqttKafkaTicket(recordPacketId, MqttSharedTicketState.PUBLISH_SENT, topicName,
-                recordPartitionId, recordPartitionOffset));
+            tickets.add(new MqttKafkaTicket(recordPacketId, MqttSharedTicketState.PUBLISH_SENT, shareName, pattern,
+                topicName, recordPartitionId, recordPartitionOffset));
             tickets.write(() -> onTicketDurable(traceId, authorization));
         }
 
