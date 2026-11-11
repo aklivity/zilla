@@ -564,4 +564,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.reconnect.non.clean.start/client",
+        "${net}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

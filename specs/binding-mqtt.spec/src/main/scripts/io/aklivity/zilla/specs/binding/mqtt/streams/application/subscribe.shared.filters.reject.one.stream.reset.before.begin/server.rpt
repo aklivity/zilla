@@ -63,6 +63,22 @@ write ${mqtt:session()
                .build()}
 write flush
 
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
+read ${mqtt:session()
+               .sharedSubscription("consumer1", "sensor/two", 1, "AT_MOST_ONCE")
+               .build()}
+
+write ${mqtt:session()
+               .sharedSubscription("consumer1", "sensor/two", 1, "AT_MOST_ONCE")
+               .build()}
+write flush
+
 rejected zilla:reset.ext ${mqtt:resetEx()
                                 .typeId(zilla:id("mqtt"))
                                 .reasonCode(135)

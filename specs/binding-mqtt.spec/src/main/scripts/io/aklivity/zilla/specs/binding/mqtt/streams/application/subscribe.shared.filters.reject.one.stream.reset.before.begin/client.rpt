@@ -61,6 +61,22 @@ read ${mqtt:session()
                .build()}
 read notify RECEIVED_SESSION_STATE
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .kind("STATE")
+                                .build()
+                             .build()}
+
+write ${mqtt:session()
+               .sharedSubscription("consumer1", "sensor/two", 1, "AT_MOST_ONCE")
+               .build()}
+write flush
+
+read ${mqtt:session()
+               .sharedSubscription("consumer1", "sensor/two", 1, "AT_MOST_ONCE")
+               .build()}
+
 connect await RECEIVED_SESSION_STATE
         "zilla://streams/app0"
          option zilla:window 8192
