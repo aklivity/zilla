@@ -39,6 +39,47 @@
                                 {
                                     "type": "string"
                                 }
+                            },
+                            "assertions":
+                            {
+                                "title": "Expected operations",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "op":
+                                        {
+                                            "type": "string",
+                                            "enum":
+                                            [
+                                                "put",
+                                                "putIfAbsent",
+                                                "delete",
+                                                "getAndDelete"
+                                            ]
+                                        },
+                                        "key":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "value":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "ttl":
+                                        {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "op",
+                                        "key"
+                                    ],
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false
