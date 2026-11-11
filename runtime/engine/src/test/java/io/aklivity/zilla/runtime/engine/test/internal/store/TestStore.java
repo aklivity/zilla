@@ -16,9 +16,12 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
+import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
@@ -30,6 +33,7 @@ public final class TestStore implements Store
     private final ConcurrentMap<Long, ConcurrentMap<String, TestEntry>> storage;
     private final ConcurrentMap<Long, ConcurrentMap<String, List<TestWatcher>>> storageListeners;
     private final ConcurrentMap<Long, ConcurrentMap<String, TestLockEntry>> storageLocks;
+    private final ConcurrentMap<Long, Queue<Assertion>> storageAssertions;
 
     public TestStore(
         Configuration config)
@@ -37,6 +41,7 @@ public final class TestStore implements Store
         this.storage = new ConcurrentHashMap<>();
         this.storageListeners = new ConcurrentHashMap<>();
         this.storageLocks = new ConcurrentHashMap<>();
+        this.storageAssertions = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -49,7 +54,8 @@ public final class TestStore implements Store
     public TestStoreContext supply(
         EngineContext context)
     {
-        return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireLocks);
+        return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireLocks,
+            this::acquireAssertions);
     }
 
     private ConcurrentMap<String, TestEntry> acquireEntries(
@@ -68,5 +74,14 @@ public final class TestStore implements Store
         long storeId)
     {
         return storageLocks.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+    }
+
+    private Queue<Assertion> acquireAssertions(
+        long storeId,
+        List<Assertion> assertions)
+    {
+        return assertions != null
+            ? storageAssertions.computeIfAbsent(storeId, id -> new ConcurrentLinkedQueue<>(assertions))
+            : null;
     }
 }
