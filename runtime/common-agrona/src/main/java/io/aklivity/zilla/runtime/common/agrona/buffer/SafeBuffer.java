@@ -1701,4 +1701,14 @@ public final class SafeBuffer implements AtomicBufferEx
         }
         return result;
     }
+
+    @Override
+    public int putStringWithoutLengthUtf8(
+        int index,
+        CharSequence value,
+        int from,
+        int to)
+    {
+        return MutableDirectBufferEx.putUtf8(this, index, value, from, to);
+    }
 }
