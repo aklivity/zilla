@@ -1287,7 +1287,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
         else if (error == null && limit - offset >= maximumHeadersSize)
         {
-            error = ERROR_414_REQUEST_URI_TOO_LONG;
+            error = ERROR_431_HEADERS_TOO_LARGE;
         }
 
         if (error != null)
