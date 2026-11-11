@@ -142,6 +142,26 @@ public class UnsubscribeIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
