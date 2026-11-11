@@ -213,4 +213,14 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.with.duplicate.headers/client",
+        "${app}/request.with.duplicate.headers/server" })
+    public void requestWithDuplicateHeaders() throws Exception
+    {
+        k3po.finish();
+    }
 }
