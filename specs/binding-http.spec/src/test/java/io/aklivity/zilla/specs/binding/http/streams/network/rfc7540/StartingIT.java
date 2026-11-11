@@ -307,4 +307,13 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.http.with.content.length.below.window/client",
+        "${net}/upgrade.http.with.content.length.below.window/server"})
+    public void shouldUpgradeHttpWithContentLengthBelowWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

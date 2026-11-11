@@ -296,4 +296,22 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.with.content.length.exceeded/client",
+        "${net}/request.with.content.length.exceeded/server"})
+    public void shouldRequestWithContentLengthExceeded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.with.content.length.incomplete/client",
+        "${net}/request.with.content.length.incomplete/server"})
+    public void shouldRequestWithContentLengthIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
 }
