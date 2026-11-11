@@ -7557,7 +7557,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int subackReasonCode,
                 int disconnectReasonCode)
             {
-                if (!onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode))
+                final boolean rejected = onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode);
+
+                if (!rejected && !subscriptions.isEmpty())
                 {
                     onDecodeError(traceId, authorization, disconnectReasonCode);
                     decoder = decodeIgnoreAll;
