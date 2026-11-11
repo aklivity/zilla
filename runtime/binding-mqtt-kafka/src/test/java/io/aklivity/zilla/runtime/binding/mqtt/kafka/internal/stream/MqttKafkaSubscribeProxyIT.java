@@ -891,6 +891,83 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.shared.qos2.recover.pubrel.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/client",
+        "${kafka}/subscribe.shared.recover.qos2.pubrel.pending/server"})
+    public void shouldSubscribeSharedRecoverQos2PubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.fragmented/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentOffsetMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.expired/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.missing/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.then.receive.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
+        "${kafka}/subscribe.shared.recover.qos2.then.receive.message/server"})
+    public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.store.shared.qos2.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
