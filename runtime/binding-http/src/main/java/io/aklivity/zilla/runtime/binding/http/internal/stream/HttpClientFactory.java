@@ -5672,7 +5672,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             state = StreamState.openingReply(state);
 
-            if (circuitId != 0L && (StreamState.replyOpened(client.state) || StreamState.replyClosed(client.state)))
+            if (circuitId != 0L &&
+                (StreamState.replyOpened(client.state) || StreamState.replyClosed(client.state)))
             {
                 onCircuitOutcome(traceId, beginEx.headers());
             }
