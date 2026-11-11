@@ -55,6 +55,9 @@ write zilla:data.ext ${kafka:dataEx()
                                 .deliveryCount(1)
                                 .partition(0, 5)
                                 .key("sensor/one")
+                                .header("zilla:filter", "sensor")
+                                .header("zilla:filter", "one")
+                                .header("zilla:format", "TEXT")
                                 .build()
                             .build()}
 write "mess"
@@ -77,11 +80,10 @@ read advised zilla:flush ${kafka:matchFlushEx()
                             .typeId(zilla:id("kafka"))
                             .share()
                                 .partition(0, 5)
-                                .type("REJECT")
+                                .type("ACCEPT")
                                 .correlationId(-1)
                                 .build()
                             .build()}
-write notify REJECTED
 
 read closed
 write close

@@ -1799,4 +1799,40 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.expire.message.fragmented/client",
+        "${kafka}/subscribe.shared.expire.message.fragmented/server"})
+    public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos0.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos0.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncodeFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

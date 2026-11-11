@@ -1571,4 +1571,40 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message.fragmented/client",
+        "${mqtt}/subscribe.shared.expire.message.fragmented/server"})
+    public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncodeFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }
