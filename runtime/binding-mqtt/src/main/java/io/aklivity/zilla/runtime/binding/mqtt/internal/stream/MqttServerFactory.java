@@ -2565,7 +2565,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
         private final Int2ObjectHashMap<List<Subscription>> subscribeRequests;
-        private final Int2ObjectHashMap<PendingSuback> pendingSubacks;
+        private final List<PendingSuback> pendingSubacks;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
@@ -2711,7 +2711,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribes = new Long2ObjectHashMap<>();
             this.sharedSubscribes = new Long2ObjectHashMap<>();
             this.subscribeRequests = new Int2ObjectHashMap<>();
-            this.pendingSubacks = new Int2ObjectHashMap<>();
+            this.pendingSubacks = new ArrayList<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
@@ -4248,7 +4248,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     else
                     {
-                        pendingSubacks.put(packetId, new PendingSuback(packetId, subscriptions, reasonCodes, awaitingStreams));
+                        pendingSubacks.add(new PendingSuback(packetId, subscriptions, reasonCodes, awaitingStreams));
                     }
                 }
             }
@@ -4304,7 +4304,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             MqttSubscribeStream stream)
         {
-            final Iterator<PendingSuback> iterator = pendingSubacks.values().iterator();
+            final Iterator<PendingSuback> iterator = pendingSubacks.iterator();
             while (iterator.hasNext())
             {
                 final PendingSuback suback = iterator.next();
@@ -4324,43 +4324,56 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttSubscribeStream stream,
             int reasonCode)
         {
-            boolean rejected = false;
+            final boolean rejected = rejectable(stream);
 
-            final List<String> failedFilters = new ArrayList<>();
-            final byte failureCode = subackReasonCode(reasonCode);
-            final Iterator<PendingSuback> iterator = pendingSubacks.values().iterator();
-            while (iterator.hasNext())
+            if (rejected)
             {
-                final PendingSuback suback = iterator.next();
-                if (suback.streams.remove(stream))
+                final List<String> failedFilters = new ArrayList<>();
+                final byte failureCode = subackReasonCode(reasonCode);
+                final Iterator<PendingSuback> iterator = pendingSubacks.iterator();
+                while (iterator.hasNext())
                 {
-                    rejected = true;
-                    for (int i = 0; i < suback.reasonCodes.length; i++)
+                    final PendingSuback suback = iterator.next();
+                    if (suback.streams.remove(stream))
                     {
-                        final Subscription subscription = suback.subscriptions.get(i);
-                        if ((suback.reasonCodes[i] & 0xff) <= GRANTED_QOS_2 && stream.subscriptions.contains(subscription))
+                        for (int i = 0; i < suback.reasonCodes.length; i++)
                         {
-                            suback.reasonCodes[i] = failureCode;
-                            failedFilters.add(subscription.filter);
+                            final Subscription subscription = suback.subscriptions.get(i);
+                            if ((suback.reasonCodes[i] & 0xff) <= GRANTED_QOS_2 && stream.subscriptions.contains(subscription))
+                            {
+                                suback.reasonCodes[i] = failureCode;
+                                failedFilters.add(subscription.filter);
+                            }
+                        }
+
+                        if (suback.streams.isEmpty())
+                        {
+                            iterator.remove();
+                            doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
                         }
                     }
-
-                    if (suback.streams.isEmpty())
-                    {
-                        iterator.remove();
-                        doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
-                    }
                 }
-            }
 
-            if (!failedFilters.isEmpty())
-            {
-                doSendSessionState(traceId, failedFilters);
-            }
+                if (!failedFilters.isEmpty())
+                {
+                    doSendSessionState(traceId, failedFilters);
+                }
 
-            releaseDeferredUnsubscribes(traceId, authorization);
+                releaseDeferredUnsubscribes(traceId, authorization);
+            }
 
             return rejected;
+        }
+
+        private boolean rejectable(
+            MqttSubscribeStream stream)
+        {
+            final List<PendingSuback> awaiting = pendingSubacks.stream()
+                .filter(suback -> suback.streams.contains(stream))
+                .collect(Collectors.toList());
+
+            return !awaiting.isEmpty() && stream.subscriptions.stream()
+                .allMatch(subscription -> awaiting.stream().anyMatch(suback -> suback.subscriptions.contains(subscription)));
         }
 
         private MqttSubscribeStream openSharedSubscribeStream(
@@ -4474,7 +4487,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             return session.unAckedSubscriptions.stream()
                     .anyMatch(s -> s.filter.equals(topicFilter) && subscribePacketIds.containsKey(s.id)) ||
-                pendingSubacks.values().stream()
+                pendingSubacks.stream()
                     .anyMatch(suback -> suback.subscriptions.stream().anyMatch(s -> s.filter.equals(topicFilter)));
         }
 
@@ -7518,17 +7531,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW extension = reset.extension();
                 final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
-                final int reasonCode = mqttResetEx != null && mqttResetEx.reasonCode() != SUCCESS
-                    ? mqttResetEx.reasonCode()
-                    : UNSPECIFIED_ERROR;
+                final boolean reasoned = mqttResetEx != null && mqttResetEx.reasonCode() != SUCCESS;
+                final int subackReasonCode = reasoned ? mqttResetEx.reasonCode() : UNSPECIFIED_ERROR;
+                final int disconnectReasonCode = reasoned ? mqttResetEx.reasonCode() : IMPLEMENTATION_SPECIFIC_ERROR;
 
-                if (onSubscribeStreamRejected(traceId, authorization, this, reasonCode))
+                if (onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode))
                 {
                     doSubscribeReset(traceId);
                 }
                 else
                 {
-                    onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
+                    onDecodeError(traceId, authorization, disconnectReasonCode);
                     decoder = decodeIgnoreAll;
                     decodeNetwork(traceId);
                     cleanupAbort(traceId);
