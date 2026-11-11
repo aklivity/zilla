@@ -20,10 +20,18 @@ stores:
     type: test
     options:
       entries:
+        "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry": "0:2"
+        "zilla:test-mqtt0:memberships:client-1": ARsAAAABAAAACQBjb25zdW1lcnMKAHNlbnNvci9vbmU
         "zilla:test-mqtt0:tickets:client-1": ATkAAAABAAAAAQACCQBjb25zdW1lcnMKAHNlbnNvci9vbmUNAG1xdHQtbWVzc2FnZXMAAAAABQAAAAAAAAA
       assertions:
         - op: delete
           key: "zilla:test-mqtt0:tickets:client-1"
+        - op: delete
+          key: "zilla:test-mqtt0:memberships:client-1"
+        - op: replace
+          key: "zilla:test-mqtt0:share:consumers:c2Vuc29yL29uZQ:registry"
+          expected: "0:2"
+          value: "0:1"
 bindings:
   mqtt0:
     type: mqtt-kafka

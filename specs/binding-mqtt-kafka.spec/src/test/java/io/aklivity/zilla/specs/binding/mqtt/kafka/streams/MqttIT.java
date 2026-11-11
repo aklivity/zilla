@@ -1282,4 +1282,22 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared/client",
+        "${mqtt}/session.unsubscribe.shared/server"})
+    public void shouldUnsubscribeSharedAndLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.resubscribe.shared/client",
+        "${mqtt}/session.resubscribe.shared/server"})
+    public void shouldResubscribeSharedAfterLeaving() throws Exception
+    {
+        k3po.finish();
+    }
 }

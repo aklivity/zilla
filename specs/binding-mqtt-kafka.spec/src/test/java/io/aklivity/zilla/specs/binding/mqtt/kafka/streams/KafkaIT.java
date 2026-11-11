@@ -1437,4 +1437,22 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.unsubscribe.shared/client",
+        "${kafka}/session.unsubscribe.shared/server"})
+    public void shouldUnsubscribeSharedAndLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.resubscribe.shared/client",
+        "${kafka}/session.resubscribe.shared/server"})
+    public void shouldResubscribeSharedAfterLeaving() throws Exception
+    {
+        k3po.finish();
+    }
 }
