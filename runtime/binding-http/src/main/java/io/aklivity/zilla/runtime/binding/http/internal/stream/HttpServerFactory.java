@@ -8189,13 +8189,24 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .andThen(this::serverHeader)
                 .andThen(this::connectionHeaders);
 
+        private final Consumer<HttpHeaderFW> encodeAll = this::encodeAll;
+        private final Consumer<HttpHeaderFW> encodeIncluded = this::encodeIncluded;
+        private final Consumer<HpackHeaderFieldFW.Builder> encodeCurrent = this::encodeCurrent;
+        private final Consumer<HpackLiteralHeaderFieldFW.Builder> encodeCurrentLiteral = this::encodeCurrentLiteral;
+
+        private HpackHeaderBlockFW.Builder block;
+        private HttpHeaderFW encoding;
+        private DirectBufferEx literalName;
+        private DirectBufferEx literalValue;
+
         void encodePromise(
             HpackContext encodeContext,
             Array32FW<HttpHeaderFW> headers,
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+            block = headerBlock;
+            headers.forEach(encodeAll);
         }
 
         void encodeHeaders(
@@ -8216,13 +8227,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 headerBlock.header(b -> b.indexed(8));
             }
 
-            headers.forEach(h ->
-            {
-                if (includeHeader(h))
-                {
-                    headerBlock.header(b -> encodeHeader(h, b));
-                }
-            });
+            block = headerBlock;
+            headers.forEach(encodeIncluded);
 
             // add configured Server header if there is no Server header in response
             if (config.serverHeader() != null && !serverHeader)
@@ -8283,7 +8289,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+            block = headerBlock;
+            headers.forEach(encodeAll);
         }
 
         private void reset(HpackContext encodeContext)
@@ -8349,12 +8356,41 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             // Excluding header if nominated by connection header field
-            if (connectionHeaders.contains(name.asString()))
+            if (!connectionHeaders.isEmpty() && connectionHeaders.contains(name.asString()))
             {
                 return false;
             }
 
             return true;
+        }
+
+        private void encodeAll(
+            HttpHeaderFW header)
+        {
+            encoding = header;
+            block.header(encodeCurrent);
+        }
+
+        private void encodeIncluded(
+            HttpHeaderFW header)
+        {
+            if (includeHeader(header))
+            {
+                encoding = header;
+                block.header(encodeCurrent);
+            }
+        }
+
+        private void encodeCurrent(
+            HpackHeaderFieldFW.Builder builder)
+        {
+            encodeHeader(encoding, builder);
+        }
+
+        private void encodeCurrentLiteral(
+            HpackLiteralHeaderFieldFW.Builder builder)
+        {
+            encodeLiteral(builder, context, literalName, literalValue);
         }
 
         private void encodeHeader(
@@ -8371,7 +8407,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                builder.literal(literal -> encodeLiteral(literal, context, name.value(), value.value()));
+                literalName = name.value();
+                literalValue = value.value();
+                builder.literal(encodeCurrentLiteral);
             }
         }
 

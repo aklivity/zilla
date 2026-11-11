@@ -312,7 +312,7 @@ public class HpackContext
     {
         int index = staticIndex(name);
         // If there is no entry in static table, look in dynamic table
-        if (index == -1)
+        if (index == -1 && !name2Index.isEmpty())
         {
             Long id = name2Index.get(name);
             index = (id != null) ? idToIndex(id) : -1;
@@ -332,10 +332,10 @@ public class HpackContext
     {
         int index = staticIndex(name, value);
         // If there is no entry in static table, look in dynamic table
-        if (index == -1)
+        if (index == -1 && !namevalue2Index.isEmpty())
         {
             Long id = namevalue2Index.get(new NameValue(name, value));
-            return (id != null) ? idToIndex(id) : -1;
+            index = (id != null) ? idToIndex(id) : -1;
         }
         return index;
     }
