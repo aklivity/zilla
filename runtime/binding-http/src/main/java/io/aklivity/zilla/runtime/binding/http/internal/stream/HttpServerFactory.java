@@ -6058,7 +6058,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             Http2HeadersFW http2Trailers)
         {
-            final int streamId = http2Trailers.parentStream();
+            final int streamId = http2Trailers.streamId();
             final int dataLength = http2Trailers.dataLength();
 
             Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
@@ -7732,6 +7732,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     streamError = Http2ErrorCode.PROTOCOL_ERROR;
                     return;
                 }
+                collectHeaders(name, value);
             }
         }
 

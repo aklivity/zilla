@@ -203,4 +203,14 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.trailer/client",
+        "${app}/request.trailer/server" })
+    public void shouldForwardRequestTrailer() throws Exception
+    {
+        k3po.finish();
+    }
 }
