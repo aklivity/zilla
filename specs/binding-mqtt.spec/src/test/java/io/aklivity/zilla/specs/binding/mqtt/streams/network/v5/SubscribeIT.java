@@ -74,6 +74,7 @@ public class SubscribeIT
     }
 
     // [MQTT-2.2.1-3]
+
     @Test
     @Specification({
         "${net}/subscribe.reject.omitted.packet.id/client",
@@ -164,7 +165,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-
     @Test
     @Specification({
         "${net}/subscribe.reject.topic.filter.invalid.wildcard/client",
@@ -248,6 +248,7 @@ public class SubscribeIT
 
 
     //  [MQTT-3.3.2-15], [MQTT-3.3.2-16]
+
     @Test
     @Specification({
         "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
@@ -292,7 +293,6 @@ public class SubscribeIT
     {
         k3po.finish();
     }
-
 
     @Test
     @Specification({
@@ -626,6 +626,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Maximum QoS 3 is a Protocol Error
+
     @Test
     @Specification({
         "${net}/subscribe.reject.maximum.qos.3/client",
@@ -636,6 +637,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5]
+
     @Test
     @Specification({
         "${net}/subscribe.reject.reserved.option.bit.6/client",
@@ -646,6 +648,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5]
+
     @Test
     @Specification({
         "${net}/subscribe.reject.reserved.option.bit.7/client",
@@ -656,6 +659,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Retain Handling 3 is a Protocol Error
+
     @Test
     @Specification({
         "${net}/subscribe.reject.retain.handling.3/client",
@@ -666,6 +670,7 @@ public class SubscribeIT
     }
 
     // 2.2.1 [MQTT-2.2.1-3], 4.13.1 Protocol Error
+
     @Test
     @Specification({
         "${net}/subscribe.reject.packet.id.zero/client",
@@ -676,6 +681,7 @@ public class SubscribeIT
     }
 
     // 3.8.2.1.2 Subscription Identifier more than once is a Protocol Error
+
     @Test
     @Specification({
         "${net}/subscribe.reject.subscription.id.repeated/client",
@@ -765,6 +771,7 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${net}/subscribe.receive.message.subscription.id.112/client",
@@ -802,6 +809,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+
     @Test
     @Specification({
         "${net}/subscribe.reject.second.filter.reserved.option.bit.6/client",
@@ -812,6 +820,7 @@ public class SubscribeIT
     }
 
     // 1.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1], 3.8.3 filter that does not fit in the packet
+
     @Test
     @Specification({
         "${net}/subscribe.reject.second.filter.length.overruns.packet/client",
@@ -840,6 +849,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Maximum QoS 3 is a Protocol Error, earlier filters not subscribed
+
     @Test
     @Specification({
         "${net}/subscribe.reject.second.filter.maximum.qos.3/client",
@@ -877,6 +887,7 @@ public class SubscribeIT
     }
 
     // [MQTT-1.5.4-1]
+
     @Test
     @Specification({
         "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
@@ -1359,6 +1370,24 @@ public class SubscribeIT
         "${net}/subscribe.shared.subscription.disconnect/client",
         "${net}/subscribe.shared.subscription.disconnect/server"})
     public void shouldSubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.redeliver.message.qos1/client",
+        "${net}/subscribe.redeliver.message.qos1/server"})
+    public void shouldRedeliverMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.redeliver.message.qos2/client",
+        "${net}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
     {
         k3po.finish();
     }

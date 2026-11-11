@@ -38,7 +38,8 @@ scope mqtt
 
     enum MqttPublishFlags (uint8)
     {
-        RETAIN(0)
+        RETAIN(0),
+        DUP(1)
     }
 
     enum MqttPayloadFormat
