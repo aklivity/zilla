@@ -61,11 +61,6 @@ read  [0xa2 0x20]                       # UNSUBSCRIBE
       [0x00]                            # properties = none
       [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
 
-write [0xb0 0x04]                       # UNSUBACK
-      [0x00 0x02]                       # packet id = 2
-      [0x00]                            # properties = none
-      [0x00]                            # unsubscribe = success
-
 read  [0xe0 0x02]                       # DISCONNECT
       [0x00]                            # reason code
       [0x00]                            # properties
