@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 final class MqttKafkaTickets
 {
     private static final int HEADER_SIZE = 16;
-    private static final int TICKET_FIXED_SIZE = 32;
+    private static final int TICKET_FIXED_SIZE = 40;
     private static final int MAXIMUM_UTF8_BYTES_PER_CHAR = 3;
 
     private final MqttSharedTicketsFW.Builder ticketsRW = new MqttSharedTicketsFW.Builder();
@@ -52,6 +52,8 @@ final class MqttKafkaTickets
             .ticketsV1(v1 -> tickets.forEach(t -> v1.ticketsItem(i -> i
                 .packetId(t.packetId)
                 .state(s -> s.set(t.state))
+                .shareName(t.shareName)
+                .filter(t.filter)
                 .topic(t.topic)
                 .partitionId(t.partitionId)
                 .partitionOffset(t.partitionOffset))))
@@ -96,6 +98,8 @@ final class MqttKafkaTickets
         return new MqttKafkaTicket(
             ticket.packetId(),
             ticket.state().get(),
+            ticket.shareName().asString(),
+            ticket.filter().asString(),
             ticket.topic().asString(),
             ticket.partitionId(),
             ticket.partitionOffset());
@@ -108,7 +112,9 @@ final class MqttKafkaTickets
 
         for (int i = 0; i < tickets.size(); i++)
         {
-            capacity += TICKET_FIXED_SIZE + tickets.get(i).topic.length() * MAXIMUM_UTF8_BYTES_PER_CHAR;
+            final MqttKafkaTicket ticket = tickets.get(i);
+            capacity += TICKET_FIXED_SIZE +
+                (ticket.shareName.length() + ticket.filter.length() + ticket.topic.length()) * MAXIMUM_UTF8_BYTES_PER_CHAR;
         }
 
         return capacity;
