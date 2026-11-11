@@ -3940,8 +3940,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.generator = JsonEx.createGenerator();
             this.eventStart = NO_EVENT;
             this.pendingStart = NO_EVENT;
-            this.delimiterBytes = new byte[64];
-            this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
         }
 
         private long initialAvailable()
@@ -4530,6 +4528,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int KIND_MESSAGE = 1;
         private static final Predicate<String> LOGPROBS = MEMBER_LOGPROBS::equals;
         private static final Predicate<String> NOT_LOGPROBS = name -> !MEMBER_LOGPROBS.equals(name);
+        private static final String DELIMITER_CLOSE = ">";
         private static final String OBFUSCATION_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
         private static final int MEMBER_NONE = 0;
@@ -4586,8 +4585,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean messageClosed;
 
         private String reasoningTag;
-        private byte[] delimiterBytes;
-        private UnsafeBufferEx delimiterBuffer;
 
         private void doEncodeBegin()
         {
@@ -4808,19 +4805,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void encodeDelimiter(
             String prefix)
         {
-            final int length = prefix.length() + reasoningTag.length() + 1;
-
-            if (delimiterBytes.length < length)
+            if (server.streaming)
             {
-                delimiterBytes = new byte[length];
-                delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
+                dataChunkStart();
             }
 
-            int position = delimiterBuffer.putStringWithoutLengthAscii(0, prefix);
-            position += delimiterBuffer.putStringWithoutLengthAscii(position, reasoningTag);
-            position += delimiterBuffer.putStringWithoutLengthAscii(position, ">");
+            generator.writeSegment(prefix, 0, prefix.length());
+            generator.writeSegment(reasoningTag, 0, reasoningTag.length());
+            generator.writeSegment(DELIMITER_CLOSE, 0, DELIMITER_CLOSE.length());
 
-            onEncodeText(delimiterBuffer, 0, position);
+            if (server.streaming)
+            {
+                dataChunkEnd();
+            }
         }
 
         private void doEncodeEnd()
