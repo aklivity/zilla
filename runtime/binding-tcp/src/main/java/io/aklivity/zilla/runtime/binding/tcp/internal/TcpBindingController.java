@@ -123,8 +123,15 @@ final class TcpBindingController implements BindingController
             for (SocketChannel channel = server.accept(); channel != null; channel = server.accept())
             {
                 channel.configureBlocking(false);
-                channel.setOption(TCP_NODELAY, options.nodelay);
-                channel.setOption(SO_KEEPALIVE, options.keepalive);
+                if (options.nodelay)
+                {
+                    channel.setOption(TCP_NODELAY, true);
+                }
+
+                if (options.keepalive)
+                {
+                    channel.setOption(SO_KEEPALIVE, true);
+                }
 
                 InetSocketAddress local = (InetSocketAddress) channel.getLocalAddress();
 
