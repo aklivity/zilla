@@ -924,6 +924,39 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
+        "${kafka}/subscribe.shared.unsubscribe.release.qos1/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.release.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
+        "${kafka}/subscribe.shared.unsubscribe.release.qos2/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
+        "${kafka}/subscribe.shared.unsubscribe.inflight.then.release/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightThenRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
