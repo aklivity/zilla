@@ -198,4 +198,22 @@ public class UpstreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.inflight.qos1/client",
+        "${upstream}/unsubscribe.shared.inflight.qos1/server"})
+    public void shouldUnsubscribeSharedInflightQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${upstream}/unsubscribe.shared.inflight.qos2/client",
+        "${upstream}/unsubscribe.shared.inflight.qos2/server"})
+    public void shouldUnsubscribeSharedInflightQos2() throws Exception
+    {
+        k3po.finish();
+    }
 }

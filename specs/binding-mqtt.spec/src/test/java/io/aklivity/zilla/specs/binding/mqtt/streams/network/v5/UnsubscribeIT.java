@@ -202,4 +202,76 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.qos1/client",
+        "${net}/unsubscribe.shared.inflight.qos1/server"})
+    public void shouldUnsubscribeSharedInflightQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.qos2/client",
+        "${net}/unsubscribe.shared.inflight.qos2/server"})
+    public void shouldUnsubscribeSharedInflightQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.message/client",
+        "${net}/unsubscribe.shared.inflight.message/server"})
+    public void shouldUnsubscribeSharedInflightMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.fragmented/client",
+        "${net}/unsubscribe.shared.inflight.fragmented/server"})
+    public void shouldUnsubscribeSharedInflightFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.disconnect/client",
+        "${net}/unsubscribe.shared.inflight.disconnect/server"})
+    public void shouldUnsubscribeSharedInflightDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.resubscribe/client",
+        "${net}/unsubscribe.shared.inflight.resubscribe/server"})
+    public void shouldUnsubscribeSharedInflightResubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.stream.reset/client",
+        "${net}/unsubscribe.shared.inflight.stream.reset/server"})
+    public void shouldUnsubscribeSharedInflightStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.inflight.message.qos1/client",
+        "${net}/unsubscribe.inflight.message.qos1/server"})
+    public void shouldUnsubscribeInflightMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }
