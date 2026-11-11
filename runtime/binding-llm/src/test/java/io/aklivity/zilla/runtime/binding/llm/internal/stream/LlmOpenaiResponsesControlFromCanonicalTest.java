@@ -176,6 +176,15 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
+    public void shouldOpenStreamOptionsAfterPrecedingMember()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'stream_options':{'include_usage':true," +
+                "'openai/rs:include_obfuscation':false,'openai/rs:extra':1}}"),
+            json("{'temperature':0.7,'stream_options':{'include_obfuscation':false,'extra':1}}"));
+    }
+
+    @Test
     public void shouldRestoreSharedSamplingMembers()
     {
         assertTransforms(foreignMembers,
