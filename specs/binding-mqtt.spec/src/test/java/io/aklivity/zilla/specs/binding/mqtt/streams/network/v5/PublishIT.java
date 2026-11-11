@@ -466,6 +466,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${net}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.10k/client",
         "${net}/publish.10k/server"})
     public void shouldPublish10k() throws Exception
