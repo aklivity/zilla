@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.KE
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_SUBSCRIPTION_EXISTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_IDENTIFIER_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_TOO_LARGE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PAYLOAD_FORMAT_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
@@ -3873,8 +3874,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId)
         {
             MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
-            stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-            stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId);
+            if (stream != null)
+            {
+                stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                stream.doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId);
+            }
             doSignalKeepAliveTimeout(traceId);
         }
         private void onDecodePubrec(
@@ -3888,8 +3892,23 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (reasonCode < FAILURE_REASON_CODE_MIN)
             {
-                qos2Subscribes.get(packetId)
-                    .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+                MqttSubscribeStream stream = qos2Subscribes.get(packetId);
+                if (stream != null)
+                {
+                    stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+                }
+                else
+                {
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubrelV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrelV5(traceId, authorization, packetId, PACKET_IDENTIFIER_NOT_FOUND);
+                        break;
+                    }
+                }
                 doSignalKeepAliveTimeout(traceId);
             }
             else
@@ -3906,7 +3925,22 @@ public final class MqttServerFactory implements MqttStreamFactory
             int limit,
             int packetId)
         {
-            session.doSessionFlush(traceId, 0, packetId);
+            if (unreleasedPacketIds.contains(packetId))
+            {
+                session.doSessionFlush(traceId, 0, packetId);
+            }
+            else
+            {
+                switch (version)
+                {
+                case 4:
+                    doEncodePubcompV4(traceId, authorization, packetId);
+                    break;
+                case 5:
+                    doEncodePubcompV5(traceId, authorization, packetId, PACKET_IDENTIFIER_NOT_FOUND);
+                    break;
+                }
+            }
             doSignalKeepAliveTimeout(traceId);
         }
 
@@ -3919,8 +3953,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId)
         {
             MqttSubscribeStream stream = qos2Subscribes.remove(packetId);
-            stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-            stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
+            if (stream != null)
+            {
+                stream.doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                stream.doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
+            }
             doSignalKeepAliveTimeout(traceId);
         }
 
@@ -4968,7 +5005,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doEncodePubrelV5(
             long traceId,
             long authorization,
-            int packetId)
+            int packetId,
+            int reasonCode)
         {
             final MqttPubrelV5FW pubrel = mqttPubrelV5RW
                 .wrap(writeBuffer,
@@ -4976,7 +5014,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .typeAndFlags(PUBREL_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
+                .reasonCode(reasonCode & 0xff)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubrel);
@@ -5001,7 +5039,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doEncodePubcompV5(
             long traceId,
             long authorization,
-            int packetId)
+            int packetId,
+            int reasonCode)
         {
             final MqttPubcompV5FW pubcomp = mqttPubcompV5RW
                 .wrap(writeBuffer,
@@ -5009,7 +5048,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .typeAndFlags(PUBCOMP_FIXED_HEADER)
                 .remainingLength(3)
                 .packetId(packetId)
-                .reasonCode(SUCCESS)
+                .reasonCode(reasonCode & 0xff)
                 .build();
 
             doNetworkData(traceId, authorization, 0L, pubcomp);
@@ -5890,7 +5929,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doEncodePubcompV4(traceId, authorization, packetId);
                         break;
                     case 5:
-                        doEncodePubcompV5(traceId, authorization, packetId);
+                        doEncodePubcompV5(traceId, authorization, packetId, SUCCESS);
                         break;
                     }
                 }
@@ -7178,7 +7217,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doEncodePubrelV4(traceId, authorization, packetId);
                         break;
                     case 5:
-                        doEncodePubrelV5(traceId, authorization, packetId);
+                        doEncodePubrelV5(traceId, authorization, packetId, SUCCESS);
                         break;
                     }
                     qos2Subscribes.put(packetId, this);
