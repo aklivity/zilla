@@ -1070,4 +1070,13 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.flush.unknown.packet.id/client",
+        "${mqtt}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }

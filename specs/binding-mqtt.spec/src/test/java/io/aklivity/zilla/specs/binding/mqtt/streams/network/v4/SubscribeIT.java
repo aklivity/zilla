@@ -343,4 +343,31 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/ack.puback.unknown.packet.id/client",
+        "${net}/ack.puback.unknown.packet.id/server"})
+    public void shouldIgnorePubackWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubrec.unknown.packet.id/client",
+        "${net}/ack.pubrec.unknown.packet.id/server"})
+    public void shouldReleasePubrecWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubcomp.unknown.packet.id/client",
+        "${net}/ack.pubcomp.unknown.packet.id/server"})
+    public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -594,4 +594,24 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrel.retransmit.after.pubcomp/client",
+        "${app}/publish.qos2.ack.with.reasoncode/server"})
+    public void shouldCompletePubrelRetransmittedAfterPubcomp() throws Exception
+    {
+        k3po.finish();
+    }
 }

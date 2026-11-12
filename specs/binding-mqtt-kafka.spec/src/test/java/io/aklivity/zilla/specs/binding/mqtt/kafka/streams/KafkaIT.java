@@ -1275,4 +1275,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.flush.unknown.packet.id/client",
+        "${kafka}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }
