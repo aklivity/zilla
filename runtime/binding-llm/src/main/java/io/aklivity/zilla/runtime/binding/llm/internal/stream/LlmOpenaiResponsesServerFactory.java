@@ -140,7 +140,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final Map<String, StringEventPositions> PARSER_CONFIG =
         Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
-    private static final int RESPONSE_ENCODE_PADDING = 128;
+    private static final int RESPONSE_ENVELOPE = 2048;
+    private static final int RESPONSE_GROWTH = 2;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
@@ -158,7 +159,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int EMPTY_ARRAY_LENGTH = 2;
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
-    private static final int RESPONSE_ENCODE_SLACK = 2048;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
@@ -4943,7 +4943,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
+            replyMax = encodePool.slotCapacity() / RESPONSE_GROWTH;
 
             if (server.streaming && accumulator == null)
             {
@@ -5275,7 +5275,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .maximum(replyMax)
                 .traceId(traceId)
                 .budgetId(0L)
-                .padding(RESPONSE_ENCODE_PADDING)
+                .padding(RESPONSE_ENVELOPE)
                 .build();
 
             app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
