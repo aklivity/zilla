@@ -5918,7 +5918,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
 
                     byte reasonCode = SUCCESS;
-                    if (!connected)
+                    if (!connected && isSetWillFlag(connectFlags) && decodeWillQos(connectFlags) > publishQosMax.value())
+                    {
+                        doCancelConnectTimeout();
+                        doEncodeConnack(traceId, authorization, QOS_NOT_SUPPORTED, assignedClientId, false, null, null, version);
+                        doSessionEnd(traceId, EMPTY_OCTETS);
+                        doNetworkEnd(traceId, authorization);
+                        decoder = decodeIgnoreAll;
+                    }
+                    else if (!connected)
                     {
                         boolean sessionPresent = false;
                         if (sessionState != null)
