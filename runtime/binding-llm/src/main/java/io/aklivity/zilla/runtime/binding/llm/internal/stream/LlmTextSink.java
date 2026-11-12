@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 final class LlmTextSink implements JsonSink
 {
@@ -44,7 +45,7 @@ final class LlmTextSink implements JsonSink
         if (event == JsonEvent.VALUE_STRING)
         {
             final boolean deferred = source.deferredBytes();
-            final CharSequence chars = source.getStringView();
+            final JsonStringView chars = source.getStringView();
             final int length = chars.length();
 
             if (length > 0)

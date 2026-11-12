@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
+import java.util.function.Function;
+
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 
-// Always-available baseline: priority 0 so any other registered factory that reports itself available wins.
+// Always-available baseline: priority 0, so any other registered factory that answers a higher priority wins.
 public final class JsonTokenizerImplFactory implements JsonTokenizerFactory
 {
     @Override
@@ -28,14 +30,9 @@ public final class JsonTokenizerImplFactory implements JsonTokenizerFactory
     }
 
     @Override
-    public int priority()
+    public int priority(
+        Function<String, String> property)
     {
         return 0;
-    }
-
-    @Override
-    public boolean available()
-    {
-        return true;
     }
 }
