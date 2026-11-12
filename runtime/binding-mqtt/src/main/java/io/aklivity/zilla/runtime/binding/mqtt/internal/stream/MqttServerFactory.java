@@ -6903,6 +6903,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert initialSeq <= initialAck + initialMax;
             }
 
+            private void doSubscribeComplete(
+                long traceId,
+                int qos)
+            {
+                doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+
+                if (qos == 1)
+                {
+                    doSubscribeFlush(traceId, 0, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId);
+                }
+                else
+                {
+                    doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+                    doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
+                }
+            }
+
             private void doSubscribeFlushOrEnd(
                 long traceId,
                 List<Subscription> unsubscribed)
@@ -7040,6 +7057,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final MqttDataExFW subscribeDataEx = extension.get(mqttSubscribeDataExRO::tryWrap);
 
+                    boolean dropped = false;
+
                     if (payload != null && !subscriptions.isEmpty())
                     {
                         if (hasInit(flags))
@@ -7066,6 +7085,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             }
                             else
                             {
+                                dropped = true;
                                 droppedPublishBytes = deferred;
                                 droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                             }
@@ -7076,12 +7096,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         else
                         {
+                            dropped = true;
                             droppedPublishBytes -= payload.sizeof();
                             droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                         }
                     }
                     else
                     {
+                        dropped = true;
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
 
@@ -7093,6 +7115,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (qos == 0 || !hasFin(flags))
                     {
                         doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                    }
+                    else if (dropped)
+                    {
+                        doSubscribeComplete(traceId, qos);
                     }
                     else if (qos == 1)
                     {
