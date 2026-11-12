@@ -89,9 +89,10 @@ decode slot size, and is complete once the headers arrive on the FIN frame.
   entry is a local append sequence; the Kafka partition and offset, timestamp,
   delivery count, lock expiry and owning stream are kept beside the entry in
   `KafkaShareRecords` (one `KafkaShareRecord` per staged entry)
-- The staging directory is derived from the worker, group id and topic and is
-  deleted when the fan-out is created: the broker locks of a previous run have
-  expired, so nothing staged is worth keeping
+- The staging directory is derived from the worker, group id and topic as a
+  SHA-256 digest, so its name stays within the file name limit however long the
+  group id is, and is deleted when the fan-out is created: the broker locks of a
+  previous run have expired, so nothing staged is worth keeping
 - A segment is removed when the last record staged in it completes (acked,
   released, filtered, expired or discarded); the head segment is only rolled
   and removed once it is no longer the head, and `deleteAll` frees the rest

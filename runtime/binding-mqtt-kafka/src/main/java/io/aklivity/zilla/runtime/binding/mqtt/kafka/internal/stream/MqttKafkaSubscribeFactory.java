@@ -115,6 +115,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String SHARE_REGISTRY = "registry";
+    private static final String GROUP_ID_DELIMITER = ":";
+    private static final String GROUP_ID_SEPARATOR = ".";
     private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
     private static final String MQTT_MULTI_LEVEL_WILDCARD = "#";
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
@@ -4397,7 +4399,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         String pattern,
         long epoch)
     {
-        return shareKey(shareName, pattern, Long.toString(epoch));
+        final String encodedFilter = Base64.getUrlEncoder().withoutPadding().encodeToString(pattern.getBytes(UTF_8));
+        return String.format("%s.share.%s.%s.%d",
+            groupIdPrefix.replace(GROUP_ID_DELIMITER, GROUP_ID_SEPARATOR),
+            shareName.replace("%", "%25").replace(GROUP_ID_DELIMITER, "%3A"),
+            encodedFilter,
+            epoch);
     }
 
     private String shareRegistryKey(
