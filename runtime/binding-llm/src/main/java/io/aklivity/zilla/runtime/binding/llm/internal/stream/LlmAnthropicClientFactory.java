@@ -18,18 +18,13 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAnthropic
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.StringReader;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonException;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -203,6 +198,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String MEMBER_CONTENT_BLOCK = "content_block";
     private static final String MEMBER_DELTA = "delta";
     private static final String MEMBER_USAGE = "usage";
+    private static final byte[] USAGE_PREFIX = ("{\"" + NAME + ':' + MEMBER_USAGE + "\":").getBytes(UTF_8);
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_THINKING = "thinking";
@@ -682,7 +678,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlDepth;
         private LlmAnthropicResponseDecoder controlThen;
-        private JsonObject usageMerged;
+        private int usageSlot = NO_SLOT;
         private String knownToolId;
         private String knownToolName;
 
@@ -955,6 +951,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             http.doNetAbort(traceId);
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
         }
@@ -983,6 +980,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupEncodeSlot();
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
@@ -2230,8 +2228,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    endUsage();
-                    decoder = usageThen;
+                    if (endUsage())
+                    {
+                        decoder = usageThen;
+                    }
                 }
                 else
                 {
@@ -3137,41 +3137,64 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             decoder = decodeUsageStart;
         }
 
-        private void endUsage()
+        private boolean endUsage()
         {
+            boolean merged = true;
+
             if (controlFrom != NONE)
             {
                 flushControl(position());
 
-                final MutableDirectBufferEx slot = encodePool.buffer(controlSlot);
-                final int from = controlEntry + CONTROL_HEADER;
-                final String member = slot.getStringWithoutLengthUtf8(from, controlSlotOffset - from) + "}";
-
-                try (JsonReader reader = Json.createReader(new StringReader(member)))
+                if (usageSlot == NO_SLOT)
                 {
-                    final JsonObjectBuilder merged = usageMerged != null
-                        ? Json.createObjectBuilder(usageMerged)
-                        : Json.createObjectBuilder();
+                    usageSlot = holdPool.acquire(replyId);
 
-                    reader.readObject().getJsonObject(NAME + ':' + MEMBER_USAGE).forEach(merged::add);
-                    usageMerged = merged.build();
+                    if (usageSlot != NO_SLOT)
+                    {
+                        LlmUsageMerge.reset(holdPool.buffer(usageSlot));
+                    }
                 }
 
-                cancelControl();
+                merged = usageSlot != NO_SLOT &&
+                    LlmUsageMerge.merge(holdPool.buffer(usageSlot), holdPool.slotCapacity(),
+                        encodePool.buffer(controlSlot), controlEntry + CONTROL_HEADER, controlSlotOffset);
+
+                if (merged)
+                {
+                    cancelControl();
+                }
+                else
+                {
+                    cleanup(http.decodeTraceId);
+                }
             }
+
+            return merged;
         }
 
         private void emitUsage()
         {
-            if (usageMerged != null)
+            if (usageSlot != NO_SLOT)
             {
-                final byte[] member = ("{\"" + NAME + ':' + MEMBER_USAGE + "\":" + usageMerged + "}").getBytes(UTF_8);
-                final UnsafeBufferEx buffer = new UnsafeBufferEx(member);
+                final MutableDirectBufferEx slot = holdPool.buffer(usageSlot);
+                final int length = LlmUsageMerge.compose(slot, holdPool.slotCapacity(), USAGE_PREFIX);
 
-                doAppFrame(http.decodeTraceId, Flags.COMPLETE, LlmSectionType.CONTROL, ROOT_CONTROL, null, null,
-                    buffer, 0, member.length);
+                if (length != NONE)
+                {
+                    doAppFrame(http.decodeTraceId, Flags.COMPLETE, LlmSectionType.CONTROL, ROOT_CONTROL, null, null,
+                        slot, LlmUsageMerge.composedAt(slot), length);
+                }
 
-                usageMerged = null;
+                cleanupUsageSlot();
+            }
+        }
+
+        private void cleanupUsageSlot()
+        {
+            if (usageSlot != NO_SLOT)
+            {
+                holdPool.release(usageSlot);
+                usageSlot = NO_SLOT;
             }
         }
 
@@ -3679,6 +3702,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                     cleanupEncodeSlot();
                     cleanupControlSlot();
+                    cleanupUsageSlot();
                 }
             }
         }
@@ -3717,6 +3741,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 cleanupEncodeSlot();
                 cleanupControlSlot();
+                cleanupUsageSlot();
             }
         }
 
@@ -3842,6 +3867,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             cleanupEncodeSlot();
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
