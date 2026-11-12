@@ -49,6 +49,33 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.non.clean.start/client",
+        "${app}/session.connect.non.clean.start/server"})
+    public void shouldConnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.clean.start/client",
+        "${app}/session.connect.clean.start/server"})
+    public void shouldConnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.with.session.expiry.never/client",
+        "${app}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.redirect.support/client",
         "${app}/session.connect.redirect.support/server"})
     public void shouldConnectSupportSharding() throws Exception

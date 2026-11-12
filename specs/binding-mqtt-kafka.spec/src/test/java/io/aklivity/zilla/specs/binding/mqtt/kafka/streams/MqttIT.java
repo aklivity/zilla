@@ -553,6 +553,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.reconnect.non.expiring/client",
+        "${mqtt}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.large.interval/client",
+        "${mqtt}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.immediately/client",
+        "${mqtt}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.state/client",
         "${mqtt}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception

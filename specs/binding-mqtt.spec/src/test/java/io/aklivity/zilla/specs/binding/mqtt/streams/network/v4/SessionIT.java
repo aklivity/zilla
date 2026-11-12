@@ -49,6 +49,24 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.connect.non.clean.start/client",
+        "${net}/session.connect.non.clean.start/server"})
+    public void shouldConnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.connect.clean.start/client",
+        "${net}/session.connect.clean.start/server"})
+    public void shouldConnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.client.takeover/client",
         "${net}/session.client.takeover/server"})
     public void shouldTakeOverSession() throws Exception

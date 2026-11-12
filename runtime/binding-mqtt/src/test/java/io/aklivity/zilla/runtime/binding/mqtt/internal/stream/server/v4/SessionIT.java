@@ -176,6 +176,26 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.connect.non.clean.start/client",
+        "${app}/session.connect.non.clean.start/server"})
+    public void shouldConnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.connect.clean.start/client",
+        "${app}/session.connect.clean.start/server"})
+    public void shouldConnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.abort.reconnect.non.clean.start/client",
         "${app}/session.abort.reconnect.non.clean.start/server"})
     public void shouldClientAbortAndReconnectWithNonCleanStart() throws Exception

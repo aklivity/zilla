@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.connect.with.session.expiry.never/client",
+        "${net}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.connect.override.session.expiry/client",
         "${net}/session.connect.override.session.expiry/server"})
     public void shouldConnectServerOverridesSessionExpiry() throws Exception

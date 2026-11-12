@@ -614,6 +614,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.reconnect.non.expiring/client",
+        "${kafka}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.large.interval/client",
+        "${kafka}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.immediately/client",
+        "${kafka}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
