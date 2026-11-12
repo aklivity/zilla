@@ -613,4 +613,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client",
+        "${app}/connect.will.reject.will.qos.2.session.reply.publish.maximum.qos.1/server"})
+    public void shouldRejectWillQos2WhenSessionReplyPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }
