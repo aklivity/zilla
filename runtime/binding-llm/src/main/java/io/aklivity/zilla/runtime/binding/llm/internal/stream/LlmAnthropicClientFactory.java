@@ -72,6 +72,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -4248,7 +4249,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -4646,7 +4647,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void putEscaped(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
