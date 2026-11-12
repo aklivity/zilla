@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_ID_NAME;
@@ -420,6 +421,67 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.capabilities.shared.available/client",
+        "${kafka}/session.capabilities/server"})
+    public void shouldReceiveSessionCapabilitiesSharedAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
+        "${kafka}/session.capabilities/server"})
+    public void shouldReceiveSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.disabled/client",
+        "${kafka}/session.capabilities/server"})
+    public void shouldReceiveSessionCapabilitiesSharedUnavailableDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.shared.cap.qos/client",
+        "${kafka}/session.subscribe.shared.cap.qos/server"})
+    public void shouldSessionSubscribeSharedCapQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.reconnect.shared.subscription/client",
+        "${kafka}/session.reconnect.shared.subscription/server"})
+    public void shouldSessionReconnectSharedSubscription() throws Exception
     {
         k3po.finish();
     }

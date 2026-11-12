@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 
 import org.agrona.collections.IntArrayList;
 
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -98,6 +99,12 @@ public class MqttKafkaHeaderHelper
     public void visit(
         KafkaMergedDataExFW dataEx)
     {
+        visit(dataEx != null ? dataEx.fetch().headers() : null);
+    }
+
+    public void visit(
+        Array32FW<KafkaHeaderFW> headers)
+    {
         this.timeout = -1;
         this.contentType = null;
         this.format = null;
@@ -105,9 +112,9 @@ public class MqttKafkaHeaderHelper
         this.correlation = null;
         this.qos = null;
         this.userPropertiesOffsets = new IntArrayList();
-        if (dataEx != null)
+        if (headers != null)
         {
-            dataEx.fetch().headers().matchFirst(this::dispatch);
+            headers.matchFirst(this::dispatch);
         }
     }
 

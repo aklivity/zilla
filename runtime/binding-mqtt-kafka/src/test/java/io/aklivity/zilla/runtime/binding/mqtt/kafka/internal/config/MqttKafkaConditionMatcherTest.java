@@ -14,13 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcherTest
 {
@@ -28,8 +28,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchSimpleConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic/name")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic/name")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -48,8 +49,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchSimpleConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic/name")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic/name")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -63,8 +65,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchSimpleConditions2()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -83,8 +86,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchSimpleConditions2()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("/some/hierarchical/topic")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("/some/hierarchical/topic")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -98,8 +102,9 @@ public class MqttKafkaConditionMatcherTest
     public void shouldMatchWildcardConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("device/#")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("device/#")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
@@ -115,13 +120,133 @@ public class MqttKafkaConditionMatcherTest
     public void shouldNotMatchWildcardConditions()
     {
         MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
-            .topic("device/#")
-            .kind(MqttKafkaConditionKind.SUBSCRIBE)
+            .subscribe()
+                .topic("device/#")
+                .build()
             .build();
         MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
 
         assertFalse(matcher.matches("/device/one"));
         assertFalse(matcher.matches("devices/one"));
         assertFalse(matcher.matches("/#"));
+    }
+
+    @Test
+    public void shouldMatchShareExact()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("sensor/one", "consumers"));
+        assertFalse(matcher.matches("sensor/one", "consumers2"));
+        assertFalse(matcher.matches("sensor/one", "other"));
+        assertFalse(matcher.matches("sensor/two", "consumers"));
+    }
+
+    @Test
+    public void shouldNotMatchShareConditionWhenNotShared()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertFalse(matcher.matches("sensor/one", null));
+    }
+
+    @Test
+    public void shouldMatchShareWildcard()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("*")
+                .build()
+            .subscribe()
+                .topic("sensor/two")
+                .share("group-*")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("sensor/one", "consumers"));
+        assertTrue(matcher.matches("sensor/two", "group-1"));
+        assertFalse(matcher.matches("sensor/two", "consumers"));
+        assertFalse(matcher.matches("sensor/one", null));
+    }
+
+    @Test
+    public void shouldMatchSharedAndNonSharedWhenShareOmitted()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("sensor/one", null));
+        assertTrue(matcher.matches("sensor/one", "consumers"));
+    }
+
+    @Test
+    public void shouldMatchTopicIgnoringShare()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("sensor/one"));
+    }
+
+    @Test
+    public void shouldPairEachTopicWithItsShare()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("device/#")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("sensor/one", "consumers"));
+        assertFalse(matcher.matches("sensor/one", "other"));
+        assertTrue(matcher.matches("device/one", null));
+        assertTrue(matcher.matches("device/one", "other"));
+    }
+
+    @Test
+    public void shouldResolveParameterOfMatchedShareTopic()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("sensor/one")
+                .share("consumers")
+                .build()
+            .subscribe()
+                .topic("device/{id}")
+                .share("consumers")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches("device/one", "consumers"));
+        assertEquals("one", matcher.parameter("id"));
     }
 }

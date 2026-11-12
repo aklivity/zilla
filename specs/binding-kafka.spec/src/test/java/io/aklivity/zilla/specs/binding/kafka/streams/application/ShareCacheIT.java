@@ -93,6 +93,24 @@ public class ShareCacheIT
 
     @Test
     @Specification({
+        "${app}/receive.message.key.with.header.10k/client",
+        "${app}/receive.message.key.with.header.10k/server"})
+    public void shouldReceiveMessageKeyWithHeader10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/member.receive.message.key.with.header.10k/client",
+        "${app}/member.receive.message.key.with.header.10k/server"})
+    public void shouldMemberReceiveMessageKeyWithHeader10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/receive.message.values.outside.acquired/client",
         "${app}/receive.message.values.outside.acquired/server"})
     public void shouldReceiveMessageValuesOutsideAcquired() throws Exception
