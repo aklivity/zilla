@@ -39,6 +39,15 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${net}/connect.reject.will.retain.not.supported/client",
+        "${net}/connect.reject.will.retain.not.supported/server"})
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connect.successful/client",
         "${net}/connect.successful/server"})
     public void shouldConnect() throws Exception

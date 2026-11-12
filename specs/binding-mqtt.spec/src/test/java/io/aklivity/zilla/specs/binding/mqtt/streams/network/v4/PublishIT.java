@@ -39,6 +39,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.reject.retain.not.supported/client",
+        "${net}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages/client",
         "${net}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception

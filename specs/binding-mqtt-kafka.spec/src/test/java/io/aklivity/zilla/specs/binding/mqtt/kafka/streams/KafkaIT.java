@@ -1233,6 +1233,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.retained.topic.not.compacted/client",
+        "${kafka}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.publish.qos.max.0/client",
         "${kafka}/session.publish.qos.max.0/server"})
     public void shouldAdvertisePublishQosMax0() throws Exception

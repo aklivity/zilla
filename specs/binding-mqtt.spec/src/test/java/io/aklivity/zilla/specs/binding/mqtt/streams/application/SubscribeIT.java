@@ -39,6 +39,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.retained.not.supported/client",
+        "${app}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     public void shouldFilterExact() throws Exception

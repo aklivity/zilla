@@ -61,6 +61,16 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connect.reject.will.retain.not.supported/client",
+        "${app}/connect.reject.will.retain.not.supported/server"})
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connect.successful/client",
         "${app}/session.connect/server"})
     public void shouldConnect() throws Exception
