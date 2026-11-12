@@ -667,6 +667,26 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.resubscribe.identical/client",
+        "${app}/subscribe.resubscribe.identical/server"})
+    public void shouldSubscribeResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.identical/client",
+        "${app}/subscribe.shared.resubscribe.identical/server"})
+    public void shouldSubscribeSharedResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.reject.shared.subscription.name.empty/client",
         "${app}/session.connect/server"})
     public void shouldSubscribeRejectSharedSubscriptionNameEmpty() throws Exception
