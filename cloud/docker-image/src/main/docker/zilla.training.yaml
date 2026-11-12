@@ -101,6 +101,18 @@ bindings:
     routes:
       - when:
           - headers:
+              :path: /ws
+        exit: ws_server0
+      - when:
+          - headers:
+              :path: /files/*
+        exit: http_filesystem0
+      - when:
+          - headers:
+              :path: /echo*
+        exit: echo_server0
+      - when:
+          - headers:
               :path: /sse/*
         exit: sse_server0
       - when:
@@ -180,3 +192,47 @@ bindings:
     options:
       host: 127.0.0.1
       port: 9092
+  echo_server0:
+    type: echo
+    kind: server
+  ws_server0:
+    type: ws
+    kind: server
+    exit: echo_server0
+  http_filesystem0:
+    type: http-filesystem
+    kind: proxy
+    routes:
+      - when:
+          - path: /files/{path}
+        exit: filesystem_server0
+        with:
+          path: ${params.path}
+  filesystem_server0:
+    type: filesystem
+    kind: server
+    options:
+      location: /opt/zilla/.zilla/
+  tcp_server2:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7186
+    exit: proxy_server0
+  proxy_server0:
+    type: proxy
+    kind: server
+    exit: echo_server0
+  tls_client0:
+    type: tls
+    kind: client
+    options:
+      trustcacerts: true
+    exit: tcp_client1
+  tcp_client1:
+    type: tcp
+    kind: client
+    options:
+      host: 127.0.0.1
+      port: 9443

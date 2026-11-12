@@ -19,6 +19,14 @@ set -eu
 engine_directory=/var/run/zilla
 aot_cache=/opt/zilla/zilla.aot
 
+exchange()
+{
+    exec 3<>"/dev/tcp/127.0.0.1/$1"
+    printf "$2" >&3
+    timeout 2 cat <&3 > /dev/null || true
+    exec 3>&-
+}
+
 JAVA_OPTIONS="-XX:AOTCacheOutput=$aot_cache" /opt/zilla/zilla start -c /opt/zilla/zilla.training.yaml &
 zilla=$!
 
@@ -30,15 +38,11 @@ do
 done
 [ -f "$engine_directory/ready" ]
 
-exec 3<>/dev/tcp/127.0.0.1/7114
-printf 'GET /items HTTP/1.1\r\nHost: localhost:7114\r\nConnection: close\r\n\r\n' >&3
-timeout 2 cat <&3 > /dev/null || true
-exec 3>&-
-
-exec 3<>/dev/tcp/127.0.0.1/7183
-printf '\x10\x12\x00\x04MQTT\x04\x02\x00\x3c\x00\x06client' >&3
-timeout 2 cat <&3 > /dev/null || true
-exec 3>&-
+exchange 7114 'GET /items HTTP/1.1\r\nHost: localhost:7114\r\nConnection: close\r\n\r\n'
+exchange 7114 'GET /echo HTTP/1.1\r\nHost: localhost:7114\r\nConnection: close\r\n\r\n'
+exchange 7114 'GET /files/zilla.properties HTTP/1.1\r\nHost: localhost:7114\r\nConnection: close\r\n\r\n'
+exchange 7114 'GET /ws HTTP/1.1\r\nHost: localhost:7114\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n'
+exchange 7186 '\r\n\r\n\x00\r\nQUIT\n\x21\x11\x00\x0c\x7f\x00\x00\x01\x7f\x00\x00\x01\x04\xd2\x1c\x12hello\n'
 
 kill -TERM "$zilla"
 wait "$zilla" || true
