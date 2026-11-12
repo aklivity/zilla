@@ -86,7 +86,6 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
@@ -99,7 +98,6 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.log.event.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.reject.non.compacted.sessions.topic/client",
         "${kafka}/session.reject.non.compacted.sessions.topic/server"})
