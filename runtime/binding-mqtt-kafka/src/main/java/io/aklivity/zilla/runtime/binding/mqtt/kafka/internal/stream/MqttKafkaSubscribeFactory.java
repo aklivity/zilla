@@ -4753,7 +4753,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                     .topic(ticket.topic)
                     .partitionsItem(p -> p
                         .partitionId(ticket.partitionId)
-                        .partitionOffset(ticket.partitionOffset)))
+                        .partitionOffset(ticket.partitionOffset)
+                        .stableOffset(KafkaOffsetType.HISTORICAL.value())
+                        .latestOffset(KafkaOffsetType.HISTORICAL.value())))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
