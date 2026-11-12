@@ -30,6 +30,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .expiry(-1)
+                                .publishQosMax(1)
                                 .build()
                              .build()}
 
@@ -75,6 +76,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .expiry(-1)
+                                .publishQosMax(1)
                                 .build()
                              .build()}
 

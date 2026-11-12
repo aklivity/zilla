@@ -30,6 +30,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .expiry(0)
+                                .publishQosMax(1)
                                 .build()
                              .build()}
 
