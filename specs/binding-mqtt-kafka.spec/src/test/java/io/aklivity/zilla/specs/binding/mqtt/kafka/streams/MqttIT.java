@@ -869,6 +869,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message/client",
+        "${mqtt}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
