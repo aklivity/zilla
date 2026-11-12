@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -26,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -74,15 +76,17 @@ public class ZillaStartupBM
     private static final Duration HEALTHY_TIMEOUT = Duration.ofMinutes(2);
     private static final DateTimeFormatter STAT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSSSS xx");
 
-    @Param("ghcr.io/aklivity/zilla:develop-SNAPSHOT")
+    @Param("")
     public String image;
 
+    private String imageName;
     private Path config;
     private String container;
 
     @Setup(Level.Trial)
     public void writeConfig() throws IOException
     {
+        imageName = image.isEmpty() ? defaultImage() : image;
         config = Files.createTempDirectory("zilla-startup").resolve("zilla.yaml");
         Files.writeString(config, CONFIG);
     }
@@ -103,7 +107,7 @@ public class ZillaStartupBM
             "--health-interval", "50ms",
             "--health-start-interval", "50ms",
             "--health-start-period", "2m",
-            image, "start", "-c", CONTAINER_CONFIG);
+            imageName, "start", "-c", CONTAINER_CONFIG);
         docker("cp", config.toString(), container + ":" + CONTAINER_CONFIG);
     }
 
@@ -143,6 +147,17 @@ public class ZillaStartupBM
             Thread.sleep(25);
             state = docker("inspect", "-f", "{{.State.Status}} {{.State.Health.Status}}", container);
         }
+    }
+
+    private static String defaultImage() throws IOException
+    {
+        final Properties properties = new Properties();
+        try (InputStream input = ZillaStartupBM.class.getResourceAsStream("ZillaStartupBM.properties"))
+        {
+            properties.load(input);
+        }
+
+        return properties.getProperty("image");
     }
 
     private static String docker(
