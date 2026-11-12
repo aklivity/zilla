@@ -333,6 +333,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:qos", "2")
+                               .header("zilla:retain", "1")
                                .build()
                            .build()}
 write "message"
@@ -386,6 +387,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:qos", "2")
+                               .header("zilla:retain", "1")
                                .build()
                            .build()}
 write "message"
