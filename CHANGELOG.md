@@ -147,10 +147,17 @@
 - test\(binding-llm\): add llm proxy EngineBench benchmark [\#3095](https://github.com/aklivity/zilla/pull/3095) ([jfallows](https://github.com/jfallows))
 - perf\(binding-http\): decode h1 client response head from bytes [\#3097](https://github.com/aklivity/zilla/pull/3097) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): skip vertical tab and form feed before h1 server header value [\#3098](https://github.com/aklivity/zilla/pull/3098) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): remove the responses dialect's per-stream scratch arrays [\#3105](https://github.com/aklivity/zilla/pull/3105) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): hand text to the generator as chars in the remaining dialects [\#3108](https://github.com/aklivity/zilla/pull/3108) ([jfallows](https://github.com/jfallows))
+- test\(binding-llm\): benchmark the server and client of every llm dialect [\#3121](https://github.com/aklivity/zilla/pull/3121) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): size default maximum connections from worker capacity [\#3124](https://github.com/aklivity/zilla/pull/3124) ([ankitk-me](https://github.com/ankitk-me))
 - refactor\(common-json\): report token spans and scope markers through the tokenizer SPI [\#3126](https://github.com/aklivity/zilla/pull/3126) ([jfallows](https://github.com/jfallows))
 - fix\(incubator\): list common-lang in the incubator NOTICE [\#3139](https://github.com/aklivity/zilla/pull/3139) ([jfallows](https://github.com/jfallows))
 - fix\(binding-tls\): leave key caching to the vault that owns the keys [\#3140](https://github.com/aklivity/zilla/pull/3140) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): merge anthropic and gemini usage without the object model [\#3141](https://github.com/aklivity/zilla/pull/3141) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): forward text to the provider as the app wrote it [\#3142](https://github.com/aklivity/zilla/pull/3142) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): stream anthropic and gemini text without per-stream buffering [\#3143](https://github.com/aklivity/zilla/pull/3143) ([jfallows](https://github.com/jfallows))
+- perf\(binding-llm\): hold one pending event in the anthropic server [\#3144](https://github.com/aklivity/zilla/pull/3144) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
