@@ -291,4 +291,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.publish.qos.max.per.connection/client",
+        "${net}/session.publish.qos.max.per.connection/server"})
+    public void shouldRejectPublishQosAboveSessionMaximumPerConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }

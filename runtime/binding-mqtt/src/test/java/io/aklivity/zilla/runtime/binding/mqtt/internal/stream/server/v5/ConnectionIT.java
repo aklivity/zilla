@@ -524,4 +524,61 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.publish/client",
+        "${app}/connect.max.packet.size.other.connection.publish/server"})
+    public void shouldPublishLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.subscribe/client",
+        "${app}/connect.max.packet.size.other.connection.subscribe/server"})
+    public void shouldSubscribeLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.maximum.packet.size.repeated/client"})
+    public void shouldRejectRepeatedMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/client",
+        "${app}/connect.max.packet.size.exceeded.by.packet.overhead/server"})
+    public void shouldDropPublishWhenPacketExceedsMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.receive.maximum.zero/client"})
+    public void shouldRejectZeroReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.receive.maximum.repeated/client"})
+    public void shouldRejectRepeatedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
 }
