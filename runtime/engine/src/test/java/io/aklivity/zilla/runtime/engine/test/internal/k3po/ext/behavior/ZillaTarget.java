@@ -709,7 +709,7 @@ final class ZillaTarget implements AutoCloseable
             ChannelBuffer writeBuf = (ChannelBuffer) writeRequest.getMessage();
 
             ChannelBuffer writeExt = channel.writeExtBuffer(DATA, true);
-            if (writeBuf.readable() || writeExt.readable() || writeBuf == EMPTY_BUFFER)
+            if (writeBuf.readable() || writeExt.readable() || writeBuf == EMPTY_BUFFER || writeBuf == NULL_BUFFER)
             {
                 boolean flushed = flushData(channel, writeBuf, writeExt);
                 if (!flushed)

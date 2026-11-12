@@ -780,4 +780,24 @@ public class DuplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "client.write.null.data.and.server.read.null.data/client",
+        "client.write.null.data.and.server.read.null.data/server"
+    })
+    public void shouldReceiveClientWrittenNullDataAndServerReadNullData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "server.write.null.data.and.client.read.null.data/client",
+        "server.write.null.data.and.client.read.null.data/server"
+    })
+    public void shouldReceiveServerWrittenNullDataAndClientReadNullData() throws Exception
+    {
+        k3po.finish();
+    }
 }
