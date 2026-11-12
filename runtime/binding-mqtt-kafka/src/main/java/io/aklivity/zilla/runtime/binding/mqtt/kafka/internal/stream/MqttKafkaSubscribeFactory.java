@@ -29,6 +29,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
@@ -1298,12 +1299,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
-                        if (expireInterval < 0)
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        if (remainingMillis < 0)
                         {
                             expiredMessage = true;
                             break sendData;
                         }
+                        expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
                     }
                     else
                     {
@@ -2074,12 +2076,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
-                        if (expireInterval < 0)
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        if (remainingMillis < 0)
                         {
                             expiredMessage = true;
                             break sendData;
                         }
+                        expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
                     }
                     else
                     {
