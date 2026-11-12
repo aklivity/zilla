@@ -400,4 +400,37 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenOptionsPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.0.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0WhenOptionsPublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenMessagesWithParams() throws Exception
+    {
+        k3po.finish();
+    }
 }

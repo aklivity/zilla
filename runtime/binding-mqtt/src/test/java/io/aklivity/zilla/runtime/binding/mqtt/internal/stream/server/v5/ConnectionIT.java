@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CLIENT_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CONNECT_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_QOS_MAX_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -578,6 +579,36 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.receive.maximum.repeated/client"})
     public void shouldRejectRepeatedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.publish.maximum.qos.1/client",
+        "${app}/connect.publish.maximum.qos.1/server"})
+    public void shouldConnectWithPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.publish.maximum.qos.0/client",
+        "${app}/connect.publish.maximum.qos.0/server"})
+    public void shouldConnectWithPublishMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = PUBLISH_QOS_MAX_NAME, value = "at_least_once")
+    @Specification({
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client"})
+    public void shouldRejectWillQos2WhenPublishMaximumQos1() throws Exception
     {
         k3po.finish();
     }

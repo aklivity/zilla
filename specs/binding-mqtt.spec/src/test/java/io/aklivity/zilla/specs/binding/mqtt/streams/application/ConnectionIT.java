@@ -144,4 +144,22 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/connect.publish.maximum.qos.1/client",
+        "${app}/connect.publish.maximum.qos.1/server"})
+    public void shouldConnectWithPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.publish.maximum.qos.0/client",
+        "${app}/connect.publish.maximum.qos.0/server"})
+    public void shouldConnectWithPublishMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
 }
