@@ -13,42 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .describe()
-                                .topic("mqtt-retained")
-                                .config("cleanup.policy")
-                                .build()
-                            .build()}
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .describe()
-                                .topic("mqtt-retained")
-                                .config("cleanup.policy")
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .describe()
-                               .config("cleanup.policy", "compact")
-                               .build()
-                           .build()}
-read notify RETAINED_TOPIC_DESCRIBED
-
-write close
-read closed
-
-
-connect await RETAINED_TOPIC_DESCRIBED "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
@@ -132,6 +97,39 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write flush
+
+
+connect
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .describe()
+                               .config("cleanup.policy", "compact")
+                               .build()
+                           .build()}
+
+write close
 
 
 connect

@@ -20,6 +20,26 @@ accept "zilla://streams/kafka0"
 
 accepted
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .filter()
+                                    .header("type", "will-signal")
+                                    .build()
+                                .filter()
+                                    .header("type", "expiry-signal")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+read abort
+
+accepted
+
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .describe()
@@ -49,26 +69,6 @@ write flush
 read closed
 write close
 
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_AND_FETCH")
-                                .topic("mqtt-sessions")
-                                .filter()
-                                    .header("type", "will-signal")
-                                    .build()
-                                .filter()
-                                    .header("type", "expiry-signal")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-read abort
 
 accepted
 
