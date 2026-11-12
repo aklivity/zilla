@@ -7050,10 +7050,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                             switch (version)
                             {
                             case 4:
-                                frameLength = encodePublishV4(traceId, authorization, subscriptions, payload, subscribeDataEx, qos);
+                                frameLength = encodePublishV4(traceId, authorization, subscriptions, payload,
+                                    subscribeDataEx, qos);
                                 break;
                             case 5:
-                                frameLength = encodePublishV5(traceId, authorization, subscriptions, payload, subscribeDataEx, qos);
+                                frameLength = encodePublishV5(traceId, authorization, subscriptions, payload,
+                                    subscribeDataEx, qos);
                                 break;
                             }
 
