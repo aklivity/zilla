@@ -2629,7 +2629,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutId = NO_CANCEL_ID;
         private long keepAliveTimeoutAt;
 
-        private int subscribeQosMax;
         private MqttQoS publishQosMax = publishQosMaxDefault;
         private int clientMaximumPacketSize = Integer.MAX_VALUE;
         private int packetSizeMax;
@@ -5103,12 +5102,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
 
-                final int maximumQos = Math.min(subscribeQosMax, publishQosMax.value());
-                if (maximumQos < 2)
+                if (publishQosMax != MqttQoS.EXACTLY_ONCE)
                 {
                     mqttProperty = mqttPropertyRW
                         .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .maximumQoS((byte) maximumQos)
+                        .maximumQoS((byte) publishQosMax.value())
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -5841,7 +5839,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
-                    subscribeQosMax = mqttSessionBeginEx.subscribeQosMax();
                     publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     if (packetIds != null)
                     {
