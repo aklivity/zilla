@@ -785,6 +785,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.qos2.offset.fetch.data.then.caught.up/client",
+        "${kafka}/session.qos2.offset.fetch.data.then.caught.up/server"})
+    public void shouldSessionQos2OffsetFetchDataThenCaughtUp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.clean.start.abort.zero.window/client",
         "${kafka}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception

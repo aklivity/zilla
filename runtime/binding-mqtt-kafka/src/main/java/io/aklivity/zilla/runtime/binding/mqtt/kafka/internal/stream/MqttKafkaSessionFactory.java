@@ -1250,32 +1250,35 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             List<KafkaOffsetMetadata> entries,
             KafkaOffsetFetchStream kafkaOffsetFetchStream)
         {
-            boolean initProducer = isSetCleanStart(sessionFlags) || entries.stream().noneMatch(e -> e.producerId != 0);
-
-            offsetFetch = null;
-
-            if (kafkaOffsetFetchStream != null)
+            if (offsetFetch != null)
             {
-                kafkaOffsetFetchStream.doKafkaEnd(traceId, authorization);
-            }
+                boolean initProducer = isSetCleanStart(sessionFlags) || entries.stream().noneMatch(e -> e.producerId != 0);
 
-            if (!initProducer)
-            {
-                entries.forEach(entry ->
+                offsetFetch = null;
+
+                if (kafkaOffsetFetchStream != null)
                 {
-                    final long partitionKey = partitionKey(entry.topic, entry.partitionId);
-                    this.metadata.offsets.put(partitionKey, entry);
-                    this.metadata.orderedOffsets.add(entry);
-                    entry.packetIds.forEach(p -> this.metadata.partitions.computeIfAbsent(p, ArrayList::new)
-                        .add(new KafkaTopicPartition(entry.topic, entry.partitionId)));
-                });
-                onProducerInit(traceId, authorization);
-            }
-            else
-            {
-                initializablePartitions.addAll(fetchedPartitions);
-                producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
-                producerInit.doKafkaBegin(traceId, authorization, 0);
+                    kafkaOffsetFetchStream.doKafkaEnd(traceId, authorization);
+                }
+
+                if (!initProducer)
+                {
+                    entries.forEach(entry ->
+                    {
+                        final long partitionKey = partitionKey(entry.topic, entry.partitionId);
+                        this.metadata.offsets.put(partitionKey, entry);
+                        this.metadata.orderedOffsets.add(entry);
+                        entry.packetIds.forEach(p -> this.metadata.partitions.computeIfAbsent(p, ArrayList::new)
+                            .add(new KafkaTopicPartition(entry.topic, entry.partitionId)));
+                    });
+                    onProducerInit(traceId, authorization);
+                }
+                else
+                {
+                    initializablePartitions.addAll(fetchedPartitions);
+                    producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
+                    producerInit.doKafkaBegin(traceId, authorization, 0);
+                }
             }
         }
 
