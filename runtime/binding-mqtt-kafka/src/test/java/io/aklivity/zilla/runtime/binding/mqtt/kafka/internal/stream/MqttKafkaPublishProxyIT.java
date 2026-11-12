@@ -488,4 +488,15 @@ public class MqttKafkaPublishProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.empty.retained.message/client",
+        "${kafka}/publish.empty.retained.message/server"})
+    public void shouldPublishEmptyRetainedMessageAsTombstone() throws Exception
+    {
+        k3po.finish();
+    }
 }

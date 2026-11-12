@@ -628,7 +628,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                             .build();
                     }
 
-                    retained.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, payload, kafkaDataEx);
+                    final OctetsFW retainedValue = payload == null || payload.sizeof() == 0 ? null : payload;
+                    retained.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, retainedValue, kafkaDataEx);
 
                     if (hasFin(flags) && qos == MqttQoS.EXACTLY_ONCE.value())
                     {

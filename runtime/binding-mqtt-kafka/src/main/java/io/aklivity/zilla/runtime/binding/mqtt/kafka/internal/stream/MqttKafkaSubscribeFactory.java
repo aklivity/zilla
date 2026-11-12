@@ -2066,6 +2066,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
                 final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
+                if (hasInit(flags) && hasFin(flags) && (payload == null || payload.sizeof() == 0))
+                {
+                    break sendData;
+                }
+
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if (hasInit(flags) && key != null)
                 {
