@@ -776,6 +776,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.clean.start.abort.zero.window/client",
         "${kafka}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception

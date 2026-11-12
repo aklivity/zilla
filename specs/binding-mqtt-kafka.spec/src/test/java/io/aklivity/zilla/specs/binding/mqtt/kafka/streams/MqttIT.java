@@ -652,6 +652,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${mqtt}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
         "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
