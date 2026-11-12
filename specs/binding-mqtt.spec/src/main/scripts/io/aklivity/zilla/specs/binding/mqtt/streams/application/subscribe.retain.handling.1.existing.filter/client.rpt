@@ -170,19 +170,11 @@ read zilla:data.ext ${mqtt:matchDataEx()
 read "message"
 read notify RECEIVED_SUBSCRIBE1
 
-
-connect await RECEIVED_SESSION_STATE3
-        "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-         option zilla:affinity 0xc2
-
-write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client2")
-                                .filter("sensor/one", 2, "AT_MOST_ONCE")
-                                .build()
-                             .build()}
-
-connected
+write await RECEIVED_SESSION_STATE3
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                    .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                    .filter("sensor/one", 2, "AT_MOST_ONCE")
+                                    .build()
+                                 .build()}
