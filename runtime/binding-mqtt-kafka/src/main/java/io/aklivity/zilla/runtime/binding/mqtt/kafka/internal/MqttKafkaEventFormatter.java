@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaNonCompactRetainedTopicExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaNonCompactSessionsTopicExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -48,6 +49,16 @@ public final class MqttKafkaEventFormatter implements EventFormatterSpi
             MqttKafkaNonCompactSessionsTopicExFW ex = extension.nonCompactSessionsTopic();
             result = String.format(
                     "The sessions topic (%s) is not log compacted. Update the cleanup policy to enable log compaction.",
+                    asString(ex.topic())
+            );
+            break;
+        }
+        case NON_COMPACT_RETAINED_TOPIC:
+        {
+            MqttKafkaNonCompactRetainedTopicExFW ex = extension.nonCompactRetainedTopic();
+            result = String.format(
+                    "The retained topic (%s) is not log compacted, retained messages are not supported. " +
+                    "Update the cleanup policy to enable log compaction.",
                     asString(ex.topic())
             );
             break;

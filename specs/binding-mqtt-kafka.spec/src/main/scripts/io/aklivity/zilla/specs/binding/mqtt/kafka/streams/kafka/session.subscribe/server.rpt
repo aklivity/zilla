@@ -19,6 +19,38 @@ accept "zilla://streams/kafka0"
 
 accepted
 
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .describe()
+                               .config("cleanup.policy", "compact")
+                               .build()
+                           .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

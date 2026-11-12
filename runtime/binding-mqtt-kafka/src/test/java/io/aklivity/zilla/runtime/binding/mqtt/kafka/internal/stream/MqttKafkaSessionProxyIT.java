@@ -107,6 +107,18 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.log.event.retained.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.retained.topic.not.compacted/client",
+        "${kafka}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")

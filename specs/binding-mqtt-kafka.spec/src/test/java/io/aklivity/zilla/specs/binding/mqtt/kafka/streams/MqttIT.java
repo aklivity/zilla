@@ -1037,6 +1037,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.retained.topic.not.compacted/client",
+        "${mqtt}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.publish.qos.max.0/client",
         "${mqtt}/session.publish.qos.max.0/server"})
     public void shouldAdvertisePublishQosMax0() throws Exception
