@@ -882,6 +882,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/client",
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception

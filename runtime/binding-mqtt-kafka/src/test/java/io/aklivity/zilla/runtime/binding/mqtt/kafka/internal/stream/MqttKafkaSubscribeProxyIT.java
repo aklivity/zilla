@@ -586,6 +586,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
