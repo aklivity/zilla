@@ -61,6 +61,8 @@ write ${mqtt:session()
               .build()}
 write flush
 
+read await IN_FLIGHT_ACKNOWLEDGED
+
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
@@ -118,5 +120,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                      .packetId(1)
                                      .build()
                                  .build()}
+
+read notify IN_FLIGHT_ACKNOWLEDGED
 
 read closed

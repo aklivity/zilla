@@ -61,6 +61,11 @@ read  [0xa2 0x20]                       # UNSUBSCRIBE
       [0x00]                            # properties = none
       [0x00 0x1b] "$share/consumer1/sensor/one"# topic filter
 
+read  [0x40 0x04]                       # PUBACK
+      [0x00 0x01]                       # packet id = 1
+      [0x00]                            # reason code
+      [0x00]                            # properties
+
 write [0xb0 0x04]                       # UNSUBACK
       [0x00 0x02]                       # packet id = 2
       [0x00]                            # properties = none
@@ -77,11 +82,6 @@ write [0x90 0x04]                       # SUBACK
       [0x00 0x03]                       # packet id = 3
       [0x00]                            # properties = none
       [0x01]                            # reason code = granted QoS 1
-
-read  [0x40 0x04]                       # PUBACK
-      [0x00 0x01]                       # packet id = 1
-      [0x00]                            # reason code
-      [0x00]                            # properties
 
 write [0x32 0x1a]                       # PUBLISH, qos = 1
       [0x00 0x0a] "sensor/one"          # topic name

@@ -208,6 +208,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private final KafkaSharedDecoder decodeRecordDeliver = this::decodeRecordDeliver;
     private final KafkaSharedDecoder decodeRecordSkip = this::decodeRecordSkip;
     private final KafkaSharedDecoder decodeRecordIgnore = this::decodeRecordIgnore;
+    private final KafkaSharedDecoder decodeRecordRelease = this::decodeRecordRelease;
+    private final KafkaSharedDecoder decodeRecordReleasing = this::decodeRecordReleasing;
     private final KafkaRecoveryDecoder decodeRecoveryInit = this::decodeRecoveryInit;
     private final KafkaRecoveryDecoder decodeRecoveryDeliver = this::decodeRecoveryDeliver;
     private final KafkaRecoveryDecoder decodeRecoveryIgnore = this::decodeRecoveryIgnore;
@@ -2799,6 +2801,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             {
                 onMessageAcked(traceId, authorization, mqttSubscribeFlushEx);
             }
+            else
+            {
+                state = StreamState.closingInitial(state);
+                shared.onMqttStop();
+            }
         }
 
         private void onMessageAcked(
@@ -3488,7 +3495,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 recordPacketId = NO_PACKET_ID;
-                decoder = decodeRecordInit;
+                decoder = StreamState.initialClosing(mqtt.state) ? decodeRecordRelease : decodeRecordInit;
+            }
+        }
+
+        private void onMqttStop()
+        {
+            if (decoder == decodeRecordInit)
+            {
+                decoder = decodeRecordRelease;
             }
         }
 
@@ -4244,6 +4259,46 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         if (hasFin(flags))
         {
             shared.doKafkaRecordFin(traceId, authorization);
+        }
+    }
+
+    private void decodeRecordRelease(
+        KafkaSharedProxy shared,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        KafkaShareDataExFW kafkaShareDataEx)
+    {
+        if (kafkaShareDataEx != null && hasInit(flags))
+        {
+            final KafkaOffsetFW partition = kafkaShareDataEx.partition();
+
+            shared.doKafkaAcknowledge(traceId, authorization, partition.partitionId(), partition.partitionOffset(),
+                KafkaShareAckType.RELEASE);
+
+            if (!hasFin(flags))
+            {
+                shared.decoder = decodeRecordReleasing;
+            }
+        }
+    }
+
+    private void decodeRecordReleasing(
+        KafkaSharedProxy shared,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        int flags,
+        OctetsFW payload,
+        KafkaShareDataExFW kafkaShareDataEx)
+    {
+        if (hasFin(flags))
+        {
+            shared.decoder = decodeRecordRelease;
         }
     }
 

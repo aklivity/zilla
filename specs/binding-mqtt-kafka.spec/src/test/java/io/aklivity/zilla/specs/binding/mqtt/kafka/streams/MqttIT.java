@@ -1170,6 +1170,51 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightThenRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent/server"})
     public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
@@ -1308,6 +1353,15 @@ public class MqttIT
         "${mqtt}/session.unsubscribe.shared/client",
         "${mqtt}/session.unsubscribe.shared/server"})
     public void shouldUnsubscribeSharedAndLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
+        "${mqtt}/session.unsubscribe.shared.state.write.reset/server"})
+    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
     {
         k3po.finish();
     }

@@ -544,6 +544,18 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.session.shared.unsubscribe.write.reset.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
+        "${kafka}/session.unsubscribe.shared.state.write.reset/server"})
+    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.store.session.shared.unsubscribe.second.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
