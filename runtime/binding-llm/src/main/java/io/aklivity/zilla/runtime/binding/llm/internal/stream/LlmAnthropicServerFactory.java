@@ -2432,7 +2432,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private final LlmBreakpointStash partBreakpoint;
         private final LlmBreakpointStash resultBreakpoint;
-        private final StringBuilder breakpointTtl;
+        private StringBuilder breakpointTtl;
         private LlmBreakpointStash breakpointStash;
         private LlmAnthropicServerDecoder breakpointThen;
         private int breakpointDepth;
@@ -2500,7 +2500,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.probe = new LlmAnthropicAttributeProbe();
             this.partBreakpoint = new LlmBreakpointStash();
             this.resultBreakpoint = new LlmBreakpointStash();
-            this.breakpointTtl = new StringBuilder();
             this.blockAttributes = new LlmSectionAttributes();
             this.sentAttributes = new LlmSectionAttributes();
             this.finAttributes = new LlmSectionAttributes();
@@ -2906,6 +2905,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             breakpointDepth = 0;
             breakpointKey = BREAKPOINT_KEY_NONE;
             breakpointEphemeral = false;
+
+            if (breakpointTtl == null)
+            {
+                breakpointTtl = new StringBuilder();
+            }
+
             breakpointTtl.setLength(0);
             decoder = decodeBreakpointValue;
         }
