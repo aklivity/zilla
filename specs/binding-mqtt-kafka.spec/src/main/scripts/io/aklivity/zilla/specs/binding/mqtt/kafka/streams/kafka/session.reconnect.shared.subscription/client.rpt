@@ -90,7 +90,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read ${mqtt:session()
-               .sharedSubscription("consumers", "sensor/one", 1, "EXACTLY_ONCE")
+               .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
                .build()}
 read notify SESSION_STATE_RECEIVED
 

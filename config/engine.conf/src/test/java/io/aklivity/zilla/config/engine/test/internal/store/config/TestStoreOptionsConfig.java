@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.engine.test.internal.store.config;
 
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -22,6 +24,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class TestStoreOptionsConfig extends OptionsConfig
 {
     public final Map<String, String> entries;
+    public final List<Assertion> assertions;
 
     public static TestStoreOptionsConfigBuilder<TestStoreOptionsConfig> builder()
     {
@@ -35,9 +38,31 @@ public final class TestStoreOptionsConfig extends OptionsConfig
     }
 
     TestStoreOptionsConfig(
-        Map<String, String> entries)
+        Map<String, String> entries,
+        List<Assertion> assertions)
     {
         super(null, null);
         this.entries = entries;
+        this.assertions = assertions;
+    }
+
+    public static final class Assertion
+    {
+        public final String op;
+        public final String key;
+        public final String value;
+        public final Duration ttl;
+
+        public Assertion(
+            String op,
+            String key,
+            String value,
+            Duration ttl)
+        {
+            this.op = op;
+            this.key = key;
+            this.value = value;
+            this.ttl = ttl;
+        }
     }
 }

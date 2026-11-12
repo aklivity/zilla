@@ -193,6 +193,51 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.session.discard.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.will.message.clean.start/client",
+        "${kafka}/session.will.message.clean.start/server"})
+    public void shouldDiscardTicketsOnSessionCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.session.discard.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expiry.zero/client",
+        "${kafka}/session.close.expiry.zero/server"})
+    public void shouldDiscardTicketsOnSessionCloseWithoutExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.session.discard.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.state/client",
+        "${kafka}/session.close.expire.session.state/server"})
+    public void shouldDiscardTicketsOnSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.session.keep.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.will.message.normal.disconnect/client",
+        "${kafka}/session.will.message.normal.disconnect/server"})
+    public void shouldKeepTicketsOnSessionCloseWithExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
@@ -467,9 +512,9 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
-        "${mqtt}/session.subscribe.shared.cap.qos/client",
-        "${kafka}/session.subscribe.shared.cap.qos/server"})
-    public void shouldSessionSubscribeSharedCapQos() throws Exception
+        "${mqtt}/session.subscribe.shared.granted.qos2/client",
+        "${kafka}/session.subscribe.shared.granted.qos2/server"})
+    public void shouldSessionSubscribeSharedGrantedQos2() throws Exception
     {
         k3po.finish();
     }

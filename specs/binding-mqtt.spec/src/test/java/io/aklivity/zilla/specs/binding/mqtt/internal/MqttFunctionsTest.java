@@ -763,6 +763,102 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeDataExWithDupFlag()
+    {
+        final byte[] array = MqttFunctions.dataEx()
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .packetId(1)
+            .qos("EXACTLY_ONCE")
+            .flags("DUP")
+            .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0b0010, mqttDataEx.subscribe().flags());
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeDataExWithRetainAndDupFlags()
+    {
+        final byte[] array = MqttFunctions.dataEx()
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .packetId(1)
+            .qos("EXACTLY_ONCE")
+            .flags("RETAIN", "DUP")
+            .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0b0011, mqttDataEx.subscribe().flags());
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtensionWithDupFlag() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .packetId(1)
+                .qos("EXACTLY_ONCE")
+                .flags("DUP")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.topic("sensor/one");
+                s.packetId(1);
+                s.qos(2);
+                s.flags(0b0010);
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchSubscribeDataExtensionWithoutDupFlag() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .packetId(1)
+                .qos("EXACTLY_ONCE")
+                .flags("DUP")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.topic("sensor/one");
+                s.packetId(1);
+                s.qos(2);
+                s.flags(0);
+            })
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeDataExWithUserPropertyNoTopic()
     {
         final byte[] array = MqttFunctions.dataEx()

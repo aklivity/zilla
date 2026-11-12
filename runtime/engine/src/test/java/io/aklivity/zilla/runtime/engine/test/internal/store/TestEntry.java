@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
-record TestEntry(
+public record TestEntry(
     String value,
     long expiresAt)
 {

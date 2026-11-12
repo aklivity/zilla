@@ -43,6 +43,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UN
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.DUP;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -243,6 +244,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int RETAIN_MASK = 0b0000_0001;
     private static final int PUBLISH_QOS1_MASK = 0b0000_0010;
     private static final int PUBLISH_QOS2_MASK = 0b0000_0100;
+    private static final int PUBLISH_DUP_MASK = 0b0000_1000;
     private static final int NO_LOCAL_FLAG_MASK = 0b0000_0100;
     private static final int RETAIN_AS_PUBLISHED_MASK = 0b0000_1000;
     private static final int RETAIN_HANDLING_MASK = 0b0011_0000;
@@ -269,6 +271,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int RETAIN_HANDLING_SEND = 0;
 
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
+    private static final int DUP_FLAG = 1 << DUP.ordinal();
     private static final int SEND_RETAINED_FLAG = 1 << SEND_RETAINED.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
@@ -5272,6 +5275,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 flags |= PUBLISH_QOS2_MASK;
             }
+
+            if (qos != MqttQoS.AT_MOST_ONCE.value() && (applicationTypeAndFlags & DUP_FLAG) != 0)
+            {
+                flags |= PUBLISH_DUP_MASK;
+            }
+
             return flags;
         }
 
