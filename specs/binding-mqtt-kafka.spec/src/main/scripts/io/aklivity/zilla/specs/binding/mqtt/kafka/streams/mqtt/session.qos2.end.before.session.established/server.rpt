@@ -33,3 +33,4 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read closed
+write abort

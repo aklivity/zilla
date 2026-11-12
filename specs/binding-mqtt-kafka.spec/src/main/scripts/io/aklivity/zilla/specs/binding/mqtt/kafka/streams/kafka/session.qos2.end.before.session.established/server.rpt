@@ -29,7 +29,7 @@ read zilla:begin.ext ${kafka:beginEx()
 connected
 
 read closed
-write close
+write abort
 
 accepted
 
@@ -45,5 +45,5 @@ connected
 write notify SESSION_META_STREAMS_OPENED
 
 read closed
-write close
+write abort
 

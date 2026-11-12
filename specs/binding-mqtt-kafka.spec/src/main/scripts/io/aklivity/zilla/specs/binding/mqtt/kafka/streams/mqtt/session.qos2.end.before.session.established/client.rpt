@@ -34,3 +34,4 @@ connected
 # the qos2 partition metadata streams are still being negotiated
 write await SESSION_META_STREAMS_OPENED
 write close
+read aborted
