@@ -490,4 +490,31 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.publish/client",
+        "${net}/connect.max.packet.size.other.connection.publish/server"})
+    public void shouldPublishLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.subscribe/client",
+        "${net}/connect.max.packet.size.other.connection.subscribe/server"})
+    public void shouldSubscribeLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.maximum.packet.size.repeated/client",
+        "${net}/connect.reject.maximum.packet.size.repeated/server"})
+    public void shouldRejectRepeatedMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
 }
