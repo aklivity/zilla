@@ -239,6 +239,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.retain.as.published.not.retained/client",
+        "${app}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
     public void shouldNotReplayRetained() throws Exception

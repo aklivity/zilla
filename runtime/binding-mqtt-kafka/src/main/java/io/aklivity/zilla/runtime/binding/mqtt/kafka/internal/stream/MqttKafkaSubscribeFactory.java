@@ -313,7 +313,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int mqttSharedBudget;
 
         private final IntArrayList retainedSubscriptionIds;
-        private final Long2ObjectHashMap<Boolean> retainAsPublished;
         private final List<Subscription> retainedSubscriptions;
         private String16FW clientId;
         private int qos;
@@ -333,7 +332,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
-            this.retainAsPublished = new Long2ObjectHashMap<>();
             this.messagesPerTopicKey = new Long2LongHashMap(-1);
             this.messages = new Long2ObjectHashMap<>();
             routes.forEach(r ->
@@ -556,8 +554,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         retainedFilters.add(new Subscription((int) filter.subscriptionId(),
                             newString16FW(filter.pattern()), filter.qos(), filter.flags()));
-                        final boolean rap = (filter.flags() & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                        retainAsPublished.put((int) filter.subscriptionId(), rap);
                     }
                 });
 
@@ -1124,6 +1120,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final IntArrayList messagesSubscriptionIds;
+        private final IntArrayList messagesSubscriptionFlags;
         private final Int2ObjectHashMap<IntArrayList> incompletePacketIds;
         private final MqttKafkaRouteConfig routeConfig;
         private final MqttSubscribeProxy mqtt;
@@ -1160,6 +1157,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.messagesSubscriptionIds = new IntArrayList();
+            this.messagesSubscriptionFlags = new IntArrayList();
             this.incompletePacketIds = new Int2ObjectHashMap<>();
         }
 
@@ -1349,8 +1347,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             {
                                 if (((filters >> i) & 1) == 1)
                                 {
-                                    long subscriptionId = messagesSubscriptionIds.get(i);
-                                    subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
+                                    if (helper.retained && (messagesSubscriptionFlags.getInt(i) & RETAIN_AS_PUBLISHED_FLAG) != 0)
+                                    {
+                                        flag |= RETAIN_FLAG;
+                                    }
+                                    final int subscriptionId = messagesSubscriptionIds.getInt(i);
+                                    if (!matchedSubscriptionId(filters, i, subscriptionId))
+                                    {
+                                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
+                                    }
                                 }
                             }
                             b.flags(flag);
@@ -1433,6 +1438,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     expiredMessage = false;
                 }
             }
+        }
+
+        private boolean matchedSubscriptionId(
+            long filters,
+            int index,
+            int subscriptionId)
+        {
+            boolean matched = false;
+            for (int i = 0; i < index && !matched; i++)
+            {
+                matched = ((filters >> i) & 1) == 1 && messagesSubscriptionIds.getInt(i) == subscriptionId;
+            }
+            return matched;
         }
 
         private void onKafkaFlush(
@@ -1585,10 +1603,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     if (matchesTopicFilter(f.pattern().asString()))
                     {
                         int subscriptionId = (int) f.subscriptionId();
-                        if (!messagesSubscriptionIds.contains(subscriptionId))
-                        {
-                            messagesSubscriptionIds.add(subscriptionId);
-                        }
+                        messagesSubscriptionIds.add(subscriptionId);
+                        messagesSubscriptionFlags.add(f.flags());
                         filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
@@ -1662,6 +1678,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             initialSeq = mqtt.initialSeq;
 
             messagesSubscriptionIds.clear();
+            messagesSubscriptionFlags.clear();
 
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -1673,11 +1690,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             if (matchesTopicFilter(filter.pattern().asString()))
                             {
-                                final int subscriptionId = (int) filter.subscriptionId();
-                                if (!messagesSubscriptionIds.contains(subscriptionId))
-                                {
-                                    messagesSubscriptionIds.add(subscriptionId);
-                                }
+                                messagesSubscriptionIds.add((int) filter.subscriptionId());
+                                messagesSubscriptionFlags.add(filter.flags());
                                 if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
                                 {
                                     mqtt.retainAvailable = true;
@@ -2116,17 +2130,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             }
 
-                            int flag = 0;
+                            int flag = RETAIN_FLAG;
                             subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
                             for (int i = 0; i < mqtt.retainedSubscriptionIds.size(); i++)
                             {
                                 if (((filters >> i) & 1) == 1)
                                 {
                                     long subscriptionId = mqtt.retainedSubscriptionIds.get(i);
-                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, Boolean.FALSE))
-                                    {
-                                        flag |= RETAIN_FLAG;
-                                    }
                                     subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
                                 }
                             }
@@ -2346,8 +2356,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
                 filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
-                final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                mqtt.retainAsPublished.put(f.id, rap);
             });
             mqtt.retainedSubscriptions.addAll(newRetainedFilters);
 
@@ -2438,8 +2446,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
                 filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
-                final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                mqtt.retainAsPublished.put(f.id, rap);
             });
 
             Array32FW<MqttTopicFilterFW> retainedFilters = filterBuilder.build();

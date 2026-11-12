@@ -114,7 +114,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
@@ -4759,17 +4758,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             AtomicInteger propertiesSize = new AtomicInteger();
 
-            MutableBoolean retainAsPublished = new MutableBoolean(false);
-
             subscriptionIds.forEach(s ->
             {
                 final int subscriptionId = s.value();
                 if (subscriptionId > 0 && !generatedSubscriptionId(subscriptionId))
                 {
-                    Optional<Subscription> result = subscriptions.stream()
-                        .filter(subscription -> subscription.id == subscriptionId)
-                        .findFirst();
-                    retainAsPublished.set(retainAsPublished.value | result.isPresent() && result.get().retainAsPublished());
                     mqttPropertyRW.wrap(propertyBuffer,
                         propertiesSize.get(), propertyBuffer.capacity())
                         .subscriptionId(v -> v.set(subscriptionId));
@@ -4777,8 +4770,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             });
 
-            final int publishApplicationFlags = retainAsPublished.get() ?
-                subscribeDataEx.subscribe().flags() : subscribeDataEx.subscribe().flags() & ~RETAIN_FLAG;
+            final int publishApplicationFlags = subscribeDataEx.subscribe().flags();
 
             final int publishNetworkTypeAndFlags = PUBLISH_TYPE << 4 |
                 calculatePublishNetworkFlags(PUBLISH_TYPE << 4 | publishApplicationFlags, qos);
@@ -5621,11 +5613,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int reasonCode;
 
             private long compositeId;
-
-            private boolean retainAsPublished()
-            {
-                return (flags & RETAIN_AS_PUBLISHED_FLAG) == RETAIN_AS_PUBLISHED_FLAG;
-            }
 
             @Override
             public boolean equals(Object obj)

@@ -389,6 +389,42 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.one.message.fragmented/client",
         "${kafka}/subscribe.one.message.fragmented/server"})
     public void shouldReceiveOneMessageFragmented() throws Exception

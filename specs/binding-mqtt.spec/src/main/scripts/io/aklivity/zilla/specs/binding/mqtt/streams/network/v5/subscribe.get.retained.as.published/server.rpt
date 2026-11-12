@@ -48,7 +48,7 @@ write [0x90 0x04]                   # SUBACK
       [0x00]                        # properties = none
       [0x00]                        # reason code
 
-write [0x30 0x18]                   # PUBLISH
+write [0x31 0x18]                   # PUBLISH flags = at-most-once, retain
       [0x00 0x0a] "sensor/one"      # topic name
       [0x04]                        # properties
       [0x0b 0x01]                   # subscription id = 1
