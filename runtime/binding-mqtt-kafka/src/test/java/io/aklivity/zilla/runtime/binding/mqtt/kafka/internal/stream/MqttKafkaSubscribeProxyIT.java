@@ -300,6 +300,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.filter.change.retain.no.local/client",
+        "${kafka}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.filter.change.retain/client",
         "${kafka}/subscribe.filter.change.retain.buffer/server"})
     public void shouldReceiveRetainedAfterFilterChangeBufferMessages() throws Exception

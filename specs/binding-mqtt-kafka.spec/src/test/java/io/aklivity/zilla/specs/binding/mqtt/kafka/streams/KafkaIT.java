@@ -344,6 +344,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.filter.change.retain.no.local/client",
+        "${kafka}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterDeferred() throws Exception
