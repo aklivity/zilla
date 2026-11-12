@@ -6085,7 +6085,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void onEncodeText(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -6111,7 +6111,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void writeDelta(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -7087,7 +7087,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventTextDelta(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -7200,7 +7200,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void onReasoningText(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -7572,7 +7572,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventSummaryTextDelta(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -7628,7 +7628,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void eventRefusalDelta(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {

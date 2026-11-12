@@ -22,6 +22,7 @@ import jakarta.json.stream.JsonGenerator;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * A {@link JsonGenerator} extended with the streaming-to-buffer surface the standard
@@ -151,6 +152,21 @@ public interface JsonGeneratorEx extends JsonGenerator
      */
     JsonGeneratorEx writeSegment(
         CharSequence value,
+        int from,
+        int to);
+
+    /**
+     * Appends the chars of {@code value} in {@code [from, to)} as content, as {@link #writeSegment(CharSequence, int,
+     * int)} does, except that a view whose bytes are already the content of a string of the scope's depth is
+     * forwarded as those bytes, exactly as they were written, instead of being decoded and escaped again. The bytes
+     * of an {@link JsonStringView.Kind#ENCODED} view are the body of a string as written, which is the content of
+     * a scope that is escaped once, and the bytes of an {@link JsonStringView.Kind#ESCAPED} view carry one more
+     * level, so they are the content of a scope that is escaped twice. A view of any other form, or a scope of any
+     * other depth, is written as chars. The write is consumption-driven as the char write is, a whole unit at a
+     * time, and the chars taken are tracked via {@link #consumed()}.
+     */
+    JsonGeneratorEx writeSegment(
+        JsonStringView value,
         int from,
         int to);
 
