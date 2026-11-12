@@ -26,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
  * The original {@code sun.misc.Unsafe}-backed {@code UnsafeBufferEx}, preserved as a
@@ -290,5 +291,15 @@ public class BaselineBufferEx extends UnsafeBuffer implements AtomicBufferEx
         }
 
         return result;
+    }
+
+    @Override
+    public int putStringWithoutLengthUtf8(
+        int index,
+        CharSequence value,
+        int from,
+        int to)
+    {
+        return MutableDirectBufferEx.putUtf8(this, index, value, from, to);
     }
 }

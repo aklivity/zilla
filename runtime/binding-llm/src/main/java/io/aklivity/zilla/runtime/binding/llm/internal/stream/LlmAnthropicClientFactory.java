@@ -4222,13 +4222,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (beginEncode(0))
             {
-                putEscaped(buffer, offset, length);
+                putEscaped(chars, from, to);
                 endEncode();
             }
         }
@@ -4620,13 +4620,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void putEscaped(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
-            if (fits(length * ESCAPE_EXPANSION))
+            if (fits((to - from) * ESCAPE_EXPANSION))
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
             else
             {

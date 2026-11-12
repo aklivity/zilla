@@ -5259,22 +5259,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            CharSequence chars,
+            int from,
+            int to)
         {
             if (!server.streaming)
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
-            else if (length > 0)
+            else if (to > from)
             {
                 chunkBegin();
                 generator.writeStartObject();
                 candidateBegin();
                 generator.writeStartObject().writeKey("text");
                 generator.writeStartEscaped();
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
                 generator.writeEndEscaped();
 
                 if (kind == KIND_REASONING)
