@@ -405,4 +405,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.qos1.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos1.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS1MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
 }
