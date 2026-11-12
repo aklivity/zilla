@@ -22,19 +22,11 @@ import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
-final class MqttKafkaClientTickets
+final class MqttKafkaClientTickets extends MqttKafkaClientEntry<MqttKafkaTicket>
 {
-    private final StoreHandler store;
-    private final String key;
     private final MqttKafkaTickets codec;
     private final Consumer<MqttKafkaTicket> onLoadedTicket;
-    private final Runnable onWritten;
     private final IntArrayList recoverable;
-
-    private List<MqttKafkaTicket> tickets;
-    private List<Runnable> loading;
-    private List<Runnable> writing;
-    private List<Runnable> pending;
 
     MqttKafkaClientTickets(
         StoreHandler store,
@@ -43,37 +35,10 @@ final class MqttKafkaClientTickets
         Consumer<MqttKafkaTicket> onLoadedTicket,
         Runnable onWritten)
     {
-        this.store = store;
-        this.key = key;
+        super(store, key, onWritten);
         this.codec = codec;
         this.onLoadedTicket = onLoadedTicket;
-        this.onWritten = onWritten;
         this.recoverable = new IntArrayList();
-        this.loading = new ArrayList<>();
-        store.get(key, (k, value) -> onLoaded(value));
-    }
-
-    void awaitLoaded(
-        Runnable continuation)
-    {
-        if (loading != null)
-        {
-            loading.add(continuation);
-        }
-        else
-        {
-            continuation.run();
-        }
-    }
-
-    boolean ready()
-    {
-        return loading == null && tickets != null;
-    }
-
-    boolean idle()
-    {
-        return writing == null && pending == null;
     }
 
     MqttKafkaTicket find(
@@ -81,9 +46,9 @@ final class MqttKafkaClientTickets
     {
         MqttKafkaTicket found = null;
 
-        for (int i = 0; found == null && ready() && i < tickets.size(); i++)
+        for (int i = 0; found == null && ready() && i < entries.size(); i++)
         {
-            final MqttKafkaTicket ticket = tickets.get(i);
+            final MqttKafkaTicket ticket = entries.get(i);
             found = ticket.packetId == packetId ? ticket : null;
         }
 
@@ -121,19 +86,19 @@ final class MqttKafkaClientTickets
     void add(
         MqttKafkaTicket ticket)
     {
-        tickets.add(ticket);
+        entries.add(ticket);
     }
 
     void replace(
         MqttKafkaTicket ticket)
     {
-        tickets.replaceAll(t -> t.packetId == ticket.packetId ? ticket : t);
+        entries.replaceAll(t -> t.packetId == ticket.packetId ? ticket : t);
     }
 
     void remove(
         int packetId)
     {
-        tickets.removeIf(t -> t.packetId == packetId);
+        entries.removeIf(t -> t.packetId == packetId);
     }
 
     void abandon(
@@ -149,7 +114,7 @@ final class MqttKafkaClientTickets
     {
         awaitLoaded(() ->
         {
-            final List<MqttKafkaTicket> stored = tickets;
+            final List<MqttKafkaTicket> stored = entries;
 
             if (stored == null || !stored.isEmpty())
             {
@@ -158,76 +123,34 @@ final class MqttKafkaClientTickets
                     stored.forEach(discarded);
                 }
 
-                tickets = new ArrayList<>();
+                entries = new ArrayList<>();
                 recoverable.clear();
                 write(() -> {});
             }
         });
     }
 
-    void write(
-        Runnable completion)
-    {
-        if (pending == null)
-        {
-            pending = new ArrayList<>();
-        }
-
-        pending.add(completion);
-
-        if (writing == null)
-        {
-            doWrite();
-        }
-    }
-
-    private void onLoaded(
+    @Override
+    List<MqttKafkaTicket> decode(
         String value)
     {
-        final List<Runnable> continuations = loading;
-
-        loading = null;
-        tickets = codec.decode(value);
-
-        if (tickets != null)
-        {
-            tickets.forEach(t ->
-            {
-                onLoadedTicket.accept(t);
-                recoverable.addInt(t.packetId);
-            });
-        }
-
-        continuations.forEach(Runnable::run);
+        return codec.decode(value);
     }
 
-    private void doWrite()
+    @Override
+    String encode(
+        List<MqttKafkaTicket> tickets)
     {
-        writing = pending;
-        pending = null;
-
-        if (tickets.isEmpty())
-        {
-            store.delete(key, v -> onWriteCompleted());
-        }
-        else
-        {
-            store.put(key, codec.encode(tickets), null, v -> onWriteCompleted());
-        }
+        return codec.encode(tickets);
     }
 
-    private void onWriteCompleted()
+    @Override
+    void onDecoded()
     {
-        final List<Runnable> completions = writing;
-
-        writing = null;
-        completions.forEach(Runnable::run);
-
-        if (pending != null && writing == null)
+        entries.forEach(t ->
         {
-            doWrite();
-        }
-
-        onWritten.run();
+            onLoadedTicket.accept(t);
+            recoverable.addInt(t.packetId);
+        });
     }
 }

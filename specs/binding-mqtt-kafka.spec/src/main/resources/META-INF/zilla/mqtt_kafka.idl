@@ -70,6 +70,27 @@ scope mqtt_kafka
         case V1: MqttSharedTicketsV1 ticketsV1;
     }
 
+    enum MqttSharedMembershipsVersion (uint8)
+    {
+        V1 (1)
+    }
+
+    struct MqttSharedMembership
+    {
+         string16 shareName;
+         string16 filter;
+    }
+
+    struct MqttSharedMembershipsV1
+    {
+         MqttSharedMembership[] memberships;
+    }
+
+    union MqttSharedMemberships switch (MqttSharedMembershipsVersion)
+    {
+        case V1: MqttSharedMembershipsV1 membershipsV1;
+    }
+
     struct MqttPublishOffsetMetadata
     {
          uint8 version = 1;

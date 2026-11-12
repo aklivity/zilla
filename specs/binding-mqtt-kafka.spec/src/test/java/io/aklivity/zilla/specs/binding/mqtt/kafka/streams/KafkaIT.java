@@ -1446,4 +1446,40 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.unsubscribe.shared/client",
+        "${kafka}/session.unsubscribe.shared/server"})
+    public void shouldUnsubscribeSharedAndLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.resubscribe.shared/client",
+        "${kafka}/session.resubscribe.shared/server"})
+    public void shouldResubscribeSharedAfterLeaving() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.restore.membership/client",
+        "${kafka}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembership() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.join.new.life/client",
+        "${kafka}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
+    {
+        k3po.finish();
+    }
 }

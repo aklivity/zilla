@@ -57,16 +57,34 @@
                                                 "put",
                                                 "putIfAbsent",
                                                 "delete",
-                                                "getAndDelete"
+                                                "getAndDelete",
+                                                "increment",
+                                                "replace"
                                             ]
                                         },
                                         "key":
                                         {
                                             "type": "string"
                                         },
+                                        "keys":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
                                         "value":
                                         {
                                             "type": "string"
+                                        },
+                                        "expected":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "delta":
+                                        {
+                                            "type": "integer"
                                         },
                                         "ttl":
                                         {
@@ -75,8 +93,86 @@
                                     },
                                     "required":
                                     [
-                                        "op",
-                                        "key"
+                                        "op"
+                                    ],
+                                    "allOf":
+                                    [
+                                        {
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "op":
+                                                    {
+                                                        "const": "delete"
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "oneOf":
+                                                [
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "key"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "required":
+                                                        [
+                                                            "keys"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "else":
+                                            {
+                                                "required":
+                                                [
+                                                    "key"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "op":
+                                                    {
+                                                        "const": "increment"
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "required":
+                                                [
+                                                    "delta"
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "op":
+                                                    {
+                                                        "const": "replace"
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "required":
+                                                [
+                                                    "expected",
+                                                    "value"
+                                                ]
+                                            }
+                                        }
                                     ],
                                     "additionalProperties": false
                                 }
