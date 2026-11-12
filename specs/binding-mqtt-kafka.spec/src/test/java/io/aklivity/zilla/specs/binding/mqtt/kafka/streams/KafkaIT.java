@@ -1089,6 +1089,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.expire.message/client",
+        "${kafka}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.server.sent.abort.before.begin/client",
         "${kafka}/publish.server.sent.abort.before.begin/server"})
     public void shouldReceiveServerSentAbortBeforeBeginPublish() throws Exception
