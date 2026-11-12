@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 
-final class LlmSectionAttributes
+final class LlmSectionAttributes implements Consumer<LlmAttributeFW>
 {
     static final String MEDIA_TYPE = "media-type";
     static final String SOURCE = "source";
@@ -36,8 +36,6 @@ final class LlmSectionAttributes
 
     static final String TRUE = "true";
     static final String FALSE = "false";
-
-    private final Consumer<LlmAttributeFW> reader = this::read;
 
     private String mediaType;
     private String source;
@@ -72,7 +70,7 @@ final class LlmSectionAttributes
     {
         if (dataEx != null)
         {
-            dataEx.attributes().forEach(reader);
+            dataEx.attributes().forEach(this);
         }
     }
 
@@ -260,7 +258,8 @@ final class LlmSectionAttributes
         return current != null && !current.equals(previous) ? current : null;
     }
 
-    private void read(
+    @Override
+    public void accept(
         LlmAttributeFW attribute)
     {
         final String value = attribute.value().asString();
