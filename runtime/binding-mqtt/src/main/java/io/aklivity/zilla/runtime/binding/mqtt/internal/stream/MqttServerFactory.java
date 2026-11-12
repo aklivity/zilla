@@ -3658,7 +3658,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doCancelConnectTimeout();
 
-                if (reasonCode != BAD_USER_NAME_OR_PASSWORD)
+                if (reasonCode != BAD_USER_NAME_OR_PASSWORD &&
+                    (version != MQTT_PROTOCOL_VERSION_4 || (reasonCode & 0xff) <= MAX_CONNACK_REASONCODE_V4))
                 {
                     doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null, null, version);
                 }
@@ -3966,7 +3967,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     Subscription subscription = new Subscription();
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
-                    subscription.flags = SEND_RETAINED_FLAG;
+                    subscription.flags = retainAvailable(capabilities) ? SEND_RETAINED_FLAG : 0;
                     subscription.qos = options;
                     subscribePacketIds.put(subscriptionId, packetId);
 
@@ -4125,7 +4126,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         Subscription subscription = new Subscription();
                         subscription.id = subscriptionId;
                         subscription.filter = filter;
-                        subscription.flags = flags;
+                        subscription.flags = retainAvailable(capabilities) ? flags : flags & ~SEND_RETAINED_FLAG;
                         subscription.qos = qos;
                         subscribePacketIds.put(subscriptionId, packetId);
 

@@ -46,6 +46,7 @@ public class MqttKafkaBindingConfig
     public final List<Function<String, String>> clients;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
+    public int capabilities;
 
     private final MqttQoS publishQosMax;
     private final String16FW messagesTopic;
