@@ -903,4 +903,67 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.sequential.receive.messages.qos1/client",
+        "${net}/subscribe.shared.sequential.receive.messages.qos1/server"})
+    public void shouldSubscribeSharedSequentialReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.then.non.shared.receive.messages.qos1/client",
+        "${net}/subscribe.shared.then.non.shared.receive.messages.qos1/server"})
+    public void shouldSubscribeSharedThenNonSharedReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.non.shared.then.shared.receive.messages.qos1/client",
+        "${net}/subscribe.non.shared.then.shared.receive.messages.qos1/server"})
+    public void shouldSubscribeNonSharedThenSharedReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos1/client",
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos1/server"})
+    public void shouldSubscribeNonSharedSequentialReceiveMessagesQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos2/client",
+        "${net}/subscribe.non.shared.sequential.receive.messages.qos2/server"})
+    public void shouldSubscribeNonSharedSequentialReceiveMessagesQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.change.qos.receive.messages/client",
+        "${net}/subscribe.shared.resubscribe.change.qos.receive.messages/server"})
+    public void shouldSubscribeSharedResubscribeChangeQosReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription.disconnect/client",
+        "${net}/subscribe.shared.subscription.disconnect/server"})
+    public void shouldSubscribeSharedSubscriptionDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }
