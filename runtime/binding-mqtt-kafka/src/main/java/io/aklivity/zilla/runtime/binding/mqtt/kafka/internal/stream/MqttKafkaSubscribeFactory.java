@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaEvaluation;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
@@ -2450,9 +2451,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                         retainedFilters.forEach(filter ->
-                            f.filtersItem(fi ->
-                                fi.conditionsItem(ci ->
-                                    buildHeaders(ci, filter.pattern().asString()))));
+                            f.filtersItem(fi -> buildFilterConditions(fi, filter, mqtt.clientId, qos)));
                     }))
                     .build();
 
@@ -2691,6 +2690,54 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
+    private void buildFilterConditions(
+        KafkaFilterFW.Builder f,
+        MqttTopicFilterFW filter,
+        String16FW clientId,
+        int qos)
+    {
+        f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
+        boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
+        if (noLocal)
+        {
+            final DirectBufferEx valueBuffer = clientId.value();
+            f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                h.nameLen(helper.kafkaLocalHeaderName.sizeof())
+                    .name(helper.kafkaLocalHeaderName)
+                    .valueLen(valueBuffer.capacity())
+                    .value(valueBuffer, 0, valueBuffer.capacity())))));
+        }
+
+        final int maxQos = filter.qos();
+        if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
+        {
+            for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
+            {
+                if (level != qos)
+                {
+                    final DirectBufferEx valueBuffer = qosNames.get(level).value();
+                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                        h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                            .name(helper.kafkaQosHeaderName)
+                            .valueLen(valueBuffer.capacity())
+                            .value(valueBuffer, 0, valueBuffer.capacity())))));
+                }
+            }
+        }
+        else
+        {
+            for (int level = 0; level < maxQos; level++)
+            {
+                final DirectBufferEx valueBuffer = qosNames.get(level).value();
+                f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                    h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                        .name(helper.kafkaQosHeaderName)
+                        .valueLen(valueBuffer.capacity())
+                        .value(valueBuffer, 0, valueBuffer.capacity())))));
+            }
+        }
+    }
+
     private MessageConsumer newKafkaStream(
         MessageConsumer sender,
         long originId,
@@ -2724,49 +2771,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         p.partitionId(offsetType.value())
                             .partitionOffset(offsetType.value()));
                     filters.forEach(filter ->
-                        m.filtersItem(f ->
-                        {
-                            f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
-                            boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
-                            if (noLocal)
-                            {
-                                final DirectBufferEx valueBuffer = clientId.value();
-                                f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                    h.nameLen(helper.kafkaLocalHeaderName.sizeof())
-                                        .name(helper.kafkaLocalHeaderName)
-                                        .valueLen(valueBuffer.capacity())
-                                        .value(valueBuffer, 0, valueBuffer.capacity())))));
-                            }
-
-                            final int maxQos = filter.qos();
-                            if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
-                            {
-                                for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
-                                {
-                                    if (level != qos)
-                                    {
-                                        final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                        f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                            h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                                .name(helper.kafkaQosHeaderName)
-                                                .valueLen(valueBuffer.capacity())
-                                                .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                for (int level = 0; level < maxQos; level++)
-                                {
-                                    final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                        h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                            .name(helper.kafkaQosHeaderName)
-                                            .valueLen(valueBuffer.capacity())
-                                            .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                }
-                            }
-                        }));
+                        m.filtersItem(f -> buildFilterConditions(f, filter, clientId, qos)));
                     m.evaluation(b -> b.set(KafkaEvaluation.EAGER));
                 })
                 .build();
