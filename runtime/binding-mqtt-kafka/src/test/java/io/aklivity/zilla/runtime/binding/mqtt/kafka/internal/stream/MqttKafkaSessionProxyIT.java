@@ -299,6 +299,17 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.clean.start.abort.zero.window/client",

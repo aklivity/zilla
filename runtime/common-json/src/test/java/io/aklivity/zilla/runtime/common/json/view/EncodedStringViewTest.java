@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json.view;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -27,12 +27,14 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
 class EncodedStringViewTest
 {
     private static final int PADDING = 3;
 
-    private final EncodedStringView view = new EncodedStringView();
+    private final JsonStringView.Encoded view = new JsonStringView.Encoded();
 
     @Test
     void shouldViewPlainAscii()
@@ -175,8 +177,8 @@ class EncodedStringViewTest
         final int cut = decoded.indexOf('g');
         final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[encoded.getBytes(UTF_8).length + 8]);
 
-        final int head = view.transferTo(0, cut, dst, 2);
-        final int tail = view.transferTo(cut, view.length(), dst, 2 + head);
+        final int head = transfer(view, 0, cut, dst, 2);
+        final int tail = transfer(view, cut, view.length(), dst, 2 + head);
 
         final byte[] expected = encoded.getBytes(UTF_8);
         final byte[] actual = new byte[head + tail];
@@ -184,8 +186,8 @@ class EncodedStringViewTest
 
         assertEquals(expected.length, head + tail);
         assertArrayEquals(expected, actual);
-        assertEquals(head, view.encodedLength(0, cut));
-        assertEquals(tail, view.encodedLength(cut, view.length()));
+        assertEquals(head, view.transferLength(0, cut));
+        assertEquals(tail, view.transferLength(cut, view.length()));
     }
 
     @Test
@@ -195,8 +197,8 @@ class EncodedStringViewTest
 
         final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
-        assertEquals(7, view.transferTo(0, 2, dst, 0));
-        assertEquals(6, view.transferTo(2, 3, dst, 7));
+        assertEquals(7, transfer(view, 0, 2, dst, 0));
+        assertEquals(6, transfer(view, 2, 3, dst, 7));
     }
 
     @Test
@@ -206,10 +208,10 @@ class EncodedStringViewTest
 
         final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
-        assertEquals(5, view.transferTo(0, 3, dst, 0));
-        assertEquals(1, view.transferTo(3, 4, dst, 5));
-        assertThrows(IllegalArgumentException.class, () -> view.transferTo(0, 2, dst, 0));
-        assertThrows(IllegalArgumentException.class, () -> view.transferTo(2, 4, dst, 0));
+        assertEquals(5, transfer(view, 0, 3, dst, 0));
+        assertEquals(1, transfer(view, 3, 4, dst, 5));
+        assertThrows(AssertionError.class, () -> transfer(view, 0, 2, dst, 0));
+        assertThrows(AssertionError.class, () -> transfer(view, 2, 4, dst, 0));
     }
 
     @Test
@@ -217,8 +219,8 @@ class EncodedStringViewTest
     {
         wrap("abc");
 
-        assertEquals(0, view.transferTo(1, 1, new UnsafeBufferEx(new byte[4]), 0));
-        assertEquals(0, view.transferTo(3, 3, new UnsafeBufferEx(new byte[4]), 0));
+        assertEquals(0, transfer(view, 1, 1, new UnsafeBufferEx(new byte[4]), 0));
+        assertEquals(0, transfer(view, 3, 3, new UnsafeBufferEx(new byte[4]), 0));
     }
 
     @Test
@@ -246,8 +248,8 @@ class EncodedStringViewTest
             final int cut = boundary(value, random);
             final byte[] expected = encoded.getBytes(UTF_8);
             final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[expected.length]);
-            final int head = view.transferTo(0, cut, dst, 0);
-            final int tail = view.transferTo(cut, view.length(), dst, head);
+            final int head = transfer(view, 0, cut, dst, 0);
+            final int tail = transfer(view, cut, view.length(), dst, head);
 
             final byte[] actual = new byte[head + tail];
             dst.getBytes(0, actual);
@@ -298,8 +300,8 @@ class EncodedStringViewTest
             final int cut = boundary(decoded, random);
             final byte[] expected = encoded.getBytes(UTF_8);
             final MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[expected.length]);
-            final int head = view.transferTo(0, cut, dst, 0);
-            final int tail = view.transferTo(cut, view.length(), dst, head);
+            final int head = transfer(view, 0, cut, dst, 0);
+            final int tail = transfer(view, cut, view.length(), dst, head);
 
             final byte[] actual = new byte[head + tail];
             dst.getBytes(0, actual);
@@ -392,5 +394,17 @@ class EncodedStringViewTest
         }
 
         return encoded.toString();
+    }
+
+    private static int transfer(
+        CharSequenceEx view,
+        int fromChar,
+        int toChar,
+        MutableDirectBufferEx dst,
+        int dstOffset)
+    {
+        final SegmentTransferTarget target = new SegmentTransferTarget().wrap(dst.segment(), dst.wrapAdjustment() + dstOffset);
+
+        return view.transferTo(fromChar, toChar, target);
     }
 }
