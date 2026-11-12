@@ -178,7 +178,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final MutableInteger packetIdCounter;
     private final Int2ObjectHashMap<String16FW> qosNames;
     //TODO: rename
-    private final Int2ObjectHashMap<PartitionOffset> offsetsPerPacketId;
     private final Map<String, ClientHighWaterMarks> highWaterMarksByClient;
     private final Object2IntHashMap<String> qosLevels;
     private final String groupIdPrefixFormat;
@@ -213,7 +212,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.bootstrapStreams = new ArrayList<>();
         this.packetIdCounter = new MutableInteger(1);
         this.qosNames = new Int2ObjectHashMap<>();
-        this.offsetsPerPacketId = new Int2ObjectHashMap<>();
         this.highWaterMarksByClient = new HashMap<>();
         this.qosLevels = new Object2IntHashMap<>(-1);
         this.qosLevels.put("0", 0);
@@ -298,6 +296,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final Long2ObjectHashMap<KafkaMessagesProxy> messages;
+        private final Int2ObjectHashMap<PartitionOffset> offsetsPerPacketId;
         private final Long2LongHashMap messagesPerTopicKey;
         private final KafkaRetainedProxy retained;
 
@@ -337,6 +336,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.retainedSubscriptions = new ArrayList<>();
             this.messagesPerTopicKey = new Long2LongHashMap(-1);
             this.messages = new Long2ObjectHashMap<>();
+            this.offsetsPerPacketId = new Int2ObjectHashMap<>();
             routes.forEach(r ->
             {
                 KafkaMessagesProxy messagesProxy = new KafkaMessagesProxy(routedId, r, this);
@@ -1263,7 +1263,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
                         incompletePacketIds.put(p.partitionId(), packetIds);
-                        packetIds.forEach(id -> offsetsPerPacketId.put(id,
+                        packetIds.forEach(id -> mqtt.offsetsPerPacketId.put(id,
                             new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
@@ -1362,7 +1362,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
-                                    offsetsPerPacketId.put(packetId,
+                                    mqtt.offsetsPerPacketId.put(packetId,
                                         new PartitionOffset(topicKey, partition.partitionId(), partition.partitionOffset()));
                                     b.packetId(packetId);
                                     b.qos(qos);
@@ -2057,7 +2057,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
                         incompletePacketIds.put(p.partitionId(), packetIds);
-                        packetIds.forEach(id -> offsetsPerPacketId.put(id,
+                        packetIds.forEach(id -> mqtt.offsetsPerPacketId.put(id,
                             new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
@@ -2150,7 +2150,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                                 {
                                     final int packetId = packetIdCounter.getAndIncrement();
-                                    offsetsPerPacketId.put(packetId,
+                                    mqtt.offsetsPerPacketId.put(packetId,
                                         new PartitionOffset(topicKey, partition.partitionId(), partition.partitionOffset()));
                                     unAckedPackets++;
                                     b.packetId(packetId);
