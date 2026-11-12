@@ -747,7 +747,6 @@ public final class ZpmInstall extends ZpmDependencyCommand
             "--add-modules", moduleNames.collect(Collectors.joining(","))));
 
         args.add("--ignore-signing-information");
-        args.add("--generate-cds-archive");
 
         if (!debug)
         {
