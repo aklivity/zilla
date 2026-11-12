@@ -289,6 +289,26 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/client",
+        "${app}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/client",
+        "${app}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("Github Actions aklivity/zilla#1182")
     @Test
     @Configuration("server.yaml")
