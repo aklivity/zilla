@@ -39,6 +39,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
@@ -268,6 +269,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
 
     private static final int PUBLISH_TYPE = 0x03;
+    private static final int FAILURE_REASON_CODE_MIN = Byte.toUnsignedInt(UNSPECIFIED_ERROR);
 
     private static final int DEFAULT_WILL_DELAY = 0;
 
@@ -1842,7 +1844,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, pubrec.packetId());
+                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, pubrec.packetId(), SUCCESS);
                 progress = pubrec.limit();
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
@@ -1883,6 +1885,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
                 int pubrecLimit = ackHeader.limit();
+                int pubrecReasonCode = SUCCESS;
                 final int remainingLength = ackHeader.remainingLength();
                 if (remainingLength > 2)
                 {
@@ -1892,6 +1895,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
+                    pubrecReasonCode = pubrec.reasonCode();
                     pubrecLimit = pubrec.limit();
                     if (remainingLength >= 4)
                     {
@@ -1911,7 +1915,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, ackHeader.packetId());
+                server.onDecodePubrec(traceId, authorization, buffer, progress, limit, ackHeader.packetId(), pubrecReasonCode);
                 progress = pubrecLimit;
                 server.decoder = decodePacketTypeByVersion.get(server.version);
             }
@@ -3879,11 +3883,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             DirectBufferEx buffer,
             int progress,
             int limit,
-            int packetId)
+            int packetId,
+            int reasonCode)
         {
-            qos2Subscribes.get(packetId)
-                .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
-            doSignalKeepAliveTimeout(traceId);
+            if (reasonCode < FAILURE_REASON_CODE_MIN)
+            {
+                qos2Subscribes.get(packetId)
+                    .doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
+                doSignalKeepAliveTimeout(traceId);
+            }
+            else
+            {
+                onDecodePubcomp(traceId, authorization, buffer, progress, limit, packetId);
+            }
         }
 
         private void onDecodePubrel(
