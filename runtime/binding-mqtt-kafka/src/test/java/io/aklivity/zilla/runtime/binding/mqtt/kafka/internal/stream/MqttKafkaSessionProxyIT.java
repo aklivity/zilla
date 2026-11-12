@@ -168,6 +168,54 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.reconnect.non.expiring/client",
+        "${kafka}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.large.interval/client",
+        "${kafka}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.immediately/client",
+        "${kafka}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.reconnect.clean.start/client",
+        "${kafka}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.state/client",
@@ -257,6 +305,17 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
     {
         k3po.finish();
     }

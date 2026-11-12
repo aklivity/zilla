@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -150,6 +149,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIZE_OF_UUID = 36;
+    private static final int SESSION_EXPIRY_NEVER = -1;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
@@ -458,7 +458,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final Consumer<KafkaMergedDataExFW.Builder> commitOffsetMerged =
             m -> m.produce(commitOffsetProduce);
 
-        private int sessionExpiryMillis;
+        private int sessionExpiry;
         private int sessionFlags;
         private int willPadding;
         private int sessionPadding;
@@ -553,6 +553,21 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private boolean isSessionExpiring()
+        {
+            return sessionExpiry != SESSION_EXPIRY_NEVER;
+        }
+
+        private long sessionExpiryMillis()
+        {
+            return isSessionExpiring() ? SECONDS.toMillis(Integer.toUnsignedLong(sessionExpiry)) : Long.MAX_VALUE;
+        }
+
+        private int sessionExpiryDelay()
+        {
+            return (int) Math.min(sessionExpiryMillis(), Integer.MAX_VALUE);
+        }
+
         private void onMqttBegin(
             BeginFW begin)
         {
@@ -582,7 +597,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.clientId = new String16FW(clientId0);
             this.clientIdOffsets = new String16FW(clientId0 + OFFSETS_KEY_POSTFIX);
 
-            sessionExpiryMillis = (int) SECONDS.toMillis(mqttSessionBeginEx.expiry());
+            sessionExpiry = mqttSessionBeginEx.expiry();
             sessionFlags = mqttSessionBeginEx.flags();
             publishQosMax = publishQosMax == -1 ? mqttSessionBeginEx.publishQosMax() : publishQosMax;
 
@@ -723,7 +738,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.willId = supplyWillId.get();
 
             MqttWillMessageFW will = mqttWillRO.tryWrap(buffer, offset, limit);
-            this.delay = (int) Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis);
+            this.delay = (int) Math.min(Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis()), Integer.MAX_VALUE);
             final int expiryInterval = will.expiryInterval() == -1 ? -1 : will.expiryInterval();
             final MqttWillMessageFW.Builder willMessageBuilder =
                 mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
@@ -888,16 +903,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     null, willSignalKafkaDataEx);
             }
 
-            final MqttSessionSignalFW expirySignal =
-                mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                    .expiry(w -> w
-                        .instanceId(instanceId.instanceId())
-                        .clientId(clientId)
-                        .delay(sessionExpiryMillis)
-                        .expireAt(supplyTime.getAsLong() + sessionExpiryMillis))
-                    .build();
-            sessionPadding += expirySignal.sizeof();
-            session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
+            if (isSessionExpiring())
+            {
+                final MqttSessionSignalFW expirySignal =
+                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
+                        .expiry(w -> w
+                            .instanceId(instanceId.instanceId())
+                            .clientId(clientId)
+                            .delay(sessionExpiryDelay())
+                            .expireAt(supplyTime.getAsLong() + sessionExpiryMillis()))
+                        .build();
+                sessionPadding += expirySignal.sizeof();
+                session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
+            }
 
             session.doKafkaEnd(traceId, authorization);
 
@@ -937,16 +955,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 session.sendWillSignal(traceId, authorization);
             }
-            final MqttSessionSignalFW expirySignal =
-                mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                    .expiry(w -> w
-                        .instanceId(instanceId.instanceId())
-                        .clientId(clientId)
-                        .delay(sessionExpiryMillis)
-                        .expireAt(supplyTime.getAsLong() + sessionExpiryMillis))
-                    .build();
-            sessionPadding += expirySignal.sizeof();
-            session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
+            if (isSessionExpiring())
+            {
+                final MqttSessionSignalFW expirySignal =
+                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
+                        .expiry(w -> w
+                            .instanceId(instanceId.instanceId())
+                            .clientId(clientId)
+                            .delay(sessionExpiryDelay())
+                            .expireAt(supplyTime.getAsLong() + sessionExpiryMillis()))
+                        .build();
+                sessionPadding += expirySignal.sizeof();
+                session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
+            }
 
             session.doKafkaAbort(traceId, authorization);
             metas.forEach(m -> m.doKafkaAbort(traceId, authorization));
@@ -1213,7 +1234,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
                         .flags(sessionFlags)
-                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
+                        .expiry(sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
@@ -1419,7 +1440,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     sessionBuilder
                         .flags(sessionFlags)
-                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiryMillis))
+                        .expiry(sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
@@ -2912,7 +2933,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(mqttTypeId)
                     .session(sessionBuilder -> sessionBuilder
                         .flags(delegate.sessionFlags)
-                        .expiry((int) TimeUnit.MILLISECONDS.toSeconds(delegate.sessionExpiryMillis))
+                        .expiry(delegate.sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(delegate.publishQosMax)
                         .capabilities(MQTT_KAFKA_CAPABILITIES)
@@ -3454,16 +3475,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }
                 cancelExpirySignal(authorization, traceId); // expiry cancellation
 
-                final MqttSessionSignalFW expirySignal =
-                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                        .expiry(w -> w
-                            .instanceId(instanceId.instanceId())
-                            .clientId(delegate.clientId)
-                            .delay(delegate.sessionExpiryMillis)
-                            .expireAt(MqttTime.UNKNOWN.value()))
-                        .build();
-                delegate.sessionPadding += expirySignal.sizeof();
-                sendExpirySignal(authorization, traceId, expirySignal); // expire later
+                if (delegate.isSessionExpiring())
+                {
+                    final MqttSessionSignalFW expirySignal =
+                        mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
+                            .expiry(w -> w
+                                .instanceId(instanceId.instanceId())
+                                .clientId(delegate.clientId)
+                                .delay(delegate.sessionExpiryDelay())
+                                .expireAt(MqttTime.UNKNOWN.value()))
+                            .build();
+                    delegate.sessionPadding += expirySignal.sizeof();
+                    sendExpirySignal(authorization, traceId, expirySignal); // expire later
+                }
             }
 
             int budget = initialMax - (int)(initialSeq - initialAck);
