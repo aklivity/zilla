@@ -426,7 +426,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final IntSupplier supplySubscriptionId;
     private final EngineContext context;
 
-    private int maximumPacketSize = Integer.MAX_VALUE;
+    private final int maximumPacketSize = Integer.MAX_VALUE;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -507,7 +507,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final String serviceHostname;
     private final String replicaId;
 
-    private MqttQoS publishQosMax;
+    private final MqttQoS publishQosMaxDefault;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -547,7 +547,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.validator = new MqttValidator();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
         this.supplySubscriptionId = config.subscriptionId();
-        this.publishQosMax = config.publishQosMax();
+        this.publishQosMaxDefault = config.publishQosMax();
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
         this.decodePacketTypeByVersion = new Int2ObjectHashMap<>();
@@ -1301,7 +1301,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int publishLimit;
             int packetId = 0;
 
-            if (qos > publishQosMax.value())
+            if (qos > server.publishQosMax.value())
             {
                 reasonCode = QOS_NOT_SUPPORTED;
                 break decode;
@@ -1416,7 +1416,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int publishLimit;
             int packetId = 0;
 
-            if (qos > publishQosMax.value())
+            if (qos > server.publishQosMax.value())
             {
                 reasonCode = QOS_NOT_SUPPORTED;
                 break decode;
@@ -2629,6 +2629,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutAt;
 
         private int subscribeQosMax;
+        private MqttQoS publishQosMax = publishQosMaxDefault;
+        private int clientMaximumPacketSize = Integer.MAX_VALUE;
         private int packetSizeMax;
         private int capabilities = RETAIN_AVAILABLE_MASK | SUBSCRIPTION_IDS_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK;
         private boolean serverDefinedKeepAlive = false;
@@ -3043,8 +3045,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
-                    maximumPacketSize = Math.min(maxConnectPacketSize, maximumPacketSize);
-                    this.decodablePropertyMask |= CONNECT_TOPIC_ALIAS_MAXIMUM_MASK;
+                    clientMaximumPacketSize = maxConnectPacketSize;
+                    this.decodablePropertyMask |= CONNECT_MAXIMUM_PACKET_SIZE_MASK;
                     break;
                 case KIND_REQUEST_RESPONSE_INFORMATION:
                 case KIND_REQUEST_PROBLEM_INFORMATION:
@@ -7036,7 +7038,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final MqttDataExFW subscribeDataEx = extension.get(mqttSubscribeDataExRO::tryWrap);
 
-                    if (payload != null && !subscriptions.isEmpty() && payload.sizeof() <= maximumPacketSize)
+                    if (payload != null && !subscriptions.isEmpty() && payload.sizeof() <= clientMaximumPacketSize)
                     {
                         switch (version)
                         {
