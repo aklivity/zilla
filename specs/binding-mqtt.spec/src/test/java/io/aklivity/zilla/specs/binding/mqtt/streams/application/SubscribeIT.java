@@ -219,6 +219,33 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.retain.handling.1.new.filter/client",
+        "${app}/subscribe.retain.handling.1.new.filter/server"})
+    public void shouldSubscribeRetainHandling1NewFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retain.handling.1.existing.filter/client",
+        "${app}/subscribe.retain.handling.1.existing.filter/server"})
+    public void shouldSubscribeRetainHandling1ExistingFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retain.handling.0.existing.filter/client",
+        "${app}/subscribe.retain.handling.0.existing.filter/server"})
+    public void shouldSubscribeRetainHandling0ExistingFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
     public void shouldNotReplayRetained() throws Exception

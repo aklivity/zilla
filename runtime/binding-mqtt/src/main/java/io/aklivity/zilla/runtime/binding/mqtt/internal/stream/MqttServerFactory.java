@@ -261,6 +261,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int CONNACK_SESSION_PRESENT = 0b0000_0001;
 
     private static final int RETAIN_HANDLING_SEND = 0;
+    private static final int RETAIN_HANDLING_SEND_IF_NEW = 0b0001_0000;
 
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
     private static final int SEND_RETAINED_FLAG = 1 << SEND_RETAINED.ordinal();
@@ -4110,7 +4111,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
 
                         final int options = mqttSubscribePayload.options();
-                        final int flags = calculateSubscribeFlags(traceId, authorization, options & ~SUBSCRIPTION_QOS_MASK);
+                        final int flags =
+                            calculateSubscribeFlags(traceId, authorization, filter, options & ~SUBSCRIPTION_QOS_MASK);
 
                         final int qos = options & SUBSCRIPTION_QOS_MASK;
 
@@ -5568,6 +5570,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int calculateSubscribeFlags(
             long traceId,
             long authorization,
+            String filter,
             int options)
         {
             int flags = 0;
@@ -5588,6 +5591,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
             case RETAIN_HANDLING_SEND:
                 flags |= SEND_RETAINED_FLAG;
+                break;
+            case RETAIN_HANDLING_SEND_IF_NEW:
+                if (session.subscriptions.stream().noneMatch(s -> s.filter.equals(filter)))
+                {
+                    flags |= SEND_RETAINED_FLAG;
+                }
                 break;
             case RETAIN_HANDLING_MASK:
                 onDecodeError(traceId, authorization, PROTOCOL_ERROR);
