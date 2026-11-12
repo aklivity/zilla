@@ -120,15 +120,6 @@ public interface JsonTokenizer
     // wrap(), or if the parse has already left the container the mark was taken in.
     void rewind();
 
-    // Takes back a key whose first fragment was delivered and declined, so the caller re-presents it: the scan
-    // goes back to priorEnd (the end of the token ahead of the key) when priorEnd is still available (at or
-    // after floor), or to the key's own start otherwise.
-    void rewindKey(
-        long priorEnd,
-        long priorLine,
-        long priorColumn,
-        long floor);
-
     // Gives back the separator and whitespace scanned past the last delivered token when the window ended
     // before the next token began, so only whole tokens are ever consumed and the caller re-presents the rest
     // with the next window.

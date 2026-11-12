@@ -125,22 +125,17 @@ public final class JsonParserImpl implements JsonParserEx
     private boolean fragmentOpen;
     // whether the fragment just delivered continued a token already open, as opposed to starting a new one
     private boolean continuation;
-    // set when the sink reads the parse as original source bytes: a key fragment declined with consumed(0) is
-    // then left unconsumed for the caller to re-present, instead of its decoded characters being accumulated
+    // set when the sink reads the parse as original source bytes
     private boolean verbatim;
     // set while a member's value is being dropped: skipValue() consumes what the window holds and the rest
     // follows as it arrives, every consumed byte discarded rather than left in the run for a flush to drain
     private boolean skipping;
     private int skipDepth;
     private boolean skipOccupied;
-    // where the latest body token ended, and where the one before it ended: takeBackKey() puts the stream back to
-    // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
+    // where the latest body token ended
     private long tokenEnd;
     private long tokenEndLine = 1;
     private long tokenEndColumn = 1;
-    private long priorTokenEnd;
-    private long priorTokenEndLine = 1;
-    private long priorTokenEndColumn = 1;
     private final StepCursor cursor = new StepCursor();
     private final Block block = new Block();
 
@@ -185,9 +180,6 @@ public final class JsonParserImpl implements JsonParserEx
         long tokenEnd;
         long tokenEndLine;
         long tokenEndColumn;
-        long priorTokenEnd;
-        long priorTokenEndLine;
-        long priorTokenEndColumn;
     }
 
     public JsonParserImpl()
@@ -318,9 +310,6 @@ public final class JsonParserImpl implements JsonParserEx
         tokenEnd = 0;
         tokenEndLine = 1;
         tokenEndColumn = 1;
-        priorTokenEnd = 0;
-        priorTokenEndLine = 1;
-        priorTokenEndColumn = 1;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -362,9 +351,6 @@ public final class JsonParserImpl implements JsonParserEx
         mark.tokenEnd = tokenEnd;
         mark.tokenEndLine = tokenEndLine;
         mark.tokenEndColumn = tokenEndColumn;
-        mark.priorTokenEnd = priorTokenEnd;
-        mark.priorTokenEndLine = priorTokenEndLine;
-        mark.priorTokenEndColumn = priorTokenEndColumn;
     }
 
     @Override
@@ -396,9 +382,6 @@ public final class JsonParserImpl implements JsonParserEx
         tokenEnd = mark.tokenEnd;
         tokenEndLine = mark.tokenEndLine;
         tokenEndColumn = mark.tokenEndColumn;
-        priorTokenEnd = mark.priorTokenEnd;
-        priorTokenEndLine = mark.priorTokenEndLine;
-        priorTokenEndColumn = mark.priorTokenEndColumn;
         ownedInput.position((int) (tokenizer.streamOffset() - frameBaseStreamOffset));
     }
 
@@ -645,9 +628,6 @@ public final class JsonParserImpl implements JsonParserEx
                 else
                 {
                     appendStep(event);
-                    priorTokenEnd = tokenEnd;
-                    priorTokenEndLine = tokenEndLine;
-                    priorTokenEndColumn = tokenEndColumn;
                 }
                 tokenEnd = tokenizer.streamOffset();
                 tokenEndLine = tokenizer.line();
@@ -838,10 +818,6 @@ public final class JsonParserImpl implements JsonParserEx
             if (tokenizer.fragmenting())
             {
                 tokenizer.decline(declinedBytes(stringViewOffset));
-            }
-            if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
-            {
-                takeBackKey();
             }
         }
         else
@@ -1142,26 +1118,6 @@ public final class JsonParserImpl implements JsonParserEx
         verbatim = true;
     }
 
-    // Takes back the first fragment of a key that a stage declined: its steps are unrecorded and the tokenizer
-    // goes back to the end of the previous token, so the fragment and the separator ahead of it are left
-    // unconsumed. Only a key's first fragment can be taken back, and the step it recorded is the last one,
-    // behind the separator step that introduced it when the key is not its container's first member.
-    private void takeBackKey()
-    {
-        assert lastEvent == JsonEvent.KEY_NAME && fragmentOpen && stepCount > stepHead;
-        stepCount--;
-        if (stepCount > stepHead && stepKinds[stepCount - 1] == JsonStep.SEPARATOR)
-        {
-            stepCount--;
-        }
-        tokenizer.rewindKey(priorTokenEnd, priorTokenEndLine, priorTokenEndColumn, verbatimCursor);
-        stringViewOffset = 0;
-        fragmentOpen = false;
-        tokenEnd = tokenizer.streamOffset();
-        tokenEndLine = tokenizer.line();
-        tokenEndColumn = tokenizer.column();
-    }
-
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
     // comma if present — bounded to the parse frontier so an empty container (the dropped member had no
     // surviving sibling) consumes only its trailing whitespace, leaving the bare close to render {@code {}}.
@@ -1273,9 +1229,6 @@ public final class JsonParserImpl implements JsonParserEx
         verbatimCursor = tokenizer.streamOffset();
         stepHead = stepCount;
 
-        priorTokenEnd = tokenEnd;
-        priorTokenEndLine = tokenEndLine;
-        priorTokenEndColumn = tokenEndColumn;
         tokenEnd = tokenizer.streamOffset();
         tokenEndLine = tokenizer.line();
         tokenEndColumn = tokenizer.column();

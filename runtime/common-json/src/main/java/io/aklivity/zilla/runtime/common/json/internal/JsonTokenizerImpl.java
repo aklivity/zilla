@@ -90,7 +90,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
 
     // the buffer-resident window wrap() wraps: readByte()/the quoted/number peeks read directly from it, and
     // seek() translates an absolute streamOffset back into a position in it for every rollback (rewind,
-    // rewindKey, rewindLookahead, the quoted-key rollback, the starve rollback)
+    // rewindLookahead, the quoted-key rollback, the starve rollback)
     private DirectBufferEx buffer;
     private int bufferOffset;
     private int bufferLimit;
@@ -452,7 +452,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     // Repositions the scan to an earlier absolute stream offset within the current window, restoring the
-    // line/column that went with it; every rollback (rewind, rewindKey, rewindLookahead, the quoted-key
+    // line/column that went with it; every rollback (rewind, rewindLookahead, the quoted-key
     // rollback, the starve rollback) goes through this one place so streamOffset and the buffer cursor it
     // derives from never drift apart.
     private void seek(
@@ -576,39 +576,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
             }
         }
         return delivered;
-    }
-
-    // Takes back a key whose first fragment was delivered and declined: the stream goes back to the end of the
-    // token ahead of the key, so the separator and whitespace that introduced it are scanned again with it, and
-    // the caller re-presents the bytes. When the caller has already pulled past that point (floor), the separator
-    // is gone for good, so only the key itself is taken back. A key that is not an object's first member was
-    // reached from the state after its separator, which then goes back to the state before it.
-    @Override
-    public void rewindKey(
-        long priorEnd,
-        long priorLine,
-        long priorColumn,
-        long floor)
-    {
-        assert resumeOp == ResumeOp.KEY_STRING;
-        if (priorEnd >= floor)
-        {
-            seek(priorEnd, priorLine, priorColumn);
-            if (state == ParseState.OBJ_AFTER_COMMA)
-            {
-                state = ParseState.OBJ_AFTER_VALUE;
-            }
-        }
-        else
-        {
-            seek(valueStreamStart, valueLine, valueColumn);
-        }
-        resumeOp = ResumeOp.NONE;
-        resumeEscape = false;
-        resumeUnicodePending = 0;
-        resumeUnicodeValue = 0;
-        fragmenting = false;
-        pendingEvent = null;
     }
 
     // Gives back the separator and whitespace scanned past the last delivered token when a non-final window
