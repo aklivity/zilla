@@ -446,4 +446,34 @@ public class SubscribeIT
     {
         return ++subscriptionId;
     }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.mixed/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.all/client",
+        "${app}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.guarded.roles.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filter.unauthorized/client",
+        "${app}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }

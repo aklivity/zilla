@@ -121,4 +121,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.topic.filter.unroutable/client",
+        "${net}/unsubscribe.topic.filter.unroutable/server"})
+    public void shouldUnsubscribeTopicFilterUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
+    {
+        k3po.finish();
+    }
 }

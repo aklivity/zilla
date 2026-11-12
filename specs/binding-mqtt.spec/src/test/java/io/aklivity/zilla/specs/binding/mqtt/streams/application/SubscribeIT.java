@@ -486,4 +486,31 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.mixed/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.all/client",
+        "${app}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.unauthorized/client",
+        "${app}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }
