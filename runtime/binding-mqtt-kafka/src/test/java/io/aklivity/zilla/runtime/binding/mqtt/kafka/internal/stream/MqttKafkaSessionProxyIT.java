@@ -86,7 +86,6 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
@@ -99,7 +98,6 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.log.event.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.reject.non.compacted.sessions.topic/client",
         "${kafka}/session.reject.non.compacted.sessions.topic/server"})
@@ -408,6 +406,39 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenOptionsPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.0.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0WhenOptionsPublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenMessagesWithParams() throws Exception
     {
         k3po.finish();
     }

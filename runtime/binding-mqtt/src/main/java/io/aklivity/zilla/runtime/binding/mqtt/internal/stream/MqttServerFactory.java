@@ -2629,7 +2629,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutId = NO_CANCEL_ID;
         private long keepAliveTimeoutAt;
 
-        private int subscribeQosMax;
         private MqttQoS publishQosMax = publishQosMaxDefault;
         private int clientMaximumPacketSize = Integer.MAX_VALUE;
         private int packetSizeMax;
@@ -3577,7 +3576,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int flags = connectFlags;
                 final int willQos = decodeWillQos(flags);
 
-                if (willQos > subscribeQosMax)
+                if (willQos > publishQosMax.value())
                 {
                     reasonCode = QOS_NOT_SUPPORTED;
                     break decode;
@@ -5103,11 +5102,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (0 <= subscribeQosMax && subscribeQosMax < 2)
+                if (publishQosMax != MqttQoS.EXACTLY_ONCE)
                 {
                     mqttProperty = mqttPropertyRW
                         .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .maximumQoS((byte) subscribeQosMax)
+                        .maximumQoS((byte) publishQosMax.value())
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
@@ -5840,7 +5839,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
-                    subscribeQosMax = mqttSessionBeginEx.subscribeQosMax();
                     publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     if (packetIds != null)
                     {
@@ -5920,7 +5918,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     MqttSessionStateFW sessionState = mqttSessionStateRO.tryWrap(buffer, offset, limit);
 
                     byte reasonCode = SUCCESS;
-                    if (!connected)
+                    if (!connected && isSetWillFlag(connectFlags) && decodeWillQos(connectFlags) > publishQosMax.value())
+                    {
+                        doCancelConnectTimeout();
+                        doEncodeConnack(traceId, authorization, QOS_NOT_SUPPORTED, assignedClientId, false, null, null, version);
+                        doSessionEnd(traceId, EMPTY_OCTETS);
+                        doNetworkEnd(traceId, authorization);
+                        decoder = decodeIgnoreAll;
+                    }
+                    else if (!connected)
                     {
                         boolean sessionPresent = false;
                         if (sessionState != null)

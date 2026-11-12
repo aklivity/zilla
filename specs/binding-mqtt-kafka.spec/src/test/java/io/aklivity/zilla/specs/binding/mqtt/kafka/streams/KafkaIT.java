@@ -1104,4 +1104,22 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
 }

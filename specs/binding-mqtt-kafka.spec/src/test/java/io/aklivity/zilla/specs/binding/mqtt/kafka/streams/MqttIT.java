@@ -906,4 +906,22 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${mqtt}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${mqtt}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
 }
