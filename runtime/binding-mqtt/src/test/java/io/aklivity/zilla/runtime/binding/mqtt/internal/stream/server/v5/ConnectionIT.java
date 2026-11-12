@@ -607,7 +607,8 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Configure(name = PUBLISH_QOS_MAX_NAME, value = "at_least_once")
     @Specification({
-        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client"})
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client",
+        "${app}/connect.will.reject.will.qos.2.publish.maximum.qos.1/server"})
     public void shouldRejectWillQos2WhenPublishMaximumQos1() throws Exception
     {
         k3po.finish();
