@@ -3577,7 +3577,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int flags = connectFlags;
                 final int willQos = decodeWillQos(flags);
 
-                if (willQos > subscribeQosMax)
+                if (willQos > publishQosMax.value())
                 {
                     reasonCode = QOS_NOT_SUPPORTED;
                     break decode;
@@ -5103,11 +5103,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
 
-                if (0 <= subscribeQosMax && subscribeQosMax < 2)
+                final int maximumQos = Math.min(subscribeQosMax, publishQosMax.value());
+                if (maximumQos < 2)
                 {
                     mqttProperty = mqttPropertyRW
                         .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
-                        .maximumQoS((byte) subscribeQosMax)
+                        .maximumQoS((byte) maximumQos)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }
