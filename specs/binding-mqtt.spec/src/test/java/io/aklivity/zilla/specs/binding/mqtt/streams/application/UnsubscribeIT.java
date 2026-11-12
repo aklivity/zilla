@@ -90,4 +90,40 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.shared.resubscribe.previous.stream.abort/client",
+        "${app}/unsubscribe.shared.resubscribe.previous.stream.abort/server"})
+    public void shouldUnsubscribeSharedResubscribePreviousStreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.before.suback.stream.abort.before.begin/client",
+        "${app}/unsubscribe.before.suback.stream.abort.before.begin/server"})
+    public void shouldUnsubscribeBeforeSubackWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

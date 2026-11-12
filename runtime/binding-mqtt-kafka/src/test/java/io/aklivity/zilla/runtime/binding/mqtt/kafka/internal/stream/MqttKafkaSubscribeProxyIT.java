@@ -850,6 +850,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.store.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.shared.reject.before.begin/client",
+        "${kafka}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.shared.reject.qos2.acknowledgement/client",
         "${kafka}/subscribe.shared.reject.qos2.acknowledgement/server"})
     public void shouldSubscribeSharedRejectQos2Acknowledgement() throws Exception

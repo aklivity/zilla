@@ -31,6 +31,7 @@ connected
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
+                                .deferred(0)
                                 .topic("sensor/one")
                                 .subscriptionId(1)
                                 .format("TEXT")

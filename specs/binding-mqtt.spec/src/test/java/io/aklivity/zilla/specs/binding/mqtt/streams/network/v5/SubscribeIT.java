@@ -741,4 +741,166 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.suback.after.stream.begin/client",
+        "${net}/subscribe.suback.after.stream.begin/server"})
+    public void shouldSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.qos1.suback.after.streams.begin/client",
+        "${net}/subscribe.qos1.suback.after.streams.begin/server"})
+    public void shouldSubackQos1AfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.suback.after.stream.begin/client",
+        "${net}/subscribe.shared.suback.after.stream.begin/server"})
+    public void shouldSubackSharedAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.filters.suback.after.streams.begin/client",
+        "${net}/subscribe.shared.filters.suback.after.streams.begin/server"})
+    public void shouldSubackSharedFiltersAfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.and.non.shared.suback.after.streams.begin/client",
+        "${net}/subscribe.shared.and.non.shared.suback.after.streams.begin/server"})
+    public void shouldSubackSharedAndNonSharedAfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.reject.stream.reset.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.shared.reject.stream.reset.before.begin/server"})
+    public void shouldRejectSharedSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.filters.reject.one.stream.reset.before.begin/client",
+        "${net}/subscribe.shared.filters.reject.one.stream.reset.before.begin/server"})
+    public void shouldRejectOneOfSharedFiltersWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.reconnect.non.clean.start/client",
+        "${net}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/client",
+        "${net}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/server"})
+    public void shouldRestoreOnlyAcceptedSharedFilterOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/client",
+        "${net}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/server"})
+    public void shouldDeliverQos1WhenQos2StreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.shared.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSharedSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.filters.reject.one.stream.abort.before.begin/client",
+        "${net}/subscribe.shared.filters.reject.one.stream.abort.before.begin/server"})
+    public void shouldRejectOneOfSharedFiltersWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
 }

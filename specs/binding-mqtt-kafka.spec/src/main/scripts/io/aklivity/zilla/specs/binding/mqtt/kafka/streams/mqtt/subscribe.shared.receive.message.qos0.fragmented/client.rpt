@@ -32,6 +32,7 @@ read option zilla:flags "init"
 read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
+                                .deferred(3)
                                 .topic("sensor/one")
                                 .subscriptionId(1)
                                 .format("TEXT")

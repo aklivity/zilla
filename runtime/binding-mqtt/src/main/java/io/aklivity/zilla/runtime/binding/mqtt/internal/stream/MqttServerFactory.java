@@ -39,6 +39,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
@@ -2564,6 +2565,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
         private final Int2ObjectHashMap<List<Subscription>> subscribeRequests;
+        private final List<PendingSuback> pendingSubacks;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Int2IntHashMap subscribePacketIds;
         private final Object2IntHashMap<String> unsubscribePacketIds;
@@ -2709,6 +2711,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribes = new Long2ObjectHashMap<>();
             this.sharedSubscribes = new Long2ObjectHashMap<>();
             this.subscribeRequests = new Int2ObjectHashMap<>();
+            this.pendingSubacks = new ArrayList<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
@@ -4181,6 +4184,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             boolean implicitSubscribe)
         {
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
+            final List<MqttSubscribeStream> awaitingStreams = new ArrayList<>();
 
             suback:
             {
@@ -4205,31 +4209,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                 }
 
-                if (!implicitSubscribe)
-                {
-                    final byte[] subscriptionPayload = new byte[subscriptions.size()];
-                    for (int i = 0; i < subscriptionPayload.length; i++)
-                    {
-                        final Subscription subscription = subscriptions.get(i);
-                        byte reasonCode = (byte) subscriptions.get(i).reasonCode;
-                        if (version == 4 && (reasonCode & 0xff) > GRANTED_QOS_2)
-                        {
-                            reasonCode = SUBACK_FAILURE_CODE_V4;
-                        }
-                        subscriptionPayload[i] = reasonCode == 0 ? (byte) subscription.qos : reasonCode;
-                    }
-
-                    switch (version)
-                    {
-                    case 4:
-                        doEncodeSubackV4(traceId, sessionId, packetId, subscriptionPayload);
-                        break;
-                    case 5:
-                        doEncodeSubackV5(traceId, sessionId, packetId, subscriptionPayload);
-                        break;
-                    }
-                }
-
                 subscriptionsByRouteId.forEach((key, value) ->
                 {
                     Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes =
@@ -4247,23 +4226,159 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     ? subscriptionList.get(0).compositeId
                                     : WithConfig.NO_COMPOSITE_ID;
                                 MqttSubscribeStream stream = routeSubscribes.computeIfAbsent(qos,
-                                    s -> new MqttSubscribeStream(routedId, key, compositeId, implicitSubscribe, qos, null));
+                                    s -> new MqttSubscribeStream(routedId, key, compositeId, qos, null));
                                 subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                                 stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
+                                awaitReply(awaitingStreams, stream);
                             }
                         });
 
                     value.stream()
                         .filter(s -> s.shared() && s.reasonCode <= GRANTED_QOS_2)
-                        .forEach(s -> openSharedSubscribeStream(traceId, key, implicitSubscribe, s));
+                        .forEach(s -> awaitReply(awaitingStreams,
+                            openSharedSubscribeStream(traceId, key, s)));
                 });
+
+                if (!implicitSubscribe)
+                {
+                    final byte[] reasonCodes = subackReasonCodes(subscriptions);
+                    if (awaitingStreams.isEmpty())
+                    {
+                        doEncodeSuback(traceId, packetId, reasonCodes);
+                    }
+                    else
+                    {
+                        pendingSubacks.add(new PendingSuback(packetId, subscriptions, reasonCodes, awaitingStreams));
+                    }
+                }
             }
         }
 
-        private void openSharedSubscribeStream(
+        private void awaitReply(
+            List<MqttSubscribeStream> awaitingStreams,
+            MqttSubscribeStream stream)
+        {
+            if (!StreamState.replyOpening(stream.state) && !awaitingStreams.contains(stream))
+            {
+                awaitingStreams.add(stream);
+            }
+        }
+
+        private byte[] subackReasonCodes(
+            List<Subscription> subscriptions)
+        {
+            final byte[] reasonCodes = new byte[subscriptions.size()];
+            for (int i = 0; i < reasonCodes.length; i++)
+            {
+                final Subscription subscription = subscriptions.get(i);
+                final byte reasonCode = subackReasonCode(subscription.reasonCode);
+                reasonCodes[i] = reasonCode == 0 ? (byte) subscription.qos : reasonCode;
+            }
+            return reasonCodes;
+        }
+
+        private byte subackReasonCode(
+            int reasonCode)
+        {
+            return version == 4 && (reasonCode & 0xff) > GRANTED_QOS_2 ? SUBACK_FAILURE_CODE_V4 : (byte) reasonCode;
+        }
+
+        private void doEncodeSuback(
+            long traceId,
+            int packetId,
+            byte[] reasonCodes)
+        {
+            switch (version)
+            {
+            case 4:
+                doEncodeSubackV4(traceId, sessionId, packetId, reasonCodes);
+                break;
+            case 5:
+                doEncodeSubackV5(traceId, sessionId, packetId, reasonCodes);
+                break;
+            }
+        }
+
+        private void onSubscribeStreamBegin(
+            long traceId,
+            long authorization,
+            MqttSubscribeStream stream)
+        {
+            final Iterator<PendingSuback> iterator = pendingSubacks.iterator();
+            while (iterator.hasNext())
+            {
+                final PendingSuback suback = iterator.next();
+                if (suback.streams.remove(stream) && suback.streams.isEmpty())
+                {
+                    iterator.remove();
+                    doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
+                }
+            }
+
+            releaseDeferredUnsubscribes(traceId, authorization);
+        }
+
+        private boolean onSubscribeStreamRejected(
+            long traceId,
+            long authorization,
+            MqttSubscribeStream stream,
+            int reasonCode)
+        {
+            final boolean rejected = rejectable(stream);
+
+            if (rejected)
+            {
+                final List<String> failedFilters = new ArrayList<>();
+                final byte failureCode = subackReasonCode(reasonCode);
+                final Iterator<PendingSuback> iterator = pendingSubacks.iterator();
+                while (iterator.hasNext())
+                {
+                    final PendingSuback suback = iterator.next();
+                    if (suback.streams.remove(stream))
+                    {
+                        for (int i = 0; i < suback.reasonCodes.length; i++)
+                        {
+                            final Subscription subscription = suback.subscriptions.get(i);
+                            if ((suback.reasonCodes[i] & 0xff) <= GRANTED_QOS_2 && stream.subscriptions.contains(subscription))
+                            {
+                                suback.reasonCodes[i] = failureCode;
+                                failedFilters.add(subscription.filter);
+                            }
+                        }
+
+                        if (suback.streams.isEmpty())
+                        {
+                            iterator.remove();
+                            doEncodeSuback(traceId, suback.packetId, suback.reasonCodes);
+                        }
+                    }
+                }
+
+                if (!failedFilters.isEmpty())
+                {
+                    doSendSessionState(traceId, failedFilters);
+                }
+
+                releaseDeferredUnsubscribes(traceId, authorization);
+            }
+
+            return rejected;
+        }
+
+        private boolean rejectable(
+            MqttSubscribeStream stream)
+        {
+            final List<PendingSuback> awaiting = pendingSubacks.stream()
+                .filter(suback -> suback.streams.contains(stream))
+                .collect(Collectors.toList());
+
+            return !awaiting.isEmpty() && stream.subscriptions.stream()
+                .allMatch(subscription -> awaiting.stream().anyMatch(suback -> suback.subscriptions.contains(subscription)));
+        }
+
+        private MqttSubscribeStream openSharedSubscribeStream(
             long traceId,
             long routeId,
-            boolean implicitSubscribe,
             Subscription subscription)
         {
             final Map<String, MqttSubscribeStream> routeShared =
@@ -4273,11 +4388,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (stream == null || StreamState.initialClosed(stream.state))
             {
                 stream = new MqttSubscribeStream(routedId, routeId, subscription.compositeId,
-                    implicitSubscribe, subscription.qos, subscription.filter);
+                    subscription.qos, subscription.filter);
                 routeShared.put(subscription.filter, stream);
             }
 
             stream.doSubscribeBeginOrFlush(traceId, affinity, List.of(subscription));
+
+            return stream;
         }
 
         private Collection<MqttSubscribeStream> subscribeStreams(
@@ -4347,18 +4464,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                List<Subscription> unAckedSubscriptions = session.unAckedSubscriptions.stream()
-                    .filter(s -> topicFilters.contains(s.filter) && subscribePacketIds.containsKey(s.id))
-                    .collect(Collectors.toList());
-
-                if (!unAckedSubscriptions.isEmpty())
+                if (topicFilters.stream().anyMatch(this::subscribePending))
                 {
                     session.deferredUnsubscribes.put(packetId, topicFilters);
                     return;
                 }
-                boolean matchingSubscription = topicFilters.stream().anyMatch(tf ->
-                    session.subscriptions.stream().anyMatch(s -> s.filter.equals(tf)));
-                if (matchingSubscription)
+                if (subscribed(topicFilters))
                 {
                     topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
                     doSendSessionState(traceId, topicFilters);
@@ -4368,6 +4479,56 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sendUnsuback(packetId, traceId, authorization, topicFilters, null, false);
                 }
                 doSignalKeepAliveTimeout(traceId);
+            }
+        }
+
+        private boolean subscribePending(
+            String topicFilter)
+        {
+            return session.unAckedSubscriptions.stream()
+                    .anyMatch(s -> s.filter.equals(topicFilter) && subscribePacketIds.containsKey(s.id)) ||
+                pendingSubacks.stream()
+                    .anyMatch(suback -> suback.subscriptions.stream().anyMatch(s -> s.filter.equals(topicFilter)));
+        }
+
+        private boolean subscribed(
+            List<String> topicFilters)
+        {
+            return topicFilters.stream().anyMatch(tf -> session.subscriptions.stream().anyMatch(s -> s.filter.equals(tf)));
+        }
+
+        private void releaseDeferredUnsubscribes(
+            long traceId,
+            long authorization)
+        {
+            final List<String> unsubscribedFilters = new ArrayList<>();
+
+            final Iterator<Map.Entry<Integer, List<String>>> iterator = session.deferredUnsubscribes.entrySet().iterator();
+            while (iterator.hasNext())
+            {
+                final Map.Entry<Integer, List<String>> entry = iterator.next();
+                final int unsubscribePacketId = entry.getKey();
+                final List<String> topicFilters = entry.getValue();
+
+                if (topicFilters.stream().noneMatch(this::subscribePending))
+                {
+                    iterator.remove();
+
+                    if (subscribed(topicFilters))
+                    {
+                        topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, unsubscribePacketId));
+                        unsubscribedFilters.addAll(topicFilters);
+                    }
+                    else
+                    {
+                        sendUnsuback(unsubscribePacketId, traceId, authorization, topicFilters, null, false);
+                    }
+                }
+            }
+
+            if (!unsubscribedFilters.isEmpty())
+            {
+                doSendSessionState(traceId, unsubscribedFilters);
             }
         }
 
@@ -5678,6 +5839,26 @@ public final class MqttServerFactory implements MqttStreamFactory
             return mqttSessionStateRW.build();
         }
 
+        private final class PendingSuback
+        {
+            private final int packetId;
+            private final List<Subscription> subscriptions;
+            private final byte[] reasonCodes;
+            private final List<MqttSubscribeStream> streams;
+
+            private PendingSuback(
+                int packetId,
+                List<Subscription> subscriptions,
+                byte[] reasonCodes,
+                List<MqttSubscribeStream> streams)
+            {
+                this.packetId = packetId;
+                this.subscriptions = subscriptions;
+                this.reasonCodes = reasonCodes;
+                this.streams = streams;
+            }
+        }
+
         private final class Subscription
         {
             private int id = 0;
@@ -6081,6 +6262,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 sessionSubscriptions.forEach(subscription -> subscription.reasonCode = SUCCESS);
 
                                 openSubscribeStreams(0, traceId, authorization, sessionSubscriptions, true);
+                                session.setSubscriptions(sessionSubscriptions);
                                 sessionPresent = true;
                             }
                         }
@@ -6138,6 +6320,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 }
                             }
                             session.setSubscriptions(newState);
+                            releaseDeferredUnsubscribes(traceId, authorization);
                         }
                     }
 
@@ -6935,14 +7118,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int packetId;
             private int qos;
             private int deliveryQos;
-            private final boolean adminSubscribe;
             private final String sharedFilter;
 
             MqttSubscribeStream(
                 long originId,
                 long routedId,
                 long compositeId,
-                boolean adminSubscribe,
                 int qos,
                 String sharedFilter)
             {
@@ -6952,7 +7133,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.compositeId = compositeId;
                 this.subscriptions = new ArrayList<>();
-                this.adminSubscribe = adminSubscribe;
                 this.qos = qos;
                 this.deliveryQos = qos;
                 this.sharedFilter = sharedFilter;
@@ -6968,7 +7148,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final Map<String, MqttSubscribeStream> routeShared = sharedSubscribes.get(routedId);
                 if (routeShared != null)
                 {
-                    routeShared.remove(sharedFilter);
+                    if (routeShared.get(sharedFilter) == this)
+                    {
+                        routeShared.remove(sharedFilter);
+                    }
+
                     if (routeShared.isEmpty())
                     {
                         sharedSubscribes.remove(routedId);
@@ -6984,7 +7168,24 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    subscribes.remove(routedId);
+                    removeNonShared();
+                }
+            }
+
+            private void removeNonShared()
+            {
+                final Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes = subscribes.get(routedId);
+                if (routeSubscribes != null)
+                {
+                    if (routeSubscribes.get(qos) == this)
+                    {
+                        routeSubscribes.remove(qos);
+                    }
+
+                    if (routeSubscribes.isEmpty())
+                    {
+                        subscribes.remove(routedId);
+                    }
                 }
             }
 
@@ -7050,18 +7251,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 int reserved)
             {
-                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, sessionId, 0L, reserved,
-                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                        .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder ->
-                            subscribeBuilder.filters(builder ->
-                                subscriptions.forEach(subscription -> builder.item(subscription::asTopicFilter))))
-                        .build()
-                        .sizeof()));
+                if (!StreamState.initialClosed(state))
+                {
+                    doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                        traceId, sessionId, 0L, reserved,
+                        ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                            .typeId(mqttTypeId)
+                            .subscribe(subscribeBuilder ->
+                                subscribeBuilder.filters(builder ->
+                                    subscriptions.forEach(subscription -> builder.item(subscription::asTopicFilter))))
+                            .build()
+                            .sizeof()));
 
-                initialSeq += reserved;
-                assert initialSeq <= initialAck + initialMax;
+                    initialSeq += reserved;
+                    assert initialSeq <= initialAck + initialMax;
+                }
             }
 
             private void doSubscribeFlush(
@@ -7072,20 +7276,23 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int offsetState,
                 int reasonCode)
             {
-                doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, sessionId, 0L, reserved,
-                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                        .typeId(mqttTypeId)
-                        .subscribe(subscribeBuilder -> subscribeBuilder
-                            .qos(qos)
-                            .packetId(packetId)
-                            .state(offsetState)
-                            .reasonCode(reasonCode))
-                        .build()
-                        .sizeof()));
+                if (!StreamState.initialClosed(state))
+                {
+                    doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                        traceId, sessionId, 0L, reserved,
+                        ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                            .typeId(mqttTypeId)
+                            .subscribe(subscribeBuilder -> subscribeBuilder
+                                .qos(qos)
+                                .packetId(packetId)
+                                .state(offsetState)
+                                .reasonCode(reasonCode))
+                            .build()
+                            .sizeof()));
 
-                initialSeq += reserved;
-                assert initialSeq <= initialAck + initialMax;
+                    initialSeq += reserved;
+                    assert initialSeq <= initialAck + initialMax;
+                }
             }
 
             private void doSubscribeFlushOrEnd(
@@ -7198,6 +7405,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
+
+                onSubscribeStreamBegin(traceId, authorization, this);
 
                 if (!acknowledged)
                 {
@@ -7325,14 +7534,36 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void onSubscribeReset(
                 ResetFW reset)
             {
-                setNetClosed();
+                if (!StreamState.initialClosed(state))
+                {
+                    setNetClosed();
+                }
 
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
+                final OctetsFW extension = reset.extension();
+                final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
-                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
-                decoder = decodeIgnoreAll;
-                decodeNetwork(traceId);
+                final boolean reasoned = mqttResetEx != null && mqttResetEx.reasonCode() != SUCCESS;
+                final int subackReasonCode = reasoned ? mqttResetEx.reasonCode() : UNSPECIFIED_ERROR;
+                final int disconnectReasonCode = reasoned ? mqttResetEx.reasonCode() : IMPLEMENTATION_SPECIFIC_ERROR;
+
+                onSubscribeRejected(traceId, authorization, subackReasonCode, disconnectReasonCode);
+            }
+
+            private void onSubscribeRejected(
+                long traceId,
+                long authorization,
+                int subackReasonCode,
+                int disconnectReasonCode)
+            {
+                if (!onSubscribeStreamRejected(traceId, authorization, this, subackReasonCode))
+                {
+                    onDecodeError(traceId, authorization, disconnectReasonCode);
+                    decoder = decodeIgnoreAll;
+                    decodeNetwork(traceId);
+                }
+
                 cleanupAbort(traceId);
             }
 
@@ -7346,30 +7577,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long authorization = window.authorization();
                 final long budgetId = window.budgetId();
                 final int padding = window.padding();
-
-                if (!subscriptions.isEmpty() && !adminSubscribe)
-                {
-                    if (!session.deferredUnsubscribes.isEmpty())
-                    {
-                        Iterator<Map.Entry<Integer, List<String>>> iterator =
-                            session.deferredUnsubscribes.entrySet().iterator();
-                        List<String> ackedTopicFilters = new ArrayList<>();
-                        while (iterator.hasNext())
-                        {
-                            Map.Entry<Integer, List<String>> entry = iterator.next();
-                            int unsubscribePacketId = entry.getKey();
-                            List<String> deferredTopicFilters = entry.getValue();
-                            ackedTopicFilters.addAll(subscriptions.stream()
-                                .filter(s -> deferredTopicFilters.contains(s.filter))
-                                .peek(s -> unsubscribePacketIds.put(s.filter, unsubscribePacketId))
-                                .map(s -> s.filter)
-                                .collect(Collectors.toList()));
-                            iterator.remove();
-                        }
-
-                        doSendSessionState(traceId, ackedTopicFilters);
-                    }
-                }
 
                 this.state = StreamState.openInitial(state);
                 this.budgetId = budgetId;
@@ -7402,8 +7609,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert !StreamState.replyClosed(state);
 
+                final boolean beforeBegin = !StreamState.replyOpening(state);
+
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
+
+                if (beforeBegin)
+                {
+                    onSubscribeRejected(end.traceId(), end.authorization(), UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
+                }
             }
 
             private void onSubscribeAbort(
@@ -7411,13 +7625,22 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 assert !StreamState.replyClosed(state);
 
+                final boolean beforeBegin = !StreamState.replyOpening(state);
+
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
 
                 final long traceId = abort.traceId();
                 final long authorization = abort.authorization();
 
-                cleanupAbort(traceId);
+                if (beforeBegin)
+                {
+                    onSubscribeRejected(traceId, authorization, UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
+                }
+                else
+                {
+                    cleanupAbort(traceId);
+                }
             }
 
             private void cleanupAbort(
@@ -7470,8 +7693,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
                 {
+                    setNetClosed();
+
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck,
-                        StreamState.closeInitial(state), initialMax,
+                        state, initialMax,
                         traceId, sessionId, EMPTY_OCTETS);
                 }
             }
