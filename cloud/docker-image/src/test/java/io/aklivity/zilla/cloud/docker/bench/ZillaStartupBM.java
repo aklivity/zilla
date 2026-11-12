@@ -55,22 +55,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @OutputTimeUnit(MILLISECONDS)
 public class ZillaStartupBM
 {
-    private static final String CONFIG =
-        """
-        name: startup
-        bindings:
-          tcp_server0:
-            type: tcp
-            kind: server
-            options:
-              host: 0.0.0.0
-              port: 8080
-            exit: echo_server0
-          echo_server0:
-            type: echo
-            kind: server
-        """;
-
     private static final String CONTAINER_CONFIG = "/tmp/zilla.yaml";
     private static final String READY_PATH = "/var/run/zilla/ready";
     private static final Duration HEALTHY_TIMEOUT = Duration.ofMinutes(2);
@@ -88,7 +72,10 @@ public class ZillaStartupBM
     {
         imageName = image.isEmpty() ? defaultImage() : image;
         config = Files.createTempDirectory("zilla-startup").resolve("zilla.yaml");
-        Files.writeString(config, CONFIG);
+        try (InputStream input = ZillaStartupBM.class.getResourceAsStream("/zilla.training.yaml"))
+        {
+            Files.write(config, input.readAllBytes());
+        }
     }
 
     @TearDown(Level.Trial)

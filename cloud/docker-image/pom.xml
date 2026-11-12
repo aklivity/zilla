@@ -516,6 +516,12 @@
         <directory>src/test/resources</directory>
         <filtering>true</filtering>
       </testResource>
+      <testResource>
+        <directory>src/main/docker</directory>
+        <includes>
+          <include>zilla.training.yaml</include>
+        </includes>
+      </testResource>
     </testResources>
     <plugins>
       <plugin>
