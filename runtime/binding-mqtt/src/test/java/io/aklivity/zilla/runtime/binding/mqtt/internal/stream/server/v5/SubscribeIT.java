@@ -563,4 +563,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.qos2.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
 }
