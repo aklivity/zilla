@@ -40,7 +40,7 @@ class JsonParserMarkRewindTest
     private static int refused;
 
     private static final Set<String> IDLE_FIELDS = Set.of(
-        "starved", "valuePending", "pendingString", "scratchConsumed", "resumeEscape",
+        "starved", "resumeEscape",
         "resumeUnicodePending", "resumeUnicodeValue", "resumeLiteralIndex");
 
     private static final String DOCUMENT =

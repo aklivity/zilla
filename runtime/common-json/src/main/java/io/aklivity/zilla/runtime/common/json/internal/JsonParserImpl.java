@@ -47,6 +47,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 public final class JsonParserImpl implements JsonParserEx
 {
@@ -108,6 +109,10 @@ public final class JsonParserImpl implements JsonParserEx
     // the leading separator off the new-first surviving sibling so the survivors stay well-formed
     private boolean trimLeadingSeparator;
     private final StringView stringViewRO = new StringView();
+    private final JsonStringView.Decoded emptyView = new JsonStringView.Decoded().wrap("");
+    private final JsonStringView.Encoded encodedView = new JsonStringView.Encoded();
+    private final JsonStringView.Escaped escapedView = new JsonStringView.Escaped();
+    private String stringCache;
     // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
     // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
     // first step not yet handed out by a block; the log compacts once a prior run has been fully drained
@@ -120,22 +125,17 @@ public final class JsonParserImpl implements JsonParserEx
     private boolean fragmentOpen;
     // whether the fragment just delivered continued a token already open, as opposed to starting a new one
     private boolean continuation;
-    // set when the sink reads the parse as original source bytes: a key fragment declined with consumed(0) is
-    // then left unconsumed for the caller to re-present, instead of its decoded characters being accumulated
+    // set when the sink reads the parse as original source bytes
     private boolean verbatim;
     // set while a member's value is being dropped: skipValue() consumes what the window holds and the rest
     // follows as it arrives, every consumed byte discarded rather than left in the run for a flush to drain
     private boolean skipping;
     private int skipDepth;
     private boolean skipOccupied;
-    // where the latest body token ended, and where the one before it ended: takeBackKey() puts the stream back to
-    // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
+    // where the latest body token ended
     private long tokenEnd;
     private long tokenEndLine = 1;
     private long tokenEndColumn = 1;
-    private long priorTokenEnd;
-    private long priorTokenEndLine = 1;
-    private long priorTokenEndColumn = 1;
     private final StepCursor cursor = new StepCursor();
     private final Block block = new Block();
 
@@ -168,6 +168,7 @@ public final class JsonParserImpl implements JsonParserEx
         int segmentDepth;
         boolean armNextValue;
         int stringViewOffset;
+        String stringCache;
         long verbatimCursor;
         boolean trimLeadingSeparator;
         int stepCount;
@@ -179,9 +180,6 @@ public final class JsonParserImpl implements JsonParserEx
         long tokenEnd;
         long tokenEndLine;
         long tokenEndColumn;
-        long priorTokenEnd;
-        long priorTokenEndLine;
-        long priorTokenEndColumn;
     }
 
     public JsonParserImpl()
@@ -242,8 +240,8 @@ public final class JsonParserImpl implements JsonParserEx
         // the bytes a consumer left of a fragment read from the window went back to the caller, who re-presents them
         if (tokenizer.declined())
         {
-            tokenizer.acceptDeclined();
             stringViewOffset = 0;
+            stringCache = null;
         }
 
         ownedInput.wrap(buffer, offset, limit - offset);
@@ -312,9 +310,6 @@ public final class JsonParserImpl implements JsonParserEx
         tokenEnd = 0;
         tokenEndLine = 1;
         tokenEndColumn = 1;
-        priorTokenEnd = 0;
-        priorTokenEndLine = 1;
-        priorTokenEndColumn = 1;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -323,7 +318,7 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public void mark()
     {
-        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.pending())
+        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.event() != null)
         {
             throw new IllegalStateException("mark requires an event boundary outside a skip, fragment or segment");
         }
@@ -344,6 +339,7 @@ public final class JsonParserImpl implements JsonParserEx
         mark.segmentDepth = segmentDepth;
         mark.armNextValue = armNextValue;
         mark.stringViewOffset = stringViewOffset;
+        mark.stringCache = stringCache;
         mark.verbatimCursor = verbatimCursor;
         mark.trimLeadingSeparator = trimLeadingSeparator;
         mark.stepCount = stepCount;
@@ -355,9 +351,6 @@ public final class JsonParserImpl implements JsonParserEx
         mark.tokenEnd = tokenEnd;
         mark.tokenEndLine = tokenEndLine;
         mark.tokenEndColumn = tokenEndColumn;
-        mark.priorTokenEnd = priorTokenEnd;
-        mark.priorTokenEndLine = priorTokenEndLine;
-        mark.priorTokenEndColumn = priorTokenEndColumn;
     }
 
     @Override
@@ -375,6 +368,7 @@ public final class JsonParserImpl implements JsonParserEx
         segmentDepth = mark.segmentDepth;
         armNextValue = mark.armNextValue;
         stringViewOffset = mark.stringViewOffset;
+        stringCache = mark.stringCache;
         verbatimCursor = mark.verbatimCursor;
         trimLeadingSeparator = mark.trimLeadingSeparator;
         stepCount = mark.stepCount;
@@ -388,9 +382,6 @@ public final class JsonParserImpl implements JsonParserEx
         tokenEnd = mark.tokenEnd;
         tokenEndLine = mark.tokenEndLine;
         tokenEndColumn = mark.tokenEndColumn;
-        priorTokenEnd = mark.priorTokenEnd;
-        priorTokenEndLine = mark.priorTokenEndLine;
-        priorTokenEndColumn = mark.priorTokenEndColumn;
         ownedInput.position((int) (tokenizer.streamOffset() - frameBaseStreamOffset));
     }
 
@@ -452,7 +443,7 @@ public final class JsonParserImpl implements JsonParserEx
     private boolean tokenizerHasNext()
     {
         boolean result;
-        if (tokenizer.pending())
+        if (tokenizer.event() != null)
         {
             result = true;
         }
@@ -460,13 +451,6 @@ public final class JsonParserImpl implements JsonParserEx
         {
             materializeInput();
             syncInput();
-            // before resuming a value that spans windows, tell the tokenizer how much of the prior
-            // fragment the consumer took (the char cursor) so it keeps the unconsumed remainder and
-            // accumulates rather than discarding a declined fragment
-            if (tokenizer.fragmenting())
-            {
-                tokenizer.markScratchConsumed(stringViewOffset);
-            }
             // a fragment the consumer left is read again from the next window, so there is nothing to scan until then
             result = !tokenizer.declined() && tokenizer.advance();
         }
@@ -524,19 +508,25 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public Event next()
     {
+        return toEvent(takeEvent());
+    }
+
+    private JsonEvent takeEvent()
+    {
         if (skipping)
         {
             skipPending();
         }
 
-        if (skipping || !tokenizer.pending() && !tokenizerHasNext())
+        if (skipping || tokenizer.event() == null && !tokenizerHasNext())
         {
             throw new JsonParsingException("No more events", location);
         }
-        Event e = tokenizer.event();
+        final JsonEvent event = tokenizer.event();
         tokenizer.clearEvent();
-        currentEvent = e;
-        return e;
+        stringCache = null;
+        currentEvent = toEvent(event);
+        return event;
     }
 
     @Override
@@ -638,9 +628,6 @@ public final class JsonParserImpl implements JsonParserEx
                 else
                 {
                     appendStep(event);
-                    priorTokenEnd = tokenEnd;
-                    priorTokenEndLine = tokenEndLine;
-                    priorTokenEndColumn = tokenEndColumn;
                 }
                 tokenEnd = tokenizer.streamOffset();
                 tokenEndLine = tokenizer.line();
@@ -719,24 +706,6 @@ public final class JsonParserImpl implements JsonParserEx
         return result;
     }
 
-    private JsonEvent tokenEvent()
-    {
-        final JsonEvent marker = tokenizer.marker();
-        final JsonEvent event;
-
-        if (marker != null)
-        {
-            tokenizer.clearMarker();
-            event = marker;
-        }
-        else
-        {
-            event = JsonEvent.of(next());
-        }
-
-        return event;
-    }
-
     private JsonEvent nextToken()
     {
         JsonEvent event;
@@ -749,7 +718,7 @@ public final class JsonParserImpl implements JsonParserEx
             event = scanSegment(ownedInput.offset());
             break;
         default:
-            lastEvent = tokenEvent();
+            lastEvent = takeEvent();
             if (lastEvent == JsonEvent.VALUE_NUMBER ||
                 lastEvent == JsonEvent.KEY_NAME ||
                 lastEvent == JsonEvent.VALUE_STRING && !tokenizer.stringVerbatim())
@@ -848,11 +817,7 @@ public final class JsonParserImpl implements JsonParserEx
             stringViewOffset += sourceUnits;
             if (tokenizer.fragmenting())
             {
-                tokenizer.positionAfter(stringViewOffset);
-            }
-            if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
-            {
-                takeBackKey();
+                tokenizer.decline(declinedBytes(stringViewOffset));
             }
         }
         else
@@ -871,11 +836,15 @@ public final class JsonParserImpl implements JsonParserEx
     public String getString()
     {
         assert currentEvent == Event.KEY_NAME || currentEvent == Event.VALUE_STRING || currentEvent == Event.VALUE_NUMBER;
-        return tokenizer.stringValue();
+        if (stringCache == null)
+        {
+            stringCache = spanView().toString();
+        }
+        return stringCache;
     }
 
     @Override
-    public CharSequence getStringView()
+    public JsonStringView getStringView()
     {
         // valid on both drives: the pump tracks lastEvent, a jakarta next() tracks currentEvent
         assert lastEvent == JsonEvent.VALUE_STRING || lastEvent == JsonEvent.VALUE_NUMBER ||
@@ -886,8 +855,52 @@ public final class JsonParserImpl implements JsonParserEx
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
         return charScalar() && stringViewOffset > 0
-            ? stringViewRO.wrap(tokenizer.stringView(), stringViewOffset)
-            : tokenizer.stringView();
+            ? stringViewRO.wrap(spanView(), stringViewOffset)
+            : spanView();
+    }
+
+    // the current token as the chars the tokenizer read in place from the window; a token that is not read in place
+    // has none
+    private JsonStringView spanView()
+    {
+        final int length = tokenizer.tokenLength();
+        final JsonStringView view;
+
+        if (length < 0)
+        {
+            view = emptyView;
+        }
+        else if (tokenizer.inScope())
+        {
+            view = escapedView.wrap(syncedBuffer, tokenizer.tokenOffset(), length, tokenizer.tokenChars());
+        }
+        else
+        {
+            view = encodedView.wrap(syncedBuffer, tokenizer.tokenOffset(), length, tokenizer.tokenChars(),
+                tokenizer.tokenPlain());
+        }
+
+        return view;
+    }
+
+    private int declinedBytes(
+        int consumed)
+    {
+        final int length = tokenizer.tokenLength();
+        int bytes = 0;
+
+        if (length > 0 && consumed < tokenizer.tokenChars())
+        {
+            final int offset = tokenizer.tokenOffset();
+            final int floor = tokenizer.inScope()
+                ? escapedView.wrap(syncedBuffer, offset, length, tokenizer.tokenChars()).floorOffsetOf(consumed)
+                : encodedView.wrap(syncedBuffer, offset, length, tokenizer.tokenChars(), tokenizer.tokenPlain())
+                    .floorOffsetOf(consumed);
+
+            bytes = length - (floor - offset);
+        }
+
+        return bytes;
     }
 
     // True while the current scalar is delivered decoded (rendered canonically by the sink from its char
@@ -908,11 +921,11 @@ public final class JsonParserImpl implements JsonParserEx
         assert currentEvent == Event.VALUE_NUMBER;
         // the current number's char view (not stringValue()), so scanning it materializes no String; with
         // consumed(0) accumulation a value the caller needs whole is fully present in scratch by this point
-        final CharSequence v = tokenizer.stringView();
-        if (v == null)
+        if (tokenizer.tokenLength() < 0)
         {
             throw new IllegalStateException("Not a number");
         }
+        final CharSequence v = spanView();
         boolean integral = true;
         for (int i = 0; integral && i < v.length(); i++)
         {
@@ -927,7 +940,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert currentEvent == Event.VALUE_NUMBER;
         assert !deferredBytes();
-        final CharSequence lexeme = tokenizer.stringView();
+        final CharSequence lexeme = spanView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
             throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
@@ -940,7 +953,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert currentEvent == Event.VALUE_NUMBER;
         assert !deferredBytes();
-        final CharSequence lexeme = tokenizer.stringView();
+        final CharSequence lexeme = spanView();
         if (integerDigits(lexeme) > LONG_DIGITS)
         {
             throw new IllegalStateException("number exceeds long range; use getBigDecimal()");
@@ -956,7 +969,7 @@ public final class JsonParserImpl implements JsonParserEx
         // value still spanning windows must first gather it (e.g. push back via consumed(0)) and only
         // read it once the deferred bytes have arrived
         assert !deferredBytes();
-        return new BigDecimal(tokenizer.stringView().toString());
+        return new BigDecimal(spanView().toString());
     }
 
     // count of leading integer digits after an optional sign; a longer integer lexeme cannot fit a long,
@@ -1072,20 +1085,19 @@ public final class JsonParserImpl implements JsonParserEx
     {
         while (skipping && tokenizerHasNext())
         {
-            final Event token = tokenizer.event();
+            final JsonEvent token = tokenizer.event();
             tokenizer.clearEvent();
-            if (token == Event.START_OBJECT || token == Event.START_ARRAY)
+            if (token == JsonEvent.START_OBJECT || token == JsonEvent.START_ARRAY)
             {
                 skipDepth++;
             }
-            else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+            else if (token == JsonEvent.END_OBJECT || token == JsonEvent.END_ARRAY)
             {
                 skipDepth--;
             }
             else
             {
-                final CharSequence view = tokenizer.stringView();
-                stringViewOffset = view != null ? view.length() : 0;
+                stringViewOffset = tokenizer.tokenLength() < 0 ? 0 : tokenizer.tokenChars();
             }
             skipping = skipDepth > 0 || tokenizer.fragmenting();
         }
@@ -1104,26 +1116,6 @@ public final class JsonParserImpl implements JsonParserEx
     public void verbatim()
     {
         verbatim = true;
-    }
-
-    // Takes back the first fragment of a key that a stage declined: its steps are unrecorded and the tokenizer
-    // goes back to the end of the previous token, so the fragment and the separator ahead of it are left
-    // unconsumed. Only a key's first fragment can be taken back, and the step it recorded is the last one,
-    // behind the separator step that introduced it when the key is not its container's first member.
-    private void takeBackKey()
-    {
-        assert lastEvent == JsonEvent.KEY_NAME && fragmentOpen && stepCount > stepHead;
-        stepCount--;
-        if (stepCount > stepHead && stepKinds[stepCount - 1] == JsonStep.SEPARATOR)
-        {
-            stepCount--;
-        }
-        tokenizer.rewindKey(priorTokenEnd, priorTokenEndLine, priorTokenEndColumn, verbatimCursor);
-        stringViewOffset = 0;
-        fragmentOpen = false;
-        tokenEnd = tokenizer.streamOffset();
-        tokenEndLine = tokenizer.line();
-        tokenEndColumn = tokenizer.column();
     }
 
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
@@ -1237,9 +1229,6 @@ public final class JsonParserImpl implements JsonParserEx
         verbatimCursor = tokenizer.streamOffset();
         stepHead = stepCount;
 
-        priorTokenEnd = tokenEnd;
-        priorTokenEndLine = tokenEndLine;
-        priorTokenEndColumn = tokenEndColumn;
         tokenEnd = tokenizer.streamOffset();
         tokenEndLine = tokenizer.line();
         tokenEndColumn = tokenizer.column();
@@ -1271,7 +1260,7 @@ public final class JsonParserImpl implements JsonParserEx
         case START_OBJECT -> getObject();
         case START_ARRAY -> getArray();
         case VALUE_STRING, KEY_NAME -> JsonValues.string(getString());
-        case VALUE_NUMBER -> JsonValues.numberLiteral(tokenizer.stringView().toString());
+        case VALUE_NUMBER -> JsonValues.numberLiteral(spanView().toString());
         case VALUE_TRUE -> JsonValue.TRUE;
         case VALUE_FALSE -> JsonValue.FALSE;
         case VALUE_NULL -> JsonValue.NULL;
@@ -1472,18 +1461,24 @@ public final class JsonParserImpl implements JsonParserEx
         }
     }
 
-    private static final class StringView implements CharSequence
+    private static final class StringView implements JsonStringView
     {
-        private CharSequence base;
+        private JsonStringView base;
         private int offset;
 
         private StringView wrap(
-            CharSequence base,
+            JsonStringView base,
             int offset)
         {
             this.base = base;
             this.offset = offset;
             return this;
+        }
+
+        @Override
+        public Kind kind()
+        {
+            return base.kind();
         }
 
         @Override
@@ -1505,6 +1500,23 @@ public final class JsonParserImpl implements JsonParserEx
             int end)
         {
             return base.subSequence(offset + start, offset + end);
+        }
+
+        @Override
+        public int transferLength(
+            int fromChar,
+            int toChar)
+        {
+            return base.transferLength(offset + fromChar, offset + toChar);
+        }
+
+        @Override
+        public int transferTo(
+            int fromChar,
+            int toChar,
+            TransferTarget target)
+        {
+            return base.transferTo(offset + fromChar, offset + toChar, target);
         }
 
         @Override

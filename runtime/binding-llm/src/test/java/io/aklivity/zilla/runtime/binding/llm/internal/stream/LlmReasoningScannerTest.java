@@ -26,15 +26,19 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+
 public class LlmReasoningScannerTest
 {
+    private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
     private final LlmReasoningScanner scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
     private final List<String> pieces = new ArrayList<>();
     private final LlmReasoningScanner.Visitor visitor = new LlmReasoningScanner.Visitor()
     {
         @Override
         public void text(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -50,7 +54,7 @@ public class LlmReasoningScannerTest
 
         @Override
         public void reasoning(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to)
         {
@@ -321,7 +325,7 @@ public class LlmReasoningScannerTest
         {
             @Override
             public void text(
-                CharSequence chars,
+                JsonStringView chars,
                 int from,
                 int to)
             {
@@ -336,7 +340,7 @@ public class LlmReasoningScannerTest
 
             @Override
             public void reasoning(
-                CharSequence chars,
+                JsonStringView chars,
                 int from,
                 int to)
             {
@@ -350,7 +354,7 @@ public class LlmReasoningScannerTest
         };
 
         scanner.begin();
-        scanner.accept("Sure. <think>plan</think>Done", 0, 29, visitor);
+        scanner.accept(decoded.wrap("Sure. <think>plan</think>Done"), 0, 29, visitor);
         scanner.end(visitor);
 
         assertThat(ranges, contains("text:0-6", "reasoning:13-17", "text:25-29"));
@@ -376,7 +380,7 @@ public class LlmReasoningScannerTest
         scanner.begin();
         for (int offset = 0; offset < text.length(); offset += size)
         {
-            scanner.accept(text, offset, Math.min(offset + size, text.length()), visitor);
+            scanner.accept(decoded.wrap(text), offset, Math.min(offset + size, text.length()), visitor);
         }
         scanner.end(visitor);
         return new ArrayList<>(pieces);
@@ -413,6 +417,6 @@ public class LlmReasoningScannerTest
         LlmReasoningScanner scanner,
         String text)
     {
-        scanner.accept(text, 0, text.length(), visitor);
+        scanner.accept(decoded.wrap(text), 0, text.length(), visitor);
     }
 }
