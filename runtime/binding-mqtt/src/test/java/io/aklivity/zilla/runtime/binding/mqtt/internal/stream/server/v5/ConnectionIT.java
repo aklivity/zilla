@@ -553,4 +553,32 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/client",
+        "${app}/connect.max.packet.size.exceeded.by.packet.overhead/server"})
+    public void shouldDropPublishWhenPacketExceedsMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.receive.maximum.zero/client"})
+    public void shouldRejectZeroReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.receive.maximum.repeated/client"})
+    public void shouldRejectRepeatedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
 }

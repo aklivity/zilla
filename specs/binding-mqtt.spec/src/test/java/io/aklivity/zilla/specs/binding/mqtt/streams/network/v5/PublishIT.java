@@ -499,4 +499,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.retained.per.connection/client",
+        "${net}/publish.retained.per.connection/server"})
+    public void shouldPublishNonRetainedAfterRetainedOnOtherConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }

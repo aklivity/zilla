@@ -584,4 +584,14 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.retained.per.connection/client",
+        "${app}/publish.retained.per.connection/server"})
+    public void shouldPublishNonRetainedAfterRetainedOnOtherConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }
