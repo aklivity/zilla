@@ -45,4 +45,13 @@ public class InitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/produce.new.id.coordinator.load.in.progress/client",
+        "${net}/produce.new.id.coordinator.load.in.progress/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorLoadInProgress() throws Exception
+    {
+        k3po.finish();
+    }
 }

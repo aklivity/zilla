@@ -66,6 +66,8 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_COORDINATOR_LOAD_IN_PROGRESS = 14;
+    private static final int ERROR_COORDINATOR_NOT_AVAILABLE = 15;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -508,15 +510,20 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             progress = initProducerIdResponse.limit();
 
             short errorCode = initProducerIdResponse.errorCode();
-            if (errorCode == ERROR_NONE)
+            switch (errorCode)
             {
+            case ERROR_COORDINATOR_LOAD_IN_PROGRESS:
+            case ERROR_COORDINATOR_NOT_AVAILABLE:
+                client.onCoordinatorNotAvailable(traceId);
+                break;
+            case ERROR_NONE:
                 client.onDecodeInitProducerrIdResponse(
                     traceId, initProducerIdResponse.producerId(), initProducerIdResponse.producerEpoch());
-            }
-            else
-            {
+                break;
+            default:
                 client.errorCode = errorCode;
                 client.decoder = decodeReject;
+                break;
             }
         }
 
@@ -1461,6 +1468,15 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             long traceId)
         {
             nextResponseId++;
+            signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void onCoordinatorNotAvailable(
+            long traceId)
+        {
+            nextResponseId++;
+
+            encoder = encodeInitProducerIdRequest;
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
