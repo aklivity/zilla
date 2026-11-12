@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Resumable {@link JsonTransform} that hoists each of a set of dotted accessor paths (e.g. {@code pr.title})
@@ -436,6 +437,8 @@ public final class JsonFlattenerImpl implements JsonTransform
     // never reaches the real upstream to advance its cursor instead.
     private static final class KeySource implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private CharSequence key;
         private int offset;
 
@@ -460,9 +463,9 @@ public final class JsonFlattenerImpl implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return key == null ? null : key.subSequence(offset, key.length());
+            return key == null ? null : decoded.wrap(key.subSequence(offset, key.length()));
         }
 
         @Override

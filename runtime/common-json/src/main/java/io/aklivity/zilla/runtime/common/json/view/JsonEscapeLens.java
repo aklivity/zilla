@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json.view;
 
 import jakarta.json.stream.JsonParsingException;
 
@@ -27,9 +27,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * lone surrogate is replaced by U+FFFD. A unit is returned packed in a long, so reading allocates nothing: its
  * bytes in the low half, the number of bytes at bit 32, and the number of source bytes it spans at bit 40.
  */
-final class JsonEscapeLens
+public final class JsonEscapeLens
 {
-    static final long NEEDS_MORE = -1L;
+    public static final long NEEDS_MORE = -1L;
 
     private static final int REPLACEMENT = 0xfffd;
     private static final int UNICODE_ESCAPE = 6;
@@ -42,19 +42,19 @@ final class JsonEscapeLens
     {
     }
 
-    static int count(
+    public static int count(
         long unit)
     {
         return (int) (unit >>> COUNT_SHIFT & MASK);
     }
 
-    static int size(
+    public static int size(
         long unit)
     {
         return (int) (unit >>> SIZE_SHIFT & MASK);
     }
 
-    static byte byteAt(
+    public static byte byteAt(
         long unit,
         int index)
     {
@@ -65,7 +65,7 @@ final class JsonEscapeLens
      * The unit that starts at {@code offset}, or {@link #NEEDS_MORE} when the window ends before the unit is
      * complete and {@code last} says no more bytes follow it.
      */
-    static long decode(
+    public static long decode(
         DirectBufferEx buffer,
         int offset,
         int limit,

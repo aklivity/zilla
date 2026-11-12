@@ -243,6 +243,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.section.user.text.escaped/client",
+        "${app}/openai.responses.section.user.text.escaped/server"})
+    public void shouldDecodeOpenaiResponsesSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.section.developer.instruction/client",
         "${app}/openai.responses.section.developer.instruction/server"})
     public void shouldDecodeOpenaiResponsesSectionDeveloperInstruction() throws Exception

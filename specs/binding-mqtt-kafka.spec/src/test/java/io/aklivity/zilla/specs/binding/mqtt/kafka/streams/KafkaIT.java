@@ -776,6 +776,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.qos2.offset.fetch.data.then.caught.up/client",
         "${kafka}/session.qos2.offset.fetch.data.then.caught.up/server"})
     public void shouldSessionQos2OffsetFetchDataThenCaughtUp() throws Exception

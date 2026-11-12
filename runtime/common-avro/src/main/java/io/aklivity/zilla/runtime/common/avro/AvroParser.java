@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * A schema-bound Avro event cursor. {@link #reset()} rewinds for a new datum, {@link #wrap(DirectBuffer,
@@ -131,12 +132,9 @@ public interface AvroParser
      * The same text as {@link #getString()}, as a {@link CharSequence} a caller that only reads or
      * re-encodes characters (never retains them past the current call) can use without forcing a
      * {@code String} to be materialized. The returned instance is valid only for the duration of the
-     * current call and may be reused by the next one. The default falls back to {@link #getString()}.
+     * current call and may be reused by the next one.
      */
-    default CharSequence getStringView()
-    {
-        return getString();
-    }
+    CharSequenceEx getStringView();
 
     /**
      * Valid only on a {@link AvroEvent#FIELD_NAME} event; the record field name from the schema

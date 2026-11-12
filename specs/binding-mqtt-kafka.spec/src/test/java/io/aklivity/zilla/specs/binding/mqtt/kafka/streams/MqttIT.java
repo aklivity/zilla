@@ -652,6 +652,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${mqtt}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/client",
         "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/server"})
     public void shouldSessionQos2OffsetFetchDataThenCaughtUp() throws Exception

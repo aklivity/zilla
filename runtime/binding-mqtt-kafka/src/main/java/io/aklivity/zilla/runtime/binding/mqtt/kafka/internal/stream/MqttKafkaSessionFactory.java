@@ -3032,6 +3032,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long affinity);
 
+        private boolean isKafkaOpen()
+        {
+            return kafka != null && StreamState.initialOpening(state) && !StreamState.initialClosed(state);
+        }
+
         protected final void doKafkaData(
             long traceId,
             long authorization,
@@ -3044,7 +3049,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int limit,
             Flyweight extension)
         {
-            if (initialSeq + reserved - padding <= initialAck + initialMax)
+            if (isKafkaOpen() &&
+                initialSeq + reserved - padding <= initialAck + initialMax)
             {
                 doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
@@ -3064,7 +3070,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            if (initialSeq + reserved <= initialAck + initialMax)
+            if (isKafkaOpen() &&
+                initialSeq + reserved <= initialAck + initialMax)
             {
                 doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
@@ -3085,7 +3092,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight payload,
             Flyweight extension)
         {
-            if (initialSeq + reserved - padding <= initialAck + initialMax)
+            if (isKafkaOpen() &&
+                initialSeq + reserved - padding <= initialAck + initialMax)
             {
                 final DirectBufferEx buffer = payload.buffer();
                 final int offset = payload.offset();
@@ -3108,8 +3116,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int reserved,
             Flyweight extension)
         {
-            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                traceId, authorization, budgetId, reserved, extension);
+            if (isKafkaOpen())
+            {
+                doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                    traceId, authorization, budgetId, reserved, extension);
+            }
         }
 
         private void doKafkaEnd(

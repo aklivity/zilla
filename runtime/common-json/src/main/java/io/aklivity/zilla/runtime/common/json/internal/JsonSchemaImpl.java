@@ -71,6 +71,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -1411,6 +1412,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class ParserSource implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private JsonParser parser;
         // non-null only when the delegate offers the zero-alloc char view; else getStringView falls back
         private JsonParserEx parserEx;
@@ -1430,9 +1433,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return parserEx != null ? parserEx.getStringView() : parser.getString();
+            return parserEx != null ? parserEx.getStringView() : decoded.wrap(parser.getString());
         }
 
         @Override
@@ -2212,6 +2215,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private static final class TokenCursor implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private Token token;
 
         @Override
@@ -2221,9 +2226,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return token.text;
+            return decoded.wrap(token.text);
         }
 
         @Override
@@ -2372,6 +2377,8 @@ public final class JsonSchemaImpl implements JsonSchema
     // instance across documents by re-wrapping the delegate and calling reset()
     private final class ValidatingParser implements JsonParserEx
     {
+        private final JsonStringView.Decoded decodedView = new JsonStringView.Decoded();
+
         private final JsonParser delegate;
         private final JsonParserEx delegateEx;
         private final boolean throwing;
@@ -2554,9 +2561,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return delegateEx != null ? delegateEx.getStringView() : delegate.getString();
+            return delegateEx != null ? delegateEx.getStringView() : decodedView.wrap(delegate.getString());
         }
 
         @Override
@@ -2664,6 +2671,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // getStringView() — is unaffected either way)
         private final class KeySource implements JsonSource
         {
+            private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
             private JsonSource delegate;
 
             private KeySource wrap(
@@ -2680,9 +2689,9 @@ public final class JsonSchemaImpl implements JsonSchema
             }
 
             @Override
-            public CharSequence getStringView()
+            public JsonStringView getStringView()
             {
-                return keyCapture;
+                return decoded.wrap(keyCapture);
             }
 
             @Override

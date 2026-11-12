@@ -48,7 +48,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -62,16 +61,17 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 
 /**
- * Drives an {@code llm} openai client through the real engine, between a caller that sends canonical llm
- * sections and a mock provider that replays a pre-built openai response. Each {@code exchange} operation is
- * one whole request: the canonical request is sent, the flush that triggers the provider request is advised
- * and the canonical response is received to its end. Each {@code leave} operation opens one request, sends
+ * Drives an {@code llm} openai chat completions client through the real engine, between a caller that sends canonical llm
+ * sections and a mock provider that replays a pre-built openai chat completions response. Each {@code exchange} operation is one
+ * whole request: the canonical request is sent, the flush that triggers the provider request is advised and the
+ * canonical response is received to its end, and it fails when the reply is shorter than its text, so a request
+ * that the client rejects is never measured as a fast one. Each {@code leave} operation opens one request, sends
  * it completely and leaves it in flight while the provider withholds the response.
  * <p>
- * The provider response is a chat completion for {@code dialect} {@code auto} and {@code chat}, which differ
- * only in whether the binding declares its apis, and a response for {@code dialect} {@code responses}, whose
- * streaming variant is the typed event stream. {@code request} is the canonical section the caller sends and
- * {@code response} the content the provider returns, each either text or a tool call.
+ * {@code request} is the canonical section the caller sends and {@code response} the content the provider
+ * returns, each either text or a tool call.
+ * {@code api} is {@code auto} for a client that admits every openai api, or {@code chat/completions} for a client
+ * restricted to it; the dialect itself is fixed by the client configuration.
  * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for {@code exchange}, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does
@@ -86,7 +86,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions;
 public class LlmOpenaiClientBM
 {
     private static final String CONFIGURATION_AUTO = "io/aklivity/zilla/specs/binding/llm/config/client.openai.yaml";
-    private static final String CONFIGURATION_CHAT = "io/aklivity/zilla/specs/binding/llm/config/client.openai.chat.yaml";
+    private static final String CONFIGURATION_API = "io/aklivity/zilla/specs/binding/llm/config/client.openai.chat.yaml";
     private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
     private static final int STREAMING_FRAGMENT_LENGTH = 256;
     private static final int IN_FLIGHT = 5_000;
@@ -98,13 +98,13 @@ public class LlmOpenaiClientBM
     private static final int INITIAL_STATE = StreamState.openInitial(0);
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final byte[] NO_BYTES = new byte[0];
-    private static final String CHUNK = "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",";
-    private static final String USAGE =
-        "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}";
-    private static final String RESPONSES_USAGE =
-        "{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}";
     private static final String ARGUMENTS_PREFIX = "{\\\"query\\\":\\\"";
     private static final String ARGUMENTS_SUFFIX = "\\\"}";
+    private static final String CHUNK = "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",";
+    private static final String STREAM_OPTIONS =
+        "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}";
+    private static final String USAGE =
+        "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}";
 
     @Benchmark
     public void exchange(
@@ -143,8 +143,8 @@ public class LlmOpenaiClientBM
         @Param({"text", "toolCall"})
         public String response;
 
-        @Param({"auto", "chat", "responses"})
-        public String dialect;
+        @Param({"auto", "chat/completions"})
+        public String api;
 
         final List<Client> inflight = new ArrayList<>(IN_FLIGHT * 4);
 
@@ -154,6 +154,7 @@ public class LlmOpenaiClientBM
         private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
         private EngineBench bench;
+        private int textLength;
         private long appId;
         private UnsafeBufferEx beginEx;
         private UnsafeBufferEx[] sectionEx;
@@ -168,21 +169,19 @@ public class LlmOpenaiClientBM
         @Setup(Level.Trial)
         public void init() throws Exception
         {
-            final String text = base64("10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH);
+            textLength = "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
+
+            final String text = base64(textLength);
 
             bench = new EngineBench()
                 .directory("target/zilla-bench")
                 .external("net0")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .start("chat".equals(dialect) ? CONFIGURATION_CHAT : CONFIGURATION_AUTO);
+                .start(configuration());
 
             final int llmTypeId = bench.labelId("llm");
 
-            beginEx = new UnsafeBufferEx(LlmFunctions.beginEx()
-                .typeId(llmTypeId)
-                .dialect(responses() ? "openai/rs" : "openai/ccs")
-                .model("gpt-4")
-                .build());
+            beginEx = new UnsafeBufferEx(beginEx(llmTypeId));
             appId = bench.bindingId("app0");
 
             final List<UnsafeBufferEx> exs = new ArrayList<>();
@@ -204,15 +203,14 @@ public class LlmOpenaiClientBM
 
             if (streaming)
             {
-                add(exs, payloads, controlEx(llmTypeId), responses()
-                    ? "{\"stream_options\":{\"include_usage\":true}}"
-                    : "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}");
+                add(exs, payloads, controlEx(llmTypeId), STREAM_OPTIONS);
             }
 
             sectionEx = exs.toArray(UnsafeBufferEx[]::new);
             sectionPayload = payloads.toArray(UnsafeBufferEx[]::new);
 
-            bench.newServer("net0", new Responder(Trigger.END, respond ? response(text) : null));
+            bench.newServer("net0", new Responder(Trigger.END,
+                respond ? response(text, "toolCall".equals(response), bench.labelId("http")) : null));
         }
 
         @TearDown(Level.Trial)
@@ -226,6 +224,13 @@ public class LlmOpenaiClientBM
         {
             final Client client = open();
             client.awaitReplyEnd();
+
+            if (client.replyBytes() < textLength)
+            {
+                throw new IllegalStateException(String.format("reply of %d bytes is shorter than its %d chars of text",
+                    client.replyBytes(), textLength));
+            }
+
             client.end();
         }
 
@@ -336,28 +341,29 @@ public class LlmOpenaiClientBM
             client.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
         }
 
-        private boolean responses()
+        private String configuration()
         {
-            return "responses".equals(dialect);
+            return "auto".equals(api) ? CONFIGURATION_AUTO : CONFIGURATION_API;
+        }
+
+        private byte[] beginEx(
+            int llmTypeId)
+        {
+            return LlmFunctions.beginEx()
+                .typeId(llmTypeId)
+                .dialect("openai/ccs")
+                .model("gpt-4")
+                .build();
         }
 
         private Response response(
-            String text)
+            String text,
+            boolean toolCall,
+            int httpTypeId)
         {
-            final boolean toolCall = "toolCall".equals(response);
             final List<byte[]> events = new ArrayList<>();
-            final List<byte[]> eventEx = new ArrayList<>();
-            final int httpTypeId = bench.labelId("http");
 
-            if (responses() && streaming)
-            {
-                responsesStreamingEvents(events, eventEx, httpTypeId, text, toolCall);
-            }
-            else if (responses())
-            {
-                events.add(responsesCompletion(text, toolCall).getBytes(UTF_8));
-            }
-            else if (streaming)
+            if (streaming)
             {
                 chatStreamingEvents(events, text, toolCall);
             }
@@ -368,10 +374,6 @@ public class LlmOpenaiClientBM
 
             final byte[][] eventExtensions = new byte[events.size()][];
             Arrays.fill(eventExtensions, NO_BYTES);
-            for (int event = 0; event < eventEx.size(); event++)
-            {
-                eventExtensions[event] = eventEx.get(event);
-            }
 
             return new Response(
                 httpResponseBeginEx(httpTypeId, streaming ? "text/event-stream" : "application/json"),
@@ -431,109 +433,11 @@ public class LlmOpenaiClientBM
             events.add("[DONE]".getBytes(UTF_8));
         }
 
-        private static String responsesCompletion(
-            String text,
-            boolean toolCall)
+        private static byte[] toolCallDelta(
+            String arguments)
         {
-            final String item = toolCall
-                ? String.format("{\"id\":\"fc_1\",\"type\":\"function_call\",\"arguments\":\"%s%s%s\"," +
-                    "\"call_id\":\"call_1\",\"name\":\"lookup\",\"status\":\"completed\"}",
-                    ARGUMENTS_PREFIX, text, ARGUMENTS_SUFFIX)
-                : String.format("{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\"," +
-                    "\"text\":\"%s\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}",
-                    text);
-
-            return String.format("{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[%s]," +
-                "\"status\":\"completed\",\"usage\":%s}", item, RESPONSES_USAGE);
-        }
-
-        private static void responsesStreamingEvents(
-            List<byte[]> events,
-            List<byte[]> eventEx,
-            int httpTypeId,
-            String text,
-            boolean toolCall)
-        {
-            final String progress = "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\"," +
-                "\"status\":\"in_progress\",\"output\":[]}";
-            final String added = toolCall
-                ? "\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"in_progress\"," +
-                    "\"arguments\":\"\",\"call_id\":\"call_1\",\"name\":\"lookup\"}"
-                : "\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"in_progress\",\"content\":[]," +
-                    "\"role\":\"assistant\"}";
-            final String done = toolCall
-                ? String.format("\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\"," +
-                    "\"arguments\":\"%s%s%s\",\"call_id\":\"call_1\",\"name\":\"lookup\"}",
-                    ARGUMENTS_PREFIX, text, ARGUMENTS_SUFFIX)
-                : String.format("\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"completed\"," +
-                    "\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"%s\"}]," +
-                    "\"role\":\"assistant\"}", text);
-
-            int sequence = 0;
-            sequence = responsesEvent(events, eventEx, httpTypeId, "response.created", progress, sequence);
-            sequence = responsesEvent(events, eventEx, httpTypeId, "response.in_progress", progress, sequence);
-            sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_item.added",
-                added + ",\"output_index\":0", sequence);
-
-            if (toolCall)
-            {
-                final List<String> deltas = new ArrayList<>();
-                deltas.add(ARGUMENTS_PREFIX);
-                deltas.addAll(fragments(text));
-                deltas.add(ARGUMENTS_SUFFIX);
-
-                for (String delta : deltas)
-                {
-                    sequence = responsesEvent(events, eventEx, httpTypeId, "response.function_call_arguments.delta",
-                        "\"delta\":\"" + delta + "\",\"item_id\":\"fc_1\",\"obfuscation\":\"abcdefghij\",\"output_index\":0",
-                        sequence);
-                }
-
-                sequence = responsesEvent(events, eventEx, httpTypeId, "response.function_call_arguments.done",
-                    "\"arguments\":\"" + ARGUMENTS_PREFIX + text + ARGUMENTS_SUFFIX + "\",\"item_id\":\"fc_1\"," +
-                    "\"output_index\":0", sequence);
-            }
-            else
-            {
-                sequence = responsesEvent(events, eventEx, httpTypeId, "response.content_part.added",
-                    "\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\"," +
-                    "\"annotations\":[],\"logprobs\":[],\"text\":\"\"}", sequence);
-
-                for (String fragment : fragments(text))
-                {
-                    sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_text.delta",
-                        "\"content_index\":0,\"delta\":\"" + fragment + "\",\"item_id\":\"msg_1\",\"logprobs\":[]," +
-                        "\"obfuscation\":\"abcdefghij\",\"output_index\":0", sequence);
-                }
-
-                sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_text.done",
-                    "\"content_index\":0,\"item_id\":\"msg_1\",\"logprobs\":[],\"output_index\":0,\"text\":\"" +
-                    text + "\"", sequence);
-                sequence = responsesEvent(events, eventEx, httpTypeId, "response.content_part.done",
-                    "\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\"," +
-                    "\"annotations\":[],\"logprobs\":[],\"text\":\"" + text + "\"}", sequence);
-            }
-
-            sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_item.done",
-                done + ",\"output_index\":0", sequence);
-            responsesEvent(events, eventEx, httpTypeId, "response.completed",
-                "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[" + done.substring(
-                    "\"item\":".length()) + "],\"status\":\"completed\",\"usage\":" + RESPONSES_USAGE + "}", sequence);
-        }
-
-        private static int responsesEvent(
-            List<byte[]> events,
-            List<byte[]> eventEx,
-            int httpTypeId,
-            String type,
-            String members,
-            int sequence)
-        {
-            events.add(String.format("{\"type\":\"%s\",%s,\"sequence_number\":%d}", type, members, sequence)
-                .getBytes(UTF_8));
-            eventEx.add(httpDataEx(httpTypeId, type));
-
-            return sequence + 1;
+            return (CHUNK + "\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":" +
+                "{\"arguments\":\"" + arguments + "\"}}]},\"finish_reason\":null}]}").getBytes(UTF_8);
         }
 
         private static List<String> fragments(
@@ -547,13 +451,6 @@ public class LlmOpenaiClientBM
             }
 
             return fragments;
-        }
-
-        private static byte[] toolCallDelta(
-            String arguments)
-        {
-            return (CHUNK + "\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":" +
-                "{\"arguments\":\"" + arguments + "\"}}]},\"finish_reason\":null}]}").getBytes(UTF_8);
         }
 
         private static void add(
@@ -597,23 +494,6 @@ public class LlmOpenaiClientBM
             new Random(0L).nextBytes(random);
 
             return Base64.getEncoder().withoutPadding().encodeToString(random).substring(0, length);
-        }
-
-        private static byte[] httpDataEx(
-            int httpTypeId,
-            String type)
-        {
-            final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[128]);
-
-            final HttpDataExFW httpDataEx = new HttpDataExFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .typeId(httpTypeId)
-                .headersItem(h -> h.name("type").value(type))
-                .build();
-
-            final byte[] encoded = new byte[httpDataEx.sizeof()];
-            buffer.getBytes(0, encoded);
-
-            return encoded;
         }
 
         private static byte[] httpResponseBeginEx(

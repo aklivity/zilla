@@ -62,6 +62,7 @@ import io.aklivity.zilla.config.vault.filesystem.FileSystemSecretsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.KeyStoreCache;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
@@ -486,7 +487,7 @@ public class FileSystemVaultHandler implements VaultHandler
                     }
 
                     factory = KeyManagerFactory.getInstance("PKIX");
-                    factory.init(keys, protection.getPassword());
+                    factory.init(new KeyStoreCache(keys).keyStore(), protection.getPassword());
                 }
             }
             catch (Exception ex)
