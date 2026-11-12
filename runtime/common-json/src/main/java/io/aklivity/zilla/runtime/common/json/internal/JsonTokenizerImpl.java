@@ -896,13 +896,14 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pairOpen = false;
     }
 
-    // the closing quote has been read, so the value's bytes end just before it
+    // the closing quote has been read, so the value's bytes end just before it, which in a scope is the whole of the
+    // escape that spells the quote
     private void endView()
     {
         if (viewStart != NO_VIEW)
         {
             viewOffset = viewStart;
-            viewLength = bufferOffset - 1 - viewStart;
+            viewLength = bufferOffset - lastUnitSize() - viewStart;
             viewPending = true;
             viewStart = NO_VIEW;
         }
@@ -1173,7 +1174,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
                 beginView();
                 if (viewStart != NO_VIEW)
                 {
-                    viewStart -= startBack();
+                    viewStart -= lastUnitSize();
                 }
                 countChar();
                 validateNumberChar(c);
@@ -1752,16 +1753,15 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pendingEvent = JsonEvent.END_ESCAPED;
     }
 
-    // how far back the first byte of the token just read began: a byte of the string as it is, or the whole of the
-    // escape that spells it
-    private int startBack()
+    // how many bytes the byte just read took: the byte itself, or the whole of the escape that spells it
+    private int lastUnitSize()
     {
         return lens ? lensSize : 1;
     }
 
     private void startToken()
     {
-        final int back = startBack();
+        final int back = lastUnitSize();
 
         valueStreamStart = streamOffset - back;
         fragmentStart = valueStreamStart;
