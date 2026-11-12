@@ -303,6 +303,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.10k/client",
         "${app}/publish.10k/server"})
     public void shouldPublish10k() throws Exception

@@ -86,7 +86,9 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -112,8 +114,8 @@ import org.agrona.LangUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
-import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.Object2IntHashMap;
 
@@ -231,6 +233,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int PUBCOMP_FIXED_HEADER = 0b0111_0000;
 
     private static final int CONNECT_RESERVED_MASK = 0b0000_0001;
+    private static final long NO_UNACKED_PACKET = Long.MIN_VALUE;
     private static final int NO_FLAGS = 0b0000_0000;
     private static final int RETAIN_MASK = 0b0000_0001;
     private static final int PUBLISH_QOS1_MASK = 0b0000_0010;
@@ -2649,8 +2652,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
-        private final Long2LongHashMap unAckedReceivedQos1PacketIds;
-        private final Long2LongHashMap unAckedReceivedQos2PacketIds;
+        private final Deque<MqttPublishStream> unAckedReceivedPublishes;
 
         private IntArrayList unreleasedPacketIds;
 
@@ -2699,8 +2701,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
-            this.unAckedReceivedQos1PacketIds = new Long2LongHashMap(-1);
-            this.unAckedReceivedQos2PacketIds = new Long2LongHashMap(-1);
+            this.unAckedReceivedPublishes = new ArrayDeque<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.unreleasedPacketIds = new IntArrayList();
@@ -4870,6 +4871,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
+        private void acknowledgePublishPackets(
+            long traceId,
+            long authorization)
+        {
+            MqttPublishStream stream = unAckedReceivedPublishes.peek();
+            while (stream != null && stream.acknowledged())
+            {
+                unAckedReceivedPublishes.remove();
+                stream.doEncodePublishAck(traceId, authorization);
+                stream = unAckedReceivedPublishes.peek();
+            }
+        }
+
         private void doEncodePubackV4(
             long traceId,
             long authorization,
@@ -6273,7 +6287,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long replyAck;
             private int replyMax;
 
+            private final LongArrayQueue unAckedPacketIds = new LongArrayQueue(NO_UNACKED_PACKET);
+
             private int state;
+            private int qos;
 
             private long publishExpiresId = NO_CANCEL_ID;
             private long publishExpiresAt;
@@ -6305,6 +6322,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     assert state == 0;
                     state = StreamState.openingInitial(state);
+                    this.qos = qos;
 
                     final MqttBeginExFW beginEx = mqttPublishBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
@@ -6349,14 +6367,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
 
-                boolean completed = hasFin(flags);
-                if (mqttPublishHelper.qos == 1 && completed)
+                if (qos > 0 && hasFin(flags))
                 {
-                    unAckedReceivedQos1PacketIds.put(initialSeq, packetId);
-                }
-                else if (mqttPublishHelper.qos == 2 && completed)
-                {
-                    unAckedReceivedQos2PacketIds.put(initialSeq, packetId);
+                    unAckedPacketIds.offerLong(initialSeq);
+                    unAckedPacketIds.offerLong(packetId);
+                    unAckedReceivedPublishes.add(this);
                 }
 
                 doSignalPublishExpiration(traceId);
@@ -6512,56 +6527,46 @@ public final class MqttServerFactory implements MqttStreamFactory
                     decodeNetwork(traceId);
                 }
 
-                acknowledgePublishPackets(acknowledge, traceId, authorization);
+                acknowledgePublishPackets(traceId, authorization);
             }
 
-            private void acknowledgePublishPackets(
-                long acknowledge,
+            private boolean acknowledged()
+            {
+                return unAckedPacketIds.peekLong() <= initialAck;
+            }
+
+            private void doEncodePublishAck(
                 long traceId,
                 long authorization)
             {
-                for (Map.Entry<Long, Long> e : unAckedReceivedQos1PacketIds.entrySet())
-                {
-                    if (e.getKey() <= acknowledge)
-                    {
-                        switch (version)
-                        {
-                        case 4:
-                            doEncodePubackV4(traceId, authorization, e.getValue().intValue());
-                            break;
-                        case 5:
-                            doEncodePubackV5(traceId, authorization, e.getValue().intValue());
-                            break;
-                        }
-                        unAckedReceivedQos1PacketIds.remove(e.getKey());
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
+                unAckedPacketIds.pollLong();
+                final int packetId = (int) unAckedPacketIds.pollLong();
 
-                for (Map.Entry<Long, Long> e : unAckedReceivedQos2PacketIds.entrySet())
+                switch (qos)
                 {
-                    if (e.getKey() <= acknowledge)
+                case 1:
+                    switch (version)
                     {
-                        final int packetId = e.getValue().intValue();
-                        switch (version)
-                        {
-                        case 4:
-                            doEncodePubrecV4(traceId, authorization, packetId);
-                            break;
-                        case 5:
-                            doEncodePubrecV5(traceId, authorization, packetId);
-                            break;
-                        }
-                        unAckedReceivedQos2PacketIds.remove(e.getKey());
-                        unreleasedPacketIds.add(packetId);
-                    }
-                    else
-                    {
+                    case 4:
+                        doEncodePubackV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubackV5(traceId, authorization, packetId);
                         break;
                     }
+                    break;
+                case 2:
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubrecV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrecV5(traceId, authorization, packetId);
+                        break;
+                    }
+                    unreleasedPacketIds.add(packetId);
+                    break;
                 }
             }
 
