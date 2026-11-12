@@ -3104,6 +3104,8 @@ add_field("mqtt_ext_filter_qos", ProtoField.uint8("zilla.mqtt_ext.filter_qos", "
 add_field("mqtt_ext_filter_reason_code", ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC))
 add_field("mqtt_ext_filter_pattern_length", ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC))
 add_field("mqtt_ext_filter_pattern", ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE))
+add_field("mqtt_ext_filter_share_name_length", ProtoField.int16("zilla.mqtt_ext.filter_share_name_length", "Length", base.DEC))
+add_field("mqtt_ext_filter_share_name", ProtoField.string("zilla.mqtt_ext.filter_share_name", "Share Name", base.NONE))
 --     data
 add_field("mqtt_ext_deferred", ProtoField.uint32("zilla.mqtt_ext.deferred", "Deferred", base.DEC))
 add_field("mqtt_ext_expiry_interval", ProtoField.int16("zilla.mqtt_ext.expiry_interval", "Expiry Interval", base.DEC))
@@ -3215,8 +3217,13 @@ function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
         -- pattern
         local pattern_offset = reason_code_offset + reason_code_length
         local pattern_length, slice_pattern_length, slice_pattern_text = dissect_length_value(buffer, pattern_offset, 2)
+        -- share_name
+        local share_name_offset = pattern_offset + pattern_length
+        local share_name_length, slice_share_name_length, slice_share_name_text =
+            dissect_length_value(buffer, share_name_offset, 2)
         -- add fields
-        local record_length = subscription_id_length + qos_length + flags_length + reason_code_length + pattern_length
+        local record_length = subscription_id_length + qos_length + flags_length + reason_code_length + pattern_length +
+            share_name_length
         local label = string.format("Topic Filter: %s", slice_pattern_text:string())
         local item_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
         item_subtree:add_le(fields.mqtt_ext_filter_subscription_id, slice_subscription_id)
@@ -3229,6 +3236,11 @@ function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
         item_subtree:add_le(fields.mqtt_ext_filter_reason_code, slice_reason_code)
         add_string_as_subtree(buffer(pattern_offset, pattern_length), item_subtree, "Pattern: %s",
             slice_pattern_length, slice_pattern_text, fields.mqtt_ext_filter_pattern_length, fields.mqtt_ext_filter_pattern)
+        if (slice_share_name_length:le_int() >= 0) then
+            add_string_as_subtree(buffer(share_name_offset, share_name_length), item_subtree, "Share Name: %s",
+                slice_share_name_length, slice_share_name_text, fields.mqtt_ext_filter_share_name_length,
+                fields.mqtt_ext_filter_share_name)
+        end
         -- next
         item_offset = item_offset + record_length
     end
@@ -3526,8 +3538,13 @@ function handle_mqtt_flush_subscribe_extension(buffer, offset, ext_subtree)
     local state_length = 1
     local slice_state = buffer(state_offset, state_length)
     ext_subtree:add_le(fields.mqtt_ext_state, slice_state)
+    -- reason_code
+    local reason_code_offset = state_offset + state_length
+    local reason_code_length = 1
+    local slice_reason_code = buffer(reason_code_offset, reason_code_length)
+    ext_subtree:add_le(fields.mqtt_ext_reason_code, slice_reason_code)
     -- topic_filters
-    local topic_filters_offset = state_offset + state_length
+    local topic_filters_offset = reason_code_offset + reason_code_length
     dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
 end
 

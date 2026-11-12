@@ -26,6 +26,8 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
 
     private String topic;
 
+    private String share;
+
     private List<MqttTopicParamConfig> params;
 
     MqttSubscribeConfigBuilder(
@@ -48,6 +50,13 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
         return this;
     }
 
+    public MqttSubscribeConfigBuilder<T> share(
+        String share)
+    {
+        this.share = share;
+        return this;
+    }
+
     public MqttSubscribeConfigBuilder<T> param(
         MqttTopicParamConfig param)
     {
@@ -67,6 +76,6 @@ public class MqttSubscribeConfigBuilder<T> extends ConfigBuilder<T, MqttSubscrib
     @Override
     public T build()
     {
-        return mapper.apply(new MqttSubscribeConfig(topic, params));
+        return mapper.apply(new MqttSubscribeConfig(topic, share, params));
     }
 }

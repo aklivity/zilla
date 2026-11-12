@@ -517,10 +517,10 @@ Zilla Frame
     Budget ID: 0x0000000000000000
     Reserved: 0
 
-Frame 13: 271 bytes on wire (2168 bits), 271 bytes captured (2168 bits)
+Frame 13: 273 bytes on wire (2184 bits), 273 bytes captured (2184 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 197
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 199
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -561,7 +561,7 @@ Zilla Frame
             Client ID: client
         QoS: AT_MOST_ONCE (0)
         Topic Filters (1 items)
-            Length: 23
+            Length: 25
             Size: 1
         Topic Filter: sensor/one
             Subscription ID: 0x00000001
@@ -579,7 +579,7 @@ Zilla Frame
 Frame 14: 222 bytes on wire (1776 bits), 222 bytes captured (1776 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 198, Len: 148
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 200, Len: 148
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -615,7 +615,7 @@ Zilla Frame
 Frame 15: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 198, Ack: 149, Len: 141
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 200, Ack: 149, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
@@ -654,7 +654,7 @@ Zilla Frame
 Frame 16: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 149, Ack: 339, Len: 141
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 149, Ack: 341, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
@@ -693,7 +693,7 @@ Zilla Frame
 Frame 17: 285 bytes on wire (2280 bits), 285 bytes captured (2280 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 290, Ack: 339, Len: 211
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 290, Ack: 341, Len: 211
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
@@ -769,7 +769,7 @@ Zilla Frame
 Frame 18: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 501, Ack: 339, Len: 141
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 501, Ack: 341, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
@@ -808,7 +808,7 @@ Zilla Frame
 Frame 19: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 339, Ack: 642, Len: 136
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 341, Ack: 642, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
@@ -843,7 +843,7 @@ Zilla Frame
 Frame 20: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 642, Ack: 475, Len: 136
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 642, Ack: 477, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END

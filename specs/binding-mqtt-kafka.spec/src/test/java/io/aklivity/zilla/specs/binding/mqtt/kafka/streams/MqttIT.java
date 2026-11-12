@@ -517,6 +517,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.subscribe.shared.via.session.state/client",
+        "${mqtt}/session.subscribe.shared.via.session.state/server"})
+    public void shouldReceiveSharedSubscriptionViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.unsubscribe.after.subscribe/client",
         "${mqtt}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception

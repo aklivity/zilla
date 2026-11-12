@@ -490,4 +490,22 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.after.shared.subscription/client",
+        "${net}/disconnect.after.shared.subscription/server"})
+    public void shouldDisconnectAfterSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.shared.subscriptions.not.supported/client",
+        "${net}/connect.shared.subscriptions.not.supported/server"})
+    public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -72,12 +72,38 @@ scope mqtt
         uint8 flags = 0;
         uint8 reasonCode = 0;
         string16 pattern;
+        string16 shareName = null;
     }
 
-    struct MqttSessionState
+    struct MqttTopicFilterV1
     {
-        uint8 version = 1;
+        uint32 subscriptionId = 0;
+        uint8 qos = 0;
+        uint8 flags = 0;
+        uint8 reasonCode = 0;
+        string16 pattern;
+    }
+
+    enum MqttSessionStateVersion (uint8)
+    {
+        V1 (1),
+        V2 (2)
+    }
+
+    struct MqttSessionStateV1
+    {
+        MqttTopicFilterV1[] subscriptions;
+    }
+
+    struct MqttSessionStateV2
+    {
         MqttTopicFilter[] subscriptions;
+    }
+
+    union MqttSessionState switch (MqttSessionStateVersion)
+    {
+        case V1: mqtt::MqttSessionStateV1 sessionStateV1;
+        case V2: mqtt::MqttSessionStateV2 sessionStateV2;
     }
 
     enum MqttSessionSignalType (uint8)
@@ -252,6 +278,7 @@ scope mqtt
             uint8 qos = 0;
             uint16 packetId = 0;
             uint8 state = 0;
+            uint8 reasonCode = 0;
             MqttTopicFilter[] filters;
         }
 

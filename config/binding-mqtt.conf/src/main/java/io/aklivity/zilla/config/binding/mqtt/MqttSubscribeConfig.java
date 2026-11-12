@@ -25,6 +25,8 @@ public class MqttSubscribeConfig extends Config
 {
     public final String topic;
 
+    public final String share;
+
     public final List<MqttTopicParamConfig> params;
 
     public static MqttSubscribeConfigBuilder<MqttSubscribeConfig> builder()
@@ -40,9 +42,11 @@ public class MqttSubscribeConfig extends Config
 
     MqttSubscribeConfig(
         String topic,
+        String share,
         List<MqttTopicParamConfig> params)
     {
         this.topic = topic;
+        this.share = share;
         this.params = params;
     }
 }

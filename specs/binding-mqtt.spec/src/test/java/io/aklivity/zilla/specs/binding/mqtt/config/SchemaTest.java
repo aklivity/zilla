@@ -108,6 +108,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateServerClient()
+    {
+        JsonObject config = schema.validate("server.client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateServerWithStore()
     {
         JsonObject config = schema.validate("server.store.yaml");
@@ -171,6 +179,28 @@ public class SchemaTest
     public void shouldRejectServerWhenSubscribeTopicInvalid()
     {
         schema.validate("server.when.subscribe.topic.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateServerWhenSubscribeShare()
+    {
+        JsonObject config = schema.validate("server.when.subscribe.share.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerWhenSubscribeShareWildcard()
+    {
+        JsonObject config = schema.validate("server.when.subscribe.share.wildcard.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWhenSubscribeShareInvalid()
+    {
+        schema.validate("server.when.subscribe.share.invalid.yaml");
     }
 
     @Test

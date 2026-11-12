@@ -33,6 +33,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionSignalType;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateVersion;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
@@ -157,6 +158,50 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeBeginExtSharedFilter()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("AT_LEAST_ONCE")
+                .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, mqttBeginEx.kind());
+        assertEquals(1, mqttBeginEx.subscribe().qos());
+        assertNotNull(mqttBeginEx.subscribe().filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    "consumers".equals(f.shareName().asString()) &&
+                    1 == f.subscriptionId() &&
+                    1 == f.qos() &&
+                    0 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtNoShareName()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .filter("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(mqttBeginEx.subscribe().filters()
+            .matchFirst(f -> "sensor/one".equals(f.pattern().asString()) && f.shareName().asString() == null));
+    }
+
+    @Test
     public void shouldEncodeMqttSubscribeBeginExtNoSubscriptionId()
     {
         final byte[] array = MqttFunctions.beginEx()
@@ -251,6 +296,64 @@ public class MqttFunctionsTest
             .build();
 
         assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionSharedFilter() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .qos("AT_LEAST_ONCE")
+                .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(1)
+                .filtersItem(p -> p
+                    .subscriptionId(1)
+                    .qos(1)
+                    .flags(0)
+                    .pattern("sensor/one")
+                    .shareName("consumers")))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchSubscribeBeginExtensionSharedFilterWithDifferentShareName() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .filtersItem(p -> p
+                    .subscriptionId(1)
+                    .qos(1)
+                    .flags(0)
+                    .pattern("sensor/one")
+                    .shareName("others")))
+            .build();
+
+        matcher.match(byteBuf);
     }
 
     @Test
@@ -1214,6 +1317,49 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSubscribeFlushExReasonCode()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .qos("EXACTLY_ONCE")
+                .packetId(1)
+                .state("COMPLETE")
+                .reasonCode(0x83)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, mqttFlushEx.subscribe().packetId());
+        assertEquals(2, mqttFlushEx.subscribe().qos());
+        assertEquals(0, mqttFlushEx.subscribe().state());
+        assertEquals(0x83, mqttFlushEx.subscribe().reasonCode());
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeFlushExSharedFilter()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .subscribe()
+                .sharedFilter("consumers", "sensor/one", 1, "AT_MOST_ONCE")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(mqttFlushEx.subscribe().filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    "consumers".equals(f.shareName().asString()) &&
+                    1 == f.subscriptionId() &&
+                    0 == f.qos()));
+    }
+
+    @Test
     public void shouldEncodeMqttSessionFlushEx()
     {
         final byte[] array = MqttFunctions.flushEx()
@@ -1304,14 +1450,15 @@ public class MqttFunctionsTest
         DirectBufferEx buffer = new UnsafeBufferEx(array);
         MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
-        assertNotNull(sessionState.subscriptions()
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     1 == f.qos() &&
                     0b0001 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/two".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
@@ -1319,21 +1466,174 @@ public class MqttFunctionsTest
                     0 == f.reasonCode() &&
                     0b0000 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/three".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     2 == f.qos() &&
                     0b0001 == f.flags()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/four".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId()));
 
-        assertNotNull(sessionState.subscriptions()
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
             .matchFirst(f ->
                 "sensor/five".equals(f.pattern().asString())));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateNonSharedAsVersion1()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        final byte[] expected = MqttFunctions.sessionV1()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateEmptyAsVersion1()
+    {
+        final byte[] array = MqttFunctions.session().build();
+
+        assertArrayEquals(MqttFunctions.sessionV1().build(), array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateSharedSubscription()
+    {
+        final byte[] array = MqttFunctions.session()
+            .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+            .subscription("sensor/two", 2, "AT_MOST_ONCE", "SEND_RETAINED")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionStateVersion.V2, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    "consumers".equals(f.shareName().asString()) &&
+                    1 == f.subscriptionId() &&
+                    1 == f.qos() &&
+                    0 == f.flags()));
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
+            .matchFirst(f ->
+                "sensor/two".equals(f.pattern().asString()) &&
+                    f.shareName().asString() == null &&
+                    2 == f.subscriptionId() &&
+                    0b0001 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateSubscriptionWithReasonCode()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscriptionWithReasonCode("sensor/one", 1, 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
+                    1 == f.qos() &&
+                    1 == f.reasonCode() &&
+                    0b0001 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateSharedSubscriptionWithReasonCode()
+    {
+        final byte[] array = MqttFunctions.session()
+            .sharedSubscriptionWithReasonCode("consumers", "sensor/one", 1, 2, "EXACTLY_ONCE")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionStateVersion.V2, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV2().subscriptions()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    "consumers".equals(f.shareName().asString()) &&
+                    2 == f.qos() &&
+                    2 == f.reasonCode()));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateV1()
+    {
+        final byte[] array = MqttFunctions.sessionV1()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionStateVersion.V1, sessionState.kind());
+        assertNotNull(sessionState.sessionStateV1().subscriptions()
+            .matchFirst(f ->
+                "sensor/one".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
+                    1 == f.qos() &&
+                    0b0001 == f.flags()));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateVersion1WireLayout()
+    {
+        final byte[] array = MqttFunctions.session()
+            .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .subscriptionWithReasonCode("sensor/two", 2, 1)
+            .build();
+
+        final byte[] expected =
+        {
+            0x01,
+            0x2a, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 'o', 'n', 'e',
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 't', 'w', 'o'
+        };
+
+        assertArrayEquals(expected, array);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionStateVersion2WireLayout()
+    {
+        final byte[] array = MqttFunctions.session()
+            .sharedSubscription("consumers", "sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+            .subscriptionWithReasonCode("sensor/two", 2, 1)
+            .build();
+
+        final byte[] expected =
+        {
+            0x02,
+            0x37, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 'o', 'n', 'e',
+            0x09, 0x00, 'c', 'o', 'n', 's', 'u', 'm', 'e', 'r', 's',
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x0a, 0x00, 's', 'e', 'n', 's', 'o', 'r', '/', 't', 'w', 'o',
+            (byte) 0xff, (byte) 0xff
+        };
+
+        assertArrayEquals(expected, array);
     }
 
     @Test

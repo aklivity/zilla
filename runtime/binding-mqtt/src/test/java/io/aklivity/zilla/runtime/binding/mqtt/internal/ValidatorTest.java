@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -220,5 +222,74 @@ public class ValidatorTest
     public void shouldNotValidateSingleLevelWildcardsCombinedWithTopicNameWithValidMultiLevelWildcard()
     {
         assertFalse(validator.isTopicFilterValid("+topic/name/#"));
+    }
+
+    @Test
+    public void shouldValidateSharedTopicFilter()
+    {
+        assertTrue(validator.isSharedTopicFilterValid("$share/consumers/sensor/one"));
+    }
+
+    @Test
+    public void shouldValidateSharedTopicFilterWithWildcards()
+    {
+        assertTrue(validator.isSharedTopicFilterValid("$share/consumers/+/sensor/#"));
+    }
+
+    @Test
+    public void shouldNotValidateSharedTopicFilterWithEmptyShareName()
+    {
+        assertFalse(validator.isSharedTopicFilterValid("$share//sensor/one"));
+    }
+
+    @Test
+    public void shouldNotValidateSharedTopicFilterWithWildcardShareName()
+    {
+        assertFalse(validator.isSharedTopicFilterValid("$share/consum+ers/sensor/one"));
+        assertFalse(validator.isSharedTopicFilterValid("$share/consum#ers/sensor/one"));
+    }
+
+    @Test
+    public void shouldNotValidateSharedTopicFilterWithoutTopicFilter()
+    {
+        assertFalse(validator.isSharedTopicFilterValid("$share/consumers"));
+        assertFalse(validator.isSharedTopicFilterValid("$share/consumers/"));
+    }
+
+    @Test
+    public void shouldNotValidateSharedTopicFilterWithInvalidTopicFilter()
+    {
+        assertFalse(validator.isSharedTopicFilterValid("$share/consumers/#/sensor"));
+    }
+
+    @Test
+    public void shouldNotValidateTopicFilterWithoutSharedPrefix()
+    {
+        assertFalse(validator.isSharedTopicFilterValid("$share"));
+        assertFalse(validator.isSharedTopicFilterValid("sensor/$share/consumers/one"));
+    }
+
+    @Test
+    public void shouldRecognizeSharedTopicFilterByPrefix()
+    {
+        assertTrue(MqttValidator.isShared("$share/consumers/sensor/one"));
+        assertFalse(MqttValidator.isShared("sensor/$share/one"));
+        assertFalse(MqttValidator.isShared("$sharex/consumers/one"));
+    }
+
+    @Test
+    public void shouldExtractShareNameAndPattern()
+    {
+        assertEquals("consumers", MqttValidator.shareName("$share/consumers/sensor/one"));
+        assertEquals("sensor/one", MqttValidator.sharePattern("$share/consumers/sensor/one"));
+        assertNull(MqttValidator.shareName("sensor/one"));
+        assertNull(MqttValidator.sharePattern("sensor/one"));
+    }
+
+    @Test
+    public void shouldComposeTopicFilter()
+    {
+        assertEquals("$share/consumers/sensor/one", MqttValidator.topicFilter("consumers", "sensor/one"));
+        assertEquals("sensor/one", MqttValidator.topicFilter(null, "sensor/one"));
     }
 }
