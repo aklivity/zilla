@@ -691,4 +691,26 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.skip.removed.retained.message/client",
+        "${kafka}/subscribe.retained.tombstone/server"})
+    public void shouldSkipTombstoneOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.skip.removed.retained.message/client",
+        "${kafka}/subscribe.retained.empty.value/server"})
+    public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
 }

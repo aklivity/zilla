@@ -940,4 +940,22 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.empty.retained.message/client",
+        "${mqtt}/publish.empty.retained.message/server"})
+    public void shouldSendEmptyRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.skip.removed.retained.message/client",
+        "${mqtt}/subscribe.skip.removed.retained.message/server"})
+    public void shouldSkipRemovedRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

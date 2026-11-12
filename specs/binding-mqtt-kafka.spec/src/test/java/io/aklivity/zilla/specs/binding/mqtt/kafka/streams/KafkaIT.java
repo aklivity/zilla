@@ -1140,4 +1140,31 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.empty.retained.message/client",
+        "${kafka}/publish.empty.retained.message/server"})
+    public void shouldPublishEmptyRetainedMessageAsTombstone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.tombstone/client",
+        "${kafka}/subscribe.retained.tombstone/server"})
+    public void shouldSkipTombstoneOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.empty.value/client",
+        "${kafka}/subscribe.retained.empty.value/server"})
+    public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
 }
