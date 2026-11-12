@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend\"}"
+write "{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend a\\/b \\u00e9 \\ud83d\\ude00\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

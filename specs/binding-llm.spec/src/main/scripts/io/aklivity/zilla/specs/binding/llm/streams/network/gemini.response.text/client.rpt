@@ -37,6 +37,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
+read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend a\\/b \\u00e9 \\ud83d\\ude00\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 
 read closed
