@@ -73,6 +73,9 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -131,6 +134,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_TYPE_MISSING = "Missing required parameter: 'type'.";
     private static final int BLOCK_BUFFER_MAX = 4096;
     private static final int TEXT_CHUNK = 1024;
+    private static final int OBFUSCATION_MIN = 4;
+    private static final int OBFUSCATION_RANGE = 28;
+    private static final int ELEMENT_MAX = 4096;
     private static final Map<String, StringEventPositions> PARSER_CONFIG =
         Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
@@ -253,6 +259,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final BufferPool encodePool;
     private final BufferPool accumulatePool;
     private final BufferPool holdPool;
+    private final int elementMax;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int llmTypeId;
@@ -305,10 +312,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesServerDecoder decodeIgnore = this::decodeIgnore;
 
 
-    private byte[] textBytes;
-    private UnsafeBufferEx textBuffer;
+    private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final JsonStringBody body = new JsonStringBody();
+
+    private byte[] pieceBytes;
+    private UnsafeBufferEx pieceBuffer;
     private byte[] escapeBytes;
     private UnsafeBufferEx escapeBuffer;
+    private byte[] deltaBytes;
+    private UnsafeBufferEx deltaBuffer;
+    private int deltaLength;
+    private final byte[] obfuscationBytes;
+    private final UnsafeBufferEx obfuscationBuffer;
 
     public LlmOpenaiResponsesServerFactory(
         EngineContext context)
@@ -320,6 +335,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.encodePool = context.bufferPool().duplicate();
         this.accumulatePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
+        this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
@@ -327,10 +343,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.textBytes = new byte[1024];
-        this.textBuffer = new UnsafeBufferEx(textBytes);
+        this.pieceBytes = new byte[1024];
+        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.escapeBytes = new byte[TEXT_CHUNK];
         this.escapeBuffer = new UnsafeBufferEx(escapeBytes);
+        this.deltaBytes = new byte[TEXT_CHUNK];
+        this.deltaBuffer = new UnsafeBufferEx(deltaBytes);
+        this.obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
+        this.obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -1784,7 +1804,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (event == JsonEvent.VALUE_STRING)
             {
                 final boolean deferred = parser.deferredBytes();
-                final CharSequence chars = parser.getStringView();
+                final JsonStringView chars = parser.getStringView();
                 final int length = chars.length();
                 final int take = server.onDecodeEncryptedStream(traceId, authorization, chars, !deferred);
 
@@ -1836,7 +1856,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (event == JsonEvent.VALUE_STRING)
             {
                 final boolean deferred = parser.deferredBytes();
-                final CharSequence chars = parser.getStringView();
+                final JsonStringView chars = parser.getStringView();
                 final int length = chars.length();
 
                 server.onDecodeEncryptedHold(traceId, chars, !deferred);
@@ -2313,7 +2333,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         if (event == JsonEvent.VALUE_STRING)
         {
             final boolean deferred = parser.deferredBytes();
-            final CharSequence chars = parser.getStringView();
+            final JsonStringView chars = parser.getStringView();
             final int length = chars.length();
             final int take = server.onDecodeText(traceId, authorization, chars, !deferred, eventFrom);
 
@@ -2538,115 +2558,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     }
 
 
-    private int encode(
-        LlmOpenaiResponsesServer server,
-        CharSequence chars,
-        int length,
-        boolean fin)
-    {
-        if (textBytes.length < length * 3 + 8)
-        {
-            textBytes = new byte[length * 3 + 8];
-            textBuffer = new UnsafeBufferEx(textBytes);
-        }
-
-        int position = 0;
-        int index = 0;
-
-        if (server.textHighSurrogate != 0 && length > 0)
-        {
-            final char c = chars.charAt(0);
-            if (Character.isLowSurrogate(c))
-            {
-                position = put(Character.toCodePoint(server.textHighSurrogate, c), position);
-                index = 1;
-            }
-            else
-            {
-                position = put(REPLACEMENT_CHARACTER, position);
-            }
-            server.textHighSurrogate = 0;
-        }
-
-        while (index < length)
-        {
-            final char c = chars.charAt(index++);
-
-            if (Character.isHighSurrogate(c))
-            {
-                if (index < length)
-                {
-                    final char d = chars.charAt(index);
-                    if (Character.isLowSurrogate(d))
-                    {
-                        position = put(Character.toCodePoint(c, d), position);
-                        index++;
-                    }
-                    else
-                    {
-                        position = put(REPLACEMENT_CHARACTER, position);
-                    }
-                }
-                else if (fin)
-                {
-                    position = put(REPLACEMENT_CHARACTER, position);
-                }
-                else
-                {
-                    server.textHighSurrogate = c;
-                }
-            }
-            else if (Character.isLowSurrogate(c))
-            {
-                position = put(REPLACEMENT_CHARACTER, position);
-            }
-            else
-            {
-                position = put(c, position);
-            }
-        }
-
-        if (fin && server.textHighSurrogate != 0)
-        {
-            position = put(REPLACEMENT_CHARACTER, position);
-            server.textHighSurrogate = 0;
-        }
-
-        return position;
-    }
-
-    private int put(
-        int codePoint,
-        int position)
-    {
-        int next = position;
-
-        if (codePoint < 0x80)
-        {
-            textBytes[next++] = (byte) codePoint;
-        }
-        else if (codePoint < 0x800)
-        {
-            textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else if (codePoint < 0x10000)
-        {
-            textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else
-        {
-            textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-
-        return next;
-    }
-
     private static boolean isWhitespace(
         byte value)
     {
@@ -2797,7 +2708,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private LlmOpenaiResponsesServerDecoder textThen;
         private boolean textOpen;
-        private char textHighSurrogate;
 
         private LlmOpenaiResponsesServerDecoder captureThen;
         private boolean captureOpen;
@@ -2818,8 +2728,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiControlToCanonical controlTransform;
         private LlmSectionPipeline choicePipeline;
         private String choiceMember;
-        private byte[] pieceBytes;
-        private UnsafeBufferEx pieceBuffer;
         private final JsonGeneratorEx generator;
         private LlmSectionPipeline blockPipeline;
         private LlmSectionPipeline.Output sectionSink;
@@ -2852,8 +2760,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.contentType = contentType;
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser(PARSER_CONFIG);
-            this.pieceBytes = new byte[1024];
-            this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
             this.generator = JsonEx.createGenerator();
             this.blockAttributes = new LlmSectionAttributes();
             this.sentAttributes = new LlmSectionAttributes();
@@ -3289,7 +3195,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int onDecodeEncryptedStream(
             long traceId,
             long authorization,
-            CharSequence chars,
+            JsonStringView chars,
             boolean fin)
         {
             final int length = chars.length();
@@ -3297,8 +3203,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (take == length)
             {
-                final int decoded = encode(this, chars, take, fin);
-                final int escaped = escapePiece(decoded);
+                final int escaped = encodeMember(chars, 0, take);
 
                 if (escaped > 0)
                 {
@@ -3318,11 +3223,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void onDecodeEncryptedHold(
             long traceId,
-            CharSequence chars,
+            JsonStringView chars,
             boolean fin)
         {
-            final int decoded = encode(this, chars, chars.length(), fin);
-            final int escaped = escapePiece(decoded);
+            final int escaped = encodeMember(chars, 0, chars.length());
 
             if (!tail.append(initialId, pieceBuffer, 0, escaped))
             {
@@ -3339,16 +3243,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
-        private int escapePiece(
-            int length)
+        private int encodeMember(
+            JsonStringView chars,
+            int from,
+            int to)
         {
-            reservePiece(length * ESCAPE_EXPANSION);
+            reservePiece(body.length(chars, from, to));
 
-            return LlmJsonEscape.escape(textBuffer, 0, length, pieceBytes);
+            return body.transfer(chars, from, to, pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment()));
         }
 
         private int memberAllowance(
-            CharSequence chars,
+            JsonStringView chars,
             boolean fin)
         {
             final int length = chars.length();
@@ -3359,6 +3265,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int index = 0;
             boolean fits = true;
 
+            if (cost + body.length(chars, 0, length) <= credit)
+            {
+                take = length;
+                index = length;
+            }
+
             while (fits && index < length)
             {
                 final char c = chars.charAt(index);
@@ -3366,7 +3278,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     Character.isLowSurrogate(chars.charAt(index + 1));
                 final int width = pair ? 2 : 1;
 
-                cost += pair ? 4 : escapedWidth(c);
+                cost += outputWidth(chars, index, width);
                 fits = cost <= credit;
 
                 if (fits)
@@ -3794,7 +3706,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int onDecodeText(
             long traceId,
             long authorization,
-            CharSequence chars,
+            JsonStringView chars,
             boolean fin,
             int eventFrom)
         {
@@ -3804,10 +3716,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final int take = textAllowance(chars, fin);
             final boolean finished = fin && take == length;
 
-            if (take > 0 || finished && textHighSurrogate != 0)
+            if (take > 0)
             {
-                final int decoded = encode(this, chars, take, finished);
-                final int encoded = encodePiece(textBuffer, 0, decoded);
+                final int encoded = encodePiece(chars, 0, take);
 
                 onDecodeData(traceId, authorization, pieceBuffer, 0, encoded, false);
             }
@@ -3824,7 +3735,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private int textAllowance(
-            CharSequence chars,
+            JsonStringView chars,
             boolean fin)
         {
             final int length = chars.length();
@@ -3835,13 +3746,20 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int index = 0;
             boolean fits = true;
 
+            if (cost + body.length(chars, 0, length) +
+                (fin ? TEXT_SUFFIX.length : 0) <= credit)
+            {
+                take = length;
+                index = length;
+            }
+
             while (fits && index < length)
             {
                 final char c = chars.charAt(index);
                 final boolean pair = Character.isHighSurrogate(c) && index + 1 < length &&
                     Character.isLowSurrogate(chars.charAt(index + 1));
                 final int width = pair ? 2 : 1;
-                final int next = cost + (pair ? 4 : escapedWidth(c));
+                final int next = cost + outputWidth(chars, index, width);
                 final boolean last = index + width == length;
 
                 fits = next + (last && fin ? TEXT_SUFFIX.length : 0) <= credit;
@@ -3873,79 +3791,42 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private int encodePiece(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            JsonStringView chars,
+            int from,
+            int to)
         {
-            reservePiece(TEXT_PREFIX.length + length * ESCAPE_EXPANSION);
+            final int prefix = Flags.hasInit(blockFlags) ? TEXT_PREFIX.length : 0;
 
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+            reservePiece(prefix + body.length(chars, from, to));
 
-            if (Flags.hasInit(blockFlags))
-            {
-                beginPieceObject();
-            }
+            final int length = prefix + body.transfer(chars, from, to,
+                pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + prefix));
 
-            generator.writeSegment(buffer, offset, length);
+            System.arraycopy(TEXT_PREFIX, 0, pieceBytes, 0, prefix);
 
-            return generator.length();
+            return length;
         }
 
         private int encodePieceEnd(
             boolean open)
         {
-            reservePiece(TEXT_PREFIX.length + TEXT_SUFFIX.length);
+            final int prefix = Flags.hasInit(blockFlags) ? TEXT_PREFIX.length : 0;
+            final int suffix = open ? 1 : TEXT_SUFFIX.length;
 
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+            reservePiece(prefix + suffix);
 
-            if (Flags.hasInit(blockFlags))
-            {
-                beginPieceObject();
-            }
+            System.arraycopy(TEXT_PREFIX, 0, pieceBytes, 0, prefix);
+            System.arraycopy(TEXT_SUFFIX, 0, pieceBytes, prefix, suffix);
 
-            generator.writeEndEscaped();
-
-            if (!open)
-            {
-                generator.writeEnd();
-            }
-
-            return generator.length();
+            return prefix + suffix;
         }
 
-        private void beginPieceObject()
+        private int outputWidth(
+            JsonStringView chars,
+            int index,
+            int width)
         {
-            generator.reset();
-            generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
-        }
-
-        private static int escapedWidth(
-            char c)
-        {
-            final int width;
-
-            if (c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f')
-            {
-                width = 2;
-            }
-            else if (c < 0x20)
-            {
-                width = 6;
-            }
-            else if (c < 0x80)
-            {
-                width = 1;
-            }
-            else if (c < 0x800)
-            {
-                width = 2;
-            }
-            else
-            {
-                width = 3;
-            }
-
-            return width;
+            return body.length(chars, index, index + width);
         }
 
         private void onDecodeBlock(
@@ -4911,9 +4792,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventSourceOffsets = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
-            this.eventAttributesBuffer = new UnsafeBufferEx(new byte[EVENT_ATTRIBUTES_CAPACITY]);
-            this.eventAttributeOffsets = new int[EVENT_CAPACITY];
-            this.eventAttributeLengths = new int[EVENT_CAPACITY];
+            this.eventAttributes = new DirectBufferEx[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
             this.partKinds = new byte[PART_CAPACITY * PART_VALUES];
             this.reasoningIdFilter = new LlmEdgeFilter((buffer, offset, length, last) ->
@@ -4922,8 +4801,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 onReasoningMembers(buffer, offset, length));
             this.citationsOutput = (buffer, offset, length, last) -> onCitations(buffer, offset, length);
             this.reasoningIdBytes = new byte[ID_CAPACITY];
-            this.elementBytes = new byte[ELEMENT_MAX];
-            this.elementBuffer = new UnsafeBufferEx(elementBytes);
             this.itemOriginals = new String[PART_CAPACITY];
             this.itemTypes = new String[PART_CAPACITY];
             this.itemIds = new String[PART_CAPACITY];
@@ -4931,10 +4808,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.itemNames = new String[PART_CAPACITY];
             this.itemFirst = new int[PART_CAPACITY];
             this.itemCounts = new int[PART_CAPACITY];
-            this.tailBytes = new byte[TAIL_MAX];
-            this.tailBuffer = new UnsafeBufferEx(tailBytes);
-            this.deltaBytes = new byte[TEXT_CHUNK];
-            this.deltaBuffer = new UnsafeBufferEx(deltaBytes);
+            this.tail = new LlmHeldTail(holdPool);
             this.argumentsOutput = (buffer, offset, length, last) -> onArguments(buffer, offset, length);
             this.valueFilter = new LlmStringFilter((buffer, offset, length, last) -> onDelta(buffer, offset, length));
             this.tailFilter = new LlmEdgeFilter((buffer, offset, length, last) -> onTail(buffer, offset, length));
@@ -5501,8 +5375,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_HELD = 1;
         private static final int CONTROL_INLINE = 2;
-        private static final int OBFUSCATION_MIN = 4;
-        private static final int OBFUSCATION_RANGE = 28;
         private static final int CHUNK_RESERVE = 512;
         private static final int TAIL_MAX = 4096;
         private static final int KIND_CALL = 4;
@@ -5519,7 +5391,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private static final int PART_KIND_TEXT = 0;
         private static final int PART_KIND_REFUSAL = 1;
         private static final int PART_VALUES = 2;
-        private static final int ELEMENT_MAX = 4096;
         private static final int ID_CAPACITY = 64;
         private static final int LEX_NONE = 0;
         private static final int LEX_STRING = 1;
@@ -5605,13 +5476,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int[] eventLengths;
         private int[] eventSourceOffsets;
         private int[] eventFlags;
-        private final MutableDirectBufferEx eventAttributesBuffer;
         private final OctetsFW eventAttributesRO = new OctetsFW();
-        private int[] eventAttributeOffsets;
-        private int[] eventAttributeLengths;
-        private int eventAttributesLimit;
-        private int eventAttributeOffset;
-        private int eventAttributeLength;
+        private DirectBufferEx[] eventAttributes;
+        private DirectBufferEx eventAttribute;
         private int eventCount;
         private boolean eventOpen;
         private boolean eventStarted;
@@ -5624,8 +5491,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlMode;
         private boolean controlOpen;
-        private final byte[] obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
-        private final UnsafeBufferEx obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
         private final LlmMemberSplitter splitter = new LlmMemberSplitter(this::onEncodeMember);
         private int heldSlot = NO_SLOT;
@@ -5659,8 +5524,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String reasoningId;
         private byte[] reasoningIdBytes;
         private int reasoningIdLength;
-        private byte[] elementBytes;
-        private UnsafeBufferEx elementBuffer;
+        private int elementSlot = NO_SLOT;
+        private MutableDirectBufferEx elementBuffer;
         private int elementLength;
         private int elementDepth;
         private int elementLex;
@@ -5686,18 +5551,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private final LlmStringFilter valueFilter;
         private final LlmEdgeFilter tailFilter;
         private final LlmEdgeFilter membersFilter;
-        private final byte[] tailBytes;
-        private final UnsafeBufferEx tailBuffer;
-        private int tailLength;
+        private final LlmHeldTail tail;
         private boolean membersStarted;
-        private byte[] deltaBytes;
-        private UnsafeBufferEx deltaBuffer;
-        private int deltaLength;
 
         private void beginEncode()
         {
             generator.wrap(copyBuffer, 0, copyBuffer.capacity());
-            eventAttributesLimit = 0;
 
             if (eventOpen)
             {
@@ -5723,10 +5582,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 for (int index = 0; index < count; index++)
                 {
-                    final int attributesLength = eventAttributeLengths[index];
-                    final OctetsFW attributes = attributesLength > 0
-                        ? eventAttributesRO.wrap(eventAttributesBuffer, eventAttributeOffsets[index],
-                            eventAttributeOffsets[index] + attributesLength)
+                    final DirectBufferEx attributesBuffer = eventAttributes[index];
+                    final OctetsFW attributes = attributesBuffer != null
+                        ? eventAttributesRO.wrap(attributesBuffer, 0, attributesBuffer.capacity())
                         : EMPTY_OCTETS;
 
                     if (eventSourceOffsets[index] != NONE)
@@ -5898,15 +5756,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 break;
             }
 
+            final int delta = deltaLength;
+            deltaLength = 0;
+
             if (!accepted)
             {
                 server.cleanup(traceId);
             }
-            else if (deltaLength > 0)
+            else if (delta > 0)
             {
                 eventValueDelta(LlmOpenaiResponsesItems.deltaEvent(itemTypes[itemCount - 1]), itemCount - 1, deltaBuffer, 0,
-                    deltaLength);
-                deltaLength = 0;
+                    delta);
             }
         }
 
@@ -5980,7 +5840,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             annotationCount = 0;
             elementDepth = 0;
-            elementLength = 0;
+            cleanupElement();
             elementLex = LEX_NONE;
             citationsPipeline().begin(replyAttributes);
 
@@ -6317,7 +6177,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             restPipeline = extrasPipeline();
             restPipeline.begin(replyAttributes);
             tailFilter.reset();
-            tailLength = 0;
+            tail.release();
 
             beginItem(index);
         }
@@ -6344,7 +6204,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             tailFilter.reset();
             membersFilter.reset();
             membersStarted = false;
-            tailLength = 0;
+            tail.release();
 
             beginItem(index);
         }
@@ -6440,7 +6300,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 accumulator.close();
                 accumulator.open();
-                accumulator.append(tailBuffer, 0, tailLength);
+                accumulator.append(tail.buffer(), 0, tail.length());
                 accumulator.close();
 
                 eventValueDone(LlmOpenaiResponsesItems.doneEvent(type), valueMember, index, value);
@@ -6482,10 +6342,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void writeTail()
         {
-            if (tailLength > 0)
+            if (tail.held())
             {
                 generator.writeSegment(COMMA, 0, 1);
-                generator.writeSegment(tailBuffer, 0, tailLength);
+                generator.writeSegment(tail.buffer(), 0, tail.length());
             }
         }
 
@@ -6552,11 +6412,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (length > 0 && tailLength + length <= TAIL_MAX)
-            {
-                tailBuffer.putBytes(tailLength, buffer, offset, length);
-                tailLength += length;
-            }
+            tail.append(replyId, buffer, offset, length, TAIL_MAX);
         }
 
         private void onMembers(
@@ -7532,14 +7388,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (elementDepth > 0)
             {
-                if (elementLength >= 0 && elementLength < ELEMENT_MAX)
-                {
-                    elementBytes[elementLength++] = value;
-                }
-                else
-                {
-                    elementLength = NONE;
-                }
+                appendElement(value);
             }
 
             switch (elementLex)
@@ -7567,8 +7416,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 if (elementDepth++ == 0)
                 {
-                    elementLength = 0;
-                    elementBytes[elementLength++] = value;
+                    openElement();
+                    appendElement(value);
                 }
             }
             else if (value == '}' && --elementDepth == 0)
@@ -7578,8 +7427,51 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     onAnnotation();
                 }
 
+                cleanupElement();
+            }
+        }
+
+        private void openElement()
+        {
+            if (elementSlot == NO_SLOT)
+            {
+                elementSlot = holdPool.acquire(replyId);
+            }
+
+            if (elementSlot != NO_SLOT)
+            {
+                elementBuffer = holdPool.buffer(elementSlot);
                 elementLength = 0;
             }
+            else
+            {
+                elementLength = NONE;
+            }
+        }
+
+        private void appendElement(
+            byte value)
+        {
+            if (elementLength >= 0 && elementLength < elementMax)
+            {
+                elementBuffer.putByte(elementLength++, value);
+            }
+            else
+            {
+                elementLength = NONE;
+            }
+        }
+
+        private void cleanupElement()
+        {
+            if (elementSlot != NO_SLOT)
+            {
+                holdPool.release(elementSlot);
+                elementSlot = NO_SLOT;
+                elementBuffer = null;
+            }
+
+            elementLength = 0;
         }
 
         private void onAnnotation()
@@ -7849,21 +7741,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int position,
             String type)
         {
-            final DirectBufferEx attributes = EVENT_ATTRIBUTES.get(type);
-
             this.eventOpen = true;
             this.eventStarted = false;
             this.eventStart = position;
-            this.eventAttributeOffset = eventAttributesLimit;
-            this.eventAttributeLength = eventAttributesLimit + attributes.capacity() <= eventAttributesBuffer.capacity()
-                ? attributes.capacity()
-                : 0;
-
-            if (eventAttributeLength > 0)
-            {
-                eventAttributesBuffer.putBytes(eventAttributesLimit, attributes, 0, attributes.capacity());
-                eventAttributesLimit += attributes.capacity();
-            }
+            this.eventAttribute = EVENT_ATTRIBUTES.get(type);
         }
 
         private void eventEnd(
@@ -7893,8 +7774,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     eventLengths = Arrays.copyOf(eventLengths, capacity);
                     eventSourceOffsets = Arrays.copyOf(eventSourceOffsets, capacity);
                     eventFlags = Arrays.copyOf(eventFlags, capacity);
-                    eventAttributeOffsets = Arrays.copyOf(eventAttributeOffsets, capacity);
-                    eventAttributeLengths = Arrays.copyOf(eventAttributeLengths, capacity);
+                    eventAttributes = Arrays.copyOf(eventAttributes, capacity);
                 }
 
                 final int init = eventStarted ? Flags.NONE : Flags.INIT;
@@ -7903,8 +7783,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 eventLengths[eventCount] = length;
                 eventSourceOffsets[eventCount] = NONE;
                 eventFlags[eventCount] = fin ? Flags.fin(init) : init;
-                eventAttributeOffsets[eventCount] = eventAttributeOffset;
-                eventAttributeLengths[eventCount] = eventStarted ? 0 : eventAttributeLength;
+                eventAttributes[eventCount] = eventStarted ? null : eventAttribute;
                 eventCount++;
 
                 eventStarted = true;
@@ -7924,16 +7803,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 eventLengths = Arrays.copyOf(eventLengths, capacity);
                 eventSourceOffsets = Arrays.copyOf(eventSourceOffsets, capacity);
                 eventFlags = Arrays.copyOf(eventFlags, capacity);
-                eventAttributeOffsets = Arrays.copyOf(eventAttributeOffsets, capacity);
-                eventAttributeLengths = Arrays.copyOf(eventAttributeLengths, capacity);
+                eventAttributes = Arrays.copyOf(eventAttributes, capacity);
             }
 
             eventOffsets[eventCount] = 0;
             eventLengths[eventCount] = length;
             eventSourceOffsets[eventCount] = sourceOffset;
             eventFlags[eventCount] = eventStarted ? Flags.NONE : Flags.INIT;
-            eventAttributeOffsets[eventCount] = eventAttributeOffset;
-            eventAttributeLengths[eventCount] = eventStarted ? 0 : eventAttributeLength;
+            eventAttributes[eventCount] = eventStarted ? null : eventAttribute;
             eventCount++;
 
             eventStarted = true;
@@ -8005,6 +7882,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 accumulator.release();
             }
+
+            tail.release();
+            cleanupElement();
         }
     }
 
