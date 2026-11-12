@@ -34,6 +34,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -79,6 +81,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // output path is bound once for the level and rebound only when a scope opens or closes. The state below
     // is created on the first scope and never otherwise.
     private int escapeDepth;
+    private final SegmentTransferTarget transferTarget = new SegmentTransferTarget();
     private IntConsumer[] escapePuts;
     private SegmentWriter[] escapeSegments;
     private int[] scopeFrames;
@@ -748,6 +751,68 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
         consumed += index - from;
         return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
+        JsonStringView value,
+        int from,
+        int to)
+    {
+        final JsonStringView.Kind kind = value.kind();
+
+        if (kind == JsonStringView.Kind.ENCODED && escapeDepth == 1 ||
+            kind == JsonStringView.Kind.ESCAPED && escapeDepth == 2)
+        {
+            writeTransfer(value, from, to);
+        }
+        else
+        {
+            writeSegment((CharSequence) value, from, to);
+        }
+
+        return this;
+    }
+
+    private void writeTransfer(
+        JsonStringView value,
+        int from,
+        int to)
+    {
+        final int free = limit - progress;
+
+        int end = to;
+        int length = value.transferLength(from, to);
+
+        if (length > free)
+        {
+            end = from;
+            length = 0;
+
+            for (boolean fits = true; fits && end < to; )
+            {
+                final boolean pair = Character.isHighSurrogate(value.charAt(end)) && end + 1 < to &&
+                    Character.isLowSurrogate(value.charAt(end + 1));
+                final int width = pair ? 2 : 1;
+                final int next = value.transferLength(end, end + width);
+
+                fits = length + next <= free;
+
+                if (fits)
+                {
+                    length += next;
+                    end += width;
+                }
+            }
+        }
+
+        if (length > 0)
+        {
+            value.transferTo(from, end, transferTarget.wrap(buffer.segment(), buffer.wrapAdjustment() + progress));
+            progress += length;
+        }
+
+        consumed += end - from;
     }
 
     @Override

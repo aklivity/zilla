@@ -40,5 +40,5 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
+write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello \\\"there\\\" é世 🌍\\nend a\\/b \\u00e9 \\ud83d\\ude00\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 write close

@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -5259,22 +5260,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            JsonStringView chars,
+            int from,
+            int to)
         {
             if (!server.streaming)
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
-            else if (length > 0)
+            else if (to > from)
             {
                 chunkBegin();
                 generator.writeStartObject();
                 candidateBegin();
                 generator.writeStartObject().writeKey("text");
                 generator.writeStartEscaped();
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
                 generator.writeEndEscaped();
 
                 if (kind == KIND_REASONING)

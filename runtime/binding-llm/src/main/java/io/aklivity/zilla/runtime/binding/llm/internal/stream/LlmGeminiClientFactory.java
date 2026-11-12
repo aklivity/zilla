@@ -18,18 +18,13 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGeminiDia
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.StringReader;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.Json;
 import jakarta.json.JsonException;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -76,6 +71,9 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -171,6 +169,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
     private static final int TEXT_ESCAPE_EXPANSION = 6;
     private static final int TEXT_FRAMING = 48;
+    private static final int PIECE_CAPACITY = 1024;
     private static final byte[] SECTION_SUFFIX = "\"}".getBytes(UTF_8);
     private static final DirectBufferEx ARGUMENTS_PREFIX = new UnsafeBufferEx("{\"arguments\":".getBytes(UTF_8));
     private static final DirectBufferEx ARGUMENTS_EMPTY = new UnsafeBufferEx("{\"arguments\":{}}".getBytes(UTF_8));
@@ -188,6 +187,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_MODEL_VERSION = "modelVersion";
     private static final String MEMBER_RESPONSE_ID = "responseId";
     private static final String MEMBER_USAGE = "usageMetadata";
+    private static final byte[] USAGE_PREFIX = ("{\"" + NAME + ':' + MEMBER_USAGE + "\":").getBytes(UTF_8);
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_MESSAGE = "message";
     private static final String MEMBER_STATUS = "status";
@@ -287,6 +287,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final BufferPool holdPool;
+    private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final JsonStringBody body = new JsonStringBody();
+
+    private byte[] pieceBytes;
+    private UnsafeBufferEx pieceBuffer;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int encodeMax;
@@ -303,6 +308,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
+        this.pieceBytes = new byte[PIECE_CAPACITY];
+        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
@@ -632,9 +639,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean sectionWritten;
         private LlmSectionType sectionType;
 
-        private char highSurrogate;
-        private byte[] textBytes;
-        private UnsafeBufferEx textBuffer;
 
         private DirectBufferEx decodedInput;
         private final JsonGeneratorEx controlGenerator;
@@ -650,7 +654,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlDepth;
         private LlmGeminiResponseDecoder controlThen;
-        private JsonObject usageMerged;
+        private int usageSlot = NO_SLOT;
 
         private LlmGeminiStream(
             MessageConsumer app,
@@ -680,8 +684,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             this.operation = crossDialect ? null : operation;
             this.http = new LlmGeminiHttpStream(this);
             this.parser = JsonEx.createParser(PARSER_CONFIG);
-            this.textBytes = new byte[1024];
-            this.textBuffer = new UnsafeBufferEx(textBytes);
             this.decoder = decodeLookahead;
             this.controlGenerator = JsonEx.createGenerator();
             this.controlBytes = new byte[CONTROL_HEADER];
@@ -904,6 +906,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             http.doNetAbort(traceId);
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
         }
@@ -931,6 +934,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             http.doNetReset(traceId);
             http.doNetAbort(traceId);
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
@@ -1190,7 +1194,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             draining = false;
             sectionOpen = false;
             sectionStarted = false;
-            highSurrogate = 0;
             cleanupControlSlot();
             decoder = decodeLookahead;
         }
@@ -2062,7 +2065,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (callArguments != NONE && callId != null && !callId.equals(sectionToolCallId))
             {
-                writeSection(textBuffer, 0, encodeWireId(callId), false);
+                writeSection(pieceBuffer, 0, encodeWireId(callId), false);
             }
 
             if (callArguments == NONE)
@@ -2256,8 +2259,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    endUsage();
-                    decoder = usageThen;
+                    if (endUsage())
+                    {
+                        decoder = usageThen;
+                    }
                 }
                 else
                 {
@@ -2694,7 +2699,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             boolean deferred,
             int eventFrom)
         {
-            final CharSequence chars = parser.getStringView();
+            final JsonStringView chars = parser.getStringView();
             final int length = chars.length();
 
             if (sectionOpen || length > 0 || deferred)
@@ -2720,7 +2725,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 sectionStarted = true;
 
-                writeSection(textBuffer, 0, length, false);
+                writeSection(pieceBuffer, 0, length, false);
             }
         }
 
@@ -2981,41 +2986,64 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             decoder = decodeUsageStart;
         }
 
-        private void endUsage()
+        private boolean endUsage()
         {
+            boolean merged = true;
+
             if (controlFrom != NONE)
             {
                 flushControl(position());
 
-                final MutableDirectBufferEx slot = encodePool.buffer(controlSlot);
-                final int from = controlEntry + CONTROL_HEADER;
-                final String member = slot.getStringWithoutLengthUtf8(from, controlSlotOffset - from) + "}";
-
-                try (JsonReader reader = Json.createReader(new StringReader(member)))
+                if (usageSlot == NO_SLOT)
                 {
-                    final JsonObjectBuilder merged = usageMerged != null
-                        ? Json.createObjectBuilder(usageMerged)
-                        : Json.createObjectBuilder();
+                    usageSlot = holdPool.acquire(replyId);
 
-                    reader.readObject().getJsonObject(NAME + ':' + MEMBER_USAGE).forEach(merged::add);
-                    usageMerged = merged.build();
+                    if (usageSlot != NO_SLOT)
+                    {
+                        LlmUsageMerge.reset(holdPool.buffer(usageSlot));
+                    }
                 }
 
-                cancelControl();
+                merged = usageSlot != NO_SLOT &&
+                    LlmUsageMerge.merge(holdPool.buffer(usageSlot), holdPool.slotCapacity(),
+                        encodePool.buffer(controlSlot), controlEntry + CONTROL_HEADER, controlSlotOffset);
+
+                if (merged)
+                {
+                    cancelControl();
+                }
+                else
+                {
+                    cleanup(http.decodeTraceId);
+                }
             }
+
+            return merged;
         }
 
         private void emitUsage()
         {
-            if (usageMerged != null)
+            if (usageSlot != NO_SLOT)
             {
-                final byte[] member = ("{\"" + NAME + ':' + MEMBER_USAGE + "\":" + usageMerged + "}").getBytes(UTF_8);
-                final UnsafeBufferEx buffer = new UnsafeBufferEx(member);
+                final MutableDirectBufferEx slot = holdPool.buffer(usageSlot);
+                final int length = LlmUsageMerge.compose(slot, holdPool.slotCapacity(), USAGE_PREFIX);
 
-                doAppFrame(http.decodeTraceId, Flags.COMPLETE, LlmSectionType.CONTROL, ROOT_CONTROL, null, null,
-                    buffer, 0, member.length);
+                if (length != NONE)
+                {
+                    doAppFrame(http.decodeTraceId, Flags.COMPLETE, LlmSectionType.CONTROL, ROOT_CONTROL, null, null,
+                        slot, LlmUsageMerge.composedAt(slot), length);
+                }
 
-                usageMerged = null;
+                cleanupUsageSlot();
+            }
+        }
+
+        private void cleanupUsageSlot()
+        {
+            if (usageSlot != NO_SLOT)
+            {
+                holdPool.release(usageSlot);
+                usageSlot = NO_SLOT;
             }
         }
 
@@ -3047,7 +3075,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 final int encoded = encodeToolCallEnd();
 
                 sectionOpen = false;
-                writeSection(textBuffer, 0, encoded, true);
+                writeSection(pieceBuffer, 0, encoded, true);
             }
             else if (sectionOpen && callSection(sectionType))
             {
@@ -3058,10 +3086,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
             else if (sectionOpen && sectionStarted)
             {
-                final int encoded = encodeText("", true);
+                final int encoded = encodeTextEnd();
 
                 sectionOpen = false;
-                writeSection(textBuffer, 0, encoded, true);
+                writeSection(pieceBuffer, 0, encoded, true);
             }
 
             sectionOpen = false;
@@ -3109,92 +3137,48 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             candidateOrdinal = 0;
         }
 
+        private void reservePiece(
+            int capacity)
+        {
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = new byte[capacity];
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+        }
+
         private int encodeText(
-            CharSequence chars,
+            JsonStringView chars,
             boolean last)
         {
             final int length = chars.length();
-            final int capacity = length * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING + (last ? signatureRoom() : 0);
 
-            if (textBytes.length < capacity)
-            {
-                textBytes = new byte[capacity];
-                textBuffer = new UnsafeBufferEx(textBytes);
-            }
+            reservePiece(body.length(chars, 0, length) + TEXT_FRAMING + (last ? signatureRoom() : 0));
 
-            int position = 0;
-            int index = 0;
+            int position = sectionStarted ? 0 : putMember(0);
 
-            if (!sectionStarted)
-            {
-                position = putMember(position);
-            }
-
-            if (highSurrogate != 0 && length > 0)
-            {
-                final char c = chars.charAt(0);
-                if (Character.isLowSurrogate(c))
-                {
-                    position = putCodePoint(Character.toCodePoint(highSurrogate, c), position);
-                    index = 1;
-                }
-                else
-                {
-                    position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                }
-                highSurrogate = 0;
-            }
-
-            while (index < length)
-            {
-                final char c = chars.charAt(index++);
-
-                if (Character.isHighSurrogate(c))
-                {
-                    if (index < length)
-                    {
-                        final char d = chars.charAt(index);
-                        if (Character.isLowSurrogate(d))
-                        {
-                            position = putCodePoint(Character.toCodePoint(c, d), position);
-                            index++;
-                        }
-                        else
-                        {
-                            position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                        }
-                    }
-                    else if (last)
-                    {
-                        position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                    }
-                    else
-                    {
-                        highSurrogate = c;
-                    }
-                }
-                else if (Character.isLowSurrogate(c))
-                {
-                    position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                }
-                else
-                {
-                    position = putEscaped(c, position);
-                }
-            }
-
-            if (last && highSurrogate != 0)
-            {
-                position = putCodePoint(REPLACEMENT_CHARACTER, position);
-                highSurrogate = 0;
-            }
+            position += body.transfer(chars, 0, length,
+                pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + position));
 
             if (last)
             {
-                textBytes[position++] = '"';
+                pieceBytes[position++] = '"';
                 position = putSignature(position);
-                textBytes[position++] = '}';
+                pieceBytes[position++] = '}';
             }
+
+            return position;
+        }
+
+        private int encodeTextEnd()
+        {
+            reservePiece(TEXT_FRAMING + signatureRoom());
+
+            int position = sectionStarted ? 0 : putMember(0);
+
+            pieceBytes[position++] = '"';
+            position = putSignature(position);
+            pieceBytes[position++] = '}';
 
             return position;
         }
@@ -3218,7 +3202,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 for (int i = 0; i < MEMBER_WIRE_SIGNATURE.length(); i++)
                 {
-                    textBytes[next++] = (byte) MEMBER_WIRE_SIGNATURE.charAt(i);
+                    pieceBytes[next++] = (byte) MEMBER_WIRE_SIGNATURE.charAt(i);
                 }
 
                 for (int i = 0; i < sectionSignature.length(); i++)
@@ -3226,7 +3210,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     next = putEscaped(sectionSignature.charAt(i), next);
                 }
 
-                textBytes[next++] = '"';
+                pieceBytes[next++] = '"';
                 sectionSignature = null;
             }
 
@@ -3237,11 +3221,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final int capacity = signatureRoom() + ARGUMENTS_EMPTY.capacity() + TEXT_FRAMING;
 
-            if (textBytes.length < capacity)
-            {
-                textBytes = new byte[capacity];
-                textBuffer = new UnsafeBufferEx(textBytes);
-            }
+            reservePiece(capacity);
 
             int position = 0;
 
@@ -3249,15 +3229,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 for (int i = 0; i < ARGUMENTS_PREFIX.capacity(); i++)
                 {
-                    textBytes[position++] = ARGUMENTS_PREFIX.getByte(i);
+                    pieceBytes[position++] = ARGUMENTS_PREFIX.getByte(i);
                 }
 
-                textBytes[position++] = '{';
-                textBytes[position++] = '}';
+                pieceBytes[position++] = '{';
+                pieceBytes[position++] = '}';
             }
 
             position = putSignature(position);
-            textBytes[position++] = '}';
+            pieceBytes[position++] = '}';
 
             return position;
         }
@@ -3267,17 +3247,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final int capacity = wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING;
 
-            if (textBytes.length < capacity)
-            {
-                textBytes = new byte[capacity];
-                textBuffer = new UnsafeBufferEx(textBytes);
-            }
+            reservePiece(capacity);
 
             int position = 0;
 
             for (int i = 0; i < MEMBER_WIRE_ID.length(); i++)
             {
-                textBytes[position++] = (byte) MEMBER_WIRE_ID.charAt(i);
+                pieceBytes[position++] = (byte) MEMBER_WIRE_ID.charAt(i);
             }
 
             for (int index = 0; index < wireId.length(); index++)
@@ -3285,7 +3261,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 position = putEscaped(wireId.charAt(index), position);
             }
 
-            textBytes[position++] = '"';
+            pieceBytes[position++] = '"';
 
             return position;
         }
@@ -3295,17 +3271,17 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             int next = position;
 
-            textBytes[next++] = '{';
-            textBytes[next++] = '"';
+            pieceBytes[next++] = '{';
+            pieceBytes[next++] = '"';
 
             for (int i = 0; i < MEMBER_TEXT.length(); i++)
             {
-                textBytes[next++] = (byte) MEMBER_TEXT.charAt(i);
+                pieceBytes[next++] = (byte) MEMBER_TEXT.charAt(i);
             }
 
-            textBytes[next++] = '"';
-            textBytes[next++] = ':';
-            textBytes[next++] = '"';
+            pieceBytes[next++] = '"';
+            pieceBytes[next++] = ':';
+            pieceBytes[next++] = '"';
 
             return next;
         }
@@ -3320,38 +3296,38 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
             case '"':
             case '\\':
-                textBytes[next++] = '\\';
-                textBytes[next++] = (byte) c;
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = (byte) c;
                 break;
             case '\n':
-                textBytes[next++] = '\\';
-                textBytes[next++] = 'n';
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'n';
                 break;
             case '\r':
-                textBytes[next++] = '\\';
-                textBytes[next++] = 'r';
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'r';
                 break;
             case '\t':
-                textBytes[next++] = '\\';
-                textBytes[next++] = 't';
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 't';
                 break;
             case '\b':
-                textBytes[next++] = '\\';
-                textBytes[next++] = 'b';
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'b';
                 break;
             case '\f':
-                textBytes[next++] = '\\';
-                textBytes[next++] = 'f';
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'f';
                 break;
             default:
                 if (c < 0x20)
                 {
-                    textBytes[next++] = '\\';
-                    textBytes[next++] = 'u';
-                    textBytes[next++] = '0';
-                    textBytes[next++] = '0';
-                    textBytes[next++] = (byte) Character.forDigit(c >> 4, 16);
-                    textBytes[next++] = (byte) Character.forDigit(c & 0xF, 16);
+                    pieceBytes[next++] = '\\';
+                    pieceBytes[next++] = 'u';
+                    pieceBytes[next++] = '0';
+                    pieceBytes[next++] = '0';
+                    pieceBytes[next++] = (byte) Character.forDigit(c >> 4, 16);
+                    pieceBytes[next++] = (byte) Character.forDigit(c & 0xF, 16);
                 }
                 else
                 {
@@ -3371,25 +3347,25 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (codePoint < 0x80)
             {
-                textBytes[next++] = (byte) codePoint;
+                pieceBytes[next++] = (byte) codePoint;
             }
             else if (codePoint < 0x800)
             {
-                textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+                pieceBytes[next++] = (byte) (0xC0 | codePoint >> 6);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
             }
             else if (codePoint < 0x10000)
             {
-                textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-                textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+                pieceBytes[next++] = (byte) (0xE0 | codePoint >> 12);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
             }
             else
             {
-                textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-                textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-                textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+                pieceBytes[next++] = (byte) (0xF0 | codePoint >> 18);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                pieceBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
             }
 
             return next;
@@ -3434,6 +3410,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                     app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                     cleanupControlSlot();
+                    cleanupUsageSlot();
                 }
             }
         }
@@ -3471,6 +3448,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 cleanupControlSlot();
+                cleanupUsageSlot();
             }
         }
 
@@ -3596,6 +3574,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void cleanupSlots()
         {
             cleanupControlSlot();
+            cleanupUsageSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
@@ -3935,13 +3914,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         private void onSectionText(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            JsonStringView chars,
+            int from,
+            int to)
         {
             if (beginEncode(0))
             {
-                putEscaped(buffer, offset, length);
+                putEscaped(chars, from, to);
                 endEncode();
             }
         }
@@ -4349,13 +4328,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         private void putEscaped(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+            JsonStringView chars,
+            int from,
+            int to)
         {
-            if (fits(length * ESCAPE_EXPANSION))
+            if (fits((to - from) * ESCAPE_EXPANSION))
             {
-                generator.writeSegment(buffer, offset, length);
+                generator.writeSegment(chars, from, to);
             }
             else
             {

@@ -48,6 +48,6 @@ write "\"there\\\" é\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"g
 write flush
 write "\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\""
 write flush
-write "世 🌍\\n\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"end\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}\n]"
+write "世 🌍\\n\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"end a\\/b \\u00e9 \\ud83d\\ude00\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}\n]"
 write flush
 write close
