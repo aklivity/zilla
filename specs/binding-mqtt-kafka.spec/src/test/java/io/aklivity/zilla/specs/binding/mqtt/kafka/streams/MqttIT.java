@@ -308,6 +308,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.filter.change.retain.no.local/client",
+        "${mqtt}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.deferred.filter.change.retain/client",
         "${mqtt}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterChangeDeferred() throws Exception
