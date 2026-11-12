@@ -272,6 +272,42 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception

@@ -275,6 +275,15 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/subscribe.retain.as.published.not.retained/client",
+        "${net}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.8.3-5]
     @Test
     @Specification({

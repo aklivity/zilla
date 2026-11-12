@@ -201,6 +201,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.retain.as.published.not.retained/client",
+        "${app}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception
