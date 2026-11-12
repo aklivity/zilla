@@ -147,6 +147,9 @@
 - test\(binding-llm\): add llm proxy EngineBench benchmark [\#3095](https://github.com/aklivity/zilla/pull/3095) ([jfallows](https://github.com/jfallows))
 - perf\(binding-http\): decode h1 client response head from bytes [\#3097](https://github.com/aklivity/zilla/pull/3097) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): skip vertical tab and form feed before h1 server header value [\#3098](https://github.com/aklivity/zilla/pull/3098) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): size default maximum connections from worker capacity [\#3124](https://github.com/aklivity/zilla/pull/3124) ([ankitk-me](https://github.com/ankitk-me))
+- refactor\(common-json\): report token spans and scope markers through the tokenizer SPI [\#3126](https://github.com/aklivity/zilla/pull/3126) ([jfallows](https://github.com/jfallows))
+- fix\(incubator\): list common-lang in the incubator NOTICE [\#3139](https://github.com/aklivity/zilla/pull/3139) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
@@ -1876,6 +1879,10 @@
 ## [0.9.136](https://github.com/aklivity/zilla/tree/0.9.136) (2025-04-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/0.9.135...0.9.136)
+
+**Implemented enhancements:**
+
+- Support implicit `mqtt` topic rewrite scoped by trusted identity [\#421](https://github.com/aklivity/zilla/issues/421) ([jfallows](https://github.com/jfallows))
 
 **Closed issues:**
 
