@@ -6915,7 +6915,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
-                    doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_INCOMPLETE_OFFSET_STATE);
                     doSubscribeFlush(traceId, 0, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE);
                 }
             }
