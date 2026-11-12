@@ -1,0 +1,238 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: startup
+telemetry:
+  metrics:
+    - stream.active.received
+    - stream.active.sent
+    - stream.opens.received
+    - stream.opens.sent
+    - stream.data.received
+    - stream.data.sent
+    - stream.errors.received
+    - stream.errors.sent
+    - stream.closes.received
+    - stream.closes.sent
+    - http.request.size
+    - http.response.size
+    - http.duration
+  exporters:
+    stdout0:
+      type: stdout
+    prometheus0:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            path: /metrics
+            port: 7190
+stores:
+  memory0:
+    type: memory
+catalogs:
+  catalog0:
+    type: inline
+    options:
+      subjects:
+        item:
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" }
+              },
+              "required": [ "id" ]
+            }
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          alg: RS256
+          kid: example
+          use: sig
+          n: qBeRd3i9c1jOTQwOriw1cVQ_2guOjgM2sipejPTIs0yH-R9Y20CzFhf18PCe_Pu8ipVIXTAG3x91oYi9GhZLpiwh3A15xzz0XQkm-QarStAIOP5y_34tCrflfDocejH_IJjH7VCQGFzfH2lHSxg9DUQh6cU9uevS1oB0yvO4V6IcZNCh1RUinZtuLCiU4ONl2ydnF8JDN3d0gOL15_SeqkcSj5MDTCzi0u7SvCeU1T9OyDFebGWXr3MLumHCptJHGKSSWjyefWK5iJBXBG9KGs2hSh0EAyHwB8cWa1Mu7yTqpzdqXMo1WkbNL3746D2tXrlDy9MZT0LGjP2-QBCvCQ
+          e: AQAB
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7114
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials:
+            headers:
+              authorization: Bearer {credentials}
+      requests:
+        - path: /items
+          method: POST
+          content-type:
+            - application/json
+          content:
+            model: json
+            catalog:
+              catalog0:
+                - subject: item
+    routes:
+      - when:
+          - headers:
+              :path: /ws
+        exit: ws_server0
+      - when:
+          - headers:
+              :path: /files/*
+        exit: http_filesystem0
+      - when:
+          - headers:
+              :path: /echo*
+        exit: echo_server0
+      - when:
+          - headers:
+              :path: /sse/*
+        exit: sse_server0
+      - when:
+          - headers:
+              :path: /items*
+        exit: http_kafka0
+  http_kafka0:
+    type: http-kafka
+    kind: proxy
+    routes:
+      - when:
+          - method: POST
+            path: /items
+        exit: kafka_cache_client0
+        with:
+          capability: produce
+          topic: items-requests
+          key: ${idempotencyKey}
+          reply-to: items-responses
+      - when:
+          - method: GET
+            path: /items
+        exit: kafka_cache_client0
+        with:
+          capability: fetch
+          topic: items-snapshots
+  sse_server0:
+    type: sse
+    kind: server
+    exit: sse_kafka0
+  sse_kafka0:
+    type: sse-kafka
+    kind: proxy
+    routes:
+      - when:
+          - path: /sse/items
+        exit: kafka_cache_client0
+        with:
+          topic: items-snapshots
+  tcp_server1:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7183
+    exit: mqtt_server0
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    options:
+      store: memory0
+    exit: mqtt_kafka0
+  mqtt_kafka0:
+    type: mqtt-kafka
+    kind: proxy
+    options:
+      topics:
+        sessions: mqtt-sessions
+        messages: mqtt-messages
+        retained: mqtt-retained
+    exit: kafka_cache_client0
+  kafka_cache_client0:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server0
+  kafka_cache_server0:
+    type: kafka
+    kind: cache_server
+    exit: kafka_client0
+  kafka_client0:
+    type: kafka
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: 127.0.0.1
+      port: 9092
+  echo_server0:
+    type: echo
+    kind: server
+  ws_server0:
+    type: ws
+    kind: server
+    exit: echo_server0
+  http_filesystem0:
+    type: http-filesystem
+    kind: proxy
+    routes:
+      - when:
+          - path: /files/{path}
+        exit: filesystem_server0
+        with:
+          path: ${params.path}
+  filesystem_server0:
+    type: filesystem
+    kind: server
+    options:
+      location: /opt/zilla/.zilla/
+  tcp_server2:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7186
+    exit: proxy_server0
+  proxy_server0:
+    type: proxy
+    kind: server
+    exit: echo_server0
+  tls_client0:
+    type: tls
+    kind: client
+    options:
+      trustcacerts: true
+    exit: tcp_client1
+  tcp_client1:
+    type: tcp
+    kind: client
+    options:
+      host: 127.0.0.1
+      port: 9443
