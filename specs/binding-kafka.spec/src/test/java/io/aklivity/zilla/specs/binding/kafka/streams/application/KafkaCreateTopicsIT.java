@@ -48,6 +48,15 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.affinity/client",
+        "${app}/create.topics.v7.affinity/server"})
+    public void shouldCreateTopicsV3WithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.unsupported/client",
         "${app}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception

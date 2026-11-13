@@ -118,4 +118,37 @@ public class CacheApiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/create.topics.v7.affinity/client",
+        "${app}/create.topics.v7.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassApiRequestAffinityThroughCacheClientAndServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.client.yaml")
+    @Specification({
+        "${app}/create.topics.v7.affinity/client",
+        "${app}/create.topics.v7.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassApiRequestAffinityThroughCacheClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.server.yaml")
+    @Specification({
+        "${app}/create.topics.v7.affinity/client",
+        "${app}/create.topics.v7.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassApiRequestAffinityThroughCacheServer() throws Exception
+    {
+        k3po.finish();
+    }
 }
