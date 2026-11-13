@@ -16,12 +16,14 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import java.util.Arrays;
+import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 final class LlmControlHold
 {
@@ -190,6 +192,34 @@ final class LlmControlHold
             {
                 generator.writeKey(names[index]);
                 generator.writeRaw(store.get(), offsets[index], lengths[index]);
+            }
+        }
+    }
+
+    void write(
+        JsonGeneratorEx generator,
+        int kind,
+        Predicate<String> included,
+        int chunk,
+        IntConsumer room)
+    {
+        for (int index = 0; index < count; index++)
+        {
+            if (kinds[index] == kind && included.test(names[index]))
+            {
+                generator.writeKey(names[index]);
+
+                final int length = lengths[index];
+
+                for (int written = 0; written < length; )
+                {
+                    final int size = Math.min(chunk, length - written);
+
+                    room.accept(size);
+                    generator.writeSegment(store.get(), offsets[index] + written, size,
+                        written + size == length ? Completion.COMPLETE : Completion.INCOMPLETE);
+                    written += size;
+                }
             }
         }
     }
