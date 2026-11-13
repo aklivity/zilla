@@ -1071,6 +1071,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
+        "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
+    public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.message.qos1.published.qos2/client",
         "${kafka}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
