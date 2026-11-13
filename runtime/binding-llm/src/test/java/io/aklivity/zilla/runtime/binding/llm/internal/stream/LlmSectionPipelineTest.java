@@ -83,6 +83,25 @@ public class LlmSectionPipelineTest
         }
     }
 
+    @Test
+    public void shouldForwardWithoutFirstAndLastByteAtEveryCut()
+    {
+        final byte[] bytes = CITATIONS.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final String whole = convertWhole(buffer, bytes.length);
+        final String expected = whole.substring(1, whole.length() - 1);
+
+        for (int cut = 1; cut < bytes.length; cut++)
+        {
+            output.setLength(0);
+            pipeline.begin(new LlmSectionAttributes());
+
+            assertThat("cut " + cut, pipeline.feedEdges(buffer, 0, cut, false, this::collect), is(true));
+            assertThat("cut " + cut, pipeline.feedEdges(buffer, cut, bytes.length - cut, true, this::collect), is(true));
+            assertThat("cut " + cut, output.toString(), equalTo(expected));
+        }
+    }
+
     private String convertWhole(
         DirectBufferEx buffer,
         int length)
