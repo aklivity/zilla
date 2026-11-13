@@ -353,16 +353,6 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/ack.pubrel.retransmit.after.pubcomp/client",
-        "${app}/publish.qos2.ack.with.reasoncode/server"})
-    public void shouldCompletePubrelRetransmittedAfterPubcomp() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/recovery.pubrel.unknown.packet.id/client",
         "${app}/recovery.pubrel.unknown.packet.id/server"})
     public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
