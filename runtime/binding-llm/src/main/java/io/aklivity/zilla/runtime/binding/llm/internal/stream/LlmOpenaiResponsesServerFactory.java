@@ -702,7 +702,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         int progress = offset;
 
-        if (Flags.hasFin(stream.replyFlags) && stream.kind == LlmOpenaiResponsesStream.KIND_CALL && stream.server.streaming)
+        if (Flags.hasFin(stream.replyFlags) && stream.valued())
         {
             stream.decoder = decodeCallEnd;
         }
@@ -6045,7 +6045,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 replyMember = MEMBER_TEXT;
                 replyMemberState = decodeReplyTextValue;
 
-                if (kind == KIND_PROVIDER && server.streaming && valueMember != null)
+                if (kind == KIND_PROVIDER && valued())
                 {
                     replyMember = MEMBER_ARGUMENTS;
                     replyMemberState = decodeReplyTextDescend;
@@ -6076,7 +6076,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
                 case KIND_CALL -> server.streaming ? decodeCallBegin : decodeReplyValue;
-                case KIND_PROVIDER -> server.streaming && valueMember != null ? decodeReplyTextRoot : decodeReplyValue;
+                case KIND_PROVIDER -> valued() ? decodeCallBegin : decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
                 default -> decodeReplySkipped;
                 };
@@ -6917,7 +6917,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
                 break;
             case KIND_PROVIDER:
-                sectionProvider();
+                if (!valued())
+                {
+                    sectionProvider();
+                }
                 break;
             case KIND_RESULT:
                 sectionResult();
@@ -7444,16 +7447,41 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     : partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
         }
 
+        private boolean valued()
+        {
+            return server.streaming &&
+                (kind == KIND_CALL ||
+                    kind == KIND_PROVIDER &&
+                    LlmOpenaiResponsesItems.deltaMember(sectionItemType) != null &&
+                    !LlmOpenaiResponsesItems.split(sectionItemType));
+        }
+
         private void openCallRecord()
         {
-            registerItem(TYPE_FUNCTION_CALL);
+            if (kind == KIND_CALL)
+            {
+                registerItem(TYPE_FUNCTION_CALL);
 
-            openItem = ITEM_CALL;
-            bindAttributes();
-            valueMember = MEMBER_ARGUMENTS;
-            restPipeline = extrasPipeline();
-            restPipeline.begin(replyAttributes);
-            restOutput = tailOutput;
+                openItem = ITEM_CALL;
+                bindAttributes();
+                valueMember = MEMBER_ARGUMENTS;
+                restPipeline = extrasPipeline();
+                restPipeline.begin(replyAttributes);
+                restOutput = tailOutput;
+            }
+            else
+            {
+                registerItem(sectionItemType);
+
+                openItem = ITEM_PROVIDER;
+                bindAttributes();
+                valueMember = LlmOpenaiResponsesItems.deltaMember(sectionItemType);
+                restPipeline = membersPipeline(valueMember);
+                restPipeline.begin(replyAttributes);
+                restOutput = tailOutput;
+                membersStarted = false;
+            }
+
             beginFanOuts();
             tail.release();
             accumulator.open();
