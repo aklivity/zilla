@@ -1909,22 +1909,31 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void onKafkaSessionExpirySignal(
             SignalFW signal)
         {
-            String16FW clientId = expiryClientIds.get(signal.contextId());
+            final String16FW clientId = expiryClientIds.get(signal.contextId());
+            final String16FW clientIdOffsets = new String16FW(clientId.asString() + OFFSETS_KEY_POSTFIX);
 
-            Flyweight expireSessionKafkaDataEx = kafkaDataExRW
+            doKafkaTombstone(clientId, clientId);
+            doKafkaTombstone(clientIdOffsets, clientId);
+        }
+
+        private void doKafkaTombstone(
+            String16FW key,
+            String16FW hashKey)
+        {
+            Flyweight tombstoneKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
                     .timestamp(System.currentTimeMillis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                    .key(b -> b.length(clientId.length())
-                        .value(clientId.value(), 0, clientId.length()))
-                    .hashKey(b -> b.length(clientId.length())
-                        .value(clientId.value(), 0, clientId.length()))))
+                    .key(b -> b.length(key.length())
+                        .value(key.value(), 0, key.length()))
+                    .hashKey(b -> b.length(hashKey.length())
+                        .value(hashKey.value(), 0, hashKey.length()))))
                 .build();
 
-            doKafkaData(supplyTraceId.get(), 0, expireSessionKafkaDataEx);
+            doKafkaData(supplyTraceId.get(), 0, tombstoneKafkaDataEx);
         }
 
         private void onSignalConnectWillStream(

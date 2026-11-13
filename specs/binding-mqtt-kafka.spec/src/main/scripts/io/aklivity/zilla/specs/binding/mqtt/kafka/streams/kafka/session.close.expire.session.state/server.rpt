@@ -126,6 +126,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+# cleanup session offsets
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#offsets")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 # cleanup session state
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -134,6 +147,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .deferred(0)
                                .partition(-1, -1)
                                .key("client-2")
+                               .hashKey("client-2")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# cleanup session offsets
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2#offsets")
                                .hashKey("client-2")
                                .build()
                            .build()}
