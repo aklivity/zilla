@@ -43,6 +43,7 @@ public class MqttConfigurationTest
     public static final String KEEP_ALIVE_MINIMUM_NAME = "zilla.binding.mqtt.keep.alive.minimum";
     public static final String KEEP_ALIVE_MAXIMUM_NAME = "zilla.binding.mqtt.keep.alive.maximum";
     public static final String MAXIMUM_QOS_NAME = "zilla.binding.mqtt.maximum.qos";
+    public static final String PUBLISH_QOS_MAX_NAME = "zilla.binding.mqtt.publish.qos.max";
     public static final String RETAIN_AVAILABLE_NAME = "zilla.binding.mqtt.retain.available";
     public static final String TOPIC_ALIAS_MAXIMUM_NAME = "zilla.binding.mqtt.topic.alias.maximum";
     public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";

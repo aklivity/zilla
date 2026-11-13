@@ -168,6 +168,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
+    private static final int SUBSCRIBE_QOS_MAX = 2;
     private static final int TYPE_OFFSET = 0;
     private static final int CONNACK_FIXED_HEADER = 0b0010_0000;
     private static final int SUBACK_FIXED_HEADER = 0b1001_0000;
@@ -1609,7 +1610,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                     .session(sessionBuilder -> sessionBuilder
                         .flags(flags)
                         .expiry((int) TimeUnit.MILLISECONDS.toSeconds(sessionExpiry))
-                        .subscribeQosMax(maximumQos)
+                        .subscribeQosMax(SUBSCRIBE_QOS_MAX)
+                        .publishQosMax(maximumQos)
                         .packetSizeMax(maximumPacketSize)
                         .capabilities(capabilities)
                         .clientId(clientId))
@@ -1635,7 +1637,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 .session(sessionBuilder -> sessionBuilder
                     .flags(flags)
                     .expiry(sessionExpiry)
-                    .subscribeQosMax(maximumQos)
+                    .subscribeQosMax(SUBSCRIBE_QOS_MAX)
+                    .publishQosMax(maximumQos)
                     .packetSizeMax(maximumPacketSize)
                     .capabilities(capabilities)
                     .clientId(clientId))

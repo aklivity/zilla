@@ -272,6 +272,42 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception
@@ -302,6 +338,15 @@ public class MqttIT
         "${mqtt}/subscribe.filter.change.retain/client",
         "${mqtt}/subscribe.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.no.local/client",
+        "${mqtt}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
     {
         k3po.finish();
     }
@@ -553,6 +598,42 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.reconnect.non.expiring/client",
+        "${mqtt}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.large.interval/client",
+        "${mqtt}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.immediately/client",
+        "${mqtt}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.reconnect.clean.start/client",
+        "${mqtt}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.state/client",
         "${mqtt}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
@@ -578,6 +659,17 @@ public class MqttIT
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${mqtt}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");
@@ -644,6 +736,17 @@ public class MqttIT
         "${mqtt}/session.will.message.qos2.abort.before.session.established/client",
         "${mqtt}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${mqtt}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
@@ -869,6 +972,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message/client",
+        "${mqtt}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
@@ -892,6 +1022,51 @@ public class MqttIT
         "${mqtt}/subscribe.server.sent.abort.before.begin/client",
         "${mqtt}/subscribe.server.sent.abort.before.begin/server"})
     public void shouldReceiveServerSentAbortBeforeBeginSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${mqtt}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.retained.topic.not.compacted/client",
+        "${mqtt}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${mqtt}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.empty.retained.message/client",
+        "${mqtt}/publish.empty.retained.message/server"})
+    public void shouldSendEmptyRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.skip.removed.retained.message/client",
+        "${mqtt}/subscribe.skip.removed.retained.message/server"})
+    public void shouldSkipRemovedRetainedMessage() throws Exception
     {
         k3po.finish();
     }

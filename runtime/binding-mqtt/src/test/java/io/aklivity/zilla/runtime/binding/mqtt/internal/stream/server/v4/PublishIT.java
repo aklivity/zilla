@@ -60,6 +60,16 @@ public class PublishIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.retain.not.supported/client",
+        "${app}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.validator.yaml")
     @Specification({
         "${net}/publish.invalid.message/client",

@@ -162,6 +162,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
     private final String16FW textFormat;
+    private final String16FW retainHeaderValue;
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final LongFunction<MqttKafkaPublishMetadata> supplyClientMetadata;
     private final KafkaSessionOffsetsHelper sessionOffsetsHelper;
@@ -185,6 +186,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.supplyBinding = supplyBinding;
         this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
         this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
+        this.retainHeaderValue = new String16FW("1");
         this.qosLevels = new Int2ObjectHashMap<>();
         this.qosLevels.put(0, new String16FW("0"));
         this.qosLevels.put(1, new String16FW("1"));
@@ -539,6 +541,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     addHeader(property.key(), property.value()));
 
                 addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
+                addRetainHeader(mqttPublishDataEx.flags());
 
                 deferred = mqttPublishDataEx.deferred();
 
@@ -628,7 +631,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                             .build();
                     }
 
-                    retained.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, payload, kafkaDataEx);
+                    final OctetsFW retainedValue = payload == null || payload.sizeof() == 0 ? null : payload;
+                    retained.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, retainedValue, kafkaDataEx);
 
                     if (hasFin(flags) && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
@@ -930,6 +934,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 }
             }
             addHeader(helper.kafkaReplyFilterHeaderName, responseBuffer, offset, capacity - offset);
+        }
+    }
+
+    private void addRetainHeader(
+        int publishFlags)
+    {
+        if (hasPublishFlagRetained(publishFlags))
+        {
+            addHeader(helper.kafkaRetainHeaderName, retainHeaderValue);
         }
     }
 

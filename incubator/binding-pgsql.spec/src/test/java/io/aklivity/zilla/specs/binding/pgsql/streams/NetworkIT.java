@@ -85,6 +85,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/ssl.request.then.end/client",
+        "${net}/ssl.request.then.end/server" })
+    public void shouldHandleSslRequestThenEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gss.encrypt.request/client",
         "${net}/gss.encrypt.request/server" })
     public void shouldHandleGssEncryptRequest() throws Exception

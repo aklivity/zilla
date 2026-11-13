@@ -57,6 +57,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.retained.not.supported/client",
+        "${app}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception

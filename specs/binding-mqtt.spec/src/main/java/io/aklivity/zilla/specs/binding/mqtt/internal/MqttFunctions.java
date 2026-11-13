@@ -1492,7 +1492,7 @@ public final class MqttFunctions
             private Integer flags;
             private Integer capabilities;
             private Integer subscribeQosMax;
-            private int publishQosMax;
+            private Integer publishQosMax;
             private Integer packetSizeMax;
 
             private MqttSessionBeginExMatcherBuilder()
@@ -1574,6 +1574,7 @@ public final class MqttFunctions
                     matchPacketIds(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     matchSubscribeQosMax(sessionBeginEx) &&
+                    matchPublishQosMax(sessionBeginEx) &&
                     matchPacketSizeMax(sessionBeginEx) &&
                     matchCapabilities(sessionBeginEx);
             }
@@ -1601,6 +1602,12 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return subscribeQosMax == null || subscribeQosMax == sessionBeginEx.subscribeQosMax();
+            }
+
+            private boolean matchPublishQosMax(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return publishQosMax == null || publishQosMax == sessionBeginEx.publishQosMax();
             }
 
             private boolean matchPacketSizeMax(

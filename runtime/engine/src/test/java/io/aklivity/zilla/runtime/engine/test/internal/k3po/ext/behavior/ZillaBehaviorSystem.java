@@ -100,6 +100,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteAbortedExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteEmptyDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteFlagsOptionHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteNullDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ZillaExtensionDecoder;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ZillaExtensionEncoder;
 
@@ -142,6 +143,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         Map<StructuredTypeInfo, WriteConfigFactory> writeConfigFactories = new LinkedHashMap<>();
         writeConfigFactories.put(CONFIG_BEGIN_EXT, ZillaBehaviorSystem::newWriteBeginExtHandler);
         writeConfigFactories.put(CONFIG_DATA_EMPTY, ZillaBehaviorSystem::newWriteEmptyDataHandler);
+        writeConfigFactories.put(CONFIG_DATA_NULL, ZillaBehaviorSystem::newWriteNullDataHandler);
         writeConfigFactories.put(CONFIG_DATA_EXT, ZillaBehaviorSystem::newWriteDataExtHandler);
         writeConfigFactories.put(CONFIG_ABORT_EXT, ZillaBehaviorSystem::newWriteAbortExtHandler);
         writeConfigFactories.put(CONFIG_END_EXT, ZillaBehaviorSystem::newWriteEndExtHandler);
@@ -425,6 +427,15 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         Function<AstValue<?>, MessageEncoder> encoderFactory)
     {
         WriteEmptyDataHandler handler = new WriteEmptyDataHandler();
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static WriteNullDataHandler newWriteNullDataHandler(
+        AstWriteConfigNode node,
+        Function<AstValue<?>, MessageEncoder> encoderFactory)
+    {
+        WriteNullDataHandler handler = new WriteNullDataHandler();
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
     }

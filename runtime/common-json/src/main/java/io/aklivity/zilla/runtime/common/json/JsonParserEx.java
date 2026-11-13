@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
@@ -140,6 +141,33 @@ public interface JsonParserEx extends JsonParser
     {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Writes the state that survives a window boundary into the buffer at the offset and returns the number of
+     * bytes written, so one parser can serve many streams: {@link #restore(DirectBufferEx, int)} puts it back, in
+     * this or any other parser. The record is small and fixed in layout, and the parser allocates nothing.
+     * <p>
+     * The parser must be at a clean boundary: no event pending, no segment, fragment or skipped value open, and
+     * the window's unconsumed tail ({@link #remaining()} bytes), which the caller retains and re-presents at the
+     * front of the next window, being the only bytes of the document not yet read.
+     *
+     * @throws IllegalStateException if the parser is not at a clean boundary
+     * @throws UnsupportedOperationException if this parser cannot save its state
+     */
+    int save(
+        MutableDirectBufferEx buffer,
+        int offset);
+
+    /**
+     * Replaces the state of this parser with the record {@link #save(MutableDirectBufferEx, int)} wrote at the
+     * offset, whatever it held. The next window wrapped must begin with the bytes the saved parser left
+     * unconsumed.
+     *
+     * @throws UnsupportedOperationException if this parser cannot restore its state
+     */
+    void restore(
+        DirectBufferEx buffer,
+        int offset);
 
     /**
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A

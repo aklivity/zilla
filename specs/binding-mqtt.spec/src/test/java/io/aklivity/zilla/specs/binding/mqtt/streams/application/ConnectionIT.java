@@ -117,4 +117,67 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/connect.max.packet.size.other.connection.publish/client",
+        "${app}/connect.max.packet.size.other.connection.publish/server"})
+    public void shouldPublishLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.max.packet.size.other.connection.subscribe/client",
+        "${app}/connect.max.packet.size.other.connection.subscribe/server"})
+    public void shouldSubscribeLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.max.packet.size.exceeded.by.packet.overhead/client",
+        "${app}/connect.max.packet.size.exceeded.by.packet.overhead/server"})
+    public void shouldDropPublishWhenPacketExceedsMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.publish.maximum.qos.1/client",
+        "${app}/connect.publish.maximum.qos.1/server"})
+    public void shouldConnectWithPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.publish.maximum.qos.0/client",
+        "${app}/connect.publish.maximum.qos.0/server"})
+    public void shouldConnectWithPublishMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client",
+        "${app}/connect.will.reject.will.qos.2.publish.maximum.qos.1/server"})
+    public void shouldRejectWillQos2WhenPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.will.reject.will.qos.2.session.reply.publish.maximum.qos.1/client",
+        "${app}/connect.will.reject.will.qos.2.session.reply.publish.maximum.qos.1/server"})
+    public void shouldRejectWillQos2WhenSessionReplyPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }

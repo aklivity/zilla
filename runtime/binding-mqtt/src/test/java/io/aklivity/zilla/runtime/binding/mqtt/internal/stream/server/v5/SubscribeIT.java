@@ -59,6 +59,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.retained.not.supported/client",
+        "${app}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
@@ -239,9 +249,49 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.retain.as.published.not.retained/client",
+        "${app}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
     public void shouldNotReplayRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.retain.handling.1.new.filter/client",
+        "${app}/subscribe.retain.handling.1.new.filter/server"})
+    public void shouldSubscribeRetainHandling1NewFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.retain.handling.1.existing.filter/client",
+        "${app}/subscribe.retain.handling.1.existing.filter/server"})
+    public void shouldSubscribeRetainHandling1ExistingFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.retain.handling.0.existing.filter/client",
+        "${app}/subscribe.retain.handling.0.existing.filter/server"})
+    public void shouldSubscribeRetainHandling0ExistingFilter() throws Exception
     {
         k3po.finish();
     }
@@ -552,5 +602,25 @@ public class SubscribeIT
     public static int supplySubscriptionId()
     {
         return ++subscriptionId;
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.qos1.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos1.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS1MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.qos2.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
     }
 }

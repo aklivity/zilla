@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.connect.with.session.expiry.never/client",
+        "${net}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.connect.override.session.expiry/client",
         "${net}/session.connect.override.session.expiry/server"})
     public void shouldConnectServerOverridesSessionExpiry() throws Exception
@@ -288,6 +297,15 @@ public class SessionIT
         "${net}/session.invalid.session.timeout.before.connack/client",
         "${net}/session.invalid.session.timeout.before.connack/server"})
     public void shouldPropagateMqttReasonCodeAndStringBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.publish.qos.max.per.connection/client",
+        "${net}/session.publish.qos.max.per.connection/server"})
+    public void shouldRejectPublishQosAboveSessionMaximumPerConnection() throws Exception
     {
         k3po.finish();
     }

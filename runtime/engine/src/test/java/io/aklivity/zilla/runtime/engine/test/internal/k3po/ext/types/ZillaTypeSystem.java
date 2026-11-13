@@ -152,6 +152,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         writeConfigs.add(CONFIG_BEGIN_EXT);
         writeConfigs.add(CONFIG_DATA_EXT);
         writeConfigs.add(CONFIG_DATA_EMPTY);
+        writeConfigs.add(CONFIG_DATA_NULL);
         writeConfigs.add(CONFIG_ABORT_EXT);
         writeConfigs.add(CONFIG_END_EXT);
         writeConfigs.add(CONFIG_RESET_EXT);

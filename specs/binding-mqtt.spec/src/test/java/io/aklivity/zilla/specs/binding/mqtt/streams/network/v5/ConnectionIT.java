@@ -490,4 +490,85 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.publish/client",
+        "${net}/connect.max.packet.size.other.connection.publish/server"})
+    public void shouldPublishLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.subscribe/client",
+        "${net}/connect.max.packet.size.other.connection.subscribe/server"})
+    public void shouldSubscribeLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.maximum.packet.size.repeated/client",
+        "${net}/connect.reject.maximum.packet.size.repeated/server"})
+    public void shouldRejectRepeatedMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/client",
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/server"})
+    public void shouldDropPublishWhenPacketExceedsMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.receive.maximum.zero/client",
+        "${net}/connect.reject.receive.maximum.zero/server"})
+    public void shouldRejectZeroReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.receive.maximum.repeated/client",
+        "${net}/connect.reject.receive.maximum.repeated/server"})
+    public void shouldRejectRepeatedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.publish.maximum.qos.1/client",
+        "${net}/connect.publish.maximum.qos.1/server"})
+    public void shouldConnectWithPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.publish.maximum.qos.0/client",
+        "${net}/connect.publish.maximum.qos.0/server"})
+    public void shouldConnectWithPublishMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client",
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/server"})
+    public void shouldRejectWillQos2WhenPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
 }

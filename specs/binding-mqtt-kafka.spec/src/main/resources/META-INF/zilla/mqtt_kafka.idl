@@ -69,7 +69,8 @@ scope mqtt_kafka
     {
         enum MqttKafkaEventType (uint8)
         {
-            NON_COMPACT_SESSIONS_TOPIC (1)
+            NON_COMPACT_SESSIONS_TOPIC (1),
+            NON_COMPACT_RETAINED_TOPIC (2)
         }
 
         struct MqttKafkaNonCompactSessionsTopicEx extends core::stream::Extension
@@ -77,9 +78,15 @@ scope mqtt_kafka
             string16 topic;
         }
 
+        struct MqttKafkaNonCompactRetainedTopicEx extends core::stream::Extension
+        {
+            string16 topic;
+        }
+
         union MqttKafkaEventEx switch (MqttKafkaEventType)
         {
             case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaNonCompactSessionsTopicEx nonCompactSessionsTopic;
+            case NON_COMPACT_RETAINED_TOPIC: MqttKafkaNonCompactRetainedTopicEx nonCompactRetainedTopic;
         }
     }
 }

@@ -432,7 +432,7 @@ class JsonParserMarkRewindTest
         return windows;
     }
 
-    // every non-final field of the parser and its tokenizer, plus the stacks the mark covers, so a field the
+    // every non-final field of the parser and its tokenizer, the container path included, so a field the
     // mark misses shows up as a difference between the mark and the state after the rewind
     private static Map<String, Object> fields(
         JsonParserEx parser)
@@ -445,13 +445,6 @@ class JsonParserMarkRewindTest
             tokenizerField.setAccessible(true);
             final Object tokenizer = tokenizerField.get(parser);
             collect(fields, "tokenizer.", tokenizer);
-
-            final int depth = (int) fields.get("tokenizer.pathDepth");
-            fields.put("tokenizer.stack.size", ((java.util.Collection<?>) get(tokenizer, "stack")).size());
-            if (depth > 0)
-            {
-                fields.put("tokenizer.frame.inArray", ((boolean[]) get(tokenizer, "pathInArray"))[depth - 1]);
-            }
         }
         catch (ReflectiveOperationException ex)
         {
@@ -476,15 +469,6 @@ class JsonParserMarkRewindTest
                 fields.put(prefix + field.getName(), field.get(target));
             }
         }
-    }
-
-    private static Object get(
-        Object target,
-        String name) throws ReflectiveOperationException
-    {
-        final Field field = target.getClass().getDeclaredField(name);
-        field.setAccessible(true);
-        return field.get(target);
     }
 
     private static final class Generator

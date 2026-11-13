@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.NON_COMPACT_RETAINED_TOPIC;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.NON_COMPACT_SESSIONS_TOPIC;
 
 import java.nio.ByteBuffer;
@@ -37,6 +38,7 @@ public class MqttKafkaEventContext
     private final MqttKafkaEventExFW.Builder mqttKafkaEventExRW = new MqttKafkaEventExFW.Builder();
     private final int mqttTypeId;
     private final int nonCompactSessionsTopicEventId;
+    private final int nonCompactRetainedTopicEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -45,6 +47,7 @@ public class MqttKafkaEventContext
     {
         this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.TYPE);
         this.nonCompactSessionsTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.sessions.topic");
+        this.nonCompactRetainedTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.retained.topic");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +66,28 @@ public class MqttKafkaEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(nonCompactSessionsTopicEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void onNonCompactRetainedTopic(
+        long traceId,
+        long bindingId,
+        String16FW topic)
+    {
+        MqttKafkaEventExFW extension = mqttKafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .nonCompactRetainedTopic(e -> e
+                .typeId(NON_COMPACT_RETAINED_TOPIC.value())
+                .topic(topic))
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(nonCompactRetainedTopicEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

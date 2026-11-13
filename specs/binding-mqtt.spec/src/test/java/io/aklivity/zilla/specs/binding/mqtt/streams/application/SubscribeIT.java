@@ -39,6 +39,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.retained.not.supported/client",
+        "${app}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     public void shouldFilterExact() throws Exception
@@ -201,6 +210,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.retain.as.published.not.retained/client",
+        "${app}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception
@@ -213,6 +231,33 @@ public class SubscribeIT
         "${app}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${app}/subscribe.qos0.replay.retained.no.packet.id/server"})
     public void shouldReceiveAndReplayRetainedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retain.handling.1.new.filter/client",
+        "${app}/subscribe.retain.handling.1.new.filter/server"})
+    public void shouldSubscribeRetainHandling1NewFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retain.handling.1.existing.filter/client",
+        "${app}/subscribe.retain.handling.1.existing.filter/server"})
+    public void shouldSubscribeRetainHandling1ExistingFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retain.handling.0.existing.filter/client",
+        "${app}/subscribe.retain.handling.0.existing.filter/server"})
+    public void shouldSubscribeRetainHandling0ExistingFilter() throws Exception
     {
         k3po.finish();
     }
@@ -402,6 +447,24 @@ public class SubscribeIT
         "${app}/subscribe.invalid.topic.guarded.identity.param/client",
         "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
     public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.qos1.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos1.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS1MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.qos2.drop.exceeds.max.packet.size/client",
+        "${app}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
     {
         k3po.finish();
     }

@@ -29,6 +29,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaEvaluation;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
@@ -311,7 +313,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int mqttSharedBudget;
 
         private final IntArrayList retainedSubscriptionIds;
-        private final Long2ObjectHashMap<Boolean> retainAsPublished;
         private final List<Subscription> retainedSubscriptions;
         private String16FW clientId;
         private int qos;
@@ -331,7 +332,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
-            this.retainAsPublished = new Long2ObjectHashMap<>();
             this.messagesPerTopicKey = new Long2LongHashMap(-1);
             this.messages = new Long2ObjectHashMap<>();
             routes.forEach(r ->
@@ -554,8 +554,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         retainedFilters.add(new Subscription((int) filter.subscriptionId(),
                             newString16FW(filter.pattern()), filter.qos(), filter.flags()));
-                        final boolean rap = (filter.flags() & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                        retainAsPublished.put((int) filter.subscriptionId(), rap);
                     }
                 });
 
@@ -1122,6 +1120,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final IntArrayList messagesSubscriptionIds;
+        private final IntArrayList messagesSubscriptionFlags;
         private final Int2ObjectHashMap<IntArrayList> incompletePacketIds;
         private final MqttKafkaRouteConfig routeConfig;
         private final MqttSubscribeProxy mqtt;
@@ -1158,6 +1157,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.messagesSubscriptionIds = new IntArrayList();
+            this.messagesSubscriptionFlags = new IntArrayList();
             this.incompletePacketIds = new Int2ObjectHashMap<>();
         }
 
@@ -1298,12 +1298,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
-                        if (expireInterval < 0)
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        if (remainingMillis < 0)
                         {
                             expiredMessage = true;
                             break sendData;
                         }
+                        expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
                     }
                     else
                     {
@@ -1346,8 +1347,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                             {
                                 if (((filters >> i) & 1) == 1)
                                 {
-                                    long subscriptionId = messagesSubscriptionIds.get(i);
-                                    subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
+                                    if (helper.retained && (messagesSubscriptionFlags.getInt(i) & RETAIN_AS_PUBLISHED_FLAG) != 0)
+                                    {
+                                        flag |= RETAIN_FLAG;
+                                    }
+                                    final int subscriptionId = messagesSubscriptionIds.getInt(i);
+                                    if (!matchedSubscriptionId(filters, i, subscriptionId))
+                                    {
+                                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
+                                    }
                                 }
                             }
                             b.flags(flag);
@@ -1430,6 +1438,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     expiredMessage = false;
                 }
             }
+        }
+
+        private boolean matchedSubscriptionId(
+            long filters,
+            int index,
+            int subscriptionId)
+        {
+            boolean matched = false;
+            for (int i = 0; i < index && !matched; i++)
+            {
+                matched = ((filters >> i) & 1) == 1 && messagesSubscriptionIds.getInt(i) == subscriptionId;
+            }
+            return matched;
         }
 
         private void onKafkaFlush(
@@ -1582,10 +1603,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     if (matchesTopicFilter(f.pattern().asString()))
                     {
                         int subscriptionId = (int) f.subscriptionId();
-                        if (!messagesSubscriptionIds.contains(subscriptionId))
-                        {
-                            messagesSubscriptionIds.add(subscriptionId);
-                        }
+                        messagesSubscriptionIds.add(subscriptionId);
+                        messagesSubscriptionFlags.add(f.flags());
                         filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
@@ -1659,6 +1678,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             initialSeq = mqtt.initialSeq;
 
             messagesSubscriptionIds.clear();
+            messagesSubscriptionFlags.clear();
 
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -1670,11 +1690,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             if (matchesTopicFilter(filter.pattern().asString()))
                             {
-                                final int subscriptionId = (int) filter.subscriptionId();
-                                if (!messagesSubscriptionIds.contains(subscriptionId))
-                                {
-                                    messagesSubscriptionIds.add(subscriptionId);
-                                }
+                                messagesSubscriptionIds.add((int) filter.subscriptionId());
+                                messagesSubscriptionFlags.add(filter.flags());
                                 if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
                                 {
                                     mqtt.retainAvailable = true;
@@ -2064,6 +2081,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final long timestamp = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().timestamp() : 0;
                 final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
+                if (hasInit(flags) && hasFin(flags) && (payload == null || payload.sizeof() == 0))
+                {
+                    break sendData;
+                }
+
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if (hasInit(flags) && key != null)
                 {
@@ -2074,12 +2096,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        expireInterval = timestamp + helper.timeout - now().toEpochMilli();
-                        if (expireInterval < 0)
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        if (remainingMillis < 0)
                         {
                             expiredMessage = true;
                             break sendData;
                         }
+                        expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
                     }
                     else
                     {
@@ -2107,17 +2130,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             }
 
-                            int flag = 0;
+                            int flag = RETAIN_FLAG;
                             subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
                             for (int i = 0; i < mqtt.retainedSubscriptionIds.size(); i++)
                             {
                                 if (((filters >> i) & 1) == 1)
                                 {
                                     long subscriptionId = mqtt.retainedSubscriptionIds.get(i);
-                                    if (mqtt.retainAsPublished.getOrDefault(subscriptionId, Boolean.FALSE))
-                                    {
-                                        flag |= RETAIN_FLAG;
-                                    }
                                     subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
                                 }
                             }
@@ -2337,8 +2356,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
                 filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
-                final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                mqtt.retainAsPublished.put(f.id, rap);
             });
             mqtt.retainedSubscriptions.addAll(newRetainedFilters);
 
@@ -2429,8 +2446,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 }
                 filterBuilder.item(fb -> fb
                     .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
-                final boolean rap = (f.flags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                mqtt.retainAsPublished.put(f.id, rap);
             });
 
             Array32FW<MqttTopicFilterFW> retainedFilters = filterBuilder.build();
@@ -2442,9 +2457,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                         retainedFilters.forEach(filter ->
-                            f.filtersItem(fi ->
-                                fi.conditionsItem(ci ->
-                                    buildHeaders(ci, filter.pattern().asString()))));
+                            f.filtersItem(fi -> buildFilterConditions(fi, filter, mqtt.clientId, qos)));
                     }))
                     .build();
 
@@ -2683,6 +2696,54 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
+    private void buildFilterConditions(
+        KafkaFilterFW.Builder f,
+        MqttTopicFilterFW filter,
+        String16FW clientId,
+        int qos)
+    {
+        f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
+        boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
+        if (noLocal)
+        {
+            final DirectBufferEx valueBuffer = clientId.value();
+            f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                h.nameLen(helper.kafkaLocalHeaderName.sizeof())
+                    .name(helper.kafkaLocalHeaderName)
+                    .valueLen(valueBuffer.capacity())
+                    .value(valueBuffer, 0, valueBuffer.capacity())))));
+        }
+
+        final int maxQos = filter.qos();
+        if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
+        {
+            for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
+            {
+                if (level != qos)
+                {
+                    final DirectBufferEx valueBuffer = qosNames.get(level).value();
+                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                        h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                            .name(helper.kafkaQosHeaderName)
+                            .valueLen(valueBuffer.capacity())
+                            .value(valueBuffer, 0, valueBuffer.capacity())))));
+                }
+            }
+        }
+        else
+        {
+            for (int level = 0; level < maxQos; level++)
+            {
+                final DirectBufferEx valueBuffer = qosNames.get(level).value();
+                f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
+                    h.nameLen(helper.kafkaQosHeaderName.sizeof())
+                        .name(helper.kafkaQosHeaderName)
+                        .valueLen(valueBuffer.capacity())
+                        .value(valueBuffer, 0, valueBuffer.capacity())))));
+            }
+        }
+    }
+
     private MessageConsumer newKafkaStream(
         MessageConsumer sender,
         long originId,
@@ -2716,49 +2777,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         p.partitionId(offsetType.value())
                             .partitionOffset(offsetType.value()));
                     filters.forEach(filter ->
-                        m.filtersItem(f ->
-                        {
-                            f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
-                            boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
-                            if (noLocal)
-                            {
-                                final DirectBufferEx valueBuffer = clientId.value();
-                                f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                    h.nameLen(helper.kafkaLocalHeaderName.sizeof())
-                                        .name(helper.kafkaLocalHeaderName)
-                                        .valueLen(valueBuffer.capacity())
-                                        .value(valueBuffer, 0, valueBuffer.capacity())))));
-                            }
-
-                            final int maxQos = filter.qos();
-                            if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
-                            {
-                                for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
-                                {
-                                    if (level != qos)
-                                    {
-                                        final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                        f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                            h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                                .name(helper.kafkaQosHeaderName)
-                                                .valueLen(valueBuffer.capacity())
-                                                .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                for (int level = 0; level < maxQos; level++)
-                                {
-                                    final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                    f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                        h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                            .name(helper.kafkaQosHeaderName)
-                                            .valueLen(valueBuffer.capacity())
-                                            .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                }
-                            }
-                        }));
+                        m.filtersItem(f -> buildFilterConditions(f, filter, clientId, qos)));
                     m.evaluation(b -> b.set(KafkaEvaluation.EAGER));
                 })
                 .build();

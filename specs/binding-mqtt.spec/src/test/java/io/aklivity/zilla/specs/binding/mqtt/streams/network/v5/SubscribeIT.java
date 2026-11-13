@@ -39,6 +39,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.retained.not.supported/client",
+        "${net}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.one.message/client",
         "${net}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
@@ -275,6 +284,15 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/subscribe.retain.as.published.not.retained/client",
+        "${net}/subscribe.retain.as.published.not.retained/server"})
+    public void shouldNotReceiveRetainedAsPublishedWhenNotRetained() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.8.3-5]
     @Test
     @Specification({
@@ -317,6 +335,33 @@ public class SubscribeIT
         "${net}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${net}/subscribe.qos0.replay.retained.no.packet.id/server"})
     public void shouldReceiveAndReplayRetainedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.retain.handling.1.new.filter/client",
+        "${net}/subscribe.retain.handling.1.new.filter/server"})
+    public void shouldSubscribeRetainHandling1NewFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.retain.handling.1.existing.filter/client",
+        "${net}/subscribe.retain.handling.1.existing.filter/server"})
+    public void shouldSubscribeRetainHandling1ExistingFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.retain.handling.0.existing.filter/client",
+        "${net}/subscribe.retain.handling.0.existing.filter/server"})
+    public void shouldSubscribeRetainHandling0ExistingFilter() throws Exception
     {
         k3po.finish();
     }
@@ -486,6 +531,24 @@ public class SubscribeIT
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${net}/subscribe.invalid.topic.guarded.identity.param/server"})
     public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.qos1.drop.exceeds.max.packet.size/client",
+        "${net}/subscribe.qos1.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS1MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.qos2.drop.exceeds.max.packet.size/client",
+        "${net}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
+    public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
     {
         k3po.finish();
     }

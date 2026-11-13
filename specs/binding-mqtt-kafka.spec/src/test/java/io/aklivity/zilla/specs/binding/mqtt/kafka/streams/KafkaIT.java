@@ -344,6 +344,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.filter.change.retain.no.local/client",
+        "${kafka}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterDeferred() throws Exception
@@ -374,6 +383,42 @@ public class KafkaIT
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
     {
         k3po.finish();
     }
@@ -614,6 +659,42 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.reconnect.non.expiring/client",
+        "${kafka}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.large.interval/client",
+        "${kafka}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.immediately/client",
+        "${kafka}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.reconnect.clean.start/client",
+        "${kafka}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
@@ -722,6 +803,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
@@ -770,6 +860,15 @@ public class KafkaIT
         "${kafka}/session.will.message.qos2.abort.before.session.established/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
     {
         k3po.finish();
     }
@@ -1080,6 +1179,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.expire.message/client",
+        "${kafka}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.server.sent.abort.before.begin/client",
         "${kafka}/publish.server.sent.abort.before.begin/server"})
     public void shouldReceiveServerSentAbortBeforeBeginPublish() throws Exception
@@ -1092,6 +1218,60 @@ public class KafkaIT
         "${kafka}/subscribe.server.sent.abort.before.begin/client",
         "${kafka}/subscribe.server.sent.abort.before.begin/server"})
     public void shouldReceiveServerSentAbortBeforeBeginSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.retained.topic.not.compacted/client",
+        "${kafka}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.empty.retained.message/client",
+        "${kafka}/publish.empty.retained.message/server"})
+    public void shouldPublishEmptyRetainedMessageAsTombstone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.tombstone/client",
+        "${kafka}/subscribe.retained.tombstone/server"})
+    public void shouldSkipTombstoneOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.empty.value/client",
+        "${kafka}/subscribe.retained.empty.value/server"})
+    public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
     {
         k3po.finish();
     }
