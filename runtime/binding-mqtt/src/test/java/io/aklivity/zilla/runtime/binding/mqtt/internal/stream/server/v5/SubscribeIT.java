@@ -713,4 +713,81 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // 3.8.3.1 Maximum QoS 3 is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.reserved.option.bit.6/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectReservedOptionBit6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.reserved.option.bit.7/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectReservedOptionBit7() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3.1 Retain Handling 3 is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.retain.handling.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectRetainHandling3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.1 [MQTT-2.2.1-3], 4.13.1 Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.2.1.2 Subscription Identifier more than once is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.subscription.id.repeated/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectSubscriptionIdRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3 SUBSCRIBE with no Payload is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
 }
