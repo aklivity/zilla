@@ -969,10 +969,30 @@ final class JsonTokenizerImpl implements JsonTokenizer
     {
         if (fragmenting && viewPending && bytes != declinedBytes)
         {
-            bufferOffset += declinedBytes - bytes;
-            streamOffset += declinedBytes - bytes;
+            final int delta = declinedBytes - bytes;
+            final int columns = lens ? Math.abs(delta) : characters(Math.min(bufferOffset, bufferOffset + delta),
+                Math.max(bufferOffset, bufferOffset + delta));
+            column += delta < 0 ? -columns : columns;
+            bufferOffset += delta;
+            streamOffset += delta;
             declinedBytes = bytes;
         }
+    }
+
+    // how many characters begin in the bytes [from, to) of the window: each byte that is not a UTF-8 continuation
+    private int characters(
+        int from,
+        int to)
+    {
+        int characters = 0;
+        for (int index = from; index < to; index++)
+        {
+            if ((buffer.getByte(index) & 0xC0) != 0x80)
+            {
+                characters++;
+            }
+        }
+        return characters;
     }
 
     @Override
