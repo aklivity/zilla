@@ -72,4 +72,13 @@ public class OffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/update.topic.partition.offset.affinity/client",
+        "${app}/update.topic.partition.offset.affinity/server"})
+    public void shouldUpdateTopicPartitionOffsetWithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
 }

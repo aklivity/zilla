@@ -74,4 +74,37 @@ public class CacheGroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/begin.affinity/client",
+        "${app}/begin.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassGroupAffinityThroughCacheClientAndServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.client.yaml")
+    @Specification({
+        "${app}/begin.affinity/client",
+        "${app}/begin.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassGroupAffinityThroughCacheClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.server.yaml")
+    @Specification({
+        "${app}/begin.affinity/client",
+        "${app}/begin.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassGroupAffinityThroughCacheServer() throws Exception
+    {
+        k3po.finish();
+    }
 }

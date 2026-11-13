@@ -207,4 +207,13 @@ public class GroupIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/begin.affinity/client",
+        "${app}/begin.affinity/server"})
+    public void shouldPassBeginAffinity() throws Exception
+    {
+        k3po.finish();
+    }
 }
