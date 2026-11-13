@@ -160,6 +160,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int OP_STATUS = 9;
     private static final int OP_CALL_ITEM_DONE = 10;
     private static final int OP_INIT_STATUS = 11;
+    private static final int OP_SUMMARY_PART_ADDED = 12;
+    private static final int OP_SUMMARY_TEXT_DONE = 13;
+    private static final int OP_SUMMARY_PART_DONE = 14;
+    private static final int OP_REASONING_ADDED = 15;
     private static final DirectBufferEx NO_FRAMES = new UnsafeBufferEx(new byte[0]);
     private static final int STEP_CONTINUE = 0;
     private static final int STEP_WINDOW = 1;
@@ -362,6 +366,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeCallEnd = this::decodeCallEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallValueDone = this::decodeCallValueDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResultEnd = this::decodeResultEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningBegin = this::decodeReasoningBegin;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningOpen = this::decodeReasoningOpen;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningAdded = this::decodeReasoningAdded;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningSection = this::decodeReasoningSection;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningEnd = this::decodeReasoningEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeSummaryTextDone = this::decodeSummaryTextDone;
+    private final LlmOpenaiResponsesReplyDecoder decodeSummaryPartDone = this::decodeSummaryPartDone;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningTail = this::decodeReasoningTail;
+    private final LlmOpenaiResponsesReplyDecoder decodeItemClose = this::decodeItemClose;
+    private final LlmOpenaiResponsesReplyDecoder decodeSplitItemClose = this::decodeSplitItemClose;
+    private final LlmOpenaiResponsesReplyDecoder decodeReasoningItemClose = this::decodeReasoningItemClose;
     private final LlmOpenaiResponsesReplyDecoder decodeCallStatus = this::decodeCallStatus;
     private final LlmOpenaiResponsesReplyDecoder decodeCallItemDone = this::decodeCallItemDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResponseCreated = this::decodeResponseCreated;
@@ -713,6 +728,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             stream.decoder = decodeResultEnd;
         }
+        else if (Flags.hasFin(stream.replyFlags) && stream.kind == LlmOpenaiResponsesStream.KIND_REASONING &&
+            stream.server.streaming && !stream.membersStarted)
+        {
+            stream.decoder = decodeReasoningEnd;
+        }
         else
         {
             stream.endReplyFrame();
@@ -1032,8 +1052,191 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
         else
         {
+            stream.itemFollow = decodeCallOpen;
+            stream.decoder = decodeItemClose;
+        }
+
+        return offset;
+    }
+
+    private int decodeReasoningBegin(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.openItem == LlmOpenaiResponsesStream.ITEM_REASONING)
+        {
+            stream.decoder = decodeReasoningSection;
+        }
+        else if (stream.openItem == LlmOpenaiResponsesStream.ITEM_NONE)
+        {
+            stream.decoder = decodeReasoningOpen;
+        }
+        else if (stream.openItem == LlmOpenaiResponsesStream.ITEM_MESSAGE)
+        {
+            stream.textFollow = decodeTextItemClose;
+            stream.itemFollow = decodeReasoningOpen;
+            stream.decoder = decodeTextPartClose;
+        }
+        else
+        {
+            stream.itemFollow = decodeReasoningOpen;
+            stream.decoder = decodeItemClose;
+        }
+
+        return offset;
+    }
+
+    private int decodeReasoningOpen(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.openReasoningRecord();
+        stream.decoder = decodeReasoningAdded;
+
+        return offset;
+    }
+
+    private int decodeReasoningAdded(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_REASONING_ADDED))
+        {
+            stream.decoder = decodeReasoningSection;
+        }
+
+        return offset;
+    }
+
+    private int decodeReasoningSection(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareReasoningSection();
+        stream.decoder = decodeReplyTextRoot;
+
+        return offset;
+    }
+
+    private int decodeReasoningEnd(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareReasoningEnd();
+        stream.decoder = decodeSummaryTextDone;
+
+        return offset;
+    }
+
+    private int decodeSummaryTextDone(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.partMode != LlmOpenaiResponsesStream.PART_CLOSING)
+        {
+            stream.decoder = decodeReasoningTail;
+        }
+        else if (stream.emitStep(OP_SUMMARY_TEXT_DONE))
+        {
+            stream.decoder = decodeSummaryPartDone;
+        }
+
+        return offset;
+    }
+
+    private int decodeSummaryPartDone(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_SUMMARY_PART_DONE))
+        {
+            stream.partMode = LlmOpenaiResponsesStream.PART_NONE;
+            stream.decoder = decodeReasoningTail;
+        }
+
+        return offset;
+    }
+
+    private int decodeReasoningTail(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.kind = LlmOpenaiResponsesStream.KIND_NONE;
+        stream.decoder = decodeReplyNext;
+
+        return offset;
+    }
+
+    private int decodeItemClose(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.openItem == LlmOpenaiResponsesStream.ITEM_REASONING)
+        {
+            stream.decoder = decodeReasoningItemClose;
+        }
+        else if (stream.splitPending())
+        {
+            stream.decoder = decodeSplitItemClose;
+        }
+        else
+        {
             stream.closeOpenItem(LlmOpenaiResponsesStream.STATUS_COMPLETED);
-            stream.decoder = decodeCallOpen;
+            stream.decoder = stream.itemFollow;
+        }
+
+        return offset;
+    }
+
+    private int decodeSplitItemClose(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareResultEnd();
+
+        if (stream.emitStep(OP_CALL_ITEM_DONE))
+        {
+            stream.closeItemRecord();
+            stream.openItem = LlmOpenaiResponsesStream.ITEM_NONE;
+            stream.decoder = stream.itemFollow;
+        }
+
+        return offset;
+    }
+
+    private int decodeReasoningItemClose(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.sealItem();
+
+        if (stream.emitStep(OP_ITEM_DONE))
+        {
+            stream.closeItemRecord();
+            stream.openItem = LlmOpenaiResponsesStream.ITEM_NONE;
+            stream.decoder = stream.itemFollow;
         }
 
         return offset;
@@ -1191,8 +1394,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
         else
         {
-            stream.closeOpenItem(LlmOpenaiResponsesStream.STATUS_COMPLETED);
-            stream.decoder = decodeTextItemOpen;
+            stream.itemFollow = decodeTextItemOpen;
+            stream.decoder = decodeItemClose;
         }
 
         return offset;
@@ -6117,7 +6320,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 dataDecoder = switch (kind)
                 {
                 case KIND_TEXT, KIND_REFUSAL -> server.streaming ? decodeTextBegin : decodeReplyTextRoot;
-                case KIND_REASONING -> decodeReplyTextRoot;
+                case KIND_REASONING -> server.streaming ? decodeReasoningBegin : decodeReplyTextRoot;
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
                 case KIND_CALL -> server.streaming ? decodeCallBegin : decodeReplyValue;
@@ -6685,6 +6888,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private static final int PART_NONE = 0;
         private static final int PART_ACTIVE = 1;
         private static final int PART_PENDING = 2;
+        private static final int PART_OPENING = 3;
+        private static final int PART_CLOSING = 4;
         private static final int PART_DIRECT = 3;
         private static final int PART_KIND_TEXT = 0;
         private static final int PART_KIND_REFUSAL = 1;
@@ -6945,7 +7150,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 replyParser().reset();
                 break;
             case KIND_REASONING:
-                sectionReasoning();
+                if (!server.streaming)
+                {
+                    sectionReasoning();
+                }
                 break;
             case KIND_CITATIONS:
                 sectionCitations();
@@ -7061,6 +7269,37 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 openReasoningItem();
             }
 
+            prepareReasoningSection();
+        }
+
+        private void openReasoningRecord()
+        {
+            registerItem(TYPE_REASONING);
+
+            openItem = ITEM_REASONING;
+            itemParts = 0;
+            partMode = PART_NONE;
+        }
+
+        private boolean splitPending()
+        {
+            return openItem == ITEM_PROVIDER &&
+                server.streaming &&
+                valueMember != null &&
+                LlmOpenaiResponsesItems.split(itemType);
+        }
+
+        private void prepareReasoningEnd()
+        {
+            if (partMode == PART_ACTIVE)
+            {
+                accumulator.close();
+                partMode = PART_CLOSING;
+            }
+        }
+
+        private void prepareReasoningSection()
+        {
             membersStarted = false;
             replyParser().reset();
             valuePipeline = reasoningIdPipeline();
@@ -7483,12 +7722,19 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (length > 0 && !membersStarted)
             {
-                if (partMode != PART_ACTIVE)
+                if (partMode == PART_NONE)
                 {
-                    openSummaryPart();
+                    itemParts++;
+                    partValue = accumulator.open();
+                    partMode = PART_OPENING;
                 }
 
-                taken = emitTextDelta(chars, length);
+                if (partMode == PART_OPENING && emitStep(OP_SUMMARY_PART_ADDED))
+                {
+                    partMode = PART_ACTIVE;
+                }
+
+                taken = partMode == PART_ACTIVE ? emitTextDelta(chars, length) : 0;
             }
 
             return taken;
@@ -7670,6 +7916,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 case OP_VALUE_DONE:
                     eventValueDone(LlmOpenaiResponsesItems.doneEvent(itemType), valueMember, itemCount - 1,
                         itemFirst(itemCount - 1) + VALUE_DELTA);
+                    break;
+                case OP_REASONING_ADDED:
+                    eventReasoningAdded(itemCount - 1);
+                    break;
+                case OP_SUMMARY_PART_ADDED:
+                    eventSummaryPartAdded();
+                    break;
+                case OP_SUMMARY_TEXT_DONE:
+                    eventSummaryTextDone();
+                    break;
+                case OP_SUMMARY_PART_DONE:
+                    eventSummaryPartDone();
                     break;
                 case OP_INIT_STATUS:
                     eventStatus(LlmOpenaiResponsesItems.initEvents(itemType)[statusIndex], itemCount - 1);
