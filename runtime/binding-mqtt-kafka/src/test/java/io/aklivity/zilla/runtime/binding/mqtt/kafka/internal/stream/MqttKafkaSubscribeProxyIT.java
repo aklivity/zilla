@@ -201,6 +201,28 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.retain.shared.subscription.id/client",
+        "${kafka}/subscribe.retain.shared.subscription.id/server"})
+    public void shouldReceiveRetainedWithSharedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.reordered/client",
+        "${kafka}/subscribe.filter.change.retain.reordered/server"})
+    public void shouldReceiveRetainedAfterFilterChangeReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message.fragmented/server"})
     public void shouldReceiveOneMessageFragmented() throws Exception

@@ -313,7 +313,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private long replyBud;
         private int mqttSharedBudget;
 
-        private final IntArrayList retainedSubscriptionIds;
         private final List<Subscription> retainedSubscriptions;
         private String16FW clientId;
         private ClientHighWaterMarks clientHighWaterMarks;
@@ -332,7 +331,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.retainedSubscriptionIds = new IntArrayList();
             this.retainedSubscriptions = new ArrayList<>();
             this.messagesPerTopicKey = new Long2LongHashMap(-1);
             this.messages = new Long2ObjectHashMap<>();
@@ -1129,6 +1127,42 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
     abstract class KafkaProxy
     {
+        protected final IntArrayList subscriptionIds = new IntArrayList();
+        protected final IntArrayList subscriptionFlags = new IntArrayList();
+
+        protected final int buildSubscriptionIds(
+            long filters)
+        {
+            int matchedFlags = 0;
+            subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
+            for (int i = 0; i < subscriptionIds.size(); i++)
+            {
+                if (((filters >> i) & 1) == 1)
+                {
+                    matchedFlags |= subscriptionFlags.getInt(i);
+                    final int subscriptionId = subscriptionIds.getInt(i);
+                    if (!matchedSubscriptionId(filters, i, subscriptionId))
+                    {
+                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
+                    }
+                }
+            }
+            return matchedFlags;
+        }
+
+        private boolean matchedSubscriptionId(
+            long filters,
+            int index,
+            int subscriptionId)
+        {
+            boolean matched = false;
+            for (int i = 0; i < index && !matched; i++)
+            {
+                matched = ((filters >> i) & 1) == 1 && subscriptionIds.getInt(i) == subscriptionId;
+            }
+            return matched;
+        }
+
         abstract void doKafkaConsumerFlush(
             long traceId,
             long authorization,
@@ -1146,8 +1180,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final IntArrayList messagesSubscriptionIds;
-        private final IntArrayList messagesSubscriptionFlags;
         private final Int2ObjectHashMap<IntArrayList> incompletePacketIds;
         private final MqttKafkaRouteConfig routeConfig;
         private final MqttSubscribeProxy mqtt;
@@ -1183,8 +1215,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.mqtt = mqtt;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.messagesSubscriptionIds = new IntArrayList();
-            this.messagesSubscriptionFlags = new IntArrayList();
             this.incompletePacketIds = new Int2ObjectHashMap<>();
         }
 
@@ -1369,24 +1399,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             }
 
-                            int flag = 0;
-                            subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
-                            for (int i = 0; i < messagesSubscriptionIds.size(); i++)
-                            {
-                                if (((filters >> i) & 1) == 1)
-                                {
-                                    if (helper.retained && (messagesSubscriptionFlags.getInt(i) & RETAIN_AS_PUBLISHED_FLAG) != 0)
-                                    {
-                                        flag |= RETAIN_FLAG;
-                                    }
-                                    final int subscriptionId = messagesSubscriptionIds.getInt(i);
-                                    if (!matchedSubscriptionId(filters, i, subscriptionId))
-                                    {
-                                        subscriptionIdsRW.item(si -> si.set(subscriptionId));
-                                    }
-                                }
-                            }
-                            b.flags(flag);
+                            final int matchedFlags = buildSubscriptionIds(filters);
+                            final boolean retainAsPublished = (matchedFlags & RETAIN_AS_PUBLISHED_FLAG) != 0;
+                            b.flags(helper.retained && retainAsPublished ? RETAIN_FLAG : 0);
                             b.subscriptionIds(subscriptionIdsRW.build());
 
                             if (expireInterval != -1)
@@ -1466,19 +1481,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     expiredMessage = false;
                 }
             }
-        }
-
-        private boolean matchedSubscriptionId(
-            long filters,
-            int index,
-            int subscriptionId)
-        {
-            boolean matched = false;
-            for (int i = 0; i < index && !matched; i++)
-            {
-                matched = ((filters >> i) & 1) == 1 && messagesSubscriptionIds.getInt(i) == subscriptionId;
-            }
-            return matched;
         }
 
         private void onKafkaFlush(
@@ -1631,8 +1633,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     if (matchesTopicFilter(f.pattern().asString()))
                     {
                         int subscriptionId = (int) f.subscriptionId();
-                        messagesSubscriptionIds.add(subscriptionId);
-                        messagesSubscriptionFlags.add(f.flags());
+                        subscriptionIds.add(subscriptionId);
+                        subscriptionFlags.add(f.flags());
                         filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
@@ -1705,8 +1707,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             initialSeq = mqtt.initialSeq;
 
-            messagesSubscriptionIds.clear();
-            messagesSubscriptionFlags.clear();
+            subscriptionIds.clear();
+            subscriptionFlags.clear();
 
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -1718,8 +1720,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         {
                             if (matchesTopicFilter(filter.pattern().asString()))
                             {
-                                messagesSubscriptionIds.add((int) filter.subscriptionId());
-                                messagesSubscriptionFlags.add(filter.flags());
+                                subscriptionIds.add((int) filter.subscriptionId());
+                                subscriptionFlags.add(filter.flags());
                                 if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
                                 {
                                     mqtt.retainAvailable = true;
@@ -2158,17 +2160,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                                 }
                             }
 
-                            int flag = RETAIN_FLAG;
-                            subscriptionIdsRW.wrap(subscriptionIdsBuffer, 0, subscriptionIdsBuffer.capacity());
-                            for (int i = 0; i < mqtt.retainedSubscriptionIds.size(); i++)
-                            {
-                                if (((filters >> i) & 1) == 1)
-                                {
-                                    long subscriptionId = mqtt.retainedSubscriptionIds.get(i);
-                                    subscriptionIdsRW.item(si -> si.set((int) subscriptionId));
-                                }
-                            }
-                            b.flags(flag);
+                            buildSubscriptionIds(filters);
+                            b.flags(RETAIN_FLAG);
                             b.subscriptionIds(subscriptionIdsRW.build());
                             if (expireInterval != -1)
                             {
@@ -2276,7 +2269,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
             {
-                mqtt.retainedSubscriptionIds.clear();
                 doKafkaEnd(traceId, authorization);
             }
         }
@@ -2375,15 +2367,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
                 filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
+            subscriptionIds.clear();
+            subscriptionFlags.clear();
             newRetainedFilters.forEach(f ->
             {
-                final int subscriptionId = f.id;
-                if (!mqtt.retainedSubscriptionIds.contains(subscriptionId))
-                {
-                    mqtt.retainedSubscriptionIds.add(subscriptionId);
-                }
+                subscriptionIds.add(f.id);
+                subscriptionFlags.add(f.flags);
                 filterBuilder.item(fb -> fb
-                    .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
+                    .subscriptionId(f.id).qos(f.qos).flags(f.flags).pattern(f.filter));
             });
             mqtt.retainedSubscriptions.addAll(newRetainedFilters);
 
@@ -2465,15 +2456,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
                 filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
+            subscriptionIds.clear();
+            subscriptionFlags.clear();
             retainedFiltersList.forEach(f ->
             {
-                final int subscriptionId = f.id;
-                if (!mqtt.retainedSubscriptionIds.contains(subscriptionId))
-                {
-                    mqtt.retainedSubscriptionIds.add(subscriptionId);
-                }
+                subscriptionIds.add(f.id);
+                subscriptionFlags.add(f.flags);
                 filterBuilder.item(fb -> fb
-                    .subscriptionId(subscriptionId).qos(f.qos).flags(f.flags).pattern(f.filter));
+                    .subscriptionId(f.id).qos(f.qos).flags(f.flags).pattern(f.filter));
             });
 
             Array32FW<MqttTopicFilterFW> retainedFilters = filterBuilder.build();
