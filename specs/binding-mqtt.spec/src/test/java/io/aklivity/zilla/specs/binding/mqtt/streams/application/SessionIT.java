@@ -353,4 +353,22 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.unroutable.resume/client",
+        "${app}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/client",
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeUnroutableResumeSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
 }

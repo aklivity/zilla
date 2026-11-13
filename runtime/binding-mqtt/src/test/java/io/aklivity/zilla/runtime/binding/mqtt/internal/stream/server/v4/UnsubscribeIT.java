@@ -146,4 +146,24 @@ public class UnsubscribeIT
     {
         return ++subscriptionId;
     }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/unsubscribe.topic.filter.unroutable/client",
+        "${app}/unsubscribe.topic.filter.unroutable/server"})
+    public void shouldUnsubscribeTopicFilterUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
+    {
+        k3po.finish();
+    }
 }

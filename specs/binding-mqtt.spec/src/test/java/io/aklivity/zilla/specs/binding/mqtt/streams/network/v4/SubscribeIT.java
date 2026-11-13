@@ -231,7 +231,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.unroutable/client",
         "${net}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -339,7 +339,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${net}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
     {
         k3po.finish();
     }
@@ -367,6 +367,33 @@ public class SubscribeIT
         "${net}/ack.pubcomp.unknown.packet.id/client",
         "${net}/ack.pubcomp.unknown.packet.id/server"})
     public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.mixed/client",
+        "${net}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.all/client",
+        "${net}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filter.unauthorized/client",
+        "${net}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
     {
         k3po.finish();
     }

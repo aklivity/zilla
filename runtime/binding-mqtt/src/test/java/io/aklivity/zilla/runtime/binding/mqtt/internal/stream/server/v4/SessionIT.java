@@ -246,4 +246,14 @@ public class SessionIT
     {
         return ++subscriptionId;
     }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
 }
