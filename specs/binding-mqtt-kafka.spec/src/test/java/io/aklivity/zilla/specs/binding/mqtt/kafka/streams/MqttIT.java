@@ -1079,4 +1079,54 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset/client",
+        "${mqtt}/publish.qos1.server.sent.reset/server"})
+    public void shouldPublishQos1ServerSentReset() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.in.flight/client",
+        "${mqtt}/publish.qos1.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1ServerSentResetInFlight() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/client",
+        "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/server"})
+    public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.reject.large.message/client",
+        "${mqtt}/publish.qos1.reject.large.message/server"})
+    public void shouldPublishQos1RejectLargeMessage() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.retained.server.sent.reset/client",
+        "${mqtt}/publish.qos1.retained.server.sent.reset/server"})
+    public void shouldPublishQos1RetainedServerSentReset() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
 }

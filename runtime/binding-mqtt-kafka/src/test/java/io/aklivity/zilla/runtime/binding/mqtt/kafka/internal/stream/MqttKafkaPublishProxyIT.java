@@ -499,4 +499,59 @@ public class MqttKafkaPublishProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset/client",
+        "${kafka}/publish.qos1.server.sent.reset/server"})
+    public void shouldPublishQos1ServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.in.flight/client",
+        "${kafka}/publish.qos1.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1ServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/client",
+        "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/server"})
+    public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.reject.large.message/client",
+        "${kafka}/publish.qos1.reject.large.message/server"})
+    public void shouldPublishQos1RejectLargeMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.retained.server.sent.reset/client",
+        "${kafka}/publish.qos1.retained.server.sent.reset/server"})
+    public void shouldPublishQos1RetainedServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
 }
