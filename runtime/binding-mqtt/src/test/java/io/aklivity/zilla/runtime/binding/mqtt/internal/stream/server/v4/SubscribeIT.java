@@ -249,7 +249,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.unroutable/client",
         "${app}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -400,7 +400,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
     {
         k3po.finish();
     }

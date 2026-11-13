@@ -20,11 +20,12 @@ connect "zilla://streams/app0"
          option zilla:authorization 1L
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .clientId("client")
-                                .build()
-                              .build()}
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                              .flags("CLEAN_START")
+                              .clientId("client")
+                              .build()
+                            .build()}
 
 read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
@@ -42,20 +43,5 @@ connected
 
 read zilla:data.empty
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .kind("STATE")
-                                .build()
-                             .build()}
-
-write ${mqtt:session()
-               .subscription("sensor/none/data", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-               .build()}
-write flush
-
-read ${mqtt:session()
-               .subscription("sensor/none/data", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-               .build()}
-
-write abort
+write close
+read closed
