@@ -435,6 +435,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
         private void doGroupInitialBegin(
             long traceId,
+            long affinity,
             OctetsFW extension)
         {
             if (StreamState.closed(state))
@@ -817,7 +818,7 @@ public final class KafkaCacheGroupFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            group.doGroupInitialBegin(traceId, extension);
+            group.doGroupInitialBegin(traceId, affinity, extension);
         }
 
         private void onGroupInitialData(

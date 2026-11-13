@@ -399,6 +399,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 
         private void doOffsetCommitInitialBegin(
             long traceId,
+            long affinity,
             OctetsFW extension)
         {
             if (StreamState.closed(state))
@@ -751,7 +752,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doOffsetCommitInitialBegin(traceId, extension);
+            net.doOffsetCommitInitialBegin(traceId, affinity, extension);
         }
 
         private void onOffsetCommitInitialData(

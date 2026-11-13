@@ -391,6 +391,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
 
         private void doInitProducerIdInitialBegin(
             long traceId,
+            long affinity,
             OctetsFW extension)
         {
             if (StreamState.closed(state))
@@ -729,7 +730,7 @@ public final class KafkaCacheInitProducerIdFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doInitProducerIdInitialBegin(traceId, extension);
+            net.doInitProducerIdInitialBegin(traceId, affinity, extension);
         }
 
         private void onInitProducerIdInitialData(
