@@ -166,6 +166,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int OP_SUMMARY_PART_ADDED = 12;
     private static final int OP_FINISH_HEAD = 17;
     private static final int OP_ERROR = 20;
+    private static final int OP_PROVIDER_HEAD = 25;
+    private static final int OP_PROVIDER_TAIL = 26;
     private static final int OP_ANNOTATION_ADDED = 24;
     private static final int OP_REASONING_HEAD = 22;
     private static final int OP_REASONING_TAIL = 23;
@@ -379,6 +381,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeCallEnd = this::decodeCallEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallValueDone = this::decodeCallValueDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResultEnd = this::decodeResultEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeProviderPrepare = this::decodeProviderPrepare;
+    private final LlmOpenaiResponsesReplyDecoder decodeProviderHead = this::decodeProviderHead;
+    private final LlmOpenaiResponsesReplyDecoder decodeProviderEnd = this::decodeProviderEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeProviderTail = this::decodeProviderTail;
     private final LlmOpenaiResponsesReplyDecoder decodeCitationElements = this::decodeCitationElements;
     private final LlmOpenaiResponsesReplyDecoder decodeAnnotationAdded = this::decodeAnnotationAdded;
     private final LlmOpenaiResponsesReplyDecoder decodePartEnd = this::decodePartEnd;
@@ -774,6 +780,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             stream.decoder = decodeCallEnd;
         }
+        else if (Flags.hasFin(stream.replyFlags) && stream.members())
+        {
+            stream.decoder = decodeProviderEnd;
+        }
         else if (Flags.hasFin(stream.replyFlags) && stream.resulting())
         {
             stream.decoder = decodeResultEnd;
@@ -873,7 +883,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.server.streaming && stream.kind == LlmOpenaiResponsesStream.KIND_REASONING)
+        if (stream.server.streaming &&
+            (stream.kind == LlmOpenaiResponsesStream.KIND_REASONING || stream.members()))
         {
             stream.decoder = decodeReasoningMembers;
         }
@@ -1276,7 +1287,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         final boolean suspended = stream.advanceFanOut(buffer, offset, stream.restPipeline, stream.restEdges,
-            stream.restTail, memberBuffer.capacity());
+            stream.restTail, memberBuffer.capacity() - 1);
 
         stream.advanceFollow = suspended ? decodeReasoningMembers : decodeReplyDelta;
         stream.decoder = decodeMembersFlush;
@@ -1565,6 +1576,63 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return offset;
     }
 
+    private int decodeProviderPrepare(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareProviderMembers();
+        stream.decoder = decodeProviderHead;
+
+        return offset;
+    }
+
+    private int decodeProviderHead(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_PROVIDER_HEAD))
+        {
+            stream.dataDecoder = decodeReplyRest;
+            stream.decoder = decodeReplyRest;
+        }
+
+        return offset;
+    }
+
+    private int decodeProviderEnd(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareProviderEnd();
+        stream.decoder = decodeProviderTail;
+
+        return offset;
+    }
+
+    private int decodeProviderTail(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_PROVIDER_TAIL))
+        {
+            stream.closeItemRecord();
+            stream.membersStarted = false;
+            stream.openItem = LlmOpenaiResponsesStream.ITEM_NONE;
+            stream.kind = LlmOpenaiResponsesStream.KIND_NONE;
+            stream.decoder = decodeReplyNext;
+        }
+
+        return offset;
+    }
+
     private int decodeCallOpen(
         LlmOpenaiResponsesStream stream,
         DirectBufferEx buffer,
@@ -1602,7 +1670,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (stream.statusIndex == names.length)
         {
-            stream.decoder = decodeReplyTextRoot;
+            stream.decoder = stream.members() ? decodeProviderPrepare : decodeReplyTextRoot;
         }
         else if (stream.emitStep(OP_INIT_STATUS))
         {
@@ -6541,25 +6609,29 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void decodeReply()
         {
             final boolean staged = decodeSlot != NO_SLOT;
-            final DirectBufferEx buffer = staged ? decodePool.buffer(decodeSlot) : NO_FRAMES;
-            final int limit = staged ? decodeSlotOffset : 0;
+            final MutableDirectBufferEx slot = staged ? decodePool.buffer(decodeSlot) : null;
+            final DirectBufferEx buffer = staged ? slot : NO_FRAMES;
 
             LlmOpenaiResponsesReplyDecoder previous = null;
+            int limit = staged ? decodeSlotOffset : 0;
             int progress = 0;
             while (progress <= limit && previous != decoder && (!staged || decodeSlot != NO_SLOT))
             {
                 previous = decoder;
                 progress = decoder.decode(this, buffer, progress, limit);
+
+                if (staged && decodeSlot != NO_SLOT && progress > 0)
+                {
+                    slot.putBytes(0, slot, progress, limit - progress);
+                    limit -= progress;
+                    progress = 0;
+                    decodeSlotOffset = limit;
+                }
             }
 
             if (staged && decodeSlot != NO_SLOT)
             {
-                if (progress < limit)
-                {
-                    decodePool.buffer(decodeSlot).putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                }
-                else
+                if (limit == 0)
                 {
                     cleanupDecodeSlot();
                 }
@@ -6647,7 +6719,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
                 case KIND_CALL -> server.streaming ? decodeCallBegin : decodeReplyValue;
-                case KIND_PROVIDER -> valued() ? decodeCallBegin : decodeReplyValue;
+                case KIND_PROVIDER -> server.streaming ? decodeCallBegin : decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
                 default -> decodeReplySkipped;
                 };
@@ -7511,7 +7583,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
                 break;
             case KIND_PROVIDER:
-                if (!valued())
+                if (!server.streaming)
                 {
                     sectionProvider();
                 }
@@ -7639,6 +7711,33 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             writeSummary(itemCount - 1);
             generator.writeSegment(COMMA, 0, 1);
             recordTotal = generator.length();
+        }
+
+        private void writeProviderTail()
+        {
+            final int index = itemCount - 1;
+
+            generator.writeStartObject().writeStartObject(MEMBER_ITEM);
+
+            final int prefix = generator.length();
+
+            writeFooter(index);
+
+            final boolean footer = generator.length() > prefix;
+
+            generator.writeEnd();
+            generator.write(MEMBER_OUTPUT_INDEX, index).write(MEMBER_SEQUENCE_NUMBER, sequence++).writeEnd();
+            recordTotal = generator.length();
+
+            if (footer)
+            {
+                copyBuffer.putByte(prefix - 1, (byte) ',');
+                recordFrom = prefix - 1;
+            }
+            else
+            {
+                recordFrom = prefix;
+            }
         }
 
         private void writeReasoningTail()
@@ -8293,6 +8392,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     : partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
         }
 
+        private boolean members()
+        {
+            return server.streaming &&
+                kind == KIND_PROVIDER &&
+                LlmOpenaiResponsesItems.deltaMember(sectionItemType) == null;
+        }
+
         private boolean valued()
         {
             return server.streaming &&
@@ -8321,7 +8427,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 valueMember = LlmOpenaiResponsesItems.deltaMember(sectionItemType);
                 restPipeline = membersPipeline(valueMember);
                 restPipeline.begin(replyAttributes);
-                restOutput = tailOutput;
+                restOutput = valueMember != null ? tailOutput : membersOutput;
                 membersStarted = false;
             }
 
@@ -8338,6 +8444,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean resulting()
         {
             return server.streaming && kind == KIND_RESULT;
+        }
+
+        private void prepareProviderMembers()
+        {
+            accumulator.close();
+            accumulator.open();
+        }
+
+        private void prepareProviderEnd()
+        {
+            accumulator.close();
+            sealItem();
         }
 
         private void prepareCallEnd()
@@ -8431,7 +8549,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 eventRecording = true;
                 recordRefCount = 0;
                 recordFrom = 0;
-                stepFinal = op != OP_FINISH_HEAD && op != OP_FINISH_ITEM && op != OP_REASONING_HEAD;
+                stepFinal = op != OP_FINISH_HEAD && op != OP_FINISH_ITEM && op != OP_REASONING_HEAD && op != OP_PROVIDER_HEAD;
                 generator.reset();
                 generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
@@ -8471,6 +8589,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     break;
                 case OP_REASONING_TAIL:
                     writeReasoningTail();
+                    break;
+                case OP_PROVIDER_HEAD:
+                    beginItemDone(itemCount - 1);
+                    recordTotal = generator.length();
+                    break;
+                case OP_PROVIDER_TAIL:
+                    writeProviderTail();
                     break;
                 case OP_ANNOTATION_ADDED:
                     eventAnnotationAdded(annotationCount);
@@ -9284,6 +9409,19 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (length > 0 && server.streaming && kind == KIND_RESULT)
             {
+                accumulator.append(buffer, offset, length);
+            }
+            else if (length > 0 && server.streaming)
+            {
+                if (!membersStarted)
+                {
+                    membersStarted = true;
+                    memberBuffer.putBytes(memberLength, COMMA, 0, 1);
+                    memberLength++;
+                }
+
+                memberBuffer.putBytes(memberLength, buffer, offset, length);
+                memberLength += length;
                 accumulator.append(buffer, offset, length);
             }
             else if (length > 0)
