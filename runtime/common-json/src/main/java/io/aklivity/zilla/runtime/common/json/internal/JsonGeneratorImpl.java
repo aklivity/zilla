@@ -92,6 +92,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // at most one of these positions holds at a time: a value is expected after a key, or an
     // incomplete string/number fragment is open awaiting its remaining fragments
     private Pending pending = Pending.NONE;
+    // counts the targets and contexts the generator has started, so a mark taken before one is not rewound to
+    private int generation;
+    private Mark mark;
 
     public JsonGeneratorImpl()
     {
@@ -132,6 +135,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         this.progress = offset;
         this.limit = limit;
         this.consumed = 0;
+        this.generation++;
         return this;
     }
 
@@ -150,6 +154,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public void reset()
     {
+        this.generation++;
         this.depth = 0;
         this.pending = Pending.NONE;
         this.scopeCount = 0;
@@ -164,6 +169,71 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public int remaining()
     {
         return limit - progress;
+    }
+
+    @Override
+    public void mark()
+    {
+        if (mark == null)
+        {
+            mark = new Mark();
+        }
+
+        mark.generation = generation;
+        mark.progress = progress;
+        mark.consumed = consumed;
+        mark.depth = depth;
+        mark.escapeDepth = escapeDepth;
+        mark.scopeCount = scopeCount;
+        mark.colonPending = colonPending;
+        mark.pending = pending;
+
+        System.arraycopy(inArray, 0, mark.inArray, 0, depth);
+        System.arraycopy(hasMembers, 0, mark.hasMembers, 0, depth);
+
+        if (scopeCount > 0)
+        {
+            if (mark.scopeFrames.length < scopeCount)
+            {
+                mark.scopeFrames = new int[Math.max(scopeCount, mark.scopeFrames.length << 1)];
+            }
+
+            System.arraycopy(scopeFrames, 0, mark.scopeFrames, 0, scopeCount);
+        }
+    }
+
+    @Override
+    public void rewind()
+    {
+        if (mark == null || mark.generation != generation)
+        {
+            throw new IllegalStateException("rewind needs a mark taken since the generator was last wrapped or reset");
+        }
+
+        progress = mark.progress;
+        consumed = mark.consumed;
+        depth = mark.depth;
+        scopeCount = mark.scopeCount;
+        colonPending = mark.colonPending;
+        pending = mark.pending;
+
+        System.arraycopy(mark.inArray, 0, inArray, 0, depth);
+        System.arraycopy(mark.hasMembers, 0, hasMembers, 0, depth);
+
+        if (scopeCount > 0)
+        {
+            if (scopeFrames == null || scopeFrames.length < scopeCount)
+            {
+                scopeFrames = new int[Math.max(scopeCount, INITIAL_ESCAPE_LEVELS)];
+            }
+
+            System.arraycopy(mark.scopeFrames, 0, scopeFrames, 0, scopeCount);
+        }
+
+        if (escapeDepth != mark.escapeDepth)
+        {
+            bind(mark.escapeDepth);
+        }
     }
 
     @Override
@@ -1621,6 +1691,22 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             DirectBufferEx source,
             int index,
             int length);
+    }
+
+    // the state a mark holds, kept apart so a generator that never marks carries only the reference
+    private static final class Mark
+    {
+        final boolean[] inArray = new boolean[MAX_DEPTH];
+        final boolean[] hasMembers = new boolean[MAX_DEPTH];
+        int[] scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
+        int generation;
+        int progress;
+        int consumed;
+        int depth;
+        int escapeDepth;
+        int scopeCount;
+        boolean colonPending;
+        Pending pending;
     }
 
     private enum Pending
