@@ -146,6 +146,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
     private static final int RESPONSE_GROWTH = 2;
+    private static final int ARGS_HEADROOM = 16;
+    private static final int STEP_CONTINUE = 0;
+    private static final int STEP_WINDOW = 1;
+    private static final int STEP_WAIT = 2;
     private static final int REPLY_PADDING_FRACTION = 8;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
@@ -265,6 +269,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
+    private final MutableDirectBufferEx argsBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -334,6 +339,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextKey = this::decodeReplyTextKey;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextValue = this::decodeReplyTextValue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextContinue = this::decodeReplyTextContinue;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyArgs = this::decodeReplyArgs;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsContinue = this::decodeReplyArgsContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
@@ -370,6 +377,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
+        this.argsBuffer = new UnsafeBufferEx(new byte[(decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH]);
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
@@ -822,8 +830,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (event == JsonEvent.KEY_NAME)
                 {
                     stream.replySkipDepth = 0;
-                    stream.decoder = MEMBER_TEXT.contentEquals(parser.getStringView())
-                        ? decodeReplyTextValue
+                    stream.decoder = stream.replyMember.contentEquals(parser.getStringView())
+                        ? stream.replyMemberState
                         : decodeReplyTextSkip;
                 }
                 else
@@ -927,6 +935,50 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         return paused ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyArgs(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgs, true);
+    }
+
+    private int decodeReplyArgsContinue(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsContinue, false);
+    }
+
+    private int decodeReplyArgsStep(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiResponsesReplyDecoder state,
+        boolean boundary)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        int outcome = STEP_CONTINUE;
+
+        try
+        {
+            while (stream.decoder == state && outcome == STEP_CONTINUE)
+            {
+                outcome = stream.stepArgs(parser, boundary);
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return outcome == STEP_WAIT ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
     }
 
     private int decodeReplyTextSkip(
@@ -5294,6 +5346,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int replyPayloadFrom;
         private int replyWindowFrom;
         private int replySkipDepth;
+        private int replyArgsDepth;
+        private String replyMember = MEMBER_TEXT;
+        private LlmOpenaiResponsesReplyDecoder replyMemberState = decodeReplyTextValue;
+        private JsonGeneratorEx argsGenerator;
         private int stepDeltaOffset;
         private int stepSent;
         private int stepObfuscation;
@@ -5610,13 +5666,32 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 doEncodeSection(type, section != null ? section.message() : NONE, extension);
 
                 textThen = kind == KIND_REASONING ? decodeReplyValue : decodeReplyNext;
+                replyMember = MEMBER_TEXT;
+                replyMemberState = decodeReplyTextValue;
+
+                if (kind == KIND_CALL && server.streaming)
+                {
+                    replyMember = MEMBER_ARGUMENTS;
+                    replyMemberState = decodeReplyArgs;
+                    replyArgsDepth = 0;
+                    textThen = decodeReplyRest;
+                    stepSent = 0;
+
+                    if (argsGenerator == null)
+                    {
+                        argsGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+                    }
+
+                    argsGenerator.reset();
+                }
 
                 dataDecoder = switch (kind)
                 {
                 case KIND_TEXT, KIND_REFUSAL, KIND_REASONING -> decodeReplyTextRoot;
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
-                case KIND_CALL, KIND_PROVIDER -> decodeReplyValue;
+                case KIND_CALL -> server.streaming ? decodeReplyTextRoot : decodeReplyValue;
+                case KIND_PROVIDER -> decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
                 default -> decodeReplySkipped;
                 };
@@ -6946,6 +7021,240 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return taken;
         }
 
+        private int writeSlice(
+            String name,
+            int written)
+        {
+            int slice = 0;
+
+            if (server.encodeSlot == NO_SLOT)
+            {
+                final int wanted = (int) Math.min(written - stepSent, server.replyCredit());
+
+                slice = wanted > 0 ? server.claimReply(encodeTraceId, 1, wanted) : 0;
+
+                if (slice > 0)
+                {
+                    final DirectBufferEx attribute = EVENT_ATTRIBUTES.get(name);
+                    final boolean init = stepSent == 0;
+                    final boolean last = stepSent + slice == written;
+                    final int flags = (init ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
+
+                    server.doNetData(encodeTraceId, encodeAuthorization, flags, encodeBudgetId, slice + server.replyPad,
+                        init ? eventAttributesRO.wrap(attribute, 0, attribute.capacity()) : EMPTY_OCTETS, copyBuffer,
+                        stepSent, slice);
+
+                    stepSent += slice;
+                }
+            }
+
+            return slice;
+        }
+
+        private int stepArgs(
+            JsonParserEx parser,
+            boolean boundary)
+        {
+            argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            argsGenerator.mark();
+
+            final int depth = replyArgsDepth;
+
+            if (boundary)
+            {
+                parser.mark();
+            }
+
+            boolean more = true;
+            boolean stop = false;
+            boolean complete = false;
+            boolean dropped = false;
+            int pulled = 0;
+            int pending = 0;
+
+            while (more && !stop && argsGenerator.remaining() >= ARGS_HEADROOM)
+            {
+                more = parser.hasNextEvent();
+
+                if (more)
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    pulled++;
+                    stop = !boundary;
+
+                    if (replyArgsDepth == 0 && event != JsonEvent.START_OBJECT)
+                    {
+                        dropped = true;
+                        stop = true;
+                        dropArgs(parser, event);
+                    }
+                    else
+                    {
+                        switch (event)
+                        {
+                        case START_OBJECT:
+                            argsGenerator.writeStartObject();
+                            replyArgsDepth++;
+                            break;
+                        case START_ARRAY:
+                            argsGenerator.writeStartArray();
+                            replyArgsDepth++;
+                            break;
+                        case END_OBJECT, END_ARRAY:
+                            argsGenerator.writeEnd();
+                            complete = --replyArgsDepth == 0;
+                            stop |= complete;
+                            break;
+                        case VALUE_TRUE:
+                            argsGenerator.write(true);
+                            break;
+                        case VALUE_FALSE:
+                            argsGenerator.write(false);
+                            break;
+                        case VALUE_NULL:
+                            argsGenerator.writeNull();
+                            break;
+                        default:
+                            final boolean deferred = parser.deferredBytes();
+                            final JsonStringView chars = parser.getStringView();
+                            final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+                            final int before = argsGenerator.consumed();
+
+                            if (event == JsonEvent.KEY_NAME)
+                            {
+                                argsGenerator.writeKey(chars, completion);
+                            }
+                            else if (event == JsonEvent.VALUE_NUMBER)
+                            {
+                                argsGenerator.writeNumber(chars, completion);
+                            }
+                            else
+                            {
+                                argsGenerator.write(chars, completion);
+                            }
+
+                            final int consumed = argsGenerator.consumed() - before;
+
+                            if (consumed < chars.length() || deferred)
+                            {
+                                pending = consumed;
+                                stop = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            int outcome = STEP_WINDOW;
+
+            if (dropped)
+            {
+                outcome = STEP_CONTINUE;
+            }
+            else if (pulled > 0)
+            {
+                final int length = argsGenerator.length();
+
+                if (boundary && pending > 0)
+                {
+                    parser.consumed(pending);
+                }
+
+                if (stepSent == 0)
+                {
+                    stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
+                }
+
+                final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
+                final int written = generateArgsDelta(name, length, stepObfuscation);
+
+                writeSlice(name, written);
+
+                if (stepSent == written)
+                {
+                    accumulator.append(argsBuffer, 0, length);
+                    sequence++;
+                    stepSent = 0;
+
+                    if (!boundary && pending > 0)
+                    {
+                        parser.consumed(pending);
+                    }
+
+                    decoder = complete ? decodeReplyTextKey : pending > 0 ? decodeReplyArgsContinue : decodeReplyArgs;
+                    outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
+                }
+                else
+                {
+                    argsGenerator.rewind();
+                    replyArgsDepth = depth;
+
+                    if (boundary)
+                    {
+                        parser.rewind();
+                    }
+
+                    outcome = STEP_WAIT;
+                }
+            }
+
+            return outcome;
+        }
+
+        private void dropArgs(
+            JsonParserEx parser,
+            JsonEvent event)
+        {
+            if (event == JsonEvent.START_ARRAY)
+            {
+                replySkipDepth = 1;
+                decoder = decodeReplyTextSkip;
+            }
+            else if (event == JsonEvent.VALUE_STRING && parser.deferredBytes())
+            {
+                parser.consumed(parser.getStringView().length());
+                replySkipDepth = 0;
+                decoder = decodeReplyTextSkip;
+            }
+            else
+            {
+                decoder = decodeReplyTextKey;
+            }
+        }
+
+        private int generateArgsDelta(
+            String name,
+            int length,
+            int obfuscation)
+        {
+            final int index = itemCount - 1;
+
+            generator.reset();
+            generator.wrap(copyBuffer, 0, copyBuffer.capacity());
+            generator.writeStartObject().write(MEMBER_TYPE, name).writeKey(MEMBER_DELTA);
+            generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
+            generator.writeSegment(argsBuffer, 0, length, Completion.INCOMPLETE);
+            generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
+            generator.write(MEMBER_ITEM_ID, itemId(index));
+
+            if (server.obfuscation)
+            {
+                writeObfuscation(obfuscation);
+            }
+
+            generator.write(MEMBER_OUTPUT_INDEX, index)
+                .write(MEMBER_SEQUENCE_NUMBER, sequence)
+                .writeEnd();
+
+            final int written = generator.length();
+
+            generator.reset();
+
+            return written;
+        }
+
         private int generateTextDelta(
             JsonStringView chars,
             int take,
@@ -7103,6 +7412,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             openItem = ITEM_CALL;
             bindAttributes();
             valueMember = MEMBER_ARGUMENTS;
+            replyParser().reset();
             valuePipeline = argumentsPipeline();
             valuePipeline.begin(replyAttributes);
             valueOutput = argumentsOutput;
