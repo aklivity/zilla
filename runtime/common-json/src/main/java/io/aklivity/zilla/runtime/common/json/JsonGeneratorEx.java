@@ -98,25 +98,16 @@ public interface JsonGeneratorEx extends JsonGenerator
      * either kept or taken back and generated again. Only one mark is held; marking again replaces it. The mark
      * stays valid until the next {@link #wrap} or {@link #reset}, which start a new target, and it does not
      * allocate once the generator has marked at its deepest context.
-     *
-     * @throws UnsupportedOperationException if this generator cannot be rewound
      */
-    default void mark()
-    {
-        throw new UnsupportedOperationException();
-    }
+    void mark();
 
     /**
      * Returns to the position of the last {@link #mark()}, discarding the bytes written since and restoring the
      * structural context, {@link #length()}, {@link #remaining()} and {@link #consumed()} to what they were.
      *
      * @throws IllegalStateException if there is no mark, or the generator has been wrapped or reset since
-     * @throws UnsupportedOperationException if this generator cannot be rewound
      */
-    default void rewind()
-    {
-        throw new UnsupportedOperationException();
-    }
+    void rewind();
 
     /**
      * Emits a numeric literal verbatim, preserving the exact source lexeme (e.g. {@code -2.5e3})
