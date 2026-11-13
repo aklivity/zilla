@@ -1010,6 +1010,51 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/client",
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
+    public void shouldResetGroupOffsetsOnCleanStartNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/client",
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPartitionError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/client",
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
+    public void shouldResetGroupOffsetsOnCleanStartGroupNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/client",
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
+    public void shouldResetGroupOffsetsOnCleanStartBrokerZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.no.prior.offsets/client",
         "${kafka}/publish.qos2.no.prior.offsets/server"})
     public void shouldPublishQoS2MessageNoPriorOffsets() throws Exception
