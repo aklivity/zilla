@@ -7445,7 +7445,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void writeControls()
         {
-            hold.write(generator, ALL_MEMBERS);
+            hold.write(generator, 0, ALL_MEMBERS, copyBuffer.capacity() - replyPadding, this::ensureEncodeRoom);
         }
 
         private MutableDirectBufferEx heldBuffer()
