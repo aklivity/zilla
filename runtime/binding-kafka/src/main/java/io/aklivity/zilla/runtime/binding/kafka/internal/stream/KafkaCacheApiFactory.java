@@ -459,6 +459,7 @@ public final class KafkaCacheApiFactory implements BindingHandler
 
         private void doApiInitialBegin(
             long traceId,
+            long affinity,
             OctetsFW extension)
         {
             if (StreamState.closed(state))
@@ -475,7 +476,7 @@ public final class KafkaCacheApiFactory implements BindingHandler
                 state = StreamState.openingInitial(state);
                 this.receiver = newStream(this::onApiMessage,
                     originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, 0L, extension);
+                    traceId, authorization, affinity, extension);
             }
         }
 
@@ -834,6 +835,7 @@ public final class KafkaCacheApiFactory implements BindingHandler
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
+            final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
@@ -846,7 +848,7 @@ public final class KafkaCacheApiFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            net.doApiInitialBegin(traceId, extension);
+            net.doApiInitialBegin(traceId, affinity, extension);
         }
 
         private void onApiInitialData(
