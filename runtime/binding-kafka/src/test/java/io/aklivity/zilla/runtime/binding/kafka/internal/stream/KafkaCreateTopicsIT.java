@@ -146,4 +146,56 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Specification({
+        "${app}/create.topics.v7.broker/client",
+        "${net}/create.topics.v7.broker/server"})
+    public void shouldCreateTopicsV3ToBrokerByAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @ScriptProperty("affinity 0L")
+    @Specification({
+        "${app}/create.topics.v7.broker/client",
+        "${net}/create.topics.v7.broker.bootstrap/server"})
+    public void shouldCreateTopicsV3ToBootstrapWhenBrokerZeroUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Specification({
+        "${app}/create.topics.v7.broker.zero/client",
+        "${net}/create.topics.v7.broker.zero/server"})
+    public void shouldCreateTopicsV3ToBrokerZeroWhenKnown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown/client",
+        "${net}/create.topics.v7.broker.unknown/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBroker() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Specification({
+        "${app}/create.topics.v7.broker/client",
+        "${net}/create.topics.v7.broker.negotiated/server"})
+    public void shouldCreateTopicsV3ToBrokerByAffinityNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
 }
