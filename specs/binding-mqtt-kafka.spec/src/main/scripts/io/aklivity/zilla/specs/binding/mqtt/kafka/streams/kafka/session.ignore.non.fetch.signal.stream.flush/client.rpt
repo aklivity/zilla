@@ -73,3 +73,16 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write flush
+
+# cleanup session offsets
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#offsets")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+write flush

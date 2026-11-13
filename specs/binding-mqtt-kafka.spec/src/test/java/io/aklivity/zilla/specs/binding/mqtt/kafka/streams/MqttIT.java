@@ -652,6 +652,28 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${mqtt}/session.close.expire.session.offsets.immediately/server"})
+    public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.large.interval/client",
+        "${mqtt}/session.close.expire.session.offsets.large.interval/server"})
+    public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.state/client",
         "${mqtt}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
@@ -797,6 +819,16 @@ public class MqttIT
         "${mqtt}/publish.qos2/client",
         "${mqtt}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${mqtt}/session.clean.start.discard.offsets/server"})
+    public void shouldDiscardOffsetsOnCleanStart() throws Exception
     {
         k3po.start();
         k3po.finish();

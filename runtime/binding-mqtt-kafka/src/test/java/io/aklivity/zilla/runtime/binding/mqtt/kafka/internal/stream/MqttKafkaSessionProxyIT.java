@@ -240,6 +240,38 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.discard.offsets/server"})
+    public void shouldDiscardOffsetsOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.offsets.immediately/server"})
+    public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.large.interval/client",
+        "${kafka}/session.close.expire.session.offsets.large.interval/server"})
+    public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.state/client",
