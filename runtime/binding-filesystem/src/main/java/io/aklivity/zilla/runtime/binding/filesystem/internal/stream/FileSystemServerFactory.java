@@ -303,6 +303,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private int replyPad;
         private long replyBud;
         private long replyBytes;
+        private byte[] directoryBytes;
         private BudgetDebit replyDebit;
 
         private int state;
@@ -677,50 +678,53 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     if (canReadDirectory(capabilities))
                     {
-                        try (Jsonb jsonb = JsonbBuilder.create();
-                             Stream<Path> list = Files.list(resolvedPath))
+                        if (directoryBytes == null)
                         {
-                            String response = jsonb.toJson(
-                                list.map(path -> new FileSystemObject(
-                                        path.getFileName().toString(),
-                                        Files.isDirectory(path) ? DIRECTORY_NAME : FILE_NAME))
-                                    .toList());
-                            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-                            int size = responseBytes.length;
-
-                            if (size > 0)
+                            try (Jsonb jsonb = JsonbBuilder.create();
+                                 Stream<Path> list = Files.list(resolvedPath))
                             {
-                                directoryBuffer.wrap(responseBytes);
-
-                                int reserved = Math.min(replyWin, size + replyPad);
-                                int length = Math.max(reserved - replyPad, 0);
-
-                                if (length > 0 && replyDebit != null)
-                                {
-                                    final int minimum = Math.min(bufferPool.slotCapacity(), reserved);
-                                    reserved = replyDebit.claim(traceId, minimum, reserved);
-                                    length = Math.max(reserved - replyPad, 0);
-                                }
-
-                                if (length > 0)
-                                {
-                                    OctetsFW payload = payloadRO.wrap(directoryBuffer, 0, size);
-
-                                    doAppData(traceId, reserved, payload);
-
-                                    replyBytes += size;
-
-                                    if (replyBytes == size)
-                                    {
-                                        replyBytes = 0;
-                                        doAppEnd(traceId);
-                                    }
-                                }
+                                String response = jsonb.toJson(
+                                    list.map(path -> new FileSystemObject(
+                                            path.getFileName().toString(),
+                                            Files.isDirectory(path) ? DIRECTORY_NAME : FILE_NAME))
+                                        .toList());
+                                directoryBytes = response.getBytes(StandardCharsets.UTF_8);
                             }
-                            else
+                        }
+
+                        int size = directoryBytes.length;
+                        int available = size - (int)replyBytes;
+
+                        if (available > 0)
+                        {
+                            directoryBuffer.wrap(directoryBytes);
+
+                            int reserved = Math.min(replyWin, available + replyPad);
+                            int length = Math.max(reserved - replyPad, 0);
+
+                            if (length > 0 && replyDebit != null)
                             {
-                                doAppEnd(traceId);
+                                final int minimum = Math.min(bufferPool.slotCapacity(), reserved);
+                                reserved = replyDebit.claim(traceId, minimum, reserved);
+                                length = Math.max(reserved - replyPad, 0);
                             }
+
+                            if (length > 0)
+                            {
+                                int offset = (int)replyBytes;
+                                OctetsFW payload = payloadRO.wrap(directoryBuffer, offset, offset + length);
+
+                                doAppData(traceId, reserved, payload);
+
+                                replyBytes += length;
+                            }
+                        }
+
+                        if (replyBytes == size)
+                        {
+                            replyBytes = 0;
+                            directoryBytes = null;
+                            doAppEnd(traceId);
                         }
                     }
                     else

@@ -416,6 +416,29 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${app}/read.directory.fragmented/client",
+    })
+    public void shouldReadDirectoryFragmented() throws Exception
+    {
+        Path directory = Paths.get("target/files/var-fragmented");
+        Files.createDirectories(directory);
+        Path entry = directory.resolve("a-very-long-directory-entry-name-for-fragmentation.html");
+        Files.writeString(entry, "fragmented directory listing");
+
+        try
+        {
+            k3po.finish();
+        }
+        finally
+        {
+            Files.delete(entry);
+            Files.delete(directory);
+        }
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${app}/read.directory.empty/client",
     })
     public void shouldReadDirectoryEmpty() throws Exception
