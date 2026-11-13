@@ -136,6 +136,18 @@ final class LlmSectionPipeline
         Output output,
         int outputLimit)
     {
+        return advance(buffer, offset, limit, last, output, outputLimit, false);
+    }
+
+    private Status advance(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        boolean last,
+        Output output,
+        int outputLimit,
+        boolean retain)
+    {
         Status status;
 
         if (completed)
@@ -163,6 +175,14 @@ final class LlmSectionPipeline
                 progress += result.consumed();
                 produced = result.produced();
                 remaining -= produced;
+
+                // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
+                // slot, so what the parser has not consumed is kept before the output is put
+                if (retain)
+                {
+                    tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+                    retain(buffer, progress);
+                }
 
                 final boolean done = status == Status.COMPLETED && last;
 
@@ -243,20 +263,42 @@ final class LlmSectionPipeline
     {
         final int windowLength = tailLength + length;
 
-        reserve(windowLength);
-        buffer.getBytes(offset, window, tailLength, length);
-        windowBuffer.wrap(window, 0, windowLength);
-
-        final Status status = advance(windowBuffer, 0, windowLength, last, output, Integer.MAX_VALUE);
-
-        tailLength = status == Status.STARVED || status == Status.ADVANCED ? windowLength - consumedLength : 0;
+        DirectBufferEx input = buffer;
+        int from = offset;
+        int limit = offset + length;
 
         if (tailLength > 0)
         {
-            System.arraycopy(window, consumedLength, window, 0, tailLength);
+            reserve(windowLength);
+            buffer.getBytes(offset, window, tailLength, length);
+            windowBuffer.wrap(window, 0, windowLength);
+
+            input = windowBuffer;
+            from = 0;
+            limit = windowLength;
         }
 
+        final Status status = advance(input, from, limit, last, output, Integer.MAX_VALUE, true);
+
         return status != Status.REJECTED;
+    }
+
+    private void retain(
+        DirectBufferEx input,
+        int progress)
+    {
+        if (tailLength > 0)
+        {
+            if (input == windowBuffer)
+            {
+                System.arraycopy(window, progress, window, 0, tailLength);
+            }
+            else
+            {
+                reserve(tailLength);
+                input.getBytes(progress, window, 0, tailLength);
+            }
+        }
     }
 
     private void reserve(
