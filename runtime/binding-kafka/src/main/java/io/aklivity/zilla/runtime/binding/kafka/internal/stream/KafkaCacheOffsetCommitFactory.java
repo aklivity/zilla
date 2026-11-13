@@ -420,7 +420,7 @@ public final class KafkaCacheOffsetCommitFactory implements BindingHandler
                 state = StreamState.openingInitial(state);
                 this.receiver = newStream(this::onOffsetCommitMessage,
                     originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, 0L, extension);
+                    traceId, authorization, affinity, extension);
             }
         }
 
