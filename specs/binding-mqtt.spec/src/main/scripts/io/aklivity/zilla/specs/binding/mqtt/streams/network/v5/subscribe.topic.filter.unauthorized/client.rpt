@@ -48,7 +48,7 @@ write [0x82 0x20]                       # SUBSCRIBE
 read  [0x90 0x05]                       # SUBACK
       [0x00 0x01]                       # packet id = 1
       [0x00]                            # properties = none
-      [0x87]                            # reason code
+      [0x83]                            # reason code
       [0x00]                            # reason code
 
 read  [0x30 0x19]                       # PUBLISH
