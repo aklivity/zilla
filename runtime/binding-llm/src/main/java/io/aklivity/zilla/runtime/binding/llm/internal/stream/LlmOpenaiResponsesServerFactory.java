@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.queue.LlmQueueEntryFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.queue.LlmReplyFrameFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.Capability;
@@ -237,6 +238,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
     private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
     private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
+    private final LlmReplyFrameFW replyFrameRO = new LlmReplyFrameFW();
+    private final LlmReplyFrameFW.Builder replyFrameRW = new LlmReplyFrameFW.Builder();
     private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
     private final OctetsFW eventAttributesRO = new OctetsFW();
     private String beginStatus;
@@ -318,6 +321,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesServerDecoder decodeMaxOutputTokensValue = this::decodeMaxOutputTokensValue;
     private final LlmOpenaiResponsesServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiResponsesServerDecoder decodeIgnore = this::decodeIgnore;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyFrame = this::decodeReplyFrame;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyNext = this::decodeReplyNext;
 
 
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
@@ -561,6 +566,47 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int offset,
             int progress,
             int limit);
+    }
+
+    @FunctionalInterface
+    private interface LlmOpenaiResponsesReplyDecoder
+    {
+        int decode(
+            LlmOpenaiResponsesStream stream,
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
+    }
+
+    private int decodeReplyFrame(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final LlmReplyFrameFW frame = replyFrameRO.tryWrap(buffer, offset, limit);
+
+        if (frame != null)
+        {
+            stream.decoder = decodeReplyNext;
+            stream.onReplyFrame(frame);
+            progress = frame.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeReplyNext(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.decoder = decodeReplyFrame;
+
+        return offset;
     }
 
     private int decodeLookahead(
@@ -4793,6 +4839,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean flushed;
 
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private LlmOpenaiResponsesReplyDecoder decoder = decodeReplyFrame;
+
         private LlmOpenaiResponsesStream(
             LlmOpenaiResponsesServer server)
         {
@@ -4973,18 +5023,92 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             replySeq = data.sequence() + data.reserved();
 
-            onAppSection(data);
+            stageReply(data);
+            decodeReply();
         }
 
-        private void onAppSection(
+        private void stageReply(
             DataFW data)
         {
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final int flags = data.flags();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
+            final OctetsFW extension = data.extension();
             final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
+
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(replyId);
+            }
+
+            final int required = REPLY_FRAME_OVERHEAD + extension.sizeof() + payload.sizeof();
+
+            if (decodeSlot == NO_SLOT || decodeSlotOffset + required > decodePool.slotCapacity())
+            {
+                cleanup(data.traceId());
+            }
+            else
+            {
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
+
+                final LlmReplyFrameFW frame = replyFrameRW.wrap(buffer, decodeSlotOffset, decodePool.slotCapacity())
+                    .traceId(data.traceId())
+                    .authorization(data.authorization())
+                    .budgetId(data.budgetId())
+                    .reserved(data.reserved())
+                    .flags(data.flags())
+                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                    .payload(payload.buffer(), payload.offset(), payload.sizeof())
+                    .build();
+
+                decodeSlotOffset = frame.limit();
+            }
+        }
+
+        private void decodeReply()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
+                final int limit = decodeSlotOffset;
+
+                LlmOpenaiResponsesReplyDecoder previous = null;
+                int progress = 0;
+                while (progress <= limit && previous != decoder)
+                {
+                    previous = decoder;
+                    progress = decoder.decode(this, buffer, progress, limit);
+                }
+
+                if (progress < limit && decodeSlot != NO_SLOT)
+                {
+                    buffer.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                }
+                else
+                {
+                    cleanupDecodeSlot();
+                }
+            }
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+            }
+
+            decodeSlotOffset = 0;
+        }
+
+        private void onReplyFrame(
+            LlmReplyFrameFW frame)
+        {
+            final long traceId = frame.traceId();
+            final long authorization = frame.authorization();
+            final int flags = frame.flags();
+            final long budgetId = frame.budgetId();
+            final int reserved = frame.reserved();
+            final OctetsFW payload = frame.payload() != null ? frame.payload() : EMPTY_OCTETS;
 
             encodeBudgetId = budgetId;
             encodeTraceId = traceId;
@@ -4992,7 +5116,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             beginEncode();
 
-            final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
+            final LlmDataExFW llmDataEx = frame.extension().get(llmDataExRO::tryWrap);
             final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
 
             if (Flags.hasInit(flags))
@@ -5363,6 +5487,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             initialSeq += length;
         }
 
+        private static final int REPLY_FRAME_OVERHEAD = 64;
         private static final int NO_EVENT = -1;
         private static final int PART_CAPACITY = 8;
 
@@ -6762,6 +6887,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             doAppAbort(traceId);
             doAppReset(traceId);
+            cleanupDecodeSlot();
             cleanupAccumulator();
             cleanupHeld();
         }
