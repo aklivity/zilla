@@ -4800,17 +4800,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.generator = JsonEx.createGenerator();
             this.eventStart = NO_EVENT;
             this.pendingStart = NO_EVENT;
-            this.reasoningIdFilter = new LlmEdgeFilter((buffer, offset, length, last) ->
-                onReasoningId(buffer, offset, length, last));
-            this.reasoningMembers = new LlmEdgeFilter((buffer, offset, length, last) ->
-                onReasoningMembers(buffer, offset, length));
+            this.reasoningIdOutput = (buffer, offset, length, last) -> onReasoningId(buffer, offset, length, last);
+            this.reasoningMembersOutput = (buffer, offset, length, last) -> onReasoningMembers(buffer, offset, length);
             this.citationsOutput = (buffer, offset, length, last) -> onCitations(buffer, offset, length);
             this.reasoningIdBytes = new byte[ID_CAPACITY];
             this.tail = new LlmHeldTail(holdPool);
             this.argumentsOutput = (buffer, offset, length, last) -> onArguments(buffer, offset, length);
             this.valueFilter = new LlmStringFilter((buffer, offset, length, last) -> onDelta(buffer, offset, length));
-            this.tailFilter = new LlmEdgeFilter((buffer, offset, length, last) -> onTail(buffer, offset, length));
-            this.membersFilter = new LlmEdgeFilter((buffer, offset, length, last) -> onMembers(buffer, offset, length));
+            this.tailOutput = (buffer, offset, length, last) -> onTail(buffer, offset, length);
+            this.membersOutput = (buffer, offset, length, last) -> onMembers(buffer, offset, length);
         }
 
         private long initialAvailable()
@@ -5524,8 +5522,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int partKind;
         private int partAnnotations = NONE;
         private LlmTextPipeline reasoningText;
-        private final LlmEdgeFilter reasoningIdFilter;
-        private final LlmEdgeFilter reasoningMembers;
+        private final LlmSectionPipeline.Output reasoningIdOutput;
+        private final LlmSectionPipeline.Output reasoningMembersOutput;
         private final LlmSectionPipeline.Output citationsOutput;
         private LlmSectionPipeline reasoningIdPipeline;
         private LlmSectionPipeline reasoningMembersPipeline;
@@ -5551,8 +5549,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private final Map<String, LlmSectionPipeline> valuePipelines = new HashMap<>();
         private final LlmSectionPipeline.Output argumentsOutput;
         private final LlmStringFilter valueFilter;
-        private final LlmEdgeFilter tailFilter;
-        private final LlmEdgeFilter membersFilter;
+        private final LlmSectionPipeline.Output tailOutput;
+        private final LlmSectionPipeline.Output membersOutput;
         private final LlmHeldTail tail;
         private boolean membersStarted;
 
@@ -5709,8 +5707,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 break;
             case KIND_REASONING:
                 accepted = reasoningText().feed(payload, payloadOffset, payloadLength, fin) &&
-                    reasoningIdPipeline.feed(payload, payloadOffset, payloadLength, fin, reasoningIdFilter) &&
-                    reasoningMembersPipeline.feed(payload, payloadOffset, payloadLength, fin, reasoningMembers);
+                    reasoningIdPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, reasoningIdOutput) &&
+                    reasoningMembersPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, reasoningMembersOutput);
                 break;
             case KIND_CITATIONS:
                 accepted = citationsPipeline.feed(payload, payloadOffset, payloadLength, fin, citationsOutput);
@@ -5720,17 +5718,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 break;
             case KIND_CALL:
                 accepted = valuePipeline.feed(payload, payloadOffset, payloadLength, fin, argumentsOutput) &&
-                    restPipeline.feed(payload, payloadOffset, payloadLength, fin, tailFilter);
+                    restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, tailOutput);
                 break;
             case KIND_PROVIDER:
                 accepted = (valuePipeline == null ||
                     valuePipeline.feed(payload, payloadOffset, payloadLength, fin, valueFilter)) &&
-                    restPipeline.feed(payload, payloadOffset, payloadLength, fin, valueMember != null
-                        ? tailFilter
-                        : membersFilter);
+                    restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, valueMember != null
+                        ? tailOutput
+                        : membersOutput);
                 break;
             case KIND_RESULT:
-                accepted = restPipeline.feed(payload, payloadOffset, payloadLength, fin, membersFilter);
+                accepted = restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, membersOutput);
                 break;
             default:
                 break;
@@ -5811,8 +5809,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             reasoningText().begin();
             reasoningIdPipeline().begin(replyAttributes);
             reasoningMembersPipeline().begin(replyAttributes);
-            reasoningIdFilter.reset();
-            reasoningMembers.reset();
             reasoningIdLength = 0;
         }
 
@@ -6267,7 +6263,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             valuePipeline.begin(replyAttributes);
             restPipeline = extrasPipeline();
             restPipeline.begin(replyAttributes);
-            tailFilter.reset();
             tail.release();
 
             beginItem(index);
@@ -6292,8 +6287,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             restPipeline.begin(replyAttributes);
-            tailFilter.reset();
-            membersFilter.reset();
             membersStarted = false;
             tail.release();
 
@@ -6304,7 +6297,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             restPipeline = resultPipeline();
             restPipeline.begin(replyAttributes);
-            membersFilter.reset();
             membersStarted = false;
 
             if (server.streaming)

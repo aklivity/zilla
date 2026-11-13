@@ -50,6 +50,9 @@ final class LlmSectionPipeline
     private byte[] window;
     private int tailLength;
     private int unconsumedLength;
+    private int held = LlmEdgeTrim.BEFORE;
+    private Output edgeTarget;
+    private Output edgeOutput;
     private boolean completed;
     private boolean closed;
 
@@ -90,6 +93,7 @@ final class LlmSectionPipeline
         tailLength = 0;
         completed = false;
         closed = false;
+        held = LlmEdgeTrim.BEFORE;
     }
 
     boolean feed(
@@ -100,6 +104,25 @@ final class LlmSectionPipeline
         Output output)
     {
         return feed(buffer, offset, length, last, output, true);
+    }
+
+    // Forwards what the pipeline produces without its first and last bytes, such as the braces of an object. The
+    // state of the trim is one int, which begin() resets, so the stages that need it pay for it per pipeline.
+    boolean feedEdges(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last,
+        Output output)
+    {
+        if (edgeOutput == null)
+        {
+            edgeOutput = this::putEdges;
+        }
+
+        edgeTarget = output;
+
+        return feed(buffer, offset, length, last, edgeOutput, true);
     }
 
     // The bytes the parser has not consumed are kept for the next feed unless the caller holds them, in which
@@ -206,6 +229,15 @@ final class LlmSectionPipeline
     int unconsumed()
     {
         return unconsumedLength;
+    }
+
+    private void putEdges(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last)
+    {
+        held = LlmEdgeTrim.put(held, edgeTarget, buffer, offset, length, last);
     }
 
     private void retain(

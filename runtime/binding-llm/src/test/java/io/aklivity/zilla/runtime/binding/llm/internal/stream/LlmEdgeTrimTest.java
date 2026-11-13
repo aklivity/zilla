@@ -26,12 +26,12 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class LlmEdgeFilterTest
+public class LlmEdgeTrimTest
 {
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private final boolean[] closed = new boolean[1];
-    private final LlmEdgeFilter filter =
-        new LlmEdgeFilter((buffer, offset, length, last) -> collect(buffer, offset, length, last));
+
+    private int held = LlmEdgeTrim.BEFORE;
 
     @Test
     public void shouldDropFirstAndLastByteOfSingleChunk()
@@ -64,13 +64,36 @@ public class LlmEdgeFilterTest
     }
 
     @Test
-    public void shouldRestartAfterReset()
+    public void shouldStartAgainAfterLastChunk()
     {
         put("{x}", true);
-        filter.reset();
         put("{y}", true);
 
         assertThat(output.toString(UTF_8), equalTo("xy"));
+        assertThat(held, is(LlmEdgeTrim.BEFORE));
+    }
+
+    @Test
+    public void shouldWithholdEveryByteValueUntilNextChunk()
+    {
+        for (int value = 0; value < 256; value++)
+        {
+            output.reset();
+            held = LlmEdgeTrim.BEFORE;
+
+            final byte[] bytes = {'{', 'a', (byte) value};
+
+            held = LlmEdgeTrim.put(held, this::collect, new UnsafeBufferEx(bytes), 0, bytes.length, false);
+
+            assertThat("held " + value, held, is(value));
+            assertThat("held " + value, output.toString(UTF_8), equalTo("a"));
+
+            put("b}", true);
+
+            final byte[] expected = {'a', (byte) value, 'b'};
+
+            assertThat("value " + value, output.toByteArray(), equalTo(expected));
+        }
     }
 
     private void put(
@@ -79,7 +102,7 @@ public class LlmEdgeFilterTest
     {
         final byte[] bytes = text.getBytes(UTF_8);
 
-        filter.put(new UnsafeBufferEx(bytes), 0, bytes.length, last);
+        held = LlmEdgeTrim.put(held, this::collect, new UnsafeBufferEx(bytes), 0, bytes.length, last);
     }
 
     private void collect(
