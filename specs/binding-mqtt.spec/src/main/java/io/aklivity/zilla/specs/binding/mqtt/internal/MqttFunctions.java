@@ -58,6 +58,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
@@ -718,6 +719,13 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttPublishFlushExBuilder publish()
+        {
+            flushExRW.kind(MqttExtensionKind.PUBLISH.value());
+
+            return new MqttPublishFlushExBuilder();
+        }
+
         public MqttSessionFlushExBuilder session()
         {
             flushExRW.kind(MqttExtensionKind.SESSION.value());
@@ -730,6 +738,37 @@ public final class MqttFunctions
             flushExRW.kind(MqttExtensionKind.SUBSCRIBE.value());
 
             return new MqttSubscribeFlushExBuilder();
+        }
+
+        public final class MqttPublishFlushExBuilder
+        {
+            private final MqttPublishFlushExFW.Builder publishFlushExRW = new MqttPublishFlushExFW.Builder();
+
+            private MqttPublishFlushExBuilder()
+            {
+                publishFlushExRW.wrap(writeBuffer, MqttFlushExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+            }
+
+            public MqttPublishFlushExBuilder packetId(
+                int packetId)
+            {
+                publishFlushExRW.packetId(packetId);
+                return this;
+            }
+
+            public MqttPublishFlushExBuilder reasonCode(
+                int reasonCode)
+            {
+                publishFlushExRW.reasonCode(reasonCode);
+                return this;
+            }
+
+            public MqttFlushExBuilder build()
+            {
+                final MqttPublishFlushExFW publishFlushEx = publishFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, publishFlushEx.limit());
+                return MqttFlushExBuilder.this;
+            }
         }
 
         public final class MqttSessionFlushExBuilder
@@ -2146,6 +2185,15 @@ public final class MqttFunctions
         private Integer kind;
         private Predicate<MqttFlushExFW> caseMatcher;
 
+        public MqttPublishFlushExMatcherBuilder publish()
+        {
+            final MqttPublishFlushExMatcherBuilder matcherBuilder = new MqttPublishFlushExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.PUBLISH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public MqttSessionFlushExMatcherBuilder session()
         {
             final MqttSessionFlushExMatcherBuilder matcherBuilder = new MqttSessionFlushExMatcherBuilder();
@@ -2206,6 +2254,55 @@ public final class MqttFunctions
             final MqttFlushExFW flushEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class MqttPublishFlushExMatcherBuilder
+        {
+            private Integer packetId;
+            private Integer reasonCode;
+
+            private MqttPublishFlushExMatcherBuilder()
+            {
+            }
+
+            public MqttPublishFlushExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
+                return this;
+            }
+
+            public MqttPublishFlushExMatcherBuilder reasonCode(
+                int reasonCode)
+            {
+                this.reasonCode = reasonCode;
+                return this;
+            }
+
+            public MqttFlushExMatcherBuilder build()
+            {
+                return MqttFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttFlushExFW flushEx)
+            {
+                final MqttPublishFlushExFW publishFlushEx = flushEx.publish();
+                return matchPacketId(publishFlushEx) &&
+                    matchReasonCode(publishFlushEx);
+            }
+
+            private boolean matchPacketId(
+                final MqttPublishFlushExFW flush)
+            {
+                return packetId == null || packetId == flush.packetId();
+            }
+
+            private boolean matchReasonCode(
+                final MqttPublishFlushExFW flush)
+            {
+                return reasonCode == null || reasonCode == flush.reasonCode();
+            }
         }
 
         public final class MqttSessionFlushExMatcherBuilder

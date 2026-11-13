@@ -634,4 +634,54 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${app}/publish.qos1.unroutable/server"})
+    public void shouldPublishQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos2.unroutable/client",
+        "${app}/publish.qos2.unroutable/server"})
+    public void shouldPublishQos2Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected/client",
+        "${app}/publish.qos1.message.rejected/server"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected.in.flight.acknowledged/client",
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/server"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.message.rejected/client",
+        "${app}/publish.qos2.message.rejected/server"})
+    public void shouldPublishQos2MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
 }

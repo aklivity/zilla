@@ -20,6 +20,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -1211,6 +1212,68 @@ public class MqttFunctionsTest
         assertEquals(1, mqttFlushEx.subscribe().packetId());
         assertEquals(2, mqttFlushEx.subscribe().qos());
         assertEquals(1, mqttFlushEx.subscribe().state());
+    }
+
+    @Test
+    public void shouldEncodeMqttPublishFlushEx()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .publish()
+                .packetId(1)
+                .reasonCode(0x83)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttFlushEx.typeId());
+        assertEquals(0, mqttFlushEx.kind());
+        assertEquals(1, mqttFlushEx.publish().packetId());
+        assertEquals(0x83, mqttFlushEx.publish().reasonCode());
+    }
+
+    @Test
+    public void shouldMatchMqttPublishFlushExFailure() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .publish()
+                .packetId(1)
+                .reasonCode(0x83)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p -> p.packetId(1).reasonCode(0x83))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchMqttPublishFlushExDifferentReasonCode() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .publish()
+                .packetId(1)
+                .reasonCode(0x87)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p -> p.packetId(1).reasonCode(0x83))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 
     @Test

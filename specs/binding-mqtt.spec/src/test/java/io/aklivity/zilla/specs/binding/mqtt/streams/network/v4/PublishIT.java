@@ -312,4 +312,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.message.rejected.close.connection/client",
+        "${net}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -388,4 +388,58 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.unroutable/client",
+        "${app}/publish.qos1.unroutable/server"})
+    public void shouldPublishQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.unroutable/client",
+        "${app}/publish.qos2.unroutable/server"})
+    public void shouldPublishQos2Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected/client",
+        "${app}/publish.qos1.message.rejected/server"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/client",
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/server"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.message.rejected/client",
+        "${app}/publish.qos2.message.rejected/server"})
+    public void shouldPublishQos2MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected.close.connection/client",
+        "${app}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }
