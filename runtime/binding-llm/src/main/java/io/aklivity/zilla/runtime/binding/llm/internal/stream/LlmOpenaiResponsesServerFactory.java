@@ -7044,11 +7044,32 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return taken;
         }
 
+        private int emitSummaryText(
+            JsonStringView chars,
+            int length)
+        {
+            int taken = length;
+
+            if (length > 0 && !membersStarted)
+            {
+                if (partMode != PART_ACTIVE)
+                {
+                    openSummaryPart();
+                }
+
+                taken = emitTextDelta(chars, length);
+            }
+
+            return taken;
+        }
+
         private String textEventName()
         {
             return kind == KIND_PROVIDER
                 ? LlmOpenaiResponsesItems.deltaEvent(itemType)
-                : partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
+                : kind == KIND_REASONING
+                    ? EVENT_SUMMARY_TEXT_DELTA
+                    : partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
         }
 
         private int writeSlice(
@@ -7291,7 +7312,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int take,
             int obfuscation)
         {
-            final boolean provider = kind == KIND_PROVIDER;
+            final boolean provider = kind == KIND_PROVIDER || kind == KIND_REASONING;
             final boolean refusal = !provider && partKind == PART_KIND_REFUSAL;
 
             generator.reset();
@@ -7323,8 +7344,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             generator.write(MEMBER_OUTPUT_INDEX, itemCount - 1)
-                .write(MEMBER_SEQUENCE_NUMBER, sequence)
-                .writeEnd();
+                .write(MEMBER_SEQUENCE_NUMBER, sequence);
+
+            if (kind == KIND_REASONING)
+            {
+                generator.write(MEMBER_SUMMARY_INDEX, itemParts - 1);
+            }
+
+            generator.writeEnd();
 
             final int written = generator.length();
 
@@ -7339,9 +7366,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             int taken = length;
 
-            if (kind == KIND_REASONING)
+            if (kind == KIND_REASONING && !server.streaming)
             {
                 onReasoningText(chars, 0, length);
+            }
+            else if (kind == KIND_REASONING)
+            {
+                taken = emitSummaryText(chars, length);
             }
             else if (server.streaming && length > 0)
             {
