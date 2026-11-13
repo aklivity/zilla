@@ -6109,7 +6109,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_HELD = 1;
         private static final int CONTROL_INLINE = 2;
-        private static final int CHUNK_RESERVE = 512;
         private static final int TAIL_MAX = 4096;
         private static final int KIND_CALL = 4;
         private static final int KIND_PROVIDER = 5;
@@ -6813,7 +6812,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void ensureEncodeRoom(
             int length)
         {
-            if (copyBuffer.capacity() - encodeLength() - CHUNK_RESERVE < length)
+            if (copyBuffer.capacity() - encodeLength() - replyPadding < length)
             {
                 doEncodeFlush();
                 beginEncode();
