@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParsingException;
 
@@ -68,7 +65,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
         EXP_INT
     }
 
-    private static final int MAX_DEPTH = 64;
     private static final int NO_VIEW = -1;
     private static final long ONES = 0x0101010101010101L;
     private static final long HIGHS = 0x8080808080808080L;
@@ -76,7 +72,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private static final long BACKSLASHES = 0x5c5c5c5c5c5c5c5cL;
     private static final long SPACES = 0x2020202020202020L;
 
-    private final Deque<ParseState> stack = new ArrayDeque<>();
     private final boolean quoted;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
@@ -97,8 +92,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private int wrapOffset;
     private long wrapStreamOffset;
 
-    // whether each open container is an array, and how many are open — pre-allocated, no per-event allocation
-    private final boolean[] pathInArray = new boolean[MAX_DEPTH];
+    // whether each open container is an array, one bit per level, and how many are open; the state a container
+    // returns to when it closes is derived from this path and scopeDepth, so no stack of return states is kept
+    private long path;
     private int pathDepth;
 
     private ParseState state = ParseState.DOC_START;
@@ -182,6 +178,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private boolean lens;
     private boolean scopeEnded;
     private long scopeStart;
+    private int scopeDepth;
     private long lensUnit;
     private int lensIndex;
     private int lensCount;
@@ -200,7 +197,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private static final class Mark
     {
         ParseState state;
-        int stackSize;
+        long path;
         int pathDepth;
         long streamOffset;
         long valueStreamStart;
@@ -229,6 +226,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         boolean pairOpen;
         boolean lens;
         long scopeStart;
+        int scopeDepth;
     }
 
     // quoted holds a key back until its separator, whitespace and the value's first byte are in the
@@ -242,7 +240,6 @@ final class JsonTokenizerImpl implements JsonTokenizer
     @Override
     public void reset()
     {
-        stack.clear();
         if (mark != null)
         {
             mark.state = null;
@@ -251,7 +248,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
         stringVerbatim = false;
         memberSeparated = false;
         separatorBefore = false;
+        path = 0L;
         pathDepth = 0;
+        scopeDepth = 0;
         state = ParseState.DOC_START;
         pendingEvent = null;
         viewStart = NO_VIEW;
@@ -326,7 +325,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
 
         mark.state = state;
-        mark.stackSize = stack.size();
+        mark.path = path;
         mark.pathDepth = pathDepth;
         mark.streamOffset = streamOffset;
         mark.valueStreamStart = valueStreamStart;
@@ -355,6 +354,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         mark.pairOpen = pairOpen;
         mark.lens = lens;
         mark.scopeStart = scopeStart;
+        mark.scopeDepth = scopeDepth;
     }
 
     // Returns to the mark: the scan resumes at the marked byte with the state it had there. Only the container
@@ -373,15 +373,12 @@ final class JsonTokenizerImpl implements JsonTokenizer
             throw new IllegalStateException("rewind requires the window the mark was taken in");
         }
 
-        if (pathDepth < mark.pathDepth || stack.size() < mark.stackSize)
+        if (pathDepth < mark.pathDepth || returnDepth(pathDepth, lens) < returnDepth(mark.pathDepth, mark.lens))
         {
             throw new IllegalStateException("rewind requires the parse to remain within the marked container");
         }
 
-        while (stack.size() > mark.stackSize)
-        {
-            stack.pop();
-        }
+        path = mark.path;
         pathDepth = mark.pathDepth;
         state = mark.state;
         valueStreamStart = mark.valueStreamStart;
@@ -407,6 +404,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         pairOpen = mark.pairOpen;
         lens = mark.lens;
         scopeStart = mark.scopeStart;
+        scopeDepth = mark.scopeDepth;
         seek(mark.streamOffset, mark.line, mark.column);
         pendingEvent = null;
         viewStart = NO_VIEW;
@@ -691,13 +689,13 @@ final class JsonTokenizerImpl implements JsonTokenizer
     @Override
     public boolean inObjectContext()
     {
-        return pathDepth > 0 && !pathInArray[pathDepth - 1];
+        return JsonParseState.pathInObject(path, pathDepth);
     }
 
     @Override
     public boolean inArrayContext()
     {
-        return pathDepth > 0 && pathInArray[pathDepth - 1];
+        return JsonParseState.pathInArray(path, pathDepth);
     }
 
     // True when the member (object key or array element) at the current boundary was reached after a
@@ -737,16 +735,17 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void pushPath(
         boolean inArray)
     {
-        if (pathDepth == MAX_DEPTH)
+        if (JsonParseState.pathFull(pathDepth))
         {
-            throw new JsonParsingException("JSON depth exceeds " + MAX_DEPTH, null);
+            throw new JsonParsingException("JSON depth exceeds " + JsonParseState.MAX_DEPTH, null);
         }
-        pathInArray[pathDepth] = inArray;
+        path = JsonParseState.pushPath(path, pathDepth, inArray);
         pathDepth++;
     }
 
     private void popPath()
     {
+        path = JsonParseState.popPath(path, pathDepth);
         pathDepth--;
     }
 
@@ -1263,26 +1262,31 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private void pushAndEnter(
         ParseState nested)
     {
-        stack.push(returnState());
         state = nested;
     }
 
-    private ParseState returnState()
+    // the state the value opened at this level returns to once it ends: that of the container it sits in
+    private ParseState returnState(
+        int level)
     {
-        switch (state)
+        final ParseState returnState;
+        if (level == 0)
         {
-        case DOC_START:
-            return ParseState.DOC_DONE;
-        case ESC_START:
-            return ParseState.ESC_DONE;
-        case OBJ_AFTER_COLON:
-            return ParseState.OBJ_AFTER_VALUE;
-        case ARR_AFTER_OPEN:
-        case ARR_AFTER_COMMA:
-            return ParseState.ARR_AFTER_VALUE;
-        default:
-            throw new JsonParsingException("Unexpected return-point state: " + state, null);
+            returnState = ParseState.DOC_DONE;
         }
+        else
+        {
+            returnState = JsonParseState.pathArrayAt(path, level - 1) ? ParseState.ARR_AFTER_VALUE : ParseState.OBJ_AFTER_VALUE;
+        }
+        return returnState;
+    }
+
+    // how many values are open: each open container, and the escaped string whose content is the document
+    private static int returnDepth(
+        int pathDepth,
+        boolean lens)
+    {
+        return lens ? pathDepth + 1 : pathDepth;
     }
 
     private void afterValueConsumed()
@@ -1313,14 +1317,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     {
         pendingEvent = endEvent;
         popPath();
-        if (stack.isEmpty())
-        {
-            state = ParseState.DOC_DONE;
-        }
-        else
-        {
-            state = stack.pop();
-        }
+        state = lens && pathDepth == scopeDepth ? ParseState.ESC_DONE : returnState(pathDepth);
         if (state == ParseState.DOC_DONE)
         {
             documentEndOffset = streamOffset;
@@ -1696,7 +1693,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         }
 
         scalarSegment = false;
-        stack.push(returnState());
+        scopeDepth = pathDepth;
         state = ParseState.ESC_START;
         lens = true;
         scopeEnded = false;
@@ -1749,7 +1746,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
         streamOffset++;
         column++;
         starved = false;
-        state = stack.pop();
+        state = returnState(scopeDepth);
         pendingEvent = JsonEvent.END_ESCAPED;
     }
 
