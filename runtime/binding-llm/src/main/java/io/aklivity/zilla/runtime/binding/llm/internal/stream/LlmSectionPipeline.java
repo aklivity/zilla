@@ -50,6 +50,7 @@ final class LlmSectionPipeline
     private byte[] window;
     private int tailLength;
     private int consumedLength;
+    private int producedLength;
     private int held = LlmEdgeTrim.BEFORE;
     private Output edgeTarget;
     private Output edgeOutput;
@@ -167,6 +168,8 @@ final class LlmSectionPipeline
             int remaining = outputLimit;
             int produced;
 
+            producedLength = 0;
+
             do
             {
                 final JsonPipelineResult result = pipeline.transform(buffer, progress, limit, last,
@@ -175,6 +178,7 @@ final class LlmSectionPipeline
                 progress += result.consumed();
                 produced = result.produced();
                 remaining -= produced;
+                producedLength += produced;
 
                 // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
                 // slot, so what the parser has not consumed is kept before the output is put
@@ -241,6 +245,11 @@ final class LlmSectionPipeline
     int consumed()
     {
         return consumedLength;
+    }
+
+    int produced()
+    {
+        return producedLength;
     }
 
     private void putEdges(
