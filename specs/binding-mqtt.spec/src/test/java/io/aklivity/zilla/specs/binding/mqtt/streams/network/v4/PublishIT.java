@@ -252,6 +252,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.qos2.two.topics.interleaved.acks/client",
+        "${net}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.two.messages.one.ack/client",
+        "${net}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${net}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
