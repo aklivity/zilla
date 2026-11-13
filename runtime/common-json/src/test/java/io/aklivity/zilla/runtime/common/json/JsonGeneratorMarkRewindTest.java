@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +35,10 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 class JsonGeneratorMarkRewindTest
 {
+    private static final List<Supplier<JsonGeneratorEx>> GENERATORS = List.of(
+        JsonEx::createGenerator,
+        () -> JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true)));
+
     private static final List<Consumer<JsonGeneratorEx>> NESTED = List.of(
         g -> g.writeStartObject(),
         g -> g.writeKey("a"),
@@ -86,15 +91,19 @@ class JsonGeneratorMarkRewindTest
     @Test
     void shouldGenerateTheSameAfterRewindAtEveryPosition()
     {
-        for (List<Consumer<JsonGeneratorEx>> document : List.of(NESTED, ESCAPED, FRAGMENTS))
+        for (Supplier<JsonGeneratorEx> generators : GENERATORS)
         {
-            final String expected = generate(document, -1, -1);
-
-            for (int markAt = 0; markAt <= document.size(); markAt++)
+            for (List<Consumer<JsonGeneratorEx>> document : List.of(NESTED, ESCAPED, FRAGMENTS))
             {
-                for (int walkTo = markAt; walkTo <= document.size(); walkTo++)
+                final String expected = generate(generators, document, -1, -1);
+
+                for (int markAt = 0; markAt <= document.size(); markAt++)
                 {
-                    assertEquals(expected, generate(document, markAt, walkTo), "mark " + markAt + " walk " + walkTo);
+                    for (int walkTo = markAt; walkTo <= document.size(); walkTo++)
+                    {
+                        assertEquals(expected, generate(generators, document, markAt, walkTo),
+                            "mark " + markAt + " walk " + walkTo);
+                    }
                 }
             }
         }
@@ -103,22 +112,25 @@ class JsonGeneratorMarkRewindTest
     @Test
     void shouldRestoreEveryFieldOfTheGenerator()
     {
-        for (List<Consumer<JsonGeneratorEx>> document : List.of(NESTED, ESCAPED, FRAGMENTS))
+        for (Supplier<JsonGeneratorEx> generators : GENERATORS)
         {
-            for (int markAt = 0; markAt <= document.size(); markAt++)
+            for (List<Consumer<JsonGeneratorEx>> document : List.of(NESTED, ESCAPED, FRAGMENTS))
             {
-                final JsonGeneratorEx generator = JsonEx.createGenerator();
-                generator.wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
+                for (int markAt = 0; markAt <= document.size(); markAt++)
+                {
+                    final JsonGeneratorEx generator = generators.get();
+                    generator.wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
-                document.subList(0, markAt).forEach(write -> write.accept(generator));
-                generator.mark();
+                    document.subList(0, markAt).forEach(write -> write.accept(generator));
+                    generator.mark();
 
-                final Map<String, Object> marked = fields(generator);
+                    final Map<String, Object> marked = fields(generator);
 
-                document.subList(markAt, document.size()).forEach(write -> write.accept(generator));
-                generator.rewind();
+                    document.subList(markAt, document.size()).forEach(write -> write.accept(generator));
+                    generator.rewind();
 
-                assertEquals(marked, fields(generator), "mark " + markAt);
+                    assertEquals(marked, fields(generator), "mark " + markAt);
+                }
             }
         }
     }
@@ -198,12 +210,13 @@ class JsonGeneratorMarkRewindTest
     }
 
     private static String generate(
+        Supplier<JsonGeneratorEx> generators,
         List<Consumer<JsonGeneratorEx>> document,
         int markAt,
         int walkTo)
     {
         final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
-        final JsonGeneratorEx generator = JsonEx.createGenerator();
+        final JsonGeneratorEx generator = generators.get();
         generator.wrap(output, 0, output.capacity());
 
         if (markAt < 0)
