@@ -151,4 +151,37 @@ public class CacheApiIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/create.topics.v7.unsupported/client",
+        "${app}/create.topics.v7.unsupported/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectApiUnsupportedVersionThroughCacheClientAndServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.client.yaml")
+    @Specification({
+        "${app}/create.topics.v7.unsupported/client",
+        "${app}/create.topics.v7.unsupported/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectApiUnsupportedVersionThroughCacheClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.server.yaml")
+    @Specification({
+        "${app}/create.topics.v7.unsupported/client",
+        "${app}/create.topics.v7.unsupported/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRejectApiUnsupportedVersionThroughCacheServer() throws Exception
+    {
+        k3po.finish();
+    }
 }
