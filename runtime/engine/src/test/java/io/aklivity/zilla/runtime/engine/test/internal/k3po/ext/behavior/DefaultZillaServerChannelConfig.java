@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaChannel.NATIVE_BUFFER_FACTORY;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaThrottleMode.NONE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaTransmission.SIMPLEX;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_AFFINITY;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
@@ -308,6 +309,10 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
         else if (OPTION_CIRCUIT_ID.getName().equals(key))
         {
             setCircuitId(convertToLong(value));
+        }
+        else if (OPTION_AFFINITY.getName().equals(key))
+        {
+            setAffinity(convertToLong(value));
         }
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {
