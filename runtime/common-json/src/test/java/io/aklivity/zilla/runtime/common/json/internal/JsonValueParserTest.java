@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonStateCorruption;
 
 class JsonValueParserTest
 {
@@ -80,6 +81,20 @@ class JsonValueParserTest
     }
 
     @Test
+    void shouldPresentTheSameEventsAfterSavingAndRestoringAtEveryWindowBoundary()
+    {
+        for (String document : new String[] {OBJECT, SCALAR, ARRAY})
+        {
+            final String expected = events(document, document.length());
+
+            for (int window = 1; window <= document.length(); window++)
+            {
+                assertEquals(expected, events(document, window, true), "window " + window + " of " + document);
+            }
+        }
+    }
+
+    @Test
     void shouldBeArmedAgainForTheNextValue()
     {
         final byte[] bytes = "{\"v\":{\"a\":1},\"w\":[2]}".getBytes(UTF_8);
@@ -120,12 +135,21 @@ class JsonValueParserTest
         String document,
         int window)
     {
+        return events(document, window, false);
+    }
+
+    private static String events(
+        String document,
+        int window,
+        boolean roundTrip)
+    {
         final byte[] bytes = document.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         final JsonParserEx parser = JsonEx.createParser();
         final JsonParserEx value = JsonEx.createValueParser(parser);
         final List<String> seen = new ArrayList<>();
         final StringBuilder text = new StringBuilder();
+        final UnsafeBufferEx record = new UnsafeBufferEx(new byte[256]);
 
         int phase = 0;
         int offset = 0;
@@ -181,6 +205,19 @@ class JsonValueParserTest
 
             offset = limit - parser.remaining();
             limit = Math.min(limit + window, bytes.length);
+
+            if (roundTrip)
+            {
+                final JsonParserEx saved = phase == 1 ? value : parser;
+                saved.save(record, 3);
+                JsonStateCorruption.corruptParser(parser);
+                if (phase == 1)
+                {
+                    JsonStateCorruption.corrupt(value);
+                }
+
+                saved.restore(record, 3);
+            }
         }
 
         return String.join(" ", seen);
