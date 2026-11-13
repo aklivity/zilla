@@ -324,7 +324,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesServerDecoder decodeIgnore = this::decodeIgnore;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyFrame = this::decodeReplyFrame;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyNext = this::decodeReplyNext;
-    private final LlmOpenaiResponsesReplyDecoder decodeReplyAtomic = this::decodeReplyAtomic;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplySkipped = this::decodeReplySkipped;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextRoot = this::decodeReplyTextRoot;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextObject = this::decodeReplyTextObject;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextKey = this::decodeReplyTextKey;
@@ -333,6 +333,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitations = this::decodeReplyCitations;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyControl = this::decodeReplyControl;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyRest = this::decodeReplyRest;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyDelta = this::decodeReplyDelta;
 
@@ -619,14 +620,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return offset + stream.replyFrameLength;
     }
 
-    private int decodeReplyAtomic(
+    private int decodeReplySkipped(
         LlmOpenaiResponsesStream stream,
         DirectBufferEx buffer,
         int offset,
         int limit)
     {
-        stream.doEncodeData(stream.encodeTraceId, buffer, offset + stream.replyPayloadFrom,
-            stream.replyFrameLength - stream.replyPayloadFrom, Flags.hasFin(stream.replyFlags));
         stream.decoder = decodeReplyNext;
 
         return offset;
@@ -680,6 +679,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         stream.emitDelta();
         stream.decoder = decodeReplyNext;
+
+        return offset;
+    }
+
+    private int decodeReplyControl(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.decoder = decodeReplyNext;
+        stream.putControl(buffer, offset);
 
         return offset;
     }
@@ -5105,7 +5116,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
         private LlmOpenaiResponsesReplyDecoder decoder = decodeReplyFrame;
-        private LlmOpenaiResponsesReplyDecoder dataDecoder = decodeReplyAtomic;
+        private LlmOpenaiResponsesReplyDecoder dataDecoder = decodeReplySkipped;
         private LlmOpenaiResponsesReplyDecoder textThen = decodeReplyNext;
         private JsonParserEx replyParser;
         private byte[] replyTail;
@@ -5428,9 +5439,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                 case KIND_TEXT, KIND_REFUSAL, KIND_REASONING -> decodeReplyTextRoot;
                 case KIND_CITATIONS -> decodeReplyCitations;
+                case KIND_CONTROL -> decodeReplyControl;
                 case KIND_CALL, KIND_PROVIDER -> decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
-                default -> decodeReplyAtomic;
+                default -> decodeReplySkipped;
                 };
             }
             else
@@ -5562,6 +5574,19 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                         tail.clear();
                     }
                 }
+            }
+        }
+
+        private void putControl(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            final int payloadFrom = offset + replyPayloadFrom;
+
+            if (!splitter.put(buffer, payloadFrom, offset + replyFrameLength - payloadFrom, Flags.hasFin(replyFlags)) ||
+                hold.failed())
+            {
+                rejectReply();
             }
         }
 
@@ -6233,34 +6258,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 extension != null &&
                 extension.equals(itemType) &&
                 LlmOpenaiResponsesItems.split(extension);
-        }
-
-        private void doEncodeData(
-            long traceId,
-            DirectBufferEx payload,
-            int payloadOffset,
-            int payloadLength,
-            boolean fin)
-        {
-            boolean accepted = true;
-
-            switch (kind)
-            {
-            case KIND_CONTROL:
-                accepted = splitter.put(payload, payloadOffset, payloadLength, fin) && !hold.failed();
-                break;
-            default:
-                break;
-            }
-
-            if (!accepted)
-            {
-                server.cleanup(traceId);
-            }
-            else
-            {
-                emitDelta();
-            }
         }
 
         private void emitDelta()
