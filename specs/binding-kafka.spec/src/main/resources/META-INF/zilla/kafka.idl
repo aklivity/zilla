@@ -180,6 +180,8 @@ scope kafka
     {
         enum KafkaApi (uint8)
         {
+            SHARE_ACQUIRED (246),
+            SHARE (247),
             API_REQUEST (248),
             API_RESPONSE (249),
             REQUEST (250),
@@ -203,6 +205,7 @@ scope kafka
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 247: kafka::stream::KafkaShareBeginEx share;
             case 248: kafka::stream::KafkaApiRequestBeginEx apiRequest;
             case 249: kafka::stream::KafkaApiResponseBeginEx apiResponse;
             case 250: kafka::stream::KafkaRequestBeginEx request;
@@ -222,6 +225,7 @@ scope kafka
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
         {
+            case 247: kafka::stream::KafkaShareDataEx share;
             case 252: kafka::stream::KafkaConsumerDataEx consumer;
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
@@ -234,6 +238,8 @@ scope kafka
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
         {
+            case 246: kafka::stream::KafkaShareAcquiredFlushEx shareAcquired;
+            case 247: kafka::stream::KafkaShareFlushEx share;
             case 248: kafka::stream::KafkaApiFlushEx apiFlush;
             case 252: kafka::stream::KafkaConsumerFlushEx consumer;
             case 253: kafka::stream::KafkaGroupFlushEx group;
@@ -432,6 +438,55 @@ scope kafka
             KafkaTransaction[] transactions;
             KafkaFilter[] filters; // ORed
             KafkaEvaluation evaluation = LAZY;
+        }
+
+        enum KafkaShareAckType (uint8)
+        {
+            ACCEPT (1),
+            RELEASE (2),
+            REJECT (3)
+        }
+
+        struct KafkaShareBeginEx
+        {
+            string16 groupId;
+            string16 memberId = null;
+            string16 topic;
+            string16 host = null;
+            int32 port = 0;
+            KafkaFilter[] filters; // ORed
+        }
+
+        struct KafkaShareDataEx
+        {
+            int32 deferred = 0;                             // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;                            // INIT only
+            int32 deliveryCount = 0;                        // INIT only, 0 when not reported
+            KafkaOffset partition;                          // INIT only
+            KafkaKey key;                                   // INIT only
+            KafkaHeader[] headers;                          // FIN only
+        }
+
+        struct KafkaShareFlushEx
+        {
+            KafkaOffset partition;
+            KafkaShareAckType type;
+            int64 correlationId = -1;
+            int32 error = 0;
+        }
+
+        struct KafkaShareAcquiredRange
+        {
+            int64 firstOffset;
+            int64 lastOffset;
+            int32 deliveryCount = 1;
+        }
+
+        struct KafkaShareAcquiredFlushEx
+        {
+            int32 partitionId;
+            int32 lockTimeoutMillis;
+            KafkaShareAcquiredRange[] ranges;
         }
 
         struct KafkaProduceFlushEx

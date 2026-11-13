@@ -1,0 +1,377 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
+read  42                                             # size
+      3s                                             # metadata
+      13s                                            # v13
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x02]                                         # topics
+        [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00] # topic id
+        [0x05] "test"                                # name
+        [0x00]                                       # tagged fields
+      [0x00]                                         # allow auto topic creation
+      [0x00]                                         # include topic authorized operations
+      [0x00]                                         # tagged fields
+
+write 144                                            # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      [0x03]                                         # brokers
+        0xb1                                         # node id
+        [0x14] "broker1.example.com"                 # host
+        9092                                         # port
+        [0x00]                                       # rack
+        [0x00]                                       # tagged fields
+        0xb2                                         # node id
+        [0x14] "broker2.example.com"                 # host
+        9092                                         # port
+        [0x00]                                       # rack
+        [0x00]                                       # tagged fields
+      [0x0a] "cluster 1"                             # cluster id
+      0xb1                                           # controller id
+      [0x02]                                         # topics
+        0s                                           # error code
+        [0x05] "test"                                # name
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x00]                                       # is internal
+        [0x02]                                       # partitions
+          0s                                         # error code
+          0                                          # partition index
+          0xb2                                       # leader id
+          0                                          # leader epoch
+          [0x02]                                     # replica nodes
+          0xb2                                       # node id
+          [0x02]                                     # isr nodes
+          0xb2                                       # node id
+          [0x01]                                     # offline replicas
+          [0x00]                                     # tagged fields
+        -2147483648                                  # topic authorized operations
+        [0x00]                                       # tagged fields
+      0s                                             # error code
+      [0x00]                                         # tagged fields
+
+read  24                                             # size
+      10s                                            # find coordinator
+      6s                                             # v6
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x00]                                         # key type (group)
+      [0x02]                                         # coordinator keys
+        [0x05] "test"                                # key
+      [0x00]                                         # tagged fields
+
+write 48                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      [0x02]                                         # coordinators
+        [0x05] "test"                                # key
+        0xb1                                         # node id
+        [0x14] "broker1.example.com"                 # host
+        9092                                         # port
+        0s                                           # error code
+        [0x01]                                       # error message
+        [0x00]                                       # tagged fields
+      [0x00]                                         # tagged fields
+
+accepted
+
+read zilla:begin.ext ${proxy:matchBeginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker1.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
+                              .build()}
+
+connected
+
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
+read  56                                             # size
+      76s                                            # share group heartbeat
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      0                                              # member epoch
+      [0x00]                                         # rack id
+      [0x02]                                         # subscribed topic names
+        [0x05] "test"                                # topic name
+      [0x00]                                         # tagged fields
+
+write 47                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      1                                              # member epoch
+      50                                             # heartbeat interval ms
+      [0x01]                                         # assignment
+      [0x01]                                         # topic partitions
+      [0x00]                                         # tagged fields
+      [0x00]                                         # tagged fields
+
+read  51                                             # size
+      76s                                            # share group heartbeat
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      1                                              # member epoch
+      [0x00]                                         # rack id
+      [0x00]                                         # subscribed topic names (unchanged)
+      [0x00]                                         # tagged fields
+
+write 47                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      25s                                            # error code
+      [0x19] "The member id is unknown"              # error message
+      [0x00]                                         # member id
+      0                                              # member epoch
+      0                                              # heartbeat interval ms
+      [0xff]                                         # assignment (unchanged)
+      [0x00]                                         # tagged fields
+
+read  56                                             # size
+      76s                                            # share group heartbeat
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      0                                              # member epoch
+      [0x00]                                         # rack id
+      [0x02]                                         # subscribed topic names
+        [0x05] "test"                                # topic name
+      [0x00]                                         # tagged fields
+
+write 69                                             # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      1                                              # member epoch
+      5000                                           # heartbeat interval ms
+      [0x01]                                         # assignment
+      [0x02]                                         # topic partitions
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition
+        [0x00]                                       # tagged fields
+      [0x00]                                         # tagged fields
+      [0x00]                                         # tagged fields
+
+accepted
+
+read zilla:begin.ext ${proxy:matchBeginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker2.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker2.example.com")
+                                .build()
+                              .build()}
+
+connected
+
+read  15                                             # size
+      18s                                            # api versions
+      0s                                             # v0
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+
+write 40                                             # size
+      ${requestId}                                   # correlation id
+      0s                                             # error code
+      5                                              # api key count
+        3s                                           # api key
+        0s                                           # min version
+        13s                                          # max version
+        10s                                          # api key
+        0s                                           # min version
+        6s                                           # max version
+        76s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        78s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+        79s                                          # api key
+        1s                                           # min version
+        1s                                           # max version
+
+read  95                                             # size
+      78s                                            # share fetch
+      1s                                             # v1
+      (int:requestId)                                # correlation id
+      5s "zilla"                                     # client id
+      [0x00]                                         # tagged fields
+      [0x05] "test"                                  # group id
+      [0x17] "AAECAwQFBgcICQoLDA0ODw"                # member id
+      0                                              # share session epoch
+      500                                            # max wait ms
+      1                                              # min bytes
+      52428800                                       # max bytes
+      500                                            # max records
+      500                                            # batch size
+      [0x02]                                         # topics
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition index
+          [0x01]                                     # acknowledgement batches
+          [0x00]                                     # tagged fields
+        [0x00]                                       # tagged fields
+      [0x01]                                         # forgotten topics
+      [0x00]                                         # tagged fields
+
+write 158                                            # size
+      ${requestId}                                   # correlation id
+      [0x00]                                         # tagged fields
+      0                                              # throttle time ms
+      0s                                             # error code
+      [0x00]                                         # error message
+      30000                                          # acquisition lock timeout ms
+      [0x02]                                         # responses
+        [0x20 0x36 0xc8 0x4b 0xed 0x06 0x49 0xa5 0xba 0xbb 0x7a 0x50 0x61 0xd6 0xd8 0xb0] # topic id
+        [0x02]                                       # partitions
+          0                                          # partition index
+          0s                                         # error code
+          [0x00]                                     # error message
+          0s                                         # acknowledge error code
+          [0x00]                                     # acknowledge error message
+          0                                          # current leader id
+          0                                          # current leader epoch
+          [0x00]                                     # tagged fields
+          [0x51]                                     # records
+          5L                                         # first offset
+          68                                         # length
+          0                                          # partition leader epoch
+          [0x02]                                     # magic
+          0x4e8723aa                                 # crc
+          0s                                         # attributes
+          0                                          # last offset delta
+          ${newTimestamp}                            # first timestamp
+          ${newTimestamp}                            # last timestamp
+          -1L                                        # producer id
+          -1s                                        # producer epoch
+          -1                                         # base sequence
+          1                                          # records
+          ${kafka:varint(18)}                        # record length
+          [0x00]                                     # attributes
+          ${kafka:varint(0)}                         # timestamp delta
+          ${kafka:varint(0)}                         # offset delta
+          ${kafka:varint(-1)}                        # key
+          ${kafka:varint(12)}                        # value
+          "Hello, world"
+          ${kafka:varint(0)}                         # headers
+          [0x02]                                     # acquired records
+            5L                                       # first offset
+            5L                                       # last offset
+            1s                                       # delivery count
+            [0x00]                                   # tagged fields
+          [0x00]                                     # tagged fields
+        [0x00]                                       # tagged fields
+      [0x01]                                         # node endpoints
+      [0x00]                                         # tagged fields

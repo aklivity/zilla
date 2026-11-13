@@ -1517,6 +1517,359 @@ scope protocol
         }
 
 
+        scope topic_metadata_v13
+        {
+            struct MetadataRequest // v13
+            {
+                varuint32 taggedFields;
+                varuint32n topicCount;
+            }
+
+            struct MetadataTopicRequest
+            {
+                octets[16] topicId;
+                varstring name = null;
+                varuint32 taggedFields;
+            }
+
+            struct MetadataRequestPart2
+            {
+                uint8 allowAutoTopicCreation;
+                uint8 includeTopicAuthorizedOperations;
+                varuint32 taggedFields;
+            }
+
+            struct TopicMetadata
+            {
+                int16 errorCode;
+                varstring topic = null;
+                octets[16] topicId;
+                uint8 isInternal;
+                varuint32n partitionCount;
+            }
+
+            struct MetadataResponsePart3
+            {
+                int16 errorCode;
+                varuint32 taggedFields;
+            }
+        }
+
+        scope find_coordinator_v6
+        {
+            struct FindCoordinatorRequest // v6
+            {
+                varuint32 taggedFields;
+                int8 keyType;
+                varuint32n keyCount;
+            }
+
+            struct KeyRequest
+            {
+                varstring key;
+            }
+
+            struct FindCoordinatorRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct FindCoordinatorResponse
+            {
+                int32 correlationId;
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n coordinatorCount;
+            }
+
+            struct CoordinatorResponse
+            {
+                varstring key;
+                int32 nodeId;
+                varstring host;
+                int32 port;
+                int16 error;
+                varstring message = null;
+                varuint32 taggedFields;
+            }
+
+            struct FindCoordinatorResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        scope share_group_heartbeat_v1
+        {
+            struct ShareGroupHeartbeatRequest // v1
+            {
+                varuint32 taggedFields;
+                varstring groupId;
+                varstring memberId;
+                int32 memberEpoch;
+                varstring rackId = null;
+                varuint32n subscribedTopicCount;
+            }
+
+            struct SubscribedTopicRequest
+            {
+                varstring name;
+            }
+
+            struct ShareGroupHeartbeatRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareGroupHeartbeatResponse
+            {
+                int32 correlationId;
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                int16 error;
+                varstring message = null;
+                varstring memberId = null;
+                int32 memberEpoch;
+                int32 heartbeatIntervalMillis;
+                int8 assignment;
+            }
+
+            struct AssignmentResponse
+            {
+                varuint32n topicCount;
+            }
+
+            struct TopicPartitionsResponse
+            {
+                octets[16] topicId;
+                varuint32n partitionCount;
+            }
+
+            struct AssignedPartitionResponse
+            {
+                int32 partitionIndex;
+            }
+
+            struct TopicPartitionsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct AssignmentResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareGroupHeartbeatResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        scope share_fetch_v1
+        {
+            struct ShareFetchRequest // v1
+            {
+                varuint32 taggedFields;
+                varstring groupId;
+                varstring memberId;
+                int32 shareSessionEpoch;
+                int32 maxWaitMillis;
+                int32 minBytes;
+                int32 maxBytes;
+                int32 maxRecords;
+                int32 batchSize;
+                varuint32n topicCount;
+            }
+
+            struct TopicRequest
+            {
+                octets[16] topicId;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionRequest
+            {
+                int32 partitionIndex;
+                varuint32n acknowledgementBatchCount;
+            }
+
+            struct AcknowledgementBatchRequest
+            {
+                int64 firstOffset;
+                int64 lastOffset;
+                varuint32n acknowledgeTypeCount;
+            }
+
+            struct AcknowledgeTypeRequest
+            {
+                int8 type;
+            }
+
+            struct AcknowledgementBatchRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct PartitionRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct TopicRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareFetchRequestPart2
+            {
+                varuint32n forgottenTopicCount;
+            }
+
+            struct ForgottenTopicRequest
+            {
+                octets[16] topicId;
+                varuint32n partitionCount;
+            }
+
+            struct ForgottenPartitionRequest
+            {
+                int32 partitionIndex;
+            }
+
+            struct ForgottenTopicRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareFetchRequestPart3
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareFetchResponse
+            {
+                int32 correlationId;
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                int16 error;
+                varstring message = null;
+                int32 acquisitionLockTimeoutMillis;
+                varuint32n topicCount;
+            }
+
+            struct TopicResponse
+            {
+                octets[16] topicId;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionResponse
+            {
+                int32 partitionIndex;
+                int16 error;
+                varstring message = null;
+                int16 acknowledgeError;
+                varstring acknowledgeMessage = null;
+                int32 currentLeaderId;
+                int32 currentLeaderEpoch;
+                varuint32 currentLeaderTaggedFields;
+                varuint32n recordSetLength;
+            }
+
+            struct PartitionResponsePart2
+            {
+                varuint32n acquiredRecordCount;
+            }
+
+            struct AcquiredRecordResponse
+            {
+                int64 firstOffset;
+                int64 lastOffset;
+                int16 deliveryCount;
+                varuint32 taggedFields;
+            }
+
+            struct PartitionResponsePart3
+            {
+                varuint32 taggedFields;
+            }
+
+            struct TopicResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareFetchResponsePart2
+            {
+                varuint32n nodeEndpointCount;
+            }
+
+            struct ShareFetchResponsePart3
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        scope share_acknowledge_v1
+        {
+            struct ShareAcknowledgeRequest // v1
+            {
+                varuint32 taggedFields;
+                varstring groupId;
+                varstring memberId;
+                int32 shareSessionEpoch;
+                varuint32n topicCount;
+            }
+
+            struct ShareAcknowledgeRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareAcknowledgeResponse
+            {
+                int32 correlationId;
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                int16 error;
+                varstring message = null;
+                varuint32n topicCount;
+            }
+
+            struct AcknowledgeTopicResponse
+            {
+                octets[16] topicId;
+                varuint32n partitionCount;
+            }
+
+            struct AcknowledgePartitionResponse
+            {
+                int32 partitionIndex;
+                int16 error;
+                varstring message = null;
+                int32 currentLeaderId;
+                int32 currentLeaderEpoch;
+                varuint32 currentLeaderTaggedFields;
+                varuint32 taggedFields;
+            }
+
+            struct AcknowledgeTopicResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ShareAcknowledgeResponsePart2
+            {
+                varuint32n nodeEndpointCount;
+            }
+
+            struct ShareAcknowledgeResponsePart3
+            {
+                varuint32 taggedFields;
+            }
+        }
+
         scope api_versions
         {
             struct ApiVersionsResponse // v0
