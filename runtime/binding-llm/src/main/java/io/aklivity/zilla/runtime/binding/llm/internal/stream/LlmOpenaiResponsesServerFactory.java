@@ -146,7 +146,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
-    private static final int RESPONSE_ESCAPE_EXPANSION = 6;
+    private static final int RESPONSE_GROWTH = 2;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
     private static final String MEMBER_TEXT = "text";
@@ -628,7 +628,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         final OctetsFW payload = frame.payload();
 
-        return RESPONSE_ENCODE_SLACK + (payload != null ? payload.sizeof() * RESPONSE_ESCAPE_EXPANSION : 0);
+        return RESPONSE_ENCODE_SLACK + (payload != null ? payload.sizeof() * RESPONSE_GROWTH : 0);
     }
 
     private int decodeReplyFinish(
@@ -5349,7 +5349,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
+            replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_GROWTH;
 
             if (server.streaming && accumulator == null)
             {
@@ -6786,7 +6786,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    ensureEncodeRoom((to - from) * RESPONSE_ESCAPE_EXPANSION);
+                    ensureEncodeRoom(body.length(chars, from, to));
                     generator.writeSegment(chars, from, to);
                 }
             }
