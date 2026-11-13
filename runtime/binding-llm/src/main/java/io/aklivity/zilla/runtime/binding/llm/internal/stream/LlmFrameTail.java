@@ -40,7 +40,7 @@ final class LlmFrameTail
     {
         if (bytes.length < length)
         {
-            bytes = new byte[length];
+            bytes = new byte[Math.max(length, bytes.length << 1)];
         }
 
         buffer.getBytes(offset, bytes, 0, length);
