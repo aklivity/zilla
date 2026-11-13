@@ -114,8 +114,8 @@ import org.agrona.LangUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
-import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongArrayList;
 import org.agrona.collections.Object2IntHashMap;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
@@ -2657,8 +2657,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
-        private final Long2LongHashMap unAckedReceivedQos1PacketIds;
-        private final Long2LongHashMap unAckedReceivedQos2PacketIds;
 
         private IntArrayList unreleasedPacketIds;
 
@@ -2707,8 +2705,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Int2IntHashMap(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
-            this.unAckedReceivedQos1PacketIds = new Long2LongHashMap(-1);
-            this.unAckedReceivedQos2PacketIds = new Long2LongHashMap(-1);
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
             this.unreleasedPacketIds = new IntArrayList();
@@ -6329,6 +6325,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int initialMin;
             private int initialPad;
             private int decodablePayloadSize;
+            private int qos;
+            private final LongArrayList pendingAckSequences = new LongArrayList();
+            private final IntArrayList pendingAckPacketIds = new IntArrayList();
 
             private long replySeq;
             private long replyAck;
@@ -6366,6 +6365,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     assert state == 0;
                     state = StreamState.openingInitial(state);
+                    this.qos = qos;
 
                     final MqttBeginExFW beginEx = mqttPublishBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
@@ -6410,14 +6410,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
 
-                boolean completed = hasFin(flags);
-                if (mqttPublishHelper.qos == 1 && completed)
+                if (qos > 0 && hasFin(flags))
                 {
-                    unAckedReceivedQos1PacketIds.put(initialSeq, packetId);
-                }
-                else if (mqttPublishHelper.qos == 2 && completed)
-                {
-                    unAckedReceivedQos2PacketIds.put(initialSeq, packetId);
+                    pendingAckSequences.addLong(initialSeq);
+                    pendingAckPacketIds.addInt(packetId);
                 }
 
                 doSignalPublishExpiration(traceId);
@@ -6581,32 +6577,26 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                for (Map.Entry<Long, Long> e : unAckedReceivedQos1PacketIds.entrySet())
+                while (!pendingAckSequences.isEmpty() && pendingAckSequences.getLong(0) <= acknowledge)
                 {
-                    if (e.getKey() <= acknowledge)
+                    final int packetId = pendingAckPacketIds.getInt(0);
+                    pendingAckSequences.removeAt(0);
+                    pendingAckPacketIds.removeAt(0);
+
+                    if (qos == 1)
                     {
                         switch (version)
                         {
                         case 4:
-                            doEncodePubackV4(traceId, authorization, e.getValue().intValue());
+                            doEncodePubackV4(traceId, authorization, packetId);
                             break;
                         case 5:
-                            doEncodePubackV5(traceId, authorization, e.getValue().intValue());
+                            doEncodePubackV5(traceId, authorization, packetId);
                             break;
                         }
-                        unAckedReceivedQos1PacketIds.remove(e.getKey());
                     }
                     else
                     {
-                        break;
-                    }
-                }
-
-                for (Map.Entry<Long, Long> e : unAckedReceivedQos2PacketIds.entrySet())
-                {
-                    if (e.getKey() <= acknowledge)
-                    {
-                        final int packetId = e.getValue().intValue();
                         switch (version)
                         {
                         case 4:
@@ -6616,12 +6606,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             doEncodePubrecV5(traceId, authorization, packetId);
                             break;
                         }
-                        unAckedReceivedQos2PacketIds.remove(e.getKey());
                         unreleasedPacketIds.add(packetId);
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
             }
