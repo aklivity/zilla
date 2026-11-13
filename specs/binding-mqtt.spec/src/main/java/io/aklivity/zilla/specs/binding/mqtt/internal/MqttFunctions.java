@@ -472,6 +472,13 @@ public final class MqttFunctions
                 subscribeDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttSubscribeDataExBuilder deferred(
+                int deferred)
+            {
+                subscribeDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttSubscribeDataExBuilder topic(
                 String topic)
             {
