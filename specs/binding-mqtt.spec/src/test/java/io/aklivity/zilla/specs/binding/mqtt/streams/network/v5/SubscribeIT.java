@@ -440,6 +440,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
+        "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
+    public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.qos1.puback.failure.reason.code/client",
+        "${net}/subscribe.receive.message.qos1.puback.failure.reason.code/server"})
+    public void shouldReceiveMessageQoS1AfterPubackFailureReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.messages.mixture.qos/client",
         "${net}/subscribe.receive.messages.mixture.qos/server"})
     public void shouldReceiveMessagesMixtureQos() throws Exception
