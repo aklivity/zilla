@@ -309,4 +309,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${net}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
 }
