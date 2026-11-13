@@ -34,6 +34,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_END_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_RESET_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_ACK;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_AFFINITY;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_FLAGS;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WINDOW;
 import static java.util.Collections.unmodifiableMap;
@@ -90,6 +91,7 @@ import io.aklivity.k3po.runtime.lang.types.StructuredTypeInfo;
 import io.aklivity.k3po.runtime.lang.types.TypeInfo;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAbortExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAckOptionHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAffinityOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadBeginExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadDataExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadEmptyDataHandler;
@@ -124,6 +126,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         readOptionFactories.put(OPTION_FLAGS, ZillaBehaviorSystem::newReadFlagsHandler);
         readOptionFactories.put(OPTION_ACK, ZillaBehaviorSystem::newReadAckHandler);
         readOptionFactories.put(OPTION_WINDOW, ZillaBehaviorSystem::newReadWindowHandler);
+        readOptionFactories.put(OPTION_AFFINITY, ZillaBehaviorSystem::newReadAffinityHandler);
         this.readOptionFactories = unmodifiableMap(readOptionFactories);
 
         Map<TypeInfo<?>, WriteOptionFactory> writeOptionsFactories = new LinkedHashMap<>();
@@ -302,6 +305,16 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         AstValue<?> windowValue = node.getOptionValue();
         int value = windowValue.accept(new GenerateAckOptionValueVisitor(), null);
         ReadWindowOptionHandler handler = new ReadWindowOptionHandler(value);
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static ChannelHandler newReadAffinityHandler(
+        AstReadOptionNode node)
+    {
+        AstValue<?> affinityValue = node.getOptionValue();
+        long value = affinityValue.accept(new GenerateAffinityOptionValueVisitor(), null);
+        ReadAffinityOptionHandler handler = new ReadAffinityOptionHandler(value);
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
     }
@@ -649,6 +662,73 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
             State state)
         {
             return -1;
+        }
+    }
+
+    private static final class GenerateAffinityOptionValueVisitor implements AstValue.Visitor<Long, State>
+    {
+        @Override
+        public Long visit(
+            AstExpressionValue<?> value,
+            State state)
+        {
+            return ((Number) value.getValue()).longValue();
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralTextValue value,
+            State state)
+        {
+            throw new IllegalArgumentException("zilla:affinity expects a numeric value");
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralBytesValue value,
+            State state)
+        {
+            throw new IllegalArgumentException("zilla:affinity expects a numeric value");
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralByteValue value,
+            State state)
+        {
+            return value.getValue().longValue();
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralShortValue value,
+            State state)
+        {
+            return value.getValue().longValue();
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralIntegerValue value,
+            State state)
+        {
+            return value.getValue().longValue();
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralLongValue value,
+            State state)
+        {
+            return value.getValue();
+        }
+
+        @Override
+        public Long visit(
+            AstLiteralURIValue value,
+            State state)
+        {
+            throw new IllegalArgumentException("zilla:affinity expects a numeric value");
         }
     }
 

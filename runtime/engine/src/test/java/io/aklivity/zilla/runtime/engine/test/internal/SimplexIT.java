@@ -137,6 +137,28 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.read.affinity/client",
+        "handshake.read.affinity/server"
+    })
+    public void shouldReadAffinityOfEachStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "handshake.read.affinity.mismatch/client",
+        "handshake.read.affinity.mismatch/server"
+    })
+    public void shouldRejectReadAffinityMismatch() throws Exception
+    {
+        thrown.expect(anyOf(isA(ComparisonFailure.class),
+                            hasProperty("failures", hasItem(isA(ComparisonFailure.class)))));
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.circuit.id/client",
         "handshake.circuit.id/server"
     })
