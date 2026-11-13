@@ -873,6 +873,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
+        "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
+    public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/client",
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
