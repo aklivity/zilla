@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
@@ -44,6 +45,9 @@ public final class JsonValueParser implements JsonParserEx
         CLOSING,
         DONE
     }
+
+    private static final State[] STATES = State.values();
+    private static final JsonEvent[] EVENTS = JsonEvent.values();
 
     private final JsonParserEx parser;
 
@@ -89,6 +93,42 @@ public final class JsonValueParser implements JsonParserEx
         state = State.PENDING;
         depth = 0;
         lastEvent = null;
+    }
+
+    @Override
+    public int save(
+        MutableDirectBufferEx buffer,
+        int offset)
+    {
+        int mode = JsonParseState.docState(0, state.ordinal());
+        mode = JsonParseState.lastEvent(mode, lastEvent == null ? 0 : lastEvent.ordinal() + 1);
+
+        int progress = offset;
+        buffer.putInt(progress, mode);
+        progress += Integer.BYTES;
+        buffer.putInt(progress, depth);
+        progress += Integer.BYTES;
+        progress += parser.save(buffer, progress);
+
+        return progress - offset;
+    }
+
+    @Override
+    public void restore(
+        DirectBufferEx buffer,
+        int offset)
+    {
+        int progress = offset;
+        final int mode = buffer.getInt(progress);
+        progress += Integer.BYTES;
+        depth = buffer.getInt(progress);
+        progress += Integer.BYTES;
+
+        state = STATES[JsonParseState.docState(mode)];
+        final int lastEventCode = JsonParseState.lastEvent(mode);
+        lastEvent = lastEventCode == 0 ? null : EVENTS[lastEventCode - 1];
+
+        parser.restore(buffer, progress);
     }
 
     @Override

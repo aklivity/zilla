@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 // Pluggable scan engine behind JsonParserImpl, selected per JVM via JsonTokenizerFactory. A tokenizer owns the
 // JSON grammar's resumable state machine over a caller-supplied, buffer-resident input window; the parser drives
@@ -110,6 +111,21 @@ public interface JsonTokenizer
     // Ends the current document and begins the next top-level value at the current stream position, without
     // rewinding streamOffset/line/column the way reset() does — for a multi-document session over one feed.
     void nextDocument();
+
+    // Writes the state that survives a window boundary into the buffer at the offset and returns the number of
+    // bytes written, so one tokenizer can serve many streams: restore() puts it back, in this or any other
+    // tokenizer, before the next wrap(). Throws IllegalStateException unless an event has been taken and cleared,
+    // so no event is pending. It does not allocate.
+    int save(
+        MutableDirectBufferEx buffer,
+        int offset);
+
+    // Reads the state save() wrote at the offset, replacing the state of this tokenizer, whatever it held; the
+    // caller wraps the next window, starting with the bytes the previous one left unconsumed, before the next
+    // advance(). Any mark is discarded.
+    void restore(
+        DirectBufferEx buffer,
+        int offset);
 
     // Takes a mark at the current whole-token boundary for a later rewind(); throws IllegalStateException if
     // called mid-token (a pending event, a resume in progress, or a fragment still open).
