@@ -6235,8 +6235,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private LlmTextPipeline encodeText;
         private LlmTextPipeline sectionText;
         private LlmTextPipeline reasoningText;
-        private final LlmEdgeFilter reasoningMembers =
-            new LlmEdgeFilter((buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length));
+        private final LlmSectionPipeline.Output reasoningMembersOutput =
+            (buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length);
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::containerBuffer);
         private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
@@ -6722,7 +6722,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             case KIND_ASSISTANT_REASONING:
                 reasoningText().begin();
                 reasoningPipeline().begin(sectionAttributes);
-                reasoningMembers.reset();
                 break;
             case KIND_SERVER_TOOL_CALL:
                 callOutput.begin();
@@ -7088,7 +7087,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             if (beginEncode(ENCODE_STRUCTURE))
             {
                 if (!reasoningText().feed(buffer, offset, length, fin) ||
-                    !reasoningPipeline.feed(buffer, offset, length, fin, reasoningMembers))
+                    !reasoningPipeline.feedEdges(buffer, offset, length, fin, reasoningMembersOutput))
                 {
                     encodeFailed = true;
                 }
