@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -165,17 +164,6 @@ class JsonParserSaveRestoreTest
         }
 
         assertTrue(diverged * 10 > total * 9, "diverged " + diverged + " of " + total);
-    }
-
-    @Test
-    void shouldNotSaveOrRestoreAValueParser()
-    {
-        final JsonParserEx source = JsonEx.createParser();
-        final JsonParserEx value = JsonEx.createValueParser(source);
-        final UnsafeBufferEx record = new UnsafeBufferEx(new byte[RECORD_CAPACITY]);
-
-        assertThrows(UnsupportedOperationException.class, () -> value.save(record, 0));
-        assertThrows(UnsupportedOperationException.class, () -> value.restore(record, 0));
     }
 
     @Test
@@ -324,7 +312,7 @@ class JsonParserSaveRestoreTest
                 }
 
                 final int length = parser.save(record, RECORD_OFFSET);
-                corrupt(parser);
+                JsonStateCorruption.corruptParser(parser);
                 if (restore)
                 {
                     parser.restore(record, RECORD_OFFSET);
@@ -393,62 +381,6 @@ class JsonParserSaveRestoreTest
         final Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         return field.get(target);
-    }
-
-    private static void corrupt(
-        JsonParserEx parser)
-    {
-        try
-        {
-            corrupt(parser, parser);
-            final Field tokenizerField = parser.getClass().getDeclaredField("tokenizer");
-            tokenizerField.setAccessible(true);
-            corrupt(tokenizerField.get(parser), parser);
-        }
-        catch (ReflectiveOperationException ex)
-        {
-            throw new IllegalStateException(ex);
-        }
-    }
-
-    // every non-final, non-array field of the object takes a value that is not the one it held, so a field the
-    // record does not carry, and the next wrap does not rewrite, breaks the parse that follows the restore
-    private static void corrupt(
-        Object target,
-        JsonParserEx parser) throws ReflectiveOperationException
-    {
-        for (Field field : target.getClass().getDeclaredFields())
-        {
-            final int modifiers = field.getModifiers();
-            if (!Modifier.isStatic(modifiers) && !Modifier.isFinal(modifiers) && !field.getType().isArray())
-            {
-                field.setAccessible(true);
-                final Class<?> type = field.getType();
-                if (type == boolean.class)
-                {
-                    field.setBoolean(target, !field.getBoolean(target));
-                }
-                else if (type == int.class)
-                {
-                    field.setInt(target, ~field.getInt(target) ^ 0x2a2a);
-                }
-                else if (type == long.class)
-                {
-                    field.setLong(target, ~field.getLong(target) ^ 0x2a2a2a2a2aL);
-                }
-                else if (type.isEnum())
-                {
-                    final Object[] constants = type.getEnumConstants();
-                    final Object current = field.get(target);
-                    final int next = current == null ? 0 : (((Enum<?>) current).ordinal() + 1) % constants.length;
-                    field.set(target, constants[next]);
-                }
-                else if (!type.isPrimitive())
-                {
-                    field.set(target, null);
-                }
-            }
-        }
     }
 
     private static List<String> corpus()

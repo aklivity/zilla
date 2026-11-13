@@ -46,6 +46,9 @@ public final class JsonValueParser implements JsonParserEx
         DONE
     }
 
+    private static final State[] STATES = State.values();
+    private static final JsonEvent[] EVENTS = JsonEvent.values();
+
     private final JsonParserEx parser;
 
     private State state;
@@ -97,7 +100,17 @@ public final class JsonValueParser implements JsonParserEx
         MutableDirectBufferEx buffer,
         int offset)
     {
-        throw new UnsupportedOperationException();
+        int mode = JsonParseState.docState(0, state.ordinal());
+        mode = JsonParseState.lastEvent(mode, lastEvent == null ? 0 : lastEvent.ordinal() + 1);
+
+        int progress = offset;
+        buffer.putInt(progress, mode);
+        progress += Integer.BYTES;
+        buffer.putInt(progress, depth);
+        progress += Integer.BYTES;
+        progress += parser.save(buffer, progress);
+
+        return progress - offset;
     }
 
     @Override
@@ -105,7 +118,17 @@ public final class JsonValueParser implements JsonParserEx
         DirectBufferEx buffer,
         int offset)
     {
-        throw new UnsupportedOperationException();
+        int progress = offset;
+        final int mode = buffer.getInt(progress);
+        progress += Integer.BYTES;
+        depth = buffer.getInt(progress);
+        progress += Integer.BYTES;
+
+        state = STATES[JsonParseState.docState(mode)];
+        final int lastEventCode = JsonParseState.lastEvent(mode);
+        lastEvent = lastEventCode == 0 ? null : EVENTS[lastEventCode - 1];
+
+        parser.restore(buffer, progress);
     }
 
     @Override
