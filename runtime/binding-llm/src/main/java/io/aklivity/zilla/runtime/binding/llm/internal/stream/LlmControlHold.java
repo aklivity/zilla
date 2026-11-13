@@ -22,12 +22,22 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 final class LlmControlHold
 {
+    @FunctionalInterface
+    interface Reference
+    {
+        void accept(
+            int offset,
+            int length);
+    }
+
     private static final int NONE = -1;
+    private static final DirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
     private static final int INITIAL_CAPACITY = 16;
 
     private final Supplier<MutableDirectBufferEx> store;
@@ -220,6 +230,24 @@ final class LlmControlHold
                         written + size == length ? Completion.COMPLETE : Completion.INCOMPLETE);
                     written += size;
                 }
+            }
+        }
+    }
+
+    void reference(
+        JsonGeneratorEx generator,
+        int kind,
+        Predicate<String> included,
+        Reference reference)
+    {
+        for (int index = 0; index < count; index++)
+        {
+            if (kinds[index] == kind && included.test(names[index]))
+            {
+                generator.writeKey(names[index]);
+                generator.writeSegment(EMPTY, 0, 0, Completion.INCOMPLETE);
+                reference.accept(offsets[index], lengths[index]);
+                generator.writeSegment(EMPTY, 0, 0, Completion.COMPLETE);
             }
         }
     }
