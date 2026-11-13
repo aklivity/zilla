@@ -99,4 +99,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.while.publish.fragmented/client",
+        "${app}/unsubscribe.while.publish.fragmented/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
 }
