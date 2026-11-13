@@ -127,4 +127,126 @@ public class JsonParseStateTest
     {
         assertThrows(IllegalArgumentException.class, () -> JsonParseState.popPath(0L, 0));
     }
+
+    @Test
+    public void shouldHoldEveryModeFieldAtItsMaximum()
+    {
+        int mode = JsonParseState.state(0, 15);
+        mode = JsonParseState.resumeOp(mode, 7);
+        mode = JsonParseState.numberState(mode, 15);
+        mode = JsonParseState.literalIndex(mode, 7);
+        mode = JsonParseState.memberSeparated(mode, true);
+        mode = JsonParseState.separatorBefore(mode, true);
+        mode = JsonParseState.segmenting(mode, true);
+        mode = JsonParseState.scalarSegment(mode, true);
+        mode = JsonParseState.fragmenting(mode, true);
+        mode = JsonParseState.escapeArmed(mode, true);
+        mode = JsonParseState.lens(mode, true);
+        mode = JsonParseState.resumeEscape(mode, true);
+
+        assertEquals(15, JsonParseState.state(mode));
+        assertEquals(7, JsonParseState.resumeOp(mode));
+        assertEquals(15, JsonParseState.numberState(mode));
+        assertEquals(7, JsonParseState.literalIndex(mode));
+        assertTrue(JsonParseState.memberSeparated(mode));
+        assertTrue(JsonParseState.separatorBefore(mode));
+        assertTrue(JsonParseState.segmenting(mode));
+        assertTrue(JsonParseState.scalarSegment(mode));
+        assertTrue(JsonParseState.fragmenting(mode));
+        assertTrue(JsonParseState.escapeArmed(mode));
+        assertTrue(JsonParseState.lens(mode));
+        assertTrue(JsonParseState.resumeEscape(mode));
+    }
+
+    @Test
+    public void shouldClearEachModeFieldWithoutDisturbingItsNeighbours()
+    {
+        int mode = JsonParseState.state(0, 15);
+        mode = JsonParseState.resumeOp(mode, 7);
+        mode = JsonParseState.numberState(mode, 15);
+        mode = JsonParseState.literalIndex(mode, 7);
+        mode = JsonParseState.memberSeparated(mode, true);
+        mode = JsonParseState.separatorBefore(mode, true);
+        mode = JsonParseState.segmenting(mode, true);
+        mode = JsonParseState.scalarSegment(mode, true);
+        mode = JsonParseState.fragmenting(mode, true);
+        mode = JsonParseState.escapeArmed(mode, true);
+        mode = JsonParseState.lens(mode, true);
+        mode = JsonParseState.resumeEscape(mode, true);
+
+        mode = JsonParseState.state(mode, 0);
+        assertEquals(7, JsonParseState.resumeOp(mode));
+        mode = JsonParseState.resumeOp(mode, 0);
+        assertEquals(15, JsonParseState.numberState(mode));
+        mode = JsonParseState.numberState(mode, 0);
+        assertEquals(7, JsonParseState.literalIndex(mode));
+        mode = JsonParseState.literalIndex(mode, 0);
+        assertTrue(JsonParseState.memberSeparated(mode));
+        mode = JsonParseState.memberSeparated(mode, false);
+        assertTrue(JsonParseState.separatorBefore(mode));
+        mode = JsonParseState.separatorBefore(mode, false);
+        assertTrue(JsonParseState.segmenting(mode));
+        mode = JsonParseState.segmenting(mode, false);
+        assertTrue(JsonParseState.scalarSegment(mode));
+        mode = JsonParseState.scalarSegment(mode, false);
+        assertTrue(JsonParseState.fragmenting(mode));
+        mode = JsonParseState.fragmenting(mode, false);
+        assertTrue(JsonParseState.escapeArmed(mode));
+        mode = JsonParseState.escapeArmed(mode, false);
+        assertTrue(JsonParseState.lens(mode));
+        mode = JsonParseState.lens(mode, false);
+        assertTrue(JsonParseState.resumeEscape(mode));
+        mode = JsonParseState.resumeEscape(mode, false);
+
+        assertEquals(0, mode);
+    }
+
+    @Test
+    public void shouldHoldEveryContextFieldAtItsMaximum()
+    {
+        int context = JsonParseState.depth(0, JsonParseState.MAX_DEPTH);
+        context = JsonParseState.scopeDepth(context, JsonParseState.MAX_DEPTH);
+        context = JsonParseState.unicodePending(context, 7);
+
+        assertEquals(JsonParseState.MAX_DEPTH, JsonParseState.depth(context));
+        assertEquals(JsonParseState.MAX_DEPTH, JsonParseState.scopeDepth(context));
+        assertEquals(7, JsonParseState.unicodePending(context));
+
+        context = JsonParseState.depth(context, 0);
+        assertEquals(JsonParseState.MAX_DEPTH, JsonParseState.scopeDepth(context));
+        context = JsonParseState.scopeDepth(context, 0);
+        assertEquals(7, JsonParseState.unicodePending(context));
+        context = JsonParseState.unicodePending(context, 0);
+        assertEquals(0, context);
+    }
+
+    @Test
+    public void shouldHoldEveryParserModeFieldAtItsMaximum()
+    {
+        int mode = JsonParseState.docState(0, 3);
+        mode = JsonParseState.lastEvent(mode, 63);
+        mode = JsonParseState.armNextValue(mode, true);
+        mode = JsonParseState.verbatim(mode, true);
+        mode = JsonParseState.trimLeadingSeparator(mode, true);
+        mode = JsonParseState.fragmentOpen(mode, true);
+
+        assertEquals(3, JsonParseState.docState(mode));
+        assertEquals(63, JsonParseState.lastEvent(mode));
+        assertTrue(JsonParseState.armNextValue(mode));
+        assertTrue(JsonParseState.verbatim(mode));
+        assertTrue(JsonParseState.trimLeadingSeparator(mode));
+        assertTrue(JsonParseState.fragmentOpen(mode));
+
+        mode = JsonParseState.docState(mode, 0);
+        assertEquals(63, JsonParseState.lastEvent(mode));
+        mode = JsonParseState.lastEvent(mode, 0);
+        mode = JsonParseState.armNextValue(mode, false);
+        assertTrue(JsonParseState.verbatim(mode));
+        mode = JsonParseState.verbatim(mode, false);
+        assertTrue(JsonParseState.trimLeadingSeparator(mode));
+        mode = JsonParseState.trimLeadingSeparator(mode, false);
+        assertTrue(JsonParseState.fragmentOpen(mode));
+        mode = JsonParseState.fragmentOpen(mode, false);
+        assertEquals(0, mode);
+    }
 }

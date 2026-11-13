@@ -56,6 +56,7 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -2486,6 +2487,22 @@ public final class JsonSchemaImpl implements JsonSchema
         // rearms for the next document in the same session: rewinds this pass's own validation state exactly
         // as reset() does, but delegates to the underlying parser's nextDocument() so its stream position
         // and scratch state carry over rather than rewinding to the start of input
+        @Override
+        public int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException();
+        }
+
         @Override
         public void nextDocument()
         {

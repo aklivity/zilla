@@ -18,6 +18,7 @@ import jakarta.json.JsonException;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
@@ -25,12 +26,13 @@ import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
 /**
  * Tokenizes JSON from one input window at a time, reading in place from the buffer it is wrapped on.
  * <p>
- * Every field is either <em>carried</em>, so it must survive from one window to the next, or <em>window-local</em>,
- * so it is rewritten by {@code wrap}, by the start of each {@code advance}, or by the start of the token it
- * describes before it is read again. At a window boundary a key, a number, or a string that fits a window is
- * rewound to its start, so none of its scan state is carried; the scan state that is carried belongs to a string
- * delivered in fragments, to {@code true}, {@code false} and {@code null}, and to any token scanned while
- * {@code segmenting} is set.
+ * Every field is either <em>carried</em>, so it must survive from one window to the next and is what
+ * {@code save} writes, or <em>window-local</em>, so it is rewritten by {@code wrap}, by the start of each
+ * {@code advance}, or by the start of the token it describes before it is read again, and is what {@code restore}
+ * resets. At a window boundary a key, a number, or a string that fits a window is rewound to its start, so none of
+ * its scan state is carried. The scan state that is carried belongs to {@code true}, {@code false} and
+ * {@code null}, resumed part way, and to a string delivered in fragments; while {@code segmenting} is set a key,
+ * number or string may also resume part way, which {@code save} does not cover.
  * <p>
  * Carried:
  * <ul>
@@ -42,12 +44,9 @@ import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
  * <li>{@code fragmenting}, {@code fragmentStart}: a string delivered in fragments, and where the open fragment
  * began</li>
  * <li>{@code escapeArmed}, {@code lens}, {@code scopeStart}: an escaped scope armed or open</li>
- * <li>{@code resumeOp}, {@code resumeEscape}, {@code resumeUnicodePending}, {@code resumeUnicodeValue},
- * {@code resumeLiteralIndex}, {@code numberState}: a token part scanned, meaningful only while
- * {@code resumeOp} is not {@code NONE}</li>
- * <li>{@code valueStreamStart}, {@code valueStreamEnd}, {@code valueLine}, {@code valueColumn},
- * {@code unitStartOffset}, {@code unitLine}, {@code unitColumn}: the span and rewind points of a token part
- * scanned, written at the start of each token</li>
+ * <li>{@code resumeOp}, {@code resumeLiteralIndex}, {@code resumeEscape}, {@code resumeUnicodePending},
+ * {@code resumeUnicodeValue}, {@code numberState}: a token part scanned, meaningful only while {@code resumeOp}
+ * is not {@code NONE}</li>
  * </ul>
  * Window-local:
  * <ul>
@@ -55,6 +54,9 @@ import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
  * {@code bufferLimit}, {@code wrapOffset}, {@code wrapStreamOffset}: the window and the cursor into it</li>
  * <li>{@code pendingEvent}, {@code starved}, {@code declinedBytes}, {@code stringVerbatim}: the outcome of the
  * latest {@code advance}, nothing at a boundary between events</li>
+ * <li>{@code valueStreamStart}, {@code valueStreamEnd}, {@code valueLine}, {@code valueColumn},
+ * {@code unitStartOffset}, {@code unitLine}, {@code unitColumn}: the span and rewind points of the token being
+ * scanned, written at the start of each token</li>
  * <li>{@code viewStart}, {@code viewChars}, {@code viewPlain}, {@code viewPending}, {@code viewOffset},
  * {@code viewLength}, {@code unitViewChars}, {@code pairOpen}: the string read in place from the window</li>
  * <li>{@code scopeEnded}, {@code lensUnit}, {@code lensIndex}, {@code lensCount}, {@code lensSize}: the escape
@@ -106,6 +108,9 @@ final class JsonTokenizerImpl implements JsonTokenizer
     }
 
     private static final int NO_VIEW = -1;
+    private static final ParseState[] PARSE_STATES = ParseState.values();
+    private static final ResumeOp[] RESUME_OPS = ResumeOp.values();
+    private static final NumberState[] NUMBER_STATES = NumberState.values();
     private static final long ONES = 0x0101010101010101L;
     private static final long HIGHS = 0x8080808080808080L;
     private static final long QUOTES = 0x2222222222222222L;
@@ -185,7 +190,7 @@ final class JsonTokenizerImpl implements JsonTokenizer
     private long unitStartOffset;
     // RFC 8259 number grammar validated incrementally as each char is scanned, so a number spanning
     // windows needs no retained whole lexeme to validate; the state persists across fragments.
-    private NumberState numberState;
+    private NumberState numberState = NumberState.START;
 
     // set at each VALUE_STRING delivery: true when the value-string was streamed verbatim as raw bytes
     // (a segment scan or an armed scalar leaf), so the caller splices its raw token bytes; false when it
@@ -456,6 +461,158 @@ final class JsonTokenizerImpl implements JsonTokenizer
         resumeUnicodePending = 0;
         resumeUnicodeValue = 0;
         resumeLiteralIndex = 0;
+    }
+
+    @Override
+    public int save(
+        MutableDirectBufferEx buffer,
+        int offset)
+    {
+        if (pendingEvent != null)
+        {
+            throw new IllegalStateException("save requires no event pending");
+        }
+
+        int mode = JsonParseState.state(0, state.ordinal());
+        mode = JsonParseState.resumeOp(mode, resumeOp.ordinal());
+        mode = JsonParseState.numberState(mode, numberState.ordinal());
+        mode = JsonParseState.memberSeparated(mode, memberSeparated);
+        mode = JsonParseState.separatorBefore(mode, separatorBefore);
+        mode = JsonParseState.segmenting(mode, segmenting);
+        mode = JsonParseState.scalarSegment(mode, scalarSegment);
+        mode = JsonParseState.fragmenting(mode, fragmenting);
+        mode = JsonParseState.escapeArmed(mode, escapeArmed);
+        mode = JsonParseState.lens(mode, lens);
+        mode = JsonParseState.resumeEscape(mode, resumeEscape);
+        mode = JsonParseState.literalIndex(mode, resumeLiteralIndex);
+
+        int context = JsonParseState.depth(0, pathDepth);
+        context = JsonParseState.scopeDepth(context, scopeDepth);
+        context = JsonParseState.unicodePending(context, resumeUnicodePending);
+
+        int progress = offset;
+        buffer.putInt(progress, mode);
+        progress += Integer.BYTES;
+        buffer.putInt(progress, context);
+        progress += Integer.BYTES;
+        buffer.putLong(progress, path);
+        progress += Long.BYTES;
+        buffer.putLong(progress, streamOffset);
+        progress += Long.BYTES;
+        buffer.putLong(progress, documentEndOffset);
+        progress += Long.BYTES;
+        buffer.putLong(progress, line);
+        progress += Long.BYTES;
+        buffer.putLong(progress, column);
+        progress += Long.BYTES;
+
+        if (fragmenting || resumeOp != ResumeOp.NONE)
+        {
+            buffer.putLong(progress, fragmentStart);
+            progress += Long.BYTES;
+        }
+
+        if (lens)
+        {
+            buffer.putLong(progress, scopeStart);
+            progress += Long.BYTES;
+        }
+
+        if (resumeUnicodePending > 0)
+        {
+            buffer.putInt(progress, resumeUnicodeValue);
+            progress += Integer.BYTES;
+        }
+
+        return progress - offset;
+    }
+
+    @Override
+    public void restore(
+        DirectBufferEx buffer,
+        int offset)
+    {
+        int progress = offset;
+        final int mode = buffer.getInt(progress);
+        progress += Integer.BYTES;
+        final int context = buffer.getInt(progress);
+        progress += Integer.BYTES;
+        path = buffer.getLong(progress);
+        progress += Long.BYTES;
+        streamOffset = buffer.getLong(progress);
+        progress += Long.BYTES;
+        documentEndOffset = buffer.getLong(progress);
+        progress += Long.BYTES;
+        line = buffer.getLong(progress);
+        progress += Long.BYTES;
+        column = buffer.getLong(progress);
+        progress += Long.BYTES;
+
+        state = PARSE_STATES[JsonParseState.state(mode)];
+        resumeOp = RESUME_OPS[JsonParseState.resumeOp(mode)];
+        numberState = NUMBER_STATES[JsonParseState.numberState(mode)];
+        memberSeparated = JsonParseState.memberSeparated(mode);
+        separatorBefore = JsonParseState.separatorBefore(mode);
+        segmenting = JsonParseState.segmenting(mode);
+        scalarSegment = JsonParseState.scalarSegment(mode);
+        fragmenting = JsonParseState.fragmenting(mode);
+        escapeArmed = JsonParseState.escapeArmed(mode);
+        lens = JsonParseState.lens(mode);
+        resumeEscape = JsonParseState.resumeEscape(mode);
+        resumeLiteralIndex = JsonParseState.literalIndex(mode);
+        pathDepth = JsonParseState.depth(context);
+        scopeDepth = JsonParseState.scopeDepth(context);
+        resumeUnicodePending = JsonParseState.unicodePending(context);
+
+        fragmentStart = streamOffset;
+        if (fragmenting || resumeOp != ResumeOp.NONE)
+        {
+            fragmentStart = buffer.getLong(progress);
+            progress += Long.BYTES;
+        }
+
+        scopeStart = 0L;
+        if (lens)
+        {
+            scopeStart = buffer.getLong(progress);
+            progress += Long.BYTES;
+        }
+
+        resumeUnicodeValue = 0;
+        if (resumeUnicodePending > 0)
+        {
+            resumeUnicodeValue = buffer.getInt(progress);
+        }
+
+        valueStreamStart = fragmentStart;
+        valueStreamEnd = streamOffset;
+        valueLine = line;
+        valueColumn = column;
+        unitStartOffset = streamOffset;
+        unitLine = line;
+        unitColumn = column;
+        pendingEvent = null;
+        starved = false;
+        stringVerbatim = false;
+        viewStart = NO_VIEW;
+        viewChars = 0;
+        viewPlain = false;
+        viewPending = false;
+        viewOffset = 0;
+        viewLength = 0;
+        unitViewChars = 0;
+        pairOpen = false;
+        declinedBytes = 0;
+        scopeEnded = false;
+        lensUnit = 0L;
+        lensIndex = 0;
+        lensCount = 0;
+        lensSize = 0;
+
+        if (mark != null)
+        {
+            mark.state = null;
+        }
     }
 
     @Override

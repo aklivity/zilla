@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
@@ -89,6 +90,22 @@ public final class JsonValueParser implements JsonParserEx
         state = State.PENDING;
         depth = 0;
         lastEvent = null;
+    }
+
+    @Override
+    public int save(
+        MutableDirectBufferEx buffer,
+        int offset)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void restore(
+        DirectBufferEx buffer,
+        int offset)
+    {
+        throw new UnsupportedOperationException();
     }
 
     @Override

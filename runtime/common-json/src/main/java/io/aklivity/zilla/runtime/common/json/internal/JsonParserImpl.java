@@ -37,6 +37,7 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -52,22 +53,25 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 /**
  * Parses JSON events over a {@link JsonTokenizer}, one input window at a time.
  * <p>
- * Every field is either <em>carried</em>, so it must survive from one window to the next, or <em>window-local</em>,
- * so it is rewritten by {@code wrap} or describes only the events delivered from the current window. The
- * tokenizer's own state is classified in {@code JsonTokenizerImpl}.
+ * Every field is either <em>carried</em>, so it must survive from one window to the next and is what {@code save}
+ * writes, or <em>window-local</em>, so it is rewritten by {@code wrap} or describes only the events delivered from
+ * the current window, and is what {@code restore} resets. The tokenizer's own state is classified in
+ * {@code JsonTokenizerImpl}.
  * <p>
  * Carried:
  * <ul>
  * <li>{@code docState}, {@code lastEvent}: where the document is, and the event that decides what a following
  * token arms</li>
- * <li>{@code segmentState}, {@code segmentStartOffset}, {@code segmentDepth}, {@code armNextValue}: a segment scan
- * in progress, streamed across windows as raw bytes</li>
+ * <li>{@code armNextValue}: the value that follows is armed to be delivered as a segment</li>
  * <li>{@code fragmentOpen}: a key or scalar fragment whose token is still open</li>
- * <li>{@code skipping}, {@code skipDepth}, {@code skipOccupied}: a member being dropped</li>
- * <li>{@code verbatim}, {@code verbatimCursor}, {@code trimLeadingSeparator}: the verbatim read of the source and
- * how much of it has been handed out</li>
- * <li>{@code tokenEnd}, {@code tokenEndLine}, {@code tokenEndColumn}: where the latest body token ended</li>
+ * <li>{@code verbatim}, {@code verbatimCursor}, {@code trimLeadingSeparator}, {@code tokenEnd},
+ * {@code tokenEndLine}, {@code tokenEndColumn}: the verbatim read of the source and how much of it has been
+ * handed out; the positions are saved only while {@code verbatim} is set</li>
  * </ul>
+ * Open across a window but not saved, so {@code save} refuses while any is open: {@code segmentState},
+ * {@code segmentStartOffset}, {@code segmentDepth} (a segment scan), {@code skipping}, {@code skipDepth},
+ * {@code skipOccupied} (a member being dropped), and an undrained verbatim step log.
+ * <p>
  * Window-local:
  * <ul>
  * <li>{@code terminal}, {@code windowLast}, {@code unmaterializedInput}, {@code syncedBuffer},
@@ -79,7 +83,7 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  * {@code stringViewRO}, {@code emptyView}, {@code encodedView}, {@code escapedView}: the event just delivered
  * and the string read for it</li>
  * <li>{@code stepKinds}, {@code stepEnds}, {@code stepCount}, {@code stepHead}, {@code cursor}, {@code block}: the
- * step log of the current verbatim run, empty once the window is drained</li>
+ * step log of the verbatim run, which only a verbatim reader drains</li>
  * <li>{@code mark}: the capture {@code rewind} returns to, valid only within the window it was taken in</li>
  * </ul>
  */
@@ -88,6 +92,9 @@ public final class JsonParserImpl implements JsonParserEx
     // a non-negative integer lexeme of at most this many digits is within long range; getInt()/getLong()
     // reject anything longer as too large for a primitive, directing the caller to getBigDecimal()
     private static final int LONG_DIGITS = 19;
+
+    private static final DocState[] DOC_STATES = DocState.values();
+    private static final JsonEvent[] JSON_EVENTS = JsonEvent.values();
 
     // selected once per JVM, not once per parser: ServiceLoader lookup (and an implementation's own
     // availability probe) would otherwise run on every JsonParserImpl construction
@@ -347,6 +354,104 @@ public final class JsonParserImpl implements JsonParserEx
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
+    }
+
+    @Override
+    public int save(
+        MutableDirectBufferEx buffer,
+        int offset)
+    {
+        if (skipping || segmentState != SegmentState.NONE || verbatim && stepCount != stepHead)
+        {
+            throw new IllegalStateException("save requires a clean boundary outside a skip or segment");
+        }
+
+        int mode = JsonParseState.docState(0, docState.ordinal());
+        mode = JsonParseState.lastEvent(mode, lastEvent == null ? 0 : lastEvent.ordinal() + 1);
+        mode = JsonParseState.armNextValue(mode, armNextValue);
+        mode = JsonParseState.verbatim(mode, verbatim);
+        mode = JsonParseState.trimLeadingSeparator(mode, trimLeadingSeparator);
+        mode = JsonParseState.fragmentOpen(mode, fragmentOpen);
+
+        int progress = offset;
+        buffer.putInt(progress, mode);
+        progress += Integer.BYTES;
+
+        if (verbatim)
+        {
+            buffer.putLong(progress, verbatimCursor);
+            progress += Long.BYTES;
+            buffer.putLong(progress, tokenEnd);
+            progress += Long.BYTES;
+            buffer.putLong(progress, tokenEndLine);
+            progress += Long.BYTES;
+            buffer.putLong(progress, tokenEndColumn);
+            progress += Long.BYTES;
+        }
+
+        progress += tokenizer.save(buffer, progress);
+
+        return progress - offset;
+    }
+
+    @Override
+    public void restore(
+        DirectBufferEx buffer,
+        int offset)
+    {
+        int progress = offset;
+        final int mode = buffer.getInt(progress);
+        progress += Integer.BYTES;
+
+        docState = DOC_STATES[JsonParseState.docState(mode)];
+        final int lastEventCode = JsonParseState.lastEvent(mode);
+        lastEvent = lastEventCode == 0 ? null : JSON_EVENTS[lastEventCode - 1];
+        armNextValue = JsonParseState.armNextValue(mode);
+        verbatim = JsonParseState.verbatim(mode);
+        trimLeadingSeparator = JsonParseState.trimLeadingSeparator(mode);
+        fragmentOpen = JsonParseState.fragmentOpen(mode);
+
+        if (verbatim)
+        {
+            verbatimCursor = buffer.getLong(progress);
+            progress += Long.BYTES;
+            tokenEnd = buffer.getLong(progress);
+            progress += Long.BYTES;
+            tokenEndLine = buffer.getLong(progress);
+            progress += Long.BYTES;
+            tokenEndColumn = buffer.getLong(progress);
+            progress += Long.BYTES;
+        }
+
+        tokenizer.restore(buffer, progress);
+
+        if (!verbatim)
+        {
+            verbatimCursor = tokenizer.streamOffset();
+            tokenEnd = tokenizer.streamOffset();
+            tokenEndLine = tokenizer.line();
+            tokenEndColumn = tokenizer.column();
+        }
+
+        segmentState = SegmentState.NONE;
+        segmentStartOffset = tokenizer.streamOffset();
+        segmentSliceOffset = 0;
+        segmentSliceLength = 0;
+        segmentConsumed = 0;
+        segmentDepth = 0;
+        stringViewOffset = 0;
+        stringCache = null;
+        stepCount = 0;
+        stepHead = 0;
+        continuation = false;
+        skipping = false;
+        skipDepth = 0;
+        skipOccupied = false;
+        currentEvent = null;
+        syncedBuffer = null;
+        syncedOffset = -1;
+        syncedLength = -1;
+        mark = null;
     }
 
     @Override
