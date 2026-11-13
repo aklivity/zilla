@@ -476,4 +476,48 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.3.1-1], [MQTT-4.8.0-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-3]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.malformed.subscription.options/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMalformedSubscriptionOptions() throws Exception
+    {
+        k3po.finish();
+    }
 }
