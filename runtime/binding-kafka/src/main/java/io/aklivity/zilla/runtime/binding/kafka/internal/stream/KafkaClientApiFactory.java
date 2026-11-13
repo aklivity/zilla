@@ -87,6 +87,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class KafkaClientApiFactory implements BindingHandler
 {
+    private static final long NO_AFFINITY = 0L;
     private static final int ERROR_NONE = 0;
     private static final int ERROR_ILLEGAL_SASL_STATE = 34;
     private static final int ERROR_UNSUPPORTED_VERSION = 35;
@@ -171,6 +172,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final Long2ObjectHashMap<KafkaApiClient> clientsByAffinity;
     private final KafkaEventContext event;
     private final boolean apiVersionsEnabled;
@@ -181,6 +183,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
+        LongFunction<KafkaClientRoute> supplyClientRoute,
         Signaler signaler,
         BindingHandler streamFactory)
     {
@@ -200,6 +203,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         this.event = new KafkaEventContext(context);
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
+        this.supplyClientRoute = supplyClientRoute;
         this.clientsByAffinity = new Long2ObjectHashMap<>();
     }
 
@@ -589,7 +593,9 @@ public final class KafkaClientApiFactory implements BindingHandler
             ? binding.resolve(authorization, null)
             : null;
 
-        if (resolved != null)
+        final KafkaClientRoute clientRoute = resolved != null ? supplyClientRoute.apply(resolved.id) : null;
+
+        if (resolved != null && (affinity == NO_AFFINITY || clientRoute.servers.containsKey(affinity)))
         {
             final long resolvedId = resolved.id;
             final short api = kafkaApiBeginEx.api();
@@ -600,7 +606,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 : NULL_CLIENT_ID;
 
             final KafkaApiClient client = clientsByAffinity.computeIfAbsent(affinity,
-                a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), binding.guard, binding.sasl()));
+                a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), clientRoute, binding.guard, binding.sasl()));
 
             newStream = new KafkaApiStream(
                     application,
@@ -1098,7 +1104,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final long affinity;
         private long initialId;
         private long replyId;
-        private final KafkaServerConfig server;
+        private final KafkaServerConfig bootstrap;
+        private final KafkaClientRoute clientRoute;
         private final GuardHandler guard;
         private final KafkaSaslConfig sasl;
         private final Deque<KafkaApiStream> pending;
@@ -1152,13 +1159,15 @@ public final class KafkaClientApiFactory implements BindingHandler
             long routedId,
             long affinity,
             List<KafkaServerConfig> servers,
+            KafkaClientRoute clientRoute,
             GuardHandler guard,
             KafkaSaslConfig sasl)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.affinity = affinity;
-            this.server = servers != null && !servers.isEmpty() ? servers.get(0) : null;
+            this.bootstrap = servers != null && !servers.isEmpty() ? servers.get(0) : null;
+            this.clientRoute = clientRoute;
             this.guard = guard;
             this.sasl = sasl;
             this.pending = new ArrayDeque<>();
@@ -1809,9 +1818,21 @@ public final class KafkaClientApiFactory implements BindingHandler
             long authorization,
             long affinity)
         {
-            if (!StreamState.initialOpening(state))
+            final KafkaServerConfig broker = clientRoute.servers.get(affinity);
+
+            if (!StreamState.initialOpening(state) && broker == null && affinity != NO_AFFINITY)
+            {
+                KafkaApiStream stream;
+                while ((stream = pending.poll()) != null)
+                {
+                    stream.cleanupApp(traceId, EMPTY_OCTETS);
+                }
+            }
+            else if (!StreamState.initialOpening(state))
             {
                 assert state == 0;
+
+                final KafkaServerConfig server = broker != null ? broker : bootstrap;
 
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
