@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
@@ -330,6 +331,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextValue = this::decodeReplyTextValue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyRest = this::decodeReplyRest;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyDelta = this::decodeReplyDelta;
 
 
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
@@ -622,6 +626,46 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         stream.doEncodeData(stream.encodeTraceId, buffer, offset + stream.replyPayloadFrom,
             stream.replyFrameLength - stream.replyPayloadFrom, Flags.hasFin(stream.replyFlags));
+        stream.decoder = decodeReplyNext;
+
+        return offset;
+    }
+
+    private int decodeReplyValue(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.decoder = decodeReplyRest;
+
+        if (stream.valuePipeline != null)
+        {
+            stream.advanceFanOut(buffer, offset, stream.valuePipeline, stream.valueOutput, stream.valueTail);
+        }
+
+        return offset;
+    }
+
+    private int decodeReplyRest(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.decoder = decodeReplyDelta;
+        stream.advanceFanOut(buffer, offset, stream.restPipeline, stream.restEdges, stream.restTail);
+
+        return offset;
+    }
+
+    private int decodeReplyDelta(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.emitDelta();
         stream.decoder = decodeReplyNext;
 
         return offset;
@@ -5058,6 +5102,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int replyPayloadFrom;
         private int replyWindowFrom;
         private int replySkipDepth;
+        private LlmSectionPipeline.Output valueOutput;
+        private LlmSectionPipeline.Output restOutput;
+        private final LlmSectionPipeline.Output restEdges;
+        private final LlmFrameTail valueTail = new LlmFrameTail();
+        private final LlmFrameTail restTail = new LlmFrameTail();
+        private int restHeld = LlmEdgeTrim.BEFORE;
 
         private LlmOpenaiResponsesStream(
             LlmOpenaiResponsesServer server)
@@ -5075,6 +5125,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.valueFilter = new LlmStringFilter((buffer, offset, length, last) -> onDelta(buffer, offset, length));
             this.tailOutput = (buffer, offset, length, last) -> onTail(buffer, offset, length);
             this.membersOutput = (buffer, offset, length, last) -> onMembers(buffer, offset, length);
+            this.restEdges = (buffer, offset, length, last) ->
+                restHeld = LlmEdgeTrim.put(restHeld, restOutput, buffer, offset, length, last);
         }
 
         private long initialAvailable()
@@ -5351,7 +5403,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 doEncodeSection(type, section != null ? section.message() : NONE, extension);
 
-                dataDecoder = kind == KIND_TEXT || kind == KIND_REFUSAL ? decodeReplyTextRoot : decodeReplyAtomic;
+                dataDecoder = switch (kind)
+                {
+                case KIND_TEXT, KIND_REFUSAL -> decodeReplyTextRoot;
+                case KIND_CALL, KIND_PROVIDER -> decodeReplyValue;
+                case KIND_RESULT -> decodeReplyRest;
+                default -> decodeReplyAtomic;
+                };
             }
             else
             {
@@ -5441,6 +5499,48 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return offset;
+        }
+
+        private void advanceFanOut(
+            DirectBufferEx buffer,
+            int offset,
+            LlmSectionPipeline pipeline,
+            LlmSectionPipeline.Output output,
+            LlmFrameTail tail)
+        {
+            final int payloadFrom = offset + replyPayloadFrom;
+            final int payloadLimit = offset + replyFrameLength;
+            final int from = payloadFrom - tail.length();
+
+            if (tail.length() > replyPayloadFrom)
+            {
+                rejectReply();
+            }
+            else
+            {
+                tail.restore((MutableDirectBufferEx) buffer, payloadFrom);
+
+                final Status status = pipeline.advance(buffer, from, payloadLimit, Flags.hasFin(replyFlags), output,
+                    Integer.MAX_VALUE);
+
+                if (status == Status.REJECTED)
+                {
+                    rejectReply();
+                }
+                else
+                {
+                    final int unconsumed = payloadLimit - from - pipeline.consumed();
+
+                    if ((status == Status.STARVED || status == Status.ADVANCED) && unconsumed > 0)
+                    {
+                        tail.keep(buffer, payloadLimit - unconsumed, unconsumed);
+                    }
+                    else
+                    {
+                        tail.clear();
+                    }
+                }
+            }
         }
 
         private void rejectReply()
@@ -6136,32 +6236,26 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case KIND_CONTROL:
                 accepted = splitter.put(payload, payloadOffset, payloadLength, fin) && !hold.failed();
                 break;
-            case KIND_CALL:
-                accepted = valuePipeline.feed(payload, payloadOffset, payloadLength, fin, argumentsOutput) &&
-                    restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, tailOutput);
-                break;
-            case KIND_PROVIDER:
-                accepted = (valuePipeline == null ||
-                    valuePipeline.feed(payload, payloadOffset, payloadLength, fin, valueFilter)) &&
-                    restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, valueMember != null
-                        ? tailOutput
-                        : membersOutput);
-                break;
-            case KIND_RESULT:
-                accepted = restPipeline.feedEdges(payload, payloadOffset, payloadLength, fin, membersOutput);
-                break;
             default:
                 break;
             }
-
-            final int delta = deltaLength;
-            deltaLength = 0;
 
             if (!accepted)
             {
                 server.cleanup(traceId);
             }
-            else if (delta > 0)
+            else
+            {
+                emitDelta();
+            }
+        }
+
+        private void emitDelta()
+        {
+            final int delta = deltaLength;
+            deltaLength = 0;
+
+            if (delta > 0)
             {
                 eventValueDelta(LlmOpenaiResponsesItems.deltaEvent(itemType), itemCount - 1, deltaBuffer, 0,
                     delta);
@@ -6670,6 +6764,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             kind = KIND_NONE;
         }
 
+        private void beginFanOuts()
+        {
+            valueTail.clear();
+            restTail.clear();
+            restHeld = LlmEdgeTrim.BEFORE;
+        }
+
         private void sectionCall()
         {
             closeOpenItem(STATUS_COMPLETED);
@@ -6681,8 +6782,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             valueMember = MEMBER_ARGUMENTS;
             valuePipeline = argumentsPipeline();
             valuePipeline.begin(replyAttributes);
+            valueOutput = argumentsOutput;
             restPipeline = extrasPipeline();
             restPipeline.begin(replyAttributes);
+            restOutput = tailOutput;
+            beginFanOuts();
             tail.release();
 
             beginItem(index);
@@ -6706,7 +6810,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 valueFilter.reset();
             }
 
+            valueOutput = valueFilter;
             restPipeline.begin(replyAttributes);
+            restOutput = valueMember != null ? tailOutput : membersOutput;
+            beginFanOuts();
             membersStarted = false;
             tail.release();
 
@@ -6717,6 +6824,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             restPipeline = resultPipeline();
             restPipeline.begin(replyAttributes);
+            restOutput = membersOutput;
+            beginFanOuts();
             membersStarted = false;
 
             if (server.streaming)
