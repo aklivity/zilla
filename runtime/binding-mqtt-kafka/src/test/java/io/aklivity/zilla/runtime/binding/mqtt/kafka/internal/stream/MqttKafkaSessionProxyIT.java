@@ -171,6 +171,18 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.flush.unknown.packet.id/client",
+        "${kafka}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
     public void shouldSessionStreamReceiveServerSentReset() throws Exception

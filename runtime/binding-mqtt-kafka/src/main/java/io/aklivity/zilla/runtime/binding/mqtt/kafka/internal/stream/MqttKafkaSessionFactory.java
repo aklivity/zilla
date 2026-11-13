@@ -875,9 +875,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             final int packetId = mqttPublishFlushEx.packetId();
 
-            final List<KafkaTopicPartition> partitions = metadata.partitions.get(packetId);
-            partitions.forEach(partition ->
-                doCommitOffsetComplete(traceId, authorization, partition.topic, partition.partitionId, packetId));
+            final List<KafkaTopicPartition> partitions = metadata != null ? metadata.partitions.get(packetId) : null;
+            if (partitions != null)
+            {
+                partitions.forEach(partition ->
+                    doCommitOffsetComplete(traceId, authorization, partition.topic, partition.partitionId, packetId));
+            }
+            else
+            {
+                doMqttFlush(traceId, authorization, 0, 0, packetId);
+            }
         }
 
         private void onMqttEnd(
@@ -1168,7 +1175,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int reserved,
             int packetId)
         {
-            if (!metadata.partitions.containsKey(packetId))
+            if (metadata == null || !metadata.partitions.containsKey(packetId))
             {
                 final MqttFlushExFW mqttFlushEx =
                     mqttFlushExRW.wrap(extBuffer, FlushFW.FIELD_OFFSET_EXTENSION, extBuffer.capacity())

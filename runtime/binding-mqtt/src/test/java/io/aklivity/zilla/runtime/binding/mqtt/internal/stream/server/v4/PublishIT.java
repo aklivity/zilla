@@ -340,6 +340,26 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${app}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Before
     public void setSubscriptionId()
     {

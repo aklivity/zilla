@@ -643,4 +643,44 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.puback.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubackWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrec.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldReleasePubrecWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubcomp.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrec.failure.reason.code.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubrecFailureWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }

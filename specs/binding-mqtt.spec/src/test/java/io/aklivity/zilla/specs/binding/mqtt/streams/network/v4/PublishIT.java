@@ -276,4 +276,22 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${net}/ack.pubrel.unknown.packet.id/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${net}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }
