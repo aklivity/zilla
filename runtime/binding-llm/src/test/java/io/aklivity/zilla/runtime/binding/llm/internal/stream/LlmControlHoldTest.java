@@ -210,6 +210,45 @@ public class LlmControlHoldTest
         assertThat(hold.failed(), is(false));
     }
 
+    @Test
+    public void shouldReferenceHeldValuesInPlace()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.begin("a");
+        hold.put(buffer("\"one\""), 0, 5);
+        hold.end();
+        hold.begin("b");
+        hold.put(buffer("2"), 0, 1);
+        hold.end();
+
+        final JsonGeneratorEx generator = JsonEx.createGenerator();
+        final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[64]);
+        final ByteArrayOutputStream rebuilt = new ByteArrayOutputStream();
+        final int[] copied = {0};
+
+        generator.wrap(output, 0, output.capacity());
+        generator.writeStartObject();
+        hold.reference(generator, 0, name -> true, (offset, length) ->
+        {
+            final byte[] before = new byte[generator.length() - copied[0]];
+            output.getBytes(copied[0], before);
+            rebuilt.writeBytes(before);
+            copied[0] = generator.length();
+
+            final byte[] held = new byte[length];
+            store.getBytes(offset, held);
+            rebuilt.writeBytes(held);
+        });
+        generator.writeEnd();
+
+        final byte[] rest = new byte[generator.length() - copied[0]];
+        output.getBytes(copied[0], rest);
+        rebuilt.writeBytes(rest);
+
+        assertThat(rebuilt.toString(UTF_8), equalTo("{\"a\":\"one\",\"b\":2}"));
+    }
+
     private static DirectBufferEx buffer(
         String text)
     {

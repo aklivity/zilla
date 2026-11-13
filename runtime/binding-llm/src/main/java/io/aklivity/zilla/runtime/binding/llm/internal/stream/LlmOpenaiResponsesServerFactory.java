@@ -148,6 +148,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int RESPONSE_GROWTH = 2;
     private static final int ARGS_HEADROOM = 16;
     private static final int RECORD_REFS = 64;
+    private static final int REF_STRIDE = 4;
+    private static final int REF_ACCUMULATOR = 0;
+    private static final int REF_HOLD = 1;
     private static final int OP_TEXT_DONE = 0;
     private static final int OP_PART_DONE = 1;
     private static final int OP_ITEM_DONE = 2;
@@ -161,6 +164,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int OP_CALL_ITEM_DONE = 10;
     private static final int OP_INIT_STATUS = 11;
     private static final int OP_SUMMARY_PART_ADDED = 12;
+    private static final int OP_FINISH_HEAD = 17;
+    private static final int OP_FINISH_ITEM = 18;
+    private static final int OP_FINISH_TAIL = 19;
     private static final int OP_SUMMARY_TEXT_DONE = 13;
     private static final int OP_SUMMARY_PART_DONE = 14;
     private static final int OP_REASONING_ADDED = 15;
@@ -366,6 +372,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeCallEnd = this::decodeCallEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallValueDone = this::decodeCallValueDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResultEnd = this::decodeResultEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeFinishClose = this::decodeFinishClose;
+    private final LlmOpenaiResponsesReplyDecoder decodeFinishHead = this::decodeFinishHead;
+    private final LlmOpenaiResponsesReplyDecoder decodeFinishItems = this::decodeFinishItems;
+    private final LlmOpenaiResponsesReplyDecoder decodeFinishTail = this::decodeFinishTail;
     private final LlmOpenaiResponsesReplyDecoder decodeReasoningBegin = this::decodeReasoningBegin;
     private final LlmOpenaiResponsesReplyDecoder decodeReasoningOpen = this::decodeReasoningOpen;
     private final LlmOpenaiResponsesReplyDecoder decodeReasoningAdded = this::decodeReasoningAdded;
@@ -691,11 +701,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         final LlmReplyFrameFW frame = replyFrameRO.tryWrap(buffer, offset, limit);
+        int progress = offset;
 
-        stream.decoder = decodeReplyFrame;
-        stream.finishReply(frame);
+        if (stream.server.streaming)
+        {
+            stream.beginFinish(frame);
+            stream.decoder = decodeFinishClose;
+        }
+        else
+        {
+            stream.decoder = decodeReplyFrame;
+            stream.finishReply(frame);
+            progress = frame.limit();
+        }
 
-        return frame.limit();
+        return progress;
     }
 
     private int decodeReplyError(
@@ -1199,7 +1219,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
         else
         {
-            stream.closeOpenItem(LlmOpenaiResponsesStream.STATUS_COMPLETED);
+            stream.closeOpenItem(stream.closeStatus);
             stream.decoder = stream.itemFollow;
         }
 
@@ -1240,6 +1260,87 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         return offset;
+    }
+
+    private int decodeFinishClose(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.openItem == LlmOpenaiResponsesStream.ITEM_NONE)
+        {
+            stream.decoder = decodeFinishHead;
+        }
+        else if (stream.openItem == LlmOpenaiResponsesStream.ITEM_MESSAGE)
+        {
+            stream.textFollow = decodeTextItemClose;
+            stream.itemFollow = decodeFinishHead;
+            stream.decoder = decodeTextPartClose;
+        }
+        else
+        {
+            stream.itemFollow = decodeFinishHead;
+            stream.decoder = decodeItemClose;
+        }
+
+        return offset;
+    }
+
+    private int decodeFinishHead(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_FINISH_HEAD))
+        {
+            stream.finishIndex = 0;
+            stream.decoder = decodeFinishItems;
+        }
+
+        return offset;
+    }
+
+    private int decodeFinishItems(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.finishIndex == stream.itemCount)
+        {
+            stream.decoder = decodeFinishTail;
+        }
+        else if (stream.emitStep(OP_FINISH_ITEM))
+        {
+            stream.finishIndex++;
+        }
+
+        return offset;
+    }
+
+    private int decodeFinishTail(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final LlmReplyFrameFW frame = replyFrameRO.tryWrap(buffer, offset, limit);
+
+        stream.finishEnd = frame.extension().get(llmEndExRO::tryWrap);
+
+        final boolean complete = stream.emitStep(OP_FINISH_TAIL);
+
+        stream.finishEnd = null;
+
+        if (complete)
+        {
+            stream.completeFinish(frame);
+            stream.decoder = decodeReplyFrame;
+        }
+
+        return complete ? frame.limit() : offset;
     }
 
     private int decodeCallOpen(
@@ -6984,6 +7085,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean eventRecording;
         private String recordName;
         private int recordTotal;
+        private int recordFrom;
+        private int recordLength;
+        private int eventSent;
+        private boolean stepFinal;
+        private LlmEndExFW finishEnd;
+        private int finishIndex;
+        private String closeStatus = STATUS_COMPLETED;
         private int recordRefCount;
         private int[] recordRefs;
         private int sectionMessage = NONE;
@@ -7287,6 +7395,104 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 server.streaming &&
                 valueMember != null &&
                 LlmOpenaiResponsesItems.split(itemType);
+        }
+
+        private void beginFinish(
+            LlmReplyFrameFW frame)
+        {
+            final LlmEndExFW end = frame.extension().get(llmEndExRO::tryWrap);
+
+            encodeBudgetId = 0L;
+            encodeTraceId = frame.traceId();
+            encodeAuthorization = frame.authorization();
+
+            beginEncode();
+            doEncodeEnd();
+            finishStatus(end != null ? end.finishReason().asString() : null);
+            closeStatus = responseStatus;
+        }
+
+        private void writeFinishHead()
+        {
+            final String name = STATUS_INCOMPLETE.equals(responseStatus) ? EVENT_INCOMPLETE : EVENT_COMPLETED;
+
+            recordName = name;
+            generator.writeStartObject().write(MEMBER_TYPE, name).writeKey(OBJECT_RESPONSE);
+            generator.writeStartObject();
+            writeEnvelope();
+            generator.writeStartArray(MEMBER_OUTPUT);
+            recordTotal = generator.length();
+        }
+
+        private void writeFinishItem()
+        {
+            generator.writeStartArray();
+
+            final int prefix = generator.length();
+
+            writeItem(finishIndex, finishIndex == itemCount - 1 ? responseStatus : STATUS_COMPLETED);
+            recordTotal = generator.length();
+
+            if (finishIndex > 0)
+            {
+                copyBuffer.putByte(0, (byte) ',');
+                recordFrom = 0;
+            }
+            else
+            {
+                recordFrom = prefix;
+            }
+        }
+
+        private void writeFinishTail()
+        {
+            final LlmUsageFW usage = finishEnd != null ? finishEnd.usage() : null;
+
+            generator.writeStartObject().writeStartObject(OBJECT_RESPONSE);
+
+            final int prefix = generator.length();
+
+            generator.write(MEMBER_STATUS, responseStatus);
+
+            if (incompleteReason != null)
+            {
+                generator.writeStartObject(MEMBER_INCOMPLETE_DETAILS).write(MEMBER_REASON, incompleteReason).writeEnd();
+            }
+
+            hold.reference(generator, 0, ALL_MEMBERS, this::recordHeld);
+
+            if (!usageVerbatim)
+            {
+                putUsage(
+                    usage != null ? usage.inputTokens() : NONE,
+                    usage != null ? usage.cacheReadTokens() : NONE,
+                    usage != null ? usage.cacheWriteTokens() : NONE,
+                    usage != null ? usage.outputTokens() : NONE,
+                    usage != null ? usage.reasoningTokens() : NONE,
+                    usage != null ? usage.totalTokens() : NONE);
+            }
+
+            generator.writeEnd();
+            generator.write(MEMBER_SEQUENCE_NUMBER, sequence++).writeEnd();
+            recordTotal = generator.length();
+            copyBuffer.putByte(prefix - 2, (byte) ']');
+            copyBuffer.putByte(prefix - 1, (byte) ',');
+            recordFrom = prefix - 2;
+        }
+
+        private void recordHeld(
+            int offset,
+            int length)
+        {
+            recordReference(offset, length, REF_HOLD);
+        }
+
+        private void completeFinish(
+            LlmReplyFrameFW frame)
+        {
+            cleanupHeld();
+            doEncodeFlush();
+            endReply(frame.traceId(), frame.authorization());
         }
 
         private void prepareReasoningEnd()
@@ -7886,6 +8092,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 eventRecording = true;
                 recordRefCount = 0;
+                recordFrom = 0;
+                stepFinal = op != OP_FINISH_HEAD && op != OP_FINISH_ITEM;
                 generator.reset();
                 generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
@@ -7905,7 +8113,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     eventPartDone();
                     break;
                 case OP_ITEM_DONE:
-                    eventItemDone(STATUS_COMPLETED);
+                    eventItemDone(closeStatus);
                     break;
                 case OP_ITEM_ADDED:
                     eventItemAdded();
@@ -7919,6 +8127,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     break;
                 case OP_REASONING_ADDED:
                     eventReasoningAdded(itemCount - 1);
+                    break;
+                case OP_FINISH_HEAD:
+                    writeFinishHead();
+                    break;
+                case OP_FINISH_ITEM:
+                    writeFinishItem();
+                    break;
+                case OP_FINISH_TAIL:
+                    writeFinishTail();
                     break;
                 case OP_SUMMARY_PART_ADDED:
                     eventSummaryPartAdded();
@@ -7950,12 +8167,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
 
                 eventRecording = false;
+                eventOpen = false;
                 generator.reset();
 
                 complete = writeRecorded();
 
                 if (complete)
                 {
+                    eventSent = stepFinal ? 0 : eventSent + recordLength;
                     stepSent = 0;
                 }
                 else
@@ -7969,29 +8188,33 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean writeRecorded()
         {
-            int total = recordTotal;
+            int total = recordTotal - recordFrom;
 
             for (int index = 0; index < recordRefCount; index++)
             {
-                total += recordRefs[index * 3 + 2];
+                total += recordRefs[index * REF_STRIDE + 2];
             }
 
-            int from = 0;
+            recordLength = total;
+
+            int from = recordFrom;
             int virtual = 0;
             boolean progress = true;
 
             for (int segment = 0; progress && segment <= recordRefCount; segment++)
             {
-                final int to = segment < recordRefCount ? recordRefs[segment * 3] : recordTotal;
+                final int to = segment < recordRefCount ? recordRefs[segment * REF_STRIDE] : recordTotal;
 
                 progress = writeRecordedSegment(copyBuffer, from, to - from, virtual, total);
                 virtual += to - from;
 
                 if (progress && segment < recordRefCount)
                 {
-                    final int length = recordRefs[segment * 3 + 2];
+                    final int at = segment * REF_STRIDE;
+                    final int length = recordRefs[at + 2];
+                    final DirectBufferEx source = recordRefs[at + 3] == REF_HOLD ? hold.buffer() : accumulator.buffer();
 
-                    progress = writeRecordedSegment(accumulator.buffer(), recordRefs[segment * 3 + 1], length, virtual, total);
+                    progress = writeRecordedSegment(source, recordRefs[at + 1], length, virtual, total);
                     virtual += length;
                 }
 
@@ -8020,8 +8243,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (progress)
                 {
-                    final boolean init = stepSent == 0;
-                    final boolean last = stepSent + slice == total;
+                    final boolean init = eventSent + stepSent == 0;
+                    final boolean last = stepFinal && stepSent + slice == total;
                     final int flags = (init ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
                     final DirectBufferEx attribute = EVENT_ATTRIBUTES.get(recordName);
 
@@ -10135,23 +10358,29 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int sourceOffset,
             int length)
         {
+            recordReference(sourceOffset, length, REF_ACCUMULATOR);
+        }
+
+        private void recordReference(
+            int sourceOffset,
+            int length,
+            int source)
+        {
             if (recordRefs == null)
             {
-                recordRefs = new int[RECORD_REFS * 3];
+                recordRefs = new int[RECORD_REFS * REF_STRIDE];
+            }
+            else if (recordRefCount * REF_STRIDE == recordRefs.length)
+            {
+                recordRefs = Arrays.copyOf(recordRefs, recordRefs.length << 1);
             }
 
-            if (recordRefCount == RECORD_REFS)
-            {
-                server.cleanup(encodeTraceId);
-            }
-            else
-            {
-                final int at = recordRefCount++ * 3;
+            final int at = recordRefCount++ * REF_STRIDE;
 
-                recordRefs[at] = generator.length();
-                recordRefs[at + 1] = sourceOffset;
-                recordRefs[at + 2] = length;
-            }
+            recordRefs[at] = generator.length();
+            recordRefs[at + 1] = sourceOffset;
+            recordRefs[at + 2] = length;
+            recordRefs[at + 3] = source;
         }
 
         private void emitReferencePiece(
