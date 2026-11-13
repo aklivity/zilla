@@ -22,6 +22,46 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
 import io.aklivity.zilla.runtime.common.json.view.JsonEscapeLens;
 
+/**
+ * Tokenizes JSON from one input window at a time, reading in place from the buffer it is wrapped on.
+ * <p>
+ * Every field is either <em>carried</em>, so it must survive from one window to the next, or <em>window-local</em>,
+ * so it is rewritten by {@code wrap}, by the start of each {@code advance}, or by the start of the token it
+ * describes before it is read again. At a window boundary a key, a number, or a string that fits a window is
+ * rewound to its start, so none of its scan state is carried; the scan state that is carried belongs to a string
+ * delivered in fragments, to {@code true}, {@code false} and {@code null}, and to any token scanned while
+ * {@code segmenting} is set.
+ * <p>
+ * Carried:
+ * <ul>
+ * <li>{@code path}, {@code pathDepth}, {@code scopeDepth}: the open containers and the depth the escaped scope
+ * opened at; the state a container returns to when it closes is derived from them</li>
+ * <li>{@code state}, {@code streamOffset}, {@code documentEndOffset}, {@code line}, {@code column}</li>
+ * <li>{@code memberSeparated}, {@code separatorBefore}: the separator context of the member being read</li>
+ * <li>{@code segmenting}, {@code scalarSegment}: the delivery modes set by the caller</li>
+ * <li>{@code fragmenting}, {@code fragmentStart}: a string delivered in fragments, and where the open fragment
+ * began</li>
+ * <li>{@code escapeArmed}, {@code lens}, {@code scopeStart}: an escaped scope armed or open</li>
+ * <li>{@code resumeOp}, {@code resumeEscape}, {@code resumeUnicodePending}, {@code resumeUnicodeValue},
+ * {@code resumeLiteralIndex}, {@code numberState}: a token part scanned, meaningful only while
+ * {@code resumeOp} is not {@code NONE}</li>
+ * <li>{@code valueStreamStart}, {@code valueStreamEnd}, {@code valueLine}, {@code valueColumn},
+ * {@code unitStartOffset}, {@code unitLine}, {@code unitColumn}: the span and rewind points of a token part
+ * scanned, written at the start of each token</li>
+ * </ul>
+ * Window-local:
+ * <ul>
+ * <li>{@code terminalEof}, {@code windowLength}, {@code windowStart}, {@code buffer}, {@code bufferOffset},
+ * {@code bufferLimit}, {@code wrapOffset}, {@code wrapStreamOffset}: the window and the cursor into it</li>
+ * <li>{@code pendingEvent}, {@code starved}, {@code declinedBytes}, {@code stringVerbatim}: the outcome of the
+ * latest {@code advance}, nothing at a boundary between events</li>
+ * <li>{@code viewStart}, {@code viewChars}, {@code viewPlain}, {@code viewPending}, {@code viewOffset},
+ * {@code viewLength}, {@code unitViewChars}, {@code pairOpen}: the string read in place from the window</li>
+ * <li>{@code scopeEnded}, {@code lensUnit}, {@code lensIndex}, {@code lensCount}, {@code lensSize}: the escape
+ * being read out of the window, cleared whenever the cursor is repositioned</li>
+ * <li>{@code mark}: the capture {@code rewind} returns to, valid only within the window it was taken in</li>
+ * </ul>
+ */
 final class JsonTokenizerImpl implements JsonTokenizer
 {
     private enum ParseState
