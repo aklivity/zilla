@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 
@@ -234,8 +235,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
+    private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
     private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
     private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
+    private final OctetsFW eventAttributesRO = new OctetsFW();
+    private String beginStatus;
+    private String beginContentType;
+    private final Consumer<HttpHeaderFW.Builder> statusHeader = h -> h.name(HEADER_STATUS).value(beginStatus);
+    private final Consumer<HttpHeaderFW.Builder> contentTypeHeader =
+        h -> h.name(HEADER_CONTENT_TYPE).value(beginContentType);
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmChallengeExFW llmChallengeExRO = new LlmChallengeExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
@@ -2631,7 +2639,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private final String contentType;
         private final Runnable deauthorize;
         private final JsonParserEx parser;
-        private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
 
         private LlmOpenaiResponsesStream stream;
         private LlmOpenaiResponsesServerDecoder decoder;
@@ -4552,14 +4559,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 final int initFlags = init ? Flags.INIT : Flags.NONE;
                 final boolean last = encodeSent == dataLength && Flags.hasFin(entry.flags());
                 final int flags = last ? Flags.fin(initFlags) : initFlags;
+                final int size = entry.sizeof();
+                final int rawLength = entry.reserved();
                 doNetData(entry.traceId(), entry.authorization(), flags, entry.budgetId(),
                     sliceLength + replyPad, init ? entry.extension() : EMPTY_OCTETS, source, sliceOffset, sliceLength);
 
                 if (encodeSlot != NO_SLOT && encodeSent >= dataLength)
                 {
-                    final int size = entry.sizeof();
-
-                    encodeSlotRawOffset -= entry.reserved();
+                    encodeSlotRawOffset -= rawLength;
                     encodeSlotOffset -= size;
                     if (encodeSlotOffset > 0)
                     {
@@ -4601,13 +4608,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             String status,
             String responseContentType)
         {
+            beginStatus = status;
+            beginContentType = responseContentType;
+
             final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
-                .headersItem(h -> h.name(HEADER_STATUS).value(status));
+                .headersItem(statusHeader);
 
             if (responseContentType != null)
             {
-                httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(responseContentType));
+                httpBeginExBuilder.headersItem(contentTypeHeader);
             }
 
             final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
@@ -5471,7 +5481,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String responseModel;
         private String responseDialect;
 
-        private final OctetsFW eventAttributesRO = new OctetsFW();
         private DirectBufferEx eventAttribute;
         private int pendingStart;
         private int pendingLength;
