@@ -340,6 +340,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextValue = this::decodeReplyTextValue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextContinue = this::decodeReplyTextContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgs = this::decodeReplyArgs;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDescend = this::decodeReplyTextDescend;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsContinue = this::decodeReplyArgsContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
@@ -935,6 +936,38 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         return paused ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyTextDescend(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == decodeReplyTextDescend && parser.hasNextEvent())
+            {
+                if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                {
+                    stream.replyMember = stream.valueMember;
+                    stream.replyMemberState = decodeReplyTextValue;
+                    stream.decoder = decodeReplyTextKey;
+                }
+                else
+                {
+                    stream.decoder = decodeReplyTextDone;
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyTextDescend);
     }
 
     private int decodeReplyArgs(
@@ -5669,6 +5702,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 replyMember = MEMBER_TEXT;
                 replyMemberState = decodeReplyTextValue;
 
+                if (kind == KIND_PROVIDER && server.streaming && valueMember != null)
+                {
+                    replyMember = MEMBER_ARGUMENTS;
+                    replyMemberState = decodeReplyTextDescend;
+                    textThen = decodeReplyRest;
+                }
+
                 if (kind == KIND_CALL && server.streaming)
                 {
                     replyMember = MEMBER_ARGUMENTS;
@@ -5691,7 +5731,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
                 case KIND_CALL -> server.streaming ? decodeReplyTextRoot : decodeReplyValue;
-                case KIND_PROVIDER -> decodeReplyValue;
+                case KIND_PROVIDER -> server.streaming && valueMember != null ? decodeReplyTextRoot : decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
                 default -> decodeReplySkipped;
                 };
@@ -6987,38 +7027,28 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
                 }
 
-                final int written = generateTextDelta(chars, length, stepObfuscation);
-                final long credit = server.replyCredit();
-                final int wanted = (int) Math.min(written - stepSent, credit);
-                final int slice = wanted > 0 ? server.claimReply(encodeTraceId, 1, wanted) : 0;
+                final String name = textEventName();
+                final int written = generateTextDelta(name, chars, length, stepObfuscation);
 
-                if (slice > 0)
+                writeSlice(name, written);
+
+                if (stepSent == written)
                 {
-                    final String name = partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
-                    final DirectBufferEx attribute = EVENT_ATTRIBUTES.get(name);
-                    final boolean init = stepSent == 0;
-                    final boolean last = stepSent + slice == written;
-                    final int flags = (init ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
-
-                    server.doNetData(encodeTraceId, encodeAuthorization, flags, encodeBudgetId, slice + server.replyPad,
-                        init ? eventAttributesRO.wrap(attribute, 0, attribute.capacity()) : EMPTY_OCTETS, copyBuffer,
-                        stepSent, slice);
-
-                    stepSent += slice;
-
-                    if (last)
-                    {
-                        accumulator.append(copyBuffer, stepDeltaOffset, stepDeltaLength);
-                        sequence++;
-                        stepSent = 0;
-                        taken = length;
-                    }
+                    accumulator.append(copyBuffer, stepDeltaOffset, stepDeltaLength);
+                    sequence++;
+                    stepSent = 0;
+                    taken = length;
                 }
-
-                generator.reset();
             }
 
             return taken;
+        }
+
+        private String textEventName()
+        {
+            return kind == KIND_PROVIDER
+                ? LlmOpenaiResponsesItems.deltaEvent(itemType)
+                : partKind == PART_KIND_REFUSAL ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
         }
 
         private int writeSlice(
@@ -7256,19 +7286,24 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private int generateTextDelta(
+            String name,
             JsonStringView chars,
             int take,
             int obfuscation)
         {
-            final boolean refusal = partKind == PART_KIND_REFUSAL;
-            final String name = refusal ? EVENT_REFUSAL_DELTA : EVENT_TEXT_DELTA;
+            final boolean provider = kind == KIND_PROVIDER;
+            final boolean refusal = !provider && partKind == PART_KIND_REFUSAL;
 
             generator.reset();
             generator.wrap(copyBuffer, 0, copyBuffer.capacity());
-            generator.writeStartObject().write(MEMBER_TYPE, name)
-                .write(MEMBER_CONTENT_INDEX, itemParts - 1)
-                .writeKey(MEMBER_DELTA)
-                .writeStartEscaped();
+            generator.writeStartObject().write(MEMBER_TYPE, name);
+
+            if (!provider)
+            {
+                generator.write(MEMBER_CONTENT_INDEX, itemParts - 1);
+            }
+
+            generator.writeKey(MEMBER_DELTA).writeStartEscaped();
 
             stepDeltaOffset = generator.length();
             generator.writeSegment(chars, 0, take);
@@ -7277,12 +7312,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             generator.writeEndEscaped();
             generator.write(MEMBER_ITEM_ID, itemId(itemCount - 1));
 
-            if (!refusal)
+            if (!provider && !refusal)
             {
                 generator.writeStartArray(MEMBER_LOGPROBS).writeEnd();
             }
 
-            if (server.obfuscation)
+            if (server.obfuscation && !refusal)
             {
                 writeObfuscation(obfuscation);
             }
@@ -7291,7 +7326,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .write(MEMBER_SEQUENCE_NUMBER, sequence)
                 .writeEnd();
 
-            return generator.length();
+            final int written = generator.length();
+
+            generator.reset();
+
+            return written;
         }
 
         private int onReplyText(
@@ -7434,6 +7473,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             openItem = ITEM_PROVIDER;
             bindAttributes();
             valueMember = LlmOpenaiResponsesItems.deltaMember(sectionItemType);
+            replyParser().reset();
             valuePipeline = valueMember != null ? memberPipeline(valueMember) : null;
             restPipeline = membersPipeline(valueMember);
 
