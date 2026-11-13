@@ -391,4 +391,14 @@ public class PublishIT
     {
         return ++subscriptionId;
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected.close.connection/client",
+        "${app}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }
