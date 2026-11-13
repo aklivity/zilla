@@ -90,6 +90,7 @@ public class LlmOpenaiResponsesServerBM
     private static final int IN_FLIGHT = 5_000;
     private static final int SMALL_LENGTH = 400;
     private static final int LARGE_LENGTH = 10_000;
+    private static final int HUGE_LENGTH = 1_000_000;
     private static final String USAGE =
         "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}";
 
@@ -155,7 +156,7 @@ public class LlmOpenaiResponsesServerBM
         @Setup(Level.Trial)
         public void init() throws Exception
         {
-            textLength = "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
+            textLength = "1m".equals(size) ? HUGE_LENGTH : "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
 
             final String text = base64(textLength);
 
