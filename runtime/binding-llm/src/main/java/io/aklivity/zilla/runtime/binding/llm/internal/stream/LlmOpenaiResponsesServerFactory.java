@@ -165,6 +165,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int OP_INIT_STATUS = 11;
     private static final int OP_SUMMARY_PART_ADDED = 12;
     private static final int OP_FINISH_HEAD = 17;
+    private static final int OP_ERROR = 20;
+    private static final int OP_FAILED = 21;
     private static final int OP_FINISH_ITEM = 18;
     private static final int OP_FINISH_TAIL = 19;
     private static final int OP_SUMMARY_TEXT_DONE = 13;
@@ -372,6 +374,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeCallEnd = this::decodeCallEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallValueDone = this::decodeCallValueDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResultEnd = this::decodeResultEnd;
+    private final LlmOpenaiResponsesReplyDecoder decodeErrorEvent = this::decodeErrorEvent;
+    private final LlmOpenaiResponsesReplyDecoder decodeFailedEvent = this::decodeFailedEvent;
     private final LlmOpenaiResponsesReplyDecoder decodeFinishClose = this::decodeFinishClose;
     private final LlmOpenaiResponsesReplyDecoder decodeFinishHead = this::decodeFinishHead;
     private final LlmOpenaiResponsesReplyDecoder decodeFinishItems = this::decodeFinishItems;
@@ -725,11 +729,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         final LlmReplyFrameFW frame = replyFrameRO.tryWrap(buffer, offset, limit);
+        int progress = offset;
 
-        stream.decoder = decodeReplyFrame;
-        stream.failReply(frame);
+        if (stream.server.streaming)
+        {
+            stream.beginFail(frame);
+            stream.decoder = decodeErrorEvent;
+        }
+        else
+        {
+            stream.decoder = decodeReplyFrame;
+            stream.failReply(frame);
+            progress = frame.limit();
+        }
 
-        return frame.limit();
+        return progress;
     }
 
     private int decodeReplyNext(
@@ -1337,6 +1351,38 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         if (complete)
         {
             stream.completeFinish(frame);
+            stream.decoder = decodeReplyFrame;
+        }
+
+        return complete ? frame.limit() : offset;
+    }
+
+    private int decodeErrorEvent(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.emitStep(OP_ERROR))
+        {
+            stream.decoder = decodeFailedEvent;
+        }
+
+        return offset;
+    }
+
+    private int decodeFailedEvent(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final LlmReplyFrameFW frame = replyFrameRO.tryWrap(buffer, offset, limit);
+        final boolean complete = stream.emitStep(OP_FAILED);
+
+        if (complete)
+        {
+            stream.completeFail(frame);
             stream.decoder = decodeReplyFrame;
         }
 
@@ -7091,6 +7137,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean stepFinal;
         private LlmEndExFW finishEnd;
         private int finishIndex;
+        private String errorCode;
+        private String errorMessage;
+        private String errorParam;
         private String closeStatus = STATUS_COMPLETED;
         private int recordRefCount;
         private int[] recordRefs;
@@ -7395,6 +7444,40 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 server.streaming &&
                 valueMember != null &&
                 LlmOpenaiResponsesItems.split(itemType);
+        }
+
+        private void beginFail(
+            LlmReplyFrameFW frame)
+        {
+            final LlmAbortExFW llmAbortEx = frame.extension().get(llmAbortExRO::tryWrap);
+            final LlmErrorFW error = llmAbortEx.error();
+            final String code = error.code().asString();
+            final String type = error.type().asString();
+            final String message = error.message().asString();
+
+            cleanupHeld();
+
+            encodeBudgetId = 0L;
+            encodeTraceId = frame.traceId();
+            encodeAuthorization = frame.authorization();
+
+            beginEncode();
+
+            if (eventOpen)
+            {
+                eventEnd(encodeLength());
+            }
+
+            errorCode = code != null ? code : type != null ? type : ERROR_TYPE_SERVER;
+            errorMessage = message != null ? message : "";
+            errorParam = error.param().asString();
+        }
+
+        private void completeFail(
+            LlmReplyFrameFW frame)
+        {
+            doEncodeFlush();
+            endReply(frame.traceId(), frame.authorization());
         }
 
         private void beginFinish(
@@ -8127,6 +8210,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     break;
                 case OP_REASONING_ADDED:
                     eventReasoningAdded(itemCount - 1);
+                    break;
+                case OP_ERROR:
+                    eventError(errorCode, errorMessage, errorParam);
+                    break;
+                case OP_FAILED:
+                    eventFailed(errorCode, errorMessage);
                     break;
                 case OP_FINISH_HEAD:
                     writeFinishHead();
@@ -10237,6 +10326,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final String reported = code != null ? code : type != null ? type : ERROR_TYPE_SERVER;
             final String text = message != null ? message : "";
 
+            eventError(reported, text, param);
+            eventFailed(reported, text);
+        }
+
+        private void eventError(
+            String reported,
+            String text,
+            String param)
+        {
             eventBegin(generator.length(), EVENT_ERROR);
             generator.writeStartObject()
                 .write(MEMBER_TYPE, EVENT_ERROR)
@@ -10254,7 +10352,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             generator.write(MEMBER_SEQUENCE_NUMBER, sequence++).writeEnd();
             eventEnd(generator.length());
+        }
 
+        private void eventFailed(
+            String reported,
+            String text)
+        {
             eventBegin(generator.length(), EVENT_FAILED);
             generator.writeStartObject().write(MEMBER_TYPE, EVENT_FAILED).writeStartObject(OBJECT_RESPONSE);
             writeEnvelope();
