@@ -49,6 +49,40 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
+/**
+ * Parses JSON events over a {@link JsonTokenizer}, one input window at a time.
+ * <p>
+ * Every field is either <em>carried</em>, so it must survive from one window to the next, or <em>window-local</em>,
+ * so it is rewritten by {@code wrap} or describes only the events delivered from the current window. The
+ * tokenizer's own state is classified in {@code JsonTokenizerImpl}.
+ * <p>
+ * Carried:
+ * <ul>
+ * <li>{@code docState}, {@code lastEvent}: where the document is, and the event that decides what a following
+ * token arms</li>
+ * <li>{@code segmentState}, {@code segmentStartOffset}, {@code segmentDepth}, {@code armNextValue}: a segment scan
+ * in progress, streamed across windows as raw bytes</li>
+ * <li>{@code fragmentOpen}: a key or scalar fragment whose token is still open</li>
+ * <li>{@code skipping}, {@code skipDepth}, {@code skipOccupied}: a member being dropped</li>
+ * <li>{@code verbatim}, {@code verbatimCursor}, {@code trimLeadingSeparator}: the verbatim read of the source and
+ * how much of it has been handed out</li>
+ * <li>{@code tokenEnd}, {@code tokenEndLine}, {@code tokenEndColumn}: where the latest body token ended</li>
+ * </ul>
+ * Window-local:
+ * <ul>
+ * <li>{@code terminal}, {@code windowLast}, {@code unmaterializedInput}, {@code syncedBuffer},
+ * {@code syncedOffset}, {@code syncedLength}, {@code frameBaseStreamOffset}: the window and the input it was
+ * wrapped from</li>
+ * <li>{@code segmentSliceOffset}, {@code segmentSliceLength}, {@code segmentConsumed}, {@code segmentView},
+ * {@code verbatimView}: the bytes of the segment held by the current window</li>
+ * <li>{@code currentEvent}, {@code continuation}, {@code stringViewOffset}, {@code stringCache},
+ * {@code stringViewRO}, {@code emptyView}, {@code encodedView}, {@code escapedView}: the event just delivered
+ * and the string read for it</li>
+ * <li>{@code stepKinds}, {@code stepEnds}, {@code stepCount}, {@code stepHead}, {@code cursor}, {@code block}: the
+ * step log of the current verbatim run, empty once the window is drained</li>
+ * <li>{@code mark}: the capture {@code rewind} returns to, valid only within the window it was taken in</li>
+ * </ul>
+ */
 public final class JsonParserImpl implements JsonParserEx
 {
     // a non-negative integer lexeme of at most this many digits is within long range; getInt()/getLong()
