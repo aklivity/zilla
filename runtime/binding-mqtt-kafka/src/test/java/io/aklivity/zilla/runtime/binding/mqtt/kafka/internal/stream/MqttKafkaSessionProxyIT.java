@@ -250,6 +250,56 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
+    public void shouldResetGroupOffsetsOnCleanStartNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPartitionError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
+    public void shouldResetGroupOffsetsOnCleanStartGroupNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
+    public void shouldResetGroupOffsetsOnCleanStartBrokerZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.offsets.immediately/client",
