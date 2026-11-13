@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.mqtt.kafka
 {
+    requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.binding.mqtt.kafka;
 
