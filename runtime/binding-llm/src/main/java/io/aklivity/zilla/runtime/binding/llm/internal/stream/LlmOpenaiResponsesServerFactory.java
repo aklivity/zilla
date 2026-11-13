@@ -159,6 +159,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int OP_VALUE_DONE = 8;
     private static final int OP_STATUS = 9;
     private static final int OP_CALL_ITEM_DONE = 10;
+    private static final int OP_INIT_STATUS = 11;
     private static final DirectBufferEx NO_FRAMES = new UnsafeBufferEx(new byte[0]);
     private static final int STEP_CONTINUE = 0;
     private static final int STEP_WINDOW = 1;
@@ -357,8 +358,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeCallBegin = this::decodeCallBegin;
     private final LlmOpenaiResponsesReplyDecoder decodeCallOpen = this::decodeCallOpen;
     private final LlmOpenaiResponsesReplyDecoder decodeCallAdded = this::decodeCallAdded;
+    private final LlmOpenaiResponsesReplyDecoder decodeCallInit = this::decodeCallInit;
     private final LlmOpenaiResponsesReplyDecoder decodeCallEnd = this::decodeCallEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallValueDone = this::decodeCallValueDone;
+    private final LlmOpenaiResponsesReplyDecoder decodeResultEnd = this::decodeResultEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeCallStatus = this::decodeCallStatus;
     private final LlmOpenaiResponsesReplyDecoder decodeCallItemDone = this::decodeCallItemDone;
     private final LlmOpenaiResponsesReplyDecoder decodeResponseCreated = this::decodeResponseCreated;
@@ -706,6 +709,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             stream.decoder = decodeCallEnd;
         }
+        else if (Flags.hasFin(stream.replyFlags) && stream.resulting())
+        {
+            stream.decoder = decodeResultEnd;
+        }
         else
         {
             stream.endReplyFrame();
@@ -1052,7 +1059,28 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         if (stream.emitStep(OP_CALL_ADDED))
         {
+            stream.statusIndex = 0;
+            stream.decoder = decodeCallInit;
+        }
+
+        return offset;
+    }
+
+    private int decodeCallInit(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final String[] names = LlmOpenaiResponsesItems.initEvents(stream.itemType);
+
+        if (stream.statusIndex == names.length)
+        {
             stream.decoder = decodeReplyTextRoot;
+        }
+        else if (stream.emitStep(OP_INIT_STATUS))
+        {
+            stream.statusIndex++;
         }
 
         return offset;
@@ -1066,6 +1094,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         stream.prepareCallEnd();
         stream.decoder = decodeCallValueDone;
+
+        return offset;
+    }
+
+    private int decodeResultEnd(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.prepareResultEnd();
+        stream.decoder = decodeCallItemDone;
 
         return offset;
     }
@@ -1093,7 +1133,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         final String[] names = LlmOpenaiResponsesItems.doneEvents(stream.itemType);
 
-        if (stream.statusIndex == names.length)
+        if (stream.statusIndex == names.length && stream.awaitsResult())
+        {
+            stream.kind = LlmOpenaiResponsesStream.KIND_NONE;
+            stream.decoder = decodeReplyNext;
+        }
+        else if (stream.statusIndex == names.length)
         {
             stream.decoder = decodeCallItemDone;
         }
@@ -7222,7 +7267,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 finishReasoningItem();
                 break;
             case ITEM_PROVIDER:
-                finishItem(itemCount - 1);
+                if (server.streaming && valueMember != null && LlmOpenaiResponsesItems.split(itemType))
+                {
+                    accumulator.close();
+                    sealItem();
+                    writeToolItemDone(itemCount - 1);
+                    closeItemRecord();
+                    openItem = ITEM_NONE;
+                }
+                else
+                {
+                    finishItem(itemCount - 1);
+                }
                 break;
             default:
                 break;
@@ -7450,10 +7506,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean valued()
         {
             return server.streaming &&
-                (kind == KIND_CALL ||
-                    kind == KIND_PROVIDER &&
-                    LlmOpenaiResponsesItems.deltaMember(sectionItemType) != null &&
-                    !LlmOpenaiResponsesItems.split(sectionItemType));
+                (kind == KIND_CALL || kind == KIND_PROVIDER && LlmOpenaiResponsesItems.deltaMember(sectionItemType) != null);
         }
 
         private void openCallRecord()
@@ -7487,6 +7540,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             accumulator.open();
         }
 
+        private boolean awaitsResult()
+        {
+            return kind == KIND_PROVIDER && LlmOpenaiResponsesItems.split(itemType);
+        }
+
+        private boolean resulting()
+        {
+            return server.streaming && kind == KIND_RESULT;
+        }
+
         private void prepareCallEnd()
         {
             bindAttributes();
@@ -7495,12 +7558,42 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             accumulator.open();
             accumulator.append(tail.buffer(), 0, tail.length());
             accumulator.close();
+            sealItem();
+        }
+
+        private void prepareResultEnd()
+        {
+            accumulator.close();
+            sealItem();
+        }
+
+        private void writeToolItemDone(
+            int index)
+        {
+            final int first = itemFirst(index);
+            final int count = itemValues(index);
+
+            beginItemDone(index);
+            generator.writeKey(valueMember);
+            repeatString(first + VALUE_DELTA);
+
+            if (count > VALUE_TAIL)
+            {
+                repeatMembers(first + VALUE_TAIL);
+            }
+
+            writeFooter(index);
+
+            if (count > VALUE_RESULT)
+            {
+                repeatMembers(first + VALUE_RESULT);
+            }
+
+            endItemDone(index);
         }
 
         private void finishCallRecord()
         {
-            accumulator.close();
-            sealItem();
             closeItemRecord();
             openItem = ITEM_NONE;
             kind = KIND_NONE;
@@ -7578,16 +7671,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     eventValueDone(LlmOpenaiResponsesItems.doneEvent(itemType), valueMember, itemCount - 1,
                         itemFirst(itemCount - 1) + VALUE_DELTA);
                     break;
+                case OP_INIT_STATUS:
+                    eventStatus(LlmOpenaiResponsesItems.initEvents(itemType)[statusIndex], itemCount - 1);
+                    break;
                 case OP_STATUS:
                     eventStatus(LlmOpenaiResponsesItems.doneEvents(itemType)[statusIndex], itemCount - 1);
                     break;
                 case OP_CALL_ITEM_DONE:
-                    beginItemDone(itemCount - 1);
-                    generator.writeKey(valueMember);
-                    repeatString(itemFirst(itemCount - 1) + VALUE_DELTA);
-                    writeTail();
-                    writeFooter(itemCount - 1);
-                    endItemDone(itemCount - 1);
+                    writeToolItemDone(itemCount - 1);
                     break;
                 case OP_CREATED:
                     eventResponse(EVENT_CREATED);
@@ -8357,7 +8448,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (length > 0)
+            if (length > 0 && server.streaming && kind == KIND_RESULT)
+            {
+                accumulator.append(buffer, offset, length);
+            }
+            else if (length > 0)
             {
                 ensureEncodeRoom(length + 1);
 
