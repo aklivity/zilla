@@ -55,6 +55,36 @@ public interface JsonStringView extends CharSequenceEx
     Kind kind();
 
     /**
+     * Copies the chars from {@code from} that are printable ASCII other than a quote or a backslash, which a
+     * writer emits as they are, into {@code target}, stopping at the first char that is not, at the end of the
+     * view, or after {@code max} chars.
+     *
+     * @return the number of chars copied
+     */
+    default int copyPlain(
+        int from,
+        int max,
+        byte[] target)
+    {
+        final int limit = Math.min(max, length() - from);
+        int copied = 0;
+
+        while (copied < limit)
+        {
+            final char c = charAt(from + copied);
+
+            if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+            {
+                break;
+            }
+
+            target[copied++] = (byte) c;
+        }
+
+        return copied;
+    }
+
+    /**
      * A {@link CharSequence} over the bytes of a JSON string as they were written between its quotes, so the
      * decoded chars are read in place and never copied.
      * <p>
@@ -179,6 +209,53 @@ public interface JsonStringView extends CharSequenceEx
             }
 
             return result;
+        }
+
+        @Override
+        public int copyPlain(
+            int from,
+            int max,
+            byte[] target)
+        {
+            final int limit = Math.min(max, length - from);
+            int copied = 0;
+
+            while (copied < limit)
+            {
+                int position = from + copied - runChar;
+
+                if (position < 0 || position >= runLength)
+                {
+                    cover(from + copied);
+                    position = from + copied - runChar;
+                }
+
+                final int end = Math.min(runLength, position + limit - copied);
+                final char[] run = this.run;
+                int next = position;
+
+                while (next < end)
+                {
+                    final char c = run[next];
+
+                    if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+                    {
+                        break;
+                    }
+
+                    target[copied + next - position] = (byte) c;
+                    next++;
+                }
+
+                copied += next - position;
+
+                if (next < end)
+                {
+                    break;
+                }
+            }
+
+            return copied;
         }
 
         @Override

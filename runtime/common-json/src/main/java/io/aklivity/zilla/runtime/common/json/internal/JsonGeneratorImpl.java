@@ -1147,6 +1147,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
 
         final int limit = Math.min(max, PLAIN_RUN_MAX);
+        if (value instanceof JsonStringView view)
+        {
+            return view.copyPlain(index, limit, plainRunBytes);
+        }
         int run = 0;
         while (run < limit)
         {
