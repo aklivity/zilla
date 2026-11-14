@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -174,6 +175,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final Long2ObjectHashMap<KafkaApiClient> clientsByAffinity;
+    private final Long2ObjectHashMap<KafkaApiRefresh> refreshByRoute;
     private final KafkaEventContext event;
     private final boolean apiVersionsEnabled;
     private final int reconnectDelay;
@@ -205,6 +207,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         this.supplyDebitor = supplyDebitor;
         this.supplyClientRoute = supplyClientRoute;
         this.clientsByAffinity = new Long2ObjectHashMap<>();
+        this.refreshByRoute = new Long2ObjectHashMap<>();
     }
 
     @FunctionalInterface
@@ -595,7 +598,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         final KafkaClientRoute clientRoute = resolved != null ? supplyClientRoute.apply(resolved.id) : null;
 
-        if (resolved != null && (affinity == NO_AFFINITY || clientRoute.servers.containsKey(affinity)))
+        if (resolved != null)
         {
             final long resolvedId = resolved.id;
             final short api = kafkaApiBeginEx.api();
@@ -605,8 +608,12 @@ public final class KafkaClientApiFactory implements BindingHandler
                 ? new String16FW(kafkaApiBeginEx.clientId().asString())
                 : NULL_CLIENT_ID;
 
-            final KafkaApiClient client = clientsByAffinity.computeIfAbsent(affinity,
-                a -> new KafkaApiClient(routedId, resolvedId, a, binding.servers(), clientRoute, binding.guard, binding.sasl()));
+            final boolean known = affinity == NO_AFFINITY || clientRoute.servers.containsKey(affinity);
+
+            // an unknown id is kept out of clientsByAffinity so stray ids cannot grow it
+            final KafkaApiClient client = known
+                ? clientsByAffinity.computeIfAbsent(affinity, a -> newApiClient(routedId, resolvedId, a, binding, clientRoute))
+                : newApiClient(routedId, resolvedId, affinity, binding, clientRoute);
 
             newStream = new KafkaApiStream(
                     application,
@@ -622,6 +629,16 @@ public final class KafkaClientApiFactory implements BindingHandler
         }
 
         return newStream;
+    }
+
+    private KafkaApiClient newApiClient(
+        long routedId,
+        long resolvedId,
+        long affinity,
+        KafkaBindingConfig binding,
+        KafkaClientRoute clientRoute)
+    {
+        return new KafkaApiClient(routedId, resolvedId, affinity, binding.servers(), clientRoute, binding.guard, binding.sasl());
     }
 
     private MessageConsumer newStream(
@@ -793,12 +810,15 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             state = StreamState.closeInitial(state);
 
-            if (!(client.pending.peek() == this && client.requestInFlight))
+            if (!client.refresh.cancel(this))
             {
-                client.pending.remove(this);
-            }
+                if (!(client.pending.peek() == this && client.requestInFlight))
+                {
+                    client.pending.remove(this);
+                }
 
-            client.cleanupNet(traceId);
+                client.cleanupNet(traceId);
+            }
         }
 
         private void onAppWindow(
@@ -832,12 +852,15 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             state = StreamState.closeReply(state);
 
-            if (!(client.pending.peek() == this && client.requestInFlight))
+            if (!client.refresh.cancel(this))
             {
-                client.pending.remove(this);
-            }
+                if (!(client.pending.peek() == this && client.requestInFlight))
+                {
+                    client.pending.remove(this);
+                }
 
-            client.cleanupNet(traceId);
+                client.cleanupNet(traceId);
+            }
         }
 
         private void onAppFlush(
@@ -1097,6 +1120,67 @@ public final class KafkaClientApiFactory implements BindingHandler
         }
     }
 
+    private final class KafkaApiRefresh
+    {
+        private final KafkaClientRoute clientRoute;
+        private final Deque<KafkaApiStream> waiting;
+        private final LongConsumer onRefreshed;
+
+        KafkaApiRefresh(
+            KafkaClientRoute clientRoute)
+        {
+            this.clientRoute = clientRoute;
+            this.waiting = new ArrayDeque<>();
+            this.onRefreshed = this::onRefreshed;
+        }
+
+        private void await(
+            KafkaApiStream stream,
+            long traceId)
+        {
+            final boolean wasEmpty = waiting.isEmpty();
+            waiting.offer(stream);
+
+            if (wasEmpty)
+            {
+                if (clientRoute.hasMeta())
+                {
+                    clientRoute.registerMetaRefreshed(onRefreshed);
+                    clientRoute.metaFlush.accept(traceId);
+                }
+                else
+                {
+                    onRefreshed(traceId);
+                }
+            }
+        }
+
+        private boolean cancel(
+            KafkaApiStream stream)
+        {
+            final boolean removed = waiting.remove(stream);
+
+            if (removed && waiting.isEmpty())
+            {
+                clientRoute.unregisterMetaRefreshed(onRefreshed);
+            }
+
+            return removed;
+        }
+
+        private void onRefreshed(
+            long traceId)
+        {
+            clientRoute.unregisterMetaRefreshed(onRefreshed);
+
+            KafkaApiStream stream;
+            while ((stream = waiting.poll()) != null)
+            {
+                stream.cleanupApp(traceId, EMPTY_OCTETS);
+            }
+        }
+    }
+
     private final class KafkaApiClient
     {
         private final long originId;
@@ -1109,6 +1193,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         private final GuardHandler guard;
         private final KafkaSaslConfig sasl;
         private final Deque<KafkaApiStream> pending;
+        private final KafkaApiRefresh refresh;
 
         private MessageConsumer network;
         private int state;
@@ -1171,6 +1256,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             this.guard = guard;
             this.sasl = sasl;
             this.pending = new ArrayDeque<>();
+            this.refresh = refreshByRoute.computeIfAbsent(clientRoute.resolvedId, id -> new KafkaApiRefresh(clientRoute));
             this.apiVersionRangeByApiKey = new Int2IntHashMap(NO_API_VERSION_RANGE);
             this.decoder = decodeReject;
         }
@@ -1825,7 +1911,7 @@ public final class KafkaClientApiFactory implements BindingHandler
                 KafkaApiStream stream;
                 while ((stream = pending.poll()) != null)
                 {
-                    stream.cleanupApp(traceId, EMPTY_OCTETS);
+                    refresh.await(stream, traceId);
                 }
             }
             else if (!StreamState.initialOpening(state))

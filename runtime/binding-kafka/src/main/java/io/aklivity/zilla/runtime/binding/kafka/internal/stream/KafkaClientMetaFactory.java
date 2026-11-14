@@ -1142,6 +1142,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
+
+            clientRoute.metaRefreshed.accept(traceId);
         }
 
         private final class KafkaMetaClient extends KafkaSaslClient
@@ -1931,6 +1933,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 nextResponseId++;
                 nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis,
                         originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+
+                clientRoute.metaRefreshed.accept(traceId);
             }
 
             private void cleanupNetwork(
