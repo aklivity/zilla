@@ -5268,6 +5268,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.rejected.tool.call.arguments/client",
+        "${net}/openai.responses.rejected.tool.call.arguments/server"})
+    public void shouldOpenaiResponsesRejectedToolCallArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.rejected.content.part.type/client",
         "${net}/openai.responses.rejected.content.part.type/server"})
     public void shouldOpenaiResponsesRejectedContentPartType() throws Exception
@@ -5631,6 +5640,15 @@ public class NetworkIT
         "${net}/openai.responses.section.tool.call/client",
         "${net}/openai.responses.section.tool.call/server"})
     public void shouldOpenaiResponsesSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.arguments.default/client",
+        "${net}/openai.responses.section.tool.call.arguments.default/server"})
+    public void shouldOpenaiResponsesSectionToolCallArgumentsDefault() throws Exception
     {
         k3po.finish();
     }

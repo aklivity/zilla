@@ -506,6 +506,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationElement = this::decodeReplyCitationElement;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationFirst = this::decodeReplyCitationFirst;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationKey = this::decodeReplyCitationKey;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationNestedFirst = this::decodeReplyCitationNestedFirst;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationNestedKey = this::decodeReplyCitationNestedKey;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationDescend = this::decodeReplyCitationDescend;
 
 
@@ -932,7 +934,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.START_OBJECT)
                 {
-                    stream.citationLevel = 1;
                     stream.decoder = decodeReplyCitationFirst;
                 }
                 else if (event == JsonEvent.END_ARRAY)
@@ -960,6 +961,24 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         return decodeReplyCitationMembers(stream, buffer, offset, decodeReplyCitationFirst, false);
+    }
+
+    private int decodeReplyCitationNestedFirst(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyCitationMembers(stream, buffer, offset, decodeReplyCitationNestedFirst, false);
+    }
+
+    private int decodeReplyCitationNestedKey(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyCitationMembers(stream, buffer, offset, decodeReplyCitationNestedKey, true);
     }
 
     private int decodeReplyCitationKey(
@@ -1013,7 +1032,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 if (parser.nextEvent() == JsonEvent.START_OBJECT)
                 {
-                    stream.citationLevel = 2;
                     stream.decoder = stream.citationReturn;
                 }
                 else
@@ -7069,12 +7087,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onDecodeControl(
             LlmOpenaiResponsesBlockWriter writer)
         {
-            if (writer.streamSeen())
+            if (writer.kind() == LlmOpenaiResponsesBlockWriter.KIND_STREAM)
             {
                 streaming = writer.streaming();
             }
 
-            if (writer.optionsSeen())
+            if (writer.kind() == LlmOpenaiResponsesBlockWriter.KIND_STREAM_OPTIONS)
             {
                 streamOptions = true;
                 usageRequested = writer.usageRequested();
@@ -7742,7 +7760,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int memberDepth;
         private String judgedKey;
         private StringBuilder memberCapture;
-        private int citationLevel;
         private LlmOpenaiResponsesReplyDecoder citationReturn;
         private LlmOpenaiResponsesReplyDecoder skipFollow = decodeReplyTextKey;
         private final LlmOutputSink controlOutput = (buffer, offset, length, last) ->
@@ -10771,9 +10788,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             skipFollow = current;
 
-            if (citationLevel == 1 && MEMBER_URL_CITATION.contentEquals(key))
+            final boolean nested = current == decodeReplyCitationNestedFirst || current == decodeReplyCitationNestedKey;
+
+            if (!nested && MEMBER_URL_CITATION.contentEquals(key))
             {
-                citationReturn = current;
+                citationReturn = open ? decodeReplyCitationNestedKey : decodeReplyCitationNestedFirst;
                 state = decodeReplyCitationDescend;
             }
             else
@@ -10792,7 +10811,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     memberGenerator.writeKey(memberKeys.target());
                     restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
                     memberCapture = null;
-                    memberFollow = decodeReplyCitationKey;
+                    memberFollow = nested ? decodeReplyCitationNestedKey : decodeReplyCitationKey;
                     state = decodeReplyMember;
                 }
                 else if (action == LlmMemberKeys.JUDGE)
@@ -10811,9 +10830,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             LlmOpenaiResponsesReplyDecoder state = current;
 
-            if (citationLevel == 2)
+            if (current == decodeReplyCitationNestedFirst || current == decodeReplyCitationNestedKey)
             {
-                citationLevel = 1;
+                state = open ? decodeReplyCitationKey : decodeReplyCitationFirst;
             }
             else if (open)
             {

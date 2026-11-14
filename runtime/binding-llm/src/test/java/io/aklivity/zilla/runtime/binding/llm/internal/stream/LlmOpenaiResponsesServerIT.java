@@ -402,6 +402,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.rejected.tool.call.arguments/client",
+        "${app}/openai.responses.rejected.tool.call.arguments/server"})
+    public void shouldRejectOpenaiResponsesToolCallArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.rejected.content.part.type/client",
         "${app}/openai.responses.rejected.content.part.type/server"})
     public void shouldRejectOpenaiResponsesContentPartType() throws Exception
@@ -725,6 +735,16 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.section.tool.call/client",
         "${app}/openai.responses.section.tool.call/server"})
     public void shouldDecodeOpenaiResponsesSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.arguments.default/client",
+        "${app}/openai.responses.section.tool.call.arguments.default/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallArgumentsDefault() throws Exception
     {
         k3po.finish();
     }
