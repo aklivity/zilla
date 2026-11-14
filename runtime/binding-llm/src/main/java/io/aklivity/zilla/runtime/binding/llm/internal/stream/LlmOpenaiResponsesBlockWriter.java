@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import jakarta.json.JsonException;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -49,8 +51,6 @@ final class LlmOpenaiResponsesBlockWriter
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final int HELD_MAX = 4096;
     private static final int HEADROOM = 16;
-    private static final int ESCAPE_GROWTH = 6;
-    private static final int CAPACITY_HEADROOM = 4096;
 
     static final int ACTION_DROP = 1;
     static final int ACTION_COPY = 2;
@@ -88,7 +88,6 @@ final class LlmOpenaiResponsesBlockWriter
 
     private static final String TYPE_URL_CITATION = "url_citation";
 
-    private final MutableDirectBufferEx buffer;
     private final LlmOutputSink sink;
     private final JsonGeneratorEx generator;
     private final StringBuilder key = new StringBuilder();
@@ -106,20 +105,30 @@ final class LlmOpenaiResponsesBlockWriter
     private boolean usageRequested;
     private boolean obfuscationDisabled;
 
+    private MutableDirectBufferEx buffer;
+
     LlmOpenaiResponsesBlockWriter(
-        MutableDirectBufferEx buffer,
         LlmOutputSink sink,
         JsonGeneratorEx generator)
     {
-        this.buffer = buffer;
         this.sink = sink;
         this.generator = generator;
     }
 
+    void resume(
+        MutableDirectBufferEx buffer)
+    {
+        this.buffer = buffer;
+
+        generator.wrap(buffer, 0, buffer.capacity());
+    }
+
     void begin(
-        int kind)
+        int kind,
+        MutableDirectBufferEx buffer)
     {
         this.kind = kind;
+        this.buffer = buffer;
         this.depth = 0;
         this.capture.setLength(0);
         this.captured.clear();
@@ -223,7 +232,7 @@ final class LlmOpenaiResponsesBlockWriter
 
         if (event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER)
         {
-            need += ESCAPE_GROWTH * (PREFIX.length() + parser.getStringView().length());
+            need += PREFIX.length();
         }
 
         if (generator.remaining() < need)
@@ -831,12 +840,6 @@ final class LlmOpenaiResponsesBlockWriter
         closeItem(false);
     }
 
-    static int capacity(
-        int window)
-    {
-        return ESCAPE_GROWTH * window + CAPACITY_HEADROOM;
-    }
-
     private void selectMember(
         CharSequence name)
     {
@@ -1134,23 +1137,54 @@ final class LlmOpenaiResponsesBlockWriter
             generator.writeNull();
             break;
         default:
-            final JsonStringView chars = parser.getStringView();
-            final Completion completion = parser.deferredBytes() ? Completion.INCOMPLETE : Completion.COMPLETE;
+            copyText(event, parser.getStringView(), parser.deferredBytes());
+            break;
+        }
+    }
+
+    private void copyText(
+        JsonEvent event,
+        JsonStringView chars,
+        boolean deferred)
+    {
+        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+        final int length = chars.length();
+
+        int taken = 0;
+
+        do
+        {
+            final CharSequence rest = taken == 0 ? chars : chars.subSequence(taken, length);
+            final int before = generator.consumed();
 
             if (event == JsonEvent.KEY_NAME)
             {
-                generator.writeKey(chars, completion);
+                generator.writeKey(rest, completion);
             }
             else if (event == JsonEvent.VALUE_NUMBER)
             {
-                generator.writeNumber(chars, completion);
+                generator.writeNumber(rest, completion);
             }
             else
             {
-                generator.write(chars, completion);
+                generator.write(rest, completion);
             }
-            break;
+
+            final int advanced = generator.consumed() - before;
+
+            taken += advanced;
+
+            if (taken < length)
+            {
+                if (advanced == 0 && generator.length() == 0)
+                {
+                    throw new JsonException("insufficient room to write the next character");
+                }
+
+                flush(false);
+            }
         }
+        while (taken < length);
     }
 
     private static int step(

@@ -299,7 +299,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx noBuffer = new UnsafeBufferEx(new byte[0]);
     private final MutableDirectBufferEx markerBuffer = new UnsafeBufferEx(new byte[MARKER_LENGTH]);
     private final MutableDirectBufferEx argsBuffer;
-    private final MutableDirectBufferEx blockBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -308,6 +307,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final BufferPool encodePool;
     private final BufferPool accumulatePool;
     private final BufferPool holdPool;
+    private final BufferPool blockPool;
     private final int elementMax;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -533,13 +533,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.encodePool = context.bufferPool().duplicate();
         this.accumulatePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
+        this.blockPool = context.bufferPool().duplicate();
         this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.encodeMax = encodePool.slotCapacity();
         this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
         this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
-        this.blockBuffer = new UnsafeBufferEx(new byte[LlmOpenaiResponsesBlockWriter.capacity(decodeMax)]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -5781,6 +5781,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int state;
         private boolean deauthorized;
 
+        private int blockSlot = NO_SLOT;
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
@@ -5865,7 +5866,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private final LlmOutputSink holdSink = (buffer, offset, length, last) ->
             onDecodeHold(buffer, offset, length);
         private final LlmOutputSink blockOutput = (buffer, offset, length, last) ->
-            sectionSink.put(buffer, offset, length, last);
+            onBlockOutput(buffer, offset, length, last);
         private final LlmOutputSink choiceSink = (buffer, offset, length, last) ->
             onChoicePiece(buffer, offset, length);
 
@@ -5980,6 +5981,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             int progress = offset;
 
+            resumeWriter();
+
             if (offset < limit)
             {
                 captureFrom = offset;
@@ -6020,10 +6023,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 cleanupDecodeSlot();
             }
 
-            if (writing != null)
-            {
-                writing.flush(false);
-            }
+            suspendWriter();
 
             flushNetWindow(traceId);
             flushNetEnd(traceId);
@@ -6646,6 +6646,63 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             beginWriter(kind);
         }
 
+        private void onBlockOutput(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            sectionSink.put(buffer, offset, length, last);
+
+            if (last)
+            {
+                cleanupBlockSlot();
+            }
+        }
+
+        private MutableDirectBufferEx blockBuffer()
+        {
+            if (blockSlot == NO_SLOT)
+            {
+                blockSlot = blockPool.acquire(initialId);
+
+                if (blockSlot == NO_SLOT)
+                {
+                    cleanup(decodeTraceId);
+                }
+            }
+
+            return blockSlot != NO_SLOT ? blockPool.buffer(blockSlot) : noBuffer;
+        }
+
+        private void resumeWriter()
+        {
+            if (writing != null)
+            {
+                writing.resume(blockBuffer());
+            }
+        }
+
+        private void suspendWriter()
+        {
+            if (writing != null)
+            {
+                writing.flush(false);
+                writing.resume(noBuffer);
+            }
+
+            cleanupBlockSlot();
+        }
+
+        private void cleanupBlockSlot()
+        {
+            if (blockSlot != NO_SLOT)
+            {
+                blockPool.release(blockSlot);
+                blockSlot = NO_SLOT;
+            }
+        }
+
         private void beginWriter(
             int kind)
         {
@@ -6655,11 +6712,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 if (blockWriter == null)
                 {
-                    blockWriter = new LlmOpenaiResponsesBlockWriter(blockBuffer, blockOutput, JsonEx.createGenerator());
+                    blockWriter = new LlmOpenaiResponsesBlockWriter(blockOutput, JsonEx.createGenerator());
                 }
 
                 writing = blockWriter;
-                writing.begin(kind);
+                writing.begin(kind, blockBuffer());
                 blockStart = switch (kind)
                 {
                 case LlmOpenaiResponsesBlockWriter.KIND_CITATIONS -> decodeBlockElement;
@@ -7336,6 +7393,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 stream.cleanup(traceId);
             }
             cleanupDecodeSlot();
+            cleanupBlockSlot();
             cleanupReplyBody();
             cleanupTail();
             if (!deauthorized)
