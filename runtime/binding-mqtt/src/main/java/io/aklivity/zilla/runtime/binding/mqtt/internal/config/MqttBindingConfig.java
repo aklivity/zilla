@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.IMPLEMENTATION_SPECIFIC_ERROR;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NOT_AUTHORIZED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
@@ -143,22 +142,7 @@ public final class MqttBindingConfig
         long authorization,
         String topic)
     {
-        final int reasonCode;
-
-        if (resolveSubscribe(authorization, topic) != null)
-        {
-            reasonCode = SUCCESS;
-        }
-        else if (routes.stream().anyMatch(r -> !r.authorized(authorization) && r.matchesSubscribe(authorization, topic)))
-        {
-            reasonCode = NOT_AUTHORIZED;
-        }
-        else
-        {
-            reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
-        }
-
-        return reasonCode;
+        return resolveSubscribe(authorization, topic) != null ? SUCCESS : UNSPECIFIED_ERROR;
     }
 
     public MqttRouteConfig resolvePublish(
