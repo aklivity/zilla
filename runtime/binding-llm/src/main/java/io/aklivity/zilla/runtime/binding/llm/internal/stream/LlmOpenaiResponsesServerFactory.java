@@ -74,7 +74,6 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
@@ -220,6 +219,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_URL_CITATION = "url_citation";
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_ROLE = "role";
     private static final String MEMBER_CONTENT = "content";
@@ -439,7 +439,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitations = this::decodeReplyCitations;
-    private final LlmOpenaiResponsesReplyDecoder decodeReplyDelta = this::decodeReplyDelta;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationElement = this::decodeReplyCitationElement;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationFirst = this::decodeReplyCitationFirst;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationKey = this::decodeReplyCitationKey;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyCitationDescend = this::decodeReplyCitationDescend;
 
 
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
@@ -814,33 +817,144 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.server.streaming)
-        {
-            final boolean suspended = stream.advanceFanOut(buffer, offset, stream.citationsPipeline,
-                stream.citationsOutput, stream.valueTail, citationBuffer.capacity() - stream.citationLength);
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
 
-            stream.advanceFollow = suspended ? decodeReplyCitations : decodeReplyNext;
-            stream.decoder = decodeCitationElements;
-        }
-        else
+        try
         {
-            stream.decoder = decodeReplyNext;
-            stream.advanceFanOut(buffer, offset, stream.citationsPipeline, stream.citationsOutput, stream.valueTail,
-                Integer.MAX_VALUE);
+            while (stream.decoder == decodeReplyCitations && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    stream.beginCitations();
+                }
+                else if (event != JsonEvent.START_DOCUMENT)
+                {
+                    stream.rejectReply();
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
         }
 
-        return offset;
+        return stream.positionReply(buffer, offset, decodeReplyCitations);
     }
 
-    private int decodeReplyDelta(
+    private int decodeReplyCitationElement(
         LlmOpenaiResponsesStream stream,
         DirectBufferEx buffer,
         int offset,
         int limit)
     {
-        stream.decoder = decodeReplyNext;
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
 
-        return offset;
+        try
+        {
+            while (stream.decoder == decodeReplyCitationElement && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    stream.citationLevel = 1;
+                    stream.decoder = decodeReplyCitationFirst;
+                }
+                else if (event == JsonEvent.END_ARRAY)
+                {
+                    stream.endCitations();
+                }
+                else
+                {
+                    stream.rejectReply();
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyCitationElement);
+    }
+
+    private int decodeReplyCitationFirst(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyCitationMembers(stream, buffer, offset, decodeReplyCitationFirst, false);
+    }
+
+    private int decodeReplyCitationKey(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyCitationMembers(stream, buffer, offset, decodeReplyCitationKey, true);
+    }
+
+    private int decodeReplyCitationMembers(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiResponsesReplyDecoder state,
+        boolean open)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == state && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                stream.decoder = event == JsonEvent.KEY_NAME
+                    ? stream.citationMember(parser.getStringView(), state, open)
+                    : stream.endCitationLevel(state, open);
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyCitationDescend(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            if (parser.hasNextEvent())
+            {
+                if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                {
+                    stream.citationLevel = 2;
+                    stream.decoder = stream.citationReturn;
+                }
+                else
+                {
+                    stream.rejectReply();
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyCitationDescend);
     }
 
     private int decodeReplyTextRoot(
@@ -6317,6 +6431,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int memberDepth;
         private String judgedKey;
         private StringBuilder memberCapture;
+        private int citationLevel;
+        private LlmOpenaiResponsesReplyDecoder citationReturn;
         private LlmOpenaiResponsesReplyDecoder skipFollow = decodeReplyTextKey;
         private final LlmSectionPipeline.Output controlOutput = (buffer, offset, length, last) ->
             onControlPiece(buffer, offset, length);
@@ -6329,7 +6445,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int memberLength;
         private int stepDeltaLength;
         private LlmSectionPipeline.Output restOutput;
-        private final LlmFrameTail valueTail = new LlmFrameTail();
 
         private LlmOpenaiResponsesStream(
             LlmOpenaiResponsesServer server)
@@ -6692,6 +6807,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     replyParser().reset();
                 }
 
+                if (kind == KIND_CITATIONS)
+                {
+                    textThen = decodeReplyNext;
+                    replyParser().reset();
+                }
+
                 if (kind == KIND_CONTROL)
                 {
                     replyMember = MEMBER_NONE;
@@ -6812,57 +6933,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return offset;
-        }
-
-        private boolean advanceFanOut(
-            DirectBufferEx buffer,
-            int offset,
-            LlmSectionPipeline pipeline,
-            LlmSectionPipeline.Output output,
-            LlmFrameTail tail,
-            int outputLimit)
-        {
-            final int payloadFrom = offset + replyPayloadFrom;
-            final int payloadLimit = offset + replyFrameLength;
-            final int from = payloadFrom - tail.length();
-
-            boolean suspended = false;
-
-            if (tail.length() > replyPayloadFrom)
-            {
-                rejectReply();
-            }
-            else
-            {
-                tail.restore((MutableDirectBufferEx) buffer, payloadFrom);
-
-                final Status status = pipeline.advance(buffer, from, payloadLimit, Flags.hasFin(replyFlags), output,
-                    outputLimit);
-
-                if (status == Status.REJECTED || status == Status.SUSPENDED && pipeline.produced() == 0)
-                {
-                    rejectReply();
-                }
-                else if (status == Status.SUSPENDED)
-                {
-                    suspended = true;
-                }
-                else
-                {
-                    final int unconsumed = payloadLimit - from - pipeline.consumed();
-
-                    if ((status == Status.STARVED || status == Status.ADVANCED) && unconsumed > 0)
-                    {
-                        tail.keep(buffer, payloadLimit - unconsumed, unconsumed);
-                    }
-                    else
-                    {
-                        tail.clear();
-                    }
-                }
-            }
-
-            return suspended;
         }
 
         private int valueLimit()
@@ -7400,7 +7470,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int partAnnotations = NONE;
         private final LlmSectionPipeline.Output reasoningMembersOutput;
         private final LlmSectionPipeline.Output citationsOutput;
-        private LlmSectionPipeline citationsPipeline;
         private String reasoningId;
         private int elementSlot = NO_SLOT;
         private MutableDirectBufferEx elementBuffer;
@@ -7858,7 +7927,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             citationLength = 0;
             citationScan = 0;
             elementStart = NONE;
-            citationsPipeline().begin(replyAttributes);
+            restOutput = citationsOutput;
+            beginMembers();
             beginFanOuts();
 
             if (server.streaming)
@@ -9013,7 +9083,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void beginFanOuts()
         {
-            valueTail.clear();
         }
 
         private void sectionCall()
@@ -9359,6 +9428,93 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 judgedKey = key.toString();
                 state = decodeReplyMemberJudge;
+            }
+
+            return state;
+        }
+
+        private void beginCitations()
+        {
+            memberGenerator.reset();
+            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            memberGenerator.writeStartArray();
+            restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+            decoder = decodeReplyCitationElement;
+        }
+
+        private void endCitations()
+        {
+            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            memberGenerator.writeEnd();
+            restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+            advanceFollow = decodeReplyTextDone;
+            decoder = server.streaming ? decodeCitationElements : decodeReplyTextDone;
+        }
+
+        private LlmOpenaiResponsesReplyDecoder citationMember(
+            CharSequence key,
+            LlmOpenaiResponsesReplyDecoder current,
+            boolean open)
+        {
+            LlmOpenaiResponsesReplyDecoder state = decodeReplyTextSkip;
+
+            skipFollow = current;
+
+            if (citationLevel == 1 && MEMBER_URL_CITATION.contentEquals(key))
+            {
+                citationReturn = current;
+                state = decodeReplyCitationDescend;
+            }
+            else
+            {
+                final int action = memberKeys.select(key);
+
+                if (action == LlmMemberKeys.COPY)
+                {
+                    memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+
+                    if (!open)
+                    {
+                        memberGenerator.writeStartObject();
+                    }
+
+                    memberGenerator.writeKey(memberKeys.target());
+                    restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                    memberCapture = null;
+                    memberFollow = decodeReplyCitationKey;
+                    state = decodeReplyMember;
+                }
+                else if (action == LlmMemberKeys.JUDGE)
+                {
+                    judgedKey = key.toString();
+                    state = decodeReplyMemberJudge;
+                }
+            }
+
+            return state;
+        }
+
+        private LlmOpenaiResponsesReplyDecoder endCitationLevel(
+            LlmOpenaiResponsesReplyDecoder current,
+            boolean open)
+        {
+            LlmOpenaiResponsesReplyDecoder state = current;
+
+            if (citationLevel == 2)
+            {
+                citationLevel = 1;
+            }
+            else if (open)
+            {
+                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                memberGenerator.writeEnd();
+                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                advanceFollow = decodeReplyCitationElement;
+                state = server.streaming ? decodeCitationElements : decodeReplyCitationElement;
+            }
+            else
+            {
+                state = decodeReplyCitationElement;
             }
 
             return state;
@@ -10473,17 +10629,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             generator.writeSegment(elementBuffer, 0, elementLength, Completion.INCOMPLETE);
             annotationCount++;
-        }
-
-        private LlmSectionPipeline citationsPipeline()
-        {
-            if (citationsPipeline == null)
-            {
-                citationsPipeline = new LlmSectionPipeline(
-                    LlmOpenaiResponsesCitationsFromCanonical.array(NAME), transformBuffer);
-            }
-
-            return citationsPipeline;
         }
 
         private void eventReasoningAdded(
