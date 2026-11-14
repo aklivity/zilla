@@ -817,7 +817,10 @@ public interface JsonStringView extends CharSequenceEx
         public int floorOffsetOf(
             int charIndex)
         {
-            restart();
+            if (charIndex < cursorChar - 1)
+            {
+                restart();
+            }
 
             while (cursorChar <= charIndex)
             {

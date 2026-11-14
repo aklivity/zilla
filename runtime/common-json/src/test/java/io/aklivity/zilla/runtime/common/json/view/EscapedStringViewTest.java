@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json.view;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -67,6 +69,52 @@ class EscapedStringViewTest
                 }
             }
         }
+    }
+
+    @Test
+    void shouldLocateUnitsInAnyQueryOrder()
+    {
+        final String value = "a\"b\\c\nd \u00e9 \u20ac \ud83d\ude00 tail 0123456789abcdef \"q\" end";
+
+        final JsonStringView.Escaped fresh = wrap(value);
+        final int[] expected = new int[value.length()];
+
+        for (int index = 0; index < expected.length; index++)
+        {
+            expected[index] = wrap(value).floorOffsetOf(index);
+        }
+
+        final JsonStringView.Escaped reused = wrap(value);
+
+        for (int index = 0; index < expected.length; index++)
+        {
+            assertEquals(expected[index], reused.floorOffsetOf(index), "forward " + index);
+        }
+
+        for (int index = expected.length - 1; index >= 0; index--)
+        {
+            assertEquals(expected[index], reused.floorOffsetOf(index), "backward " + index);
+        }
+
+        final Random random = new Random(7L);
+
+        for (int step = 0; step < 500; step++)
+        {
+            final int index = random.nextInt(expected.length);
+
+            assertEquals(expected[index], reused.floorOffsetOf(index), "random " + index);
+            assertEquals(value.charAt(index), fresh.charAt(index), "char " + index);
+        }
+    }
+
+    private static JsonStringView.Escaped wrap(
+        String value)
+    {
+        final byte[] raw = escape(escape(value)).getBytes(UTF_8);
+        final byte[] padded = new byte[PADDING + raw.length + PADDING];
+        System.arraycopy(raw, 0, padded, PADDING, raw.length);
+
+        return new JsonStringView.Escaped().wrap(new UnsafeBufferEx(padded), PADDING, raw.length, value.length());
     }
 
     private static boolean plain(
