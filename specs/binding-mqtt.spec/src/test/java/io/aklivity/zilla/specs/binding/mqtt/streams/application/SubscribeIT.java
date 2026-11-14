@@ -540,4 +540,283 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.one.message.v4/client",
+        "${app}/subscribe.one.message.v4/server"})
+    public void shouldSubscribeOneMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/client",
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/server"})
+    public void shouldSubscribeReceiveMessageOverlappingWildcardMixedQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos0.published.qos1.v4/client",
+        "${app}/subscribe.receive.message.qos0.published.qos1.v4/server"})
+    public void shouldSubscribeReceiveMessageQos0PublishedQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.published.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos1.published.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos1PublishedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.v4/client",
+        "${app}/subscribe.receive.message.qos1.v4/server"})
+    public void shouldSubscribeReceiveMessageQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.v4/client",
+        "${app}/subscribe.receive.message.v4/server"})
+    public void shouldSubscribeReceiveMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.wildcard.v4/client",
+        "${app}/subscribe.receive.message.wildcard.v4/server"})
+    public void shouldSubscribeReceiveMessageWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.messages.mixture.qos.v4/client",
+        "${app}/subscribe.receive.messages.mixture.qos.v4/server"})
+    public void shouldSubscribeReceiveMessagesMixtureQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos1UnackedMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos2IncompleteMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos2UnreceivedMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retained.not.supported.v4/client",
+        "${app}/subscribe.retained.not.supported.v4/server"})
+    public void shouldSubscribeRetainedNotSupportedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.multi.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.multi.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterMultiLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterSingleAndMultiLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.exact.v4/client",
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
+    public void shouldSubscribeTopicFilterSingleExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.single.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterSingleLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.two.single.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.two.single.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterTwoSingleLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.unauthorized.v4/client",
+        "${app}/subscribe.topic.filter.unauthorized.v4/server"})
+    public void shouldSubscribeTopicFilterUnauthorizedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.aggregated.both.exact.v4/client",
+        "${app}/subscribe.topic.filters.aggregated.both.exact.v4/server"})
+    public void shouldSubscribeTopicFiltersAggregatedBothExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersAggregatedExactAndWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.disjoint.wildcards.v4/client",
+        "${app}/subscribe.topic.filters.disjoint.wildcards.v4/server"})
+    public void shouldSubscribeTopicFiltersDisjointWildcardsV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/client",
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothExactNoSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.exact.v4/client",
+        "${app}/subscribe.topic.filters.isolated.both.exact.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.isolated.both.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedExactAndWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.overlapping.wildcards.v4/client",
+        "${app}/subscribe.topic.filters.overlapping.wildcards.v4/server"})
+    public void shouldSubscribeTopicFiltersOverlappingWildcardsV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.mixed.v4/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed.v4/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.guarded.identity.param.v4/client",
+        "${app}/subscribe.topic.guarded.identity.param.v4/server"})
+    public void shouldSubscribeTopicGuardedIdentityParamV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.overlapping.wildcard.v4/client",
+        "${app}/subscribe.receive.message.overlapping.wildcard.v4/server"})
+    public void shouldSubscribeReceiveMessageOverlappingWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos0.published.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos0.published.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos0PublishedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
 }

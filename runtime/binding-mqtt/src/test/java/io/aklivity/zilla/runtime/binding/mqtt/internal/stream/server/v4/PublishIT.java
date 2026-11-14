@@ -17,12 +17,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,8 +47,6 @@ public class PublishIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.PublishIT::supplySubscriptionId")
 
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
@@ -173,7 +169,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.subscribe.batched/client",
-        "${app}/publish.subscribe.batched/server"})
+        "${app}/publish.subscribe.batched.v4/server"})
     public void shouldPublishSubscribeBatched() throws Exception
     {
         k3po.finish();
@@ -378,18 +374,6 @@ public class PublishIT
     public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
     {
         k3po.finish();
-    }
-
-    @Before
-    public void setSubscriptionId()
-    {
-        subscriptionId = 0;
-    }
-
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
-    {
-        return ++subscriptionId;
     }
 
     @Test

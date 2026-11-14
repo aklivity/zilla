@@ -812,4 +812,15 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.one.message.subscription.id.127/client",
+        "${kafka}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1437,4 +1437,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.one.message.subscription.id.127/client",
+        "${kafka}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
 }

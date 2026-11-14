@@ -180,4 +180,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/disconnect.after.subscribe.and.publish.v4/client",
+        "${app}/disconnect.after.subscribe.and.publish.v4/server"})
+    public void shouldDisconnectAfterSubscribeAndPublishV4() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1197,4 +1197,13 @@ public class MqttIT
         k3po.start();
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.one.message.subscription.id.127/client",
+        "${mqtt}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
 }

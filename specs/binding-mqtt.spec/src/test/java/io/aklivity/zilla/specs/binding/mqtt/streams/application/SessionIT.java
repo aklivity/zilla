@@ -389,4 +389,85 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/session.abort.reconnect.non.clean.start.v4/client",
+        "${app}/session.abort.reconnect.non.clean.start.v4/server"})
+    public void shouldSessionAbortReconnectNonCleanStartV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.v4/client",
+        "${app}/session.client.takeover.v4/server"})
+    public void shouldSessionClientTakeoverV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.exists.clean.start.v4/client",
+        "${app}/session.exists.clean.start.v4/server"})
+    public void shouldSessionExistsCleanStartV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.multiple.isolated.v4/client",
+        "${app}/session.subscribe.multiple.isolated.v4/server"})
+    public void shouldSessionSubscribeMultipleIsolatedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.publish.routing.v4/client",
+        "${app}/session.subscribe.publish.routing.v4/server"})
+    public void shouldSessionSubscribePublishRoutingV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.v4/client",
+        "${app}/session.subscribe.v4/server"})
+    public void shouldSessionSubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.deferred.v4/client",
+        "${app}/session.unsubscribe.after.subscribe.deferred.v4/server"})
+    public void shouldSessionUnsubscribeAfterSubscribeDeferredV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.v4/client",
+        "${app}/session.unsubscribe.after.subscribe.v4/server"})
+    public void shouldSessionUnsubscribeAfterSubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.via.session.state.v4/client",
+        "${app}/session.unsubscribe.via.session.state.v4/server"})
+    public void shouldSessionUnsubscribeViaSessionStateV4() throws Exception
+    {
+        k3po.finish();
+    }
 }
