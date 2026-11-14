@@ -48,6 +48,7 @@ final class LlmControlHold
     private int count;
     private int limit;
     private int open;
+    private int stageFrom = NONE;
     private boolean failed;
 
     LlmControlHold(
@@ -116,6 +117,49 @@ final class LlmControlHold
         }
 
         return fits;
+    }
+
+    boolean stage(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final MutableDirectBufferEx held = store.get();
+        final boolean fits = held != null && limit + length <= held.capacity();
+
+        failed |= !fits;
+
+        if (fits)
+        {
+            if (stageFrom == NONE)
+            {
+                stageFrom = limit;
+            }
+
+            held.putBytes(limit, buffer, offset, length);
+            limit += length;
+        }
+
+        return fits;
+    }
+
+    int stageFrom()
+    {
+        return stageFrom;
+    }
+
+    int staged()
+    {
+        return stageFrom == NONE ? 0 : limit - stageFrom;
+    }
+
+    void unstage()
+    {
+        if (stageFrom != NONE)
+        {
+            limit = stageFrom;
+            stageFrom = NONE;
+        }
     }
 
     String end()
@@ -228,6 +272,7 @@ final class LlmControlHold
         count = 0;
         limit = 0;
         open = NONE;
+        stageFrom = NONE;
         failed = false;
     }
 }
