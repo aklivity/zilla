@@ -30,6 +30,12 @@ final class LlmOpenaiResponsesBlockWriter
     static final int KIND_IMAGE = 4;
     static final int KIND_DOCUMENT = 5;
     static final int KIND_CITATIONS = 6;
+    static final int KIND_STREAM = 7;
+    static final int KIND_STREAM_OPTIONS = 8;
+    static final int KIND_TOOL_CHOICE = 9;
+    static final int KIND_SERVICE_TIER = 10;
+    static final int KIND_TEXT = 11;
+    static final int KIND_REASONING = 12;
 
     static final int MORE = 0;
     static final int DONE = 1;
@@ -54,6 +60,43 @@ final class LlmOpenaiResponsesBlockWriter
     private static final int MEMBER_UNESCAPED = 7;
     private static final int MEMBER_ELEMENT = 8;
     private static final int MEMBER_REJECT = 9;
+    private static final int MEMBER_FLAG = 10;
+    private static final int MEMBER_FLAG_USAGE = 11;
+    private static final int MEMBER_FLAG_OBFUSCATION = 12;
+    private static final int MEMBER_OPTIONS = 13;
+    private static final int MEMBER_CAPTURE = 14;
+    private static final int MEMBER_CONTAINER = 15;
+    private static final int MEMBER_FORMAT = 16;
+    private static final int MEMBER_FORMAT_TYPE = 17;
+    private static final int MEMBER_PRECEDING = 18;
+    private static final int MEMBER_PASS = 19;
+
+    private static final int CAPTURE_MAX = 2048;
+    private static final int TEXT_NONE = 0;
+    private static final int TEXT_RESIDUE = 1;
+    private static final int TEXT_LIFTED = 2;
+    private static final int FORMAT_AWAITING = 0;
+    private static final int FORMAT_FLATTENING = 1;
+    private static final int FORMAT_PLAIN = 2;
+    private static final int LEVEL_CONTAINER = 2;
+    private static final int LEVEL_FORMAT = 3;
+    private static final String MEMBER_NATIVE_TOOL_CHOICE = PREFIX + "tool_choice";
+    private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
+    private static final String MEMBER_NATIVE_TEXT = PREFIX + "text";
+    private static final String MEMBER_NATIVE_REASONING = PREFIX + "reasoning";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
+    private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
+    private static final String MEMBER_EFFORT = "effort";
+    private static final String MEMBER_FORMAT_NAME = "format";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_TEXT = "text";
+    private static final String TYPE_JSON_OBJECT = "json_object";
+    private static final String MEMBER_STREAM = "stream";
+    private static final String MEMBER_STREAM_OPTIONS = "stream_options";
+    private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
 
     private static final int CITATION_NONE = 0;
     private static final int CITATION_URL = 1;
@@ -61,10 +104,14 @@ final class LlmOpenaiResponsesBlockWriter
     private static final String TYPE_URL_CITATION = "url_citation";
 
     private final MutableDirectBufferEx buffer;
-    private final LlmSectionPipeline.Output sink;
+    private final LlmOutputSink sink;
     private final JsonGeneratorEx generator;
     private final StringBuilder key = new StringBuilder();
     private final StringBuilder held = new StringBuilder();
+    private final StringBuilder capture = new StringBuilder();
+    private final LlmCapturedValue captured = new LlmCapturedValue();
+    private final LlmCapturedValue preceding = new LlmCapturedValue();
+    private final LlmToolChoice choice = new LlmToolChoice();
 
     private int kind;
     private int member;
@@ -74,10 +121,19 @@ final class LlmOpenaiResponsesBlockWriter
     private int citation;
     private boolean nested;
     private boolean nestedClosed;
+    private boolean streamSeen;
+    private boolean streaming;
+    private boolean optionsSeen;
+    private boolean usageSeen;
+    private boolean usageRequested;
+    private boolean obfuscationDisabled;
+    private int textState;
+    private int formatState;
+    private int choiceLevel;
 
     LlmOpenaiResponsesBlockWriter(
         MutableDirectBufferEx buffer,
-        LlmSectionPipeline.Output sink,
+        LlmOutputSink sink,
         JsonGeneratorEx generator)
     {
         this.buffer = buffer;
@@ -89,8 +145,25 @@ final class LlmOpenaiResponsesBlockWriter
         int kind)
     {
         this.kind = kind;
-        this.member = kind == KIND_CITATIONS ? MEMBER_ELEMENT : MEMBER_KEY;
+        this.member = kind == KIND_CITATIONS
+            ? MEMBER_ELEMENT
+            : kind == KIND_STREAM ? MEMBER_FLAG
+            : kind == KIND_STREAM_OPTIONS ? MEMBER_OPTIONS
+            : kind == KIND_TOOL_CHOICE || kind == KIND_SERVICE_TIER ? MEMBER_CAPTURE
+            : kind == KIND_TEXT || kind == KIND_REASONING ? MEMBER_CONTAINER : MEMBER_KEY;
         this.depth = 0;
+        this.textState = TEXT_NONE;
+        this.formatState = FORMAT_AWAITING;
+        this.choiceLevel = LEVEL_CONTAINER;
+        this.capture.setLength(0);
+        this.captured.clear();
+        this.preceding.clear();
+        this.streamSeen = false;
+        this.streaming = false;
+        this.optionsSeen = false;
+        this.usageSeen = false;
+        this.usageRequested = false;
+        this.obfuscationDisabled = false;
         this.named = false;
         this.argumented = false;
         this.held.setLength(0);
@@ -101,6 +174,11 @@ final class LlmOpenaiResponsesBlockWriter
         if (kind == KIND_CITATIONS)
         {
             generator.writeStartArray();
+        }
+        else if (kind >= KIND_TOOL_CHOICE)
+        {
+            generator.writeStartObject();
+            generator.wrap(buffer, 0, buffer.capacity());
         }
         else
         {
@@ -121,9 +199,40 @@ final class LlmOpenaiResponsesBlockWriter
         case KIND_DOCUMENT:
             generator.write(MEMBER_TYPE, "file").writeStartObject("file");
             break;
+        case KIND_STREAM:
+            generator.writeKey(MEMBER_STREAM);
+            break;
+        case KIND_STREAM_OPTIONS:
+            generator.writeKey(MEMBER_STREAM_OPTIONS);
+            break;
         default:
             break;
         }
+    }
+
+    boolean streamSeen()
+    {
+        return streamSeen;
+    }
+
+    boolean streaming()
+    {
+        return streaming;
+    }
+
+    boolean optionsSeen()
+    {
+        return optionsSeen;
+    }
+
+    boolean usageRequested()
+    {
+        return usageRequested;
+    }
+
+    boolean obfuscationDisabled()
+    {
+        return obfuscationDisabled;
     }
 
     int accept(
@@ -165,6 +274,33 @@ final class LlmOpenaiResponsesBlockWriter
             break;
         case MEMBER_ELEMENT:
             outcome = onElement(event);
+            break;
+        case MEMBER_FLAG:
+            outcome = onStreamFlag(event);
+            break;
+        case MEMBER_FLAG_USAGE, MEMBER_FLAG_OBFUSCATION:
+            outcome = onOptionFlag(event);
+            break;
+        case MEMBER_OPTIONS:
+            outcome = onOptions(event);
+            break;
+        case MEMBER_CAPTURE:
+            outcome = onCapture(event, parser);
+            break;
+        case MEMBER_CONTAINER:
+            outcome = onContainer(event, parser);
+            break;
+        case MEMBER_FORMAT:
+            outcome = onFormat(event);
+            break;
+        case MEMBER_FORMAT_TYPE:
+            outcome = onFormatType(event, parser);
+            break;
+        case MEMBER_PRECEDING:
+            outcome = onPreceding(event, parser);
+            break;
+        case MEMBER_PASS:
+            outcome = onPass(event, parser);
             break;
         default:
             outcome = REJECT;
@@ -250,7 +386,7 @@ final class LlmOpenaiResponsesBlockWriter
         }
         else if (event == JsonEvent.END_OBJECT)
         {
-            outcome = close();
+            outcome = kind == KIND_TEXT || kind == KIND_REASONING ? closeChoice() : close();
         }
         else
         {
@@ -282,9 +418,499 @@ final class LlmOpenaiResponsesBlockWriter
         case KIND_CITATIONS:
             selectCitation(name);
             break;
+        case KIND_STREAM_OPTIONS:
+            selectOption(name);
+            break;
+        case KIND_TEXT, KIND_REASONING:
+            if (choiceLevel == LEVEL_FORMAT)
+            {
+                selectFormatMember(name);
+            }
+            else
+            {
+                selectChoiceMember(name);
+            }
+            break;
         default:
             selectDocument(name);
             break;
+        }
+    }
+
+    private int onCapture(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = captureValue(event, parser, captured);
+
+        if (outcome == DONE)
+        {
+            if (kind == KIND_TOOL_CHOICE)
+            {
+                if (choice.parseResponses(captured))
+                {
+                    generator.writeKey(MEMBER_SHARED_TOOL_CHOICE);
+                    choice.emitCanonical(generator);
+                }
+                else
+                {
+                    generator.writeKey(MEMBER_NATIVE_TOOL_CHOICE);
+                    replay(captured);
+                }
+            }
+            else
+            {
+                final String tier = LlmServiceTiers.canonicalOpenai(captured.string(0));
+
+                if (tier != null)
+                {
+                    generator.write(MEMBER_SHARED_SERVICE_TIER, tier);
+                }
+                else
+                {
+                    generator.writeKey(MEMBER_NATIVE_SERVICE_TIER);
+                    replay(captured);
+                }
+            }
+
+            flush(true);
+        }
+
+        return outcome;
+    }
+
+    private int captureValue(
+        JsonEvent event,
+        JsonParserEx parser,
+        LlmCapturedValue target)
+    {
+        int outcome = MORE;
+
+        switch (event)
+        {
+        case START_OBJECT, START_ARRAY:
+            depth++;
+            outcome = target.add(event, null, CAPTURE_MAX) ? MORE : REJECT;
+            break;
+        case END_OBJECT, END_ARRAY:
+            depth--;
+            outcome = target.add(event, null, CAPTURE_MAX) ? depth == 0 ? DONE : MORE : REJECT;
+            break;
+        case VALUE_TRUE, VALUE_FALSE, VALUE_NULL:
+            outcome = target.add(event, null, CAPTURE_MAX) ? depth == 0 ? DONE : MORE : REJECT;
+            break;
+        default:
+            capture.append(parser.getStringView());
+
+            if (capture.length() > CAPTURE_MAX)
+            {
+                outcome = REJECT;
+            }
+            else if (!parser.deferredBytes())
+            {
+                final String text = capture.toString();
+
+                capture.setLength(0);
+                outcome = target.add(event, text, CAPTURE_MAX)
+                    ? depth == 0 && event != JsonEvent.KEY_NAME ? DONE : MORE
+                    : REJECT;
+            }
+            break;
+        }
+
+        return outcome;
+    }
+
+    private void replay(
+        LlmCapturedValue value)
+    {
+        for (int index = 0; index < value.count(); index++)
+        {
+            final String text = value.text(index);
+
+            switch (value.event(index))
+            {
+            case START_OBJECT:
+                generator.writeStartObject();
+                break;
+            case START_ARRAY:
+                generator.writeStartArray();
+                break;
+            case END_OBJECT, END_ARRAY:
+                generator.writeEnd();
+                break;
+            case KEY_NAME:
+                generator.writeKey(text);
+                break;
+            case VALUE_STRING:
+                generator.write(text);
+                break;
+            case VALUE_NUMBER:
+                generator.writeNumber(text);
+                break;
+            case VALUE_TRUE:
+                generator.write(true);
+                break;
+            case VALUE_FALSE:
+                generator.write(false);
+                break;
+            default:
+                generator.writeNull();
+                break;
+            }
+        }
+    }
+
+    private int onContainer(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            textState = TEXT_NONE;
+            choiceLevel = LEVEL_CONTAINER;
+            member = MEMBER_KEY;
+        }
+        else
+        {
+            generator.writeKey(residueKey());
+            member = MEMBER_PASS;
+            outcome = onPass(event, parser);
+        }
+
+        return outcome;
+    }
+
+    private int onPass(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        copy(event, parser);
+
+        if (depth == 0 && !deferred(event, parser))
+        {
+            flush(true);
+            outcome = DONE;
+        }
+
+        return outcome;
+    }
+
+    private String residueKey()
+    {
+        return kind == KIND_REASONING ? MEMBER_NATIVE_REASONING : MEMBER_NATIVE_TEXT;
+    }
+
+    private void openResidue()
+    {
+        if (textState != TEXT_RESIDUE)
+        {
+            generator.writeStartObject(residueKey());
+            textState = TEXT_RESIDUE;
+        }
+    }
+
+    private void closeResidue()
+    {
+        if (textState == TEXT_RESIDUE)
+        {
+            generator.writeEnd();
+        }
+
+        textState = TEXT_LIFTED;
+    }
+
+    private void selectChoiceMember(
+        CharSequence name)
+    {
+        if (kind == KIND_REASONING && is(name, MEMBER_EFFORT))
+        {
+            closeResidue();
+            key.setLength(0);
+            key.append(MEMBER_SHARED_REASONING_EFFORT);
+            member = MEMBER_STRING_OR_DROP;
+        }
+        else if (kind == KIND_TEXT && is(name, MEMBER_FORMAT_NAME))
+        {
+            closeResidue();
+            generator.writeKey(MEMBER_SHARED_RESPONSE_FORMAT);
+            member = MEMBER_FORMAT;
+        }
+        else
+        {
+            openResidue();
+            target(name);
+            member = MEMBER_COPY;
+        }
+    }
+
+    private void selectFormatMember(
+        CharSequence name)
+    {
+        if (is(name, MEMBER_TYPE))
+        {
+            member = MEMBER_FORMAT_TYPE;
+        }
+        else if (formatState == FORMAT_FLATTENING)
+        {
+            target(name);
+            member = MEMBER_COPY;
+        }
+        else if (formatState == FORMAT_AWAITING)
+        {
+            member = preceding.add(JsonEvent.KEY_NAME, name.toString(), CAPTURE_MAX) ? MEMBER_PRECEDING : MEMBER_REJECT;
+            depth = 0;
+        }
+        else
+        {
+            member = MEMBER_DROP;
+        }
+    }
+
+    private int onFormat(
+        JsonEvent event)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            generator.writeStartObject();
+            formatState = FORMAT_AWAITING;
+            preceding.clear();
+            choiceLevel = LEVEL_FORMAT;
+            member = MEMBER_KEY;
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onFormatType(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.VALUE_STRING)
+        {
+            capture.append(parser.getStringView());
+
+            if (capture.length() > CAPTURE_MAX)
+            {
+                outcome = REJECT;
+            }
+            else if (!parser.deferredBytes())
+            {
+                final String type = capture.toString();
+
+                capture.setLength(0);
+                outcome = acceptFormatType(type);
+            }
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int acceptFormatType(
+        String type)
+    {
+        int outcome = MORE;
+
+        if (MEMBER_JSON_SCHEMA.equals(type))
+        {
+            generator.write(MEMBER_TYPE, MEMBER_JSON_SCHEMA).writeStartObject(MEMBER_JSON_SCHEMA);
+            replay(preceding);
+            formatState = FORMAT_FLATTENING;
+            member = MEMBER_KEY;
+        }
+        else if (TYPE_TEXT.equals(type) || TYPE_JSON_OBJECT.equals(type))
+        {
+            generator.write(MEMBER_TYPE, type);
+            formatState = FORMAT_PLAIN;
+            member = MEMBER_KEY;
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onPreceding(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = captureValue(event, parser, preceding);
+
+        if (outcome == DONE)
+        {
+            member = MEMBER_KEY;
+        }
+
+        return outcome == REJECT ? REJECT : MORE;
+    }
+
+    private int closeChoice()
+    {
+        int outcome = MORE;
+
+        if (choiceLevel == LEVEL_FORMAT)
+        {
+            if (formatState == FORMAT_FLATTENING)
+            {
+                generator.writeEnd().writeEnd();
+            }
+            else if (formatState == FORMAT_PLAIN)
+            {
+                generator.writeEnd();
+            }
+            else
+            {
+                outcome = REJECT;
+            }
+
+            choiceLevel = LEVEL_CONTAINER;
+        }
+        else
+        {
+            if (textState == TEXT_RESIDUE)
+            {
+                generator.writeEnd();
+            }
+            else if (textState == TEXT_NONE)
+            {
+                generator.writeStartObject(residueKey()).writeEnd();
+            }
+
+            flush(true);
+            outcome = DONE;
+        }
+
+        return outcome;
+    }
+
+    private int onStreamFlag(
+        JsonEvent event)
+    {
+        int outcome = REJECT;
+
+        if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL)
+        {
+            streamSeen = true;
+            streaming = event == JsonEvent.VALUE_TRUE;
+            writeFlag(event);
+            generator.writeEnd();
+            flush(true);
+            outcome = DONE;
+        }
+
+        return outcome;
+    }
+
+    private int onOptions(
+        JsonEvent event)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            optionsSeen = true;
+            usageSeen = false;
+            generator.writeStartObject();
+            member = MEMBER_KEY;
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            optionsSeen = true;
+            generator.writeStartObject().write(MEMBER_INCLUDE_USAGE, true).writeEnd().writeEnd();
+            flush(true);
+            outcome = DONE;
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onOptionFlag(
+        JsonEvent event)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL)
+        {
+            if (member == MEMBER_FLAG_USAGE)
+            {
+                usageSeen = true;
+                usageRequested = event == JsonEvent.VALUE_TRUE;
+                generator.write(MEMBER_INCLUDE_USAGE, true);
+            }
+            else
+            {
+                obfuscationDisabled = event == JsonEvent.VALUE_FALSE;
+                generator.writeKey(key);
+                writeFlag(event);
+            }
+
+            member = MEMBER_KEY;
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private void writeFlag(
+        JsonEvent event)
+    {
+        switch (event)
+        {
+        case VALUE_TRUE:
+            generator.write(true);
+            break;
+        case VALUE_FALSE:
+            generator.write(false);
+            break;
+        default:
+            generator.writeNull();
+            break;
+        }
+    }
+
+    private void selectOption(
+        CharSequence name)
+    {
+        if (is(name, MEMBER_INCLUDE_USAGE))
+        {
+            member = MEMBER_FLAG_USAGE;
+        }
+        else if (is(name, MEMBER_INCLUDE_OBFUSCATION))
+        {
+            key.setLength(0);
+            key.append(LlmOpenaiMembers.VENDOR).append(':').append(name);
+            member = MEMBER_FLAG_OBFUSCATION;
+        }
+        else
+        {
+            key.setLength(0);
+            key.append(LlmOpenaiMembers.scope(PREFIX.substring(0, PREFIX.length() - 1), name)).append(':').append(name);
+            member = MEMBER_COPY;
         }
     }
 
@@ -780,6 +1406,14 @@ final class LlmOpenaiResponsesBlockWriter
             }
 
             closeNested();
+            break;
+        case KIND_STREAM_OPTIONS:
+            if (!usageSeen)
+            {
+                generator.write(MEMBER_INCLUDE_USAGE, true);
+            }
+
+            generator.writeEnd();
             break;
         default:
             break;

@@ -132,7 +132,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         "The 'encrypted_content' of a reasoning item that precedes its 'summary' is too large.";
     private static final String MESSAGE_ANNOTATIONS_BOUND = "The 'annotations' of an output text part are too large.";
     private static final String MESSAGE_TOOL_TYPE_MISSING = "Missing required parameter: 'type'.";
-    private static final int BLOCK_BUFFER_MAX = 4096;
     private static final int OBFUSCATION_MIN = 4;
     private static final int OBFUSCATION_RANGE = 28;
     private static final int ELEMENT_MAX = 4096;
@@ -296,7 +295,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx copyBuffer;
-    private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx argsBuffer;
     private final MutableDirectBufferEx blockBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
@@ -473,7 +471,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + responseMax]);
         this.encodeMax = encodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodeMax]);
-        this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -4449,21 +4446,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int blockMessage;
         private int blockFlags;
         private final StringBuilder controlKey = new StringBuilder();
-        private LlmSectionPipeline controlPipeline;
-        private LlmOpenaiControlToCanonical controlTransform;
-        private LlmSectionPipeline choicePipeline;
         private String choiceMember;
         private final JsonGeneratorEx generator;
-        private LlmSectionPipeline blockPipeline;
-        private LlmSectionPipeline.Output sectionSink;
-        private final LlmSectionPipeline.Output emitSink = (buffer, offset, length, last) ->
+        private LlmOutputSink sectionSink;
+        private final LlmOutputSink emitSink = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
-        private final LlmSectionPipeline.Output holdSink = (buffer, offset, length, last) ->
+        private final LlmOutputSink holdSink = (buffer, offset, length, last) ->
             onDecodeHold(buffer, offset, length);
-        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
+        private final LlmOutputSink blockOutput = (buffer, offset, length, last) ->
             sectionSink.put(buffer, offset, length, last);
-        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
+        private final LlmOutputSink choiceSink = (buffer, offset, length, last) ->
+            onChoicePiece(buffer, offset, length);
 
         private LlmOpenaiResponsesServer(
             MessageConsumer network,
@@ -5239,6 +5232,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             default -> NONE;
             };
 
+            beginWriter(kind);
+        }
+
+        private void beginWriter(
+            int kind)
+        {
             probe.consuming(kind == NONE);
 
             if (kind != NONE)
@@ -5377,6 +5376,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             decoder = decodeControlSeparator;
         }
 
+        private void onChoicePiece(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false);
+            }
+        }
+
         private void controlConverted(
             CharSequence key,
             DirectBufferEx separator)
@@ -5386,11 +5396,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             choiceMember = matches(key, MEMBER_TEXT)
                 ? MEMBER_TEXT
                 : matches(key, MEMBER_REASONING) ? MEMBER_REASONING : MEMBER_TOOL_CHOICE;
-            blockPipeline = choicePipeline();
-            blockPipeline.begin(blockAttributes);
-            memberOutput.begin();
 
-            onDecodeControlKey(key, false, '{');
+            beginWriter(MEMBER_TEXT.equals(choiceMember)
+                ? LlmOpenaiResponsesBlockWriter.KIND_TEXT
+                : MEMBER_REASONING.equals(choiceMember)
+                    ? LlmOpenaiResponsesBlockWriter.KIND_REASONING
+                    : matches(key, MEMBER_SERVICE_TIER)
+                        ? LlmOpenaiResponsesBlockWriter.KIND_SERVICE_TIER
+                        : LlmOpenaiResponsesBlockWriter.KIND_TOOL_CHOICE);
+            sectionSink = choiceSink;
         }
 
         private void closeControl(
@@ -5411,9 +5425,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (matches(key, MEMBER_STREAM) || matches(key, MEMBER_STREAM_OPTIONS))
             {
-                blockPipeline = controlPipeline();
-                blockPipeline.begin(blockAttributes);
-                onDecodeControlKey(key, false, '{');
+                beginWriter(matches(key, MEMBER_STREAM)
+                    ? LlmOpenaiResponsesBlockWriter.KIND_STREAM
+                    : LlmOpenaiResponsesBlockWriter.KIND_STREAM_OPTIONS);
             }
             else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING) ||
                 matches(key, MEMBER_SERVICE_TIER))
@@ -5437,6 +5451,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (writing != null)
             {
+                if (blockSection == LlmSectionType.CONTROL)
+                {
+                    onDecodeControl(writing);
+                }
+
                 writing = null;
             }
             else
@@ -5444,21 +5463,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 flushCapture(traceId, authorization, captureThen != decodeRootControl);
             }
 
-            if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
-            {
-                if (captureThen == decodeRootControl &&
-                    !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
-                {
-                    onDecodeBlockRejected(traceId);
-                }
-
-                if (blockPipeline == controlPipeline)
-                {
-                    onDecodeControl();
-                }
-            }
-
-            blockPipeline = null;
             sectionSink = emitSink;
             captureOpen = false;
             probing = false;
@@ -5643,27 +5647,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 blockAttributes.toolCallId(outputCallId);
             }
-
-            blockPipeline = blockPipelineFor(type);
-
-            if (blockPipeline != null)
-            {
-                blockPipeline.begin(blockAttributes);
-            }
-        }
-
-        private LlmSectionPipeline blockPipelineFor(
-            LlmSectionType type)
-        {
-            LlmSectionPipeline pipeline = null;
-
-            switch (type)
-            {
-            default:
-                break;
-            }
-
-            return pipeline;
         }
 
 
@@ -5679,56 +5662,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 final boolean closing = blockSection == LlmSectionType.CONTROL && last;
 
-                if (!onDecodeBlockData(traceId, authorization, buffer, offset, length, last && !closing) ||
-                    closing && !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+                onDecodeSectionData(traceId, authorization, buffer, offset, length, last && !closing);
+
+                if (closing)
                 {
-                    onDecodeBlockRejected(traceId);
+                    onDecodeSectionData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true);
                 }
             }
-        }
-
-        private boolean onDecodeBlockData(
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            boolean accepted = true;
-
-            if (blockPipeline == null)
-            {
-                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
-            }
-            else
-            {
-                accepted = blockPipeline.feed(buffer, offset, length, last,
-                    captureThen == decodeRootControl ? memberOutput : blockOutput);
-            }
-
-            return accepted;
-        }
-
-        private LlmSectionPipeline choicePipeline()
-        {
-            if (choicePipeline == null)
-            {
-                choicePipeline = new LlmSectionPipeline(new LlmOpenaiResponsesControlToCanonical(), transformBuffer);
-            }
-
-            return choicePipeline;
-        }
-
-        private LlmSectionPipeline controlPipeline()
-        {
-            if (controlPipeline == null)
-            {
-                controlTransform = new LlmOpenaiControlToCanonical(NAME);
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
-            }
-
-            return controlPipeline;
         }
 
         private void onDecodeControlKey(
@@ -5762,21 +5702,22 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             pieceBuffer.putByte(0, (byte) open);
 
-            onDecodeBlockData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
         }
 
-        private void onDecodeControl()
+        private void onDecodeControl(
+            LlmOpenaiResponsesBlockWriter writer)
         {
-            if (controlTransform.streamSeen())
+            if (writer.streamSeen())
             {
-                streaming = controlTransform.streaming();
+                streaming = writer.streaming();
             }
 
-            if (controlTransform.optionsSeen())
+            if (writer.optionsSeen())
             {
                 streamOptions = true;
-                usageRequested = controlTransform.usageRequested();
-                obfuscation = !controlTransform.obfuscationDisabled();
+                usageRequested = writer.usageRequested();
+                obfuscation = !writer.obfuscationDisabled();
             }
         }
 
@@ -5869,7 +5810,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void onDecodeBlockRejected(
             long traceId)
         {
-            final boolean format = blockPipeline == choicePipeline && MEMBER_TEXT.equals(choiceMember);
+            final boolean format = sectionSink == choiceSink && MEMBER_TEXT.equals(choiceMember);
 
             onDecodeInvalidRequest(traceId, format ? MESSAGE_FORMAT_INVALID : MESSAGE_PARSE_ERROR);
         }
@@ -6443,7 +6384,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int citationLevel;
         private LlmOpenaiResponsesReplyDecoder citationReturn;
         private LlmOpenaiResponsesReplyDecoder skipFollow = decodeReplyTextKey;
-        private final LlmSectionPipeline.Output controlOutput = (buffer, offset, length, last) ->
+        private final LlmOutputSink controlOutput = (buffer, offset, length, last) ->
             onControlPiece(buffer, offset, length);
         private final StringBuilder reasoningIdBuilder = new StringBuilder();
         private LlmOpenaiResponsesReplyDecoder replyValueDone = decodeReplyTextDone;
@@ -6453,7 +6394,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int outboxSlot = NO_SLOT;
         private int memberLength;
         private int stepDeltaLength;
-        private LlmSectionPipeline.Output restOutput;
+        private LlmOutputSink restOutput;
 
         private LlmOpenaiResponsesStream(
             LlmOpenaiResponsesServer server)
@@ -7477,8 +7418,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int partMode;
         private int partKind;
         private int partAnnotations = NONE;
-        private final LlmSectionPipeline.Output reasoningMembersOutput;
-        private final LlmSectionPipeline.Output citationsOutput;
+        private final LlmOutputSink reasoningMembersOutput;
+        private final LlmOutputSink citationsOutput;
         private String reasoningId;
         private int elementSlot = NO_SLOT;
         private MutableDirectBufferEx elementBuffer;
@@ -7488,8 +7429,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int annotationCount;
         private String sectionItemType;
         private String valueMember;
-        private final LlmSectionPipeline.Output tailOutput;
-        private final LlmSectionPipeline.Output membersOutput;
+        private final LlmOutputSink tailOutput;
+        private final LlmOutputSink membersOutput;
         private final LlmHeldTail tail;
         private boolean membersStarted;
 
