@@ -46,7 +46,7 @@ write [0x82 0x18]                       # SUBSCRIBE
 read  [0x90 0x04]                       # SUBACK
       [0x00 0x01]                       # packet id = 1
       [0x00]                            # properties = none
-      [0x83]                            # reason code
+      [0x80]                            # reason code
 
 write [0xe0 0x02]                       # DISCONNECT
       [0x00]                            # normal disconnect
