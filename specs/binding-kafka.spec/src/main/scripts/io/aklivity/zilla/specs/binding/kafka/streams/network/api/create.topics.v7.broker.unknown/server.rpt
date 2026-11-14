@@ -78,3 +78,44 @@ write 150                               # size
           0
           -1
           0
+
+read 26                                 # size
+     3s                                 # metadata
+     5s                                 # v5
+     (int:requestId)
+     5s "zilla"                         # client id
+     1                                  # topics
+       4s "test"                        #   "test" topic
+     [0x00]                             # allow_auto_topic_creation
+
+write 150                               # size
+      ${requestId}
+      0
+      2                                 # brokers
+        1                                   # broker id
+        19s "broker1.example.com"           # host name
+        9092                                # port
+        -1s                                 # no rack
+        2
+        19s "broker2.example.com"
+        9092
+        -1s
+      9s "cluster 1"                    # cluster id
+      1                                 # controller id
+      1                                 # topics
+        0s                                # no error
+        4s "test"                         #   "test" topic
+        [0x00]                            # not internal
+        2                                 # partitions
+          0s                                # no error
+          0                                 # partition
+          1                                 # leader
+          0                                 # no replicas
+          -1                                # no in-sync replicas
+          0                                 # offline replicas
+          0s
+          1
+          2
+          0
+          -1
+          0

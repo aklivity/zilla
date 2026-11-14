@@ -135,4 +135,22 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.broker.unknown.refreshed/client",
+        "${net}/create.topics.v7.broker.unknown.refreshed/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.broker.unknown.refresh.failed/client",
+        "${net}/create.topics.v7.broker.unknown.refresh.failed/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenRefreshFails() throws Exception
+    {
+        k3po.finish();
+    }
 }
