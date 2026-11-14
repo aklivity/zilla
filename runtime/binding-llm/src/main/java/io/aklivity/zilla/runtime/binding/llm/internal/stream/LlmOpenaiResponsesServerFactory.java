@@ -439,8 +439,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private byte[] pieceBytes;
     private UnsafeBufferEx pieceBuffer;
-    private byte[] escapeBytes;
-    private UnsafeBufferEx escapeBuffer;
     private final byte[] obfuscationBytes;
     private final UnsafeBufferEx obfuscationBuffer;
 
@@ -469,8 +467,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.bindings = new Long2ObjectHashMap<>();
         this.pieceBytes = new byte[1024];
         this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
-        this.escapeBytes = new byte[TEXT_CHUNK];
-        this.escapeBuffer = new UnsafeBufferEx(escapeBytes);
         this.obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
         this.obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
@@ -8908,18 +8904,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
-        private void ensureEscape(
-            int length)
-        {
-            final int capacity = length * LlmJsonEscape.EXPANSION;
-
-            if (escapeBytes.length < capacity)
-            {
-                escapeBytes = new byte[capacity];
-                escapeBuffer = new UnsafeBufferEx(escapeBytes);
-            }
-        }
-
         private void doEncodeEnd()
         {
             switch (kind)
@@ -9032,7 +9016,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (valueMember != null)
             {
                 generator.writeKey(valueMember);
-                generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
+
+                if (openItem == ITEM_CALL)
+                {
+                    generator.writeStartEscaped();
+                }
+                else
+                {
+                    generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
+                }
             }
         }
 
@@ -9070,7 +9062,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void endDelta(
             int index)
         {
-            generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
+            if (openItem == ITEM_CALL)
+            {
+                generator.writeEndEscaped();
+            }
+            else
+            {
+                generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
+            }
+
             writeTail();
             writeFooter(index);
         }
@@ -9118,11 +9118,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (length > 0)
             {
-                ensureEscape(length);
-
-                final int escaped = LlmJsonEscape.escape(buffer, offset, length, escapeBytes);
-
-                onDelta(escapeBuffer, 0, escaped);
+                ensureEncodeRoom(LlmJsonEscape.escapedLength(buffer, offset, length));
+                generator.writeSegment(buffer, offset, length);
             }
         }
 
