@@ -157,6 +157,57 @@ public class LlmControlHoldTest
     }
 
     @Test
+    public void shouldStageBytesAfterTheHeldMembersAndReleaseThem()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.begin("a");
+        hold.put(buffer("1"), 0, 1);
+        hold.end();
+
+        assertThat(hold.stage(buffer("xyz"), 0, 3), is(true));
+        assertThat(hold.stage(buffer("12"), 0, 2), is(true));
+
+        assertThat(hold.stageFrom(), equalTo(1));
+        assertThat(hold.staged(), equalTo(5));
+        assertThat(hold.held(), equalTo(6));
+
+        final byte[] staged = new byte[hold.staged()];
+        store.getBytes(hold.stageFrom(), staged);
+
+        assertThat(new String(staged, UTF_8), equalTo("xyz12"));
+
+        hold.unstage();
+
+        assertThat(hold.staged(), equalTo(0));
+        assertThat(hold.held(), equalTo(1));
+        assertThat(hold.count(), equalTo(1));
+        assertThat(hold.failed(), is(false));
+    }
+
+    @Test
+    public void shouldFailWhenStagingExceedsTheStore()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        assertThat(hold.stage(buffer("x".repeat(257)), 0, 257), is(false));
+        assertThat(hold.failed(), is(true));
+        assertThat(hold.staged(), equalTo(0));
+    }
+
+    @Test
+    public void shouldDropStagedBytesOnReset()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.stage(buffer("abc"), 0, 3);
+        hold.reset();
+
+        assertThat(hold.staged(), equalTo(0));
+        assertThat(hold.held(), equalTo(0));
+    }
+
+    @Test
     public void shouldResetForReuse()
     {
         final LlmControlHold hold = new LlmControlHold(() -> store);

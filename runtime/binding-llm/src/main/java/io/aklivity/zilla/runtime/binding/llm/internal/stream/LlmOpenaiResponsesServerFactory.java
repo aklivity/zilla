@@ -148,6 +148,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int REF_STRIDE = 4;
     private static final int REF_ACCUMULATOR = 0;
     private static final int REF_HOLD = 1;
+    private static final int REF_STAGE = 2;
     private static final int OP_TEXT_DONE = 0;
     private static final int OP_PART_DONE = 1;
     private static final int OP_ITEM_DONE = 2;
@@ -296,7 +297,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx argsBuffer;
-    private final MutableDirectBufferEx memberBuffer;
     private final MutableDirectBufferEx citationBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -311,6 +311,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final int replyPadding;
     private final int encodeMax;
     private final int responseMax;
+    private final MutableDirectBufferEx memberBuffer;
     private final int llmTypeId;
     private final int httpTypeId;
 
@@ -455,7 +456,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.responseMax = (decodeMax - replyPadding) / RESPONSE_GROWTH;
         this.argsBuffer = new UnsafeBufferEx(new byte[responseMax]);
-        this.memberBuffer = new UnsafeBufferEx(new byte[responseMax]);
+        this.memberBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + responseMax]);
         this.encodeMax = encodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodeMax]);
@@ -1276,10 +1277,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        final boolean suspended = stream.advanceFanOut(buffer, offset, stream.restPipeline, stream.restEdges,
-            stream.restTail, memberBuffer.capacity() - 1);
+        if (stream.advanceFanOut(buffer, offset, stream.restPipeline, stream.restEdges, stream.restTail,
+            memberBuffer.capacity() - 1))
+        {
+            stream.rejectReply();
+        }
+        else
+        {
+            stream.stageMembers();
+        }
 
-        stream.advanceFollow = suspended ? decodeReasoningMembers : decodeReplyDelta;
+        stream.advanceFollow = decodeReplyDelta;
         stream.decoder = decodeMembersFlush;
 
         return offset;
@@ -1291,7 +1299,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.memberLength == 0)
+        if (stream.hold.staged() == 0)
         {
             stream.decoder = stream.advanceFollow;
         }
@@ -6157,6 +6165,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
+        private int decodeSlotFrom;
         private long stagedReserved;
         private LlmOpenaiResponsesReplyDecoder decoder = decodeReplyFrame;
         private LlmOpenaiResponsesReplyDecoder dataDecoder = decodeReplySkipped;
@@ -6177,6 +6186,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int stepDeltaOffset;
         private int stepSent;
         private int outboxSlot = NO_SLOT;
+        private int memberLength;
         private int stepDeltaLength;
         private LlmSectionPipeline.Output valueOutput;
         private LlmSectionPipeline.Output restOutput;
@@ -6423,6 +6433,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
+        private void rebaseReply(
+            int consumed)
+        {
+            if (consumed > 0 && consumed < replyFrameLength)
+            {
+                replyFrameLength -= consumed;
+                replyPayloadFrom = Math.max(replyPayloadFrom - consumed, 0);
+                replyWindowFrom = Math.max(replyWindowFrom - consumed, 0);
+            }
+        }
+
         private void decodeReply()
         {
             final boolean staged = decodeSlot != NO_SLOT;
@@ -6431,14 +6452,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             LlmOpenaiResponsesReplyDecoder previous = null;
             int limit = staged ? decodeSlotOffset : 0;
-            int progress = staged ? hold.held() : 0;
+            int progress = staged ? decodeSlotFrom : 0;
             while (progress <= limit && previous != decoder && (!staged || decodeSlot != NO_SLOT))
             {
                 previous = decoder;
 
                 final int from = progress;
+                final int heldBefore = hold.held();
 
                 progress = decoder.decode(this, buffer, progress, limit);
+
+                if (staged && decodeSlot != NO_SLOT)
+                {
+                    progress = Math.max(progress, from + hold.held() - heldBefore);
+                    rebaseReply(progress - from);
+                }
 
                 if (staged && decodeSlot != NO_SLOT && progress > from)
                 {
@@ -6453,7 +6481,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (staged && decodeSlot != NO_SLOT)
             {
-                if (limit == 0)
+                decodeSlotFrom = progress;
+
+                if (progress == limit && hold.held() == 0)
                 {
                     cleanupDecodeSlot();
                 }
@@ -6469,6 +6499,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             decodeSlotOffset = 0;
+            decodeSlotFrom = 0;
         }
 
         private void beginReplyFrame(
@@ -7180,7 +7211,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean stepFinal;
         private LlmEndExFW finishEnd;
         private int finishIndex;
-        private int memberLength;
         private int citationLength;
         private int citationScan;
         private int elementStart = NONE;
@@ -7545,23 +7575,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean flushMembers()
         {
-            boolean flushed = memberLength == 0;
+            boolean flushed = hold.staged() == 0;
 
             if (!flushed && writable())
             {
-                copyBuffer.putBytes(0, memberBuffer, 0, memberLength);
+                generator.reset();
+                generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
                 recordRefCount = 0;
                 recordFrom = 0;
-                recordTotal = memberLength;
+                recordTotal = 0;
                 stepFinal = false;
+                recordReference(hold.stageFrom(), hold.staged(), REF_STAGE);
 
-                flushed = sendRecorded();
-
-                if (flushed)
-                {
-                    memberLength = 0;
-                }
+                sendRecorded();
+                flushed = hold.staged() == 0;
             }
 
             return flushed;
@@ -8407,6 +8435,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             eventSent = stepFinal ? 0 : eventSent + recordLength;
             stepSent = 0;
+
+            if (recordRefCount > 0 && recordRefs[(recordRefCount - 1) * REF_STRIDE + 3] == REF_STAGE)
+            {
+                hold.unstage();
+            }
         }
 
         private boolean parkRecorded()
@@ -8482,7 +8515,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     final int at = segment * REF_STRIDE;
                     final int length = recordRefs[at + 2];
-                    final DirectBufferEx source = recordRefs[at + 3] == REF_HOLD ? hold.buffer() : accumulator.buffer();
+                    final DirectBufferEx source = recordRefs[at + 3] == REF_ACCUMULATOR ? accumulator.buffer() : hold.buffer();
 
                     progress = writeRecordedSegment(source, recordRefs[at + 1], length, virtual, total);
                     virtual += length;
@@ -9055,6 +9088,25 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             tail.append(replyId, buffer, offset, length, TAIL_MAX);
         }
 
+        private void collectMembers(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            memberBuffer.putBytes(memberLength, buffer, offset, length);
+            memberLength += length;
+        }
+
+        private void stageMembers()
+        {
+            if (!hold.stage(memberBuffer, 0, memberLength))
+            {
+                rejectReply();
+            }
+
+            memberLength = 0;
+        }
+
         private void onMembers(
             DirectBufferEx buffer,
             int offset,
@@ -9069,12 +9121,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (!membersStarted)
                 {
                     membersStarted = true;
-                    memberBuffer.putBytes(memberLength, COMMA, 0, 1);
-                    memberLength++;
+                    collectMembers(COMMA, 0, 1);
                 }
 
-                memberBuffer.putBytes(memberLength, buffer, offset, length);
-                memberLength += length;
+                collectMembers(buffer, offset, length);
                 accumulator.append(buffer, offset, length);
             }
             else if (length > 0)
@@ -9320,11 +9370,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void cleanupHeld()
         {
-            final int held = hold.held();
-
             hold.reset();
 
-            if (decodeSlot != NO_SLOT && decodeSlotOffset == held)
+            if (decodeSlot != NO_SLOT && decodeSlotOffset == decodeSlotFrom)
             {
                 cleanupDecodeSlot();
             }
@@ -9798,8 +9846,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (length > 0 && server.streaming)
             {
                 membersStarted = true;
-                memberBuffer.putBytes(memberLength, buffer, offset, length);
-                memberLength += length;
+                collectMembers(buffer, offset, length);
             }
             else if (length > 0)
             {
