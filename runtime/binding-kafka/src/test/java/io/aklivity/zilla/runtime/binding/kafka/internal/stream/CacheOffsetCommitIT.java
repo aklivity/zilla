@@ -87,4 +87,37 @@ public class CacheOffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/update.topic.partition.offset.affinity/client",
+        "${app}/update.topic.partition.offset.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassOffsetCommitAffinityThroughCacheClientAndServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.client.yaml")
+    @Specification({
+        "${app}/update.topic.partition.offset.affinity/client",
+        "${app}/update.topic.partition.offset.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassOffsetCommitAffinityThroughCacheClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.server.yaml")
+    @Specification({
+        "${app}/update.topic.partition.offset.affinity/client",
+        "${app}/update.topic.partition.offset.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldPassOffsetCommitAffinityThroughCacheServer() throws Exception
+    {
+        k3po.finish();
+    }
 }
