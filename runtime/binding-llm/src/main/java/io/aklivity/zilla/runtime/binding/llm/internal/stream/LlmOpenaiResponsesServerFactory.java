@@ -315,7 +315,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final int replyPadding;
     private final int encodeMax;
     private final int pullMax;
-    private final MutableDirectBufferEx memberBuffer;
     private final int llmTypeId;
     private final int httpTypeId;
 
@@ -541,7 +540,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.encodeMax = encodePool.slotCapacity();
         this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
         this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
-        this.memberBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.blockBuffer = new UnsafeBufferEx(new byte[LlmOpenaiResponsesBlockWriter.capacity(decodeMax)]);
         this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + pullMax]);
         this.supplyInitialId = context::supplyInitialId;
@@ -2276,12 +2274,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.kind == LlmOpenaiResponsesStream.KIND_REASONING && stream.memberLength > 0)
+        if (stream.kind == LlmOpenaiResponsesStream.KIND_REASONING && stream.hold.staged() > 0)
         {
             stream.membersStarted = true;
         }
 
-        stream.stageMembers();
         stream.advanceFollow = decodeReplyNext;
         stream.decoder = decodeMembersFlush;
 
@@ -7821,7 +7818,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudgeNext = decodeReplyTextKey;
         private int stepDeltaOffset;
         private int encodeSlot = NO_SLOT;
-        private int memberLength;
         private int stepDeltaLength;
         private int stepDeltaTaken;
         private LlmOutputSink restOutput;
@@ -10694,30 +10690,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             tail.append(replyId, buffer, offset, length, TAIL_MAX);
         }
 
-        private void collectMembers(
+        private void stageMembers(
             DirectBufferEx buffer,
             int offset,
             int length)
         {
-            if (memberLength + length > memberBuffer.capacity())
+            if (!hold.stage(buffer, offset, length))
             {
                 rejectReply();
             }
-            else
-            {
-                memberBuffer.putBytes(memberLength, buffer, offset, length);
-                memberLength += length;
-            }
-        }
-
-        private void stageMembers()
-        {
-            if (!hold.stage(memberBuffer, 0, memberLength))
-            {
-                rejectReply();
-            }
-
-            memberLength = 0;
         }
 
         private void onMembers(
@@ -10734,10 +10715,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (!membersStarted)
                 {
                     membersStarted = true;
-                    collectMembers(COMMA, 0, 1);
+                    stageMembers(COMMA, 0, 1);
                 }
 
-                collectMembers(buffer, offset, length);
+                stageMembers(buffer, offset, length);
                 accumulator.append(buffer, offset, length);
             }
             else if (length > 0)
@@ -11766,20 +11747,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (length > 0)
             {
-                collectMembers(buffer, offset, length);
+                stageMembers(buffer, offset, length);
             }
         }
 
         private void writeReasoningMembers()
         {
-            if (memberLength > 0)
+            if (hold.staged() > 0 && !membersStarted)
             {
-                if (!membersStarted)
-                {
-                    beginReasoningMembers();
-                }
-
-                stageMembers();
+                beginReasoningMembers();
             }
         }
 
