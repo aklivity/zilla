@@ -4572,17 +4572,24 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (!adminUnsubscribe)
             {
+                final Runnable unsuback;
                 switch (version)
                 {
                 case 4:
-                    doEncodeUnsubackV4(traceId, authorization, packetId);
+                    unsuback = () -> doEncodeUnsubackV4(traceId, authorization, packetId);
                     break;
-                case 5:
-                    final OctetsFW encodePayload = octetsRO
-                        .wrap(encodeBuffer, encodeOffset, encodeProgress);
-                    doEncodeUnsubackV5(traceId, authorization, packetId, encodePayload);
+                default:
+                    final byte[] reasonCodes = new byte[encodeProgress - encodeOffset];
+                    encodeBuffer.getBytes(encodeOffset, reasonCodes);
+                    unsuback = () -> doEncodeUnsubackV5(traceId, authorization, packetId,
+                        octetsRO.wrap(new UnsafeBufferEx(reasonCodes), 0, reasonCodes.length));
                     break;
                 }
+
+                filtersByStream.keySet().stream()
+                    .filter(MqttSubscribeStream::delivering)
+                    .findFirst()
+                    .ifPresentOrElse(stream -> stream.pendingUnsubacks.add(unsuback), unsuback);
             }
         }
 
@@ -7027,6 +7034,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long replyAck;
             private int replyMax;
             private int droppedPublishBytes;
+            private int deliveredPublishBytes;
+            private final List<Runnable> pendingUnsubacks;
 
             private int state;
             private final List<Subscription> subscriptions;
@@ -7048,8 +7057,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.compositeId = compositeId;
                 this.subscriptions = new ArrayList<>();
+                this.pendingUnsubacks = new ArrayList<>();
                 this.adminSubscribe = adminSubscribe;
                 this.qos = qos;
+            }
+
+            private boolean delivering()
+            {
+                return deliveredPublishBytes > 0;
             }
 
             private Optional<Subscription> getSubscriptionByFilter(
@@ -7329,7 +7344,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     boolean dropped = false;
 
-                    if (payload != null && !subscriptions.isEmpty())
+                    if (payload != null && (!hasInit(flags) || !subscriptions.isEmpty()))
                     {
                         if (hasInit(flags))
                         {
@@ -7352,6 +7367,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             {
                                 doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD,
                                     DataFW.FIELD_OFFSET_PAYLOAD + frameLength);
+                                deliveredPublishBytes = deferred;
                             }
                             else
                             {
@@ -7363,6 +7379,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         else if (droppedPublishBytes == 0)
                         {
                             doNetworkData(traceId, authorization, 0L, payload);
+                            deliveredPublishBytes -= payload.sizeof();
+
+                            if (deliveredPublishBytes == 0)
+                            {
+                                pendingUnsubacks.forEach(Runnable::run);
+                                pendingUnsubacks.clear();
+                            }
                         }
                         else
                         {
@@ -7374,6 +7397,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     else
                     {
                         dropped = true;
+
+                        if (hasInit(flags))
+                        {
+                            droppedPublishBytes = subscribeDataEx.subscribe().deferred();
+                        }
+
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
 
