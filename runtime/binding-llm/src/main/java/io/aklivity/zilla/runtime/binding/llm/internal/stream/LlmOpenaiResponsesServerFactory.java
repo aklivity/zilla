@@ -7442,7 +7442,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (stream != null)
             {
-                stream.drainEncodeSlot(traceId);
+                stream.encodeReply(traceId);
                 stream.decodeReply();
             }
         }
@@ -10012,7 +10012,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             cleanupEncodeSlot();
         }
 
-        private void drainEncodeSlot(
+        private void encodeReply(
             long traceId)
         {
             if (!writable() && flushEncodeData())
