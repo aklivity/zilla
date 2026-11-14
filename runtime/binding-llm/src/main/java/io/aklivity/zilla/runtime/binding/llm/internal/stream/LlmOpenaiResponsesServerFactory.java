@@ -5811,6 +5811,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (stream != null)
             {
+                stream.drainRecorded(traceId);
                 stream.decodeReply();
             }
         }
@@ -6072,12 +6073,19 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 stream.ackReply(traceId);
             }
 
-            if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && encodeSlot == NO_SLOT)
+            completeReplyEnd();
+        }
+
+        private void completeReplyEnd()
+        {
+            if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && encodeSlot == NO_SLOT &&
+                (stream == null || stream.outboxSlot == NO_SLOT))
             {
                 doNetEnd(pendingReplyEndTraceId, pendingReplyEndAuthorization, EMPTY_OCTETS);
 
                 if (stream != null)
                 {
+                    stream.cleanupHeld();
                     stream.cleanupAccumulator();
                 }
             }
@@ -6295,6 +6303,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private JsonGeneratorEx argsGenerator;
         private int stepDeltaOffset;
         private int stepSent;
+        private int outboxSlot = NO_SLOT;
         private int stepObfuscation;
         private int stepDeltaLength;
         private LlmSectionPipeline.Output valueOutput;
@@ -6911,7 +6920,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            if (server.encodeSlot != NO_SLOT)
+            if (server.encodeSlot != NO_SLOT || outboxSlot != NO_SLOT)
             {
                 server.state = StreamState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
@@ -6920,6 +6929,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             else
             {
                 server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
+                cleanupHeld();
                 cleanupAccumulator();
             }
 
@@ -7661,7 +7671,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean flushMembers()
         {
-            if (server.encodeSlot == NO_SLOT)
+            if (writable())
             {
                 final int wanted = (int) Math.min(memberLength - memberSent, server.replyCredit());
                 final int slice = wanted > 0 ? server.claimReply(encodeTraceId, 1, wanted) : 0;
@@ -7809,7 +7819,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void completeFinish(
             LlmReplyFrameFW frame)
         {
-            cleanupHeld();
             doEncodeFlush();
             endReply(frame.traceId(), frame.authorization());
         }
@@ -8184,7 +8193,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             int taken = 0;
 
-            if (server.encodeSlot == NO_SLOT)
+            if (writable())
             {
                 if (stepSent == 0)
                 {
@@ -8393,7 +8402,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             boolean complete = false;
 
-            if (server.encodeSlot == NO_SLOT)
+            if (writable())
             {
                 final int restored = sequence;
 
@@ -8496,20 +8505,74 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 generator.reset();
 
-                complete = writeRecorded();
-
-                if (complete)
+                if (writeRecorded())
                 {
-                    eventSent = stepFinal ? 0 : eventSent + recordLength;
-                    stepSent = 0;
+                    commitRecorded();
+                    complete = true;
                 }
                 else
                 {
-                    sequence = restored;
+                    complete = parkRecorded();
+
+                    if (!complete)
+                    {
+                        sequence = restored;
+                    }
                 }
             }
 
             return complete;
+        }
+
+        private void commitRecorded()
+        {
+            eventSent = stepFinal ? 0 : eventSent + recordLength;
+            stepSent = 0;
+        }
+
+        private boolean parkRecorded()
+        {
+            outboxSlot = encodePool.acquire(server.replyId);
+
+            final boolean parked = outboxSlot != NO_SLOT;
+
+            if (parked)
+            {
+                encodePool.buffer(outboxSlot).putBytes(recordFrom, copyBuffer, recordFrom, recordTotal - recordFrom);
+            }
+            else
+            {
+                server.cleanup(encodeTraceId);
+            }
+
+            return parked;
+        }
+
+        private void drainRecorded(
+            long traceId)
+        {
+            if (outboxSlot != NO_SLOT && writeRecorded())
+            {
+                commitRecorded();
+                cleanupOutbox();
+
+                ackReply(traceId);
+                server.completeReplyEnd();
+            }
+        }
+
+        private boolean writable()
+        {
+            return outboxSlot == NO_SLOT && server.encodeSlot == NO_SLOT;
+        }
+
+        private void cleanupOutbox()
+        {
+            if (outboxSlot != NO_SLOT)
+            {
+                encodePool.release(outboxSlot);
+                outboxSlot = NO_SLOT;
+            }
         }
 
         private boolean writeRecorded()
@@ -8523,6 +8586,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             recordLength = total;
 
+            final DirectBufferEx generated = outboxSlot != NO_SLOT ? encodePool.buffer(outboxSlot) : copyBuffer;
+
             int from = recordFrom;
             int virtual = 0;
             boolean progress = true;
@@ -8531,7 +8596,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 final int to = segment < recordRefCount ? recordRefs[segment * REF_STRIDE] : recordTotal;
 
-                progress = writeRecordedSegment(copyBuffer, from, to - from, virtual, total);
+                progress = writeRecordedSegment(generated, from, to - from, virtual, total);
                 virtual += to - from;
 
                 if (progress && segment < recordRefCount)
@@ -8591,7 +8656,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             int slice = 0;
 
-            if (server.encodeSlot == NO_SLOT)
+            if (writable())
             {
                 final int wanted = (int) Math.min(written - stepSent, server.replyCredit());
 
@@ -10486,6 +10551,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void cleanupAccumulator()
         {
+            cleanupOutbox();
+
             if (accumulator != null)
             {
                 accumulator.release();
