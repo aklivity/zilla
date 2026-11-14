@@ -428,7 +428,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
-    private final LlmOpenaiResponsesReplyDecoder decodeReplyValueNext = this::decodeReplyValueNext;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyCitations = this::decodeReplyCitations;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyControl = this::decodeReplyControl;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyRest = this::decodeReplyRest;
@@ -696,7 +695,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         final LlmReplyFrameFW frame = offset < limit ? replyFrameRO.tryWrap(buffer, offset, limit) : null;
 
-        if (frame != null && stream.server.overflowSlot == NO_SLOT)
+        if (frame != null && stream.server.admits(stream.worstCase(frame)))
         {
             if ((frame.flags() & REPLY_FLAG_END) != 0)
             {
@@ -817,20 +816,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 stream.valueLimit()))
         {
             stream.flushValue();
-            stream.decoder = decodeReplyValueNext;
-        }
-
-        return offset;
-    }
-
-    private int decodeReplyValueNext(
-        LlmOpenaiResponsesStream stream,
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        if (stream.server.overflowSlot == NO_SLOT)
-        {
             stream.decoder = decodeReplyValue;
         }
 
@@ -4156,8 +4141,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
-        private int overflowSlot = NO_SLOT;
-        private int overflowSlotOffset;
         private int encodeSent;
         private boolean encodeFlushing;
 
@@ -5751,13 +5734,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeSlotOffset = 0;
                 encodeSent = 0;
             }
-
-            if (overflowSlot != NO_SLOT)
-            {
-                encodePool.release(overflowSlot);
-                overflowSlot = NO_SLOT;
-                overflowSlotOffset = 0;
-            }
         }
 
         private void onNetMessage(
@@ -5912,21 +5888,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            doNetEncode(buffer, offset, length, flags, attributes, budgetId, traceId, authorization, NONE, 0);
-        }
-
-        private void doNetEncode(
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            int flags,
-            OctetsFW attributes,
-            long budgetId,
-            long traceId,
-            long authorization,
-            int sourceOffset,
-            int sourceLength)
-        {
             final int entryLength = QUEUE_ENTRY_OVERHEAD + attributes.sizeof() + length;
 
             if (encodeSlot == NO_SLOT)
@@ -5934,44 +5895,27 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeSlot = encodePool.acquire(replyId);
             }
 
-            final boolean spill = encodeSlot != NO_SLOT &&
-                (overflowSlot != NO_SLOT || encodeSlotOffset + entryLength > encodePool.slotCapacity());
-
-            if (spill && overflowSlot == NO_SLOT)
-            {
-                overflowSlot = encodePool.acquire(replyId);
-            }
-
-            if (encodeSlot == NO_SLOT || spill && overflowSlot == NO_SLOT ||
-                (spill ? overflowSlotOffset : encodeSlotOffset) + entryLength > encodePool.slotCapacity())
+            if (encodeSlot == NO_SLOT || encodeSlotOffset + entryLength > encodePool.slotCapacity())
             {
                 cleanup(traceId);
             }
             else
             {
-                final MutableDirectBufferEx slotBuffer = encodePool.buffer(spill ? overflowSlot : encodeSlot);
-                final int limit = queueEntryRW.wrap(slotBuffer, spill ? overflowSlotOffset : encodeSlotOffset,
-                        slotBuffer.capacity())
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                final int limit = queueEntryRW.wrap(slotBuffer, encodeSlotOffset, slotBuffer.capacity())
                     .extension(attributes.buffer(), attributes.offset(), attributes.sizeof())
                     .traceId(traceId)
                     .authorization(authorization)
                     .budgetId(budgetId)
                     .reserved(0)
                     .flags(flags)
-                    .sourceOffset(sourceOffset)
-                    .sourceLength(sourceLength)
+                    .sourceOffset(NONE)
+                    .sourceLength(0)
                     .payload(buffer, offset, length)
                     .build()
                     .limit();
 
-                if (spill)
-                {
-                    overflowSlotOffset = limit;
-                }
-                else
-                {
-                    encodeSlotOffset = limit;
-                }
+                encodeSlotOffset = limit;
 
                 flushEncodeSlot(traceId);
             }
@@ -6028,6 +5972,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return replyMax - (replySeq - replyAck) - replyPad;
         }
 
+        private boolean admits(
+            int bytes)
+        {
+            final int room = encodePool.slotCapacity() - (encodeSlot == NO_SLOT ? 0 : encodeSlotOffset);
+
+            return streaming || Math.min(bytes, encodePool.slotCapacity()) <= room;
+        }
+
         private int claimReply(
             long traceId,
             int minimum,
@@ -6046,79 +5998,65 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             encodeFlushing = true;
 
-            boolean draining = true;
+            final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
 
-            while (draining && encodeSlot != NO_SLOT)
+            boolean blocked = false;
+
+            while (!blocked && encodeSlot != NO_SLOT && encodeSlotOffset > 0)
             {
-                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
+                final long available = replyMax - (replySeq - replyAck) - replyPad;
 
-                boolean blocked = false;
-
-                while (!blocked && encodeSlot != NO_SLOT && encodeSlotOffset > 0)
+                if (available <= 0)
                 {
-                    final long available = replyMax - (replySeq - replyAck) - replyPad;
+                    blocked = true;
+                }
+                else
+                {
+                    final LlmQueueEntryFW entry = queueEntryRO.wrap(buffer, 0, encodeSlotOffset);
+                    final OctetsFW payload = entry.payload();
+                    final int dataLength = payload.sizeof();
+                    final int remaining = dataLength - encodeSent;
+                    final int sliceMax = (int) Math.min(remaining, available);
+                    final int sliceLength = sliceMax > 0 ? claimReply(traceId, 1, sliceMax) : sliceMax;
 
-                    if (available <= 0)
+                    if (sliceLength <= 0 && remaining > 0)
                     {
                         blocked = true;
                     }
                     else
                     {
-                        final LlmQueueEntryFW entry = queueEntryRO.wrap(buffer, 0, encodeSlotOffset);
-                        final OctetsFW payload = entry.payload();
-                        final int sourceLength = entry.sourceLength();
-                        final int dataLength = sourceLength > 0 ? sourceLength : payload.sizeof();
-                        final DirectBufferEx source = sourceLength > 0 ? stream.accumulator.buffer() : buffer;
-                        final int base = sourceLength > 0 ? entry.sourceOffset() : payload.offset();
-                        final int remaining = dataLength - encodeSent;
-                        final int sliceMax = (int) Math.min(remaining, available);
-                        final int sliceLength = sliceMax > 0 ? claimReply(traceId, 1, sliceMax) : sliceMax;
+                        final int sliceOffset = payload.offset() + encodeSent;
+                        final boolean init = encodeSent == 0 && Flags.hasInit(entry.flags());
+                        encodeSent += sliceLength;
 
-                        if (sliceLength <= 0 && remaining > 0)
+                        final int initFlags = init ? Flags.INIT : Flags.NONE;
+                        final boolean last = encodeSent == dataLength && Flags.hasFin(entry.flags());
+                        final int flags = last ? Flags.fin(initFlags) : initFlags;
+                        final int size = entry.sizeof();
+                        doNetData(entry.traceId(), entry.authorization(), flags, entry.budgetId(),
+                            sliceLength + replyPad, init ? entry.extension() : EMPTY_OCTETS, buffer, sliceOffset,
+                            sliceLength);
+
+                        if (encodeSlot != NO_SLOT && encodeSent >= dataLength)
                         {
-                            blocked = true;
-                        }
-                        else
-                        {
-                            final int sliceOffset = base + encodeSent;
-                            final boolean init = encodeSent == 0 && Flags.hasInit(entry.flags());
-                            encodeSent += sliceLength;
-
-                            final int initFlags = init ? Flags.INIT : Flags.NONE;
-                            final boolean last = encodeSent == dataLength && Flags.hasFin(entry.flags());
-                            final int flags = last ? Flags.fin(initFlags) : initFlags;
-                            final int size = entry.sizeof();
-                            doNetData(entry.traceId(), entry.authorization(), flags, entry.budgetId(),
-                                sliceLength + replyPad, init ? entry.extension() : EMPTY_OCTETS, source, sliceOffset,
-                                sliceLength);
-
-                            if (encodeSlot != NO_SLOT && encodeSent >= dataLength)
+                            encodeSlotOffset -= size;
+                            if (encodeSlotOffset > 0)
                             {
-                                encodeSlotOffset -= size;
-                                if (encodeSlotOffset > 0)
-                                {
-                                    buffer.putBytes(0, buffer, size, encodeSlotOffset);
-                                }
-                                encodeSent = 0;
+                                buffer.putBytes(0, buffer, size, encodeSlotOffset);
                             }
+                            encodeSent = 0;
                         }
                     }
                 }
+            }
 
-                draining = false;
+            if (!blocked && encodeSlot != NO_SLOT && encodeSlotOffset == 0)
+            {
+                encodePool.release(encodeSlot);
 
-                if (!blocked && encodeSlot != NO_SLOT && encodeSlotOffset == 0)
-                {
-                    encodePool.release(encodeSlot);
-
-                    encodeSlot = overflowSlot;
-                    encodeSlotOffset = overflowSlotOffset;
-                    overflowSlot = NO_SLOT;
-                    overflowSlotOffset = 0;
-                    encodeSent = 0;
-
-                    draining = encodeSlot != NO_SLOT;
-                }
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSent = 0;
             }
 
             encodeFlushing = false;
@@ -6515,7 +6453,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = decodePool.slotCapacity();
+            replyMax = server.streaming
+                ? decodePool.slotCapacity()
+                : (decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH + replyPadding;
 
             if (server.streaming && accumulator == null)
             {
@@ -6640,6 +6580,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             decodeSlotOffset = 0;
+        }
+
+        private int worstCase(
+            LlmReplyFrameFW frame)
+        {
+            final int flags = frame.flags();
+
+            return (flags & REPLY_FLAG_END) != 0
+                ? replyPadding + hold.held()
+                : (flags & REPLY_FLAG_ERROR) != 0
+                    ? 0
+                    : replyPadding + frame.payload().sizeof() * RESPONSE_GROWTH;
         }
 
         private void beginReplyFrame(
