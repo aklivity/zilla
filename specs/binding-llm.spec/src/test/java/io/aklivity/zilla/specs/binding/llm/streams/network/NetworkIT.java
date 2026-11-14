@@ -5277,6 +5277,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.rejected.tool.definition.name/client",
+        "${net}/openai.responses.rejected.tool.definition.name/server"})
+    public void shouldOpenaiResponsesRejectedToolDefinitionName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.rejected.content.part.type/client",
         "${net}/openai.responses.rejected.content.part.type/server"})
     public void shouldOpenaiResponsesRejectedContentPartType() throws Exception
@@ -5433,6 +5442,15 @@ public class NetworkIT
         "${net}/openai.responses.function.call/client",
         "${net}/openai.responses.function.call/server"})
     public void shouldOpenaiResponsesFunctionCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.judged/client",
+        "${net}/openai.responses.function.call.judged/server"})
+    public void shouldOpenaiResponsesFunctionCallJudged() throws Exception
     {
         k3po.finish();
     }
@@ -6324,6 +6342,15 @@ public class NetworkIT
         "${net}/openai.responses.section.user.image/client",
         "${net}/openai.responses.section.user.image/server"})
     public void shouldOpenaiResponsesSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.members/client",
+        "${net}/openai.responses.section.user.image.members/server"})
+    public void shouldOpenaiResponsesSectionUserImageMembers() throws Exception
     {
         k3po.finish();
     }
