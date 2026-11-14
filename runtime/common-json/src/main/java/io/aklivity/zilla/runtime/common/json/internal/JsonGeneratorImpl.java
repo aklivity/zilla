@@ -50,6 +50,9 @@ import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int PLAIN_RUN_MAX = 4096;
+    private static final long ONES = 0x0101010101010101L;
+    private static final long HIGH_BITS = 0x8080808080808080L;
+    private static final long BACKSLASHES = ONES * '\\';
     private static final int MAX_DEPTH = 64;
     private static final int REPLACEMENT = 0xfffd;
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
@@ -1402,7 +1405,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int length)
     {
         final int room = limit - progress;
+        final int words = Math.min(length, room) & ~(Long.BYTES - 1);
         int written = 0;
+        while (written < words && plainWord(source.getLong(index + written)))
+        {
+            written += Long.BYTES;
+        }
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
@@ -1470,6 +1478,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
         consumed += written;
         return written;
+    }
+
+    // Whether all eight bytes are ASCII and none is a backslash, so each is a whole unit of one byte.
+    private static boolean plainWord(
+        long word)
+    {
+        final long slashes = word ^ BACKSLASHES;
+        final long hasSlash = (slashes - ONES) & ~slashes;
+        return ((word | hasSlash) & HIGH_BITS) == 0L;
     }
 
     // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),

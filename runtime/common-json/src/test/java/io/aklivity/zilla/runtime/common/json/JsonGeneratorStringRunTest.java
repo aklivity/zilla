@@ -60,6 +60,40 @@ class JsonGeneratorStringRunTest
         }
     }
 
+    @Test
+    void shouldCopyRawSegmentsWithUnitsStraddlingEightByteWords()
+    {
+        final String[] units = {"\\n", "\\u0041", "é", "€", "😀"};
+
+        for (String unit : units)
+        {
+            for (int at = 0; at < 26; at++)
+            {
+                final String raw = "abcdefghijklmnopqrstuvwxyz".substring(0, at) + unit + "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+                final byte[] bytes = raw.getBytes(UTF_8);
+                final MutableDirectBufferEx source = new UnsafeBufferEx(bytes);
+
+                for (int bound : new int[] {7, 8, 9, 16, 33, 100})
+                {
+                    final JsonGeneratorEx generator = JsonEx.createGenerator();
+                    final StringBuilder result = new StringBuilder();
+                    int index = 0;
+
+                    while (index < bytes.length)
+                    {
+                        generator.wrap(buffer, 0, bound);
+                        generator.writeSegment(source, index, bytes.length - index);
+                        assertTrue(generator.consumed() > 0, "progress at " + at + " bound " + bound);
+                        index += generator.consumed();
+                        result.append(output(generator.length()));
+                    }
+
+                    assertEquals(raw, result.toString(), "unit " + unit + " at " + at + " bound " + bound);
+                }
+            }
+        }
+    }
+
     private String whole(
         String text,
         boolean escaped)
