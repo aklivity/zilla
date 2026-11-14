@@ -35,6 +35,8 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 public class MqttConfigurationTest
 {
     public static final String PUBLISH_TIMEOUT_NAME = "zilla.binding.mqtt.publish.timeout";
@@ -74,5 +76,13 @@ public class MqttConfigurationTest
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
         assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);
+    }
+
+    @Test
+    public void shouldDefaultMaximumQosToExactlyOnce()
+    {
+        MqttConfiguration configuration = new MqttConfiguration(new Configuration());
+
+        assertEquals(2, configuration.maximumQos());
     }
 }

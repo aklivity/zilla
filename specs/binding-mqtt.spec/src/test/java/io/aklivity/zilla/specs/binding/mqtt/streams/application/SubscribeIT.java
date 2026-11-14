@@ -516,6 +516,104 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.request.qos1.maximum.qos.1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.qos/client",
+        "${app}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.options/client",
+        "${app}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.downgrade.qos/client",
+        "${app}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.upgrade.qos/client",
+        "${app}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.add.subscription.id/client",
+        "${app}/subscribe.replace.add.subscription.id/server"})
+    public void shouldSubscribeReplaceAddSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.remove.subscription.id/client",
+        "${app}/subscribe.replace.remove.subscription.id/server"})
+    public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.subscription.id.112/client",
         "${app}/subscribe.receive.message.subscription.id.112/server"})
     public void shouldSubscribeReceiveMessageSubscriptionId112() throws Exception
@@ -816,6 +914,69 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.qos0.published.qos2.v4/client",
         "${app}/subscribe.receive.message.qos0.published.qos2.v4/server"})
     public void shouldSubscribeReceiveMessageQos0PublishedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1.v4/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1.v4/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.downgrade.qos.v4/client",
+        "${app}/subscribe.replace.downgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceDowngradeQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.qos.v4/client",
+        "${app}/subscribe.replace.same.qos.v4/server"})
+    public void shouldSubscribeReplaceSameQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.upgrade.qos.v4/client",
+        "${app}/subscribe.replace.upgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceUpgradeQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.request.qos1.maximum.qos.1.v4/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1.v4/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe.v4/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe.v4/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribeV4() throws Exception
     {
         k3po.finish();
     }

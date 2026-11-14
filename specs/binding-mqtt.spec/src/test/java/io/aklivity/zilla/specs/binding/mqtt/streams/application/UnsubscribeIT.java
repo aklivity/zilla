@@ -102,6 +102,14 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
+        "${app}/unsubscribe.while.publish.fragmented/client",
+        "${app}/unsubscribe.while.publish.fragmented/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/unsubscribe.after.subscribe.v4/client",
         "${app}/unsubscribe.after.subscribe.v4/server"})
     public void shouldUnsubscribeAfterSubscribeV4() throws Exception
@@ -141,6 +149,15 @@ public class UnsubscribeIT
         "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not.v4/client",
         "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not.v4/server"})
     public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNotV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.while.publish.fragmented.v4/client",
+        "${app}/unsubscribe.while.publish.fragmented.v4/server"})
+    public void shouldUnsubscribeWhilePublishFragmentedV4() throws Exception
     {
         k3po.finish();
     }

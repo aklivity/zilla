@@ -1378,6 +1378,7 @@ public class MqttFunctionsTest
             .subscription("sensor/three", 1, "EXACTLY_ONCE", "SEND_RETAINED")
             .subscription("sensor/four", 1)
             .subscription("sensor/five")
+            .subscriptionWithReasonCode("sensor/six", 1, "AT_MOST_ONCE", 128, "SEND_RETAINED")
             .build();
 
         DirectBufferEx buffer = new UnsafeBufferEx(array);
@@ -1413,6 +1414,14 @@ public class MqttFunctionsTest
         assertNotNull(sessionState.subscriptions()
             .matchFirst(f ->
                 "sensor/five".equals(f.pattern().asString())));
+
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f ->
+                "sensor/six".equals(f.pattern().asString()) &&
+                    1 == f.subscriptionId() &&
+                    0 == f.qos() &&
+                    0b0001 == f.flags() &&
+                    128 == f.reasonCode()));
     }
 
     @Test

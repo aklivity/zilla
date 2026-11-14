@@ -472,6 +472,13 @@ public final class MqttFunctions
                 subscribeDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttSubscribeDataExBuilder deferred(
+                int deferred)
+            {
+                subscribeDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttSubscribeDataExBuilder topic(
                 String topic)
             {
@@ -949,6 +956,22 @@ public final class MqttFunctions
             int reasonCode)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
+            return this;
+        }
+
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
+            String pattern,
+            int id,
+            String qosName,
+            int reasonCode,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id).qos(qos).flags(flags).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 

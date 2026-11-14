@@ -374,6 +374,23 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.subscribe.non.successful.resume/client",
+        "${app}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.non.successful.resume.session.expiry.never/client",
+        "${app}/session.subscribe.non.successful.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeNonSuccessfulResumeSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/session.resume.subscription.id.127/client",
         "${app}/session.resume.subscription.id.127/server"})
     public void shouldSessionResumeSubscriptionId127() throws Exception
@@ -470,4 +487,5 @@ public class SessionIT
     {
         k3po.finish();
     }
+
 }

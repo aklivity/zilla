@@ -454,6 +454,15 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.subscribe.non.successful.resume/client",
+        "${app}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.resume.subscription.id.127/client",
         "${app}/session.resume.subscription.id.127/server"})
     public void shouldSessionResumeSubscriptionId127() throws Exception
@@ -470,4 +479,5 @@ public class SessionIT
     {
         k3po.finish();
     }
+
 }

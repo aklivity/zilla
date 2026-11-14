@@ -150,4 +150,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.while.publish.fragmented/client",
+        "${app}/unsubscribe.while.publish.fragmented.v4/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
 }
