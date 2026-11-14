@@ -232,6 +232,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
+    private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
     private final MqttSessionSignalFW mqttSessionSignalRO = new MqttSessionSignalFW();
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
@@ -258,6 +259,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx sessionStateBuffer;
     private final MutableDirectBufferEx kafkaHeadersBuffer;
     private final MutableDirectBufferEx willMessageBuffer;
     private final MutableDirectBufferEx sessionSignalBuffer;
@@ -313,6 +315,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.sessionStateBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.willMessageBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.sessionSignalBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -1181,7 +1184,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int flags,
             MqttSessionStateFW sessionState)
         {
-            Flyweight sessionStateData = sessionState == null ? EMPTY_OCTETS : sessionState;
+            final MqttSessionStateFW resolvedState =
+                sessionState != null ? resolveSubscriptions(authorization, sessionState) : null;
+            Flyweight sessionStateData = resolvedState == null ? EMPTY_OCTETS : resolvedState;
             final DirectBufferEx buffer = sessionStateData.buffer();
             final int offset = sessionStateData.offset();
             final int limit = sessionStateData.limit();
@@ -1193,6 +1198,26 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             replySeq += reserved;
 
             assert replySeq <= replyAck + replyMax;
+        }
+
+        private MqttSessionStateFW resolveSubscriptions(
+            long authorization,
+            MqttSessionStateFW sessionState)
+        {
+            final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
+            final MqttSessionStateFW.Builder resolvedState =
+                mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
+
+            sessionState.subscriptions().forEach(filter -> resolvedState.subscriptionsItem(f -> f
+                .subscriptionId(filter.subscriptionId())
+                .qos(filter.qos())
+                .flags(filter.flags())
+                .reasonCode(binding != null
+                    ? binding.resolveSubscribeReasonCode(authorization, filter.pattern().asString())
+                    : MqttKafkaBindingConfig.UNSPECIFIED_ERROR)
+                .pattern(filter.pattern())));
+
+            return resolvedState.build();
         }
 
         private void doMqttData(

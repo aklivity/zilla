@@ -44,7 +44,7 @@ write [0x82 0x0d]                       # SUBSCRIBE
 read  [0x90 0x04]                       # SUBACK
       [0x00 0x01]                       # packet id = 1
       [0x00]                            # properties = none
-      [0x83]                            # reason code
+      [0x80]                            # reason code
 
 write [0xc0 0x00]                       # PINGREQ
 

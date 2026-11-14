@@ -43,7 +43,7 @@ write [0x34 0x1a]                    # PUBLISH, qos = 2
 
 read  [0x50 0x03]                    # PUBREC
       [0x00 0x01]                    # packet id = 1
-      [0x87]                         # reason code
+      [0x80]                         # reason code
 
 write [0x34 0x18]                    # PUBLISH, qos = 2
       [0x00 0x0b] "command/one"     # topic name

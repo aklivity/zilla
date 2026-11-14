@@ -516,6 +516,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.downgrade.qos2.maximum.qos.1/client",
         "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
     public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
