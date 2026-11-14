@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
  */
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
+    private static final int PLAIN_RUN_MAX = 4096;
     private static final int MAX_DEPTH = 64;
     private static final int REPLACEMENT = 0xfffd;
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
@@ -74,6 +75,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private MutableDirectBufferEx buffer = EMPTY;
     private int offset;
     private int progress;
+    private byte[] plainRunBytes;
     private int limit;
     private int depth;
     private int consumed;
@@ -1111,6 +1113,13 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int length = value.length();
         while (index < length)
         {
+            final int run = plainRun(value, index, Math.min(length - index, budget - progress));
+            if (run > 0)
+            {
+                writePlainRun(value, index, run);
+                index += run;
+                continue;
+            }
             final int codePoint = scalar(Character.codePointAt(value, index));
             if (budget - progress < codePointWidth(codePoint))
             {
@@ -1120,6 +1129,42 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             emitStringCodePoint(codePoint);
         }
         return index;
+    }
+
+    private static int plainRun(
+        CharSequence value,
+        int index,
+        int max)
+    {
+        final int limit = Math.min(max, PLAIN_RUN_MAX);
+        int run = 0;
+        while (run < limit)
+        {
+            final char c = value.charAt(index + run);
+            if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+            {
+                break;
+            }
+            run++;
+        }
+        return run;
+    }
+
+    private void writePlainRun(
+        CharSequence value,
+        int index,
+        int run)
+    {
+        if (plainRunBytes == null)
+        {
+            plainRunBytes = new byte[PLAIN_RUN_MAX];
+        }
+        for (int i = 0; i < run; i++)
+        {
+            plainRunBytes[i] = (byte) value.charAt(index + i);
+        }
+        buffer.putBytes(progress, plainRunBytes, 0, run);
+        progress += run;
     }
 
     private void emitStringCodePoint(
