@@ -1032,7 +1032,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 if (parser.nextEvent() == JsonEvent.START_OBJECT)
                 {
-                    stream.decoder = stream.citationReturn;
+                    stream.decoder = stream.decodeReplyCitationDescendNext;
                 }
                 else
                 {
@@ -2363,7 +2363,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (stream.replySkipDepth == 0 && !deferred)
                 {
-                    stream.decoder = stream.skipFollow;
+                    stream.decoder = stream.decodeReplyTextSkipNext;
                 }
             }
         }
@@ -4230,12 +4230,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             final int action = server.blockWriter.select(parser.getStringView(), parser);
 
-            server.blockKeys = seen ||
+            final LlmOpenaiResponsesServerDecoder next = seen ||
                 action == LlmOpenaiResponsesBlockWriter.ACTION_NAME ||
                 action == LlmOpenaiResponsesBlockWriter.ACTION_ARGUMENTS
                 ? decodeBlockSeenKey
                 : decodeBlockKey;
-            outcome = onBlockAction(server, action);
+
+            outcome = onBlockAction(server, action, next);
         }
         else if (event == JsonEvent.END_OBJECT)
         {
@@ -4251,43 +4252,54 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private int onBlockAction(
         LlmOpenaiResponsesServer server,
-        int action)
+        int action,
+        LlmOpenaiResponsesServerDecoder next)
     {
         int outcome = LlmOpenaiResponsesBlockWriter.MORE;
 
         switch (action)
         {
         case LlmOpenaiResponsesBlockWriter.ACTION_DROP:
+            server.decodeBlockDropNext = next;
             server.decoder = decodeBlockDrop;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_COPY:
+            server.decodeBlockCopyNext = next;
             server.decoder = decodeBlockCopy;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_STRING, LlmOpenaiResponsesBlockWriter.ACTION_NAME:
+            server.decodeBlockStringNext = next;
             server.decoder = decodeBlockString;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_STRING_OR_DROP:
+            server.decodeBlockStringOrDropNext = next;
             server.decoder = decodeBlockStringOrDrop;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_HOLD:
+            server.decodeBlockHoldNext = next;
             server.decoder = decodeBlockHold;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_UNESCAPE, LlmOpenaiResponsesBlockWriter.ACTION_ARGUMENTS:
+            server.decodeBlockUnescapeNext = next;
             server.decoder = decodeBlockUnescape;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT:
+            server.decodeBlockFormatNext = next;
             server.decoder = decodeBlockFormat;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE:
             server.decoder = decodeBlockFormatType;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_PRECEDING:
+            server.decodeBlockPrecedingNext = next;
             server.decoder = decodeBlockPreceding;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE:
+            server.decodeBlockUsageFlagNext = next;
             server.decoder = decodeBlockUsageFlag;
             break;
         case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_OBFUSCATION:
+            server.decodeBlockObfuscationFlagNext = next;
             server.decoder = decodeBlockObfuscationFlag;
             break;
         default:
@@ -4307,7 +4319,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.blockKeys = decodeBlockCitationKey;
             server.decoder = decodeBlockCitationKey;
         }
 
@@ -4378,13 +4389,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             else if (LlmOpenaiResponsesBlockWriter.isCitationNested(name))
             {
                 server.blockWriter.openNested();
-                server.blockKeys = decodeBlockCitationNestedKey;
-                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name), decodeBlockCitationNestedKey);
             }
             else
             {
-                server.blockKeys = decodeBlockCitationUrlKey;
-                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name), decodeBlockCitationUrlKey);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4416,14 +4425,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else if (LlmOpenaiResponsesBlockWriter.isCitationNested(name))
             {
-                server.blockKeys = decodeBlockCitationNestedKey;
-                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name), decodeBlockCitationNestedKey);
             }
             else
             {
                 server.blockWriter.closeNested();
-                server.blockKeys = decodeBlockCitationClosedKey;
-                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name), decodeBlockCitationClosedKey);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4460,8 +4467,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.blockKeys = decodeBlockCitationClosedKey;
-                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name), decodeBlockCitationClosedKey);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4493,8 +4499,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.blockKeys = decodeBlockCitationOtherKey;
-                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name), decodeBlockCitationOtherKey);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4514,7 +4519,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         LlmOpenaiResponsesServerDecoder keys)
     {
         server.blockWriter.holdType();
-        server.blockKeys = keys;
+        server.decodeBlockHoldNext = keys;
         server.decoder = decodeBlockHold;
 
         return LlmOpenaiResponsesBlockWriter.MORE;
@@ -4543,7 +4548,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
         else if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.blockKeys = decodeBlockResidueNone;
             server.decoder = decodeBlockResidueNone;
             outcome = LlmOpenaiResponsesBlockWriter.MORE;
         }
@@ -4564,14 +4568,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (server.blockWriter.lifts(name))
             {
-                server.blockKeys = decodeBlockResidueLifted;
-                outcome = onBlockAction(server, server.blockWriter.lift(name));
+                outcome = onBlockAction(server, server.blockWriter.lift(name), decodeBlockResidueLifted);
             }
             else
             {
                 server.blockWriter.openResidue();
-                server.blockKeys = decodeBlockResidueOpen;
-                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name), decodeBlockResidueOpen);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4601,13 +4603,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (server.blockWriter.lifts(name))
             {
                 server.blockWriter.closeResidue();
-                server.blockKeys = decodeBlockResidueLifted;
-                outcome = onBlockAction(server, server.blockWriter.lift(name));
+                outcome = onBlockAction(server, server.blockWriter.lift(name), decodeBlockResidueLifted);
             }
             else
             {
-                server.blockKeys = decodeBlockResidueOpen;
-                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name), decodeBlockResidueOpen);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4636,14 +4636,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (server.blockWriter.lifts(name))
             {
-                server.blockKeys = decodeBlockResidueLifted;
-                outcome = onBlockAction(server, server.blockWriter.lift(name));
+                outcome = onBlockAction(server, server.blockWriter.lift(name), decodeBlockResidueLifted);
             }
             else
             {
                 server.blockWriter.openResidue();
-                server.blockKeys = decodeBlockResidueOpen;
-                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name), decodeBlockResidueOpen);
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -4667,8 +4665,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.blockOuter = server.blockKeys;
-            server.blockKeys = decodeBlockFormatAwaiting;
             server.decoder = decodeBlockFormatAwaiting;
             outcome = LlmOpenaiResponsesBlockWriter.MORE;
         }
@@ -4688,8 +4684,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final CharSequence name = parser.getStringView();
 
             outcome = server.blockWriter.isType(name)
-                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
-                : onBlockAction(server, server.blockWriter.precedingMember(name));
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE, null)
+                : onBlockAction(server, server.blockWriter.precedingMember(name), decodeBlockFormatAwaiting);
         }
         else
         {
@@ -4711,14 +4707,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final CharSequence name = parser.getStringView();
 
             outcome = server.blockWriter.isType(name)
-                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
-                : onBlockAction(server, server.blockWriter.formatMember(name));
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE, null)
+                : onBlockAction(server, server.blockWriter.formatMember(name), decodeBlockFormatFlattening);
         }
         else if (event == JsonEvent.END_OBJECT)
         {
             server.blockWriter.closeFormat(true);
-            server.blockKeys = server.blockOuter;
-            server.decoder = server.blockOuter;
+            server.decoder = server.decodeBlockFormatNext;
         }
         else
         {
@@ -4738,14 +4733,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         if (event == JsonEvent.KEY_NAME)
         {
             outcome = server.blockWriter.isType(parser.getStringView())
-                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
-                : onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_DROP);
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE, null)
+                : onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_DROP, decodeBlockFormatPlain);
         }
         else if (event == JsonEvent.END_OBJECT)
         {
             server.blockWriter.closeFormat(false);
-            server.blockKeys = server.blockOuter;
-            server.decoder = server.blockOuter;
+            server.decoder = server.decodeBlockFormatNext;
         }
         else
         {
@@ -4764,8 +4758,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.blockKeys = server.blockWriter.schema() ? decodeBlockFormatFlattening : decodeBlockFormatPlain;
-            server.decoder = server.blockKeys;
+            server.decoder = server.blockWriter.schema() ? decodeBlockFormatFlattening : decodeBlockFormatPlain;
         }
 
         return outcome == LlmOpenaiResponsesBlockWriter.VALUE ? LlmOpenaiResponsesBlockWriter.MORE : outcome;
@@ -4780,7 +4773,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.blockKeys = decodeBlockOptionsKey;
             server.decoder = decodeBlockOptionsKey;
         }
 
@@ -4815,10 +4807,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             final int action = server.blockWriter.optionMember(parser.getStringView());
 
-            server.blockKeys = used || action == LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE
+            final LlmOpenaiResponsesServerDecoder next = used || action == LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE
                 ? decodeBlockOptionsUsedKey
                 : decodeBlockOptionsKey;
-            outcome = onBlockAction(server, action);
+
+            outcome = onBlockAction(server, action, next);
         }
         else if (event == JsonEvent.END_OBJECT)
         {
@@ -5094,7 +5087,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.drop(event, parser));
+        return onBlockValue(server, server.blockWriter.drop(event, parser), server.decodeBlockDropNext);
     }
 
     private int onBlockCopy(
@@ -5102,7 +5095,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.copyValue(event, parser));
+        return onBlockValue(server, server.blockWriter.copyValue(event, parser), server.decodeBlockCopyNext);
     }
 
     private int onBlockString(
@@ -5110,7 +5103,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.string(event, parser));
+        return onBlockValue(server, server.blockWriter.string(event, parser), server.decodeBlockStringNext);
     }
 
     private int onBlockStringOrDrop(
@@ -5123,11 +5116,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         if (event == JsonEvent.VALUE_STRING)
         {
             server.blockWriter.openKey();
+            server.decodeBlockStringNext = server.decodeBlockStringOrDropNext;
             server.decoder = decodeBlockString;
             outcome = onBlockString(server, event, parser);
         }
         else
         {
+            server.decodeBlockDropNext = server.decodeBlockStringOrDropNext;
             server.decoder = decodeBlockDrop;
             outcome = onBlockDrop(server, event, parser);
         }
@@ -5140,7 +5135,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.hold(event, parser));
+        return onBlockValue(server, server.blockWriter.hold(event, parser), server.decodeBlockHoldNext);
     }
 
     private int onBlockUnescape(
@@ -5164,7 +5159,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.unescaped(event));
+        return onBlockValue(server, server.blockWriter.unescaped(event), server.decodeBlockUnescapeNext);
     }
 
     private int onBlockFlag(
@@ -5180,7 +5175,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.usageFlag(event));
+        return onBlockValue(server, server.blockWriter.usageFlag(event), server.decodeBlockUsageFlagNext);
     }
 
     private int onBlockObfuscationFlag(
@@ -5188,7 +5183,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.obfuscationFlag(event));
+        return onBlockValue(server, server.blockWriter.obfuscationFlag(event), server.decodeBlockObfuscationFlagNext);
     }
 
     private int onBlockCapture(
@@ -5212,18 +5207,19 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         JsonEvent event,
         JsonParserEx parser)
     {
-        return onBlockValue(server, server.blockWriter.preceding(event, parser));
+        return onBlockValue(server, server.blockWriter.preceding(event, parser), server.decodeBlockPrecedingNext);
     }
 
     private int onBlockValue(
         LlmOpenaiResponsesServer server,
-        int outcome)
+        int outcome,
+        LlmOpenaiResponsesServerDecoder next)
     {
         int result = outcome;
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.decoder = server.blockKeys;
+            server.decoder = next;
             result = LlmOpenaiResponsesBlockWriter.MORE;
         }
 
@@ -5776,8 +5772,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiResponsesBlockWriter blockWriter;
         private LlmOpenaiResponsesBlockWriter writing;
         private LlmOpenaiResponsesServerDecoder blockStart;
-        private LlmOpenaiResponsesServerDecoder blockKeys;
-        private LlmOpenaiResponsesServerDecoder blockOuter;
+        private LlmOpenaiResponsesServerDecoder decodeBlockDropNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockCopyNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockStringNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockStringOrDropNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockHoldNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockUnescapeNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockFormatNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockPrecedingNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockUsageFlagNext;
+        private LlmOpenaiResponsesServerDecoder decodeBlockObfuscationFlagNext;
         private final LlmOpenaiResponsesAttributeProbe probe;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
@@ -6624,7 +6628,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     decodeBlockContainer;
                 default -> decodeBlockKey;
                 };
-                blockKeys = blockStart;
             }
         }
 
@@ -7760,13 +7763,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int memberDepth;
         private String judgedKey;
         private StringBuilder memberCapture;
-        private LlmOpenaiResponsesReplyDecoder citationReturn;
-        private LlmOpenaiResponsesReplyDecoder skipFollow = decodeReplyTextKey;
+        private LlmOpenaiResponsesReplyDecoder decodeReplyCitationDescendNext;
+        private LlmOpenaiResponsesReplyDecoder decodeReplyTextSkipNext = decodeReplyTextKey;
         private final LlmOutputSink controlOutput = (buffer, offset, length, last) ->
             onControlPiece(buffer, offset, length);
         private final StringBuilder reasoningIdBuilder = new StringBuilder();
         private LlmOpenaiResponsesReplyDecoder replyValueDone = decodeReplyTextDone;
-        private LlmOpenaiResponsesReplyDecoder memberFollow = decodeReplyTextKey;
+        private LlmOpenaiResponsesReplyDecoder decodeReplyMemberNext = decodeReplyTextKey;
+        private LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudgeNext = decodeReplyTextKey;
         private int stepDeltaOffset;
         private int stepSent;
         private int outboxSlot = NO_SLOT;
@@ -8145,7 +8149,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     replyMember = MEMBER_NONE;
                     textThen = decodeReplyNext;
-                    skipFollow = decodeReplyTextKey;
+                    decodeReplyTextSkipNext = decodeReplyTextKey;
                     replyParser().reset();
                 }
 
@@ -10686,7 +10690,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
                     memberGenerator.writeKey(memberKeys.target());
                     restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
-                    memberFollow = decodeReplyTextKey;
+                    decodeReplyMemberNext = decodeReplyTextKey;
                     memberCapture = kind == KIND_REASONING && REASONING_ID_KEY.contentEquals(key) ? reasoningIdBuilder : null;
 
                     if (memberCapture != null)
@@ -10699,6 +10703,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 else if (action == LlmMemberKeys.JUDGE)
                 {
                     judgedKey = key.toString();
+                    decodeReplyMemberJudgeNext = decodeReplyTextSkipNext;
                     state = decodeReplyMemberJudge;
                 }
             }
@@ -10724,12 +10729,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     beginControlMember(memberKeys.target().toString());
                     memberCapture = null;
-                    memberFollow = decodeReplyControlEnd;
+                    decodeReplyMemberNext = decodeReplyControlEnd;
                     state = decodeReplyMember;
                 }
                 else if (action == LlmMemberKeys.JUDGE)
                 {
                     judgedKey = key.toString();
+                    decodeReplyMemberJudgeNext = decodeReplyTextSkipNext;
                     state = decodeReplyMemberJudge;
                 }
             }
@@ -10749,12 +10755,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 memberGenerator.writeKey(memberKeys.target());
                 restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
                 memberCapture = null;
-                memberFollow = decodeReplyOptionKey;
+                decodeReplyMemberNext = decodeReplyOptionKey;
                 state = decodeReplyMember;
             }
             else if (action == LlmMemberKeys.JUDGE)
             {
                 judgedKey = key.toString();
+                decodeReplyMemberJudgeNext = decodeReplyTextSkipNext;
                 state = decodeReplyMemberJudge;
             }
 
@@ -10786,13 +10793,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             LlmOpenaiResponsesReplyDecoder state = decodeReplyTextSkip;
 
-            skipFollow = current;
+            decodeReplyTextSkipNext = current;
 
             final boolean nested = current == decodeReplyCitationNestedFirst || current == decodeReplyCitationNestedKey;
 
             if (!nested && MEMBER_URL_CITATION.contentEquals(key))
             {
-                citationReturn = open ? decodeReplyCitationNestedKey : decodeReplyCitationNestedFirst;
+                decodeReplyCitationDescendNext = open ? decodeReplyCitationNestedKey : decodeReplyCitationNestedFirst;
                 state = decodeReplyCitationDescend;
             }
             else
@@ -10811,12 +10818,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     memberGenerator.writeKey(memberKeys.target());
                     restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
                     memberCapture = null;
-                    memberFollow = nested ? decodeReplyCitationNestedKey : decodeReplyCitationKey;
+                    decodeReplyMemberNext = nested ? decodeReplyCitationNestedKey : decodeReplyCitationKey;
                     state = decodeReplyMember;
                 }
                 else if (action == LlmMemberKeys.JUDGE)
                 {
                     judgedKey = key.toString();
+                    decodeReplyMemberJudgeNext = decodeReplyTextSkipNext;
                     state = decodeReplyMemberJudge;
                 }
             }
@@ -10856,7 +10864,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             onEncodeControlBegin(name);
             memberGenerator.reset();
             memberDepth = 0;
-            skipFollow = decodeReplyTextKey;
+            decodeReplyTextSkipNext = decodeReplyTextKey;
         }
 
         private void beginOptions(
@@ -10867,7 +10875,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
                 memberGenerator.writeStartObject();
                 restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
-                skipFollow = decodeReplyOptionKey;
+                decodeReplyTextSkipNext = decodeReplyOptionKey;
                 decoder = decodeReplyOptionKey;
             }
             else
@@ -10888,7 +10896,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void endControlMember()
         {
             onEncodeControlEnd();
-            skipFollow = decodeReplyTextKey;
+            decodeReplyTextSkipNext = decodeReplyTextKey;
 
             if (hold.failed())
             {
@@ -10911,7 +10919,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
                 memberGenerator.writeKey(memberKeys.target());
                 restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
-                memberFollow = decodeReplyArgumentKey;
+                decodeReplyMemberNext = decodeReplyArgumentKey;
                 state = decodeReplyMember;
             }
 
@@ -10931,7 +10939,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (LlmLegality.harmless(verdict))
             {
                 replySkipDepth = scalar ? 0 : 1;
-                decoder = scalar ? skipFollow : decodeReplyTextSkip;
+                decoder = scalar ? decodeReplyMemberJudgeNext : decodeReplyTextSkip;
             }
             else
             {
@@ -11053,7 +11061,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
 
                 decoder = complete
-                    ? memberFollow
+                    ? decodeReplyMemberNext
                     : pending > 0 ? continueMember() : decodeReplyMember;
                 outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
             }
