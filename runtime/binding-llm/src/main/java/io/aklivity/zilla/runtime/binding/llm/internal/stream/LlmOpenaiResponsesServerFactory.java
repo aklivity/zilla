@@ -347,6 +347,34 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesServerDecoder decodeToolCapture = this::decodeToolCapture;
     private final LlmOpenaiResponsesServerDecoder decodeBlockKey = this::decodeBlockKey;
     private final LlmBlockHandler blockKey = this::onBlockKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockSeenKey = this::decodeBlockSeenKey;
+    private final LlmBlockHandler blockSeenKey = this::onBlockSeenKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockCitationKey = this::decodeBlockCitationKey;
+    private final LlmBlockHandler blockCitationKey = this::onBlockCitationKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockCitationUrlKey = this::decodeBlockCitationUrlKey;
+    private final LlmBlockHandler blockCitationUrlKey = this::onBlockCitationUrlKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockCitationNestedKey = this::decodeBlockCitationNestedKey;
+    private final LlmBlockHandler blockCitationNestedKey = this::onBlockCitationNestedKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockCitationClosedKey = this::decodeBlockCitationClosedKey;
+    private final LlmBlockHandler blockCitationClosedKey = this::onBlockCitationClosedKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockCitationOtherKey = this::decodeBlockCitationOtherKey;
+    private final LlmBlockHandler blockCitationOtherKey = this::onBlockCitationOtherKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockResidueNone = this::decodeBlockResidueNone;
+    private final LlmBlockHandler blockResidueNone = this::onBlockResidueNone;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockResidueOpen = this::decodeBlockResidueOpen;
+    private final LlmBlockHandler blockResidueOpen = this::onBlockResidueOpen;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockResidueLifted = this::decodeBlockResidueLifted;
+    private final LlmBlockHandler blockResidueLifted = this::onBlockResidueLifted;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockFormatAwaiting = this::decodeBlockFormatAwaiting;
+    private final LlmBlockHandler blockFormatAwaiting = this::onBlockFormatAwaiting;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockFormatFlattening = this::decodeBlockFormatFlattening;
+    private final LlmBlockHandler blockFormatFlattening = this::onBlockFormatFlattening;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockFormatPlain = this::decodeBlockFormatPlain;
+    private final LlmBlockHandler blockFormatPlain = this::onBlockFormatPlain;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockOptionsKey = this::decodeBlockOptionsKey;
+    private final LlmBlockHandler blockOptionsKey = this::onBlockOptionsKey;
+    private final LlmOpenaiResponsesServerDecoder decodeBlockOptionsUsedKey = this::decodeBlockOptionsUsedKey;
+    private final LlmBlockHandler blockOptionsUsedKey = this::onBlockOptionsUsedKey;
     private final LlmOpenaiResponsesServerDecoder decodeBlockDrop = this::decodeBlockDrop;
     private final LlmBlockHandler blockDrop = this::onBlockDrop;
     private final LlmOpenaiResponsesServerDecoder decodeBlockCopy = this::decodeBlockCopy;
@@ -3960,6 +3988,837 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return decodeBlock(server, traceId, authorization, decodeBlockKey, blockKey);
     }
 
+    private int decodeBlockSeenKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockSeenKey, blockSeenKey);
+    }
+
+    private int decodeBlockCitationKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCitationKey, blockCitationKey);
+    }
+
+    private int decodeBlockCitationUrlKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCitationUrlKey, blockCitationUrlKey);
+    }
+
+    private int decodeBlockCitationNestedKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCitationNestedKey, blockCitationNestedKey);
+    }
+
+    private int decodeBlockCitationClosedKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCitationClosedKey, blockCitationClosedKey);
+    }
+
+    private int decodeBlockCitationOtherKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCitationOtherKey, blockCitationOtherKey);
+    }
+
+    private int decodeBlockResidueNone(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockResidueNone, blockResidueNone);
+    }
+
+    private int decodeBlockResidueOpen(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockResidueOpen, blockResidueOpen);
+    }
+
+    private int decodeBlockResidueLifted(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockResidueLifted, blockResidueLifted);
+    }
+
+    private int decodeBlockFormatAwaiting(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockFormatAwaiting, blockFormatAwaiting);
+    }
+
+    private int decodeBlockFormatFlattening(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockFormatFlattening, blockFormatFlattening);
+    }
+
+    private int decodeBlockFormatPlain(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockFormatPlain, blockFormatPlain);
+    }
+
+    private int decodeBlockOptionsKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockOptionsKey, blockOptionsKey);
+    }
+
+    private int decodeBlockOptionsUsedKey(
+        LlmOpenaiResponsesServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockOptionsUsedKey, blockOptionsUsedKey);
+    }
+
+    private int onBlockKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockItemKey(server, event, parser, false);
+    }
+
+    private int onBlockSeenKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockItemKey(server, event, parser, true);
+    }
+
+    private int onBlockItemKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser,
+        boolean seen)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final int action = server.blockWriter.select(parser.getStringView(), parser);
+
+            server.blockKeys = seen ||
+                action == LlmOpenaiResponsesBlockWriter.ACTION_NAME ||
+                action == LlmOpenaiResponsesBlockWriter.ACTION_ARGUMENTS
+                ? decodeBlockSeenKey
+                : decodeBlockKey;
+            outcome = onBlockAction(server, action);
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = server.blockWriter.closeItem(seen);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockAction(
+        LlmOpenaiResponsesServer server,
+        int action)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        switch (action)
+        {
+        case LlmOpenaiResponsesBlockWriter.ACTION_DROP:
+            server.decoder = decodeBlockDrop;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_COPY:
+            server.decoder = decodeBlockCopy;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_STRING, LlmOpenaiResponsesBlockWriter.ACTION_NAME:
+            server.decoder = decodeBlockString;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_STRING_OR_DROP:
+            server.decoder = decodeBlockStringOrDrop;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_HOLD:
+            server.decoder = decodeBlockHold;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_UNESCAPE, LlmOpenaiResponsesBlockWriter.ACTION_ARGUMENTS:
+            server.decoder = decodeBlockUnescape;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT:
+            server.decoder = decodeBlockFormat;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE:
+            server.decoder = decodeBlockFormatType;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_PRECEDING:
+            server.decoder = decodeBlockPreceding;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE:
+            server.decoder = decodeBlockUsageFlag;
+            break;
+        case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_OBFUSCATION:
+            server.decoder = decodeBlockObfuscationFlag;
+            break;
+        default:
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+            break;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockElement(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.element(event);
+
+        if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
+        {
+            server.blockKeys = decodeBlockCitationKey;
+            server.decoder = decodeBlockCitationKey;
+        }
+
+        return outcome == LlmOpenaiResponsesBlockWriter.VALUE ? LlmOpenaiResponsesBlockWriter.MORE : outcome;
+    }
+
+    private int onBlockCitationKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.isType(name))
+            {
+                outcome = onBlockHoldType(server, decodeBlockCitationKey);
+            }
+            else if (server.blockWriter.heldType())
+            {
+                final boolean url = server.blockWriter.resolveCitation();
+
+                server.decoder = url ? decodeBlockCitationUrlKey : decodeBlockCitationOtherKey;
+                outcome = url
+                    ? onBlockCitationUrlKey(server, event, parser)
+                    : onBlockCitationOtherKey(server, event, parser);
+            }
+            else
+            {
+                outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            if (server.blockWriter.heldType())
+            {
+                server.blockWriter.resolveCitation();
+            }
+
+            outcome = onBlockElementEnd(server);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockCitationUrlKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.isType(name))
+            {
+                outcome = onBlockHoldType(server, decodeBlockCitationUrlKey);
+            }
+            else if (LlmOpenaiResponsesBlockWriter.isCitationNested(name))
+            {
+                server.blockWriter.openNested();
+                server.blockKeys = decodeBlockCitationNestedKey;
+                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name));
+            }
+            else
+            {
+                server.blockKeys = decodeBlockCitationUrlKey;
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = onBlockElementEnd(server);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockCitationNestedKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.isType(name))
+            {
+                outcome = onBlockHoldType(server, decodeBlockCitationNestedKey);
+            }
+            else if (LlmOpenaiResponsesBlockWriter.isCitationNested(name))
+            {
+                server.blockKeys = decodeBlockCitationNestedKey;
+                outcome = onBlockAction(server, server.blockWriter.citationNestedMember(name));
+            }
+            else
+            {
+                server.blockWriter.closeNested();
+                server.blockKeys = decodeBlockCitationClosedKey;
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeNested();
+            outcome = onBlockElementEnd(server);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockCitationClosedKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.isType(name))
+            {
+                outcome = onBlockHoldType(server, decodeBlockCitationClosedKey);
+            }
+            else if (LlmOpenaiResponsesBlockWriter.isCitationNested(name))
+            {
+                outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+            }
+            else
+            {
+                server.blockKeys = decodeBlockCitationClosedKey;
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = onBlockElementEnd(server);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockCitationOtherKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.isType(name))
+            {
+                outcome = onBlockHoldType(server, decodeBlockCitationOtherKey);
+            }
+            else
+            {
+                server.blockKeys = decodeBlockCitationOtherKey;
+                outcome = onBlockAction(server, server.blockWriter.prefixedMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = onBlockElementEnd(server);
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockHoldType(
+        LlmOpenaiResponsesServer server,
+        LlmOpenaiResponsesServerDecoder keys)
+    {
+        server.blockWriter.holdType();
+        server.blockKeys = keys;
+        server.decoder = decodeBlockHold;
+
+        return LlmOpenaiResponsesBlockWriter.MORE;
+    }
+
+    private int onBlockElementEnd(
+        LlmOpenaiResponsesServer server)
+    {
+        server.blockWriter.closeElement();
+        server.decoder = decodeBlockElement;
+
+        return LlmOpenaiResponsesBlockWriter.MORE;
+    }
+
+    private int onBlockContainer(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = server.blockWriter.container(event, parser);
+
+        if (outcome == LlmOpenaiResponsesBlockWriter.PASS)
+        {
+            server.decoder = decodeBlockPass;
+            outcome = LlmOpenaiResponsesBlockWriter.MORE;
+        }
+        else if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
+        {
+            server.blockKeys = decodeBlockResidueNone;
+            server.decoder = decodeBlockResidueNone;
+            outcome = LlmOpenaiResponsesBlockWriter.MORE;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockResidueNone(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.lifts(name))
+            {
+                server.blockKeys = decodeBlockResidueLifted;
+                outcome = onBlockAction(server, server.blockWriter.lift(name));
+            }
+            else
+            {
+                server.blockWriter.openResidue();
+                server.blockKeys = decodeBlockResidueOpen;
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.emptyResidue();
+            outcome = server.blockWriter.complete();
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockResidueOpen(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.lifts(name))
+            {
+                server.blockWriter.closeResidue();
+                server.blockKeys = decodeBlockResidueLifted;
+                outcome = onBlockAction(server, server.blockWriter.lift(name));
+            }
+            else
+            {
+                server.blockKeys = decodeBlockResidueOpen;
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeResidue();
+            outcome = server.blockWriter.complete();
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockResidueLifted(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            if (server.blockWriter.lifts(name))
+            {
+                server.blockKeys = decodeBlockResidueLifted;
+                outcome = onBlockAction(server, server.blockWriter.lift(name));
+            }
+            else
+            {
+                server.blockWriter.openResidue();
+                server.blockKeys = decodeBlockResidueOpen;
+                outcome = onBlockAction(server, server.blockWriter.residueMember(name));
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = server.blockWriter.complete();
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFormat(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = server.blockWriter.format(event);
+
+        if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
+        {
+            server.blockOuter = server.blockKeys;
+            server.blockKeys = decodeBlockFormatAwaiting;
+            server.decoder = decodeBlockFormatAwaiting;
+            outcome = LlmOpenaiResponsesBlockWriter.MORE;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFormatAwaiting(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            outcome = server.blockWriter.isType(name)
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
+                : onBlockAction(server, server.blockWriter.precedingMember(name));
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFormatFlattening(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final CharSequence name = parser.getStringView();
+
+            outcome = server.blockWriter.isType(name)
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
+                : onBlockAction(server, server.blockWriter.formatMember(name));
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeFormat(true);
+            server.blockKeys = server.blockOuter;
+            server.decoder = server.blockOuter;
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFormatPlain(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            outcome = server.blockWriter.isType(parser.getStringView())
+                ? onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE)
+                : onBlockAction(server, LlmOpenaiResponsesBlockWriter.ACTION_DROP);
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeFormat(false);
+            server.blockKeys = server.blockOuter;
+            server.decoder = server.blockOuter;
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFormatType(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.formatType(event, parser);
+
+        if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
+        {
+            server.blockKeys = server.blockWriter.schema() ? decodeBlockFormatFlattening : decodeBlockFormatPlain;
+            server.decoder = server.blockKeys;
+        }
+
+        return outcome == LlmOpenaiResponsesBlockWriter.VALUE ? LlmOpenaiResponsesBlockWriter.MORE : outcome;
+    }
+
+    private int onBlockOptions(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.options(event);
+
+        if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
+        {
+            server.blockKeys = decodeBlockOptionsKey;
+            server.decoder = decodeBlockOptionsKey;
+        }
+
+        return outcome == LlmOpenaiResponsesBlockWriter.VALUE ? LlmOpenaiResponsesBlockWriter.MORE : outcome;
+    }
+
+    private int onBlockOptionsKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockOptionsMember(server, event, parser, false);
+    }
+
+    private int onBlockOptionsUsedKey(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockOptionsMember(server, event, parser, true);
+    }
+
+    private int onBlockOptionsMember(
+        LlmOpenaiResponsesServer server,
+        JsonEvent event,
+        JsonParserEx parser,
+        boolean used)
+    {
+        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final int action = server.blockWriter.optionMember(parser.getStringView());
+
+            server.blockKeys = used || action == LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE
+                ? decodeBlockOptionsUsedKey
+                : decodeBlockOptionsKey;
+            outcome = onBlockAction(server, action);
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            if (!used)
+            {
+                server.blockWriter.defaultUsage();
+            }
+
+            outcome = server.blockWriter.closeOptions();
+        }
+        else
+        {
+            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
     private int decodeBlockDrop(
         LlmOpenaiResponsesServer server,
         long traceId,
@@ -4212,73 +5071,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return decodeBlock(server, traceId, authorization, decodeBlockPreceding, blockPreceding);
     }
 
-    private int onBlockKey(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        final LlmOpenaiResponsesBlockWriter writer = server.blockWriter;
-        int outcome = LlmOpenaiResponsesBlockWriter.MORE;
-
-        if (event == JsonEvent.KEY_NAME)
-        {
-            switch (writer.select(parser.getStringView(), parser))
-            {
-            case LlmOpenaiResponsesBlockWriter.ACTION_DROP:
-                server.decoder = decodeBlockDrop;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_COPY:
-                server.decoder = decodeBlockCopy;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_STRING:
-                server.decoder = decodeBlockString;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_STRING_OR_DROP:
-                server.decoder = decodeBlockStringOrDrop;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_HOLD:
-                server.decoder = decodeBlockHold;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_UNESCAPE:
-                server.decoder = decodeBlockUnescape;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT:
-                server.decoder = decodeBlockFormat;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_FORMAT_TYPE:
-                server.decoder = decodeBlockFormatType;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_PRECEDING:
-                server.decoder = decodeBlockPreceding;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_USAGE:
-                server.decoder = decodeBlockUsageFlag;
-                break;
-            case LlmOpenaiResponsesBlockWriter.ACTION_FLAG_OBFUSCATION:
-                server.decoder = decodeBlockObfuscationFlag;
-                break;
-            default:
-                outcome = LlmOpenaiResponsesBlockWriter.REJECT;
-                break;
-            }
-        }
-        else if (event == JsonEvent.END_OBJECT)
-        {
-            outcome = writer.closeObject();
-
-            if (outcome == LlmOpenaiResponsesBlockWriter.MORE && writer.citations())
-            {
-                server.decoder = decodeBlockElement;
-            }
-        }
-        else
-        {
-            outcome = LlmOpenaiResponsesBlockWriter.REJECT;
-        }
-
-        return outcome;
-    }
-
     private int onBlockDrop(
         LlmOpenaiResponsesServer server,
         JsonEvent event,
@@ -4357,28 +5149,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return onBlockValue(server, server.blockWriter.unescaped(event));
     }
 
-    private int onBlockElement(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        return onBlockValue(server, server.blockWriter.element(event));
-    }
-
     private int onBlockFlag(
         LlmOpenaiResponsesServer server,
         JsonEvent event,
         JsonParserEx parser)
     {
         return server.blockWriter.streamFlag(event);
-    }
-
-    private int onBlockOptions(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        return onBlockValue(server, server.blockWriter.options(event));
     }
 
     private int onBlockUsageFlag(
@@ -4405,48 +5181,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         return server.blockWriter.capture(event, parser);
     }
 
-    private int onBlockContainer(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        int outcome = server.blockWriter.container(event, parser);
-
-        if (outcome == LlmOpenaiResponsesBlockWriter.PASS)
-        {
-            server.decoder = decodeBlockPass;
-            outcome = LlmOpenaiResponsesBlockWriter.MORE;
-        }
-        else
-        {
-            outcome = onBlockValue(server, outcome);
-        }
-
-        return outcome;
-    }
-
     private int onBlockPass(
         LlmOpenaiResponsesServer server,
         JsonEvent event,
         JsonParserEx parser)
     {
         return server.blockWriter.pass(event, parser);
-    }
-
-    private int onBlockFormat(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        return onBlockValue(server, server.blockWriter.format(event));
-    }
-
-    private int onBlockFormatType(
-        LlmOpenaiResponsesServer server,
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        return onBlockValue(server, server.blockWriter.formatType(event, parser));
     }
 
     private int onBlockPreceding(
@@ -4465,7 +5205,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         if (outcome == LlmOpenaiResponsesBlockWriter.VALUE)
         {
-            server.decoder = decodeBlockKey;
+            server.decoder = server.blockKeys;
             result = LlmOpenaiResponsesBlockWriter.MORE;
         }
 
@@ -5018,6 +5758,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiResponsesBlockWriter blockWriter;
         private LlmOpenaiResponsesBlockWriter writing;
         private LlmOpenaiResponsesServerDecoder blockStart;
+        private LlmOpenaiResponsesServerDecoder blockKeys;
+        private LlmOpenaiResponsesServerDecoder blockOuter;
         private final LlmOpenaiResponsesAttributeProbe probe;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
@@ -5864,6 +6606,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     decodeBlockContainer;
                 default -> decodeBlockKey;
                 };
+                blockKeys = blockStart;
             }
         }
 
