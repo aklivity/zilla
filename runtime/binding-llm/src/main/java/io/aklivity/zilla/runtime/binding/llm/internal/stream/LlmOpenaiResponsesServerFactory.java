@@ -314,6 +314,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int replyPadding;
+    private final int encodeMax;
+    private final int responseMax;
     private final int llmTypeId;
     private final int httpTypeId;
 
@@ -455,11 +457,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
-        this.argsBuffer = new UnsafeBufferEx(new byte[(decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH]);
-        this.memberBuffer = new UnsafeBufferEx(new byte[(decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH]);
-        this.citationBuffer = new UnsafeBufferEx(
-            new byte[elementMax + (decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH]);
-        this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
+        this.responseMax = (decodeMax - replyPadding) / RESPONSE_GROWTH;
+        this.argsBuffer = new UnsafeBufferEx(new byte[responseMax]);
+        this.memberBuffer = new UnsafeBufferEx(new byte[responseMax]);
+        this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + responseMax]);
+        this.encodeMax = encodePool.slotCapacity();
+        this.copyBuffer = new UnsafeBufferEx(new byte[encodeMax]);
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -5857,7 +5860,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            final long available = replyMax - (replySeq - replyAck) - replyPad;
+            final long available = replyCredit();
 
             if (encodeSlot == NO_SLOT && available > 0 && length <= available &&
                 claimReply(traceId, length, length) == length)
@@ -5891,7 +5894,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeSlot = encodePool.acquire(replyId);
             }
 
-            if (encodeSlot == NO_SLOT || encodeSlotOffset + entryLength > encodePool.slotCapacity())
+            if (encodeSlot == NO_SLOT || encodeSlotOffset + entryLength > encodeMax)
             {
                 cleanup(traceId);
             }
@@ -5963,17 +5966,25 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replySeq += reserved;
         }
 
+        private int replyPendingAck()
+        {
+            return (int) (replySeq - replyAck);
+        }
+
+        private int replyWindow()
+        {
+            return replyMax - replyPendingAck();
+        }
+
         private long replyCredit()
         {
-            return replyMax - (replySeq - replyAck) - replyPad;
+            return replyWindow() - replyPad;
         }
 
         private boolean admits(
             int bytes)
         {
-            final int room = encodePool.slotCapacity() - (encodeSlot == NO_SLOT ? 0 : encodeSlotOffset);
-
-            return streaming || Math.min(bytes, encodePool.slotCapacity()) <= room;
+            return streaming || Math.min(bytes, encodeMax) <= encodeMax - encodeSlotOffset;
         }
 
         private int claimReply(
@@ -6000,7 +6011,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             while (!blocked && encodeSlot != NO_SLOT && encodeSlotOffset > 0)
             {
-                final long available = replyMax - (replySeq - replyAck) - replyPad;
+                final long available = replyCredit();
 
                 if (available <= 0)
                 {
@@ -6451,7 +6462,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             replyMax = server.streaming
                 ? decodePool.slotCapacity()
-                : (decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH + replyPadding;
+                : responseMax + replyPadding;
 
             if (server.streaming && accumulator == null)
             {
@@ -6803,7 +6814,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private int valueLimit()
         {
-            return (decodePool.slotCapacity() - replyPadding) / RESPONSE_GROWTH;
+            return responseMax;
         }
 
         private void flushValue()
