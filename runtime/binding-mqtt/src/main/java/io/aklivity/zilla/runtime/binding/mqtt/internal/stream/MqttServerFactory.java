@@ -127,7 +127,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttModel;
@@ -3781,10 +3780,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (qos)
                 {
                 case 1:
-                    doEncodePubackV5(traceId, authorization, packetId, MqttReasonCodes.NOT_AUTHORIZED);
+                    doEncodePubackV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
                     break;
                 case 2:
-                    doEncodePubrecV5(traceId, authorization, packetId, MqttReasonCodes.NOT_AUTHORIZED);
+                    doEncodePubrecV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
                     break;
                 }
             }
@@ -4380,7 +4379,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttBindingConfig binding = bindings.get(routedId);
 
-            return binding != null ? binding.resolveSubscribeReasonCode(sessionId, filter) : IMPLEMENTATION_SPECIFIC_ERROR;
+            return binding != null ? binding.resolveSubscribeReasonCode(sessionId, filter) : UNSPECIFIED_ERROR;
         }
 
         private boolean subscribeFailed(
