@@ -6213,6 +6213,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.function.call.100k/client",
+        "${app}/openai.responses.function.call.100k/server"})
+    public void shouldOpenaiResponsesFunctionCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.function.call.60k/client",
+        "${app}/openai.responses.function.call.60k/server"})
+    public void shouldOpenaiResponsesFunctionCall60k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.function.call.huge.stream/client",
         "${app}/openai.responses.function.call.huge.stream/server"})
     public void shouldOpenaiResponsesFunctionCallHugeStream() throws Exception
