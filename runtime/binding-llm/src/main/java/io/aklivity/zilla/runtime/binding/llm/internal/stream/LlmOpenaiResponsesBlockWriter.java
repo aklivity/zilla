@@ -102,9 +102,7 @@ final class LlmOpenaiResponsesBlockWriter
     private int action;
     private boolean schema;
     private int depth;
-    private boolean streamSeen;
     private boolean streaming;
-    private boolean optionsSeen;
     private boolean usageRequested;
     private boolean obfuscationDisabled;
 
@@ -126,9 +124,7 @@ final class LlmOpenaiResponsesBlockWriter
         this.capture.setLength(0);
         this.captured.clear();
         this.preceding.clear();
-        this.streamSeen = false;
         this.streaming = false;
-        this.optionsSeen = false;
         this.usageRequested = false;
         this.obfuscationDisabled = false;
         this.held.setLength(0);
@@ -175,19 +171,14 @@ final class LlmOpenaiResponsesBlockWriter
         }
     }
 
-    boolean streamSeen()
+    int kind()
     {
-        return streamSeen;
+        return kind;
     }
 
     boolean streaming()
     {
         return streaming;
-    }
-
-    boolean optionsSeen()
-    {
-        return optionsSeen;
     }
 
     boolean usageRequested()
@@ -340,7 +331,6 @@ final class LlmOpenaiResponsesBlockWriter
 
         if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL)
         {
-            streamSeen = true;
             streaming = event == JsonEvent.VALUE_TRUE;
             writeFlag(event);
             generator.writeEnd();
@@ -592,13 +582,11 @@ final class LlmOpenaiResponsesBlockWriter
 
         if (event == JsonEvent.START_OBJECT)
         {
-            optionsSeen = true;
             generator.writeStartObject();
             outcome = VALUE;
         }
         else if (event == JsonEvent.VALUE_NULL)
         {
-            optionsSeen = true;
             generator.writeStartObject().write(MEMBER_INCLUDE_USAGE, true).writeEnd().writeEnd();
             flush(true);
             outcome = DONE;

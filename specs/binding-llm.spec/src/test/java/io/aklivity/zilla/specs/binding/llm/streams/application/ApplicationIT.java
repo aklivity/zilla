@@ -5745,6 +5745,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.rejected.tool.call.arguments/client",
+        "${app}/openai.responses.rejected.tool.call.arguments/server"})
+    public void shouldOpenaiResponsesRejectedToolCallArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.rejected.content.part.type/client",
         "${app}/openai.responses.rejected.content.part.type/server"})
     public void shouldOpenaiResponsesRejectedContentPartType() throws Exception
@@ -6018,6 +6027,15 @@ public class ApplicationIT
         "${app}/openai.responses.section.tool.call/client",
         "${app}/openai.responses.section.tool.call/server"})
     public void shouldOpenaiResponsesSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.tool.call.arguments.default/client",
+        "${app}/openai.responses.section.tool.call.arguments.default/server"})
+    public void shouldOpenaiResponsesSectionToolCallArgumentsDefault() throws Exception
     {
         k3po.finish();
     }
