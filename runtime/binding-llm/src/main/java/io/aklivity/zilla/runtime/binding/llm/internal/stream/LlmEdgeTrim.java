@@ -22,69 +22,71 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
  * <p>
  * The leading byte is dropped from the first byte received, and the trailing byte is dropped by
  * withholding the most recent byte until either more bytes arrive or the last chunk is reported.
+ * The caller keeps the state, which is {@link #BEFORE} until the first byte, {@link #NONE} while no byte is
+ * withheld, and otherwise the withheld byte value, so a value in flight costs one int.
  */
-final class LlmEdgeFilter implements LlmSectionPipeline.Output
+final class LlmEdgeTrim
 {
-    private final LlmSectionPipeline.Output delegate;
-    private final byte[] withheld;
-    private final UnsafeBufferEx withheldBuffer;
+    static final int BEFORE = -2;
+    static final int NONE = -1;
 
-    private boolean started;
-    private boolean holding;
+    private static final DirectBufferEx BYTE_VALUES = byteValues();
 
-    LlmEdgeFilter(
-        LlmSectionPipeline.Output delegate)
-    {
-        this.delegate = delegate;
-        this.withheld = new byte[1];
-        this.withheldBuffer = new UnsafeBufferEx(withheld);
-    }
-
-    void reset()
-    {
-        started = false;
-        holding = false;
-    }
-
-    @Override
-    public void put(
+    static int put(
+        int held,
+        LlmSectionPipeline.Output target,
         DirectBufferEx buffer,
         int offset,
         int length,
         boolean last)
     {
+        int next = held;
         int from = offset;
         final int to = offset + length;
 
-        if (!started && to > from)
+        if (next == BEFORE && to > from)
         {
             from++;
-            started = true;
+            next = NONE;
         }
 
         if (to > from)
         {
-            final byte tail = buffer.getByte(to - 1);
-
-            if (holding)
+            if (next != BEFORE && next != NONE)
             {
-                delegate.put(withheldBuffer, 0, 1, false);
+                target.put(BYTE_VALUES, next, 1, false);
             }
 
             if (to - from > 1)
             {
-                delegate.put(buffer, from, to - from - 1, false);
+                target.put(buffer, from, to - from - 1, false);
             }
 
-            withheld[0] = tail;
-            holding = true;
+            next = buffer.getByte(to - 1) & 0xFF;
         }
 
         if (last)
         {
-            holding = false;
-            started = false;
-            delegate.put(buffer, offset, 0, true);
+            next = BEFORE;
+            target.put(buffer, offset, 0, true);
         }
+
+        return next;
+    }
+
+    private static DirectBufferEx byteValues()
+    {
+        final byte[] values = new byte[256];
+
+        for (int value = 0; value < values.length; value++)
+        {
+            values[value] = (byte) value;
+        }
+
+        return new UnsafeBufferEx(values);
+    }
+
+    private LlmEdgeTrim()
+    {
     }
 }
