@@ -713,4 +713,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
 }
