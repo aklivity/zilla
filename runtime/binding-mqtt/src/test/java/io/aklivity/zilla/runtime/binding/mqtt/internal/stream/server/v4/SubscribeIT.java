@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -31,6 +32,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class SubscribeIT
 {
@@ -473,6 +475,47 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.unauthorized/client",
         "${app}/subscribe.topic.filter.unauthorized/server"})
     public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "1")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
     {
         k3po.finish();
     }
