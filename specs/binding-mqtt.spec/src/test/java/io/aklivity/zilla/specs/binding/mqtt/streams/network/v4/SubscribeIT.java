@@ -397,4 +397,34 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${net}/subscribe.reject.maximum.qos.3/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.3.1-1], [MQTT-4.8.0-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${net}/subscribe.reject.packet.id.zero/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-3]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${net}/subscribe.reject.missing.topic.filters/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
 }
