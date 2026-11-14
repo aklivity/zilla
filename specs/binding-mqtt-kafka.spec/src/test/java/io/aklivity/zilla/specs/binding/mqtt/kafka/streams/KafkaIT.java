@@ -1437,4 +1437,31 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.filter/client",
+        "${kafka}/session.subscribe.unmatched.filter/server"})
+    public void shouldSessionSubscribeUnmatchedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.all/client",
+        "${kafka}/session.subscribe.unmatched.all/server"})
+    public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.resume/client",
+        "${kafka}/session.subscribe.unmatched.resume/server"})
+    public void shouldSessionSubscribeUnmatchedResume() throws Exception
+    {
+        k3po.finish();
+    }
 }

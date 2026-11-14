@@ -607,4 +607,40 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.filter/client",
+        "${kafka}/session.subscribe.unmatched.filter/server"})
+    public void shouldSessionSubscribeUnmatchedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.all/client",
+        "${kafka}/session.subscribe.unmatched.all/server"})
+    public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.resume/client",
+        "${kafka}/session.subscribe.unmatched.resume/server"})
+    public void shouldSessionSubscribeUnmatchedResume() throws Exception
+    {
+        k3po.finish();
+    }
 }

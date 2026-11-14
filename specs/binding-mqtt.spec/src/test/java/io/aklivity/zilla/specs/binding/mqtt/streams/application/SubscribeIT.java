@@ -516,9 +516,63 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.request.qos1.maximum.qos.1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.replace.same.qos/client",
         "${app}/subscribe.replace.same.qos/server"})
     public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.options/client",
+        "${app}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
     {
         k3po.finish();
     }
@@ -555,15 +609,6 @@ public class SubscribeIT
         "${app}/subscribe.replace.remove.subscription.id/client",
         "${app}/subscribe.replace.remove.subscription.id/server"})
     public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.replace.same.options/client",
-        "${app}/subscribe.replace.same.options/server"})
-    public void shouldSubscribeReplaceSameOptions() throws Exception
     {
         k3po.finish();
     }
