@@ -1401,17 +1401,21 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
+        final int room = limit - progress;
         int written = 0;
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
-            if (limit - progress < unit)
+            if (room - written < unit)
             {
                 break;
             }
-            buffer.putBytes(progress, source, index + written, unit);
-            progress += unit;
             written += unit;
+        }
+        if (written > 0)
+        {
+            buffer.putBytes(progress, source, index, written);
+            progress += written;
         }
         consumed += written;
         return written;
