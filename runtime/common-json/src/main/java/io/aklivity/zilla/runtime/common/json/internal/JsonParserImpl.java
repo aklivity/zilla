@@ -1634,6 +1634,15 @@ public final class JsonParserImpl implements JsonParserEx
         }
 
         @Override
+        public int copyPlain(
+            int from,
+            int max,
+            byte[] target)
+        {
+            return base.copyPlain(offset + from, max, target);
+        }
+
+        @Override
         public CharSequence subSequence(
             int start,
             int end)
