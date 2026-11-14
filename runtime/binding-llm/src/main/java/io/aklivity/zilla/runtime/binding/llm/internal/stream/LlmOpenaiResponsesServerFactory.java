@@ -422,6 +422,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeTextPartAdded = this::decodeTextPartAdded;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDescend = this::decodeReplyTextDescend;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsContinue = this::decodeReplyArgsContinue;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsMore = this::decodeReplyArgsMore;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
@@ -803,7 +804,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.writable())
+        if (stream.reserveStep(stream.valueLimit()))
         {
             stream.decoder = decodeReplyRest;
 
@@ -1947,6 +1948,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsContinue, false);
+    }
+
+    private int decodeReplyArgsMore(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsMore, false);
     }
 
     private int decodeReplyArgsStep(
@@ -6329,9 +6339,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = server.streaming
-                ? decodePool.slotCapacity()
-                : responseMax + replyPadding;
+            replyMax = server.streaming ? decodeMax : decodeMax - replyPadding;
 
             if (server.streaming && accumulator == null)
             {
@@ -8517,11 +8525,22 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return progress || stepSent >= virtual + length;
         }
 
+        private boolean reserveStep(
+            int length)
+        {
+            if (!server.streaming && writable())
+            {
+                ensureEncodeRoom(length);
+            }
+
+            return writable();
+        }
+
         private int stepArgs(
             JsonParserEx parser,
             boolean boundary)
         {
-            return server.streaming && !writable() ? STEP_WAIT : pullArgs(parser, boundary);
+            return reserveStep(argsBuffer.capacity()) ? pullArgs(parser, boundary) : STEP_WAIT;
         }
 
         private int pullArgs(
@@ -8636,7 +8655,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                         parser.consumed(pending);
                     }
 
-                    decoder = complete ? decodeReplyTextKey : pending > 0 ? decodeReplyArgsContinue : decodeReplyArgs;
+                    decoder = complete
+                        ? decodeReplyTextKey
+                        : pending > 0 ? continueArgs() : decodeReplyArgs;
                     outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
                 }
                 else
@@ -8646,6 +8667,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return outcome;
+        }
+
+        private LlmOpenaiResponsesReplyDecoder continueArgs()
+        {
+            return decoder == decodeReplyArgsContinue ? decodeReplyArgsMore : decodeReplyArgsContinue;
         }
 
         private boolean emitArgsDelta(
