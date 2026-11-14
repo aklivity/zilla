@@ -297,6 +297,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx argsBuffer;
+    private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final MutableDirectBufferEx citationBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -424,6 +425,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDescend = this::decodeReplyTextDescend;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsContinue = this::decodeReplyArgsContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsMore = this::decodeReplyArgsMore;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyMember = this::decodeReplyMember;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberContinue = this::decodeReplyMemberContinue;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberMore = this::decodeReplyMemberMore;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudge = this::decodeReplyMemberJudge;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyValue = this::decodeReplyValue;
@@ -953,7 +958,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     stream.replySkipDepth = 0;
                     stream.decoder = stream.replyMember.contentEquals(parser.getStringView())
                         ? stream.replyMemberState
-                        : decodeReplyTextSkip;
+                        : stream.otherMember(parser.getStringView());
                 }
                 else
                 {
@@ -1991,6 +1996,82 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         return outcome == STEP_WAIT ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyMember(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMember, true);
+    }
+
+    private int decodeReplyMemberContinue(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberContinue, false);
+    }
+
+    private int decodeReplyMemberMore(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberMore, false);
+    }
+
+    private int decodeReplyMemberStep(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiResponsesReplyDecoder state,
+        boolean boundary)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        int outcome = STEP_CONTINUE;
+
+        try
+        {
+            while (stream.decoder == state && outcome == STEP_CONTINUE)
+            {
+                outcome = stream.pullMember(parser, boundary);
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyMemberJudge(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            if (parser.hasNextEvent())
+            {
+                stream.judgeMember(parser);
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyMemberJudge);
     }
 
     private int decodeReplyTextSkip(
@@ -6183,6 +6264,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String replyMember = MEMBER_TEXT;
         private LlmOpenaiResponsesReplyDecoder replyMemberState = decodeReplyTextValue;
         private JsonGeneratorEx argsGenerator;
+        private JsonGeneratorEx memberGenerator;
+        private int memberDepth;
+        private String judgedKey;
         private int stepDeltaOffset;
         private int stepSent;
         private int outboxSlot = NO_SLOT;
@@ -6553,7 +6637,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     replyMember = MEMBER_ARGUMENTS;
                     replyMemberState = decodeReplyArgs;
                     replyArgsDepth = 0;
-                    textThen = decodeReplyRest;
+                    textThen = decodeReplyNext;
                     stepSent = 0;
                     replyParser().reset();
 
@@ -7284,7 +7368,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String valueMember;
         private LlmSectionPipeline valuePipeline;
         private LlmSectionPipeline restPipeline;
-        private LlmSectionPipeline extrasPipeline;
         private LlmSectionPipeline membersPipeline;
         private LlmSectionPipeline resultPipeline;
         private LlmOpenaiResponsesServerToolFromCanonical membersTransform;
@@ -8164,9 +8247,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 openItem = ITEM_CALL;
                 bindAttributes();
                 valueMember = MEMBER_ARGUMENTS;
-                restPipeline = extrasPipeline();
-                restPipeline.begin(replyAttributes);
                 restOutput = tailOutput;
+                beginMembers();
             }
             else
             {
@@ -8927,9 +9009,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             bindAttributes();
             valueMember = MEMBER_ARGUMENTS;
             replyParser().reset();
-            restPipeline = extrasPipeline();
-            restPipeline.begin(replyAttributes);
             restOutput = tailOutput;
+            beginMembers();
             beginFanOuts();
             tail.release();
 
@@ -9146,18 +9227,179 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
-        private LlmSectionPipeline extrasPipeline()
+        private void beginMembers()
         {
-            if (extrasPipeline == null)
+            if (memberGenerator == null)
             {
-                final LlmOpenaiResponsesServerToolFromCanonical transform =
-                    new LlmOpenaiResponsesServerToolFromCanonical(NAME);
-
-                transform.configure(LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, TYPE_FUNCTION_CALL, null);
-                extrasPipeline = new LlmSectionPipeline(transform, transformBuffer);
+                memberGenerator = JsonEx.createGenerator();
             }
 
-            return extrasPipeline;
+            memberGenerator.reset();
+            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            memberGenerator.writeStartObject();
+            memberDepth = 0;
+        }
+
+        private LlmOpenaiResponsesReplyDecoder otherMember(
+            CharSequence key)
+        {
+            LlmOpenaiResponsesReplyDecoder state = decodeReplyTextSkip;
+
+            if (kind == KIND_CALL)
+            {
+                final int action = memberKeys.select(key);
+
+                if (action == LlmMemberKeys.COPY)
+                {
+                    memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                    memberGenerator.writeKey(memberKeys.target());
+                    restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                    state = decodeReplyMember;
+                }
+                else if (action == LlmMemberKeys.JUDGE)
+                {
+                    judgedKey = key.toString();
+                    state = decodeReplyMemberJudge;
+                }
+            }
+
+            return state;
+        }
+
+        private void judgeMember(
+            JsonParserEx parser)
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY;
+            final CharSequence text = event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING
+                ? parser.getStringView()
+                : "";
+            final int verdict = LlmLegality.advance(judgedKey, LlmLegality.UNDECIDED, 0, event, text);
+
+            if (LlmLegality.harmless(verdict))
+            {
+                replySkipDepth = scalar ? 0 : 1;
+                decoder = scalar ? decodeReplyTextKey : decodeReplyTextSkip;
+            }
+            else
+            {
+                rejectReply();
+            }
+        }
+
+        private int pullMember(
+            JsonParserEx parser,
+            boolean boundary)
+        {
+            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+
+            boolean more = true;
+            boolean stop = false;
+            boolean complete = false;
+            int pulled = 0;
+            int pending = 0;
+
+            while (more && !stop && memberGenerator.remaining() >= ARGS_HEADROOM)
+            {
+                more = parser.hasNextEvent();
+
+                if (more)
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    pulled++;
+                    stop = !boundary;
+
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        memberGenerator.writeStartObject();
+                        memberDepth++;
+                        break;
+                    case START_ARRAY:
+                        memberGenerator.writeStartArray();
+                        memberDepth++;
+                        break;
+                    case END_OBJECT, END_ARRAY:
+                        memberGenerator.writeEnd();
+                        complete = --memberDepth == 0;
+                        break;
+                    case VALUE_TRUE:
+                        memberGenerator.write(true);
+                        complete = memberDepth == 0;
+                        break;
+                    case VALUE_FALSE:
+                        memberGenerator.write(false);
+                        complete = memberDepth == 0;
+                        break;
+                    case VALUE_NULL:
+                        memberGenerator.writeNull();
+                        complete = memberDepth == 0;
+                        break;
+                    default:
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+                        final int before = memberGenerator.consumed();
+
+                        if (event == JsonEvent.KEY_NAME)
+                        {
+                            memberGenerator.writeKey(chars, completion);
+                        }
+                        else if (event == JsonEvent.VALUE_NUMBER)
+                        {
+                            memberGenerator.writeNumber(chars, completion);
+                        }
+                        else
+                        {
+                            memberGenerator.write(chars, completion);
+                        }
+
+                        final int consumed = memberGenerator.consumed() - before;
+
+                        if (consumed < chars.length() || deferred)
+                        {
+                            pending = consumed;
+                        }
+                        else
+                        {
+                            complete = memberDepth == 0 && event != JsonEvent.KEY_NAME;
+                        }
+                        break;
+                    }
+
+                    stop |= complete || pending > 0;
+                }
+            }
+
+            int outcome = STEP_WINDOW;
+
+            if (pulled > 0)
+            {
+                if (boundary && pending > 0)
+                {
+                    parser.consumed(pending);
+                }
+
+                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+
+                if (!boundary && pending > 0)
+                {
+                    parser.consumed(pending);
+                }
+
+                decoder = complete
+                    ? decodeReplyTextKey
+                    : pending > 0 ? continueMember() : decodeReplyMember;
+                outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
+            }
+
+            return outcome;
+        }
+
+        private LlmOpenaiResponsesReplyDecoder continueMember()
+        {
+            return decoder == decodeReplyMemberContinue ? decodeReplyMemberMore : decodeReplyMemberContinue;
         }
 
         private LlmSectionPipeline memberPipeline(
