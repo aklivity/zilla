@@ -412,6 +412,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.rejected.tool.definition.name/client",
+        "${app}/openai.responses.rejected.tool.definition.name/server"})
+    public void shouldRejectOpenaiResponsesToolDefinitionName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.rejected.content.part.type/client",
         "${app}/openai.responses.rejected.content.part.type/server"})
     public void shouldRejectOpenaiResponsesContentPartType() throws Exception
@@ -525,6 +535,16 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.function.call/client",
         "${app}/openai.responses.function.call/server"})
     public void shouldEncodeOpenaiResponsesFunctionCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.function.call.judged/client",
+        "${app}/openai.responses.function.call.judged/server"})
+    public void shouldEncodeOpenaiResponsesFunctionCallJudged() throws Exception
     {
         k3po.finish();
     }
@@ -1326,6 +1346,16 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.section.user.image/client",
         "${app}/openai.responses.section.user.image/server"})
     public void shouldDecodeOpenaiResponsesSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.user.image.members/client",
+        "${app}/openai.responses.section.user.image.members/server"})
+    public void shouldDecodeOpenaiResponsesSectionUserImageMembers() throws Exception
     {
         k3po.finish();
     }
