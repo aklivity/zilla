@@ -76,6 +76,14 @@ final class LlmMemberKeys
         return action;
     }
 
+    int copyAll(
+        CharSequence key)
+    {
+        target.wrap(key, 0, key.length());
+
+        return COPY;
+    }
+
     CharSequence target()
     {
         return target;
