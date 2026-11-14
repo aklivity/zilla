@@ -4971,6 +4971,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.text.trickle/client",
+        "${net}/openai.responses.text.trickle/server"})
+    public void shouldOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.text.stream/client",
         "${net}/openai.responses.text.stream/server"})
     public void shouldOpenaiResponsesTextStream() throws Exception

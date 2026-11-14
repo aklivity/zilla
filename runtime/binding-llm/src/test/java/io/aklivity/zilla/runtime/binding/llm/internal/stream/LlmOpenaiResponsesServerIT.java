@@ -64,6 +64,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.text.trickle/client",
+        "${app}/openai.responses.text.trickle/server"})
+    public void shouldEncodeOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.reply.shared.budget/client",
         "${app}/openai.responses.text/server"})
     public void shouldForwardOpenaiResponsesWithReplySharedBudget() throws Exception
