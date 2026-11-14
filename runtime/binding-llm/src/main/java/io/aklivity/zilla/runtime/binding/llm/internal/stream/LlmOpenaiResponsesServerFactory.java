@@ -6304,7 +6304,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int stepDeltaOffset;
         private int stepSent;
         private int outboxSlot = NO_SLOT;
-        private int stepObfuscation;
         private int stepDeltaLength;
         private LlmSectionPipeline.Output valueOutput;
         private LlmSectionPipeline.Output restOutput;
@@ -7318,7 +7317,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int citationScan;
         private int elementStart = NONE;
         private int elementEnd;
-        private int memberSent;
         private LlmOpenaiResponsesReplyDecoder summaryFollow;
         private LlmOpenaiResponsesReplyDecoder advanceFollow;
         private String errorCode;
@@ -7671,27 +7669,23 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean flushMembers()
         {
-            if (writable())
-            {
-                final int wanted = (int) Math.min(memberLength - memberSent, server.replyCredit());
-                final int slice = wanted > 0 ? server.claimReply(encodeTraceId, 1, wanted) : 0;
+            boolean flushed = memberLength == 0;
 
-                if (slice > 0)
+            if (!flushed && writable())
+            {
+                copyBuffer.putBytes(0, memberBuffer, 0, memberLength);
+
+                recordRefCount = 0;
+                recordFrom = 0;
+                recordTotal = memberLength;
+                stepFinal = false;
+
+                flushed = sendRecorded();
+
+                if (flushed)
                 {
-                    server.doNetData(encodeTraceId, encodeAuthorization, Flags.NONE, encodeBudgetId, slice + server.replyPad,
-                        EMPTY_OCTETS, memberBuffer, memberSent, slice);
-
-                    memberSent += slice;
-                    eventSent += slice;
+                    memberLength = 0;
                 }
-            }
-
-            final boolean flushed = memberSent == memberLength;
-
-            if (flushed)
-            {
-                memberLength = 0;
-                memberSent = 0;
             }
 
             return flushed;
@@ -8195,21 +8189,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (writable())
             {
-                if (stepSent == 0)
-                {
-                    stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
-                }
-
                 final String name = textEventName();
-                final int written = generateTextDelta(name, chars, length, stepObfuscation);
+                final int written = generateTextDelta(name, chars, length, server.obfuscation ? fillObfuscation() : 0);
 
-                writeSlice(name, written);
-
-                if (stepSent == written)
+                if (sendDelta(name, written))
                 {
                     accumulator.append(copyBuffer, stepDeltaOffset, stepDeltaLength);
                     sequence++;
-                    stepSent = 0;
                     taken = length;
                 }
             }
@@ -8505,23 +8491,40 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 generator.reset();
 
-                if (writeRecorded())
-                {
-                    commitRecorded();
-                    complete = true;
-                }
-                else
-                {
-                    complete = parkRecorded();
+                complete = sendRecorded();
 
-                    if (!complete)
-                    {
-                        sequence = restored;
-                    }
+                if (!complete)
+                {
+                    sequence = restored;
                 }
             }
 
             return complete;
+        }
+
+        private boolean sendRecorded()
+        {
+            final boolean sent = writeRecorded();
+
+            if (sent)
+            {
+                commitRecorded();
+            }
+
+            return sent || parkRecorded();
+        }
+
+        private boolean sendDelta(
+            String name,
+            int written)
+        {
+            recordName = name;
+            recordRefCount = 0;
+            recordFrom = 0;
+            recordTotal = written;
+            stepFinal = true;
+
+            return sendRecorded();
         }
 
         private void commitRecorded()
@@ -8650,49 +8653,18 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return progress || stepSent >= virtual + length;
         }
 
-        private int writeSlice(
-            String name,
-            int written)
-        {
-            int slice = 0;
-
-            if (writable())
-            {
-                final int wanted = (int) Math.min(written - stepSent, server.replyCredit());
-
-                slice = wanted > 0 ? server.claimReply(encodeTraceId, 1, wanted) : 0;
-
-                if (slice > 0)
-                {
-                    final DirectBufferEx attribute = EVENT_ATTRIBUTES.get(name);
-                    final boolean init = stepSent == 0;
-                    final boolean last = stepSent + slice == written;
-                    final int flags = (init ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
-
-                    server.doNetData(encodeTraceId, encodeAuthorization, flags, encodeBudgetId, slice + server.replyPad,
-                        init ? eventAttributesRO.wrap(attribute, 0, attribute.capacity()) : EMPTY_OCTETS, copyBuffer,
-                        stepSent, slice);
-
-                    stepSent += slice;
-                }
-            }
-
-            return slice;
-        }
-
         private int stepArgs(
             JsonParserEx parser,
             boolean boundary)
         {
+            return server.streaming && !writable() ? STEP_WAIT : pullArgs(parser, boundary);
+        }
+
+        private int pullArgs(
+            JsonParserEx parser,
+            boolean boundary)
+        {
             argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
-            argsGenerator.mark();
-
-            final int depth = replyArgsDepth;
-
-            if (boundary)
-            {
-                parser.mark();
-            }
 
             boolean more = true;
             boolean stop = false;
@@ -8805,14 +8777,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    argsGenerator.rewind();
-                    replyArgsDepth = depth;
-
-                    if (boundary)
-                    {
-                        parser.rewind();
-                    }
-
                     outcome = STEP_WAIT;
                 }
             }
@@ -8823,23 +8787,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean emitArgsDelta(
             int length)
         {
-            if (stepSent == 0)
-            {
-                stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
-            }
-
             final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
-            final int written = generateArgsDelta(name, length, stepObfuscation);
-
-            writeSlice(name, written);
-
-            final boolean sent = stepSent == written;
+            final int written = generateArgsDelta(name, length, server.obfuscation ? fillObfuscation() : 0);
+            final boolean sent = sendDelta(name, written);
 
             if (sent)
             {
                 accumulator.append(argsBuffer, 0, length);
                 sequence++;
-                stepSent = 0;
             }
 
             return sent;
