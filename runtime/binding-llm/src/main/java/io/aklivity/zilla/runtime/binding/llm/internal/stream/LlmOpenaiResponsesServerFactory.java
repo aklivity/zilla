@@ -372,6 +372,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextKey = this::decodeReplyTextKey;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextValue = this::decodeReplyTextValue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextContinue = this::decodeReplyTextContinue;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyTextHeld = this::decodeReplyTextHeld;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgs = this::decodeReplyArgs;
     private final LlmOpenaiResponsesReplyDecoder decodeTextBegin = this::decodeTextBegin;
     private final LlmOpenaiResponsesReplyDecoder decodeCallBegin = this::decodeCallBegin;
@@ -990,7 +991,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextValue, true);
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextValue, true, false);
+    }
+
+    private int decodeReplyTextHeld(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextHeld, false, true);
     }
 
     private int decodeReplyTextContinue(
@@ -999,7 +1009,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextContinue, false);
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextContinue, false, false);
     }
 
     private int decodeReplyTextPiece(
@@ -1007,10 +1017,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         DirectBufferEx buffer,
         int offset,
         LlmOpenaiResponsesReplyDecoder state,
-        boolean first)
+        boolean first,
+        boolean held)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
 
+        boolean pending = held;
         boolean paused = false;
         boolean more = true;
 
@@ -1023,12 +1035,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     parser.mark();
                 }
 
-                more = parser.hasNextEvent();
+                final JsonEvent event;
+
+                if (pending)
+                {
+                    pending = false;
+                    event = JsonEvent.VALUE_STRING;
+                }
+                else
+                {
+                    more = parser.hasNextEvent();
+                    event = more ? parser.nextEvent() : null;
+                }
 
                 if (more)
                 {
-                    final JsonEvent event = parser.nextEvent();
-
                     if (event == JsonEvent.VALUE_STRING)
                     {
                         final boolean deferred = parser.deferredBytes();
@@ -1041,6 +1062,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                             if (first)
                             {
                                 parser.rewind();
+                            }
+                            else
+                            {
+                                stream.decoder = decodeReplyTextHeld;
                             }
 
                             paused = true;

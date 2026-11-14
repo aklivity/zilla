@@ -6177,6 +6177,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.stream.huge.frames/client",
+        "${app}/openai.responses.text.stream.huge.frames/server"})
+    public void shouldOpenaiResponsesTextStreamHugeFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.section.tool.call.attributes.last/client",
         "${app}/openai.responses.section.tool.call.attributes.last/server"})
     public void shouldOpenaiResponsesSectionToolCallAttributesLast() throws Exception
