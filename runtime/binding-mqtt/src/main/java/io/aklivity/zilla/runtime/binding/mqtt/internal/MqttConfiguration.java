@@ -64,7 +64,7 @@ public class MqttConfiguration extends Configuration
         //TODO: better default values?
         KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 10);
         KEEP_ALIVE_MAXIMUM = config.property("keep.alive.maximum", (short) 1000);
-        MAXIMUM_QOS = config.property("maximum.qos", (byte) 0);
+        MAXIMUM_QOS = config.property("maximum.qos", (byte) 2);
         RETAIN_AVAILABLE = config.property("retain.available", true);
         TOPIC_ALIAS_MAXIMUM = config.property("topic.alias.maximum", (short) 0);
         WILDCARD_SUBSCRIPTION = config.property("wildcard.subscription.available", true);

@@ -517,6 +517,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final String replicaId;
 
     private final MqttQoS publishQosMaxDefault;
+    private final int subscribeQosMaxDefault;
 
     public MqttServerFactory(
         MqttConfiguration config,
@@ -557,6 +558,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
         this.supplySubscriptionId = config.subscriptionId();
         this.publishQosMaxDefault = config.publishQosMax();
+        this.subscribeQosMaxDefault = config.maximumQos();
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
         this.supplyClientId = clientId.isPresent() ? clientId::get : () -> new String16FW(UUID.randomUUID().toString());
         this.decodePacketTypeByVersion = new Int2ObjectHashMap<>();
@@ -2672,6 +2674,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long keepAliveTimeoutAt;
 
         private MqttQoS publishQosMax = publishQosMaxDefault;
+        private int subscribeQosMax = subscribeQosMaxDefault;
         private int clientMaximumPacketSize = Integer.MAX_VALUE;
         private int packetSizeMax;
         private int capabilities = RETAIN_AVAILABLE_MASK | SUBSCRIPTION_IDS_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK;
@@ -4074,7 +4077,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscription.id = subscriptionId;
                     subscription.filter = filter;
                     subscription.flags = retainAvailable(capabilities) ? SEND_RETAINED_FLAG : 0;
-                    subscription.qos = options;
+                    subscription.qos = Math.min(options, subscribeQosMax);
                     subscribePacketIds.put(subscriptionId, packetId);
 
                     newSubscriptions.add(subscription);
@@ -4241,7 +4244,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscription.id = subscriptionId;
                         subscription.filter = filter;
                         subscription.flags = retainAvailable(capabilities) ? flags : flags & ~SEND_RETAINED_FLAG;
-                        subscription.qos = qos;
+                        subscription.qos = Math.min(qos, subscribeQosMax);
                         subscribePacketIds.put(subscriptionId, packetId);
 
                         newSubscriptions.add(subscription);
@@ -6004,6 +6007,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     sessionExpiry = mqttSessionBeginEx.expiry();
                     capabilities = mqttSessionBeginEx.capabilities();
                     publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
+                    subscribeQosMax = Math.min(subscribeQosMaxDefault, mqttSessionBeginEx.subscribeQosMax());
                     if (packetIds != null)
                     {
                         packetIds.forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));
