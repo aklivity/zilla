@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -618,10 +619,22 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Before
+    public void resetGeneratedSubscriptionId()
+    {
+        generatedSubscriptionId = 0x70;
+    }
+
     private static int subscriptionId = 0;
     public static int supplySubscriptionId()
     {
         return ++subscriptionId;
+    }
+
+    private static int generatedSubscriptionId = 0x70;
+    public static int supplyGeneratedSubscriptionId()
+    {
+        return ++generatedSubscriptionId;
     }
 
     @Test
@@ -710,6 +723,70 @@ public class SubscribeIT
         "${net}/subscribe.topic.filter.unauthorized/client",
         "${app}/subscribe.topic.filter.unauthorized/server"})
     public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${app}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${app}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${app}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = SUBSCRIPTION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplyGeneratedSubscriptionId")
+    @Specification({
+        "${net}/subscribe.replace.add.subscription.id/client",
+        "${app}/subscribe.replace.add.subscription.id/server"})
+    public void shouldSubscribeReplaceAddSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = SUBSCRIPTION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplyGeneratedSubscriptionId")
+    @Specification({
+        "${net}/subscribe.replace.remove.subscription.id/client",
+        "${app}/subscribe.replace.remove.subscription.id/server"})
+    public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.same.options/client",
+        "${app}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
     {
         k3po.finish();
     }

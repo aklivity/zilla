@@ -633,4 +633,58 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${net}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${net}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${net}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.add.subscription.id/client",
+        "${net}/subscribe.replace.add.subscription.id/server"})
+    public void shouldSubscribeReplaceAddSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.remove.subscription.id/client",
+        "${net}/subscribe.replace.remove.subscription.id/server"})
+    public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.same.options/client",
+        "${net}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
+    {
+        k3po.finish();
+    }
 }
