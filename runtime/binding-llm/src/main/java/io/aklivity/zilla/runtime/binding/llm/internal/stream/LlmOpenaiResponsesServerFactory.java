@@ -1203,7 +1203,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                         if (taken < length)
                         {
-                            if (first)
+                            if (taken > 0)
+                            {
+                                parser.consumed(taken);
+                                stream.decoder = decodeReplyTextContinue;
+                            }
+                            else if (first)
                             {
                                 parser.rewind();
                             }
@@ -10375,22 +10380,37 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else
             {
-                onEncodeText(chars, 0, length);
+                taken = onEncodeText(chars, length);
             }
 
             return taken;
         }
 
-        private void onEncodeText(
+        private int onEncodeText(
             JsonStringView chars,
-            int from,
-            int to)
+            int length)
         {
-            if (to > from)
+            int taken = 0;
+            boolean progress = true;
+
+            while (taken < length && progress && writable())
             {
-                ensureEncodeRoom(body.length(chars, from, to));
-                generator.writeSegment(chars, from, to);
+                final int before = generator.consumed();
+
+                generator.writeSegment(chars, taken, length);
+
+                final int advanced = generator.consumed() - before;
+
+                taken += advanced;
+
+                if (taken < length)
+                {
+                    progress = advanced > 0 || encodeLength() > 0;
+                    doEncodeStep();
+                }
             }
+
+            return taken;
         }
 
         private void doEncodeEnd()
