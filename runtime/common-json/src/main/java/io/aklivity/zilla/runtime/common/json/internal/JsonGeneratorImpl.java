@@ -1113,10 +1113,10 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int length = value.length();
         while (index < length)
         {
-            final int run = plainRun(value, index, Math.min(length - index, budget - progress));
+            final int run = stagePlainRun(value, index, Math.min(length - index, budget - progress));
             if (run > 0)
             {
-                writePlainRun(value, index, run);
+                writePlainRun(run);
                 index += run;
                 continue;
             }
@@ -1131,11 +1131,16 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return index;
     }
 
-    private static int plainRun(
+    private int stagePlainRun(
         CharSequence value,
         int index,
         int max)
     {
+        if (plainRunBytes == null)
+        {
+            plainRunBytes = new byte[PLAIN_RUN_MAX];
+        }
+
         final int limit = Math.min(max, PLAIN_RUN_MAX);
         int run = 0;
         while (run < limit)
@@ -1145,24 +1150,14 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             {
                 break;
             }
-            run++;
+            plainRunBytes[run++] = (byte) c;
         }
         return run;
     }
 
     private void writePlainRun(
-        CharSequence value,
-        int index,
         int run)
     {
-        if (plainRunBytes == null)
-        {
-            plainRunBytes = new byte[PLAIN_RUN_MAX];
-        }
-        for (int i = 0; i < run; i++)
-        {
-            plainRunBytes[i] = (byte) value.charAt(index + i);
-        }
         buffer.putBytes(progress, plainRunBytes, 0, run);
         progress += run;
     }
