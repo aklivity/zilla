@@ -6431,17 +6431,22 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             LlmOpenaiResponsesReplyDecoder previous = null;
             int limit = staged ? decodeSlotOffset : 0;
-            int progress = 0;
+            int progress = staged ? hold.held() : 0;
             while (progress <= limit && previous != decoder && (!staged || decodeSlot != NO_SLOT))
             {
                 previous = decoder;
+
+                final int from = progress;
+
                 progress = decoder.decode(this, buffer, progress, limit);
 
-                if (staged && decodeSlot != NO_SLOT && progress > 0)
+                if (staged && decodeSlot != NO_SLOT && progress > from)
                 {
-                    slot.putBytes(0, slot, progress, limit - progress);
-                    limit -= progress;
-                    progress = 0;
+                    final int base = hold.held();
+
+                    slot.putBytes(base, slot, progress, limit - progress);
+                    limit -= progress - base;
+                    progress = base;
                     decodeSlotOffset = limit;
                 }
             }
@@ -7203,7 +7208,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean controlOpen;
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
         private final LlmMemberSplitter splitter = new LlmMemberSplitter(this::onEncodeMember);
-        private int heldSlot = NO_SLOT;
         private String controlName;
         private boolean usageVerbatim;
 
@@ -9301,12 +9305,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private MutableDirectBufferEx heldBuffer()
         {
-            if (heldSlot == NO_SLOT)
-            {
-                heldSlot = holdPool.acquire(replyId);
-            }
-
-            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+            return decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : null;
         }
 
         private void cleanup(
@@ -9321,12 +9320,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void cleanupHeld()
         {
+            final int held = hold.held();
+
             hold.reset();
 
-            if (heldSlot != NO_SLOT)
+            if (decodeSlot != NO_SLOT && decodeSlotOffset == held)
             {
-                holdPool.release(heldSlot);
-                heldSlot = NO_SLOT;
+                cleanupDecodeSlot();
             }
         }
 
