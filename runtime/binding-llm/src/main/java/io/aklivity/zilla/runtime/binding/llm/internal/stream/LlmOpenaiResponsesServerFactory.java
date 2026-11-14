@@ -4175,6 +4175,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
+            if (server.writing != null)
+            {
+                server.onDecodeBlockEvent(traceId, authorization, event, parser, deferred);
+                continue;
+            }
+
             switch (event)
             {
             case START_OBJECT:
@@ -4408,8 +4414,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String reasoningId;
         private int reasoningSections;
         private int reasoningSummaries;
-        private LlmSectionPipeline citationsPipeline;
-
         private boolean probing;
         private LlmOpenaiResponsesBlockWriter blockWriter;
         private LlmOpenaiResponsesBlockWriter writing;
@@ -5133,6 +5137,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 1;
             captureFrom = position() - 1;
+            beginBlockWriter(LlmSectionType.CITATIONS);
         }
 
         private void onDecodeHold(
@@ -5230,6 +5235,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case SERVER_TOOL_RESULT -> LlmOpenaiResponsesBlockWriter.KIND_SERVER_TOOL_RESULT;
             case USER_IMAGE -> LlmOpenaiResponsesBlockWriter.KIND_IMAGE;
             case USER_DOCUMENT -> LlmOpenaiResponsesBlockWriter.KIND_DOCUMENT;
+            case CITATIONS -> LlmOpenaiResponsesBlockWriter.KIND_CITATIONS;
             default -> NONE;
             };
 
@@ -5258,7 +5264,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 final int outcome;
 
-                if (probe.declined())
+                if (probing && probe.declined())
                 {
                     parser.consumed(0);
                     outcome = LlmOpenaiResponsesBlockWriter.MORE;
@@ -5653,13 +5659,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             switch (type)
             {
-            case CITATIONS:
-                if (citationsPipeline == null)
-                {
-                    citationsPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsToCanonical.array(), transformBuffer);
-                }
-                pipeline = citationsPipeline;
-                break;
             default:
                 break;
             }

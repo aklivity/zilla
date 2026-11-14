@@ -29,6 +29,7 @@ final class LlmOpenaiResponsesBlockWriter
     static final int KIND_SERVER_TOOL_RESULT = 3;
     static final int KIND_IMAGE = 4;
     static final int KIND_DOCUMENT = 5;
+    static final int KIND_CITATIONS = 6;
 
     static final int MORE = 0;
     static final int DONE = 1;
@@ -51,6 +52,13 @@ final class LlmOpenaiResponsesBlockWriter
     private static final int MEMBER_HOLD = 5;
     private static final int MEMBER_UNESCAPE = 6;
     private static final int MEMBER_UNESCAPED = 7;
+    private static final int MEMBER_ELEMENT = 8;
+    private static final int MEMBER_REJECT = 9;
+
+    private static final int CITATION_NONE = 0;
+    private static final int CITATION_URL = 1;
+    private static final int CITATION_OTHER = 2;
+    private static final String TYPE_URL_CITATION = "url_citation";
 
     private final MutableDirectBufferEx buffer;
     private final LlmSectionPipeline.Output sink;
@@ -63,6 +71,9 @@ final class LlmOpenaiResponsesBlockWriter
     private int depth;
     private boolean named;
     private boolean argumented;
+    private int citation;
+    private boolean nested;
+    private boolean nestedClosed;
 
     LlmOpenaiResponsesBlockWriter(
         MutableDirectBufferEx buffer,
@@ -78,7 +89,7 @@ final class LlmOpenaiResponsesBlockWriter
         int kind)
     {
         this.kind = kind;
-        this.member = MEMBER_KEY;
+        this.member = kind == KIND_CITATIONS ? MEMBER_ELEMENT : MEMBER_KEY;
         this.depth = 0;
         this.named = false;
         this.argumented = false;
@@ -86,7 +97,15 @@ final class LlmOpenaiResponsesBlockWriter
 
         generator.reset();
         generator.wrap(buffer, 0, buffer.capacity());
-        generator.writeStartObject();
+
+        if (kind == KIND_CITATIONS)
+        {
+            generator.writeStartArray();
+        }
+        else
+        {
+            generator.writeStartObject();
+        }
 
         switch (kind)
         {
@@ -143,6 +162,9 @@ final class LlmOpenaiResponsesBlockWriter
             break;
         case MEMBER_UNESCAPED:
             outcome = onUnescaped(event);
+            break;
+        case MEMBER_ELEMENT:
+            outcome = onElement(event);
             break;
         default:
             outcome = REJECT;
@@ -210,7 +232,13 @@ final class LlmOpenaiResponsesBlockWriter
             switch (member)
             {
             case MEMBER_COPY, MEMBER_STRING:
-                generator.writeKey(key);
+                if (kind != KIND_CITATIONS)
+                {
+                    generator.writeKey(key);
+                }
+                break;
+            case MEMBER_REJECT:
+                outcome = REJECT;
                 break;
             case MEMBER_UNESCAPE:
                 parser.escaped();
@@ -251,10 +279,123 @@ final class LlmOpenaiResponsesBlockWriter
         case KIND_IMAGE:
             selectImage(name);
             break;
+        case KIND_CITATIONS:
+            selectCitation(name);
+            break;
         default:
             selectDocument(name);
             break;
         }
+    }
+
+    private int onElement(
+        JsonEvent event)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            generator.writeStartObject();
+            held.setLength(0);
+            citation = CITATION_NONE;
+            nested = false;
+            nestedClosed = false;
+            member = MEMBER_KEY;
+        }
+        else if (event == JsonEvent.END_ARRAY)
+        {
+            generator.writeEnd();
+            flush(true);
+            outcome = DONE;
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private void selectCitation(
+        CharSequence name)
+    {
+        if (is(name, MEMBER_TYPE))
+        {
+            held.setLength(0);
+            member = MEMBER_HOLD;
+        }
+        else if (citation == CITATION_NONE && held.length() == 0)
+        {
+            member = MEMBER_REJECT;
+        }
+        else
+        {
+            resolveCitation();
+
+            if (citation == CITATION_URL && citationNested(name))
+            {
+                if (nestedClosed)
+                {
+                    member = MEMBER_REJECT;
+                }
+                else
+                {
+                    openNested();
+                    target(name);
+                    member = is(name, "url")
+                        ? MEMBER_STRING
+                        : is(name, "title") ? MEMBER_STRING_OR_DROP : MEMBER_COPY;
+
+                    if (member == MEMBER_STRING || member == MEMBER_COPY)
+                    {
+                        generator.writeKey(key);
+                    }
+                }
+            }
+            else
+            {
+                closeNested();
+                prefixed(name);
+                member = MEMBER_COPY;
+                generator.writeKey(key);
+            }
+        }
+    }
+
+    private void resolveCitation()
+    {
+        if (citation == CITATION_NONE)
+        {
+            final boolean url = TYPE_URL_CITATION.contentEquals(held);
+
+            generator.write(url ? MEMBER_TYPE : PREFIX + MEMBER_TYPE, held.toString());
+            citation = url ? CITATION_URL : CITATION_OTHER;
+        }
+    }
+
+    private void openNested()
+    {
+        if (!nested)
+        {
+            generator.writeStartObject(TYPE_URL_CITATION);
+            nested = true;
+        }
+    }
+
+    private void closeNested()
+    {
+        if (nested)
+        {
+            generator.writeEnd();
+            nested = false;
+            nestedClosed = true;
+        }
+    }
+
+    private static boolean citationNested(
+        CharSequence name)
+    {
+        return is(name, "url") || is(name, "title") || is(name, "start_index") || is(name, "end_index");
     }
 
     private void selectToolCall(
@@ -632,11 +773,25 @@ final class LlmOpenaiResponsesBlockWriter
         case KIND_SERVER_TOOL_CALL, KIND_IMAGE, KIND_DOCUMENT:
             generator.writeEnd();
             break;
+        case KIND_CITATIONS:
+            if (held.length() > 0)
+            {
+                resolveCitation();
+            }
+
+            closeNested();
+            break;
         default:
             break;
         }
 
-        if (outcome == DONE)
+        if (outcome == DONE && kind == KIND_CITATIONS)
+        {
+            generator.writeEnd();
+            member = MEMBER_ELEMENT;
+            outcome = MORE;
+        }
+        else if (outcome == DONE)
         {
             generator.writeEnd();
             flush(true);
