@@ -92,6 +92,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -4100,16 +4101,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                session.subscriptions.forEach(sub ->
-                    state.subscriptionsItem(subscriptionBuilder ->
-                        subscriptionBuilder
-                            .subscriptionId(sub.id)
-                            .qos(sub.qos)
-                            .flags(sub.flags)
-                            .pattern(sub.filter))
-                );
-
-                newSubscriptions.stream().filter(sub -> sub.reasonCode == SUCCESS).forEach(sub ->
+                replaceSubscriptions(newSubscriptions).forEach(sub ->
                     state.subscriptionsItem(subscriptionBuilder ->
                         subscriptionBuilder
                             .subscriptionId(sub.id)
@@ -4287,16 +4279,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break decode;
                     }
 
-                    session.subscriptions.forEach(sub ->
-                        state.subscriptionsItem(subscriptionBuilder ->
-                            subscriptionBuilder
-                                .subscriptionId(sub.id)
-                                .qos(sub.qos)
-                                .flags(sub.flags)
-                                .pattern(sub.filter))
-                    );
-
-                    newSubscriptions.stream().filter(sub -> sub.reasonCode == SUCCESS).forEach(sub ->
+                    replaceSubscriptions(newSubscriptions).forEach(sub ->
                         state.subscriptionsItem(subscriptionBuilder ->
                             subscriptionBuilder
                                 .subscriptionId(sub.id)
@@ -4316,6 +4299,18 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
             doSignalKeepAliveTimeout(traceId);
+        }
+
+        private List<Subscription> replaceSubscriptions(
+            List<Subscription> newSubscriptions)
+        {
+            final Map<String, Subscription> subscriptionsByFilter = new LinkedHashMap<>();
+            session.subscriptions.forEach(sub -> subscriptionsByFilter.put(sub.filter, sub));
+            newSubscriptions.stream()
+                .filter(sub -> sub.reasonCode == SUCCESS)
+                .forEach(sub -> subscriptionsByFilter.put(sub.filter, sub));
+
+            return new ArrayList<>(subscriptionsByFilter.values());
         }
 
         private void openSubscribeStreams(
@@ -4358,6 +4353,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes =
                     subscribes.computeIfAbsent(key, s -> new Int2ObjectHashMap<>());
 
+                final Map<MqttSubscribeStream, List<Subscription>> replaced = new HashMap<>();
+                routeSubscribes.values().forEach(stream ->
+                {
+                    final List<Subscription> removed = stream.removeSubscriptions(value);
+                    if (!removed.isEmpty())
+                    {
+                        replaced.put(stream, removed);
+                    }
+                });
+
                 value.stream()
                     .collect(Collectors.groupingBy(Subscription::qos))
                     .forEach((maxQos, subscriptionList) ->
@@ -4372,8 +4377,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 s -> new MqttSubscribeStream(routedId, key, compositeId, implicitSubscribe, qos));
                             subscriptionList.removeIf(s -> s.reasonCode > GRANTED_QOS_2);
                             stream.doSubscribeBeginOrFlush(traceId, affinity, subscriptionList);
+                            replaced.remove(stream);
                         }
                     });
+
+                replaced.forEach((stream, removed) -> stream.doSubscribeFlushOrEnd(traceId, removed));
             });
         }
 
@@ -6176,7 +6184,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             if (newState.size() >= currentSubscriptions.size())
                             {
                                 List<Subscription> newSubscriptions = newState.stream()
-                                    .filter(s -> !currentSubscriptions.contains(s))
+                                    .filter(s -> !currentSubscriptions.contains(s) || unAckedSubscriptions.contains(s))
                                     .collect(Collectors.toList());
                                 if (!newSubscriptions.isEmpty() &&
                                     subscribePacketIds.containsKey(newSubscriptions.get(0).id))
@@ -7081,6 +7089,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                 return Optional.ofNullable(newState)
                     .flatMap(list -> list.stream().filter(s -> s.filter.equals(filter)).findFirst())
                     .or(() -> subscriptions.stream().filter(s -> s.filter.equals(filter)).findFirst());
+            }
+
+            private List<Subscription> removeSubscriptions(
+                List<Subscription> replacements)
+            {
+                final List<Subscription> removed = subscriptions.stream()
+                    .filter(s -> replacements.stream().anyMatch(r -> r.filter.equals(s.filter)))
+                    .collect(Collectors.toList());
+                subscriptions.removeAll(removed);
+
+                return removed;
             }
 
             private void doSubscribeBeginOrFlush(

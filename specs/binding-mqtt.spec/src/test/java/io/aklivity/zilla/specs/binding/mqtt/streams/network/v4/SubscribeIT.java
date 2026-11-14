@@ -454,4 +454,31 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${net}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${net}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${net}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
 }
