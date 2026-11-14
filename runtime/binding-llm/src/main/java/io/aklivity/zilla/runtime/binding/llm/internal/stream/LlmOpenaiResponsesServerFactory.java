@@ -7536,7 +7536,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void completeReplyEnd()
         {
             if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && replyBody == null &&
-                (stream == null || stream.outboxSlot == NO_SLOT))
+                (stream == null || stream.encodeSlot == NO_SLOT))
             {
                 doNetEnd(pendingReplyEndTraceId, pendingReplyEndAuthorization, EMPTY_OCTETS);
 
@@ -7773,7 +7773,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudgeNext = decodeReplyTextKey;
         private int stepDeltaOffset;
         private int stepSent;
-        private int outboxSlot = NO_SLOT;
+        private int encodeSlot = NO_SLOT;
         private int memberLength;
         private int stepDeltaLength;
         private LlmOutputSink restOutput;
@@ -8359,7 +8359,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            if (outboxSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
                 server.state = StreamState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
@@ -9948,13 +9948,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean parkRecorded()
         {
-            outboxSlot = encodePool.acquire(server.replyId);
+            encodeSlot = encodePool.acquire(server.replyId);
 
-            final boolean parked = outboxSlot != NO_SLOT;
+            final boolean parked = encodeSlot != NO_SLOT;
 
             if (parked)
             {
-                encodePool.buffer(outboxSlot).putBytes(recordFrom, copyBuffer, recordFrom, recordTotal - recordFrom);
+                encodePool.buffer(encodeSlot).putBytes(recordFrom, copyBuffer, recordFrom, recordTotal - recordFrom);
             }
             else
             {
@@ -9967,10 +9967,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void drainRecorded(
             long traceId)
         {
-            if (outboxSlot != NO_SLOT && writeRecorded())
+            if (encodeSlot != NO_SLOT && writeRecorded())
             {
                 commitRecorded();
-                cleanupOutbox();
+                cleanupEncodeSlot();
 
                 ackReply(traceId);
                 server.completeReplyEnd();
@@ -9979,15 +9979,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private boolean writable()
         {
-            return outboxSlot == NO_SLOT;
+            return encodeSlot == NO_SLOT;
         }
 
-        private void cleanupOutbox()
+        private void cleanupEncodeSlot()
         {
-            if (outboxSlot != NO_SLOT)
+            if (encodeSlot != NO_SLOT)
             {
-                encodePool.release(outboxSlot);
-                outboxSlot = NO_SLOT;
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
             }
         }
 
@@ -10002,7 +10002,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             recordLength = total;
 
-            final DirectBufferEx generated = outboxSlot != NO_SLOT ? encodePool.buffer(outboxSlot) : copyBuffer;
+            final DirectBufferEx generated = encodeSlot != NO_SLOT ? encodePool.buffer(encodeSlot) : copyBuffer;
 
             int from = recordFrom;
             int virtual = 0;
@@ -12222,7 +12222,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void cleanupAccumulator()
         {
-            cleanupOutbox();
+            cleanupEncodeSlot();
 
             if (accumulator != null)
             {
