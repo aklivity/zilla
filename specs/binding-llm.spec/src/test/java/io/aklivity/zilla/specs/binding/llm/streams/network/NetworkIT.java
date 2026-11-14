@@ -5853,9 +5853,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.function.call.members.large/client",
+        "${net}/openai.responses.function.call.members.large/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.function.call.large.stream/client",
         "${net}/openai.responses.function.call.large.stream/server"})
     public void shouldOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.members.large.stream/client",
+        "${net}/openai.responses.function.call.members.large.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLargeStream() throws Exception
     {
         k3po.finish();
     }

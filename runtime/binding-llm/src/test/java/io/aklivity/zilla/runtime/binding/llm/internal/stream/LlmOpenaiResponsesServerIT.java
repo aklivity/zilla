@@ -933,9 +933,29 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.function.call.members.large/client",
+        "${app}/openai.responses.function.call.members.large/server"})
+    public void shouldEncodeOpenaiResponsesFunctionCallMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.function.call.large.stream/client",
         "${app}/openai.responses.function.call.large.stream/server"})
     public void shouldEncodeOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.function.call.members.large.stream/client",
+        "${app}/openai.responses.function.call.members.large.stream/server"})
+    public void shouldEncodeOpenaiResponsesFunctionCallMembersLargeStream() throws Exception
     {
         k3po.finish();
     }
