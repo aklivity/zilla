@@ -53,11 +53,11 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -85,7 +85,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
-                                 .filter("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+                                 .filter("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
 

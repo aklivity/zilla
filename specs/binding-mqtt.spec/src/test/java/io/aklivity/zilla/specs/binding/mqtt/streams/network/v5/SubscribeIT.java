@@ -765,4 +765,31 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.112/client",
+        "${net}/subscribe.receive.message.subscription.id.112/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId112() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.127/client",
+        "${net}/subscribe.receive.message.subscription.id.127/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.255/client",
+        "${net}/subscribe.receive.message.subscription.id.255/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId255() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

@@ -460,4 +460,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.subscribe.batched.v4/client",
+        "${app}/publish.subscribe.batched.v4/server"})
+    public void shouldPublishSubscribeBatchedV4() throws Exception
+    {
+        k3po.finish();
+    }
 }

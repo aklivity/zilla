@@ -18,12 +18,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CLIENT_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CONNECT_TIMEOUT_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -50,8 +48,6 @@ public class ConnectionIT
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.ConnectionIT::supplySubscriptionId")
         .external("app0")
         .clean();
 
@@ -188,7 +184,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect.after.subscribe.and.publish/client",
-        "${app}/disconnect.after.subscribe.and.publish/server"})
+        "${app}/disconnect.after.subscribe.and.publish.v4/server"})
     public void shouldDisconnectAfterSubscribeAndPublish() throws Exception
     {
         k3po.finish();
@@ -341,21 +337,9 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.subscribe.batched/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldConnectAndSubscribeFalseStart() throws Exception
     {
         k3po.finish();
-    }
-
-    @Before
-    public void setSubscriptionId()
-    {
-        subscriptionId = 0;
-    }
-
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
-    {
-        return ++subscriptionId;
     }
 }

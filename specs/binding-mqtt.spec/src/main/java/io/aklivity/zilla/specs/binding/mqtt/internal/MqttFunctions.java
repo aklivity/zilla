@@ -928,6 +928,13 @@ public final class MqttFunctions
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
+        public MqttSessionStateBuilder version(
+            int version)
+        {
+            sessionStateRW.version(version);
+            return this;
+        }
+
         public MqttSessionStateBuilder subscription(
             String pattern)
         {

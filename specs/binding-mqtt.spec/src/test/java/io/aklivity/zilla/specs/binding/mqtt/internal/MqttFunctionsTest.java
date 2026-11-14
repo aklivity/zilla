@@ -1354,6 +1354,22 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSessionStateVersion()
+    {
+        final byte[] array = MqttFunctions.session()
+            .version(1)
+            .subscription("sensor/one", 305419903, "AT_MOST_ONCE", "SEND_RETAINED")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, sessionState.version());
+        assertNotNull(sessionState.subscriptions()
+            .matchFirst(f -> "sensor/one".equals(f.pattern().asString()) && 305419903 == f.subscriptionId()));
+    }
+
+    @Test
     public void shouldEncodeMqttSessionState()
     {
         final byte[] array = MqttFunctions.session()

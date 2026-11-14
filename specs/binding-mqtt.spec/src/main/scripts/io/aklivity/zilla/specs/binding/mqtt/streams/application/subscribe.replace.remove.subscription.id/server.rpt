@@ -69,11 +69,11 @@ read zilla:data.ext ${mqtt:dataEx()
                              .build()}
 
 read ${mqtt:session()
-               .subscription("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 
 write ${mqtt:session()
-               .subscription("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                .build()}
 write flush
 
@@ -94,7 +94,7 @@ connected
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 113, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/one", 0, "AT_MOST_ONCE", "SEND_RETAINED")
                                      .build()
                                  .build()}
 
@@ -103,7 +103,7 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .subscriptionId(113)
+                                 .subscriptionId(0)
                                  .format("TEXT")
                                  .build()
                              .build()}

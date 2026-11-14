@@ -28,7 +28,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_LEASE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_RENEW;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.TOPIC_ALIAS_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION;
@@ -54,7 +53,6 @@ public class MqttConfigurationTest
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
     public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
-    public static final String SUBSCRIPTION_ID_NAME = "zilla.binding.mqtt.subscription.id";
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.instance.id";
     public static final String SESSION_LEASE_NAME = "zilla.binding.mqtt.session.lease";
     public static final String SESSION_RENEW_NAME = "zilla.binding.mqtt.session.renew";
@@ -75,7 +73,6 @@ public class MqttConfigurationTest
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
         assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);
-        assertEquals(SUBSCRIPTION_ID.name(), SUBSCRIPTION_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
         assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);

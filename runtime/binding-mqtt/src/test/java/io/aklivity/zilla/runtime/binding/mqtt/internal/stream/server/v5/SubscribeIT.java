@@ -17,12 +17,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.NO_LOCAL_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -48,8 +46,6 @@ public class SubscribeIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .external("app1")
@@ -182,7 +178,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/client",
-        "${app}/subscribe.topic.filters.isolated.both.exact/server"})
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/server"})
     public void shouldFilterIsolatedBothExactNoSubscriptionId() throws Exception
     {
         k3po.finish();
@@ -620,24 +616,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    @Before
-    public void resetGeneratedSubscriptionId()
-    {
-        generatedSubscriptionId = 0x70;
-    }
-
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
-    {
-        return ++subscriptionId;
-    }
-
-    private static int generatedSubscriptionId = 0x70;
-    public static int supplyGeneratedSubscriptionId()
-    {
-        return ++generatedSubscriptionId;
-    }
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -898,8 +876,6 @@ public class SubscribeIT
 
     @Test
     @Configuration("server.yaml")
-    @Configure(name = SUBSCRIPTION_ID_NAME,
-        value = "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplyGeneratedSubscriptionId")
     @Specification({
         "${net}/subscribe.replace.add.subscription.id/client",
         "${app}/subscribe.replace.add.subscription.id/server"})
@@ -910,8 +886,6 @@ public class SubscribeIT
 
     @Test
     @Configuration("server.yaml")
-    @Configure(name = SUBSCRIPTION_ID_NAME,
-        value = "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplyGeneratedSubscriptionId")
     @Specification({
         "${net}/subscribe.replace.remove.subscription.id/client",
         "${app}/subscribe.replace.remove.subscription.id/server"})
@@ -919,4 +893,34 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.112/client",
+        "${app}/subscribe.receive.message.subscription.id.112/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId112() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.127/client",
+        "${app}/subscribe.receive.message.subscription.id.127/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.255/client",
+        "${app}/subscribe.receive.message.subscription.id.255/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId255() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
