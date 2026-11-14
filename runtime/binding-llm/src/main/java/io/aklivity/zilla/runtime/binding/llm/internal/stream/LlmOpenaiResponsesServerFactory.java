@@ -8026,7 +8026,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             LlmOpenaiResponsesReplyDecoder previous = null;
             int limit = staged ? decodeSlotOffset : 0;
             int progress = staged ? decodeSlotFrom : 0;
-            while (progress <= limit && previous != decoder && (!staged || decodeSlot != NO_SLOT))
+            while (progress <= limit && previous != decoder && (!staged || decodeSlot != NO_SLOT) && writable())
             {
                 previous = decoder;
 
@@ -8034,6 +8034,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 final int heldBefore = hold.held();
 
                 progress = decoder.decode(this, buffer, progress, limit);
+
+                doEncodeStep();
 
                 if (staged && decodeSlot != NO_SLOT)
                 {
@@ -8828,6 +8830,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void doEncodeFlush()
         {
+            doEncodeStep();
+
+            ackReply(encodeTraceId);
+        }
+
+        private void doEncodeStep()
+        {
             if (!server.streaming && encodeLength() > 0)
             {
                 encodeName = null;
@@ -8836,9 +8845,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeFinal = true;
 
                 doEncodeData();
+                beginEncode();
             }
-
-            ackReply(encodeTraceId);
         }
 
         private void doEncodeBegin()
