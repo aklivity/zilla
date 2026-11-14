@@ -497,6 +497,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgumentKey = this::decodeReplyArgumentKey;
     private final LlmOpenaiResponsesReplyDecoder decodeMembersStage = this::decodeMembersStage;
     private final LlmOpenaiResponsesReplyDecoder decodeMembersWrite = this::decodeMembersWrite;
+    private final LlmOpenaiResponsesReplyDecoder decodeMembersDrain = this::decodeMembersDrain;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyControlEnd = this::decodeReplyControlEnd;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyOptions = this::decodeReplyOptions;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyOptionKey = this::decodeReplyOptionKey;
@@ -2235,7 +2236,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int limit)
     {
         stream.writeReasoningMembers();
-        stream.decoder = decodeReplyNext;
+        stream.decoder = decodeMembersDrain;
+
+        return offset;
+    }
+
+    private int decodeMembersDrain(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if (stream.hold.staged() == 0 || stream.flushMembers())
+        {
+            stream.decoder = decodeReplyNext;
+        }
 
         return offset;
     }
@@ -9105,13 +9120,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (!flushed && writable())
             {
-                generator.reset();
-                generator.wrap(copyBuffer, 0, copyBuffer.capacity());
+                if (server.streaming)
+                {
+                    generator.reset();
+                    generator.wrap(copyBuffer, 0, copyBuffer.capacity());
+                }
 
                 encodeRefCount = 0;
                 encodeSlotOffset = 0;
                 encodeSlotLimit = 0;
-                encodeFinal = false;
+                encodeFinal = !server.streaming;
                 encodeReference(hold.stageFrom(), hold.staged(), REF_STAGE);
 
                 doEncodeData();
@@ -9959,6 +9977,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 hold.unstage();
             }
+
+            encodeRefCount = 0;
         }
 
         private boolean doEncodeSlot()
@@ -11675,9 +11695,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     beginReasoningMembers();
                 }
 
-                ensureEncodeRoom(memberLength);
-                generator.writeSegment(memberBuffer, 0, memberLength);
-                memberLength = 0;
+                stageMembers();
             }
         }
 
