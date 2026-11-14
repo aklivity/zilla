@@ -6141,6 +6141,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     subscription.filter = filter.pattern().asString();
                                     subscription.flags = filter.flags();
                                     subscription.qos = filter.qos();
+                                    subscription.reasonCode = filter.reasonCode();
                                     subscriptions.add(subscription);
                                 });
 
@@ -6217,7 +6218,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     }
                                 }
                             }
-                            session.setSubscriptions(newState);
+                            session.setSubscriptions(newState.stream()
+                                .filter(s -> s.reasonCode == SUCCESS)
+                                .collect(Collectors.toList()));
                         }
                     }
 
