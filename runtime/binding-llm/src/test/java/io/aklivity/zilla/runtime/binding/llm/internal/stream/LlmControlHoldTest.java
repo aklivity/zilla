@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.io.ByteArrayOutputStream;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -155,6 +157,57 @@ public class LlmControlHoldTest
     }
 
     @Test
+    public void shouldStageBytesAfterTheHeldMembersAndReleaseThem()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.begin("a");
+        hold.put(buffer("1"), 0, 1);
+        hold.end();
+
+        assertThat(hold.stage(buffer("xyz"), 0, 3), is(true));
+        assertThat(hold.stage(buffer("12"), 0, 2), is(true));
+
+        assertThat(hold.stageFrom(), equalTo(1));
+        assertThat(hold.staged(), equalTo(5));
+        assertThat(hold.held(), equalTo(6));
+
+        final byte[] staged = new byte[hold.staged()];
+        store.getBytes(hold.stageFrom(), staged);
+
+        assertThat(new String(staged, UTF_8), equalTo("xyz12"));
+
+        hold.unstage();
+
+        assertThat(hold.staged(), equalTo(0));
+        assertThat(hold.held(), equalTo(1));
+        assertThat(hold.count(), equalTo(1));
+        assertThat(hold.failed(), is(false));
+    }
+
+    @Test
+    public void shouldFailWhenStagingExceedsTheStore()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        assertThat(hold.stage(buffer("x".repeat(257)), 0, 257), is(false));
+        assertThat(hold.failed(), is(true));
+        assertThat(hold.staged(), equalTo(0));
+    }
+
+    @Test
+    public void shouldDropStagedBytesOnReset()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.stage(buffer("abc"), 0, 3);
+        hold.reset();
+
+        assertThat(hold.staged(), equalTo(0));
+        assertThat(hold.held(), equalTo(0));
+    }
+
+    @Test
     public void shouldResetForReuse()
     {
         final LlmControlHold hold = new LlmControlHold(() -> store);
@@ -167,6 +220,45 @@ public class LlmControlHoldTest
         assertThat(hold.count(), equalTo(0));
         assertThat(hold.held(), equalTo(0));
         assertThat(hold.failed(), is(false));
+    }
+
+    @Test
+    public void shouldReferenceHeldValuesInPlace()
+    {
+        final LlmControlHold hold = new LlmControlHold(() -> store);
+
+        hold.begin("a");
+        hold.put(buffer("\"one\""), 0, 5);
+        hold.end();
+        hold.begin("b");
+        hold.put(buffer("2"), 0, 1);
+        hold.end();
+
+        final JsonGeneratorEx generator = JsonEx.createGenerator();
+        final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[64]);
+        final ByteArrayOutputStream rebuilt = new ByteArrayOutputStream();
+        final int[] copied = {0};
+
+        generator.wrap(output, 0, output.capacity());
+        generator.writeStartObject();
+        hold.reference(generator, 0, name -> true, (offset, length) ->
+        {
+            final byte[] before = new byte[generator.length() - copied[0]];
+            output.getBytes(copied[0], before);
+            rebuilt.writeBytes(before);
+            copied[0] = generator.length();
+
+            final byte[] held = new byte[length];
+            store.getBytes(offset, held);
+            rebuilt.writeBytes(held);
+        });
+        generator.writeEnd();
+
+        final byte[] rest = new byte[generator.length() - copied[0]];
+        output.getBytes(copied[0], rest);
+        rebuilt.writeBytes(rest);
+
+        assertThat(rebuilt.toString(UTF_8), equalTo("{\"a\":\"one\",\"b\":2}"));
     }
 
     private static DirectBufferEx buffer(

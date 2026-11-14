@@ -19,11 +19,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 public class LlmSectionPipelineTest
 {
@@ -37,32 +39,59 @@ public class LlmSectionPipelineTest
         LlmOpenaiResponsesCitationsToCanonical.array(), new UnsafeBufferEx(new byte[4096]));
 
     @Test
-    public void shouldReportWhatItDidNotConsumeToACallerThatHoldsTheBytes()
+    public void shouldReportWhatItConsumedToACallerThatOwnsTheBytes()
     {
         final byte[] bytes = CITATIONS.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         final String expected = convertWhole(buffer, bytes.length);
 
-        int cutsWithUnconsumed = 0;
+        int cutsWithTail = 0;
 
         for (int cut = 1; cut < bytes.length; cut++)
         {
             output.setLength(0);
             pipeline.begin(new LlmSectionAttributes());
 
-            assertThat("cut " + cut, pipeline.feed(buffer, 0, cut, false, this::collect, false), is(true));
+            assertThat("cut " + cut, pipeline.advance(buffer, 0, cut, false, this::collect, Integer.MAX_VALUE),
+                not(equalTo(Status.REJECTED)));
 
-            final int unconsumed = pipeline.unconsumed();
-            final int consumed = cut - unconsumed;
-            cutsWithUnconsumed += unconsumed > 0 ? 1 : 0;
+            final int consumed = pipeline.consumed();
+            cutsWithTail += consumed < cut ? 1 : 0;
 
-            assertThat("cut " + cut, pipeline.feed(buffer, consumed, bytes.length - consumed, true, this::collect, false),
-                is(true));
-            assertThat("cut " + cut, pipeline.unconsumed(), is(0));
+            assertThat("cut " + cut, pipeline.advance(buffer, consumed, bytes.length, true, this::collect, Integer.MAX_VALUE),
+                is(Status.COMPLETED));
             assertThat("cut " + cut, output.toString(), equalTo(expected));
         }
 
-        assertThat(cutsWithUnconsumed, greaterThan(0));
+        assertThat(cutsWithTail, greaterThan(0));
+    }
+
+    @Test
+    public void shouldPauseWhenTheOutputLimitIsUsedAndResumeOnTheSameWindow()
+    {
+        final byte[] bytes = CITATIONS.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final String expected = convertWhole(buffer, bytes.length);
+
+        for (int limit = 16; limit <= 64; limit += 16)
+        {
+            output.setLength(0);
+            pipeline.begin(new LlmSectionAttributes());
+
+            int pauses = 0;
+            Status status = pipeline.advance(buffer, 0, bytes.length, true, this::collect, limit);
+
+            while (status == Status.SUSPENDED)
+            {
+                assertThat("limit " + limit, pipeline.consumed(), is(0));
+                pauses++;
+                status = pipeline.advance(buffer, 0, bytes.length, true, this::collect, limit);
+            }
+
+            assertThat("limit " + limit, status, is(Status.COMPLETED));
+            assertThat("limit " + limit, pauses, greaterThan(0));
+            assertThat("limit " + limit, output.toString(), equalTo(expected));
+        }
     }
 
     @Test

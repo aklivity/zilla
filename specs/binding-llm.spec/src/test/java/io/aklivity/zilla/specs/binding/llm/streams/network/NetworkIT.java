@@ -4971,6 +4971,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.text.trickle/client",
+        "${net}/openai.responses.text.trickle/server"})
+    public void shouldOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.text.stream/client",
         "${net}/openai.responses.text.stream/server"})
     public void shouldOpenaiResponsesTextStream() throws Exception
@@ -5844,9 +5853,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.function.call.members.large/client",
+        "${net}/openai.responses.function.call.members.large/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.function.call.large.stream/client",
         "${net}/openai.responses.function.call.large.stream/server"})
     public void shouldOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.members.large.stream/client",
+        "${net}/openai.responses.function.call.members.large.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLargeStream() throws Exception
     {
         k3po.finish();
     }
@@ -5892,6 +5919,24 @@ public class NetworkIT
         "${net}/openai.responses.text.stream.huge.window/client",
         "${net}/openai.responses.text.stream.huge.window/server"})
     public void shouldOpenaiResponsesTextStreamHugeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.huge.frames/client",
+        "${net}/openai.responses.text.stream.huge.frames/server"})
+    public void shouldOpenaiResponsesTextStreamHugeFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.huge.frames.window/client",
+        "${net}/openai.responses.text.stream.huge.frames.window/server"})
+    public void shouldOpenaiResponsesTextStreamHugeFramesWindow() throws Exception
     {
         k3po.finish();
     }

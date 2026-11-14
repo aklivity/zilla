@@ -71,6 +71,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
@@ -4522,12 +4523,13 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                         decoder = annotationThen;
                     }
 
-                    if (!annotationPipeline.feed(annotations.buffer(), annotations.offset(), take, last, citationsOutput, false))
+                    if (annotationPipeline.advance(annotations.buffer(), annotations.offset(),
+                        annotations.offset() + take, last, citationsOutput, Integer.MAX_VALUE) == Status.REJECTED)
                     {
                         rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
                     }
 
-                    final int consumed = take - annotationPipeline.unconsumed();
+                    final int consumed = annotationPipeline.consumed();
                     annotations.consumed(consumed);
                     progress = consumed > 0;
 

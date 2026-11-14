@@ -5457,6 +5457,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.trickle/client",
+        "${app}/openai.responses.text.trickle/server"})
+    public void shouldOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.text.stream/client",
         "${app}/openai.responses.text.stream/server"})
     public void shouldOpenaiResponsesTextStream() throws Exception
@@ -6132,9 +6141,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.function.call.members.large/client",
+        "${app}/openai.responses.function.call.members.large/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.function.call.large.stream/client",
         "${app}/openai.responses.function.call.large.stream/server"})
     public void shouldOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.function.call.members.large.stream/client",
+        "${app}/openai.responses.function.call.members.large.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallMembersLargeStream() throws Exception
     {
         k3po.finish();
     }
@@ -6171,6 +6198,15 @@ public class ApplicationIT
         "${app}/openai.responses.text.stream.huge/client",
         "${app}/openai.responses.text.stream.huge/server"})
     public void shouldOpenaiResponsesTextStreamHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.stream.huge.frames/client",
+        "${app}/openai.responses.text.stream.huge.frames/server"})
+    public void shouldOpenaiResponsesTextStreamHugeFrames() throws Exception
     {
         k3po.finish();
     }

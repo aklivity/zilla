@@ -64,6 +64,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.text.trickle/client",
+        "${app}/openai.responses.text.trickle/server"})
+    public void shouldEncodeOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.reply.shared.budget/client",
         "${app}/openai.responses.text/server"})
     public void shouldForwardOpenaiResponsesWithReplySharedBudget() throws Exception
@@ -923,9 +933,29 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.function.call.members.large/client",
+        "${app}/openai.responses.function.call.members.large/server"})
+    public void shouldEncodeOpenaiResponsesFunctionCallMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.function.call.large.stream/client",
         "${app}/openai.responses.function.call.large.stream/server"})
     public void shouldEncodeOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.function.call.members.large.stream/client",
+        "${app}/openai.responses.function.call.members.large.stream/server"})
+    public void shouldEncodeOpenaiResponsesFunctionCallMembersLargeStream() throws Exception
     {
         k3po.finish();
     }
@@ -976,6 +1006,26 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.text.stream.huge.window/client",
         "${app}/openai.responses.text.stream.huge/server"})
     public void shouldEncodeOpenaiResponsesTextStreamHugeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.text.stream.huge.frames/client",
+        "${app}/openai.responses.text.stream.huge.frames/server"})
+    public void shouldEncodeOpenaiResponsesTextStreamHugeFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.text.stream.huge.frames.window/client",
+        "${app}/openai.responses.text.stream.huge.frames/server"})
+    public void shouldEncodeOpenaiResponsesTextStreamHugeFramesWindow() throws Exception
     {
         k3po.finish();
     }

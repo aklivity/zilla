@@ -21,11 +21,22 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 
 final class LlmControlHold
 {
+    @FunctionalInterface
+    interface Reference
+    {
+        void accept(
+            int offset,
+            int length);
+    }
+
     private static final int NONE = -1;
+    private static final DirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
     private static final int INITIAL_CAPACITY = 16;
 
     private final Supplier<MutableDirectBufferEx> store;
@@ -37,6 +48,7 @@ final class LlmControlHold
     private int count;
     private int limit;
     private int open;
+    private int stageFrom = NONE;
     private boolean failed;
 
     LlmControlHold(
@@ -105,6 +117,49 @@ final class LlmControlHold
         }
 
         return fits;
+    }
+
+    boolean stage(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        final MutableDirectBufferEx held = store.get();
+        final boolean fits = held != null && limit + length <= held.capacity();
+
+        failed |= !fits;
+
+        if (fits)
+        {
+            if (stageFrom == NONE)
+            {
+                stageFrom = limit;
+            }
+
+            held.putBytes(limit, buffer, offset, length);
+            limit += length;
+        }
+
+        return fits;
+    }
+
+    int stageFrom()
+    {
+        return stageFrom;
+    }
+
+    int staged()
+    {
+        return stageFrom == NONE ? 0 : limit - stageFrom;
+    }
+
+    void unstage()
+    {
+        if (stageFrom != NONE)
+        {
+            limit = stageFrom;
+            stageFrom = NONE;
+        }
     }
 
     String end()
@@ -194,11 +249,30 @@ final class LlmControlHold
         }
     }
 
+    void reference(
+        JsonGeneratorEx generator,
+        int kind,
+        Predicate<String> included,
+        Reference reference)
+    {
+        for (int index = 0; index < count; index++)
+        {
+            if (kinds[index] == kind && included.test(names[index]))
+            {
+                generator.writeKey(names[index]);
+                generator.writeSegment(EMPTY, 0, 0, Completion.INCOMPLETE);
+                reference.accept(offsets[index], lengths[index]);
+                generator.writeSegment(EMPTY, 0, 0, Completion.COMPLETE);
+            }
+        }
+    }
+
     void reset()
     {
         count = 0;
         limit = 0;
         open = NONE;
+        stageFrom = NONE;
         failed = false;
     }
 }
