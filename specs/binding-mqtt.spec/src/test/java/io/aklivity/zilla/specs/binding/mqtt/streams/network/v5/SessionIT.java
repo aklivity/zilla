@@ -318,4 +318,22 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.resume.subscription.id.127/client",
+        "${net}/session.resume.subscription.id.127/server"})
+    public void shouldSessionResumeSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.resume.session.state.version.1.generated.subscription.id/client",
+        "${net}/session.resume.session.state.version.1.generated.subscription.id/server"})
+    public void shouldSessionResumeSessionStateVersion1GeneratedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
 }
