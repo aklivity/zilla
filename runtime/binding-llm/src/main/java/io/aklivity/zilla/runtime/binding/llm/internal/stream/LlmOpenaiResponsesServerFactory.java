@@ -301,7 +301,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx argsBuffer;
     private final MutableDirectBufferEx blockBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
-    private final MutableDirectBufferEx citationBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -541,7 +540,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
         this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
         this.blockBuffer = new UnsafeBufferEx(new byte[LlmOpenaiResponsesBlockWriter.capacity(decodeMax)]);
-        this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + pullMax]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -1667,14 +1665,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        if (stream.scanCitations())
+        if (stream.elementLength > 0)
         {
             stream.prepareAnnotation();
             stream.decoder = decodeAnnotationAdded;
         }
         else
         {
-            stream.compactCitations();
+            stream.cleanupElement();
             stream.decoder = stream.advanceFollow;
         }
 
@@ -8701,9 +8699,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private static final int PART_VALUES = 2;
         private static final int RECORD_ITEM = 0x10;
         private static final int RECORD_TRAILER = 0x11;
-        private static final int LEX_NONE = 0;
-        private static final int LEX_STRING = 1;
-        private static final int LEX_ESCAPE = 2;
         private static final String TYPE_REASONING = LlmOpenaiResponsesItems.TYPE_REASONING;
         private static final String TYPE_SUMMARY_TEXT = "summary_text";
         private static final String MEMBER_SUMMARY_INDEX = "summary_index";
@@ -8791,10 +8786,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean encodeFinal;
         private LlmEndExFW finishEnd;
         private int finishIndex;
-        private int citationLength;
-        private int citationScan;
-        private int elementStart = NONE;
-        private int elementEnd;
         private LlmOpenaiResponsesReplyDecoder summaryFollow;
         private LlmOpenaiResponsesReplyDecoder advanceFollow;
         private String errorCode;
@@ -8843,8 +8834,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int elementSlot = NO_SLOT;
         private MutableDirectBufferEx elementBuffer;
         private int elementLength;
-        private int elementDepth;
-        private int elementLex;
         private int annotationCount;
         private String sectionItemType;
         private String valueMember;
@@ -9328,12 +9317,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void sectionCitations()
         {
             annotationCount = 0;
-            elementDepth = 0;
             cleanupElement();
-            elementLex = LEX_NONE;
-            citationLength = 0;
-            citationScan = 0;
-            elementStart = NONE;
             restOutput = citationsOutput;
             beginMembers();
             beginFanOuts();
@@ -10929,6 +10913,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 memberGenerator.writeEnd();
                 restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
                 advanceFollow = decodeReplyCitationElement;
+
+                if (!server.streaming)
+                {
+                    completeElement();
+                }
+
                 state = server.streaming ? decodeCitationElements : decodeReplyCitationElement;
             }
             else
@@ -11852,78 +11842,27 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (server.streaming)
+            final int limit = offset + length;
+
+            int from = offset;
+
+            if (elementSlot == NO_SLOT)
             {
-                citationBuffer.putBytes(citationLength, buffer, offset, length);
-                citationLength += length;
-            }
-            else
-            {
-                for (int index = 0; index < length; index++)
+                while (from < limit && buffer.getByte(from) != '{')
                 {
-                    scanElement(buffer.getByte(offset + index));
-                }
-            }
-        }
-
-        private boolean scanCitations()
-        {
-            boolean found = false;
-
-            while (!found && citationScan < citationLength)
-            {
-                final byte value = citationBuffer.getByte(citationScan);
-
-                switch (elementLex)
-                {
-                case LEX_STRING:
-                    elementLex = value == '\\' ? LEX_ESCAPE : value == '"' ? LEX_NONE : LEX_STRING;
-                    break;
-                case LEX_ESCAPE:
-                    elementLex = LEX_STRING;
-                    break;
-                default:
-                    if (value == '"')
-                    {
-                        elementLex = LEX_STRING;
-                    }
-                    else if (value == '{' && elementDepth++ == 0)
-                    {
-                        elementStart = citationScan;
-                    }
-                    else if (value == '}' && --elementDepth == 0 && elementStart != NONE)
-                    {
-                        elementEnd = citationScan + 1;
-                        found = true;
-                    }
-                    break;
+                    from++;
                 }
 
-                if (elementDepth > 0 && elementStart != NONE && citationScan + 1 - elementStart > elementMax)
+                if (from < limit)
                 {
-                    elementStart = NONE;
+                    openElement();
                 }
-
-                citationScan++;
             }
 
-            return found;
-        }
-
-        private void compactCitations()
-        {
-            if (elementStart != NONE)
+            if (from < limit && elementSlot != NO_SLOT)
             {
-                citationLength -= elementStart;
-                citationBuffer.putBytes(0, citationBuffer, elementStart, citationLength);
-                elementStart = 0;
+                appendElement(buffer, from, limit - from);
             }
-            else
-            {
-                citationLength = 0;
-            }
-
-            citationScan = citationLength;
         }
 
         private void prepareAnnotation()
@@ -11933,69 +11872,28 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 accumulator.append(COMMA, 0, 1);
             }
 
-            accumulator.append(citationBuffer, elementStart, elementEnd - elementStart);
+            accumulator.append(elementBuffer, 0, elementLength);
         }
 
         private void completeAnnotation()
         {
             annotationCount++;
-            elementStart = NONE;
+            cleanupElement();
         }
 
-        private void scanElement(
-            byte value)
+        private void completeElement()
         {
-            if (elementDepth > 0)
+            if (elementLength > 0)
             {
-                appendElement(value);
+                onAnnotation();
             }
 
-            switch (elementLex)
-            {
-            case LEX_STRING:
-                elementLex = value == '\\' ? LEX_ESCAPE : value == '"' ? LEX_NONE : LEX_STRING;
-                break;
-            case LEX_ESCAPE:
-                elementLex = LEX_STRING;
-                break;
-            default:
-                scanStructure(value);
-                break;
-            }
-        }
-
-        private void scanStructure(
-            byte value)
-        {
-            if (value == '"')
-            {
-                elementLex = LEX_STRING;
-            }
-            else if (value == '{')
-            {
-                if (elementDepth++ == 0)
-                {
-                    openElement();
-                    appendElement(value);
-                }
-            }
-            else if (value == '}' && --elementDepth == 0)
-            {
-                if (elementLength > 0)
-                {
-                    onAnnotation();
-                }
-
-                cleanupElement();
-            }
+            cleanupElement();
         }
 
         private void openElement()
         {
-            if (elementSlot == NO_SLOT)
-            {
-                elementSlot = holdPool.acquire(replyId);
-            }
+            elementSlot = holdPool.acquire(replyId);
 
             if (elementSlot != NO_SLOT)
             {
@@ -12009,11 +11907,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         }
 
         private void appendElement(
-            byte value)
+            DirectBufferEx buffer,
+            int offset,
+            int length)
         {
-            if (elementLength >= 0 && elementLength < elementMax)
+            if (elementLength >= 0 && elementLength + length <= elementMax)
             {
-                elementBuffer.putByte(elementLength++, value);
+                elementBuffer.putBytes(elementLength, buffer, offset, length);
+                elementLength += length;
             }
             else
             {
@@ -12132,7 +12033,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             eventBegin(EVENT_ANNOTATION_ADDED);
             generator.writeStartObject().write(MEMBER_TYPE, EVENT_ANNOTATION_ADDED)
                 .writeKey(MEMBER_ANNOTATION);
-            generator.writeSegment(citationBuffer, elementStart, elementEnd - elementStart, Completion.COMPLETE);
+            generator.writeSegment(elementBuffer, 0, elementLength, Completion.COMPLETE);
             generator.write(MEMBER_ANNOTATION_INDEX, annotationIndex)
                 .write(MEMBER_CONTENT_INDEX, itemParts - 1)
                 .write(MEMBER_ITEM_ID, itemId(itemCount - 1))
