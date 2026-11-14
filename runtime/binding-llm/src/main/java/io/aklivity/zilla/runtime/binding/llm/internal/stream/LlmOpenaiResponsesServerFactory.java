@@ -140,7 +140,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
-    private static final int RESPONSE_GROWTH = 2;
+    private static final int MEMBER_GROWTH_NUMERATOR = 3;
+    private static final int MEMBER_GROWTH_DENOMINATOR = 2;
     private static final String REASONING_ID_KEY = NAME + ":id";
     private static final int ARGS_HEADROOM = 16;
     private static final int ENCODE_REFS = 64;
@@ -311,7 +312,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final int decodeMax;
     private final int replyPadding;
     private final int encodeMax;
-    private final int responseMax;
+    private final int pullMax;
     private final MutableDirectBufferEx memberBuffer;
     private final int llmTypeId;
     private final int httpTypeId;
@@ -533,12 +534,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
-        this.responseMax = (decodeMax - replyPadding) / RESPONSE_GROWTH;
-        this.argsBuffer = new UnsafeBufferEx(new byte[responseMax]);
+        this.encodeMax = encodePool.slotCapacity();
+        this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
+        this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
         this.memberBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.blockBuffer = new UnsafeBufferEx(new byte[LlmOpenaiResponsesBlockWriter.capacity(decodeMax)]);
-        this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + responseMax]);
-        this.encodeMax = encodePool.slotCapacity();
+        this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + pullMax]);
         this.copyBuffer = new UnsafeBufferEx(new byte[encodeMax]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -7798,6 +7799,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int encodeSlot = NO_SLOT;
         private int memberLength;
         private int stepDeltaLength;
+        private int stepDeltaTaken;
         private LlmOutputSink restOutput;
 
         private LlmOpenaiResponsesStream(
@@ -7944,7 +7946,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = server.streaming ? decodeMax : responseMax + replyPadding;
+            replyMax = decodeMax;
 
             if (server.streaming && accumulator == null)
             {
@@ -8289,20 +8291,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return offset;
-        }
-
-        private int valueLimit()
-        {
-            return responseMax;
-        }
-
-        private void flushValue()
-        {
-            if (!server.streaming)
-            {
-                doEncodeFlush();
-                beginEncode();
-            }
         }
 
         private int pauseReply(
@@ -9629,7 +9617,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     accumulator.append(copyBuffer, stepDeltaOffset, stepDeltaLength);
                     sequence++;
-                    taken = length;
+                    taken = stepDeltaTaken;
                 }
             }
 
@@ -10329,6 +10317,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             stepDeltaOffset = generator.length();
             generator.writeSegment(chars, 0, take);
             stepDeltaLength = generator.length() - stepDeltaOffset;
+            stepDeltaTaken = generator.consumed();
 
             generator.writeEndEscaped();
             generator.write(MEMBER_ITEM_ID, itemId(itemCount - 1));
@@ -10368,7 +10357,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (kind == KIND_REASONING && !server.streaming)
             {
-                onReasoningText(chars, 0, length);
+                taken = onReasoningText(chars, length);
             }
             else if (kind == KIND_REASONING)
             {
@@ -11649,20 +11638,23 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
-        private void onReasoningText(
+        private int onReasoningText(
             JsonStringView chars,
-            int from,
-            int to)
+            int length)
         {
-            if (to > from && !membersStarted)
+            int taken = length;
+
+            if (length > 0 && !membersStarted)
             {
                 if (partMode != PART_ACTIVE)
                 {
                     openSummaryPart();
                 }
 
-                generator.writeSegment(chars, from, to);
+                taken = onEncodeText(chars, length);
             }
+
+            return taken;
         }
 
         private void onReasoningMembers(
