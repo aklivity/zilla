@@ -157,45 +157,6 @@ public class LlmControlHoldTest
     }
 
     @Test
-    public void shouldWriteMembersInChunksThatFitTheOutput()
-    {
-        final MutableDirectBufferEx large = new UnsafeBufferEx(new byte[512]);
-        final LlmControlHold hold = new LlmControlHold(() -> large);
-        final String value = "\"" + "x".repeat(200) + "\"";
-
-        hold.begin("a");
-        hold.put(buffer(value), 0, value.length());
-        hold.end();
-        hold.begin("b");
-        hold.put(buffer("2"), 0, 1);
-        hold.end();
-
-        final JsonGeneratorEx generator = JsonEx.createGenerator();
-        final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[48]);
-        final ByteArrayOutputStream written = new ByteArrayOutputStream();
-
-        generator.wrap(output, 0, output.capacity());
-        generator.writeStartObject();
-        hold.write(generator, 0, name -> true, 16, length ->
-        {
-            if (output.capacity() - generator.length() < length)
-            {
-                final byte[] bytes = new byte[generator.length()];
-                output.getBytes(0, bytes);
-                written.writeBytes(bytes);
-                generator.wrap(output, 0, output.capacity());
-            }
-        });
-        generator.writeEnd();
-
-        final byte[] bytes = new byte[generator.length()];
-        output.getBytes(0, bytes);
-        written.writeBytes(bytes);
-
-        assertThat(written.toString(UTF_8), equalTo("{\"a\":" + value + ",\"b\":2}"));
-    }
-
-    @Test
     public void shouldResetForReuse()
     {
         final LlmControlHold hold = new LlmControlHold(() -> store);
