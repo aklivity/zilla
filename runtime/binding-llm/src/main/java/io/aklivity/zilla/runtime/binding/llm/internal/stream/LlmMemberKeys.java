@@ -76,6 +76,19 @@ final class LlmMemberKeys
         return action;
     }
 
+    int selectPrefixed(
+        CharSequence key)
+    {
+        boolean prefixed = false;
+
+        for (int index = 0; !prefixed && index < key.length(); index++)
+        {
+            prefixed = key.charAt(index) == DIALECT_END;
+        }
+
+        return prefixed ? select(key) : DROP;
+    }
+
     int copyAll(
         CharSequence key)
     {
