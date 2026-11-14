@@ -945,6 +945,22 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
+            String pattern,
+            int id,
+            String qosName,
+            int reasonCode,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id).qos(qos).flags(flags).reasonCode(reasonCode).pattern(pattern));
+            return this;
+        }
+
         public MqttSessionStateBuilder subscription(
             String pattern,
             int id,
