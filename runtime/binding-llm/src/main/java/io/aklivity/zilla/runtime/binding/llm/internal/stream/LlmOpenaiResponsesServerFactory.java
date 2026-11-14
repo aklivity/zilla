@@ -9594,16 +9594,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             generator.writeStartArray(MEMBER_LOGPROBS).writeEnd().writeEnd();
         }
 
-        private void ensureEncodeRoom(
-            int length)
-        {
-            if (copyBuffer.capacity() - encodeLength() - replyPadding < length)
-            {
-                doEncodeFlush();
-                beginEncode();
-            }
-        }
-
         private void closeItem(
             String status)
         {
@@ -11975,8 +11965,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private void onAnnotation()
         {
-            ensureEncodeRoom(elementLength + 1);
-
             if (annotationCount == 0)
             {
                 generator.writeKey(MEMBER_ANNOTATIONS);
