@@ -5457,6 +5457,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.trickle/client",
+        "${app}/openai.responses.text.trickle/server"})
+    public void shouldOpenaiResponsesTextTrickle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.text.stream/client",
         "${app}/openai.responses.text.stream/server"})
     public void shouldOpenaiResponsesTextStream() throws Exception
