@@ -127,7 +127,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttModel;
@@ -244,6 +243,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int RETAIN_AS_PUBLISHED_MASK = 0b0000_1000;
     private static final int RETAIN_HANDLING_MASK = 0b0011_0000;
     private static final int SUBSCRIPTION_QOS_MASK = 0b0000_0011;
+    private static final int SUBSCRIPTION_RESERVED_MASK = 0b1100_0000;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
@@ -2237,7 +2237,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttSubscribeV4FW subscribeV4 =
                 mqttSubscribeV4RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-            if (subscribeV4 == null)
+            if (subscribeV4 == null || subscribeV4.payload().sizeof() == 0 || subscribeV4.packetId() == 0)
             {
                 reasonCode = PROTOCOL_ERROR;
             }
@@ -2287,7 +2287,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttSubscribeV5FW subscribeV5 =
                 mqttSubscribeV5RO.tryWrap(buffer, offset, offset + server.decodeablePacketBytes);
-            if (subscribeV5 == null)
+            if (subscribeV5 == null || subscribeV5.payload().sizeof() == 0 || subscribeV5.packetId() == 0)
             {
                 reasonCode = PROTOCOL_ERROR;
             }
@@ -3780,10 +3780,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (qos)
                 {
                 case 1:
-                    doEncodePubackV5(traceId, authorization, packetId, MqttReasonCodes.NOT_AUTHORIZED);
+                    doEncodePubackV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
                     break;
                 case 2:
-                    doEncodePubrecV5(traceId, authorization, packetId, MqttReasonCodes.NOT_AUTHORIZED);
+                    doEncodePubrecV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
                     break;
                 }
             }
@@ -4141,6 +4141,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             int subscriptionId = 0;
             boolean containsSubscriptionId = false;
+            int propertiesReasonCode = SUCCESS;
 
             MqttPropertiesFW properties = subscribe.properties();
             final OctetsFW propertiesValue = properties.value();
@@ -4157,14 +4158,18 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                 case KIND_SUBSCRIPTION_ID:
                     subscriptionId = mqttProperty.subscriptionId().value();
+                    if (containsSubscriptionId || subscriptionId == 0)
+                    {
+                        propertiesReasonCode = PROTOCOL_ERROR;
+                    }
                     containsSubscriptionId = true;
                     break;
                 }
             }
 
-            if (containsSubscriptionId && subscriptionId == 0)
+            if (propertiesReasonCode != SUCCESS)
             {
-                onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                onDecodeError(traceId, authorization, propertiesReasonCode);
                 decoder = decodeIgnoreAll;
             }
             else
@@ -4225,6 +4230,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
 
                         final int options = mqttSubscribePayload.options();
+
+                        if ((options & SUBSCRIPTION_RESERVED_MASK) != 0)
+                        {
+                            onDecodeError(traceId, authorization, MALFORMED_PACKET);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        if ((options & SUBSCRIPTION_QOS_MASK) > MqttQoS.EXACTLY_ONCE.value())
+                        {
+                            onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
                         final int flags =
                             calculateSubscribeFlags(traceId, authorization, filter, options & ~SUBSCRIPTION_QOS_MASK);
 
@@ -4359,7 +4379,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             final MqttBindingConfig binding = bindings.get(routedId);
 
-            return binding != null ? binding.resolveSubscribeReasonCode(sessionId, filter) : IMPLEMENTATION_SPECIFIC_ERROR;
+            return binding != null ? binding.resolveSubscribeReasonCode(sessionId, filter) : UNSPECIFIED_ERROR;
         }
 
         private boolean subscribeFailed(
@@ -4552,17 +4572,24 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (!adminUnsubscribe)
             {
+                final Runnable unsuback;
                 switch (version)
                 {
                 case 4:
-                    doEncodeUnsubackV4(traceId, authorization, packetId);
+                    unsuback = () -> doEncodeUnsubackV4(traceId, authorization, packetId);
                     break;
-                case 5:
-                    final OctetsFW encodePayload = octetsRO
-                        .wrap(encodeBuffer, encodeOffset, encodeProgress);
-                    doEncodeUnsubackV5(traceId, authorization, packetId, encodePayload);
+                default:
+                    final byte[] reasonCodes = new byte[encodeProgress - encodeOffset];
+                    encodeBuffer.getBytes(encodeOffset, reasonCodes);
+                    unsuback = () -> doEncodeUnsubackV5(traceId, authorization, packetId,
+                        octetsRO.wrap(new UnsafeBufferEx(reasonCodes), 0, reasonCodes.length));
                     break;
                 }
+
+                filtersByStream.keySet().stream()
+                    .filter(MqttSubscribeStream::delivering)
+                    .findFirst()
+                    .ifPresentOrElse(stream -> stream.pendingUnsubacks.add(unsuback), unsuback);
             }
         }
 
@@ -7010,6 +7037,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long replyAck;
             private int replyMax;
             private int droppedPublishBytes;
+            private int deliveredPublishBytes;
+            private final List<Runnable> pendingUnsubacks;
 
             private int state;
             private final List<Subscription> subscriptions;
@@ -7031,8 +7060,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.compositeId = compositeId;
                 this.subscriptions = new ArrayList<>();
+                this.pendingUnsubacks = new ArrayList<>();
                 this.adminSubscribe = adminSubscribe;
                 this.qos = qos;
+            }
+
+            private boolean delivering()
+            {
+                return deliveredPublishBytes > 0;
             }
 
             private Optional<Subscription> getSubscriptionByFilter(
@@ -7312,7 +7347,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     boolean dropped = false;
 
-                    if (payload != null && !subscriptions.isEmpty())
+                    if (payload != null && (!hasInit(flags) || !subscriptions.isEmpty()))
                     {
                         if (hasInit(flags))
                         {
@@ -7335,6 +7370,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             {
                                 doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD,
                                     DataFW.FIELD_OFFSET_PAYLOAD + frameLength);
+                                deliveredPublishBytes = deferred;
                             }
                             else
                             {
@@ -7346,6 +7382,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         else if (droppedPublishBytes == 0)
                         {
                             doNetworkData(traceId, authorization, 0L, payload);
+                            deliveredPublishBytes -= payload.sizeof();
+
+                            if (deliveredPublishBytes == 0)
+                            {
+                                pendingUnsubacks.forEach(Runnable::run);
+                                pendingUnsubacks.clear();
+                            }
                         }
                         else
                         {
@@ -7357,6 +7400,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     else
                     {
                         dropped = true;
+
+                        if (hasInit(flags))
+                        {
+                            droppedPublishBytes = subscribeDataEx.subscribe().deferred();
+                        }
+
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
 
