@@ -205,7 +205,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final DirectBufferEx CONTROL_CONTINUE = new UnsafeBufferEx(",".getBytes(UTF_8));
     private static final String SHARED_PREFIX = "x:";
     private static final DirectBufferEx EMPTY_VALUE = new UnsafeBufferEx(new byte[0]);
-    private static final DirectBufferEx OBJECT_OPEN = new UnsafeBufferEx("{".getBytes(UTF_8));
     private static final DirectBufferEx STRING_CLOSE = new UnsafeBufferEx("\"".getBytes(UTF_8));
 
     private static final int MIN_WINDOW = 64;
@@ -299,6 +298,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx argsBuffer;
+    private final MutableDirectBufferEx blockBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final MutableDirectBufferEx citationBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -469,6 +469,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.responseMax = (decodeMax - replyPadding) / RESPONSE_GROWTH;
         this.argsBuffer = new UnsafeBufferEx(new byte[responseMax]);
         this.memberBuffer = new UnsafeBufferEx(new byte[decodeMax]);
+        this.blockBuffer = new UnsafeBufferEx(new byte[LlmOpenaiResponsesBlockWriter.capacity(decodeMax)]);
         this.citationBuffer = new UnsafeBufferEx(new byte[elementMax + responseMax]);
         this.encodeMax = encodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodeMax]);
@@ -3850,8 +3851,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     {
         final JsonParserEx parser = server.parser;
 
-        int eventFrom = server.position();
-
         while (server.decoder == decodeItemCapture && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
@@ -3862,18 +3861,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 server.blockSection == LlmSectionType.SERVER_TOOL_CALL &&
                 LlmOpenaiResponsesItems.resultMember(server.itemType, parser.getStringView()))
             {
-                server.onDecodeItemResult(traceId, authorization, eventFrom);
+                server.onDecodeItemResult();
             }
 
             server.probe.onEvent(event, parser);
-            server.captureDepth = server.probe.depth();
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endCapture(traceId, authorization);
-            }
-
-            eventFrom = server.position();
+            server.onDecodeBlockEvent(traceId, authorization, event, parser, deferred);
         }
 
         return server.position();
@@ -3898,12 +3890,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
             server.probe.onEvent(event, parser);
-            server.captureDepth = server.probe.depth();
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endCapture(traceId, authorization);
-            }
+            server.onDecodeBlockEvent(traceId, authorization, event, parser, deferred);
         }
 
         return server.position();
@@ -4421,19 +4408,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String reasoningId;
         private int reasoningSections;
         private int reasoningSummaries;
-        private LlmSectionPipeline imagePipeline;
-        private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline citationsPipeline;
 
         private boolean probing;
+        private LlmOpenaiResponsesBlockWriter blockWriter;
+        private LlmOpenaiResponsesBlockWriter writing;
         private final LlmOpenaiResponsesAttributeProbe probe;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
         private String blockExtension;
-        private LlmSectionPipeline toolCallPipeline;
-        private LlmSectionPipeline toolDefinitionPipeline;
-        private LlmSectionPipeline serverToolCallPipeline;
-        private LlmSectionPipeline serverToolResultPipeline;
 
         private LlmOpenaiResponsesServerDecoder skipThen;
         private int skipDepth;
@@ -4629,6 +4612,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 cleanupDecodeSlot();
             }
 
+            if (writing != null)
+            {
+                writing.flush(false);
+            }
+
             flushNetWindow(traceId);
             flushNetEnd(traceId);
         }
@@ -4685,7 +4673,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     {
                         if (stalled)
                         {
-                            flushCapture(traceId, authorization, false);
+                            if (writing != null)
+                            {
+                                writing.flush(false);
+                            }
+                            else
+                            {
+                                flushCapture(traceId, authorization, false);
+                            }
+
                             progress = position();
                         }
                     }
@@ -5220,35 +5216,87 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 1;
             captureFrom = from;
+            beginBlockWriter(type);
         }
 
-        private void onDecodeItemResult(
+        private void beginBlockWriter(
+            LlmSectionType type)
+        {
+            final int kind = switch (type)
+            {
+            case TOOL_CALL -> LlmOpenaiResponsesBlockWriter.KIND_TOOL_CALL;
+            case TOOL_DEFINITION -> LlmOpenaiResponsesBlockWriter.KIND_TOOL_DEFINITION;
+            case SERVER_TOOL_CALL -> LlmOpenaiResponsesBlockWriter.KIND_SERVER_TOOL_CALL;
+            case SERVER_TOOL_RESULT -> LlmOpenaiResponsesBlockWriter.KIND_SERVER_TOOL_RESULT;
+            case USER_IMAGE -> LlmOpenaiResponsesBlockWriter.KIND_IMAGE;
+            case USER_DOCUMENT -> LlmOpenaiResponsesBlockWriter.KIND_DOCUMENT;
+            default -> NONE;
+            };
+
+            probe.consuming(kind == NONE);
+
+            if (kind != NONE)
+            {
+                if (blockWriter == null)
+                {
+                    blockWriter = new LlmOpenaiResponsesBlockWriter(blockBuffer, blockOutput, JsonEx.createGenerator());
+                }
+
+                writing = blockWriter;
+                writing.begin(kind);
+            }
+        }
+
+        private void onDecodeBlockEvent(
             long traceId,
             long authorization,
-            int eventFrom)
+            JsonEvent event,
+            JsonParserEx parser,
+            boolean deferred)
         {
-            int keyFrom = eventFrom;
-
-            while (decodedInput.getByte(keyFrom) != '"')
+            if (writing != null)
             {
-                keyFrom++;
-            }
+                final int outcome;
 
-            if (eventFrom > captureFrom)
+                if (probe.declined())
+                {
+                    parser.consumed(0);
+                    outcome = LlmOpenaiResponsesBlockWriter.MORE;
+                }
+                else
+                {
+                    outcome = writing.accept(event, parser);
+                }
+
+                if (outcome == LlmOpenaiResponsesBlockWriter.REJECT)
+                {
+                    writing = null;
+                    onDecodeBlockRejected(traceId);
+                }
+                else if (outcome == LlmOpenaiResponsesBlockWriter.DONE)
+                {
+                    endCapture(traceId, authorization);
+                }
+            }
+            else
             {
-                onDecodeData(traceId, authorization, decodedInput, captureFrom, eventFrom - captureFrom, false);
+                captureDepth = probe.depth();
+
+                if (captureDepth == 0 && !deferred)
+                {
+                    endCapture(traceId, authorization);
+                }
             }
+        }
 
-            onDecodeData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true);
-
+        private void onDecodeItemResult()
+        {
+            writing.finish();
             probing = false;
             onDecodeBlock(LlmSectionType.SERVER_TOOL_RESULT, blockMessage);
             blockExtension = itemType;
             blockAttributes.toolCallId(probe.attributes().toolCallId());
-
-            onDecodeData(traceId, authorization, OBJECT_OPEN, 0, OBJECT_OPEN.capacity(), false);
-
-            captureFrom = keyFrom;
+            beginBlockWriter(LlmSectionType.SERVER_TOOL_RESULT);
         }
 
         private void text(
@@ -5381,7 +5429,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            flushCapture(traceId, authorization, captureThen != decodeRootControl);
+            if (writing != null)
+            {
+                writing = null;
+            }
+            else
+            {
+                flushCapture(traceId, authorization, captureThen != decodeRootControl);
+            }
 
             if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
             {
@@ -5598,51 +5653,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             switch (type)
             {
-            case TOOL_CALL:
-                if (toolCallPipeline == null)
-                {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesToolCallToCanonical(), transformBuffer);
-                }
-                pipeline = toolCallPipeline;
-                break;
-            case TOOL_DEFINITION:
-                if (toolDefinitionPipeline == null)
-                {
-                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesToolDefinitionToCanonical(),
-                        transformBuffer);
-                }
-                pipeline = toolDefinitionPipeline;
-                break;
-            case SERVER_TOOL_CALL:
-                if (serverToolCallPipeline == null)
-                {
-                    serverToolCallPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesServerToolToCanonical(true),
-                        transformBuffer);
-                }
-                pipeline = serverToolCallPipeline;
-                break;
-            case SERVER_TOOL_RESULT:
-                if (serverToolResultPipeline == null)
-                {
-                    serverToolResultPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesServerToolToCanonical(false),
-                        transformBuffer);
-                }
-                pipeline = serverToolResultPipeline;
-                break;
-            case USER_IMAGE:
-                if (imagePipeline == null)
-                {
-                    imagePipeline = new LlmSectionPipeline(LlmOpenaiResponsesMediaToCanonical.image(), transformBuffer);
-                }
-                pipeline = imagePipeline;
-                break;
-            case USER_DOCUMENT:
-                if (documentPipeline == null)
-                {
-                    documentPipeline = new LlmSectionPipeline(LlmOpenaiResponsesMediaToCanonical.document(), transformBuffer);
-                }
-                pipeline = documentPipeline;
-                break;
             case CITATIONS:
                 if (citationsPipeline == null)
                 {
