@@ -49,6 +49,26 @@ public class LlmJsonEscapeTest
             is(escape(text).getBytes(UTF_8).length));
     }
 
+    @Test
+    public void shouldEscapeSpecialsAtEveryOffsetOfAWord()
+    {
+        final String[] specials = {"\"", "\\", "\n", "\u0001", "\u001f", " ", "\u00e9", "\u20ac", "\u007f"};
+
+        for (String special : specials)
+        {
+            for (int at = 0; at < 20; at++)
+            {
+                final String text = "abcdefghijklmnopqrst".substring(0, at) + special + "0123456789abcdefghijklmnopqrstuvwxyz";
+                final StringBuilder expected = new StringBuilder();
+                text.codePoints().forEach(c -> expected.append(
+                    c == '"' ? "\\\"" : c == '\\' ? "\\\\" : c == '\n' ? "\\n" : c < 0x20 ? String.format("\\u%04x", c)
+                        : new String(Character.toChars(c))));
+
+                assertThat(special + " at " + at, escape(text), equalTo(expected.toString()));
+            }
+        }
+    }
+
     private static String escape(
         String text)
     {

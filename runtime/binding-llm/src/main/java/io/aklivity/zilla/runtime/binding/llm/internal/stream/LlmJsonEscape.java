@@ -20,6 +20,12 @@ final class LlmJsonEscape
 {
     static final int EXPANSION = 6;
 
+    private static final long ONES = 0x0101010101010101L;
+    private static final long HIGH_BITS = 0x8080808080808080L;
+    private static final long CONTROLS = ONES * 0x20;
+    private static final long QUOTES = ONES * '"';
+    private static final long BACKSLASHES = ONES * '\\';
+
     private static final byte[] HEX = "0123456789abcdef".getBytes();
 
     static int escape(
@@ -29,10 +35,22 @@ final class LlmJsonEscape
         byte[] target)
     {
         int position = 0;
+        int index = 0;
 
-        for (int index = 0; index < length; index++)
+        while (index < length)
         {
+            final int plain = plainBytes(source, offset + index, length - index);
+
+            if (plain > 0)
+            {
+                source.getBytes(offset + index, target, position, plain);
+                position += plain;
+                index += plain;
+                continue;
+            }
+
             final byte b = source.getByte(offset + index);
+            index++;
 
             if (b == '"' || b == '\\')
             {
@@ -50,6 +68,31 @@ final class LlmJsonEscape
         }
 
         return position;
+    }
+
+    private static int plainBytes(
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        int plain = 0;
+
+        while (plain + Long.BYTES <= length && plainWord(source.getLong(offset + plain)))
+        {
+            plain += Long.BYTES;
+        }
+
+        return plain;
+    }
+
+    private static boolean plainWord(
+        long word)
+    {
+        final long quotes = word ^ QUOTES;
+        final long slashes = word ^ BACKSLASHES;
+        final long found = ((word - CONTROLS) & ~word | (quotes - ONES) & ~quotes | (slashes - ONES) & ~slashes) & HIGH_BITS;
+
+        return found == 0L;
     }
 
     static int escapedLength(
