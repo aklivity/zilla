@@ -2300,7 +2300,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             while (stream.decoder == state && outcome == STEP_CONTINUE)
             {
-                outcome = stream.pullMember(parser, boundary);
+                outcome = stream.server.streaming || stream.writable() ? stream.pullMember(parser, boundary) : STEP_WAIT;
+                stream.doEncodeStep();
             }
         }
         catch (JsonException ex)
@@ -2308,7 +2309,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             stream.rejectReply();
         }
 
-        return stream.positionReply(buffer, offset, state);
+        return outcome == STEP_WAIT ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
     }
 
     private int decodeReplyMemberJudge(
@@ -10590,18 +10591,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
         }
 
-        private void onDelta(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (length > 0)
-            {
-                ensureEncodeRoom(length);
-                generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
-            }
-        }
-
         private void onTail(
             DirectBufferEx buffer,
             int offset,
@@ -10658,8 +10647,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else if (length > 0)
             {
-                ensureEncodeRoom(length + 1);
-
                 if (!membersStarted)
                 {
                     membersStarted = true;
@@ -11152,7 +11139,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else if (controlMode == CONTROL_INLINE && length > 0)
             {
-                ensureEncodeRoom(length);
                 generator.writeSegment(payload, offset, length, Completion.INCOMPLETE);
             }
         }
