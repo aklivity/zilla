@@ -493,9 +493,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesReplyDecoder decodeReplyTextDescend = this::decodeReplyTextDescend;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsContinue = this::decodeReplyArgsContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsMore = this::decodeReplyArgsMore;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyArgsHeld = this::decodeReplyArgsHeld;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyMember = this::decodeReplyMember;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberContinue = this::decodeReplyMemberContinue;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberMore = this::decodeReplyMemberMore;
+    private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberHeld = this::decodeReplyMemberHeld;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudge = this::decodeReplyMemberJudge;
     private final LlmOpenaiResponsesReplyDecoder decodeReplyArgumentKey = this::decodeReplyArgumentKey;
     private final LlmOpenaiResponsesReplyDecoder decodeMembersStage = this::decodeMembersStage;
@@ -1209,7 +1211,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                             if (taken > 0)
                             {
                                 parser.consumed(taken);
-                                stream.decoder = decodeReplyTextContinue;
+                                stream.decoder = decodeReplyTextHeld;
                             }
                             else if (first)
                             {
@@ -2090,7 +2092,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgs, true);
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgs, true, false);
     }
 
     private int decodeReplyArgsContinue(
@@ -2099,7 +2101,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsContinue, false);
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsContinue, false, false);
     }
 
     private int decodeReplyArgsMore(
@@ -2108,7 +2110,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsMore, false);
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsMore, false, false);
+    }
+
+    private int decodeReplyArgsHeld(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyArgsStep(stream, buffer, offset, decodeReplyArgsHeld, false, true);
     }
 
     private int decodeReplyArgsStep(
@@ -2116,9 +2127,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         DirectBufferEx buffer,
         int offset,
         LlmOpenaiResponsesReplyDecoder state,
-        boolean boundary)
+        boolean boundary,
+        boolean held)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
 
         int outcome = STEP_CONTINUE;
 
@@ -2127,7 +2139,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             while (stream.decoder == state && outcome == STEP_CONTINUE)
             {
                 stream.beginEncode();
-                outcome = stream.stepArgs(parser, boundary);
+                outcome = stream.stepArgs(parser, boundary, held);
                 stream.doEncodeSpan();
             }
         }
@@ -2282,7 +2294,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMember, true);
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMember, true, false);
     }
 
     private int decodeReplyMemberContinue(
@@ -2291,7 +2303,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberContinue, false);
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberContinue, false, false);
     }
 
     private int decodeReplyMemberMore(
@@ -2300,7 +2312,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberMore, false);
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberMore, false, false);
+    }
+
+    private int decodeReplyMemberHeld(
+        LlmOpenaiResponsesStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyMemberStep(stream, buffer, offset, decodeReplyMemberHeld, false, true);
     }
 
     private int decodeReplyMemberStep(
@@ -2308,9 +2329,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         DirectBufferEx buffer,
         int offset,
         LlmOpenaiResponsesReplyDecoder state,
-        boolean boundary)
+        boolean boundary,
+        boolean held)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
 
         int outcome = STEP_CONTINUE;
 
@@ -2319,7 +2341,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             while (stream.decoder == state && outcome == STEP_CONTINUE)
             {
                 stream.beginEncode();
-                outcome = stream.server.streaming || stream.writable() ? stream.pullMember(parser, boundary) : STEP_WAIT;
+                outcome = stream.server.streaming || stream.writable() ? stream.pullMember(parser, boundary, held) : STEP_WAIT;
                 stream.doEncodeSpan();
             }
         }
@@ -10172,14 +10194,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private int stepArgs(
             JsonParserEx parser,
-            boolean boundary)
+            boolean boundary,
+            boolean held)
         {
-            return writable() ? pullArgs(parser, boundary) : STEP_WAIT;
+            return writable() ? pullArgs(parser, boundary, held) : STEP_WAIT;
         }
 
         private int pullArgs(
             JsonParserEx parser,
-            boolean boundary)
+            boolean boundary,
+            boolean held)
         {
             argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
 
@@ -10187,16 +10211,20 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             boolean stop = false;
             boolean complete = false;
             boolean dropped = false;
+            boolean resumed = held;
+            boolean holding = false;
             int pulled = 0;
             int pending = 0;
 
             while (more && !stop && argsGenerator.remaining() >= ARGS_HEADROOM)
             {
-                more = parser.hasNextEvent();
+                more = resumed || parser.hasNextEvent();
 
                 if (more)
                 {
-                    final JsonEvent event = parser.nextEvent();
+                    final JsonEvent event = resumed ? JsonEvent.VALUE_STRING : parser.nextEvent();
+
+                    resumed = false;
 
                     pulled++;
                     stop = !boundary;
@@ -10257,6 +10285,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                             if (consumed < chars.length() || deferred)
                             {
                                 pending = consumed;
+                                holding = !deferred;
                                 stop = true;
                             }
                             break;
@@ -10291,7 +10320,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                     decoder = complete
                         ? decodeReplyTextKey
-                        : pending > 0 ? continueArgs() : decodeReplyArgs;
+                        : holding ? decodeReplyArgsHeld : pending > 0 ? continueArgs() : decodeReplyArgs;
                     outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
                 }
                 else
@@ -11046,23 +11075,28 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private int pullMember(
             JsonParserEx parser,
-            boolean boundary)
+            boolean boundary,
+            boolean held)
         {
             memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
 
             boolean more = true;
             boolean stop = false;
             boolean complete = false;
+            boolean resumed = held;
+            boolean holding = false;
             int pulled = 0;
             int pending = 0;
 
             while (more && !stop && memberGenerator.remaining() >= ARGS_HEADROOM)
             {
-                more = parser.hasNextEvent();
+                more = resumed || parser.hasNextEvent();
 
                 if (more)
                 {
-                    final JsonEvent event = parser.nextEvent();
+                    final JsonEvent event = resumed ? JsonEvent.VALUE_STRING : parser.nextEvent();
+
+                    resumed = false;
 
                     pulled++;
                     stop = !boundary;
@@ -11122,6 +11156,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                         if (consumed < chars.length() || deferred)
                         {
                             pending = consumed;
+                            holding = !deferred;
                         }
                         else
                         {
@@ -11159,7 +11194,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 decoder = complete
                     ? decodeReplyMemberNext
-                    : pending > 0 ? continueMember() : decodeReplyMember;
+                    : holding ? decodeReplyMemberHeld : pending > 0 ? continueMember() : decodeReplyMember;
                 outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
             }
 
