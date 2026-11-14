@@ -43,6 +43,7 @@ abstract class LlmAttributeProbe
     private boolean resolved;
     private boolean rejected;
     private boolean declined;
+    private boolean consuming = true;
     private boolean continued;
 
     protected LlmAttributeProbe()
@@ -91,10 +92,23 @@ abstract class LlmAttributeProbe
         return depth;
     }
 
+    final boolean declined()
+    {
+        return declined;
+    }
+
+    final void consuming(
+        boolean consuming)
+    {
+        this.consuming = consuming;
+    }
+
     final Status onEvent(
         JsonEvent event,
         JsonParserEx parser)
     {
+        declined = false;
+
         switch (event)
         {
         case START_OBJECT:
@@ -126,7 +140,7 @@ abstract class LlmAttributeProbe
                 onString(depth, value, deferred);
             }
             continued = deferred && !declined;
-            if (deferred)
+            if (deferred && consuming)
             {
                 parser.consumed(declined ? 0 : length);
             }
