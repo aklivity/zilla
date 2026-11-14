@@ -2124,6 +2124,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             while (stream.decoder == state && outcome == STEP_CONTINUE)
             {
                 outcome = stream.stepArgs(parser, boundary);
+                stream.doEncodeStep();
             }
         }
         catch (JsonException ex)
@@ -10080,22 +10081,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return progress || encodeSent >= virtual + length;
         }
 
-        private boolean reserveStep(
-            int length)
-        {
-            if (!server.streaming && writable())
-            {
-                ensureEncodeRoom(length);
-            }
-
-            return writable();
-        }
-
         private int stepArgs(
             JsonParserEx parser,
             boolean boundary)
         {
-            return reserveStep(argsBuffer.capacity()) ? pullArgs(parser, boundary) : STEP_WAIT;
+            return writable() ? pullArgs(parser, boundary) : STEP_WAIT;
         }
 
         private int pullArgs(
@@ -10248,7 +10238,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean writeArgs(
             int length)
         {
-            ensureEncodeRoom(length);
             generator.writeSegment(argsBuffer, 0, length, Completion.INCOMPLETE);
 
             return true;
