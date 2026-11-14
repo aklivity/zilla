@@ -309,6 +309,51 @@ class EncodedStringViewTest
         }
     }
 
+    @Test
+    void shouldCopyPlainRunsLikeReadingEachChar()
+    {
+        final String[] encoded = {
+            "hello world, this is a plain value of some length 0123456789",
+            "plain run then \\n escape then more plain text after it, enough to cross runs 0123456789abcdef0123456789abcdef",
+            "quote \\\" and backslash \\\\ in the middle of plain text that goes on for a good while longer 0123456789",
+            "unicode \\u0041 and \u00e9 and \u20ac and \ud83d\ude00 between plain runs of text 0123456789abcdefghijklmnop",
+            ""
+        };
+
+        for (String value : encoded)
+        {
+            wrap(value);
+
+            for (int from = 0; from <= view.length(); from++)
+            {
+                for (int max : new int[] {0, 1, 7, 8, 9, 64, 65, 4096})
+                {
+                    final byte[] target = new byte[Math.max(max, 1)];
+                    final int copied = view.copyPlain(from, max, target);
+
+                    int expected = 0;
+                    while (expected < max && from + expected < view.length() && plain(view.charAt(from + expected)))
+                    {
+                        expected++;
+                    }
+
+                    assertEquals(expected, copied, value + " from " + from + " max " + max);
+
+                    for (int index = 0; index < copied; index++)
+                    {
+                        assertEquals(view.charAt(from + index), (char) target[index], value + " at " + (from + index));
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean plain(
+        char c)
+    {
+        return c >= 0x20 && c < 0x80 && c != '"' && c != '\\';
+    }
+
     private void wrap(
         String encoded)
     {
