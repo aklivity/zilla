@@ -136,7 +136,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ANNOTATIONS_BOUND = "The 'annotations' of an output text part are too large.";
     private static final String MESSAGE_TOOL_TYPE_MISSING = "Missing required parameter: 'type'.";
     private static final int BLOCK_BUFFER_MAX = 4096;
-    private static final int TEXT_CHUNK = 1024;
     private static final int OBFUSCATION_MIN = 4;
     private static final int OBFUSCATION_RANGE = 28;
     private static final int ELEMENT_MAX = 4096;
@@ -6318,7 +6317,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.citationsOutput = (buffer, offset, length, last) -> onCitations(buffer, offset, length);
             this.reasoningIdBytes = new byte[ID_CAPACITY];
             this.tail = new LlmHeldTail(holdPool);
-            this.argumentsOutput = (buffer, offset, length, last) -> onArguments(buffer, offset, length);
             this.valueFilter = new LlmStringFilter((buffer, offset, length, last) -> onDelta(buffer, offset, length));
             this.tailOutput = (buffer, offset, length, last) -> onTail(buffer, offset, length);
             this.membersOutput = (buffer, offset, length, last) -> onMembers(buffer, offset, length);
@@ -6647,7 +6645,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     textThen = decodeReplyRest;
                 }
 
-                if (kind == KIND_CALL && server.streaming)
+                if (kind == KIND_CALL)
                 {
                     replyMember = MEMBER_ARGUMENTS;
                     replyMemberState = decodeReplyArgs;
@@ -6670,7 +6668,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 case KIND_REASONING -> server.streaming ? decodeReasoningBegin : decodeReplyTextRoot;
                 case KIND_CITATIONS -> decodeReplyCitations;
                 case KIND_CONTROL -> decodeReplyControl;
-                case KIND_CALL -> server.streaming ? decodeCallBegin : decodeReplyValue;
+                case KIND_CALL -> server.streaming ? decodeCallBegin : decodeReplyTextRoot;
                 case KIND_PROVIDER -> server.streaming ? decodeCallBegin : decodeReplyValue;
                 case KIND_RESULT -> decodeReplyRest;
                 default -> decodeReplySkipped;
@@ -7381,13 +7379,11 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String valueMember;
         private LlmSectionPipeline valuePipeline;
         private LlmSectionPipeline restPipeline;
-        private LlmSectionPipeline argumentsPipeline;
         private LlmSectionPipeline extrasPipeline;
         private LlmSectionPipeline membersPipeline;
         private LlmSectionPipeline resultPipeline;
         private LlmOpenaiResponsesServerToolFromCanonical membersTransform;
         private final Map<String, LlmSectionPipeline> valuePipelines = new HashMap<>();
-        private final LlmSectionPipeline.Output argumentsOutput;
         private final LlmStringFilter valueFilter;
         private final LlmSectionPipeline.Output tailOutput;
         private final LlmSectionPipeline.Output membersOutput;
@@ -8730,22 +8726,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     parser.consumed(pending);
                 }
 
-                if (stepSent == 0)
+                final boolean written = server.streaming ? emitArgsDelta(length) : writeArgs(length);
+
+                if (written)
                 {
-                    stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
-                }
-
-                final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
-                final int written = generateArgsDelta(name, length, stepObfuscation);
-
-                writeSlice(name, written);
-
-                if (stepSent == written)
-                {
-                    accumulator.append(argsBuffer, 0, length);
-                    sequence++;
-                    stepSent = 0;
-
                     if (!boundary && pending > 0)
                     {
                         parser.consumed(pending);
@@ -8769,6 +8753,40 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return outcome;
+        }
+
+        private boolean emitArgsDelta(
+            int length)
+        {
+            if (stepSent == 0)
+            {
+                stepObfuscation = server.obfuscation ? fillObfuscation() : 0;
+            }
+
+            final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
+            final int written = generateArgsDelta(name, length, stepObfuscation);
+
+            writeSlice(name, written);
+
+            final boolean sent = stepSent == written;
+
+            if (sent)
+            {
+                accumulator.append(argsBuffer, 0, length);
+                sequence++;
+                stepSent = 0;
+            }
+
+            return sent;
+        }
+
+        private boolean writeArgs(
+            int length)
+        {
+            ensureEncodeRoom(length);
+            generator.writeSegment(argsBuffer, 0, length, Completion.INCOMPLETE);
+
+            return true;
         }
 
         private void dropArgs(
@@ -8962,9 +8980,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             bindAttributes();
             valueMember = MEMBER_ARGUMENTS;
             replyParser().reset();
-            valuePipeline = argumentsPipeline();
-            valuePipeline.begin(replyAttributes);
-            valueOutput = argumentsOutput;
             restPipeline = extrasPipeline();
             restPipeline.begin(replyAttributes);
             restOutput = tailOutput;
@@ -9027,15 +9042,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (valueMember != null)
             {
                 generator.writeKey(valueMember);
-
-                if (openItem == ITEM_CALL)
-                {
-                    generator.writeStartEscaped();
-                }
-                else
-                {
-                    generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
-                }
+                generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
             }
         }
 
@@ -9073,15 +9080,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void endDelta(
             int index)
         {
-            if (openItem == ITEM_CALL)
-            {
-                generator.writeEndEscaped();
-            }
-            else
-            {
-                generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
-            }
-
+            generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
             writeTail();
             writeFooter(index);
         }
@@ -9119,18 +9118,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 final String name = itemName(index);
 
                 generator.write(MEMBER_NAME, name != null ? name : "");
-            }
-        }
-
-        private void onArguments(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (length > 0)
-            {
-                ensureEncodeRoom(LlmJsonEscape.escapedLength(buffer, offset, length));
-                generator.writeSegment(buffer, offset, length);
             }
         }
 
@@ -9193,16 +9180,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     accumulator.append(buffer, offset, length);
                 }
             }
-        }
-
-        private LlmSectionPipeline argumentsPipeline()
-        {
-            if (argumentsPipeline == null)
-            {
-                argumentsPipeline = new LlmSectionPipeline(new LlmToolCallToValue(), transformBuffer);
-            }
-
-            return argumentsPipeline;
         }
 
         private LlmSectionPipeline extrasPipeline()
