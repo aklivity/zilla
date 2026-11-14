@@ -600,6 +600,12 @@ public interface JsonStringView extends CharSequenceEx
      */
     final class Escaped implements JsonStringView
     {
+        private static final long ONES = 0x0101010101010101L;
+        private static final long HIGHS = 0x8080808080808080L;
+        private static final long CONTROLS = ONES * 0x20;
+        private static final long QUOTES = ONES * '"';
+        private static final long BACKSLASHES = ONES * '\\';
+
         private DirectBufferEx buffer;
         private int offset;
         private int limit;
@@ -656,6 +662,60 @@ public interface JsonStringView extends CharSequenceEx
             }
 
             return previous;
+        }
+
+        @Override
+        public int copyPlain(
+            int from,
+            int max,
+            byte[] target)
+        {
+            final int available = Math.min(max, length - from);
+            int copied = 0;
+
+            while (copied < available)
+            {
+                if (from + copied == cursorChar && pending == 0 && unitIndex == unitCount)
+                {
+                    while (copied + Long.BYTES <= available && position + Long.BYTES <= limit &&
+                        printableWord(buffer.getLong(position)))
+                    {
+                        buffer.getBytes(position, target, copied, Long.BYTES);
+                        position += Long.BYTES;
+                        cursorChar += Long.BYTES;
+                        copied += Long.BYTES;
+                        previous = (char) (target[copied - 1] & 0xff);
+                        unitByte = position - 1;
+                    }
+                }
+
+                if (copied < available)
+                {
+                    final char c = charAt(from + copied);
+
+                    if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+                    {
+                        break;
+                    }
+
+                    target[copied++] = (byte) c;
+                }
+            }
+
+            return copied;
+        }
+
+        // whether all eight bytes are printable ASCII that is neither a quote nor a backslash, so that none starts an
+        // escape at either level and each byte is one char
+        private static boolean printableWord(
+            long word)
+        {
+            final long controls = (word - CONTROLS) & ~word;
+            final long quotes = word ^ QUOTES;
+            final long slashes = word ^ BACKSLASHES;
+            final long found = controls | (quotes - ONES) & ~quotes | (slashes - ONES) & ~slashes | word;
+
+            return (found & HIGHS) == 0L;
         }
 
         @Override
