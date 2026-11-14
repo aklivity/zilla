@@ -94,6 +94,45 @@ class JsonGeneratorStringRunTest
         }
     }
 
+    @Test
+    void shouldEscapeRawSegmentsWithSpecialsAroundEightByteWords()
+    {
+        final String[] specials = {"\"", "\\", "\n", "\u0001", "\u007f", "é", "€", "😀"};
+
+        for (String special : specials)
+        {
+            for (int at = 0; at < 26; at++)
+            {
+                final String raw = "abcdefghijklmnopqrstuvwxyz".substring(0, at) + special + "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+                final byte[] bytes = raw.getBytes(UTF_8);
+                final MutableDirectBufferEx source = new UnsafeBufferEx(bytes);
+                final StringBuilder expected = new StringBuilder();
+
+                raw.codePoints().forEach(c -> expected.append(
+                    c == '"' ? "\\\"" : c == '\\' ? "\\\\" : c == '\n' ? "\\n" : c < 0x20 ? String.format("\\u%04x", c)
+                        : new String(Character.toChars(c))));
+
+                for (int bound : new int[] {9, 16, 40, 400})
+                {
+                    final JsonGeneratorEx generator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+                    final StringBuilder result = new StringBuilder();
+                    int index = 0;
+
+                    while (index < bytes.length)
+                    {
+                        generator.wrap(buffer, 0, bound);
+                        generator.writeSegment(source, index, bytes.length - index);
+                        assertTrue(generator.consumed() > 0, "progress at " + at + " bound " + bound);
+                        index += generator.consumed();
+                        result.append(output(generator.length()));
+                    }
+
+                    assertEquals(expected.toString(), result.toString(), special + " at " + at + " bound " + bound);
+                }
+            }
+        }
+    }
+
     private String whole(
         String text,
         boolean escaped)

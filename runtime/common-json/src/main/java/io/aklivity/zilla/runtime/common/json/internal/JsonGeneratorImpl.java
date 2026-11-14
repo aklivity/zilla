@@ -53,6 +53,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private static final long ONES = 0x0101010101010101L;
     private static final long HIGH_BITS = 0x8080808080808080L;
     private static final long BACKSLASHES = ONES * '\\';
+    private static final long QUOTES = ONES * '"';
+    private static final long CONTROLS = ONES * 0x20;
     private static final int MAX_DEPTH = 64;
     private static final int REPLACEMENT = 0xfffd;
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
@@ -1436,7 +1438,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        int written = 0;
+        int written = copyUnescapedWords(source, index, length);
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
@@ -1452,6 +1454,42 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
         consumed += written;
         return written;
+    }
+
+    // Copies leading eight-byte words that are all plain ASCII (no quote, backslash or control byte), which
+    // escape to themselves, with one write; returns the number of source bytes copied.
+    private int copyUnescapedWords(
+        DirectBufferEx source,
+        int index,
+        int length)
+    {
+        final int words = Math.min(length, limit - progress) & ~(Long.BYTES - 1);
+        int copied = 0;
+        while (copied < words && unescapedWord(source.getLong(index + copied)))
+        {
+            copied += Long.BYTES;
+        }
+        if (copied > 0)
+        {
+            buffer.putBytes(progress, source, index, copied);
+            progress += copied;
+        }
+        return copied;
+    }
+
+    private static boolean unescapedWord(
+        long word)
+    {
+        final long below = (word - CONTROLS) & ~word;
+        final long found = below | zeroBytes(word ^ QUOTES) | zeroBytes(word ^ BACKSLASHES) | word;
+
+        return (found & HIGH_BITS) == 0L;
+    }
+
+    private static long zeroBytes(
+        long word)
+    {
+        return (word - ONES) & ~word;
     }
 
     // Escapes whole source units for a scope nested inside another escape level, through the bound output
