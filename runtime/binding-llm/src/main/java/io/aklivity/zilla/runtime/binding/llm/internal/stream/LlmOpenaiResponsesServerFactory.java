@@ -6339,7 +6339,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = server.streaming ? decodeMax : decodeMax - replyPadding;
+            replyMax = server.streaming ? decodeMax : responseMax + replyPadding;
 
             if (server.streaming && accumulator == null)
             {
