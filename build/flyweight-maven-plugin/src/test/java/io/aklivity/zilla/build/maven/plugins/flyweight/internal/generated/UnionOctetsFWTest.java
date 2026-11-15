@@ -251,4 +251,36 @@ public class UnionOctetsFWTest
         assertEquals(0, flyweightRO.octets16().sizeof());
         assertEquals(0, flyweightRO.octets4().sizeof());
     }
+
+    @Test
+    public void shouldNotTryWrapWhenKindNotMember()
+    {
+        buffer.putByte(10, (byte) 4);
+        assertNull(flyweightRO.tryWrap(buffer, 10, buffer.capacity()));
+    }
+
+    @Test
+    public void shouldNotWrapWhenKindNotMember()
+    {
+        buffer.putByte(10, (byte) 4);
+        try
+        {
+            flyweightRO.wrap(buffer, 10, buffer.capacity());
+            fail("Exception not thrown");
+        }
+        catch (IllegalStateException e)
+        {
+            assertEquals("Unrecognized kind: 4", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldTryWrapAndWrapWhenKindIsMember()
+    {
+        int size = setAllTestValuesCase1(buffer, 10);
+        assertSame(flyweightRO, flyweightRO.tryWrap(buffer, 10, buffer.capacity()));
+        assertEquals(10 + size, flyweightRO.limit());
+        assertSame(flyweightRO, flyweightRO.wrap(buffer, 10, buffer.capacity()));
+        assertEquals(10 + size, flyweightRO.limit());
+    }
 }
