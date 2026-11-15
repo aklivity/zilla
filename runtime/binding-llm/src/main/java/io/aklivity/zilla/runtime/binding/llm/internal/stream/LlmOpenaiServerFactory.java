@@ -127,6 +127,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
     private static final String DELIMITER_END = ">";
     private static final int ARGS_HEADROOM = 16;
+    private static final int NO_TAKEN = -1;
     private static final int ARGS_IDLE = 0;
     private static final int ARGS_FULL = 1;
     private static final int ARGS_DONE = 2;
@@ -510,6 +511,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiReplyDecoder decodeReplyArgs = this::decodeReplyArgs;
     private final LlmOpenaiReplyDecoder decodeReplyArgsHeld = this::decodeReplyArgsHeld;
+    private final LlmOpenaiReplyDecoder decodeReplyControlHeld = this::decodeReplyControlHeld;
     private final LlmOpenaiReplyDecoder decodeReplyControlValue = this::decodeReplyControlValue;
     private final LlmOpenaiReplyDecoder decodeReplyControlJudge = this::decodeReplyControlJudge;
     private final LlmOpenaiReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
@@ -811,31 +813,70 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
-        final JsonGeneratorEx value = stream.replyArgs();
+        return decodeReplyControlPass(stream, buffer, offset, decodeReplyControlValue, false);
+    }
 
-        value.wrap(extBuffer, 0, extBuffer.capacity());
+    private int decodeReplyControlHeld(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyControlPass(stream, buffer, offset, decodeReplyControlHeld, true);
+    }
+
+    private int decodeReplyControlPass(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiReplyDecoder state,
+        boolean held)
+    {
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
+
+        boolean resumed = held;
+        boolean paused = false;
+        boolean idle = false;
 
         try
         {
-            while (stream.decoder == decodeReplyControlValue && parser.hasNextEvent())
+            while (!paused && !idle &&
+                (stream.decoder == decodeReplyControlValue || stream.decoder == decodeReplyControlHeld))
             {
-                if (stream.copyReplyValue(parser.nextEvent(), parser, value))
+                final int outcome = stream.pullControl(parser, resumed);
+
+                resumed = false;
+
+                switch (outcome)
                 {
-                    stream.flushReplyControl(value);
+                case ARGS_IDLE:
+                    idle = true;
+                    break;
+                case ARGS_WAIT:
+                    paused = stream.pausedControl() || stream.generatorTight();
+                    break;
+                case ARGS_DONE:
                     stream.onEncodeControlEnd();
                     stream.decoder = decodeReplyTextKey;
+                    break;
+                case ARGS_HELD:
+                    stream.decoder = decodeReplyControlHeld;
+                    resumed = true;
+                    paused = stream.pausedControl();
+                    break;
+                default:
+                    stream.decoder = decodeReplyControlValue;
+                    paused = stream.pausedControl();
+                    break;
                 }
             }
-
-            stream.flushReplyControl(value);
         }
         catch (JsonException ex)
         {
             stream.rejectReply();
         }
 
-        return stream.positionReply(buffer, offset, decodeReplyControlValue);
+        return paused ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
     }
 
     private int decodeReplyControlJudge(
@@ -4706,7 +4747,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int replyWindowFrom;
         private int replySkipDepth;
         private int replyArgsDepth;
-        private boolean replyValueDeferred;
         private String judgedKey;
         private String replyMember;
         private LlmOpenaiReplyDecoder replyMemberState;
@@ -5260,58 +5300,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                         }
 
                         final JsonGeneratorEx args = argsGenerator();
+                        final int taken = copyEvent(args, event, parser);
 
-                        switch (event)
+                        if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
                         {
-                        case START_OBJECT:
-                            args.writeStartObject();
-                            replyArgsDepth++;
-                            break;
-                        case START_ARRAY:
-                            args.writeStartArray();
-                            replyArgsDepth++;
-                            break;
-                        case END_OBJECT, END_ARRAY:
-                            args.writeEnd();
-                            complete = --replyArgsDepth == 0;
+                            complete = replyArgsDepth == 0;
                             stop = complete;
-                            break;
-                        case VALUE_TRUE:
-                            args.write(true);
-                            break;
-                        case VALUE_FALSE:
-                            args.write(false);
-                            break;
-                        case VALUE_NULL:
-                            args.writeNull();
-                            break;
-                        default:
-                            final boolean deferred = parser.deferredBytes();
-                            final JsonStringView chars = parser.getStringView();
-                            final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
-                            final int before = args.consumed();
+                        }
 
-                            if (event == JsonEvent.KEY_NAME)
-                            {
-                                args.writeKey(chars, completion);
-                            }
-                            else if (event == JsonEvent.VALUE_NUMBER)
-                            {
-                                args.writeNumber(chars, completion);
-                            }
-                            else
-                            {
-                                args.write(chars, completion);
-                            }
-
-                            consumed = args.consumed() - before;
-
-                            if (consumed < chars.length() || deferred)
-                            {
-                                holding = !deferred;
-                                stop = true;
-                            }
-                            break;
+                        if (taken != NO_TAKEN)
+                        {
+                            consumed = taken;
+                            holding = !parser.deferredBytes();
+                            stop = true;
                         }
 
                         stop |= args.remaining() < ARGS_HEADROOM;
@@ -5389,67 +5390,132 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return argsGenerator;
         }
 
-        private boolean copyReplyValue(
+        private int copyEvent(
+            JsonGeneratorEx target,
             JsonEvent event,
-            JsonParserEx parser,
-            JsonGeneratorEx value)
+            JsonParserEx parser)
         {
-            copyReplyArgs(event, parser, value);
-
-            return replyArgsDepth == 0 && event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY &&
-                event != JsonEvent.KEY_NAME && !(event == JsonEvent.VALUE_STRING && replyValueDeferred);
-        }
-
-        private void copyReplyArgs(
-            JsonEvent event,
-            JsonParserEx parser,
-            JsonGeneratorEx args)
-        {
-            replyValueDeferred = false;
+            int taken = NO_TAKEN;
 
             switch (event)
             {
             case START_OBJECT:
-                args.writeStartObject();
+                target.writeStartObject();
                 replyArgsDepth++;
                 break;
             case START_ARRAY:
-                args.writeStartArray();
+                target.writeStartArray();
                 replyArgsDepth++;
                 break;
             case END_OBJECT, END_ARRAY:
-                args.writeEnd();
+                target.writeEnd();
                 replyArgsDepth--;
                 break;
             case VALUE_TRUE:
-                args.write(true);
+                target.write(true);
                 break;
             case VALUE_FALSE:
-                args.write(false);
+                target.write(false);
                 break;
             case VALUE_NULL:
-                args.writeNull();
-                break;
-            case KEY_NAME:
-                args.writeKey(parser.getStringView());
-                break;
-            case VALUE_NUMBER:
-                args.writeNumber(parser.getStringView());
+                target.writeNull();
                 break;
             default:
                 final boolean deferred = parser.deferredBytes();
                 final JsonStringView chars = parser.getStringView();
-                final int length = chars.length();
+                final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+                final int before = target.consumed();
 
-                args.write(chars, deferred ? Completion.INCOMPLETE : Completion.COMPLETE);
-                replyValueDeferred = deferred;
-
-                if (deferred)
+                if (event == JsonEvent.KEY_NAME)
                 {
-                    parser.consumed(length);
+                    target.writeKey(chars, completion);
+                }
+                else if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    target.writeNumber(chars, completion);
+                }
+                else
+                {
+                    target.write(chars, completion);
+                }
+
+                final int consumed = target.consumed() - before;
+
+                if (consumed < chars.length() || deferred)
+                {
+                    taken = consumed;
                 }
                 break;
             }
+
+            return taken;
+        }
+
+        private int pullControl(
+            JsonParserEx parser,
+            boolean resumed)
+        {
+            final JsonGeneratorEx value = replyArgs();
+            final int room = controlMode == CONTROL_INLINE ? Math.min(extBuffer.capacity(), generator.remaining())
+                : extBuffer.capacity();
+
+            value.wrap(extBuffer, 0, room);
+
+            int outcome = ARGS_IDLE;
+            int consumed = 0;
+            boolean more = true;
+            boolean stop = false;
+            boolean complete = false;
+            boolean holding = false;
+            boolean pending = resumed;
+            boolean pulled = false;
+
+            while (more && !stop && value.remaining() >= ARGS_HEADROOM)
+            {
+                more = pending || parser.hasNextEvent();
+
+                if (more)
+                {
+                    final JsonEvent event = pending ? JsonEvent.VALUE_STRING : parser.nextEvent();
+
+                    pending = false;
+                    pulled = true;
+
+                    final int taken = copyEvent(value, event, parser);
+                    final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY &&
+                        event != JsonEvent.KEY_NAME;
+
+                    if (taken != NO_TAKEN)
+                    {
+                        consumed = taken;
+                        holding = !parser.deferredBytes();
+                        stop = true;
+                    }
+                    else if (replyArgsDepth == 0 && scalar)
+                    {
+                        complete = true;
+                        stop = true;
+                    }
+                }
+            }
+
+            if (pulled)
+            {
+                if (consumed > 0)
+                {
+                    parser.consumed(consumed);
+                }
+
+                flushReplyControl(value);
+
+                outcome = complete ? ARGS_DONE : holding ? ARGS_HELD : more ? ARGS_FULL : ARGS_IDLE;
+            }
+            else if (more && !stop)
+            {
+                outcome = ARGS_WAIT;
+            }
+
+            return outcome;
         }
 
         private LlmOpenaiReplyDecoder controlMember(
@@ -5493,6 +5559,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 rejectReply();
             }
+        }
+
+        private boolean pausedControl()
+        {
+            boolean paused = false;
+
+            if (controlMode == CONTROL_INLINE)
+            {
+                doEncodeFlush(0);
+                beginEncode();
+
+                paused = !writable();
+            }
+
+            return paused;
+        }
+
+        private boolean generatorTight()
+        {
+            return controlMode == CONTROL_INLINE && generator.remaining() < ARGS_HEADROOM;
         }
 
         private void flushReplyControl(
