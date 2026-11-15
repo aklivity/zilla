@@ -199,6 +199,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private static final MutableDirectBufferEx NO_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final int REPLY_FRAME_OVERHEAD = 64;
     private static final int ENTRY_HEADER = 25;
     private static final int ENTRY_RAW = 4;
@@ -215,6 +216,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final BufferPool replyEncodePool;
+    private final BufferPool blockPool;
     private final BufferPool replyPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -244,9 +246,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeImageBlock = this::decodeImageBlock;
     private final LlmOpenaiServerDecoder decodeAudioBlock = this::decodeAudioBlock;
     private final LlmOpenaiServerDecoder decodeDocumentBlock = this::decodeDocumentBlock;
-    private final LlmOpenaiServerDecoder decodeToolCall = this::decodeToolCall;
-    private final LlmOpenaiServerDecoder decodeToolCallStart = this::decodeToolCallStart;
-    private final LlmOpenaiServerDecoder decodeToolCallHandoff = this::decodeToolCallHandoff;
+    private final LlmOpenaiServerDecoder decodeBlockKey = this::decodeBlockKey;
+    private final LlmOpenaiServerDecoder decodeBlockFunction = this::decodeBlockFunction;
+    private final LlmOpenaiServerDecoder decodeBlockFunctionKey = this::decodeBlockFunctionKey;
+    private final LlmOpenaiServerDecoder decodeBlockDrop = this::decodeBlockDrop;
+    private final LlmOpenaiServerDecoder decodeBlockCopy = this::decodeBlockCopy;
+    private final LlmOpenaiServerDecoder decodeBlockUnescape = this::decodeBlockUnescape;
+    private final LlmOpenaiServerDecoder decodeBlockUnescaped = this::decodeBlockUnescaped;
+    private final LlmBlockHandler blockKey = this::onBlockKey;
+    private final LlmBlockHandler blockFunction = this::onBlockFunction;
+    private final LlmBlockHandler blockFunctionKey = this::onBlockFunctionKey;
+    private final LlmBlockHandler blockDrop = this::onBlockDrop;
+    private final LlmBlockHandler blockCopy = this::onBlockCopy;
+    private final LlmBlockHandler blockUnescape = this::onBlockUnescape;
+    private final LlmBlockHandler blockUnescaped = this::onBlockUnescaped;
     private final LlmOpenaiServerDecoder decodeTool = this::decodeTool;
     private final LlmOpenaiServerDecoder decodeToolStart = this::decodeToolStart;
     private final LlmOpenaiServerDecoder decodeBlockStart = this::decodeBlockStart;
@@ -272,6 +285,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.replyEncodePool = context.bufferPool().duplicate();
+        this.blockPool = context.bufferPool().duplicate();
         this.replyPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
@@ -791,6 +805,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         stream.dataDecoder = decodeReplyTextDone;
 
         return offset;
+    }
+
+    @FunctionalInterface
+    private interface LlmBlockHandler
+    {
+        int handle(
+            LlmOpenaiServer server,
+            JsonEvent event,
+            JsonParserEx parser);
     }
 
     @FunctionalInterface
@@ -1463,8 +1486,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     {
         final JsonParserEx parser = server.parser;
 
-        parser.mark();
-
         decode:
         if (parser.hasNextEvent())
         {
@@ -1472,37 +1493,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_OBJECT:
-                boolean pending = true;
-
-                server.probe.begin(LlmSectionType.TOOL_CALL);
-
-                while (pending && parser.hasNextEvent())
-                {
-                    switch (server.probe.onEvent(parser.nextEvent(), parser))
-                    {
-                    case PENDING:
-                        break;
-                    case REJECTED:
-                        server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
-                        break decode;
-                    default:
-                        pending = false;
-                        break;
-                    }
-                }
-
-                parser.rewind();
-
-                if (!pending)
-                {
-                    server.onDecodeToolCallHandoff();
-                    server.decoder = decodeToolCallHandoff;
-                }
-                else if (server.decodedWindowLimit == limit)
-                {
-                    server.probe.restart();
-                    server.decoder = decodeToolCallStart;
-                }
+                server.beginToolCall();
+                server.decoder = decodeBlockKey;
                 break;
             case END_ARRAY:
                 server.decoder = decodeMessage;
@@ -1517,38 +1509,29 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeToolCallStart(
+    private int decodeBlock(
         LlmOpenaiServer server,
         long traceId,
         long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
+        LlmOpenaiServerDecoder state,
+        LlmBlockHandler handler)
     {
         final JsonParserEx parser = server.parser;
 
-        decode:
-        if (parser.hasNextEvent())
+        while (server.decoder == state && parser.hasNextEvent())
         {
-            final JsonEvent event = parser.nextEvent();
-            if (event != JsonEvent.START_OBJECT)
+            final int outcome = server.onBlockEvent(parser.nextEvent(), parser, handler);
+
+            if (outcome == LlmOpenaiBlockWriter.REJECT)
             {
                 server.onDecodeParseError(traceId);
-                break decode;
             }
-
-            server.capture(LlmSectionType.TOOL_CALL, server.message, decodeToolCalls);
-            server.probing = true;
-            server.decoder = decodeToolCall;
         }
 
         return server.position();
     }
 
-    private int decodeToolCallHandoff(
+    private int decodeBlockKey(
         LlmOpenaiServer server,
         long traceId,
         long authorization,
@@ -1559,18 +1542,232 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int progress,
         int limit)
     {
-        if (!server.blockPipeline.pump(server.blockOutput))
+        return decodeBlock(server, traceId, authorization, decodeBlockKey, blockKey);
+    }
+
+    private int decodeBlockFunction(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockFunction, blockFunction);
+    }
+
+    private int decodeBlockFunctionKey(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockFunctionKey, blockFunctionKey);
+    }
+
+    private int decodeBlockDrop(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockDrop, blockDrop);
+    }
+
+    private int decodeBlockCopy(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockCopy, blockCopy);
+    }
+
+    private int decodeBlockUnescape(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockUnescape, blockUnescape);
+    }
+
+    private int decodeBlockUnescaped(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeBlockUnescaped, blockUnescaped);
+    }
+
+    private int onBlockKey(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
         {
-            server.onDecodeParseError(traceId);
+            switch (server.blockWriter.rootAction(parser.getStringView()))
+            {
+            case LlmOpenaiBlockWriter.ACTION_FUNCTION:
+                server.decoder = decodeBlockFunction;
+                break;
+            case LlmOpenaiBlockWriter.ACTION_COPY:
+                server.decodeBlockCopyNext = decodeBlockKey;
+                server.decoder = decodeBlockCopy;
+                break;
+            default:
+                server.decodeBlockDropNext = decodeBlockKey;
+                server.decoder = decodeBlockDrop;
+                break;
+            }
         }
-        else if (server.blockPipeline.completed())
+        else if (event == JsonEvent.END_OBJECT && server.blockWriter.functioned())
         {
-            server.blockPipeline = null;
-            server.probing = false;
-            server.decoder = decodeToolCalls;
+            server.endToolCall();
+        }
+        else
+        {
+            outcome = LlmOpenaiBlockWriter.REJECT;
         }
 
-        return server.position();
+        return outcome;
+    }
+
+    private int onBlockFunction(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiBlockWriter.MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            server.decoder = decodeBlockFunctionKey;
+        }
+        else
+        {
+            outcome = LlmOpenaiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFunctionKey(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            if (server.blockWriter.functionAction(parser.getStringView(), parser) == LlmOpenaiBlockWriter.ACTION_UNESCAPE)
+            {
+                server.decoder = decodeBlockUnescape;
+            }
+            else
+            {
+                server.decodeBlockDropNext = decodeBlockFunctionKey;
+                server.decoder = decodeBlockDrop;
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeFunction();
+            server.decoder = decodeBlockKey;
+        }
+        else
+        {
+            outcome = LlmOpenaiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockDrop(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.drop(event, parser), server.decodeBlockDropNext);
+    }
+
+    private int onBlockCopy(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.copyValue(event, parser), server.decodeBlockCopyNext);
+    }
+
+    private int onBlockUnescape(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = server.blockWriter.unescape(event, parser);
+
+        if (outcome == LlmOpenaiBlockWriter.VALUE)
+        {
+            server.decoder = decodeBlockUnescaped;
+            outcome = LlmOpenaiBlockWriter.MORE;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockUnescaped(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.unescaped(event), decodeBlockFunctionKey);
+    }
+
+    private int onBlockValue(
+        LlmOpenaiServer server,
+        int outcome,
+        LlmOpenaiServerDecoder next)
+    {
+        if (outcome == LlmOpenaiBlockWriter.VALUE)
+        {
+            server.decoder = next;
+            outcome = LlmOpenaiBlockWriter.MORE;
+        }
+
+        return outcome;
     }
 
     private int decodeToolsStart(
@@ -2009,36 +2206,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         final JsonParserEx parser = server.parser;
 
         while (server.decoder == decodeDocumentBlock && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
-
-            server.probe.onEvent(event, parser);
-            server.captureDepth = server.probe.depth();
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endCapture(traceId, authorization);
-            }
-        }
-
-        return server.position();
-    }
-
-    private int decodeToolCall(
-        LlmOpenaiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeToolCall && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
@@ -2509,8 +2676,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private LlmSectionType blockSection;
         private int blockMessage;
         private int blockFlags;
-        private LlmSectionPipeline toolCallPipeline;
-        private LlmSectionPipeline toolCallHandoff;
+        private LlmOpenaiBlockWriter blockWriter;
+        private LlmOpenaiBlockWriter writing;
+        private LlmOpenaiServerDecoder decodeBlockDropNext;
+        private LlmOpenaiServerDecoder decodeBlockCopyNext;
+        private int blockSlot = NO_SLOT;
         private final StringBuilder controlKey = new StringBuilder();
         private LlmSectionPipeline controlPipeline;
         private LlmOpenaiControlToCanonical controlTransform;
@@ -2523,6 +2693,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private long scanAuthorization;
         private LlmSectionPipeline blockPipeline;
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
+        private final LlmOutputSink blockSink = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
         private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
@@ -2640,6 +2812,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 captureFrom = offset;
 
+                resumeWriter();
+
                 int previous;
                 LlmOpenaiServerDecoder previousDecoder;
                 do
@@ -2649,6 +2823,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     progress = decodeInput(traceId, authorization, budgetId, reserved, buffer, progress, limit);
                 }
                 while (progress != previous && progress < limit || decoder != previousDecoder);
+
+                suspendWriter();
             }
 
             if (progress < limit)
@@ -2787,7 +2963,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private int available()
         {
-            final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
+            final long credit = stream != null ? stream.initialAvailable() : 0L;
+            final int available = (int) Math.max(credit - (writing != null ? writing.pending() : 0), 0L);
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
             return available - appendRoom;
@@ -3250,6 +3427,121 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return prefix + REASONING_SUFFIX.length;
         }
 
+        private void beginToolCall()
+        {
+            beginBlock(LlmSectionType.TOOL_CALL, message, null);
+
+            if (blockWriter == null)
+            {
+                blockWriter = new LlmOpenaiBlockWriter(blockSink, JsonEx.createGenerator());
+            }
+
+            writing = blockWriter;
+            probe.begin(LlmSectionType.TOOL_CALL);
+            probe.consuming(false);
+            probing = true;
+            writing.begin(blockBuffer(), 0);
+        }
+
+        private void endToolCall()
+        {
+            writing.finish();
+            writing = null;
+            probe.consuming(true);
+            probing = false;
+            decoder = decodeToolCalls;
+        }
+
+        private int onBlockEvent(
+            JsonEvent event,
+            JsonParserEx parser,
+            LlmBlockHandler handler)
+        {
+            int outcome = LlmOpenaiBlockWriter.MORE;
+
+            if (probing)
+            {
+                probe.onEvent(event, parser);
+            }
+
+            final boolean fragment = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+            final int length = fragment ? parser.getStringView().length() : 0;
+
+
+            try
+            {
+                if (blockWriter.reserve(event, parser))
+                {
+                    outcome = handler.handle(this, event, parser);
+
+                    if (fragment && outcome != LlmOpenaiBlockWriter.REJECT)
+                    {
+                        parser.consumed(length);
+                    }
+                }
+                else
+                {
+                    outcome = LlmOpenaiBlockWriter.REJECT;
+                }
+            }
+            catch (JsonException ex)
+            {
+                outcome = LlmOpenaiBlockWriter.REJECT;
+            }
+
+            return outcome;
+        }
+
+        private MutableDirectBufferEx blockBuffer()
+        {
+            if (blockSlot == NO_SLOT)
+            {
+                blockSlot = blockPool.acquire(initialId);
+
+                if (blockSlot == NO_SLOT)
+                {
+                    cleanup(decodeTraceId);
+                }
+            }
+
+            return blockSlot != NO_SLOT ? blockPool.buffer(blockSlot) : NO_BUFFER;
+        }
+
+        private void resumeWriter()
+        {
+            if (writing != null)
+            {
+                writing.resume(blockBuffer(), 0);
+            }
+        }
+
+        private void suspendWriter()
+        {
+            if (writing != null)
+            {
+                if (decoder != decodeIgnore)
+                {
+                    writing.flush(false);
+                    writing.resume(NO_BUFFER, 0);
+                }
+                else
+                {
+                    writing = null;
+                }
+            }
+
+            cleanupBlockSlot();
+        }
+
+        private void cleanupBlockSlot()
+        {
+            if (blockSlot != NO_SLOT)
+            {
+                blockPool.release(blockSlot);
+                blockSlot = NO_SLOT;
+            }
+        }
+
         private void onDecodeBlock(
             LlmSectionType type,
             int message,
@@ -3257,26 +3549,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             beginBlock(type, message, toolCallId);
 
-            blockPipeline = blockPipelineFor(type);
-
-            if (blockPipeline != null)
-            {
-                blockPipeline.begin(blockAttributes);
-            }
-        }
-
-        private void onDecodeToolCallHandoff()
-        {
-            beginBlock(LlmSectionType.TOOL_CALL, message, null);
-
-            if (toolCallHandoff == null)
-            {
-                toolCallHandoff = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(), transformBuffer, parser);
-            }
-
-            blockPipeline = toolCallHandoff;
-            blockPipeline.begin(blockAttributes);
-            probing = true;
+            blockPipeline = null;
         }
 
         private void beginBlock(
@@ -3344,24 +3617,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             return controlPipeline;
-        }
-
-        private LlmSectionPipeline blockPipelineFor(
-            LlmSectionType type)
-        {
-            LlmSectionPipeline pipeline = null;
-
-            if (type == LlmSectionType.TOOL_CALL)
-            {
-                if (toolCallPipeline == null)
-                {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(), transformBuffer);
-                }
-
-                pipeline = toolCallPipeline;
-            }
-
-            return pipeline;
         }
 
         private void onDecodeControlKey(
@@ -3592,6 +3847,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             cleanupDecodeSlot();
             cleanupEncodeSlot();
+            cleanupBlockSlot();
             if (!deauthorized)
             {
                 deauthorized = true;
