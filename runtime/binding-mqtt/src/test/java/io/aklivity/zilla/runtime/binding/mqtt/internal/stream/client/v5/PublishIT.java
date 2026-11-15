@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -30,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class PublishIT
 {
@@ -162,6 +164,30 @@ public class PublishIT
         "${net}/server.sent.publish.topic.alias.zero/server",
         "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPublishTopicAliasZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.3.2.3.4 Topic Alias, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.exceeds.maximum/server",
+        "${app}/session.abort.on.network.error/client"})
+    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
+    public void shouldServerSentPublishTopicAliasExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.3.2.3.4 Topic Alias, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.unmapped/server",
+        "${app}/session.abort.on.network.error/client"})
+    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
+    public void shouldServerSentPublishTopicAliasUnmapped() throws Exception
     {
         k3po.finish();
     }
