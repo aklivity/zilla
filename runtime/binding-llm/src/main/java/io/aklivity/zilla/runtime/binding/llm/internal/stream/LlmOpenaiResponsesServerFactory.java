@@ -153,6 +153,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int PULL_BODY = 6;
     private static final int PULL_ELEMENT = 7;
     private static final int MARKER_LENGTH = 9;
+    private static final MutableDirectBufferEx NO_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final int MARKER_OFFSET = 1;
     private static final int MARKER_SIZE = 5;
     private static final byte REPLAY_ACCUMULATOR = 1;
@@ -304,8 +305,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final MutableDirectBufferEx noBuffer = new UnsafeBufferEx(new byte[0]);
-    private final MutableDirectBufferEx markerBuffer = new UnsafeBufferEx(new byte[MARKER_LENGTH]);
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -526,8 +525,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private byte[] pieceBytes;
     private UnsafeBufferEx pieceBuffer;
-    private final byte[] obfuscationBytes;
-    private final UnsafeBufferEx obfuscationBuffer;
 
     public LlmOpenaiResponsesServerFactory(
         EngineContext context)
@@ -550,8 +547,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.bindings = new Long2ObjectHashMap<>();
         this.pieceBytes = new byte[1024];
         this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
-        this.obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
-        this.obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -6676,7 +6671,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
             }
 
-            return blockSlot != NO_SLOT ? blockPool.buffer(blockSlot) : noBuffer;
+            return blockSlot != NO_SLOT ? blockPool.buffer(blockSlot) : NO_BUFFER;
         }
 
         private void resumeWriter()
@@ -6692,7 +6687,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (writing != null)
             {
                 writing.flush(false);
-                writing.resume(noBuffer);
+                writing.resume(NO_BUFFER);
             }
 
             cleanupBlockSlot();
@@ -8910,7 +8905,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (!server.streaming)
             {
-                final MutableDirectBufferEx buffer = acquireEncode() ? encodeBuffer() : noBuffer;
+                final MutableDirectBufferEx buffer = acquireEncode() ? encodeBuffer() : NO_BUFFER;
 
                 generator.wrap(buffer, 0, buffer.capacity());
             }
@@ -8953,7 +8948,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeFinal = true;
 
                 doEncodeData();
-                generator.wrap(noBuffer, 0, 0);
+                generator.wrap(NO_BUFFER, 0, 0);
             }
             else if (!server.streaming && writable())
             {
@@ -9225,7 +9220,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (!server.streaming)
                 {
-                    generator.wrap(noBuffer, 0, 0);
+                    generator.wrap(NO_BUFFER, 0, 0);
                 }
 
                 flushed = hold.staged() == 0;
@@ -10226,7 +10221,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final boolean acquired = acquireEncode();
             final int base = acquired && server.streaming ? beginArgsDelta() : 0;
 
-            argsGenerator.wrap(acquired ? encodeBuffer() : noBuffer, base, acquired ? encodeMax - argsTail() : base);
+            argsGenerator.wrap(acquired ? encodeBuffer() : NO_BUFFER, base, acquired ? encodeMax - argsTail() : base);
 
             boolean more = acquired;
             boolean stop = false;
@@ -10958,7 +10953,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     encodeSlotLimit = pullBase + length;
                     encodeFinal = true;
                     doEncodeData();
-                    generator.wrap(noBuffer, 0, 0);
+                    generator.wrap(NO_BUFFER, 0, 0);
                 }
                 break;
             case PULL_ELEMENT:
@@ -11582,7 +11577,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             for (int index = 0; index < length; index++)
             {
-                obfuscationBytes[index] = (byte) OBFUSCATION_ALPHABET.charAt(random.nextInt(OBFUSCATION_ALPHABET.length()));
+                extBuffer.putByte(index, (byte) OBFUSCATION_ALPHABET.charAt(random.nextInt(OBFUSCATION_ALPHABET.length())));
             }
 
             return length;
@@ -11592,7 +11587,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int length)
         {
             generator.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
-            generator.writeSegment(obfuscationBuffer, 0, length);
+            generator.writeSegment(extBuffer, 0, length);
             generator.writeEndEscaped();
         }
 
@@ -12407,13 +12402,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 encodeReplay = generator.length();
             }
 
-            markerBuffer.putByte(0, kind);
-            markerBuffer.putInt(MARKER_OFFSET, sourceOffset);
-            markerBuffer.putInt(MARKER_SIZE, length);
+            extBuffer.putByte(0, kind);
+            extBuffer.putInt(MARKER_OFFSET, sourceOffset);
+            extBuffer.putInt(MARKER_SIZE, length);
 
             final int before = generator.consumed();
 
-            generator.writeSegment(markerBuffer, 0, MARKER_LENGTH);
+            generator.writeSegment(extBuffer, 0, MARKER_LENGTH);
 
             if (generator.consumed() - before != MARKER_LENGTH)
             {
