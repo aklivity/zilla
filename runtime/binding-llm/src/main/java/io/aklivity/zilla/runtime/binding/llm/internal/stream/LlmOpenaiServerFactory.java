@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.queue.LlmQueueEntryFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.queue.LlmReplyFrameFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.Capability;
@@ -178,6 +179,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
     private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
+    private final LlmReplyFrameFW.Builder replyFrameRW = new LlmReplyFrameFW.Builder();
+    private final LlmReplyFrameFW replyFrameRO = new LlmReplyFrameFW();
     private final Array32FW<HttpHeaderFW> eventHeadersRO = new Array32FW<>(new HttpHeaderFW());
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmChallengeExFW llmChallengeExRO = new LlmChallengeExFW();
@@ -193,6 +196,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private static final int REPLY_FRAME_OVERHEAD = 64;
+    private static final int REPLY_FLAG_END = 0x40;
+    private static final int REPLY_FLAG_ERROR = 0x20;
+
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
@@ -201,6 +208,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final BufferPool holdPool;
+    private final BufferPool replyPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int llmTypeId;
@@ -257,6 +265,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
+        this.replyPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
@@ -3328,12 +3337,23 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (replyDebit == null)
                 {
-                    replyDebit = context.supplyDebit(replyId, replyBudgetId, this::flushEncodeSlot);
+                    replyDebit = context.supplyDebit(replyId, replyBudgetId, this::onReplyCredit);
                 }
                 replyDebit.declare(traceId, replyPad, 0);
             }
 
+            onReplyCredit(traceId);
+        }
+
+        private void onReplyCredit(
+            long traceId)
+        {
             flushEncodeSlot(traceId);
+
+            if (stream != null)
+            {
+                stream.decodeReply();
+            }
         }
 
         private void onNetReset(
@@ -3756,6 +3776,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline argumentsPipeline;
 
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int decodeSlotFrom;
+        private long stagedReserved;
+
         private boolean flushed;
 
         private LlmOpenaiStream(
@@ -3920,25 +3945,108 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             DataFW data)
         {
             replySeq = data.sequence() + data.reserved();
+            stagedReserved += data.reserved();
 
-            onAppSection(data);
+            stageReply(data.traceId(), data.authorization(), data.budgetId(), data.reserved(), data.flags(),
+                data.extension(), data.payload() != null ? data.payload() : EMPTY_OCTETS);
+            decodeReply();
+        }
+
+        private void stageReply(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW extension,
+            OctetsFW payload)
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = replyPool.acquire(replyId);
+            }
+
+            final int required = REPLY_FRAME_OVERHEAD + extension.sizeof() + payload.sizeof();
+
+            if (decodeSlot == NO_SLOT || decodeSlotOffset + required > replyPool.slotCapacity())
+            {
+                server.cleanup(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
+
+                decodeSlotOffset = replyFrameRW.wrap(buffer, decodeSlotOffset, replyPool.slotCapacity())
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .budgetId(budgetId)
+                    .reserved(reserved)
+                    .flags(flags)
+                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                    .payload(payload.buffer(), payload.offset(), payload.sizeof())
+                    .build()
+                    .limit();
+            }
+        }
+
+        private void decodeReply()
+        {
+            while (decodeSlot != NO_SLOT && decodeSlotFrom < decodeSlotOffset && server.encodeSlot == NO_SLOT)
+            {
+                final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
+                final LlmReplyFrameFW frame = replyFrameRO.wrap(buffer, decodeSlotFrom, decodeSlotOffset);
+
+                decodeSlotFrom = frame.limit();
+
+                if ((frame.flags() & REPLY_FLAG_END) != 0)
+                {
+                    onReplyEnd(frame);
+                }
+                else if ((frame.flags() & REPLY_FLAG_ERROR) != 0)
+                {
+                    onReplyError(frame);
+                }
+                else
+                {
+                    stagedReserved -= frame.reserved();
+                    onAppSection(frame);
+                }
+            }
+
+            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset)
+            {
+                cleanupDecodeSlot();
+            }
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                replyPool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+            }
+
+            decodeSlotOffset = 0;
+            decodeSlotFrom = 0;
+            stagedReserved = 0;
         }
 
         private void onAppSection(
-            DataFW data)
+            LlmReplyFrameFW frame)
         {
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final int flags = data.flags();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
+            final long traceId = frame.traceId();
+            final long authorization = frame.authorization();
+            final int flags = frame.flags();
+            final long budgetId = frame.budgetId();
+            final int reserved = frame.reserved();
+            final OctetsFW payload = frame.payload();
 
             beginEncode(budgetId, traceId, authorization);
 
             if (Flags.hasInit(flags))
             {
-                final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
+                final LlmDataExFW llmDataEx = frame.extension().get(llmDataExRO::tryWrap);
                 final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
                 final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
@@ -3972,7 +4080,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void ackReply(
             long traceId)
         {
-            final long replyAckMax = replySeq - server.encodeSlotRawOffset - hold.held();
+            final long replyAckMax = replySeq - server.encodeSlotRawOffset - hold.held() - stagedReserved;
 
             if (replyAckMax > replyAck)
             {
@@ -3984,12 +4092,25 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onAppEnd(
             EndFW end)
         {
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-            final OctetsFW extension = end.extension();
-
             replySeq = end.sequence();
             state = StreamState.closeReply(state);
+
+            stageReply(end.traceId(), end.authorization(), 0L, 0, REPLY_FLAG_END, end.extension(), EMPTY_OCTETS);
+
+            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
+            {
+                server.onDecodeEnd(end.traceId());
+            }
+
+            decodeReply();
+        }
+
+        private void onReplyEnd(
+            LlmReplyFrameFW frame)
+        {
+            final long traceId = frame.traceId();
+            final long authorization = frame.authorization();
+            final OctetsFW extension = frame.extension();
 
             final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
             final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
@@ -4020,11 +4141,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
             }
-
-            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
-            {
-                server.onDecodeEnd(traceId);
-            }
         }
 
         private void onAppAbort(
@@ -4037,37 +4153,58 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replySeq = abort.sequence();
             state = StreamState.closeReply(state);
 
-            cleanupHeld();
-
             final LlmAbortExFW llmAbortEx = server.streaming ? extension.get(llmAbortExRO::tryWrap) : null;
             final LlmErrorFW error = llmAbortEx != null ? llmAbortEx.error() : null;
 
             if (error != null && (error.type().asString() != null || error.message().asString() != null))
             {
-                beginEncode(0L, traceId, authorization);
-                doEncodeError(error.type().asString(), error.param().asString(), error.code().asString(),
-                    error.message().asString());
-                doEncodeFlush(0);
+                stageReply(traceId, authorization, 0L, 0, REPLY_FLAG_ERROR, extension, EMPTY_OCTETS);
 
-                if (server.encodeSlot != NO_SLOT)
+                if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
                 {
-                    server.state = StreamState.closingReply(server.state);
-                    server.pendingReplyEndTraceId = traceId;
-                    server.pendingReplyEndAuthorization = authorization;
+                    server.onDecodeEnd(traceId);
                 }
-                else
-                {
-                    server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
-                }
+
+                decodeReply();
             }
             else
             {
-                server.doNetAbort(traceId, authorization, extension);
-            }
+                cleanupDecodeSlot();
+                cleanupHeld();
 
-            if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
+                server.doNetAbort(traceId, authorization, extension);
+
+                if (StreamState.initialClosing(state) && !StreamState.initialClosed(state))
+                {
+                    server.onDecodeEnd(traceId);
+                }
+            }
+        }
+
+        private void onReplyError(
+            LlmReplyFrameFW frame)
+        {
+            final long traceId = frame.traceId();
+            final long authorization = frame.authorization();
+            final LlmAbortExFW llmAbortEx = frame.extension().get(llmAbortExRO::tryWrap);
+            final LlmErrorFW error = llmAbortEx.error();
+
+            cleanupHeld();
+
+            beginEncode(0L, traceId, authorization);
+            doEncodeError(error.type().asString(), error.param().asString(), error.code().asString(),
+                error.message().asString());
+            doEncodeFlush(0);
+
+            if (server.encodeSlot != NO_SLOT)
             {
-                server.onDecodeEnd(traceId);
+                server.state = StreamState.closingReply(server.state);
+                server.pendingReplyEndTraceId = traceId;
+                server.pendingReplyEndAuthorization = authorization;
+            }
+            else
+            {
+                server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
             }
         }
 
@@ -4835,6 +4972,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             doAppAbort(traceId);
             doAppReset(traceId);
+            cleanupDecodeSlot();
             cleanupHeld();
         }
 
