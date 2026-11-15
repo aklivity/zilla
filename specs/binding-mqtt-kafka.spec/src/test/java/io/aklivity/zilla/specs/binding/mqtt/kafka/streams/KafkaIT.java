@@ -794,6 +794,26 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expire.session.reset.group.offsets/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.reconnect.during.expire.reset.group.offsets/client",
+        "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
+    public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("CONNECT_SENT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.close.expire.session.offsets.large.interval/client",
         "${kafka}/session.close.expire.session.offsets.large.interval/server"})
     public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
