@@ -124,6 +124,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
     private static final String DELIMITER_END = ">";
     private static final int ARGS_HEADROOM = 16;
+    private static final Map<String, Object> ESCAPED_OPTIONS = Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true);
     private static final int NO_TAKEN = -1;
     private static final int ARGS_IDLE = 0;
     private static final int ARGS_FULL = 1;
@@ -3543,16 +3544,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER);
         }
 
-        private void beginControlMember(
-            JsonStringView key,
-            char separator)
+        private LlmOpenaiBlockWriter writer()
         {
             if (blockWriter == null)
             {
                 blockWriter = new LlmOpenaiBlockWriter(blockSink, JsonEx.createGenerator());
             }
 
-            writing = blockWriter;
+            return blockWriter;
+        }
+
+        private void beginControlMember(
+            JsonStringView key,
+            char separator)
+        {
+            writing = writer();
             writing.beginMember(blockBuffer(), 0, separator);
 
             if (matches(key, MEMBER_STREAM))
@@ -3875,12 +3881,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             beginBlock(LlmSectionType.TOOL_CALL, message, null);
 
-            if (blockWriter == null)
-            {
-                blockWriter = new LlmOpenaiBlockWriter(blockSink, JsonEx.createGenerator());
-            }
-
-            writing = blockWriter;
+            writing = writer();
             probe.begin(LlmSectionType.TOOL_CALL);
             probe.consuming(false);
             probing = true;
@@ -4051,12 +4052,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 controlKey.append(key);
             }
 
-            if (blockWriter == null)
-            {
-                blockWriter = new LlmOpenaiBlockWriter(blockSink, JsonEx.createGenerator());
-            }
-
-            blockWriter.memberKey(blockBuffer(), 0, open, controlKey);
+            writer().memberKey(blockBuffer(), 0, open, controlKey);
         }
 
         private void onDecodeSectionData(
@@ -5319,7 +5315,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (argsGenerator == null)
             {
-                argsGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+                argsGenerator = JsonEx.createGenerator(ESCAPED_OPTIONS);
             }
 
             return argsGenerator;
