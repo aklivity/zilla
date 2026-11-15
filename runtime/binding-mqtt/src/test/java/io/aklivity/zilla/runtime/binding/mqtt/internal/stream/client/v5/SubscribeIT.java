@@ -336,7 +336,7 @@ public class SubscribeIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.suback.too.short/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentSubackTooShort() throws Exception
     {
         k3po.finish();
@@ -347,7 +347,7 @@ public class SubscribeIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.suback.invalid.fixed.header.flags/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentSubackInvalidFixedHeaderFlags() throws Exception
     {
         k3po.finish();

@@ -138,7 +138,7 @@ public class PublishIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.publish.invalid.property.identifier/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPublishInvalidPropertyIdentifier() throws Exception
     {
         k3po.finish();
@@ -149,7 +149,7 @@ public class PublishIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.publish.too.short/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPublishTooShort() throws Exception
     {
         k3po.finish();
@@ -160,7 +160,7 @@ public class PublishIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.publish.topic.alias.zero/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPublishTopicAliasZero() throws Exception
     {
         k3po.finish();

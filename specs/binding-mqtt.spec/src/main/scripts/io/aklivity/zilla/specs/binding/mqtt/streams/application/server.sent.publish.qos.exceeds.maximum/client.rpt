@@ -41,5 +41,6 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
 
 read aborted

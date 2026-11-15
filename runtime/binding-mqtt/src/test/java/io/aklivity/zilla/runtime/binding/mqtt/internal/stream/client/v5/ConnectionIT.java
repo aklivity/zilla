@@ -167,7 +167,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.second.connack/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentSecondConnack() throws Exception
     {
         k3po.finish();
@@ -178,7 +178,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.disconnect.invalid.property.identifier/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentDisconnectInvalidPropertyIdentifier() throws Exception
     {
         k3po.finish();
@@ -189,7 +189,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.disconnect.property.not.valid/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentDisconnectPropertyNotValid() throws Exception
     {
         k3po.finish();
@@ -200,7 +200,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.disconnect.reason.string.repeated/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentDisconnectReasonStringRepeated() throws Exception
     {
         k3po.finish();
@@ -211,7 +211,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.disconnect.server.reference.repeated/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentDisconnectServerReferenceRepeated() throws Exception
     {
         k3po.finish();
@@ -222,7 +222,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.unknown.packet.type/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentUnknownPacketType() throws Exception
     {
         k3po.finish();
@@ -233,7 +233,7 @@ public class ConnectionIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.packet.too.large/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPacketTooLarge() throws Exception
     {
         k3po.finish();

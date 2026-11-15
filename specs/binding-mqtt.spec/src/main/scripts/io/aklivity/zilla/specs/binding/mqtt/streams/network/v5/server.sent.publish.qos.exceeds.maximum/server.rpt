@@ -37,6 +37,7 @@ write [0x20 0x05]  # CONNACK
       [0x02]       # properties
       [0x24 0x00]  # maximum qos = at most once
 
+write await RECEIVED_SESSION_STATE
 write [0x32 0x16]               # PUBLISH
       [0x00 0x0a] "sensor/one"  # topic name
       [0x00 0x01]               # packet id = 1

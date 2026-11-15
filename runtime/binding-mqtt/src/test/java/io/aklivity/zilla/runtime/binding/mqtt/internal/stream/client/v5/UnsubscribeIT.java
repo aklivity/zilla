@@ -96,7 +96,7 @@ public class UnsubscribeIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.unsuback.too.short/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentUnsubackTooShort() throws Exception
     {
         k3po.finish();
@@ -107,7 +107,7 @@ public class UnsubscribeIT
     @Configuration("client.yaml")
     @Specification({
         "${net}/server.sent.unsuback.invalid.fixed.header.flags/server",
-        "${app}/session.connect.abort/client"})
+        "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentUnsubackInvalidFixedHeaderFlags() throws Exception
     {
         k3po.finish();

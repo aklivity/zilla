@@ -488,4 +488,12 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/session.abort.on.network.error/client",
+        "${app}/session.abort.on.network.error/server"})
+    public void shouldAbortOnNetworkError() throws Exception
+    {
+        k3po.finish();
+    }
 }

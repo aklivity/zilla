@@ -35,6 +35,8 @@ read  [0x20 0x03]  # CONNACK
       [0x00]       # reason code
       [0x00]       # properties = none
 
+read notify RECEIVED_SESSION_STATE
+
 read  [0x30 0x00]  # PUBLISH, remaining length = 0
 
 write [0xe0 0x02]  # DISCONNECT

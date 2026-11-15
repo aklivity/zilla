@@ -36,6 +36,7 @@ write [0x20 0x03]  # CONNACK
       [0x00]       # reason code
       [0x00]       # properties = none
 
+write await RECEIVED_SESSION_STATE
 write [0x90 0x00]  # SUBACK, remaining length = 0
 
 read  [0xe0 0x02]  # DISCONNECT
