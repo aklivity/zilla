@@ -134,6 +134,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MEMBER_TEXT = "text";
     private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
+    private static final DirectBufferEx REASONING_PREFIX_BUFFER = new UnsafeBufferEx(REASONING_PREFIX);
+    private static final DirectBufferEx REASONING_SUFFIX_BUFFER = new UnsafeBufferEx(REASONING_SUFFIX);
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx QUOTE = new UnsafeBufferEx("\"".getBytes(UTF_8));
@@ -3797,7 +3799,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int length = prefix + body.transfer(chars, from, to,
                 pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + prefix));
 
-            extBuffer.putBytes(0, REASONING_PREFIX, 0, prefix);
+            extBuffer.putBytes(0, REASONING_PREFIX_BUFFER, 0, prefix);
 
             return length;
         }
@@ -3806,8 +3808,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int prefix = Flags.hasInit(blockFlags) ? REASONING_PREFIX.length : 0;
 
-            extBuffer.putBytes(0, REASONING_PREFIX, 0, prefix);
-            extBuffer.putBytes(prefix, REASONING_SUFFIX, 0, REASONING_SUFFIX.length);
+            extBuffer.putBytes(0, REASONING_PREFIX_BUFFER, 0, prefix);
+            extBuffer.putBytes(prefix, REASONING_SUFFIX_BUFFER, 0, REASONING_SUFFIX.length);
 
             return prefix + REASONING_SUFFIX.length;
         }
