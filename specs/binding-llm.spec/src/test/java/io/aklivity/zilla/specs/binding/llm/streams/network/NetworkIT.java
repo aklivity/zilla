@@ -10162,4 +10162,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.encrypted.first.rejected.bound/client",
+        "${net}/openai.responses.section.reasoning.encrypted.first.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesSectionReasoningEncryptedFirstRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }

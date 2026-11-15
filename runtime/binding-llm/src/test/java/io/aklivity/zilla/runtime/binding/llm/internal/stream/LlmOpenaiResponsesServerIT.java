@@ -2496,4 +2496,15 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.reasoning.encrypted.first.rejected.bound/client",
+        "${app}/openai.responses.section.reasoning.encrypted.first.rejected.bound/server"})
+    public void shouldDecodeOpenaiResponsesSectionReasoningEncryptedFirstRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }
