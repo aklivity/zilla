@@ -10135,4 +10135,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.10k/client",
+        "${net}/openai.transform.response.tool.call.10k/server"})
+    public void shouldForwardOpenaiTransformResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.100k/client",
+        "${net}/openai.transform.response.tool.call.100k/server"})
+    public void shouldForwardOpenaiTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
