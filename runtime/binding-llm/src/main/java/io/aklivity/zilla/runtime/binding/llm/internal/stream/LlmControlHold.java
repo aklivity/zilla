@@ -49,6 +49,7 @@ final class LlmControlHold
     private int limit;
     private int open;
     private int stageFrom = NONE;
+    private int regionFrom = NONE;
     private boolean failed;
 
     LlmControlHold(
@@ -202,6 +203,48 @@ final class LlmControlHold
         }
     }
 
+    boolean openRegion()
+    {
+        final boolean opened = regionFrom != NONE || store.get() != null && stageFrom == NONE;
+
+        if (opened && regionFrom == NONE)
+        {
+            regionFrom = limit;
+        }
+
+        return opened;
+    }
+
+    boolean regionOpen()
+    {
+        return regionFrom != NONE;
+    }
+
+    int regionOffset()
+    {
+        return regionFrom == NONE ? 0 : regionFrom;
+    }
+
+    int regionLength()
+    {
+        return regionFrom == NONE ? 0 : limit - regionFrom;
+    }
+
+    void commitRegion(
+        int length)
+    {
+        limit += length;
+    }
+
+    void closeRegion()
+    {
+        if (regionFrom != NONE)
+        {
+            limit = regionFrom;
+            regionFrom = NONE;
+        }
+    }
+
     String end()
     {
         String name = null;
@@ -313,6 +356,7 @@ final class LlmControlHold
         limit = 0;
         open = NONE;
         stageFrom = NONE;
+        regionFrom = NONE;
         failed = false;
     }
 }
