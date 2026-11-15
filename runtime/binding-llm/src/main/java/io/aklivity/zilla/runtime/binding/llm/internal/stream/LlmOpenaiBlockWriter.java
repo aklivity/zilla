@@ -112,6 +112,17 @@ final class LlmOpenaiBlockWriter
         generator.writeStartObject();
     }
 
+    void memberKey(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator,
+        CharSequence name)
+    {
+        beginMember(buffer, origin, separator);
+        generator.writeKey(name);
+        flush(false);
+    }
+
     void endMember()
     {
         flush(false);
