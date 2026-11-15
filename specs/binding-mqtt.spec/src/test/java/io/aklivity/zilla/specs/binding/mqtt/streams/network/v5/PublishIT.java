@@ -607,4 +607,49 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.invalid.property.identifier/client",
+        "${net}/publish.reject.invalid.property.identifier/server"})
+    public void shouldPublishRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.invalid.property.identifier/client",
+        "${net}/server.sent.publish.invalid.property.identifier/server"})
+    public void shouldServerSentPublishInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.too.short/client",
+        "${net}/server.sent.publish.too.short/server"})
+    public void shouldServerSentPublishTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.zero/client",
+        "${net}/server.sent.publish.topic.alias.zero/server"})
+    public void shouldServerSentPublishTopicAliasZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.qos.exceeds.maximum/client",
+        "${net}/server.sent.publish.qos.exceeds.maximum/server"})
+    public void shouldServerSentPublishQosExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
 }

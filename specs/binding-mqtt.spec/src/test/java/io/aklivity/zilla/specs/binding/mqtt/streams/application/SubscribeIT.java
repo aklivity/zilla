@@ -983,6 +983,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/server.sent.publish.payload.format.invalid/client",
+        "${app}/server.sent.publish.payload.format.invalid/server"})
+    public void shouldServerSentPublishPayloadFormatInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.reject.second.filter/client",
         "${app}/subscribe.reject.second.filter/server"})
     public void shouldRejectSecondFilterWithoutSubscribingFirst() throws Exception

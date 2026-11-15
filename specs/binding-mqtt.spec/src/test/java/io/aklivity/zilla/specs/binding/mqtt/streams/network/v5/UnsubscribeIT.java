@@ -148,4 +148,22 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unsuback.too.short/client",
+        "${net}/server.sent.unsuback.too.short/server"})
+    public void shouldServerSentUnsubackTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unsuback.invalid.fixed.header.flags/client",
+        "${net}/server.sent.unsuback.invalid.fixed.header.flags/server"})
+    public void shouldServerSentUnsubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
 }

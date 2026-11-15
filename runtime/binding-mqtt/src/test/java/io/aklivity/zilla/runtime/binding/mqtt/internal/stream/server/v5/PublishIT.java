@@ -704,4 +704,15 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.invalid.property.identifier/client",
+        "${app}/session.connect/server"})
+    public void shouldPublishRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
 }
