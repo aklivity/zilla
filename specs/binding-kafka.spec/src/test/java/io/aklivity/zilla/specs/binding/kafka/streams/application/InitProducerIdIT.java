@@ -45,4 +45,13 @@ public class InitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/produce.new.id.affinity/client",
+        "${app}/produce.new.id.affinity/server"})
+    public void shouldGenerateNewProducerIdWithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
 }
