@@ -9595,4 +9595,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.assistant.text.citations.rejected.bound/client",
+        "${app}/openai.responses.section.assistant.text.citations.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesSectionAssistantTextCitationsRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -6535,11 +6535,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int length)
         {
             tail.commit(length);
-
-            if (tail.room(Integer.MAX_VALUE) <= 0)
-            {
-                onDecodeInvalidRequest(decodeTraceId, MESSAGE_ANNOTATIONS_BOUND);
-            }
         }
 
         private void onDecodePartEnd()
@@ -6671,11 +6666,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (writing != null)
             {
-                writing.flush(false);
+                if (decoder != decodeIgnore)
+                {
+                    writing.flush(false);
+                }
+
                 writing.resume(NO_BUFFER, 0);
             }
 
-            if (!tail.held())
+            if (!tail.held() || decoder == decodeIgnore)
             {
                 tail.release();
             }
@@ -6743,12 +6742,30 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 final boolean fragment = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
                 final int length = fragment ? parser.getStringView().length() : 0;
 
-                blockWriter.reserve(event, parser);
-                outcome = handler.handle(this, event, parser);
-
-                if (fragment && outcome != LlmOpenaiResponsesBlockWriter.REJECT)
+                try
                 {
-                    parser.consumed(length);
+                    if (blockWriter.reserve(event, parser))
+                    {
+                        outcome = handler.handle(this, event, parser);
+
+                        if (fragment && outcome != LlmOpenaiResponsesBlockWriter.REJECT)
+                        {
+                            parser.consumed(length);
+                        }
+                    }
+                    else
+                    {
+                        onDecodeInvalidRequest(decodeTraceId, MESSAGE_ANNOTATIONS_BOUND);
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    if (sectionSink != holdSink)
+                    {
+                        throw ex;
+                    }
+
+                    onDecodeInvalidRequest(decodeTraceId, MESSAGE_ANNOTATIONS_BOUND);
                 }
             }
 
