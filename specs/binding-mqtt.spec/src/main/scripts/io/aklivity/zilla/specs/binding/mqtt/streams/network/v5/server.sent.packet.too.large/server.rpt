@@ -40,7 +40,7 @@ write await RECEIVED_SESSION_STATE
 write [0x30 0xd0 0x89 0x02]     # PUBLISH, remaining length = 34000
       [0x00 0x0a] "sensor/one"  # topic name
       [0x00]                    # properties = none
-      ${mqtt:randomBytes(33987)}  # oversized message payload
+      ${mqtt:randomBytes(100)}  # start of the oversized message payload
 
 read  [0xe0 0x02]  # DISCONNECT
       [0x95]       # reason = packet too large
