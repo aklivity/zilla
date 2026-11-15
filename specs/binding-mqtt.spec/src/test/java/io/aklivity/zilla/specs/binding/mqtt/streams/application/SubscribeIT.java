@@ -990,6 +990,8 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
         "${app}/subscribe.reject.second.filter/client",
         "${app}/subscribe.reject.second.filter/server"})
     public void shouldRejectSecondFilterWithoutSubscribingFirst() throws Exception
