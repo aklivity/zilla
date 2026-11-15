@@ -187,6 +187,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
+    private static final int REPLY_TAIL_MAX = 64;
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
@@ -446,6 +447,254 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int status)
     {
         return status == 429 ? "requests" : status >= 500 ? "server_error" : "invalid_request_error";
+    }
+
+    @FunctionalInterface
+    private interface LlmOpenaiReplyDecoder
+    {
+        int decode(
+            LlmOpenaiStream stream,
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
+    }
+
+    private final LlmOpenaiReplyDecoder decodeReplyNext = this::decodeReplyNext;
+    private final LlmOpenaiReplyDecoder decodeReplyLegacy = this::decodeReplyLegacy;
+    private final LlmOpenaiReplyDecoder decodeReplyTextRoot = this::decodeReplyTextRoot;
+    private final LlmOpenaiReplyDecoder decodeReplyTextObject = this::decodeReplyTextObject;
+    private final LlmOpenaiReplyDecoder decodeReplyTextKey = this::decodeReplyTextKey;
+    private final LlmOpenaiReplyDecoder decodeReplyTextValue = this::decodeReplyTextValue;
+    private final LlmOpenaiReplyDecoder decodeReplyTextContinue = this::decodeReplyTextContinue;
+    private final LlmOpenaiReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
+    private final LlmOpenaiReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
+
+    private int decodeReplyNext(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private int decodeReplyLegacy(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.onReplyLegacy(buffer, offset);
+        stream.decoder = decodeReplyNext;
+
+        return offset;
+    }
+
+    private int decodeReplyTextRoot(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == decodeReplyTextRoot && parser.hasNextEvent())
+            {
+                stream.decoder = parser.nextEvent() == JsonEvent.START_DOCUMENT ? decodeReplyTextObject : decodeReplyTextDone;
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyTextRoot);
+    }
+
+    private int decodeReplyTextObject(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == decodeReplyTextObject && parser.hasNextEvent())
+            {
+                stream.decoder = parser.nextEvent() == JsonEvent.START_OBJECT ? decodeReplyTextKey : decodeReplyTextDone;
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyTextObject);
+    }
+
+    private int decodeReplyTextKey(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == decodeReplyTextKey && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.KEY_NAME)
+                {
+                    stream.replySkipDepth = 0;
+                    stream.decoder = MEMBER_TEXT.contentEquals(parser.getStringView())
+                        ? decodeReplyTextValue
+                        : decodeReplyTextSkip;
+                }
+                else
+                {
+                    stream.decoder = decodeReplyTextDone;
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyTextKey);
+    }
+
+    private int decodeReplyTextValue(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextValue);
+    }
+
+    private int decodeReplyTextContinue(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextContinue);
+    }
+
+    private int decodeReplyTextPiece(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiReplyDecoder state)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == state && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+                    final JsonStringView chars = parser.getStringView();
+                    final int length = chars.length();
+
+                    if (length > 0)
+                    {
+                        stream.onEncodeText(chars, 0, length);
+                    }
+
+                    if (deferred)
+                    {
+                        parser.consumed(length);
+                        stream.decoder = decodeReplyTextContinue;
+                    }
+                    else
+                    {
+                        stream.decoder = decodeReplyTextDone;
+                    }
+                }
+                else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                {
+                    stream.replySkipDepth = 1;
+                    stream.decoder = decodeReplyTextSkip;
+                }
+                else
+                {
+                    stream.decoder = decodeReplyTextKey;
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, state);
+    }
+
+    private int decodeReplyTextSkip(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+
+        try
+        {
+            while (stream.decoder == decodeReplyTextSkip && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING && parser.deferredBytes())
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                {
+                    stream.replySkipDepth++;
+                }
+                else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+                {
+                    stream.replySkipDepth--;
+                }
+
+                if (stream.replySkipDepth == 0 && event != JsonEvent.KEY_NAME)
+                {
+                    stream.decoder = decodeReplyTextKey;
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            stream.rejectReply();
+        }
+
+        return stream.positionReply(buffer, offset, decodeReplyTextSkip);
+    }
+
+    private int decodeReplyTextDone(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.decoder = decodeReplyNext;
+        stream.replyTailLength = 0;
+        stream.dataDecoder = decodeReplyTextDone;
+
+        return offset;
     }
 
     @FunctionalInterface
@@ -3755,7 +4004,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
-        private LlmTextPipeline textPipeline;
         private final LlmSectionPipeline.Output encodeArguments = (buffer, offset, length, last) ->
             onEncodeArguments(buffer, offset, length);
 
@@ -3776,6 +4024,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline argumentsPipeline;
 
+        private LlmOpenaiReplyDecoder decoder;
+        private LlmOpenaiReplyDecoder dataDecoder;
+        private JsonParserEx replyParser;
+        private byte[] replyTail;
+        private int replyTailLength;
+        private int replyFlags;
+        private int replyReserved;
+        private int replyFrameLength;
+        private int replyPayloadFrom;
+        private int replyWindowFrom;
+        private int replySkipDepth;
+
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
         private int decodeSlotFrom;
@@ -3790,6 +4050,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.generator = JsonEx.createGenerator();
             this.eventStart = NO_EVENT;
             this.pendingStart = NO_EVENT;
+            this.decoder = decodeReplyNext;
+            this.dataDecoder = decodeReplyNext;
             this.delimiterBytes = new byte[64];
             this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
         }
@@ -4009,7 +4271,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else
                 {
                     stagedReserved -= frame.reserved();
-                    onAppSection(frame);
+                    onAppSection(buffer, frame);
                 }
             }
 
@@ -4033,14 +4295,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void onAppSection(
+            DirectBufferEx buffer,
             LlmReplyFrameFW frame)
         {
             final long traceId = frame.traceId();
             final long authorization = frame.authorization();
             final int flags = frame.flags();
             final long budgetId = frame.budgetId();
-            final int reserved = frame.reserved();
             final OctetsFW payload = frame.payload();
+
+            replyFlags = flags;
+            replyReserved = frame.reserved();
+            replyFrameLength = frame.limit() - frame.offset();
+            replyPayloadFrom = payload != null ? payload.offset() - frame.offset() : replyFrameLength;
 
             beginEncode(budgetId, traceId, authorization);
 
@@ -4051,6 +4318,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
                 replyAttributes.readFrom(section);
+                replyTailLength = 0;
+                replyParser().reset();
 
                 doEncodeSection(
                     type,
@@ -4058,23 +4327,139 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     replyAttributes.toolCallId(),
                     replyAttributes.toolName(),
                     replyAttributes.reasoningTag());
+
+                dataDecoder = switch (kind)
+                {
+                case KIND_TEXT, KIND_REFUSAL, KIND_REASONING -> decodeReplyTextRoot;
+                default -> decodeReplyLegacy;
+                };
             }
 
-            doEncodeData(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+            replyWindowFrom = replyPayloadFrom;
 
-            if (Flags.hasFin(flags))
+            if (replyTailLength > 0)
+            {
+                if (replyTailLength > replyPayloadFrom)
+                {
+                    rejectReply();
+                }
+                else
+                {
+                    final int gapFrom = frame.offset() + replyPayloadFrom - replyTailLength;
+
+                    ((MutableDirectBufferEx) buffer).putBytes(gapFrom, replyTail, 0, replyTailLength);
+                    replyWindowFrom -= replyTailLength;
+                    replyTailLength = 0;
+                }
+            }
+
+            decoder = dataDecoder;
+
+            LlmOpenaiReplyDecoder previous = null;
+
+            while (previous != decoder && decoder != decodeReplyNext)
+            {
+                previous = decoder;
+                decoder.decode(this, buffer, frame.offset(), frame.limit());
+            }
+
+            decoder = decodeReplyNext;
+
+            endReplyFrame(traceId);
+        }
+
+        private void endReplyFrame(
+            long traceId)
+        {
+            if (Flags.hasFin(replyFlags))
             {
                 doEncodeEnd();
             }
 
             if (encodeLength() > 0)
             {
-                doEncodeFlush(reserved);
+                doEncodeFlush(replyReserved);
             }
             else
             {
                 ackReply(traceId);
             }
+        }
+
+        private void onReplyLegacy(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            final LlmReplyFrameFW frame = replyFrameRO.wrap(buffer, offset, offset + replyFrameLength);
+            final OctetsFW payload = frame.payload();
+
+            doEncodeData(encodeTraceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(replyFlags));
+        }
+
+        private JsonParserEx replyParser()
+        {
+            if (replyParser == null)
+            {
+                replyParser = JsonEx.createParser();
+            }
+
+            return replyParser;
+        }
+
+        private JsonParserEx wrapReply(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            replyParser().wrap(buffer, offset + replyWindowFrom, offset + replyFrameLength, Flags.hasFin(replyFlags));
+
+            return replyParser;
+        }
+
+        private int positionReply(
+            DirectBufferEx buffer,
+            int offset,
+            LlmOpenaiReplyDecoder state)
+        {
+            final int windowLimit = offset + replyFrameLength;
+
+            if (decoder == state)
+            {
+                final int tailLength = Flags.hasFin(replyFlags) ? 0 : replyParser.remaining();
+
+                if (tailLength > REPLY_TAIL_MAX || tailLength > replyPayloadFrom)
+                {
+                    rejectReply();
+                }
+                else
+                {
+                    if (tailLength > 0)
+                    {
+                        if (replyTail == null)
+                        {
+                            replyTail = new byte[REPLY_TAIL_MAX];
+                        }
+
+                        buffer.getBytes(windowLimit - tailLength, replyTail, 0, tailLength);
+                    }
+
+                    replyTailLength = tailLength;
+                    dataDecoder = state;
+                    decoder = decodeReplyNext;
+                }
+            }
+            else if (decoder != decodeReplyNext)
+            {
+                replyWindowFrom = windowLimit - replyParser.remaining() - offset;
+            }
+
+            return offset;
+        }
+
+        private void rejectReply()
+        {
+            replyTailLength = 0;
+            decoder = decodeReplyNext;
+            server.cleanup(encodeTraceId);
         }
 
         private void ackReply(
@@ -4628,10 +5013,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 break;
             }
 
-            if (kind == KIND_TEXT || kind == KIND_REFUSAL)
-            {
-                textPipeline().begin();
-            }
         }
 
         private void doEncodeData(
@@ -4641,11 +5022,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int payloadLength,
             boolean fin)
         {
-            if (kind == KIND_REASONING || kind == KIND_TEXT || kind == KIND_REFUSAL)
-            {
-                textPipeline().feed(payload, payloadOffset, payloadLength, fin);
-            }
-            else if (kind == KIND_TOOL_CALL &&
+            if (kind == KIND_TOOL_CALL &&
                 !argumentsPipeline.feed(payload, payloadOffset, payloadLength, fin, encodeArguments))
             {
                 server.cleanup(traceId);
@@ -4719,23 +5096,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private void onReasoningText(
-            JsonStringView chars,
-            int from,
-            int to)
-        {
-            onEncodeText(chars, from, to);
-        }
-
-        private LlmTextPipeline textPipeline()
-        {
-            if (textPipeline == null)
-            {
-                textPipeline = new LlmTextPipeline(this::onReasoningText);
-            }
-            return textPipeline;
-        }
-
         private void sectionReasoning(
             String tag)
         {
@@ -4747,7 +5107,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (kind != KIND_SKIPPED)
             {
                 kind = KIND_REASONING;
-                textPipeline().begin();
 
                 if (reasoningTag == null)
                 {
