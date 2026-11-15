@@ -76,9 +76,9 @@ public class SubscribeIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/subscribe.reject.missing.packet.id/client",
-        "${net}/subscribe.reject.missing.packet.id/server"})
-    public void shouldRejectWithoutPacketId() throws Exception
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${net}/subscribe.reject.omitted.packet.id/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
     {
         k3po.finish();
     }

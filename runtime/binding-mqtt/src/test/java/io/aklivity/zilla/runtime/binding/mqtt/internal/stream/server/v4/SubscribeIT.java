@@ -474,6 +474,17 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // 3.8.2 variable header is the Packet Identifier; [MQTT-4.8.0-1] protocol violation closes the connection
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-2.3.1-1], [MQTT-4.8.0-1]
     @Test
     @Configuration("server.yaml")

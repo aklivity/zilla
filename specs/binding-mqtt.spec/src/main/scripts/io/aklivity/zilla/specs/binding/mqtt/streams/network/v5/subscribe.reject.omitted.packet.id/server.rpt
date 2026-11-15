@@ -35,14 +35,14 @@ write [0x20 0x03]                   # CONNACK
       [0x00]                        # reason code
       [0x00]                        # properties
 
-read  [0x82 0x10]                   # SUBSCRIBE
+read  [0x82 0x10]                   # SUBSCRIBE, packet id omitted
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x00 0x0a] "sensor/one"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
 write [0xe0 0x02]                   # disconnect header
-      [0x82]                        # disconnect = protocol error
+      [0x81]                        # disconnect = malformed packet
       [0x00]                        # properties = none
 
 write close
