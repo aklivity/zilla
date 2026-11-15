@@ -989,4 +989,11 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+        "${app}/subscribe.reject.second.filter/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterWithoutSubscribingFirst() throws Exception
+    {
+        k3po.finish();
+    }
 }
