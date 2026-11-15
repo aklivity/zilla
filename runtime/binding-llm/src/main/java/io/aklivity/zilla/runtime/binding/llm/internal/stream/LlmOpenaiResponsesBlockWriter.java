@@ -235,7 +235,7 @@ final class LlmOpenaiResponsesBlockWriter
         return selected;
     }
 
-    void reserve(
+    boolean reserve(
         JsonEvent event,
         JsonParserEx parser)
     {
@@ -250,6 +250,8 @@ final class LlmOpenaiResponsesBlockWriter
         {
             flush(false);
         }
+
+        return generator.remaining() >= need;
     }
 
     int drop(

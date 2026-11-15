@@ -10153,4 +10153,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations.rejected.bound/client",
+        "${net}/openai.responses.section.assistant.text.citations.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesSectionAssistantTextCitationsRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }

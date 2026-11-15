@@ -2485,4 +2485,15 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations.rejected.bound/client",
+        "${app}/openai.responses.section.assistant.text.citations.rejected.bound/server"})
+    public void shouldDecodeOpenaiResponsesSectionAssistantTextCitationsRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }
