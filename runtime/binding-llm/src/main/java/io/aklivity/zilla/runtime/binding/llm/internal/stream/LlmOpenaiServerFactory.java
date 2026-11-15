@@ -5849,7 +5849,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 generator.wrap(extBuffer, 0, extBuffer.capacity());
             }
 
-            if (eventOpen)
+            if (eventStart == EVENT_SUSPENDED)
             {
                 eventStart = 0;
             }
@@ -5867,10 +5867,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (server.streaming)
                 {
-                    if (eventOpen && eventStart != NO_EVENT)
+                    if (eventStart >= 0)
                     {
                         emitEvent(encodeLength(), false);
-                        eventStart = NO_EVENT;
+                        eventStart = EVENT_SUSPENDED;
                     }
                 }
                 else if (encodeLength() > 0)
@@ -5982,6 +5982,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private static final int NO_EVENT = -1;
+        private static final int EVENT_SUSPENDED = -2;
 
         private static final int KIND_NONE = 0;
         private static final int KIND_TEXT = 1;
@@ -6015,6 +6016,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int ENVELOPE_PRELUDE = 0;
         private static final int ENVELOPE_CHOICE = 1;
         private static final int ENVELOPE_TAIL = 2;
+        private static final int ENVELOPE_CLOSED = 3;
 
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
@@ -6041,7 +6043,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private long encodeTraceId;
         private long encodeAuthorization;
         private long encodeBudgetId;
-        private boolean eventOpen;
         private boolean eventStarted;
         private int eventStart;
 
@@ -6058,7 +6059,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean refusalWritten;
         private int toolCalls;
         private int envelope;
-        private boolean messageClosed;
 
         private String reasoningTag;
 
@@ -6101,7 +6101,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int next = type == LlmSectionType.CONTROL
                 ? KIND_CONTROL
-                : message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+                : message == MESSAGE_FIRST && (envelope == ENVELOPE_PRELUDE || envelope == ENVELOPE_CHOICE)
+                    ? kindOf(type) : KIND_SKIPPED;
 
             if (next != KIND_REASONING)
             {
@@ -6371,10 +6372,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 closeMember();
 
-                if (MEMBER_LOGPROBS.equals(name) && !messageClosed)
+                if (MEMBER_LOGPROBS.equals(name) && envelope == ENVELOPE_CHOICE)
                 {
                     generator.writeEnd();
-                    messageClosed = true;
+                    envelope = ENVELOPE_CLOSED;
                 }
             }
 
@@ -6530,7 +6531,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     openChoices();
                 }
 
-                if (envelope == ENVELOPE_CHOICE)
+                if (envelope == ENVELOPE_CHOICE || envelope == ENVELOPE_CLOSED)
                 {
                     closeChoice(reason);
                 }
@@ -6552,7 +6553,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String code,
             String message)
         {
-            if (eventOpen)
+            if (eventStart != NO_EVENT)
             {
                 eventEnd(encodeLength());
             }
@@ -6593,7 +6594,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void eventBegin(
             int position)
         {
-            this.eventOpen = true;
             this.eventStarted = false;
             this.eventStart = position;
         }
@@ -6601,10 +6601,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void eventEnd(
             int position)
         {
-            if (eventOpen)
+            if (eventStart != NO_EVENT)
             {
                 emitEvent(position, true);
-                eventOpen = false;
                 eventStart = NO_EVENT;
                 generator.reset();
             }
@@ -6744,10 +6743,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             closeMember();
 
-            if (!messageClosed)
+            if (envelope == ENVELOPE_CHOICE)
             {
                 generator.writeEnd();
-                messageClosed = true;
             }
 
             if (reason != null)
