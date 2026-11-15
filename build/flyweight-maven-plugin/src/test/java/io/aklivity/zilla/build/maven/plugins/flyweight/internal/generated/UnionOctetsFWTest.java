@@ -209,7 +209,7 @@ public class UnionOctetsFWTest
         String string1 = null;
         int limit = flyweightRW.wrap(buffer, 10, buffer.capacity())
             .string1(string1).build().limit();
-        flyweightRO.wrap(buffer,  0,  limit);
+        flyweightRO.wrap(buffer,  10,  limit);
         assertEquals(null, flyweightRO.string1().asString());
     }
 
@@ -242,14 +242,18 @@ public class UnionOctetsFWTest
     }
 
     @Test
-    public void shouldBuildWithNothingSet()
+    public void shouldNotBuildWithNothingSet()
     {
-        int limit = flyweightRW.wrap(buffer, 10, buffer.capacity())
-            .build()
-            .limit();
-        flyweightRO.wrap(buffer,  0,  limit);
-        assertEquals(0, flyweightRO.octets16().sizeof());
-        assertEquals(0, flyweightRO.octets4().sizeof());
+        try
+        {
+            flyweightRW.wrap(buffer, 10, buffer.capacity())
+                .build();
+            fail("Exception not thrown");
+        }
+        catch (IllegalStateException e)
+        {
+            assertEquals("Unrecognized kind: 171", e.getMessage());
+        }
     }
 
     @Test

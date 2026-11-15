@@ -693,7 +693,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
         public MethodSpec generate()
         {
             return builder.beginControlFlow("default:")
-                          .addStatement("break")
+                          .addStatement("return null")
                           .endControlFlow()
                           .endControlFlow()
                           .beginControlFlow("if (limit() > maxLimit)")
@@ -781,7 +781,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
         public MethodSpec generate()
         {
             return builder.beginControlFlow("default:")
-                          .addStatement("break")
+                          .addStatement("throw new IllegalStateException(\"Unrecognized kind: \" + kind())")
                           .endControlFlow()
                           .endControlFlow()
                           .addStatement("checkLimit(limit(), maxLimit)")
