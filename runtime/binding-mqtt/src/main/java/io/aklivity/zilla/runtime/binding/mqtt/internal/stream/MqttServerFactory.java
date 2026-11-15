@@ -2391,6 +2391,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = MALFORMED_PACKET;
             }
+            else
+            {
+                reasonCode = decodeUnsubscribeProperties(unsubscribeV5.properties());
+            }
 
             if (reasonCode == 0)
             {
@@ -2407,6 +2411,42 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return progress;
+    }
+
+    private int decodeUnsubscribeProperties(
+        MqttPropertiesFW properties)
+    {
+        int reasonCode = SUCCESS;
+
+        final OctetsFW propertiesValue = properties.value();
+        final DirectBufferEx propertiesBuffer = propertiesValue.buffer();
+        final int propertiesOffset = propertiesValue.offset();
+        final int propertiesLimit = propertiesValue.limit();
+
+        decodeProperties:
+        for (int propertiesProgress = propertiesOffset; propertiesProgress < propertiesLimit; )
+        {
+            final MqttPropertyFW mqttProperty =
+                mqttPropertyRO.tryWrap(propertiesBuffer, propertiesProgress, propertiesLimit);
+            if (mqttProperty == null)
+            {
+                reasonCode = MALFORMED_PACKET;
+                break decodeProperties;
+            }
+
+            switch (mqttProperty.kind())
+            {
+            case KIND_USER_PROPERTY:
+                break;
+            default:
+                reasonCode = MALFORMED_PACKET;
+                break decodeProperties;
+            }
+
+            propertiesProgress = mqttProperty.limit();
+        }
+
+        return reasonCode;
     }
 
     private int decodePingreq(
