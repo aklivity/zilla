@@ -171,4 +171,22 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.broker.unknown.refresh.meta.aborted/client",
+        "${net}/create.topics.v7.broker.unknown.refresh.meta.aborted/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenLastMetaStreamAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.broker.unknown.refresh.meta.ended/client",
+        "${net}/create.topics.v7.broker.unknown.refresh.meta.ended/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenLastMetaStreamEnded() throws Exception
+    {
+        k3po.finish();
+    }
 }
