@@ -300,7 +300,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx noBuffer = new UnsafeBufferEx(new byte[0]);
     private final MutableDirectBufferEx markerBuffer = new UnsafeBufferEx(new byte[MARKER_LENGTH]);
-    private final MutableDirectBufferEx argsBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -310,6 +309,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final BufferPool accumulatePool;
     private final BufferPool holdPool;
     private final BufferPool blockPool;
+    private final BufferPool pullPool;
     private final int elementMax;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -536,12 +536,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.accumulatePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
         this.blockPool = context.bufferPool().duplicate();
+        this.pullPool = context.bufferPool().duplicate();
         this.elementMax = Math.min(ELEMENT_MAX, holdPool.slotCapacity());
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.encodeMax = encodePool.slotCapacity();
         this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
-        this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -7876,6 +7876,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmOpenaiResponsesReplyDecoder decodeReplyMemberJudgeNext = decodeReplyTextKey;
         private int stepDeltaOffset;
         private int encodeSlot = NO_SLOT;
+        private int pullSlot = NO_SLOT;
         private int stepDeltaLength;
         private int stepDeltaTaken;
         private LlmOutputSink restOutput;
@@ -10818,9 +10819,47 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             memberGenerator.reset();
-            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            wrapPull();
             memberGenerator.writeStartObject();
             memberDepth = 0;
+            cleanupPullSlot();
+        }
+
+        private void wrapPull()
+        {
+            final MutableDirectBufferEx buffer = pullBuffer();
+
+            memberGenerator.wrap(buffer, 0, Math.min(pullMax, buffer.capacity()));
+        }
+
+        private MutableDirectBufferEx pullBuffer()
+        {
+            if (pullSlot == NO_SLOT)
+            {
+                pullSlot = pullPool.acquire(server.replyId);
+
+                if (pullSlot == NO_SLOT)
+                {
+                    server.cleanup(encodeTraceId);
+                }
+            }
+
+            return pullSlot != NO_SLOT ? pullPool.buffer(pullSlot) : noBuffer;
+        }
+
+        private void putPulled()
+        {
+            restOutput.put(pullBuffer(), 0, memberGenerator.length(), false);
+            cleanupPullSlot();
+        }
+
+        private void cleanupPullSlot()
+        {
+            if (pullSlot != NO_SLOT)
+            {
+                pullPool.release(pullSlot);
+                pullSlot = NO_SLOT;
+            }
         }
 
         private LlmOpenaiResponsesReplyDecoder otherMember(
@@ -10840,9 +10879,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (action == LlmMemberKeys.COPY)
                 {
-                    memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                    wrapPull();
                     memberGenerator.writeKey(memberKeys.target());
-                    restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                    putPulled();
                     decodeReplyMemberNext = decodeReplyTextKey;
                     memberCapture = kind == KIND_REASONING && REASONING_ID_KEY.contentEquals(key) ? reasoningIdBuilder : null;
 
@@ -10904,9 +10943,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             if (action == LlmMemberKeys.COPY)
             {
-                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                wrapPull();
                 memberGenerator.writeKey(memberKeys.target());
-                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                putPulled();
                 memberCapture = null;
                 decodeReplyMemberNext = decodeReplyOptionKey;
                 state = decodeReplyMember;
@@ -10924,17 +10963,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void beginCitations()
         {
             memberGenerator.reset();
-            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            wrapPull();
             memberGenerator.writeStartArray();
-            restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+            putPulled();
             decoder = decodeReplyCitationElement;
         }
 
         private void endCitations()
         {
-            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            wrapPull();
             memberGenerator.writeEnd();
-            restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+            putPulled();
             advanceFollow = decodeReplyTextDone;
             decoder = server.streaming ? decodeCitationElements : decodeReplyTextDone;
         }
@@ -10961,7 +11000,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
                 if (action == LlmMemberKeys.COPY)
                 {
-                    memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                    wrapPull();
 
                     if (!open)
                     {
@@ -10969,7 +11008,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     }
 
                     memberGenerator.writeKey(memberKeys.target());
-                    restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                    putPulled();
                     memberCapture = null;
                     decodeReplyMemberNext = nested ? decodeReplyCitationNestedKey : decodeReplyCitationKey;
                     state = decodeReplyMember;
@@ -10997,9 +11036,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else if (open)
             {
-                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                wrapPull();
                 memberGenerator.writeEnd();
-                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                putPulled();
                 advanceFollow = decodeReplyCitationElement;
 
                 if (!server.streaming)
@@ -11031,9 +11070,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (object)
             {
-                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                wrapPull();
                 memberGenerator.writeStartObject();
-                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                putPulled();
                 decodeReplyTextSkipNext = decodeReplyOptionKey;
                 decoder = decodeReplyOptionKey;
             }
@@ -11045,9 +11084,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
         private LlmOpenaiResponsesReplyDecoder endOptions()
         {
-            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            wrapPull();
             memberGenerator.writeEnd();
-            restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+            putPulled();
 
             return decodeReplyControlEnd;
         }
@@ -11075,9 +11114,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (valueMember == null || !valueMember.contentEquals(key))
             {
                 memberKeys.copyAll(key);
-                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                wrapPull();
                 memberGenerator.writeKey(memberKeys.target());
-                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                putPulled();
                 decodeReplyMemberNext = decodeReplyArgumentKey;
                 state = decodeReplyMember;
             }
@@ -11111,7 +11150,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             boolean boundary,
             boolean held)
         {
-            memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            wrapPull();
 
             boolean more = true;
             boolean stop = false;
@@ -11218,7 +11257,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     parser.consumed(pending);
                 }
 
-                restOutput.put(argsBuffer, 0, memberGenerator.length(), false);
+                putPulled();
 
                 if (!boundary && pending > 0)
                 {
@@ -11230,6 +11269,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     : holding ? decodeReplyMemberHeld : pending > 0 ? continueMember() : decodeReplyMember;
                 outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
             }
+
+            cleanupPullSlot();
 
             return outcome;
         }
@@ -11368,6 +11409,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             cleanupDecodeSlot();
             cleanupAccumulator();
             cleanupHeld();
+            cleanupPullSlot();
         }
 
         private void cleanupHeld()
