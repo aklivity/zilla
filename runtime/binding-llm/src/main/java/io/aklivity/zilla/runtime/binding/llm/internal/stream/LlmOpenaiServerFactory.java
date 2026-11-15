@@ -200,16 +200,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private static final int REPLY_FRAME_OVERHEAD = 64;
+    private static final int ENTRY_HEADER = 25;
+    private static final int ENTRY_RAW = 4;
+    private static final int ENTRY_FLAGS = 8;
+    private static final int ENTRY_TRACE = 9;
+    private static final int ENTRY_AUTHORIZATION = 17;
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
 
-    private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final BufferPool replyEncodePool;
     private final BufferPool replyPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -266,9 +271,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
+        this.replyEncodePool = context.bufferPool().duplicate();
         this.replyPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
-        this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -3692,6 +3697,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (stream != null)
             {
+                stream.flushEncodeSlot(traceId);
                 stream.decodeReply();
             }
         }
@@ -3919,7 +3925,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 stream.ackReply(traceId);
             }
 
-            if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && encodeSlot == NO_SLOT)
+            if (StreamState.replyClosing(state) && !StreamState.replyClosed(state) && encodeSlot == NO_SLOT &&
+                (stream == null || stream.writable()))
             {
                 doNetEnd(pendingReplyEndTraceId, pendingReplyEndAuthorization, EMPTY_OCTETS);
             }
@@ -4142,7 +4149,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.server = server;
             this.generator = JsonEx.createGenerator();
             this.eventStart = NO_EVENT;
-            this.pendingStart = NO_EVENT;
             this.decoder = decodeReplyNext;
             this.dataDecoder = decodeReplyNext;
             this.delimiterBytes = new byte[64];
@@ -4346,7 +4352,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void decodeReply()
         {
-            while (decodeSlot != NO_SLOT && decodeSlotFrom < decodeSlotOffset && server.encodeSlot == NO_SLOT)
+            while (decodeSlot != NO_SLOT && decodeSlotFrom < decodeSlotOffset && writable())
             {
                 final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
                 final LlmReplyFrameFW frame = replyFrameRO.wrap(buffer, decodeSlotFrom, decodeSlotOffset);
@@ -4485,25 +4491,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             decoder = decodeReplyNext;
 
-            endReplyFrame(traceId);
+            endReplyFrame();
         }
 
-        private void endReplyFrame(
-            long traceId)
+        private void endReplyFrame()
         {
             if (Flags.hasFin(replyFlags))
             {
                 doEncodeEnd();
             }
 
-            if (encodeLength() > 0)
-            {
-                doEncodeFlush(replyReserved);
-            }
-            else
-            {
-                ackReply(traceId);
-            }
+            doEncodeFlush(replyReserved);
         }
 
         private JsonParserEx replyParser()
@@ -4725,7 +4723,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void ackReply(
             long traceId)
         {
-            final long replyAckMax = replySeq - server.encodeSlotRawOffset - hold.held() - stagedReserved;
+            final long replyAckMax = replySeq - server.encodeSlotRawOffset - encodePending - hold.held() - stagedReserved;
 
             if (replyAckMax > replyAck)
             {
@@ -4776,7 +4774,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             doEncodeFlush(0);
 
-            if (server.encodeSlot != NO_SLOT)
+            if (!writable())
             {
                 server.state = StreamState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
@@ -4815,6 +4813,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             else
             {
                 cleanupDecodeSlot();
+                cleanupEncodeSlot();
                 cleanupHeld();
 
                 server.doNetAbort(traceId, authorization, extension);
@@ -4841,7 +4840,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 error.message().asString());
             doEncodeFlush(0);
 
-            if (server.encodeSlot != NO_SLOT)
+            if (!writable())
             {
                 server.state = StreamState.closingReply(server.state);
                 server.pendingReplyEndTraceId = traceId;
@@ -5073,8 +5072,23 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             encodeBudgetId = budgetId;
             encodeTraceId = traceId;
             encodeAuthorization = authorization;
+            encodeEntryAt = NONE;
 
-            generator.wrap(copyBuffer, 0, copyBuffer.capacity());
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = replyEncodePool.acquire(replyId);
+            }
+
+            if (encodeSlot != NO_SLOT)
+            {
+                encodeBase = encodeSlotLimit + ENTRY_HEADER;
+                generator.wrap(replyEncodePool.buffer(encodeSlot), encodeBase, replyEncodePool.slotCapacity());
+            }
+            else
+            {
+                server.cleanup(traceId);
+                generator.wrap(extBuffer, 0, extBuffer.capacity());
+            }
 
             if (eventOpen)
             {
@@ -5082,35 +5096,132 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
+        private boolean writable()
+        {
+            return encodeSlotOffset == encodeSlotLimit;
+        }
+
         private void doEncodeFlush(
             int reserved)
         {
-            if (server.streaming)
+            if (encodeSlot != NO_SLOT)
             {
-                if (eventOpen && eventStart != NO_EVENT)
+                if (server.streaming)
                 {
-                    emitEvent(encodeLength(), false);
-                    eventStart = NO_EVENT;
+                    if (eventOpen && eventStart != NO_EVENT)
+                    {
+                        emitEvent(encodeLength(), false);
+                        eventStart = NO_EVENT;
+                    }
+                }
+                else if (encodeLength() > 0)
+                {
+                    writeEntry(encodeBase, encodeLength(), Flags.COMPLETE);
                 }
 
-                if (pendingStart != NO_EVENT)
+                if (encodeEntryAt != NONE && reserved > 0)
                 {
-                    flushPendingEvent(reserved);
+                    final MutableDirectBufferEx buffer = replyEncodePool.buffer(encodeSlot);
+
+                    buffer.putInt(encodeEntryAt + ENTRY_RAW, reserved);
+                    encodePending += reserved;
                 }
-                else
+            }
+
+            flushEncodeSlot(encodeTraceId);
+        }
+
+        private void writeEntry(
+            int start,
+            int length,
+            int flags)
+        {
+            final MutableDirectBufferEx buffer = replyEncodePool.buffer(encodeSlot);
+            final int at = start - ENTRY_HEADER;
+
+            buffer.putInt(at, length);
+            buffer.putInt(at + ENTRY_RAW, 0);
+            buffer.putByte(at + ENTRY_FLAGS, (byte) flags);
+            buffer.putLong(at + ENTRY_TRACE, encodeTraceId);
+            buffer.putLong(at + ENTRY_AUTHORIZATION, encodeAuthorization);
+
+            encodeEntryAt = at;
+            encodeSlotLimit = start + length;
+            encodeBase = encodeSlotLimit + ENTRY_HEADER;
+            generator.wrap(buffer, encodeBase, replyEncodePool.slotCapacity());
+        }
+
+        private void flushEncodeSlot(
+            long traceId)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx buffer = replyEncodePool.buffer(encodeSlot);
+
+                boolean progress = true;
+
+                while (progress && encodeSlotOffset < encodeSlotLimit)
                 {
-                    ackReply(encodeTraceId);
+                    final int length = buffer.getInt(encodeSlotOffset);
+                    final int raw = buffer.getInt(encodeSlotOffset + ENTRY_RAW);
+                    final int flags = buffer.getByte(encodeSlotOffset + ENTRY_FLAGS) & 0xFF;
+                    final long entryTraceId = buffer.getLong(encodeSlotOffset + ENTRY_TRACE);
+                    final long entryAuthorization = buffer.getLong(encodeSlotOffset + ENTRY_AUTHORIZATION);
+                    final int payload = encodeSlotOffset + ENTRY_HEADER;
+                    final int remaining = length - encodeSent;
+                    final long available = server.replyMax - (server.replySeq - server.replyAck) - server.replyPad;
+                    final int sliceMax = (int) Math.min(remaining, Math.max(available, 0L));
+                    final int slice = sliceMax > 0 ? server.claimReply(entryTraceId, 1, sliceMax) : sliceMax;
+
+                    progress = slice > 0 || remaining == 0 && available > 0;
+
+                    if (progress)
+                    {
+                        final boolean init = encodeSent == 0 && Flags.hasInit(flags);
+                        final int initFlags = init ? Flags.INIT : Flags.NONE;
+
+                        encodeSent += slice;
+
+                        final boolean last = encodeSent == length && Flags.hasFin(flags);
+
+                        server.doNetData(entryTraceId, entryAuthorization, last ? Flags.fin(initFlags) : initFlags, 0L,
+                            slice + server.replyPad, EMPTY_OCTETS, buffer, payload + encodeSent - slice, slice);
+
+                        if (encodeSent == length)
+                        {
+                            encodePending -= raw;
+                            encodeSlotOffset = payload + length;
+                            encodeSent = 0;
+                        }
+                    }
+                }
+
+                if (writable())
+                {
+                    cleanupEncodeSlot();
                 }
             }
-            else if (encodeLength() > 0)
+
+            ackReply(traceId);
+
+            if (writable() && StreamState.replyClosing(server.state) && !StreamState.replyClosed(server.state))
             {
-                server.doNetData(copyBuffer, 0, encodeLength(), reserved, Flags.COMPLETE, EMPTY_OCTETS, encodeBudgetId,
-                    encodeTraceId, encodeAuthorization);
+                server.doNetEnd(server.pendingReplyEndTraceId, server.pendingReplyEndAuthorization, EMPTY_OCTETS);
             }
-            else
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
             {
-                ackReply(encodeTraceId);
+                replyEncodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
             }
+
+            encodeSlotOffset = 0;
+            encodeSlotLimit = 0;
+            encodeSent = 0;
+            encodePending = 0;
         }
 
         private static final int NO_EVENT = -1;
@@ -5160,9 +5271,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private String responseModel;
         private String responseDialect;
 
-        private int pendingStart;
-        private int pendingLength;
-        private int pendingFlags;
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private int encodeSlotLimit;
+        private int encodeBase;
+        private int encodeSent;
+        private int encodeEntryAt;
+        private long encodePending;
         private long encodeTraceId;
         private long encodeAuthorization;
         private long encodeBudgetId;
@@ -5477,6 +5592,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             doAppAbort(traceId);
             doAppReset(traceId);
             cleanupDecodeSlot();
+            cleanupEncodeSlot();
             cleanupHeld();
         }
 
@@ -5640,29 +5756,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (length > 0 || fin && eventStarted)
             {
-                flushPendingEvent(0);
-
                 final int init = eventStarted ? Flags.NONE : Flags.INIT;
 
-                pendingStart = eventStart;
-                pendingLength = length;
-                pendingFlags = fin ? Flags.fin(init) : init;
+                writeEntry(encodeBase + eventStart, length, fin ? Flags.fin(init) : init);
 
                 eventStarted = true;
-            }
-        }
-
-        private void flushPendingEvent(
-            int reserved)
-        {
-            if (pendingStart != NO_EVENT)
-            {
-                final int start = pendingStart;
-
-                pendingStart = NO_EVENT;
-
-                server.doNetData(copyBuffer, start, pendingLength, reserved, pendingFlags, EMPTY_OCTETS, encodeBudgetId,
-                    encodeTraceId, encodeAuthorization);
             }
         }
 
