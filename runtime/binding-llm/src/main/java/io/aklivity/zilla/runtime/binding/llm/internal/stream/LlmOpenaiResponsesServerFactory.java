@@ -6321,7 +6321,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             extBuffer.putByte(0, (byte) separator);
-            extBuffer.putBytes(length, ENCRYPTED_KEY);
+            putExtBytes(length, ENCRYPTED_KEY, ENCRYPTED_KEY.length);
 
             return length + ENCRYPTED_KEY.length;
         }
@@ -7055,6 +7055,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return take;
         }
 
+        private void putExtBytes(
+            int index,
+            byte[] source,
+            int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                extBuffer.putByte(index + i, source[i]);
+            }
+        }
+
         private int encodePiece(
             JsonStringView chars,
             int from,
@@ -7065,7 +7076,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final int length = prefix + body.transfer(chars, from, to,
                 pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + prefix));
 
-            extBuffer.putBytes(0, TEXT_PREFIX, 0, prefix);
+            putExtBytes(0, TEXT_PREFIX, prefix);
 
             return length;
         }
@@ -7076,8 +7087,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             final int prefix = Flags.hasInit(blockFlags) ? TEXT_PREFIX.length : 0;
             final int suffix = open ? 1 : TEXT_SUFFIX.length;
 
-            extBuffer.putBytes(0, TEXT_PREFIX, 0, prefix);
-            extBuffer.putBytes(prefix, TEXT_SUFFIX, 0, suffix);
+            putExtBytes(0, TEXT_PREFIX, prefix);
+            putExtBytes(prefix, TEXT_SUFFIX, suffix);
 
             return prefix + suffix;
         }
