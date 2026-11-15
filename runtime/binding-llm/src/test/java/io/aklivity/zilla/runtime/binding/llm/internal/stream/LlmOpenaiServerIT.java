@@ -2020,4 +2020,28 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.response.text.100k/client",
+        "${app}/transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kFromOpenaiWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromOpenaiWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
 }
