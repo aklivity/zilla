@@ -140,8 +140,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
-    private static final int MEMBER_GROWTH_NUMERATOR = 3;
-    private static final int MEMBER_GROWTH_DENOMINATOR = 2;
     private static final String REASONING_ID_KEY = NAME + ":id";
     private static final int ARGS_HEADROOM = 16;
     private static final int STRING_MEMBER_OVERHEAD = 6;
@@ -151,7 +149,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int PULL_STAGE = 2;
     private static final int PULL_MEMBERS = 3;
     private static final int PULL_CONTROL = 4;
-    private static final int PULL_SCRATCH = 5;
+    private static final int PULL_RESULT = 5;
+    private static final int PULL_BODY = 6;
+    private static final int PULL_ELEMENT = 7;
     private static final int MARKER_LENGTH = 9;
     private static final int MARKER_OFFSET = 1;
     private static final int MARKER_SIZE = 5;
@@ -306,7 +306,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx noBuffer = new UnsafeBufferEx(new byte[0]);
     private final MutableDirectBufferEx markerBuffer = new UnsafeBufferEx(new byte[MARKER_LENGTH]);
-    private final MutableDirectBufferEx argsBuffer;
     private final LlmMemberKeys memberKeys = new LlmMemberKeys(NAME);
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -321,7 +320,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final int decodeMax;
     private final int replyPadding;
     private final int encodeMax;
-    private final int pullMax;
     private final int llmTypeId;
     private final int httpTypeId;
 
@@ -546,8 +544,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.encodeMax = encodePool.slotCapacity();
-        this.pullMax = encodeMax * MEMBER_GROWTH_DENOMINATOR / MEMBER_GROWTH_NUMERATOR;
-        this.argsBuffer = new UnsafeBufferEx(new byte[pullMax]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -10824,7 +10820,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int base = 0;
             int room = 0;
 
-            pullTarget = PULL_SCRATCH;
+            pullTarget = PULL_DISCARD;
 
             if (restOutput == tailOutput)
             {
@@ -10860,15 +10856,48 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 room = hold.room();
                 pullTarget = PULL_CONTROL;
             }
-
-            if (pullTarget == PULL_SCRATCH)
+            else if (restOutput == controlOutput && controlMode != CONTROL_INLINE)
             {
-                memberGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+                target = extBuffer;
+                room = extBuffer.capacity();
+                pullTarget = PULL_DISCARD;
             }
-            else if (target != null && room >= ARGS_HEADROOM)
+            else if (restOutput == membersOutput && server.streaming)
+            {
+                target = acquireEncode() ? encodeBuffer() : null;
+                room = encodeMax;
+                pullTarget = PULL_RESULT;
+            }
+            else if (restOutput == citationsOutput)
+            {
+                if (elementSlot == NO_SLOT)
+                {
+                    openElement();
+                }
+
+                target = elementSlot != NO_SLOT && elementLength >= 0 ? elementBuffer : extBuffer;
+                base = target == elementBuffer ? elementLength : 0;
+                room = target == elementBuffer ? elementMax - elementLength : extBuffer.capacity();
+                pullTarget = target == elementBuffer ? PULL_ELEMENT : PULL_DISCARD;
+            }
+            else if (restOutput == membersOutput || restOutput == controlOutput)
+            {
+                target = acquireEncode() ? encodeBuffer() : null;
+                base = encodeLength();
+                room = encodeMax - base;
+                pullTarget = PULL_BODY;
+
+                if (restOutput == membersOutput && !membersStarted && room > 0)
+                {
+                    target.putByte(base++, (byte) ',');
+                    room--;
+                }
+            }
+
+            if (target != null && room >= ARGS_HEADROOM)
             {
                 pullBase = base;
-                memberGenerator.wrap(target, base, base + Math.min(pullMax, room));
+                memberGenerator.wrap(target, base, base + room);
             }
             else
             {
@@ -10879,6 +10908,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     controlMode = CONTROL_DROP;
                     hold.fail();
+                }
+                else if (restOutput == citationsOutput)
+                {
+                    elementLength = NONE;
                 }
                 else if (restOutput != tailOutput)
                 {
@@ -10912,11 +10945,57 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case PULL_CONTROL:
                 hold.commitPut(length);
                 break;
-            case PULL_SCRATCH:
-                restOutput.put(argsBuffer, 0, length, false);
+            case PULL_RESULT:
+                accumulator.append(encodeBuffer(), pullBase, length);
+                cleanupEncodeSlot();
+                break;
+            case PULL_BODY:
+                if (length > 0)
+                {
+                    membersStarted |= restOutput == membersOutput;
+                    encodeName = null;
+                    encodeSlotOffset = 0;
+                    encodeSlotLimit = pullBase + length;
+                    encodeFinal = true;
+                    doEncodeData();
+                    generator.wrap(noBuffer, 0, 0);
+                }
+                break;
+            case PULL_ELEMENT:
+                putElement(length);
                 break;
             default:
                 break;
+            }
+        }
+
+        private void putElement(
+            int length)
+        {
+            int from = pullBase;
+
+            if (pullBase == 0)
+            {
+                final int limit = pullBase + length;
+
+                while (from < limit && elementBuffer.getByte(from) != '{')
+                {
+                    from++;
+                }
+
+                if (from < limit)
+                {
+                    elementBuffer.putBytes(0, elementBuffer, from, limit - from);
+                    elementLength = limit - from;
+                }
+                else
+                {
+                    cleanupElement();
+                }
+            }
+            else
+            {
+                elementLength += length;
             }
         }
 
