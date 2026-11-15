@@ -4235,7 +4235,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                             mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
                         if (mqttSubscribePayload == null)
                         {
-                            break;
+                            onDecodeError(traceId, authorization, MALFORMED_PACKET);
+                            decoder = decodeIgnoreAll;
+                            break decode;
                         }
                         decodeProgress = mqttSubscribePayload.limit();
 
