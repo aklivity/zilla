@@ -144,6 +144,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int MEMBER_GROWTH_DENOMINATOR = 2;
     private static final String REASONING_ID_KEY = NAME + ":id";
     private static final int ARGS_HEADROOM = 16;
+    private static final int STRING_MEMBER_OVERHEAD = 6;
+    private static final int INT_MEMBER_OVERHEAD = 15;
     private static final int MARKER_LENGTH = 9;
     private static final int MARKER_OFFSET = 1;
     private static final int MARKER_SIZE = 5;
@@ -10217,13 +10219,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             boolean boundary,
             boolean held)
         {
-            argsGenerator.wrap(argsBuffer, 0, argsBuffer.capacity());
+            final boolean acquired = acquireEncode();
+            final int base = acquired && server.streaming ? beginArgsDelta() : 0;
 
-            boolean more = true;
+            argsGenerator.wrap(acquired ? encodeBuffer() : noBuffer, base, acquired ? encodeMax - argsTail() : base);
+
+            boolean more = acquired;
             boolean stop = false;
             boolean complete = false;
             boolean dropped = false;
-            boolean resumed = held;
+            boolean resumed = held && acquired;
             boolean holding = false;
             int pulled = 0;
             int pending = 0;
@@ -10308,8 +10313,13 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             int outcome = STEP_WINDOW;
 
-            if (dropped)
+            if (!acquired)
             {
+                outcome = STEP_WAIT;
+            }
+            else if (dropped)
+            {
+                abandonArgsDelta();
                 outcome = STEP_CONTINUE;
             }
             else if (pulled > 0)
@@ -10321,24 +10331,32 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     parser.consumed(pending);
                 }
 
-                final boolean written = server.streaming ? emitArgsDelta(length) : writeArgs(length);
-
-                if (written)
+                if (server.streaming)
                 {
-                    if (!boundary && pending > 0)
-                    {
-                        parser.consumed(pending);
-                    }
-
-                    decoder = complete
-                        ? decodeReplyTextKey
-                        : holding ? decodeReplyArgsHeld : pending > 0 ? continueArgs() : decodeReplyArgs;
-                    outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
+                    endArgsDelta(base, length);
                 }
                 else
                 {
-                    outcome = STEP_WAIT;
+                    encodeName = null;
+                    encodeSlotOffset = 0;
+                    encodeSlotLimit = length;
+                    encodeFinal = true;
+                    doEncodeData();
                 }
+
+                if (!boundary && pending > 0)
+                {
+                    parser.consumed(pending);
+                }
+
+                decoder = complete
+                    ? decodeReplyTextKey
+                    : holding ? decodeReplyArgsHeld : pending > 0 ? continueArgs() : decodeReplyArgs;
+                outcome = more || pending > 0 || complete ? STEP_CONTINUE : STEP_WINDOW;
+            }
+            else
+            {
+                abandonArgsDelta();
             }
 
             return outcome;
@@ -10349,30 +10367,73 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             return decoder == decodeReplyArgsContinue ? decodeReplyArgsMore : decodeReplyArgsContinue;
         }
 
-        private boolean emitArgsDelta(
-            int length)
+        private int beginArgsDelta()
         {
-            final boolean acquired = acquireEncode();
+            generator.reset();
+            generator.wrap(encodeBuffer(), 0, encodeMax);
+            generator.writeStartObject()
+                .write(MEMBER_TYPE, LlmOpenaiResponsesItems.deltaEvent(itemType))
+                .writeKey(MEMBER_DELTA);
+            generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
 
-            if (acquired)
-            {
-                final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
-                final int written = generateArgsDelta(name, length, server.obfuscation ? fillObfuscation() : 0);
-
-                accumulator.append(argsBuffer, 0, length);
-                sequence++;
-                sendDelta(name, written);
-            }
-
-            return acquired;
+            return generator.length();
         }
 
-        private boolean writeArgs(
+        private void endArgsDelta(
+            int base,
             int length)
         {
-            generator.writeSegment(argsBuffer, 0, length, Completion.INCOMPLETE);
+            final String name = LlmOpenaiResponsesItems.deltaEvent(itemType);
+            final int index = itemCount - 1;
 
-            return true;
+            accumulator.append(encodeBuffer(), base, length);
+
+            generator.wrap(encodeBuffer(), base + length, encodeMax);
+            generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
+            generator.write(MEMBER_ITEM_ID, itemId(index));
+
+            if (server.obfuscation)
+            {
+                writeObfuscation(fillObfuscation());
+            }
+
+            generator.write(MEMBER_OUTPUT_INDEX, index)
+                .write(MEMBER_SEQUENCE_NUMBER, sequence)
+                .writeEnd();
+
+            final int written = base + length + generator.length();
+
+            generator.reset();
+            sequence++;
+            sendDelta(name, written);
+        }
+
+        private void abandonArgsDelta()
+        {
+            if (server.streaming)
+            {
+                generator.reset();
+                cleanupEncodeSlot();
+            }
+        }
+
+        private int argsTail()
+        {
+            int tail = 0;
+
+            if (server.streaming)
+            {
+                tail = 1 + MEMBER_ITEM_ID.length() + itemId(itemCount - 1).length() + STRING_MEMBER_OVERHEAD;
+
+                if (server.obfuscation)
+                {
+                    tail += MEMBER_OBFUSCATION.length() + OBFUSCATION_MIN + OBFUSCATION_RANGE + STRING_MEMBER_OVERHEAD;
+                }
+
+                tail += MEMBER_OUTPUT_INDEX.length() + MEMBER_SEQUENCE_NUMBER.length() + 2 * INT_MEMBER_OVERHEAD + 1;
+            }
+
+            return tail;
         }
 
         private void dropArgs(
@@ -10394,37 +10455,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 decoder = decodeReplyTextKey;
             }
-        }
-
-        private int generateArgsDelta(
-            String name,
-            int length,
-            int obfuscation)
-        {
-            final int index = itemCount - 1;
-
-            generator.reset();
-            generator.wrap(encodeBuffer(), 0, encodeMax);
-            generator.writeStartObject().write(MEMBER_TYPE, name).writeKey(MEMBER_DELTA);
-            generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
-            generator.writeSegment(argsBuffer, 0, length, Completion.INCOMPLETE);
-            generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
-            generator.write(MEMBER_ITEM_ID, itemId(index));
-
-            if (server.obfuscation)
-            {
-                writeObfuscation(obfuscation);
-            }
-
-            generator.write(MEMBER_OUTPUT_INDEX, index)
-                .write(MEMBER_SEQUENCE_NUMBER, sequence)
-                .writeEnd();
-
-            final int written = generator.length();
-
-            generator.reset();
-
-            return written;
         }
 
         private int generateTextDelta(
