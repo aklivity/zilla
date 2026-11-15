@@ -106,6 +106,7 @@ final class LlmOpenaiResponsesBlockWriter
     private boolean obfuscationDisabled;
 
     private MutableDirectBufferEx buffer;
+    private int origin;
 
     LlmOpenaiResponsesBlockWriter(
         LlmOutputSink sink,
@@ -116,19 +117,29 @@ final class LlmOpenaiResponsesBlockWriter
     }
 
     void resume(
-        MutableDirectBufferEx buffer)
+        MutableDirectBufferEx buffer,
+        int origin)
     {
         this.buffer = buffer;
+        this.origin = origin;
 
-        generator.wrap(buffer, 0, buffer.capacity());
+        generator.wrap(buffer, origin, buffer.capacity());
+    }
+
+    void advance(
+        int length)
+    {
+        origin += length;
     }
 
     void begin(
         int kind,
-        MutableDirectBufferEx buffer)
+        MutableDirectBufferEx buffer,
+        int origin)
     {
         this.kind = kind;
         this.buffer = buffer;
+        this.origin = origin;
         this.depth = 0;
         this.capture.setLength(0);
         this.captured.clear();
@@ -139,7 +150,7 @@ final class LlmOpenaiResponsesBlockWriter
         this.held.setLength(0);
 
         generator.reset();
-        generator.wrap(buffer, 0, buffer.capacity());
+        generator.wrap(buffer, origin, buffer.capacity());
 
         if (kind == KIND_CITATIONS)
         {
@@ -148,7 +159,7 @@ final class LlmOpenaiResponsesBlockWriter
         else if (kind >= KIND_TOOL_CHOICE)
         {
             generator.writeStartObject();
-            generator.wrap(buffer, 0, buffer.capacity());
+            generator.wrap(buffer, origin, buffer.capacity());
         }
         else
         {
@@ -830,8 +841,8 @@ final class LlmOpenaiResponsesBlockWriter
 
         if (length > 0 || last)
         {
-            sink.put(buffer, 0, length, last);
-            generator.wrap(buffer, 0, buffer.capacity());
+            sink.put(buffer, origin, length, last);
+            generator.wrap(buffer, origin, buffer.capacity());
         }
     }
 

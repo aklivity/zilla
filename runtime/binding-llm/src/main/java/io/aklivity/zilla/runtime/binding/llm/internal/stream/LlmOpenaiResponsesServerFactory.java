@@ -311,7 +311,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final BufferPool accumulatePool;
-    private final BufferPool blockPool;
     private final int elementMax;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -531,7 +530,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.accumulatePool = context.bufferPool().duplicate();
-        this.blockPool = context.bufferPool().duplicate();
         this.elementMax = ELEMENT_MAX;
         this.decodeMax = decodePool.slotCapacity();
         this.replyPadding = decodePool.slotCapacity() / REPLY_PADDING_FRACTION;
@@ -5774,7 +5772,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private boolean deauthorized;
 
         private final LlmHeldTail tail;
-        private int blockSlot = NO_SLOT;
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
@@ -6537,7 +6534,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (!tail.append(initialId, buffer, offset, length))
+            tail.commit(length);
+
+            if (tail.room(Integer.MAX_VALUE) <= 0)
             {
                 onDecodeInvalidRequest(decodeTraceId, MESSAGE_ANNOTATIONS_BOUND);
             }
@@ -6642,32 +6641,29 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             sectionSink.put(buffer, offset, length, last);
 
-            if (last)
+            if (sectionSink == holdSink)
             {
-                cleanupBlockSlot();
+                blockWriter.advance(length);
             }
         }
 
         private MutableDirectBufferEx blockBuffer()
         {
-            if (blockSlot == NO_SLOT)
-            {
-                blockSlot = blockPool.acquire(initialId);
+            final MutableDirectBufferEx buffer = tail.reserve(initialId);
 
-                if (blockSlot == NO_SLOT)
-                {
-                    cleanup(decodeTraceId);
-                }
+            if (buffer == null)
+            {
+                cleanup(decodeTraceId);
             }
 
-            return blockSlot != NO_SLOT ? blockPool.buffer(blockSlot) : NO_BUFFER;
+            return buffer != null ? buffer : NO_BUFFER;
         }
 
         private void resumeWriter()
         {
             if (writing != null)
             {
-                writing.resume(blockBuffer());
+                writing.resume(blockBuffer(), tail.length());
             }
         }
 
@@ -6676,18 +6672,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (writing != null)
             {
                 writing.flush(false);
-                writing.resume(NO_BUFFER);
+                writing.resume(NO_BUFFER, 0);
             }
 
-            cleanupBlockSlot();
-        }
-
-        private void cleanupBlockSlot()
-        {
-            if (blockSlot != NO_SLOT)
+            if (!tail.held())
             {
-                blockPool.release(blockSlot);
-                blockSlot = NO_SLOT;
+                tail.release();
             }
         }
 
@@ -6704,7 +6694,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
 
                 writing = blockWriter;
-                writing.begin(kind, blockBuffer());
+                writing.begin(kind, blockBuffer(), tail.length());
                 blockStart = switch (kind)
                 {
                 case LlmOpenaiResponsesBlockWriter.KIND_CITATIONS -> decodeBlockElement;
@@ -7376,7 +7366,6 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 stream.cleanup(traceId);
             }
             cleanupDecodeSlot();
-            cleanupBlockSlot();
             cleanupReplyBody();
             cleanupTail();
             if (!deauthorized)
