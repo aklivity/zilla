@@ -204,11 +204,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private static final MutableDirectBufferEx NO_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final int REPLY_FRAME_OVERHEAD = 64;
-    private static final int ENTRY_HEADER = 25;
-    private static final int ENTRY_RAW = 4;
-    private static final int ENTRY_FLAGS = 8;
-    private static final int ENTRY_TRACE = 9;
-    private static final int ENTRY_AUTHORIZATION = 17;
+    private static final int ENTRY_HEADER = 21;
+    private static final int ENTRY_FLAGS = 4;
+    private static final int ENTRY_TRACE = 5;
+    private static final int ENTRY_AUTHORIZATION = 13;
     private static final int REPLY_FLAG_END = 0x40;
     private static final int REPLY_FLAG_ERROR = 0x20;
 
@@ -4777,7 +4776,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             beginEncode(0L, traceId, authorization);
             doEncodeBegin();
-            doEncodeFlush(0);
+            doEncodeFlush();
 
             doAppWindow(traceId);
         }
@@ -5005,7 +5004,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 replyWindowFrom = 0;
                 replyPayloadFrom = 0;
 
-                doEncodeFlush(0);
+                doEncodeFlush();
             }
             else
             {
@@ -5024,7 +5023,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 doEncodeEnd();
             }
 
-            doEncodeFlush(replyReserved);
+            doEncodeFlush();
         }
 
         private JsonParserEx replyParser()
@@ -5198,7 +5197,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 if (full && !server.streaming)
                 {
-                    doEncodeFlush(0);
+                    doEncodeFlush();
                     beginEncode();
                 }
 
@@ -5214,7 +5213,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (generator.remaining() < need && encodeLength() > 0)
             {
-                doEncodeFlush(0);
+                doEncodeFlush();
                 beginEncode();
             }
 
@@ -5432,7 +5431,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (controlMode == CONTROL_INLINE)
             {
-                doEncodeFlush(0);
+                doEncodeFlush();
                 beginEncode();
 
                 paused = !writable();
@@ -5479,7 +5478,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void ackReply(
             long traceId)
         {
-            final long replyAckMax = replySeq - encodePending - hold.held() - stagedReserved;
+            final long replyAckMax = replySeq - hold.held() - stagedReserved;
 
             if (replyAckMax > replyAck)
             {
@@ -5528,7 +5527,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             cleanupHeld();
 
-            doEncodeFlush(0);
+            doEncodeFlush();
 
             if (!writable())
             {
@@ -5594,7 +5593,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             beginEncode(0L, traceId, authorization);
             doEncodeError(error.type().asString(), error.param().asString(), error.code().asString(),
                 error.message().asString());
-            doEncodeFlush(0);
+            doEncodeFlush();
 
             if (!writable())
             {
@@ -5833,7 +5832,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             encodeBudgetId = budgetId;
             encodeTraceId = traceId;
             encodeAuthorization = authorization;
-            encodeEntryAt = NONE;
             encodeShift = 0;
 
             if (encodeSlot == NO_SLOT)
@@ -5863,8 +5861,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return encodeSlotOffset == encodeSlotLimit;
         }
 
-        private void doEncodeFlush(
-            int reserved)
+        private void doEncodeFlush()
         {
             if (encodeSlot != NO_SLOT)
             {
@@ -5880,14 +5877,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     writeEntry(encodeBase, encodeLength(), Flags.COMPLETE);
                 }
-
-                if (encodeEntryAt != NONE && reserved > 0)
-                {
-                    final MutableDirectBufferEx buffer = replyEncodePool.buffer(encodeSlot);
-
-                    buffer.putInt(encodeEntryAt + ENTRY_RAW, reserved);
-                    encodePending += reserved;
-                }
             }
 
             flushEncodeSlot(encodeTraceId);
@@ -5902,12 +5891,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int at = start - ENTRY_HEADER;
 
             buffer.putInt(at, length);
-            buffer.putInt(at + ENTRY_RAW, 0);
             buffer.putByte(at + ENTRY_FLAGS, (byte) flags);
             buffer.putLong(at + ENTRY_TRACE, encodeTraceId);
             buffer.putLong(at + ENTRY_AUTHORIZATION, encodeAuthorization);
 
-            encodeEntryAt = at;
             encodeSlotLimit = start + length;
             encodeBase = encodeSlotLimit + ENTRY_HEADER;
             encodeShift = 0;
@@ -5926,7 +5913,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 while (progress && encodeSlotOffset < encodeSlotLimit)
                 {
                     final int length = buffer.getInt(encodeSlotOffset);
-                    final int raw = buffer.getInt(encodeSlotOffset + ENTRY_RAW);
                     final int flags = buffer.getByte(encodeSlotOffset + ENTRY_FLAGS) & 0xFF;
                     final long entryTraceId = buffer.getLong(encodeSlotOffset + ENTRY_TRACE);
                     final long entryAuthorization = buffer.getLong(encodeSlotOffset + ENTRY_AUTHORIZATION);
@@ -5952,7 +5938,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                         if (encodeSent == length)
                         {
-                            encodePending -= raw;
                             encodeSlotOffset = payload + length;
                             encodeSent = 0;
                         }
@@ -5981,7 +5966,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             encodeSlotOffset = 0;
             encodeSlotLimit = 0;
             encodeSent = 0;
-            encodePending = 0;
         }
 
         private static final int NO_EVENT = -1;
@@ -6041,8 +6025,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int chunkHead;
         private int chunkTail;
         private int encodeSent;
-        private int encodeEntryAt;
-        private long encodePending;
         private long encodeTraceId;
         private long encodeAuthorization;
         private long encodeBudgetId;
@@ -6185,7 +6167,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (taken < length)
                 {
                     progress = advanced > 0 || encodeLength() > 0;
-                    doEncodeFlush(0);
+                    doEncodeFlush();
                     beginEncode();
                 }
             }
@@ -6230,7 +6212,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (encodeLength() > 0)
                 {
-                    doEncodeFlush(0);
+                    doEncodeFlush();
                     beginEncode();
                 }
                 else
