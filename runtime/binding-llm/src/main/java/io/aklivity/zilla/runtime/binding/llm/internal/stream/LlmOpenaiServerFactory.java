@@ -210,7 +210,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final BufferPool holdPool;
     private final BufferPool replyPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -267,7 +266,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
-        this.holdPool = context.bufferPool().duplicate();
         this.replyPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
@@ -4368,9 +4366,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     stagedReserved -= frame.reserved();
                     onAppSection(buffer, frame);
                 }
+
+                if (decodeSlot != NO_SLOT && hold.held() > 0)
+                {
+                    final int base = hold.held();
+                    final int unread = decodeSlotOffset - decodeSlotFrom;
+
+                    buffer.putBytes(base, buffer, decodeSlotFrom, unread);
+                    decodeSlotOffset = base + unread;
+                    decodeSlotFrom = base;
+                }
             }
 
-            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset)
+            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset && hold.held() == 0)
             {
                 cleanupDecodeSlot();
             }
@@ -5167,7 +5175,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final byte[] obfuscationBytes = new byte[OBFUSCATION_MIN + OBFUSCATION_RANGE];
         private final UnsafeBufferEx obfuscationBuffer = new UnsafeBufferEx(obfuscationBytes);
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
-        private int heldSlot = NO_SLOT;
         private boolean usageVerbatim;
 
         private int kind;
@@ -5461,12 +5468,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private MutableDirectBufferEx heldBuffer()
         {
-            if (heldSlot == NO_SLOT)
-            {
-                heldSlot = holdPool.acquire(replyId);
-            }
-
-            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+            return decodeSlot != NO_SLOT ? replyPool.buffer(decodeSlot) : null;
         }
 
         private void cleanup(
@@ -5481,12 +5483,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void cleanupHeld()
         {
             hold.reset();
-
-            if (heldSlot != NO_SLOT)
-            {
-                holdPool.release(heldSlot);
-                heldSlot = NO_SLOT;
-            }
         }
 
 
