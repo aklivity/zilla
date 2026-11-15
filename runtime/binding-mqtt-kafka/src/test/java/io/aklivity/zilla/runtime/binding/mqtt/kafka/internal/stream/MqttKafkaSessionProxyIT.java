@@ -300,6 +300,18 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.clean.start.qos.max.1/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailableWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.offsets.immediately/client",

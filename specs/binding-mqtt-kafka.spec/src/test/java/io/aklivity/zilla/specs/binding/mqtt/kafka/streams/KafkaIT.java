@@ -1066,6 +1066,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailableWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.clean.start.reset.group.offsets.broker.zero/client",
         "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
     public void shouldResetGroupOffsetsOnCleanStartBrokerZero() throws Exception

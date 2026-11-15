@@ -1116,6 +1116,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.clean.start.qos.max.1/client",
+        "${mqtt}/session.clean.start.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.retained.topic.not.compacted/client",
         "${mqtt}/session.retained.topic.not.compacted/server"})
     public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
