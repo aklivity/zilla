@@ -469,4 +469,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.publish.qos.exceeds.maximum/client",
+        "${app}/server.sent.publish.qos.exceeds.maximum/server"})
+    public void shouldServerSentPublishQosExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
 }

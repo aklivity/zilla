@@ -571,4 +571,103 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.invalid.property.identifier/client",
+        "${net}/connect.reject.invalid.property.identifier/server"})
+    public void shouldConnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.will.reject.invalid.property.identifier/client",
+        "${net}/connect.will.reject.invalid.property.identifier/server"})
+    public void shouldConnectWillRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.invalid.property.identifier/client",
+        "${net}/disconnect.reject.invalid.property.identifier/server"})
+    public void shouldDisconnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.invalid.property.identifier/client",
+        "${net}/server.sent.connack.invalid.property.identifier/server"})
+    public void shouldServerSentConnackInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.second.connack/client",
+        "${net}/server.sent.second.connack/server"})
+    public void shouldServerSentSecondConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.invalid.property.identifier/client",
+        "${net}/server.sent.disconnect.invalid.property.identifier/server"})
+    public void shouldServerSentDisconnectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.property.not.valid/client",
+        "${net}/server.sent.disconnect.property.not.valid/server"})
+    public void shouldServerSentDisconnectPropertyNotValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.reason.string.repeated/client",
+        "${net}/server.sent.disconnect.reason.string.repeated/server"})
+    public void shouldServerSentDisconnectReasonStringRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.server.reference.repeated/client",
+        "${net}/server.sent.disconnect.server.reference.repeated/server"})
+    public void shouldServerSentDisconnectServerReferenceRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unknown.packet.type/client",
+        "${net}/server.sent.unknown.packet.type/server"})
+    public void shouldServerSentUnknownPacketType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.packet.too.large/client",
+        "${net}/server.sent.packet.too.large/server"})
+    public void shouldServerSentPacketTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
 }

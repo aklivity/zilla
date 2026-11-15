@@ -319,4 +319,37 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // 3.3.2.3.2 Payload format invalid, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.payload.format.invalid/server",
+        "${app}/server.sent.publish.payload.format.invalid/client"})
+    public void shouldServerSentPublishPayloadFormatInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 1.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.suback.too.short/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentSubackTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.1.3 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.suback.invalid.fixed.header.flags/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentSubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -150,4 +150,92 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.connack.invalid.property.identifier/server",
+        "${app}/server.sent.abort.before.begin/client"})
+    public void shouldServerSentConnackInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1 Protocol Error
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.second.connack/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentSecondConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.disconnect.invalid.property.identifier/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentDisconnectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 3.14.2.2
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.disconnect.property.not.valid/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentDisconnectPropertyNotValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.14.2.2.3 Protocol Error
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.disconnect.reason.string.repeated/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentDisconnectReasonStringRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.14.2.2.5 Protocol Error
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.disconnect.server.reference.repeated/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentDisconnectServerReferenceRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1 Protocol Error
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.unknown.packet.type/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentUnknownPacketType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.1.2.11.4 Protocol Error, Packet too large
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.packet.too.large/server",
+        "${app}/session.connect.abort/client"})
+    public void shouldServerSentPacketTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
 }

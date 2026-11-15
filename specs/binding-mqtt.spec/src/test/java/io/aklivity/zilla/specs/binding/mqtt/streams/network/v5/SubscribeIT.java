@@ -792,4 +792,30 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.payload.format.invalid/client",
+        "${net}/server.sent.publish.payload.format.invalid/server"})
+    public void shouldServerSentPublishPayloadFormatInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.suback.too.short/client",
+        "${net}/server.sent.suback.too.short/server"})
+    public void shouldServerSentSubackTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.suback.invalid.fixed.header.flags/client",
+        "${net}/server.sent.suback.invalid.fixed.header.flags/server"})
+    public void shouldServerSentSubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
 }

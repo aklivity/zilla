@@ -980,4 +980,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.publish.payload.format.invalid/client",
+        "${app}/server.sent.publish.payload.format.invalid/server"})
+    public void shouldServerSentPublishPayloadFormatInvalid() throws Exception
+    {
+        k3po.finish();
+    }
 }
