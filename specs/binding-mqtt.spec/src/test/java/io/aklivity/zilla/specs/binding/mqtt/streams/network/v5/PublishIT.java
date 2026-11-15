@@ -201,6 +201,15 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/publish.qos2.reject.retain.not.supported/client",
+        "${net}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectQos2RetainedRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({

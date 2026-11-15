@@ -447,6 +447,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos2.reject.retain.not.supported/client",
+        "${app}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectPublishQos2RetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception
