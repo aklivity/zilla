@@ -4834,6 +4834,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             while (decodeSlot != NO_SLOT && (decodeSlotFrom < decodeSlotOffset || decoder == decodeReplyResume) && writable())
             {
                 final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
+                final int from = decodeSlotFrom;
+                final int heldBefore = hold.held();
 
                 if (decoder == decodeReplyResume)
                 {
@@ -4857,6 +4859,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     {
                         onAppSection(buffer, frame);
                     }
+                }
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    decodeSlotFrom = Math.min(Math.max(decodeSlotFrom, from + hold.held() - heldBefore), decodeSlotOffset);
                 }
 
                 if (decodeSlot != NO_SLOT && hold.held() > 0 && decoder != decodeReplyResume)
