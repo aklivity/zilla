@@ -148,6 +148,17 @@ public class KafkaCreateTopicsIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_RECONNECT_DELAY_NAME, value = "1")
+    @Specification({
+        "${app}/create.topics.v7.reconnect.backoff.reset/client",
+        "${net}/create.topics.v7.reconnect.backoff.reset/server"})
+    public void shouldResetReconnectBackoffAfterConnectionOpened() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/create.topics.v7.broker/client",
