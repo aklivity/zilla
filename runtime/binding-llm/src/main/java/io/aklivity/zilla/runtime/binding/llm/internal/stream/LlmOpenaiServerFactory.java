@@ -123,15 +123,22 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final Map<String, StringEventPositions> PARSER_CONFIG =
         Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
-    private static final int RESPONSE_ENCODE_PADDING = 128;
+    private static final int REPLY_PADDING_FRACTION = 8;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
+    private static final String DELIMITER_END = ">";
+    private static final int ARGS_HEADROOM = 16;
+    private static final int ARGS_IDLE = 0;
+    private static final int ARGS_FULL = 1;
+    private static final int ARGS_DONE = 2;
+    private static final int ARGS_HELD = 3;
+    private static final int ARGS_WAIT = 4;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
     private static final String MEMBER_TEXT = "text";
     private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
-    private static final int RESPONSE_ENCODE_SLACK = 2048;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final DirectBufferEx QUOTE = new UnsafeBufferEx("\"".getBytes(UTF_8));
     private static final DirectBufferEx DONE_BUFFER = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
@@ -216,6 +223,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BufferPool replyPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
+    private final int replyPadding;
     private final int llmTypeId;
     private final int httpTypeId;
 
@@ -301,6 +309,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.blockPool = context.bufferPool().duplicate();
         this.replyPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
+        this.replyPadding = replyPool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -491,6 +500,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     }
 
     private final LlmOpenaiReplyDecoder decodeReplyNext = this::decodeReplyNext;
+    private final LlmOpenaiReplyDecoder decodeReplyResume = this::decodeReplyResume;
+    private final LlmOpenaiReplyDecoder decodeReplyTextHeld = this::decodeReplyTextHeld;
     private final LlmOpenaiReplyDecoder decodeReplyTextRoot = this::decodeReplyTextRoot;
     private final LlmOpenaiReplyDecoder decodeReplyTextObject = this::decodeReplyTextObject;
     private final LlmOpenaiReplyDecoder decodeReplyTextKey = this::decodeReplyTextKey;
@@ -498,9 +509,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiReplyDecoder decodeReplyTextContinue = this::decodeReplyTextContinue;
     private final LlmOpenaiReplyDecoder decodeReplyTextSkip = this::decodeReplyTextSkip;
     private final LlmOpenaiReplyDecoder decodeReplyArgs = this::decodeReplyArgs;
+    private final LlmOpenaiReplyDecoder decodeReplyArgsHeld = this::decodeReplyArgsHeld;
     private final LlmOpenaiReplyDecoder decodeReplyControlValue = this::decodeReplyControlValue;
     private final LlmOpenaiReplyDecoder decodeReplyControlJudge = this::decodeReplyControlJudge;
     private final LlmOpenaiReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
+
+    private int decodeReplyResume(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
 
     private int decodeReplyNext(
         LlmOpenaiStream stream,
@@ -600,7 +621,16 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextValue);
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextValue, true, false);
+    }
+
+    private int decodeReplyTextHeld(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextHeld, false, true);
     }
 
     private int decodeReplyTextContinue(
@@ -609,52 +639,91 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextContinue);
+        return decodeReplyTextPiece(stream, buffer, offset, decodeReplyTextContinue, false, false);
     }
 
     private int decodeReplyTextPiece(
         LlmOpenaiStream stream,
         DirectBufferEx buffer,
         int offset,
-        LlmOpenaiReplyDecoder state)
+        LlmOpenaiReplyDecoder state,
+        boolean first,
+        boolean held)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
+
+        boolean pending = held;
+        boolean paused = false;
+        boolean more = true;
 
         try
         {
-            while (stream.decoder == state && parser.hasNextEvent())
+            while (more && !paused && stream.decoder == state)
             {
-                final JsonEvent event = parser.nextEvent();
-
-                if (event == JsonEvent.VALUE_STRING)
+                if (first)
                 {
-                    final boolean deferred = parser.deferredBytes();
-                    final JsonStringView chars = parser.getStringView();
-                    final int length = chars.length();
-
-                    if (length > 0)
-                    {
-                        stream.onEncodeText(chars, 0, length);
-                    }
-
-                    if (deferred)
-                    {
-                        parser.consumed(length);
-                        stream.decoder = decodeReplyTextContinue;
-                    }
-                    else
-                    {
-                        stream.decoder = decodeReplyTextDone;
-                    }
+                    parser.mark();
                 }
-                else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+
+                final JsonEvent event;
+
+                if (pending)
                 {
-                    stream.replySkipDepth = 1;
-                    stream.decoder = decodeReplyTextSkip;
+                    pending = false;
+                    event = JsonEvent.VALUE_STRING;
                 }
                 else
                 {
-                    stream.decoder = decodeReplyTextKey;
+                    more = parser.hasNextEvent();
+                    event = more ? parser.nextEvent() : null;
+                }
+
+                if (more)
+                {
+                    if (event == JsonEvent.VALUE_STRING)
+                    {
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final int length = chars.length();
+                        final int taken = length > 0 ? stream.onEncodeText(chars, length) : 0;
+
+                        if (taken < length)
+                        {
+                            if (taken > 0)
+                            {
+                                parser.consumed(taken);
+                                stream.decoder = decodeReplyTextHeld;
+                            }
+                            else if (first)
+                            {
+                                parser.rewind();
+                            }
+                            else
+                            {
+                                stream.decoder = decodeReplyTextHeld;
+                            }
+
+                            paused = true;
+                        }
+                        else if (deferred)
+                        {
+                            parser.consumed(length);
+                            stream.decoder = decodeReplyTextContinue;
+                        }
+                        else
+                        {
+                            stream.decoder = decodeReplyTextDone;
+                        }
+                    }
+                    else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                    {
+                        stream.replySkipDepth = 1;
+                        stream.decoder = decodeReplyTextSkip;
+                    }
+                    else
+                    {
+                        stream.decoder = decodeReplyTextKey;
+                    }
                 }
             }
         }
@@ -663,7 +732,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             stream.rejectReply();
         }
 
-        return stream.positionReply(buffer, offset, state);
+        return paused ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
     }
 
     private int decodeReplyArgs(
@@ -672,41 +741,68 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int offset,
         int limit)
     {
-        final JsonParserEx parser = stream.wrapReply(buffer, offset);
-        final JsonGeneratorEx args = stream.replyArgs();
+        return decodeReplyArgsPass(stream, buffer, offset, decodeReplyArgs, false);
+    }
 
-        args.wrap(extBuffer, 0, extBuffer.capacity());
+    private int decodeReplyArgsHeld(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyArgsPass(stream, buffer, offset, decodeReplyArgsHeld, true);
+    }
+
+    private int decodeReplyArgsPass(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        LlmOpenaiReplyDecoder state,
+        boolean held)
+    {
+        final JsonParserEx parser = held ? stream.replyParser() : stream.wrapReply(buffer, offset);
+
+        boolean resumed = held;
+        boolean paused = false;
+        boolean idle = false;
 
         try
         {
-            while (stream.decoder == decodeReplyArgs && parser.hasNextEvent())
+            while (!paused && !idle && (stream.decoder == decodeReplyArgs || stream.decoder == decodeReplyArgsHeld))
             {
-                final JsonEvent event = parser.nextEvent();
+                final int outcome = stream.pullArgs(parser, resumed);
 
-                if (stream.replyArgsDepth == 0 && event != JsonEvent.START_OBJECT)
-                {
-                    stream.replySkipDepth = event == JsonEvent.START_ARRAY ? 1 : 0;
-                    stream.decoder = event == JsonEvent.START_ARRAY ? decodeReplyTextSkip : decodeReplyTextKey;
-                }
-                else
-                {
-                    stream.copyReplyArgs(event, parser, args);
+                resumed = false;
 
-                    if (stream.replyArgsDepth == 0)
-                    {
-                        stream.decoder = decodeReplyTextKey;
-                    }
+                switch (outcome)
+                {
+                case ARGS_IDLE:
+                    idle = true;
+                    break;
+                case ARGS_WAIT:
+                    paused = true;
+                    break;
+                case ARGS_DONE:
+                    stream.decoder = decodeReplyTextKey;
+                    break;
+                case ARGS_HELD:
+                    stream.decoder = decodeReplyArgsHeld;
+                    resumed = true;
+                    paused = !stream.writable();
+                    break;
+                default:
+                    stream.decoder = decodeReplyArgs;
+                    paused = !stream.writable();
+                    break;
                 }
             }
-
-            stream.flushReplyArgs(args);
         }
         catch (JsonException ex)
         {
             stream.rejectReply();
         }
 
-        return stream.positionReply(buffer, offset, decodeReplyArgs);
+        return paused ? stream.pauseReply(buffer, offset) : stream.positionReply(buffer, offset, state);
     }
 
     private int decodeReplyControlValue(
@@ -4615,6 +4711,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private String replyMember;
         private LlmOpenaiReplyDecoder replyMemberState;
         private JsonGeneratorEx replyArgs;
+        private JsonGeneratorEx argsGenerator;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -4631,8 +4728,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventStart = NO_EVENT;
             this.decoder = decodeReplyNext;
             this.dataDecoder = decodeReplyNext;
-            this.delimiterBytes = new byte[64];
-            this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
         }
 
         private long initialAvailable()
@@ -4766,11 +4861,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             state = StreamState.openingReply(state);
 
-            replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
+            replyMax = replyPool.slotCapacity();
 
             responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
             responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
             responseDialect = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
+            measureChunk();
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
@@ -4835,25 +4931,32 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             while (decodeSlot != NO_SLOT && decodeSlotFrom < decodeSlotOffset && writable())
             {
                 final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
-                final LlmReplyFrameFW frame = replyFrameRO.wrap(buffer, decodeSlotFrom, decodeSlotOffset);
 
-                decodeSlotFrom = frame.limit();
-
-                if ((frame.flags() & REPLY_FLAG_END) != 0)
+                if (decoder == decodeReplyResume)
                 {
-                    onReplyEnd(frame);
-                }
-                else if ((frame.flags() & REPLY_FLAG_ERROR) != 0)
-                {
-                    onReplyError(frame);
+                    onAppResume(buffer);
                 }
                 else
                 {
-                    stagedReserved -= frame.reserved();
-                    onAppSection(buffer, frame);
+                    final LlmReplyFrameFW frame = replyFrameRO.wrap(buffer, decodeSlotFrom, decodeSlotOffset);
+
+                    decodeSlotFrom = frame.limit();
+
+                    if ((frame.flags() & REPLY_FLAG_END) != 0)
+                    {
+                        onReplyEnd(frame);
+                    }
+                    else if ((frame.flags() & REPLY_FLAG_ERROR) != 0)
+                    {
+                        onReplyError(frame);
+                    }
+                    else
+                    {
+                        onAppSection(buffer, frame);
+                    }
                 }
 
-                if (decodeSlot != NO_SLOT && hold.held() > 0)
+                if (decodeSlot != NO_SLOT && hold.held() > 0 && decoder != decodeReplyResume)
                 {
                     final int base = hold.held();
                     final int unread = decodeSlotOffset - decodeSlotFrom;
@@ -4931,7 +5034,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     replyMember = MEMBER_ARGUMENTS;
                     replyMemberState = decodeReplyArgs;
                     replyArgsDepth = 0;
-                    replyArgs().reset();
+                    argsGenerator().reset();
                 }
 
                 dataDecoder = switch (kind)
@@ -4961,17 +5064,52 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             decoder = dataDecoder;
 
+            decodeFrame(buffer, frame.offset());
+        }
+
+        private void onAppResume(
+            DirectBufferEx buffer)
+        {
+            beginEncode(encodeBudgetId, encodeTraceId, encodeAuthorization);
+
+            decoder = dataDecoder;
+
+            final int offset = decodeSlotFrom;
+
+            decodeSlotFrom = offset + replyFrameLength;
+
+            decodeFrame(buffer, offset);
+        }
+
+        private void decodeFrame(
+            DirectBufferEx buffer,
+            int offset)
+        {
             LlmOpenaiReplyDecoder previous = null;
 
-            while (previous != decoder && decoder != decodeReplyNext)
+            while (previous != decoder && decoder != decodeReplyNext && decoder != decodeReplyResume)
             {
                 previous = decoder;
-                decoder.decode(this, buffer, frame.offset(), frame.limit());
+                decoder.decode(this, buffer, offset, offset + replyFrameLength);
             }
 
-            decoder = decodeReplyNext;
+            if (decoder == decodeReplyResume)
+            {
+                decodeSlotFrom = offset + replyWindowFrom;
+                replyFrameLength -= replyWindowFrom;
+                replyWindowFrom = 0;
+                replyPayloadFrom = 0;
 
-            endReplyFrame();
+                doEncodeFlush(0);
+            }
+            else
+            {
+                decoder = decodeReplyNext;
+
+                stagedReserved -= replyReserved;
+
+                endReplyFrame();
+            }
         }
 
         private void endReplyFrame()
@@ -5035,10 +5173,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     decoder = decodeReplyNext;
                 }
             }
-            else if (decoder != decodeReplyNext)
+            else if (decoder != decodeReplyNext && decoder != decodeReplyResume)
             {
                 replyWindowFrom = windowLimit - replyParser.remaining() - offset;
             }
+
+            return offset;
+        }
+
+        private int pauseReply(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            replyWindowFrom = replyFrameLength - replyParser.remaining();
+            dataDecoder = decoder;
+            decoder = decodeReplyResume;
 
             return offset;
         }
@@ -5051,6 +5200,193 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             return replyArgs;
+        }
+
+        private int pullArgs(
+            JsonParserEx parser,
+            boolean resumed)
+        {
+            int outcome = ARGS_IDLE;
+
+            boolean more = true;
+            boolean stop = false;
+            boolean opened = false;
+            boolean complete = false;
+            boolean holding = false;
+            boolean pending = resumed;
+            int consumed = 0;
+            int base = 0;
+            MutableDirectBufferEx buffer = null;
+            int limit = 0;
+
+            while (more && !stop)
+            {
+                more = pending || parser.hasNextEvent();
+
+                if (more && !opened && !roomArgs())
+                {
+                    outcome = ARGS_WAIT;
+                    stop = true;
+                }
+                else if (more)
+                {
+                    final JsonEvent event = pending ? JsonEvent.VALUE_STRING : parser.nextEvent();
+
+                    pending = false;
+
+                    if (replyArgsDepth == 0 && event != JsonEvent.START_OBJECT)
+                    {
+                        replySkipDepth = event == JsonEvent.START_ARRAY ? 1 : 0;
+                        decoder = event == JsonEvent.START_ARRAY ? decodeReplyTextSkip : decodeReplyTextKey;
+                        outcome = ARGS_FULL;
+                        stop = true;
+                    }
+                    else
+                    {
+                        if (!opened)
+                        {
+                            opened = true;
+                            buffer = encodeBuffer();
+                            limit = encodeLimit();
+
+                            if (server.streaming)
+                            {
+                                chunkStart();
+                                writeArgsOpen(generator, toolCalls - 1);
+                            }
+
+                            base = encodeLength();
+                            argsGenerator().wrap(buffer, encodeBase + base, server.streaming ? limit - chunkTail : limit);
+                        }
+
+                        final JsonGeneratorEx args = argsGenerator();
+
+                        switch (event)
+                        {
+                        case START_OBJECT:
+                            args.writeStartObject();
+                            replyArgsDepth++;
+                            break;
+                        case START_ARRAY:
+                            args.writeStartArray();
+                            replyArgsDepth++;
+                            break;
+                        case END_OBJECT, END_ARRAY:
+                            args.writeEnd();
+                            complete = --replyArgsDepth == 0;
+                            stop = complete;
+                            break;
+                        case VALUE_TRUE:
+                            args.write(true);
+                            break;
+                        case VALUE_FALSE:
+                            args.write(false);
+                            break;
+                        case VALUE_NULL:
+                            args.writeNull();
+                            break;
+                        default:
+                            final boolean deferred = parser.deferredBytes();
+                            final JsonStringView chars = parser.getStringView();
+                            final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
+                            final int before = args.consumed();
+
+                            if (event == JsonEvent.KEY_NAME)
+                            {
+                                args.writeKey(chars, completion);
+                            }
+                            else if (event == JsonEvent.VALUE_NUMBER)
+                            {
+                                args.writeNumber(chars, completion);
+                            }
+                            else
+                            {
+                                args.write(chars, completion);
+                            }
+
+                            consumed = args.consumed() - before;
+
+                            if (consumed < chars.length() || deferred)
+                            {
+                                holding = !deferred;
+                                stop = true;
+                            }
+                            break;
+                        }
+
+                        stop |= args.remaining() < ARGS_HEADROOM;
+                    }
+                }
+            }
+
+            if (opened)
+            {
+                if (consumed > 0)
+                {
+                    parser.consumed(consumed);
+                }
+
+                final boolean full = !complete && more;
+
+                endArgs(base, buffer, limit);
+
+                if (full && !server.streaming)
+                {
+                    doEncodeFlush(0);
+                    beginEncode();
+                }
+
+                outcome = complete ? ARGS_DONE : holding ? ARGS_HELD : more ? ARGS_FULL : ARGS_IDLE;
+            }
+
+            return outcome;
+        }
+
+        private boolean roomArgs()
+        {
+            final int need = ARGS_HEADROOM + (server.streaming ? chunkHead + hold.held() + chunkTail : 0);
+
+            if (generator.remaining() < need && encodeLength() > 0)
+            {
+                doEncodeFlush(0);
+                beginEncode();
+            }
+
+            final boolean fits = writable() && generator.remaining() >= need;
+
+            if (!fits && writable())
+            {
+                server.cleanup(encodeTraceId);
+            }
+
+            return fits;
+        }
+
+        private void endArgs(
+            int base,
+            MutableDirectBufferEx buffer,
+            int limit)
+        {
+            encodeShift = base + argsGenerator().length();
+            generator.wrap(buffer, encodeBase + encodeShift, limit);
+
+            if (server.streaming)
+            {
+                writeArgsClose(generator);
+                chunkEnd();
+                flushEncodeSlot(encodeTraceId);
+                beginEncode();
+            }
+        }
+
+        private JsonGeneratorEx argsGenerator()
+        {
+            if (argsGenerator == null)
+            {
+                argsGenerator = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+            }
+
+            return argsGenerator;
         }
 
         private boolean copyReplyValue(
@@ -5113,17 +5449,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     parser.consumed(length);
                 }
                 break;
-            }
-        }
-
-        private void flushReplyArgs(
-            JsonGeneratorEx args)
-        {
-            final int length = args.length();
-
-            if (length > 0)
-            {
-                onEncodeText(extBuffer, 0, length);
             }
         }
 
@@ -5463,7 +5788,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .maximum(replyMax)
                 .traceId(traceId)
                 .budgetId(0L)
-                .padding(RESPONSE_ENCODE_PADDING)
+                .padding(replyPadding)
                 .build();
 
             app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
@@ -5544,6 +5869,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             initialSeq += length;
         }
 
+        private void beginEncode()
+        {
+            beginEncode(encodeBudgetId, encodeTraceId, encodeAuthorization);
+        }
+
         private void beginEncode(
             long budgetId,
             long traceId,
@@ -5553,6 +5883,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             encodeTraceId = traceId;
             encodeAuthorization = authorization;
             encodeEntryAt = NONE;
+            encodeShift = 0;
 
             if (encodeSlot == NO_SLOT)
             {
@@ -5628,6 +5959,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             encodeEntryAt = at;
             encodeSlotLimit = start + length;
             encodeBase = encodeSlotLimit + ENTRY_HEADER;
+            encodeShift = 0;
             generator.wrap(buffer, encodeBase, replyEncodePool.slotCapacity());
         }
 
@@ -5755,6 +6087,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int encodeSlotOffset;
         private int encodeSlotLimit;
         private int encodeBase;
+        private int encodeShift;
+        private int chunkHead;
+        private int chunkTail;
         private int encodeSent;
         private int encodeEntryAt;
         private long encodePending;
@@ -5781,8 +6116,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean messageClosed;
 
         private String reasoningTag;
-        private byte[] delimiterBytes;
-        private UnsafeBufferEx delimiterBuffer;
 
         private void doEncodeBegin()
         {
@@ -5876,19 +6209,122 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private void onEncodeText(
+        private int onEncodeText(
             JsonStringView chars,
-            int from,
-            int to)
+            int length)
         {
-            if (server.streaming)
+            return server.streaming ? emitTextChunk(chars, length) : writeText(chars, length);
+        }
+
+        private int writeText(
+            JsonStringView chars,
+            int length)
+        {
+            int taken = 0;
+            boolean progress = true;
+
+            while (taken < length && progress && writable())
             {
-                dataChunk(chars, from, to);
+                final int before = generator.consumed();
+
+                generator.writeSegment(chars, taken, length);
+
+                final int advanced = generator.consumed() - before;
+
+                taken += advanced;
+
+                if (taken < length)
+                {
+                    progress = advanced > 0 || encodeLength() > 0;
+                    doEncodeFlush(0);
+                    beginEncode();
+                }
             }
-            else
+
+            return taken;
+        }
+
+        private int emitTextChunk(
+            JsonStringView chars,
+            int length)
+        {
+            int taken = 0;
+            boolean progress = true;
+
+            while (taken < length && progress && writable())
             {
-                generator.writeSegment(chars, from, to);
+                final int need = chunkHead + hold.held() + chunkTail + RESPONSE_ESCAPE_EXPANSION;
+
+                if (generator.remaining() >= need)
+                {
+                    final MutableDirectBufferEx buffer = encodeBuffer();
+                    final int limit = encodeLimit();
+
+                    dataChunkStart();
+
+                    encodeShift = encodeLength();
+                    generator.wrap(buffer, encodeBase + encodeShift, limit - chunkTail);
+
+                    final int before = generator.consumed();
+
+                    generator.writeSegment(chars, taken, length);
+
+                    taken += generator.consumed() - before;
+                    progress = generator.consumed() > before;
+
+                    encodeShift += generator.length();
+                    generator.wrap(buffer, encodeBase + encodeShift, limit);
+
+                    dataChunkEnd();
+                    flushEncodeSlot(encodeTraceId);
+                    beginEncode();
+                }
+                else if (encodeLength() > 0)
+                {
+                    doEncodeFlush(0);
+                    beginEncode();
+                }
+                else
+                {
+                    progress = false;
+                    server.cleanup(encodeTraceId);
+                }
             }
+
+            return taken;
+        }
+
+        private MutableDirectBufferEx encodeBuffer()
+        {
+            return encodeSlot != NO_SLOT ? replyEncodePool.buffer(encodeSlot) : extBuffer;
+        }
+
+        private int encodeLimit()
+        {
+            return encodeSlot != NO_SLOT ? replyEncodePool.slotCapacity() : extBuffer.capacity();
+        }
+
+        private void measureChunk()
+        {
+            final JsonGeneratorEx probe = replyArgs();
+
+            probe.wrap(extBuffer, 0, extBuffer.capacity());
+            probe.reset();
+
+            writeChunkOpen(probe);
+            probe.writeStartArray("choices");
+            writeDeltaOpen(probe, KIND_TOOL_CALL, Integer.MAX_VALUE);
+
+            chunkHead = probe.length();
+
+            writeDeltaClose(probe, KIND_TOOL_CALL);
+            probe.writeEnd();
+            writeObfuscation(probe, OBFUSCATION_MIN + OBFUSCATION_RANGE - 1);
+            probe.writeEnd();
+
+            chunkTail = probe.length() - chunkHead;
+
+            probe.reset();
         }
 
         private void sectionReasoning(
@@ -5924,26 +6360,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void encodeDelimiter(
             String prefix)
         {
-            final int length = prefix.length() + reasoningTag.length() + 1;
-
-            if (delimiterBytes.length < length)
+            if (server.streaming)
             {
-                delimiterBytes = new byte[length];
-                delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
+                dataChunkStart();
             }
 
-            int position = delimiterBuffer.putStringWithoutLengthAscii(0, prefix);
-            position += delimiterBuffer.putStringWithoutLengthAscii(position, reasoningTag);
-            position += delimiterBuffer.putStringWithoutLengthAscii(position, ">");
+            generator.writeSegment(prefix, 0, prefix.length());
+            generator.writeSegment(reasoningTag, 0, reasoningTag.length());
+            generator.writeSegment(DELIMITER_END, 0, DELIMITER_END.length());
 
-            onEncodeText(delimiterBuffer, 0, position);
+            if (server.streaming)
+            {
+                dataChunkEnd();
+            }
         }
 
         private void doEncodeEnd()
         {
             if (!server.streaming && kind == KIND_TOOL_CALL)
             {
-                generator.writeEndEscaped().writeEnd().writeEnd();
+                generator.writeSegment(QUOTE, 0, 1, Completion.COMPLETE).writeEnd().writeEnd();
             }
 
             kind = KIND_NONE;
@@ -6045,7 +6481,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             generator.writeKey(MEMBER_USAGE);
             generator.writeRaw(hold.buffer(), hold.offset(index), hold.length(index));
             generator.writeEnd();
-            eventEnd(generator.length());
+            eventEnd(encodeLength());
         }
 
         private boolean usageHeld()
@@ -6082,19 +6518,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
 
-        private void writeObfuscation()
+        private void writeObfuscation(
+            JsonGeneratorEx target,
+            int length)
         {
             final ThreadLocalRandom random = ThreadLocalRandom.current();
-            final int length = OBFUSCATION_MIN + random.nextInt(OBFUSCATION_RANGE);
 
             for (int index = 0; index < length; index++)
             {
                 obfuscationBytes[index] = (byte) OBFUSCATION_ALPHABET.charAt(random.nextInt(OBFUSCATION_ALPHABET.length()));
             }
 
-            generator.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
-            generator.writeSegment(obfuscationBuffer, 0, length);
-            generator.writeEndEscaped();
+            target.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
+            target.writeSegment(obfuscationBuffer, 0, length);
+            target.writeEndEscaped();
         }
 
         private void doEncodeFinish(
@@ -6134,12 +6571,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     generator.writeEnd();
                     putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
                     generator.writeEnd();
-                    eventEnd(generator.length());
+                    eventEnd(encodeLength());
                 }
 
-                eventBegin(generator.length());
+                eventBegin(encodeLength());
                 generator.writeRaw(DONE_BUFFER, 0, DONE_BUFFER.capacity());
-                eventEnd(generator.length());
+                eventEnd(encodeLength());
             }
             else
             {
@@ -6175,7 +6612,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 eventEnd(encodeLength());
             }
 
-            eventBegin(generator.length());
+            eventBegin(encodeLength());
             generator.writeStartObject()
                 .writeStartObject("error")
                 .write("message", message != null ? message : "")
@@ -6200,12 +6637,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             generator.writeEnd().writeEnd();
-            eventEnd(generator.length());
+            eventEnd(encodeLength());
         }
 
         private int encodeLength()
         {
-            return generator.length();
+            return encodeShift + generator.length();
         }
 
         private void eventBegin(
@@ -6343,7 +6780,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     .writeStartObject("function")
                     .write("name", name)
                     .writeKey("arguments");
-                generator.writeStartEscaped();
+                generator.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
             }
         }
 
@@ -6423,65 +6860,112 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void dataChunkStart()
         {
             chunkStart();
-            generator.writeStartObject()
+            writeDeltaOpen(generator, kind, toolCalls - 1);
+        }
+
+        private void writeDeltaOpen(
+            JsonGeneratorEx target,
+            int section,
+            int index)
+        {
+            writeDeltaMember(target, section, index);
+            target.writeStartEscaped();
+        }
+
+        private void writeArgsOpen(
+            JsonGeneratorEx target,
+            int index)
+        {
+            writeDeltaMember(target, KIND_TOOL_CALL, index);
+            target.writeSegment(QUOTE, 0, 1, Completion.INCOMPLETE);
+        }
+
+        private void writeDeltaMember(
+            JsonGeneratorEx target,
+            int section,
+            int index)
+        {
+            target.writeStartObject()
                 .writeKey("index").write(0)
                 .writeStartObject("delta");
 
-            switch (kind)
+            switch (section)
             {
             case KIND_TEXT, KIND_REASONING:
-                generator.writeKey("content");
+                target.writeKey("content");
                 break;
             case KIND_REFUSAL:
-                generator.writeKey("refusal");
+                target.writeKey("refusal");
                 break;
             default:
-                generator.writeStartArray("tool_calls")
+                target.writeStartArray("tool_calls")
                     .writeStartObject()
-                    .writeKey("index").write(toolCalls - 1)
+                    .writeKey("index").write(index)
                     .writeStartObject("function")
                     .writeKey("arguments");
                 break;
             }
-
-            generator.writeStartEscaped();
         }
 
         private void dataChunkEnd()
         {
-            generator.writeEndEscaped();
+            writeDeltaClose(generator, kind);
+            chunkEnd();
+        }
 
-            if (kind == KIND_TOOL_CALL)
+        private void writeDeltaClose(
+            JsonGeneratorEx target,
+            int section)
+        {
+            target.writeEndEscaped();
+            writeDeltaEnd(target, section);
+        }
+
+        private void writeArgsClose(
+            JsonGeneratorEx target)
+        {
+            target.writeSegment(QUOTE, 0, 1, Completion.COMPLETE);
+            writeDeltaEnd(target, KIND_TOOL_CALL);
+        }
+
+        private void writeDeltaEnd(
+            JsonGeneratorEx target,
+            int section)
+        {
+            if (section == KIND_TOOL_CALL)
             {
-                generator.writeEnd().writeEnd().writeEnd();
+                target.writeEnd().writeEnd().writeEnd();
             }
 
-            generator.writeEnd()
+            target.writeEnd()
                 .writeNull("finish_reason")
                 .writeEnd();
-            chunkEnd();
         }
 
         private void chunkStart()
         {
-            eventBegin(generator.length());
-            generator.writeStartObject();
+            eventBegin(encodeLength());
+            writeChunkOpen(generator);
+            writeControls();
+            generator.writeStartArray("choices");
+        }
+
+        private void writeChunkOpen(
+            JsonGeneratorEx target)
+        {
+            target.writeStartObject();
 
             if (responseId != null)
             {
-                generator.write("id", responseId);
+                target.write("id", responseId);
             }
 
-            generator.write("object", OBJECT_CHUNK);
+            target.write("object", OBJECT_CHUNK);
 
             if (responseModel != null)
             {
-                generator.write("model", responseModel);
+                target.write("model", responseModel);
             }
-
-            writeControls();
-
-            generator.writeStartArray("choices");
         }
 
         private void chunkEnd()
@@ -6490,11 +6974,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (server.obfuscation)
             {
-                writeObfuscation();
+                writeObfuscation(generator, OBFUSCATION_MIN + ThreadLocalRandom.current().nextInt(OBFUSCATION_RANGE));
             }
 
             generator.writeEnd();
-            eventEnd(generator.length());
+            eventEnd(encodeLength());
         }
 
         private void putUsage(
