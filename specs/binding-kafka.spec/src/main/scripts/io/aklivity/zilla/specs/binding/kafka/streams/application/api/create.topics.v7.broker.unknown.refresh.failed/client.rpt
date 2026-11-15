@@ -48,6 +48,8 @@ read zilla:data.ext ${kafka:dataEx()
 
 read notify BROKERS_LEARNED
 
+read abort
+
 connect await BROKERS_LEARNED
         "zilla://streams/app0"
     option zilla:authorization ${authorization}

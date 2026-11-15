@@ -222,6 +222,16 @@ public class KafkaCreateTopicsIT
     @Test
     @Configuration("client.options.merged.yaml")
     @Specification({
+        "${app}/create.topics.v7.broker.unknown.refreshed.shared/client",
+        "${net}/create.topics.v7.broker.unknown.refreshed.shared/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshedShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Specification({
         "${app}/create.topics.v7.broker.unknown.refresh.failed/client",
         "${net}/create.topics.v7.broker.unknown.refresh.failed/server"})
     public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenRefreshFails() throws Exception
