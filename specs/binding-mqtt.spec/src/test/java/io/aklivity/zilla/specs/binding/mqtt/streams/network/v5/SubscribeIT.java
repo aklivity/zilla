@@ -811,6 +811,16 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // 1.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1], 3.8.3 filter that does not fit in the packet
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.second.filter.length.overruns.packet/client",
+        "${net}/subscribe.reject.second.filter.length.overruns.packet/server"})
+    public void shouldRejectSecondFilterLengthOverrunsPacket() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/server.sent.suback.too.short/client",
