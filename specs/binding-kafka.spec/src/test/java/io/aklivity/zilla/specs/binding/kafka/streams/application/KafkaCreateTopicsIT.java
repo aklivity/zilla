@@ -57,6 +57,33 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.broker/client",
+        "${app}/create.topics.v7.broker/server"})
+    public void shouldCreateTopicsV3ToBrokerByAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.zero/client",
+        "${app}/create.topics.v7.broker.zero/server"})
+    public void shouldCreateTopicsV3ToBrokerZeroWhenKnown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown/client",
+        "${app}/create.topics.v7.broker.unknown/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBroker() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.unsupported/client",
         "${app}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
