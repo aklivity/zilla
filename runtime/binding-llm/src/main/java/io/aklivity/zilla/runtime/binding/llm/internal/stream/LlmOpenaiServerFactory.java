@@ -493,6 +493,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private final LlmOpenaiReplyDecoder decodeReplyNext = this::decodeReplyNext;
     private final LlmOpenaiReplyDecoder decodeReplyResume = this::decodeReplyResume;
+    private final LlmOpenaiReplyDecoder decodeReplyFinishChunk = this::decodeReplyFinishChunk;
+    private final LlmOpenaiReplyDecoder decodeReplyFinishUsage = this::decodeReplyFinishUsage;
+    private final LlmOpenaiReplyDecoder decodeReplyFinishDone = this::decodeReplyFinishDone;
+    private final LlmOpenaiReplyDecoder decodeReplyFinishBody = this::decodeReplyFinishBody;
+    private final LlmOpenaiReplyDecoder decodeReplyFinishEnd = this::decodeReplyFinishEnd;
     private final LlmOpenaiReplyDecoder decodeReplyTextHeld = this::decodeReplyTextHeld;
     private final LlmOpenaiReplyDecoder decodeReplyTextRoot = this::decodeReplyTextRoot;
     private final LlmOpenaiReplyDecoder decodeReplyTextObject = this::decodeReplyTextObject;
@@ -508,6 +513,59 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
 
     private int decodeReplyResume(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private int decodeReplyFinishChunk(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.finishChunk();
+
+        return offset;
+    }
+
+    private int decodeReplyFinishUsage(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.finishUsage();
+
+        return offset;
+    }
+
+    private int decodeReplyFinishDone(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.finishDone();
+
+        return offset;
+    }
+
+    private int decodeReplyFinishBody(
+        LlmOpenaiStream stream,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        stream.finishBody();
+
+        return offset;
+    }
+
+    private int decodeReplyFinishEnd(
         LlmOpenaiStream stream,
         DirectBufferEx buffer,
         int offset,
@@ -4831,13 +4889,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void decodeReply()
         {
-            while (decodeSlot != NO_SLOT && (decodeSlotFrom < decodeSlotOffset || decoder == decodeReplyResume) && writable())
+            while ((decodeSlot != NO_SLOT && (decodeSlotFrom < decodeSlotOffset || decoder == decodeReplyResume) ||
+                finishing()) && writable())
             {
-                final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
+                final MutableDirectBufferEx buffer = decodeSlot != NO_SLOT ? replyPool.buffer(decodeSlot) : null;
                 final int from = decodeSlotFrom;
                 final int heldBefore = hold.held();
 
-                if (decoder == decodeReplyResume)
+                if (finishing())
+                {
+                    decodeFinish();
+                }
+                else if (decoder == decodeReplyResume)
                 {
                     onAppResume(buffer);
                 }
@@ -5469,7 +5532,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (hold.failed())
+            if (hold.failed() || !holdFits())
             {
                 rejectReply();
             }
@@ -5524,27 +5587,194 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             closeEncodedReasoning();
             doEncodeEnd();
-            doEncodeFinish(
-                llmEndEx != null ? llmEndEx.finishReason().asString() : null,
-                usage != null ? usage.inputTokens() : -1,
-                usage != null ? usage.cacheReadTokens() : -1,
-                usage != null ? usage.outputTokens() : -1,
-                usage != null ? usage.reasoningTokens() : -1,
-                usage != null ? usage.totalTokens() : -1);
 
-            cleanupHeld();
+            finishReasonName = finishReason(llmEndEx != null ? llmEndEx.finishReason().asString() : null);
+            finishInputTokens = usage != null ? usage.inputTokens() : -1;
+            finishCacheReadTokens = usage != null ? usage.cacheReadTokens() : -1;
+            finishOutputTokens = usage != null ? usage.outputTokens() : -1;
+            finishReasoningTokens = usage != null ? usage.reasoningTokens() : -1;
+            finishTotalTokens = usage != null ? usage.totalTokens() : -1;
 
-            doEncodeFlush();
+            decoder = server.streaming ? decodeReplyFinishChunk : decodeReplyFinishBody;
 
-            if (!writable())
+            decodeFinish();
+        }
+
+        private boolean finishing()
+        {
+            return decoder == decodeReplyFinishChunk || decoder == decodeReplyFinishUsage ||
+                decoder == decodeReplyFinishDone || decoder == decodeReplyFinishBody ||
+                decoder == decodeReplyFinishEnd;
+        }
+
+        private void decodeFinish()
+        {
+            LlmOpenaiReplyDecoder previous = null;
+
+            while (previous != decoder && finishing())
             {
-                server.state = StreamState.closingReply(server.state);
-                server.pendingReplyEndTraceId = traceId;
-                server.pendingReplyEndAuthorization = authorization;
+                previous = decoder;
+                decoder.decode(this, EMPTY_BUFFER, 0, 0);
+            }
+
+            if (decoder == decodeReplyFinishEnd)
+            {
+                decoder = decodeReplyNext;
+
+                cleanupHeld();
+
+                doEncodeFlush();
+
+                if (!writable())
+                {
+                    server.state = StreamState.closingReply(server.state);
+                    server.pendingReplyEndTraceId = encodeTraceId;
+                    server.pendingReplyEndAuthorization = encodeAuthorization;
+                }
+                else
+                {
+                    server.doNetEnd(encodeTraceId, encodeAuthorization, EMPTY_OCTETS);
+                }
+            }
+        }
+
+        private boolean roomFinish(
+            int need)
+        {
+            if (encodeLength() > 0)
+            {
+                doEncodeFlush();
             }
             else
             {
-                server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
+                flushEncodeSlot(encodeTraceId);
+            }
+
+            final boolean empty = writable();
+
+            if (empty)
+            {
+                beginEncode();
+            }
+
+            final boolean fits = empty && generator.remaining() >= need;
+
+            if (empty && !fits)
+            {
+                server.cleanup(encodeTraceId);
+            }
+
+            return fits;
+        }
+
+        private int finishNeed()
+        {
+            return finishFraming + RESPONSE_ESCAPE_EXPANSION * finishReasonName.length() + controlSize() +
+                hold.writeSize(KIND_MESSAGE, ALL_MEMBERS);
+        }
+
+        private boolean holdFits()
+        {
+            return finishFraming + controlSize() + hold.writeSize(KIND_MESSAGE, ALL_MEMBERS) + usageMax <=
+                replyEncodePool.slotCapacity() - ENTRY_HEADER;
+        }
+
+        private void finishChunk()
+        {
+            if (roomFinish(finishNeed()))
+            {
+                chunkStart();
+                generator.writeStartObject()
+                    .writeKey("index").write(0)
+                    .writeStartObject("delta");
+                hold.write(generator, KIND_MESSAGE, NOT_LOGPROBS);
+                generator.writeEnd();
+                hold.write(generator, KIND_MESSAGE, LOGPROBS);
+                generator.write("finish_reason", finishReasonName)
+                    .writeEnd();
+
+                chunkEnd();
+
+                decoder = decodeReplyFinishUsage;
+            }
+        }
+
+        private void finishUsage()
+        {
+            final boolean computed = server.usageRequested && !usageVerbatim &&
+                (finishInputTokens != NONE || finishOutputTokens != NONE || finishTotalTokens != NONE);
+
+            if (usageHeld())
+            {
+                final int index = hold.indexOf(MEMBER_USAGE);
+
+                if (roomFinish(finishFraming + controlSize() + hold.length(index) + MEMBER_USAGE.length() + usageMax))
+                {
+                    doEncodeUsageChunk();
+
+                    decoder = decodeReplyFinishDone;
+                }
+            }
+            else if (computed)
+            {
+                if (roomFinish(finishFraming + controlSize() + usageMax))
+                {
+                    chunkStart();
+                    generator.writeEnd();
+                    putUsage(generator, finishInputTokens, finishCacheReadTokens, finishOutputTokens, finishReasoningTokens,
+                        finishTotalTokens);
+                    generator.writeEnd();
+                    eventEnd(encodeLength());
+
+                    decoder = decodeReplyFinishDone;
+                }
+            }
+            else
+            {
+                decoder = decodeReplyFinishDone;
+            }
+        }
+
+        private void finishDone()
+        {
+            if (roomFinish(DONE_BUFFER.capacity() + RESPONSE_ESCAPE_EXPANSION))
+            {
+                eventBegin(encodeLength());
+                generator.writeRaw(DONE_BUFFER, 0, DONE_BUFFER.capacity());
+                eventEnd(encodeLength());
+
+                decoder = decodeReplyFinishEnd;
+            }
+        }
+
+        private void finishBody()
+        {
+            final int need = finishBodyFraming + RESPONSE_ESCAPE_EXPANSION * finishReasonName.length() + controlSize() +
+                usageMax;
+
+            if (roomFinish(need))
+            {
+                if (envelope == ENVELOPE_PRELUDE)
+                {
+                    openChoices();
+                }
+
+                if (envelope == ENVELOPE_CHOICE || envelope == ENVELOPE_CLOSED)
+                {
+                    closeChoice(finishReasonName);
+                }
+
+                writeControls();
+
+                if (!usageVerbatim)
+                {
+                    putUsage(generator, finishInputTokens, finishCacheReadTokens, finishOutputTokens, finishReasoningTokens,
+                        finishTotalTokens);
+                }
+
+                generator.writeEnd();
+
+                decoder = decodeReplyFinishEnd;
             }
         }
 
@@ -6031,6 +6261,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int encodeShift;
         private int chunkHead;
         private int chunkTail;
+        private int finishFraming;
+        private int finishBodyFraming;
+        private int usageMax;
+        private String finishReasonName;
+        private int finishInputTokens;
+        private int finishCacheReadTokens;
+        private int finishOutputTokens;
+        private int finishReasoningTokens;
+        private int finishTotalTokens;
         private int encodeSent;
         private long encodeTraceId;
         private long encodeAuthorization;
@@ -6263,6 +6502,35 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             chunkTail = probe.length() - chunkHead;
 
             probe.reset();
+
+            writeChunkOpen(probe);
+            probe.writeStartArray("choices");
+            probe.writeStartObject().writeKey("index").write(0).writeStartObject("delta").writeEnd();
+            probe.write("finish_reason", "").writeEnd();
+            probe.writeEnd();
+            writeObfuscation(probe, OBFUSCATION_MIN + OBFUSCATION_RANGE - 1);
+            probe.writeEnd();
+
+            finishFraming = probe.length();
+
+            probe.reset();
+
+            probe.writeStartObject();
+            probe.writeStartArray("choices").writeStartObject().writeKey("index").write(0)
+                .writeStartObject("message").write("role", "assistant").writeEnd()
+                .write("finish_reason", "").writeEnd().writeEnd();
+            probe.writeEnd();
+
+            finishBodyFraming = probe.length();
+
+            probe.reset();
+
+            probe.writeStartObject();
+            putUsage(probe, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+            usageMax = probe.length();
+
+            probe.reset();
         }
 
         private void sectionReasoning(
@@ -6475,73 +6743,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             target.writeKey(MEMBER_OBFUSCATION).writeStartEscaped();
             target.writeSegment(obfuscationBuffer, 0, length);
             target.writeEndEscaped();
-        }
-
-        private void doEncodeFinish(
-            String finishReason,
-            int inputTokens,
-            int cacheReadTokens,
-            int outputTokens,
-            int reasoningTokens,
-            int totalTokens)
-        {
-            final String reason = finishReason(finishReason);
-
-            if (server.streaming)
-            {
-                chunkStart();
-                generator.writeStartObject()
-                    .writeKey("index").write(0)
-                    .writeStartObject("delta");
-                hold.write(generator, KIND_MESSAGE, NOT_LOGPROBS);
-                generator.writeEnd();
-                hold.write(generator, KIND_MESSAGE, LOGPROBS);
-                generator.write("finish_reason", reason)
-                    .writeEnd();
-
-                final boolean usage = server.usageRequested && !usageVerbatim &&
-                    (inputTokens != NONE || outputTokens != NONE || totalTokens != NONE);
-
-                chunkEnd();
-
-                if (usageHeld())
-                {
-                    doEncodeUsageChunk();
-                }
-                else if (usage)
-                {
-                    chunkStart();
-                    generator.writeEnd();
-                    putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
-                    generator.writeEnd();
-                    eventEnd(encodeLength());
-                }
-
-                eventBegin(encodeLength());
-                generator.writeRaw(DONE_BUFFER, 0, DONE_BUFFER.capacity());
-                eventEnd(encodeLength());
-            }
-            else
-            {
-                if (envelope == ENVELOPE_PRELUDE)
-                {
-                    openChoices();
-                }
-
-                if (envelope == ENVELOPE_CHOICE || envelope == ENVELOPE_CLOSED)
-                {
-                    closeChoice(reason);
-                }
-
-                writeControls();
-
-                if (!usageVerbatim)
-                {
-                    putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
-                }
-
-                generator.writeEnd();
-            }
         }
 
         private void doEncodeError(
@@ -6922,6 +7123,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void putUsage(
+            JsonGeneratorEx target,
             int inputTokens,
             int cacheReadTokens,
             int outputTokens,
@@ -6934,38 +7136,38 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (inputTokens != NONE || outputTokens != NONE || total != NONE)
             {
-                generator.writeStartObject("usage");
+                target.writeStartObject("usage");
 
                 if (inputTokens != NONE)
                 {
-                    generator.writeKey("prompt_tokens").write(inputTokens);
+                    target.writeKey("prompt_tokens").write(inputTokens);
                 }
 
                 if (outputTokens != NONE)
                 {
-                    generator.writeKey("completion_tokens").write(outputTokens);
+                    target.writeKey("completion_tokens").write(outputTokens);
                 }
 
                 if (total != NONE)
                 {
-                    generator.writeKey("total_tokens").write(total);
+                    target.writeKey("total_tokens").write(total);
                 }
 
                 if (cacheReadTokens != NONE)
                 {
-                    generator.writeStartObject("prompt_tokens_details")
+                    target.writeStartObject("prompt_tokens_details")
                         .writeKey("cached_tokens").write(cacheReadTokens)
                         .writeEnd();
                 }
 
                 if (reasoningTokens != NONE)
                 {
-                    generator.writeStartObject("completion_tokens_details")
+                    target.writeStartObject("completion_tokens_details")
                         .writeKey("reasoning_tokens").write(reasoningTokens)
                         .writeEnd();
                 }
 
-                generator.writeEnd();
+                target.writeEnd();
             }
         }
 
