@@ -4830,7 +4830,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void decodeReply()
         {
-            while (decodeSlot != NO_SLOT && decodeSlotFrom < decodeSlotOffset && writable())
+            while (decodeSlot != NO_SLOT && (decodeSlotFrom < decodeSlotOffset || decoder == decodeReplyResume) && writable())
             {
                 final MutableDirectBufferEx buffer = replyPool.buffer(decodeSlot);
 
@@ -4869,7 +4869,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset && hold.held() == 0)
+            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset && hold.held() == 0 &&
+                decoder != decodeReplyResume)
             {
                 cleanupDecodeSlot();
             }
@@ -5207,7 +5208,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private boolean roomArgs()
         {
-            final int need = ARGS_HEADROOM + (server.streaming ? chunkHead + hold.held() + chunkTail : 0);
+            final int need = ARGS_HEADROOM + (server.streaming ? chunkHead + controlSize() + chunkTail : 0);
 
             if (generator.remaining() < need && encodeLength() > 0)
             {
@@ -6199,7 +6200,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             while (taken < length && progress && writable())
             {
-                final int need = chunkHead + hold.held() + chunkTail + RESPONSE_ESCAPE_EXPANSION;
+                final int need = chunkHead + controlSize() + chunkTail + RESPONSE_ESCAPE_EXPANSION;
 
                 if (generator.remaining() >= need)
                 {
@@ -6437,6 +6438,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return server.usageRequested && index != NONE && hold.length(index) > 0;
         }
 
+
+        private int controlSize()
+        {
+            return hold.writeSize(KIND_ROOT, server.streaming ? NOT_USAGE : ALL_MEMBERS);
+        }
 
         private void writeControls()
         {

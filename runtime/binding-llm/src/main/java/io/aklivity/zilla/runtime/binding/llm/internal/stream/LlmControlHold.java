@@ -38,6 +38,7 @@ final class LlmControlHold
     private static final int NONE = -1;
     private static final DirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
     private static final int INITIAL_CAPACITY = 16;
+    private static final int KEY_FRAMING = 4;
 
     private final Supplier<MutableDirectBufferEx> store;
 
@@ -330,6 +331,23 @@ final class LlmControlHold
                 generator.writeRaw(store.get(), offsets[index], lengths[index]);
             }
         }
+    }
+
+    int writeSize(
+        int kind,
+        Predicate<String> included)
+    {
+        int size = 0;
+
+        for (int index = 0; index < count; index++)
+        {
+            if (kinds[index] == kind && included.test(names[index]))
+            {
+                size += KEY_FRAMING + MutableDirectBufferEx.utf8Length(names[index], 0, names[index].length()) + lengths[index];
+            }
+        }
+
+        return size;
     }
 
     void reference(
