@@ -33,12 +33,21 @@ final class LlmOpenaiBlockWriter
     static final int ACTION_COPY = 1;
     static final int ACTION_FUNCTION = 2;
     static final int ACTION_UNESCAPE = 3;
+    static final int ACTION_USAGE = 4;
+    static final int ACTION_OBFUSCATION = 5;
 
     private static final String PREFIX = LlmOpenaiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_ID = "id";
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_FUNCTION = "function";
     private static final String MEMBER_ARGUMENTS = "arguments";
+    private static final String MEMBER_STREAM = "stream";
+    private static final String MEMBER_STREAM_OPTIONS = "stream_options";
+    private static final String MEMBER_STOP = "x:stop";
+    private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
     private static final int HEADROOM = 16;
 
     private final LlmOutputSink sink;
@@ -50,6 +59,9 @@ final class LlmOpenaiBlockWriter
     private int depth;
     private boolean functioned;
     private boolean argumented;
+    private boolean separating;
+    private byte separator;
+    private boolean usageWritten;
 
     LlmOpenaiBlockWriter(
         LlmOutputSink sink,
@@ -82,6 +94,186 @@ final class LlmOpenaiBlockWriter
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
         generator.writeStartObject();
+    }
+
+    void beginMember(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator)
+    {
+        this.buffer = buffer;
+        this.origin = origin;
+        this.depth = 0;
+        this.separator = (byte) separator;
+        this.separating = true;
+
+        generator.reset();
+        generator.wrap(buffer, origin, buffer.capacity());
+        generator.writeStartObject();
+    }
+
+    void endMember()
+    {
+        flush(false);
+    }
+
+    int streamValue(
+        JsonEvent event)
+    {
+        final boolean flag = flag(event);
+
+        if (flag)
+        {
+            generator.writeKey(MEMBER_STREAM);
+            writeFlag(event);
+        }
+
+        return flag ? VALUE : REJECT;
+    }
+
+    int optionsValue(
+        JsonEvent event)
+    {
+        int outcome = REJECT;
+
+        generator.writeKey(MEMBER_STREAM_OPTIONS);
+        usageWritten = false;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            generator.writeStartObject();
+            outcome = MORE;
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            generator.writeStartObject();
+            writeIncludeUsage();
+            generator.writeEnd();
+            outcome = VALUE;
+        }
+
+        return outcome;
+    }
+
+    int optionsAction(
+        CharSequence name)
+    {
+        int action = ACTION_COPY;
+
+        if (MEMBER_INCLUDE_USAGE.contentEquals(name))
+        {
+            action = ACTION_USAGE;
+        }
+        else if (MEMBER_INCLUDE_OBFUSCATION.contentEquals(name))
+        {
+            generator.writeKey(LlmOpenaiMembers.VENDOR + ":" + name);
+            action = ACTION_OBFUSCATION;
+        }
+        else
+        {
+            key.setLength(0);
+            key.append(PREFIX).append(name);
+            generator.writeKey(key);
+        }
+
+        return action;
+    }
+
+    int usageValue(
+        JsonEvent event)
+    {
+        final boolean flag = flag(event);
+
+        if (flag)
+        {
+            writeIncludeUsage();
+        }
+
+        return flag ? VALUE : REJECT;
+    }
+
+    int obfuscationValue(
+        JsonEvent event)
+    {
+        final boolean flag = flag(event);
+
+        if (flag)
+        {
+            writeFlag(event);
+        }
+
+        return flag ? VALUE : REJECT;
+    }
+
+    void closeOptions()
+    {
+        if (!usageWritten)
+        {
+            writeIncludeUsage();
+        }
+
+        generator.writeEnd();
+    }
+
+    int stopValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        generator.writeKey(MEMBER_STOP);
+
+        final boolean wrap = event == JsonEvent.VALUE_STRING;
+
+        if (wrap)
+        {
+            generator.writeStartArray();
+        }
+
+        final int outcome = copyValue(event, parser);
+
+        if (wrap && outcome == VALUE)
+        {
+            generator.writeEnd();
+        }
+
+        return wrap ? outcome == VALUE ? VALUE : MORE : outcome;
+    }
+
+    int stopText(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = copyValue(event, parser);
+
+        if (outcome == VALUE)
+        {
+            generator.writeEnd();
+        }
+
+        return outcome;
+    }
+
+    int tierValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final String tier = event == JsonEvent.VALUE_STRING && !parser.deferredBytes()
+            ? LlmServiceTiers.canonicalOpenai(parser.getStringView().toString())
+            : null;
+        int outcome;
+
+        if (tier != null)
+        {
+            generator.writeKey(MEMBER_SHARED_SERVICE_TIER);
+            generator.write(tier);
+            outcome = VALUE;
+        }
+        else
+        {
+            generator.writeKey(MEMBER_NATIVE_SERVICE_TIER);
+            outcome = copyValue(event, parser);
+        }
+
+        return outcome;
     }
 
     int pending()
@@ -223,9 +415,40 @@ final class LlmOpenaiBlockWriter
 
         if (length > 0 || last)
         {
+            if (separating && length > 0)
+            {
+                buffer.putByte(origin, separator);
+                separating = false;
+            }
+
             sink.put(buffer, origin, length, last);
             generator.wrap(buffer, origin, buffer.capacity());
         }
+    }
+
+    private void writeIncludeUsage()
+    {
+        generator.write(MEMBER_INCLUDE_USAGE, true);
+        usageWritten = true;
+    }
+
+    private void writeFlag(
+        JsonEvent event)
+    {
+        if (event == JsonEvent.VALUE_NULL)
+        {
+            generator.writeNull();
+        }
+        else
+        {
+            generator.write(event == JsonEvent.VALUE_TRUE);
+        }
+    }
+
+    private static boolean flag(
+        JsonEvent event)
+    {
+        return event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL;
     }
 
     private void copy(

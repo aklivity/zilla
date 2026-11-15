@@ -253,6 +253,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeBlockCopy = this::decodeBlockCopy;
     private final LlmOpenaiServerDecoder decodeBlockUnescape = this::decodeBlockUnescape;
     private final LlmOpenaiServerDecoder decodeBlockUnescaped = this::decodeBlockUnescaped;
+    private final LlmOpenaiServerDecoder decodeControlStream = this::decodeControlStream;
+    private final LlmOpenaiServerDecoder decodeControlOptions = this::decodeControlOptions;
+    private final LlmOpenaiServerDecoder decodeControlOptionsKey = this::decodeControlOptionsKey;
+    private final LlmOpenaiServerDecoder decodeControlUsage = this::decodeControlUsage;
+    private final LlmOpenaiServerDecoder decodeControlObfuscation = this::decodeControlObfuscation;
+    private final LlmOpenaiServerDecoder decodeControlStop = this::decodeControlStop;
+    private final LlmOpenaiServerDecoder decodeControlStopText = this::decodeControlStopText;
+    private final LlmOpenaiServerDecoder decodeControlTier = this::decodeControlTier;
+    private final LlmOpenaiServerDecoder decodeControlMember = this::decodeControlMember;
     private final LlmBlockHandler blockKey = this::onBlockKey;
     private final LlmBlockHandler blockFunction = this::onBlockFunction;
     private final LlmBlockHandler blockFunctionKey = this::onBlockFunctionKey;
@@ -260,6 +269,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmBlockHandler blockCopy = this::onBlockCopy;
     private final LlmBlockHandler blockUnescape = this::onBlockUnescape;
     private final LlmBlockHandler blockUnescaped = this::onBlockUnescaped;
+    private final LlmBlockHandler controlStream = this::onControlStream;
+    private final LlmBlockHandler controlOptions = this::onControlOptions;
+    private final LlmBlockHandler controlOptionsKey = this::onControlOptionsKey;
+    private final LlmBlockHandler controlUsage = this::onControlUsage;
+    private final LlmBlockHandler controlObfuscation = this::onControlObfuscation;
+    private final LlmBlockHandler controlStop = this::onControlStop;
+    private final LlmBlockHandler controlStopText = this::onControlStopText;
+    private final LlmBlockHandler controlTier = this::onControlTier;
     private final LlmOpenaiServerDecoder decodeTool = this::decodeTool;
     private final LlmOpenaiServerDecoder decodeToolStart = this::decodeToolStart;
     private final LlmOpenaiServerDecoder decodeBlockStart = this::decodeBlockStart;
@@ -1756,6 +1773,259 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return onBlockValue(server, server.blockWriter.unescaped(event), decodeBlockFunctionKey);
     }
 
+    private int decodeControlStream(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlStream, controlStream);
+    }
+
+    private int decodeControlOptions(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlOptions, controlOptions);
+    }
+
+    private int decodeControlOptionsKey(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlOptionsKey, controlOptionsKey);
+    }
+
+    private int decodeControlUsage(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlUsage, controlUsage);
+    }
+
+    private int decodeControlObfuscation(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlObfuscation, controlObfuscation);
+    }
+
+    private int decodeControlStop(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlStop, controlStop);
+    }
+
+    private int decodeControlStopText(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlStopText, controlStopText);
+    }
+
+    private int decodeControlTier(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, authorization, decodeControlTier, controlTier);
+    }
+
+    private int decodeControlMember(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.endControlMember(traceId, authorization);
+
+        return server.position();
+    }
+
+    private int onControlStream(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        server.streaming = event == JsonEvent.VALUE_TRUE;
+
+        return onBlockValue(server, server.blockWriter.streamValue(event), decodeControlMember);
+    }
+
+    private int onControlOptions(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        server.streamOptions = true;
+        server.usageRequested = false;
+        server.obfuscation = true;
+
+        final int outcome = server.blockWriter.optionsValue(event);
+
+        if (outcome == LlmOpenaiBlockWriter.MORE)
+        {
+            server.decoder = decodeControlOptionsKey;
+        }
+
+        return onBlockValue(server, outcome, decodeControlMember);
+    }
+
+    private int onControlOptionsKey(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmOpenaiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            switch (server.blockWriter.optionsAction(parser.getStringView()))
+            {
+            case LlmOpenaiBlockWriter.ACTION_USAGE:
+                server.decoder = decodeControlUsage;
+                break;
+            case LlmOpenaiBlockWriter.ACTION_OBFUSCATION:
+                server.decoder = decodeControlObfuscation;
+                break;
+            default:
+                server.decodeBlockCopyNext = decodeControlOptionsKey;
+                server.decoder = decodeBlockCopy;
+                break;
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeOptions();
+            server.decoder = decodeControlMember;
+        }
+        else
+        {
+            outcome = LlmOpenaiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onControlUsage(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        server.usageRequested = event == JsonEvent.VALUE_TRUE;
+
+        return onBlockValue(server, server.blockWriter.usageValue(event), decodeControlOptionsKey);
+    }
+
+    private int onControlObfuscation(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        server.obfuscation = event != JsonEvent.VALUE_FALSE;
+
+        return onBlockValue(server, server.blockWriter.obfuscationValue(event), decodeControlOptionsKey);
+    }
+
+    private int onControlStop(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onControlComposite(server, event, server.blockWriter.stopValue(event, parser),
+            event == JsonEvent.VALUE_STRING ? decodeControlStopText : decodeBlockCopy);
+    }
+
+    private int onControlStopText(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.stopText(event, parser), decodeControlMember);
+    }
+
+    private int onControlTier(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onControlComposite(server, event, server.blockWriter.tierValue(event, parser), decodeBlockCopy);
+    }
+
+    private int onControlComposite(
+        LlmOpenaiServer server,
+        JsonEvent event,
+        int outcome,
+        LlmOpenaiServerDecoder continuation)
+    {
+        if (outcome == LlmOpenaiBlockWriter.MORE)
+        {
+            server.decodeBlockCopyNext = decodeControlMember;
+            server.decoder = continuation;
+        }
+
+        return onBlockValue(server, outcome, decodeControlMember);
+    }
+
     private int onBlockValue(
         LlmOpenaiServer server,
         int outcome,
@@ -2682,8 +2952,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private LlmOpenaiServerDecoder decodeBlockCopyNext;
         private int blockSlot = NO_SLOT;
         private final StringBuilder controlKey = new StringBuilder();
-        private LlmSectionPipeline controlPipeline;
-        private LlmOpenaiControlToCanonical controlTransform;
         private LlmSectionType roleType;
         private final LlmReasoningScanner scanner;
         private LlmSectionType scanType;
@@ -2691,13 +2959,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final JsonGeneratorEx generator;
         private long scanTraceId;
         private long scanAuthorization;
-        private LlmSectionPipeline blockPipeline;
-        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
         private final LlmOutputSink blockSink = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
-        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
 
         private LlmOpenaiServer(
             MessageConsumer network,
@@ -3051,32 +3314,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER))
+            if (convertedControl(key))
             {
-                controlConverted(key, CONTROL_CONTINUE);
+                beginControlMember(key, ',');
             }
             else
             {
                 onDecodeControlKey(key, true, ',');
+                captureOpen = true;
+                captureDepth = 0;
+                captureFrom = position();
+                decoder = decodeControlSeparator;
             }
-
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = decodeControlSeparator;
-        }
-
-        private void controlConverted(
-            JsonStringView key,
-            DirectBufferEx separator)
-        {
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
-
-            blockPipeline = controlPipeline();
-            blockPipeline.begin(blockAttributes);
-            memberOutput.begin();
-
-            onDecodeControlKey(key, false, '{');
         }
 
         private void closeControl(
@@ -3095,25 +3344,70 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             captureThen = then;
 
-            if (matches(key, MEMBER_STREAM) || matches(key, MEMBER_STREAM_OPTIONS))
+            if (convertedControl(key))
             {
-                blockPipeline = controlPipeline();
-                blockPipeline.begin(blockAttributes);
-                onDecodeControlKey(key, false, '{');
-            }
-            else if (matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER))
-            {
-                controlConverted(key, CONTROL_BEGIN);
+                beginControlMember(key, '{');
             }
             else
             {
                 onDecodeControlKey(key, true, '{');
+                captureOpen = true;
+                captureDepth = 0;
+                captureFrom = position();
+                decoder = decodeControlSeparator;
+            }
+        }
+
+        private boolean convertedControl(
+            JsonStringView key)
+        {
+            return matches(key, MEMBER_STREAM) || matches(key, MEMBER_STREAM_OPTIONS) ||
+                matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER);
+        }
+
+        private void beginControlMember(
+            JsonStringView key,
+            char separator)
+        {
+            if (blockWriter == null)
+            {
+                blockWriter = new LlmOpenaiBlockWriter(blockSink, JsonEx.createGenerator());
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = decodeControlSeparator;
+            writing = blockWriter;
+            writing.beginMember(blockBuffer(), 0, separator);
+
+            if (matches(key, MEMBER_STREAM))
+            {
+                decoder = decodeControlStream;
+            }
+            else if (matches(key, MEMBER_STREAM_OPTIONS))
+            {
+                decoder = decodeControlOptions;
+            }
+            else if (matches(key, MEMBER_STOP))
+            {
+                decoder = decodeControlStop;
+            }
+            else
+            {
+                decoder = decodeControlTier;
+            }
+        }
+
+        private void endControlMember(
+            long traceId,
+            long authorization)
+        {
+            writing.endMember();
+            writing = null;
+
+            if (captureThen != decodeRootControl)
+            {
+                closeControl(traceId, authorization);
+            }
+
+            decoder = decoder == decodeIgnore ? decoder : captureThen;
         }
 
         private void endCapture(
@@ -3122,18 +3416,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, captureThen != decodeRootControl);
 
-            if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
-            {
-                if (captureThen == decodeRootControl &&
-                    !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
-                {
-                    onDecodeParseError(traceId);
-                }
-
-                onDecodeControl();
-            }
-
-            blockPipeline = null;
             captureOpen = false;
             probing = false;
             decoder = decoder == decodeIgnore ? decoder : captureThen;
@@ -3548,8 +3830,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolCallId)
         {
             beginBlock(type, message, toolCallId);
-
-            blockPipeline = null;
         }
 
         private void beginBlock(
@@ -3577,46 +3857,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 final boolean closing = blockSection == LlmSectionType.CONTROL && last;
 
-                if (!onDecodeBlockData(traceId, authorization, buffer, offset, length, last && !closing) ||
-                    closing && !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+                onDecodeSectionData(traceId, authorization, buffer, offset, length, last && !closing);
+
+                if (closing)
                 {
-                    onDecodeParseError(traceId);
+                    onDecodeSectionData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true);
                 }
             }
-        }
-
-        private boolean onDecodeBlockData(
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            boolean accepted = true;
-
-            if (blockPipeline == null)
-            {
-                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
-            }
-            else
-            {
-                accepted = blockPipeline.feed(buffer, offset, length, last,
-                    captureThen == decodeRootControl ? memberOutput : blockOutput);
-            }
-
-            return accepted;
-        }
-
-        private LlmSectionPipeline controlPipeline()
-        {
-            if (controlPipeline == null)
-            {
-                controlTransform = new LlmOpenaiControlToCanonical(NAME);
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
-            }
-
-            return controlPipeline;
         }
 
         private void onDecodeControlKey(
@@ -3650,22 +3897,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             pieceBuffer.putByte(0, (byte) open);
 
-            onDecodeBlockData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
-        }
-
-        private void onDecodeControl()
-        {
-            if (controlTransform.streamSeen())
-            {
-                streaming = controlTransform.streaming();
-            }
-
-            if (controlTransform.optionsSeen())
-            {
-                streamOptions = true;
-                usageRequested = controlTransform.usageRequested();
-                obfuscation = !controlTransform.obfuscationDisabled();
-            }
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
         }
 
         private void onDecodeSectionData(
