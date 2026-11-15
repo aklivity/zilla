@@ -9604,4 +9604,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.reasoning.encrypted.first.rejected.bound/client",
+        "${app}/openai.responses.section.reasoning.encrypted.first.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesSectionReasoningEncryptedFirstRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }
