@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongUnaryOperator;
@@ -293,10 +292,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
 
-    private byte[] pieceBytes;
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
     private final JsonStringBody body = new JsonStringBody();
-    private UnsafeBufferEx pieceBuffer;
 
     public LlmOpenaiServerFactory(
         EngineContext context)
@@ -315,8 +312,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.pieceBytes = new byte[1024];
-        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -3359,7 +3354,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int available()
         {
             final long credit = stream != null ? stream.initialAvailable() : 0L;
-            final int available = (int) Math.max(credit - (writing != null ? writing.pending() : 0), 0L);
+            final int available = (int) Math.min(Math.max(credit - (writing != null ? writing.pending() : 0), 0L),
+                extBuffer.capacity());
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
             return available - appendRoom;
@@ -3744,7 +3740,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             final int encoded = encodePiece(chars, from, to);
 
-            onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, encoded, false);
+            onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, encoded, false);
         }
 
         @Override
@@ -3773,7 +3769,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             final int encoded = encodePiece(chars, from, to);
 
-            onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, encoded, false);
+            onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, encoded, false);
         }
 
         @Override
@@ -3796,18 +3792,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 final int length = encodePieceEnd();
 
-                onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, length, true);
+                onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, length, true);
                 scanType = null;
-            }
-        }
-
-        private void reservePiece(
-            int capacity)
-        {
-            if (pieceBytes.length < capacity)
-            {
-                pieceBytes = Arrays.copyOf(pieceBytes, capacity);
-                pieceBuffer = new UnsafeBufferEx(pieceBytes);
             }
         }
 
@@ -3817,14 +3803,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int to)
         {
             final int prefix = Flags.hasInit(blockFlags) ? REASONING_PREFIX.length : 0;
-            final int length;
+            final int length = prefix + body.transfer(chars, from, to,
+                pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + prefix));
 
-            reservePiece(prefix + body.length(chars, from, to));
-
-            length = prefix + body.transfer(chars, from, to,
-                pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + prefix));
-
-            System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
+            extBuffer.putBytes(0, REASONING_PREFIX, 0, prefix);
 
             return length;
         }
@@ -3833,10 +3815,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int prefix = Flags.hasInit(blockFlags) ? REASONING_PREFIX.length : 0;
 
-            reservePiece(prefix + REASONING_SUFFIX.length);
-
-            System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, prefix);
-            System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, prefix, REASONING_SUFFIX.length);
+            extBuffer.putBytes(0, REASONING_PREFIX, 0, prefix);
+            extBuffer.putBytes(prefix, REASONING_SUFFIX, 0, REASONING_SUFFIX.length);
 
             return prefix + REASONING_SUFFIX.length;
         }
