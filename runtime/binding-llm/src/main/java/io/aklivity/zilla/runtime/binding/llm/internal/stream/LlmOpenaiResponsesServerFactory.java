@@ -9405,7 +9405,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             accumulator.appendText(type);
             accumulator.close();
 
-            if (accumulator.truncated(itemHeader))
+            if (accumulator.absent(itemHeader))
             {
                 server.cleanup(encodeTraceId);
             }
