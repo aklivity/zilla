@@ -3052,8 +3052,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
-                final MqttPropertyFW mqttProperty = mqttPropertyRO
-                    .wrap(decodeBuffer, decodeProgress, decodeLimit);
+                final MqttPropertyFW mqttProperty = mqttPropertyRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                if (mqttProperty == null)
+                {
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
+
                 switch (mqttProperty.kind())
                 {
                 case KIND_TOPIC_ALIAS_MAXIMUM:
@@ -4670,8 +4675,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
             {
-                final MqttPropertyFW mqttProperty = mqttPropertyRO
-                    .wrap(decodeBuffer, decodeProgress, decodeLimit);
+                final MqttPropertyFW mqttProperty = mqttPropertyRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                if (mqttProperty == null)
+                {
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
+
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
@@ -7954,8 +7964,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
-                    final MqttPropertyFW mqttProperty = mqttPropertyRO
-                        .wrap(decodeBuffer, decodeProgress, decodeLimit);
+                    final MqttPropertyFW mqttProperty = mqttPropertyRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                    if (mqttProperty == null)
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
+
                     switch (mqttProperty.kind())
                     {
                     case KIND_WILL_DELAY_INTERVAL:
@@ -8069,8 +8084,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 decode:
                 for (int decodeProgress = decodeOffset; decodeProgress < decodeLimit; )
                 {
-                    final MqttPropertyFW mqttProperty = mqttPropertyRO
-                        .wrap(decodeBuffer, decodeProgress, decodeLimit);
+                    final MqttPropertyFW mqttProperty = mqttPropertyRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                    if (mqttProperty == null)
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
+
                     switch (mqttProperty.kind())
                     {
                     case KIND_EXPIRY_INTERVAL:
