@@ -78,6 +78,29 @@ final class LlmHeldTail
         return fits;
     }
 
+    MutableDirectBufferEx reserve(
+        long streamId)
+    {
+        if (slot == NO_SLOT)
+        {
+            slot = pool.acquire(streamId);
+        }
+
+        return slot != NO_SLOT ? pool.buffer(slot) : null;
+    }
+
+    int room(
+        int bound)
+    {
+        return slot != NO_SLOT ? Math.min(pool.slotCapacity(), bound) - limit : 0;
+    }
+
+    void commit(
+        int length)
+    {
+        limit += length;
+    }
+
     int remaining()
     {
         return limit - offset;

@@ -143,6 +143,46 @@ final class LlmControlHold
         return fits;
     }
 
+    MutableDirectBufferEx reserve()
+    {
+        return store.get();
+    }
+
+    int room()
+    {
+        final MutableDirectBufferEx held = store.get();
+
+        return held != null ? held.capacity() - limit : 0;
+    }
+
+    int limit()
+    {
+        return limit;
+    }
+
+    void commit(
+        int length)
+    {
+        if (stageFrom == NONE)
+        {
+            stageFrom = limit;
+        }
+
+        limit += length;
+    }
+
+    void commitPut(
+        int length)
+    {
+        limit += length;
+        lengths[open] += length;
+    }
+
+    void fail()
+    {
+        failed = true;
+    }
+
     int stageFrom()
     {
         return stageFrom;
