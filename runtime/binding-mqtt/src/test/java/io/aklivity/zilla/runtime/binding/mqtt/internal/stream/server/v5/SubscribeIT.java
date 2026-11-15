@@ -750,6 +750,17 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 2.2.1 [MQTT-2.2.1-3], 4.13.1 Protocol Error
     @Test
     @Configuration("server.yaml")

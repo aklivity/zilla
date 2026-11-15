@@ -4042,7 +4042,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         mqttSubscribePayloadRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
                     if (mqttSubscribePayload == null)
                     {
-                        break;
+                        onDecodeError(traceId, authorization, MALFORMED_PACKET);
+                        decoder = decodeIgnoreAll;
+                        break decode;
                     }
                     decodeProgress = mqttSubscribePayload.limit();
 
@@ -4140,11 +4142,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int propertiesOffset = propertiesValue.offset();
             final int propertiesLimit = propertiesValue.limit();
 
-            MqttPropertyFW mqttProperty;
-            for (int propertiesProgress = propertiesOffset;
-                 propertiesProgress < propertiesLimit; propertiesProgress = mqttProperty.limit())
+            decodeProperties:
+            for (int propertiesProgress = propertiesOffset; propertiesProgress < propertiesLimit; )
             {
-                mqttProperty = mqttPropertyRO.tryWrap(propertiesBuffer, propertiesProgress, propertiesLimit);
+                final MqttPropertyFW mqttProperty =
+                    mqttPropertyRO.tryWrap(propertiesBuffer, propertiesProgress, propertiesLimit);
+                if (mqttProperty == null)
+                {
+                    propertiesReasonCode = MALFORMED_PACKET;
+                    break decodeProperties;
+                }
+
                 switch (mqttProperty.kind())
                 {
                 case KIND_SUBSCRIPTION_ID:
@@ -4155,7 +4163,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     containsSubscriptionId = true;
                     break;
+                case KIND_USER_PROPERTY:
+                    break;
+                default:
+                    propertiesReasonCode = MALFORMED_PACKET;
+                    break decodeProperties;
                 }
+
+                propertiesProgress = mqttProperty.limit();
             }
 
             if (propertiesReasonCode != SUCCESS)
