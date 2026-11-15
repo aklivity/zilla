@@ -481,4 +481,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3-8.3-4] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.second.filter.malformed.subscription.options/client",
+        "${net}/subscribe.reject.second.filter.malformed.subscription.options/server"})
+    public void shouldRejectSecondFilterMalformedSubscriptionOptions() throws Exception
+    {
+        k3po.finish();
+    }
 }

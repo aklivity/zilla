@@ -792,4 +792,23 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // [MQTT-3.8.3-5] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.second.filter.reserved.option.bit.6/client",
+        "${net}/subscribe.reject.second.filter.reserved.option.bit.6/server"})
+    public void shouldRejectSecondFilterReservedOptionBit6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3.1 Maximum QoS 3 is a Protocol Error, earlier filters not subscribed
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.second.filter.maximum.qos.3/client",
+        "${net}/subscribe.reject.second.filter.maximum.qos.3/server"})
+    public void shouldRejectSecondFilterMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
 }
