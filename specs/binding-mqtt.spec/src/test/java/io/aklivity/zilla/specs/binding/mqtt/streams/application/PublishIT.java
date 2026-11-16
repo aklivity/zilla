@@ -436,6 +436,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos1.message.rejected/client",
         "${app}/publish.qos1.message.rejected/server"})
     public void shouldPublishQos1MessageRejected() throws Exception

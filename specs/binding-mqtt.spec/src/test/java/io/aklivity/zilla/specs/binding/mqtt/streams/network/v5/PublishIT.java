@@ -210,6 +210,15 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/publish.qos1.reset/client",
+        "${net}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({

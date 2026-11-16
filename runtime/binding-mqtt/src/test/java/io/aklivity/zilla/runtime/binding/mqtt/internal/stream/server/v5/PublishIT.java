@@ -457,6 +457,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception
