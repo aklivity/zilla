@@ -521,6 +521,17 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.section.user.text.100k.parts/client",
+        "${net}/openai.section.user.text.100k.parts/server"})
+    public void shouldEncodeOpenaiSectionUserText100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.section.tool.result.100k.parts/client",
         "${net}/openai.section.tool.result.100k.parts/server"})
@@ -850,6 +861,17 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.tool.call.100k/client",
         "${net}/openai.section.tool.call.100k/server"})
     public void shouldEncodeOpenaiSectionToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.section.tool.call.100k/client",
+        "${net}/openai.section.tool.call.100k/server"})
+    public void shouldEncodeOpenaiSectionToolCall100kWithSmallSlots() throws Exception
     {
         k3po.finish();
     }
