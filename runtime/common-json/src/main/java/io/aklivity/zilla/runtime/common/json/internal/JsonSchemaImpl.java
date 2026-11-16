@@ -2385,6 +2385,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final boolean throwing;
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
+        private final Trace trace;
         private final Eval eval;
         private final ParserSource source;
 
@@ -2400,7 +2401,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.throwing = throwing;
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
-            this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
+            this.trace = diagnostics != null ? new Trace(this::report) : Trace.NONE;
+            this.eval = diagnostics != null ? eval(trace) : eval();
             this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
@@ -2564,11 +2566,47 @@ public final class JsonSchemaImpl implements JsonSchema
             return delegateEx.hasNextEvent();
         }
 
+        // validation reads structured events, so a segmented delivery request is declined; a scalar fragmented
+        // across windows is fed once, when it completes, unless a keyword reads its content, which a fragment
+        // cannot supply, so it is invalid rather than passed unchecked
         @Override
         public JsonEvent nextEvent(
             Mode mode)
         {
-            return delegateEx.nextEvent(mode);
+            final JsonEvent event = delegateEx.nextEvent(Mode.STRUCTURED);
+
+            if (verdict == Verdict.PENDING)
+            {
+                verdict = validate(event);
+                if (verdict == Verdict.INVALID && throwing)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+            }
+
+            return event;
+        }
+
+        private Verdict validate(
+            JsonEvent event)
+        {
+            final boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
+            final boolean framing = event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT;
+            final boolean fragment = scalar && delegateEx.deferredBytes();
+
+            Verdict result = Verdict.PENDING;
+
+            if (fragment && eval.needsContentNow())
+            {
+                trace.report("content", "value exceeds the input window and a keyword reads its content", source);
+                result = Verdict.INVALID;
+            }
+            else if (!framing && !fragment)
+            {
+                result = eval.feed(toEvent(event), source);
+            }
+
+            return result;
         }
 
         @Override
@@ -2593,19 +2631,19 @@ public final class JsonSchemaImpl implements JsonSchema
         public JsonVerbatim getVerbatim(
             int limit)
         {
-            return delegateEx.getVerbatim(limit);
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
         public void skipValue()
         {
-            delegateEx.skipValue();
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
         public void verbatim()
         {
-            delegateEx.verbatim();
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
