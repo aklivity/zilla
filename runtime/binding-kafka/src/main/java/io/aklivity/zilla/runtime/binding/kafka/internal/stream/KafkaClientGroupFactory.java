@@ -1362,6 +1362,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         private int topicMetadataLimit;
         private int topicMetadataVersion;
         private int joinedTopicMetadataVersion;
+        private int syncedTopicMetadataVersion = -1;
 
         KafkaGroupStream(
             MessageConsumer sender,
@@ -4769,14 +4770,14 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long budgetId,
             OctetsFW extension)
         {
-            if (extension.sizeof() > 0)
+            if (extension.sizeof() == 0)
+            {
+                doHeartbeatRequest(traceId);
+            }
+            else if (delegate.syncedTopicMetadataVersion == delegate.joinedTopicMetadataVersion)
             {
                 delegate.client = joinGroup;
                 joinGroup.doJoinGroupRequest(traceId);
-            }
-            else
-            {
-                doHeartbeatRequest(traceId);
             }
         }
 
@@ -5328,6 +5329,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             OctetsFW newAssignment)
         {
             nextResponseId++;
+
+            delegate.syncedTopicMetadataVersion = delegate.joinedTopicMetadataVersion;
 
             if (newAssignment.sizeof() > 0)
             {
