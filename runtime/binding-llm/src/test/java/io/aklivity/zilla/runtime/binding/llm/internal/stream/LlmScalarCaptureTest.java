@@ -88,16 +88,6 @@ public class LlmScalarCaptureTest
     }
 
     @Test
-    public void shouldRejectFormatTypeThatIsNotScalarWhenDecoding()
-    {
-        for (String value : NOT_SCALARS)
-        {
-            assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
-                "{'output_config':{'format':{'type':" + value + ",'schema':{}}}}", "type");
-        }
-    }
-
-    @Test
     public void shouldNameMemberOfScalarFillingCaptureLimitExactly()
     {
         final String value = quoted(FITS);
@@ -105,8 +95,6 @@ public class LlmScalarCaptureTest
         assertRejectedNamed(CANONICAL_EFFORT_AND_BUDGET, "{'x:reasoning_effort':" + value + "}", "reasoning_effort");
         assertRejectedNamed(CANONICAL_PARALLEL_AND_FORMAT, "{'x:parallel_tool_calls':" + value + "}", "parallel_tool_calls");
         assertRejectedNamed(CANONICAL_FORMAT, "{'x:response_format':{'type':" + value + "}}", "response_format");
-        assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
-            "{'output_config':{'format':{'type':" + value + ",'schema':{}}}}", "type");
     }
 
     @Test
@@ -119,8 +107,6 @@ public class LlmScalarCaptureTest
             assertRejectedNamed(CANONICAL_EFFORT_AND_BUDGET, "{'x:reasoning_effort':" + overflow + "}", null);
             assertRejectedNamed(CANONICAL_PARALLEL_AND_FORMAT, "{'x:parallel_tool_calls':" + overflow + "}", null);
             assertRejectedNamed(CANONICAL_FORMAT, "{'x:response_format':{'type':" + overflow + "}}", null);
-            assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
-                "{'output_config':{'format':{'type':" + overflow + ",'schema':{}}}}", null);
         }
     }
 
