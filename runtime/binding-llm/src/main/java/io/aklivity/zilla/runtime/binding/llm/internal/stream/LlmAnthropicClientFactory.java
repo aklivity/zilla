@@ -153,7 +153,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
-    private static final int ENCODE_SLACK = 512;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_BREAKPOINT = 64;
     private static final int BREAKPOINTS_MAX = 4;
@@ -163,6 +162,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ENCODE_OUTPUT_CONFIG = 64;
     private static final int ENCODE_THINKING = 80;
     private static final int ENCODE_METADATA = 32;
+    private static final int ENCODE_CLOSING = ENCODE_STRUCTURE + ENCODE_BREAKPOINT + ENCODE_MAX_TOKENS + ENCODE_TOOL_CHOICE +
+        ENCODE_OUTPUT_CONFIG + ENCODE_THINKING + ENCODE_METADATA;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final int NONE = -1;
@@ -300,7 +301,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
-    private final BufferPool stagePool;
     private final BufferPool encodePool;
     private final BufferPool holdPool;
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
@@ -329,7 +329,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
-        this.stagePool = decodePool.duplicate();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();
         this.pieceBytes = new byte[PIECE_CAPACITY];
@@ -406,6 +405,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         return newStream;
+    }
+
+    @FunctionalInterface
+    private interface LlmAnthropicRequestDecoder
+    {
+        int decode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last);
     }
 
     @FunctionalInterface
@@ -883,7 +892,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                 }
-                else if (fin && (http.sectionStreaming || http.encodeText != null))
+                else if (fin && (http.sectionStreaming || http.requestDecoder != null))
                 {
                     http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
@@ -1018,7 +1027,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void flushAppWindow(
             long traceId)
         {
-            final int room = encodeMax - http.encodeSlotOffset - ENCODE_SLACK - http.heldReserve();
+            final int room = encodeMax - http.encodeSlotOffset - ENCODE_CLOSING - http.heldReserve();
             final int credit = Math.max(0, room / ESCAPE_EXPANSION);
             final long target = initialSeq + credit;
 
@@ -3707,9 +3716,28 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean encodeFailed;
 
         private int region = REGION_NONE;
-        private LlmTextPipeline encodeText;
+        private final LlmRequestHold hold;
         private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(BREAKPOINTS_MAX, BREAKPOINT_TTLS);
-        private LlmTextPipeline sectionText;
+        private final LlmAnthropicRequestDecoder decodeRequestTextRoot = this::decodeRequestTextRoot;
+        private final LlmAnthropicRequestDecoder decodeRequestTextObject = this::decodeRequestTextObject;
+        private final LlmAnthropicRequestDecoder decodeRequestTextKey = this::decodeRequestTextKey;
+        private final LlmAnthropicRequestDecoder decodeRequestTextValue = this::decodeRequestTextValue;
+        private final LlmAnthropicRequestDecoder decodeRequestTextContinue = this::decodeRequestTextContinue;
+        private final LlmAnthropicRequestDecoder decodeRequestBreakpoint = this::decodeRequestBreakpoint;
+        private final LlmAnthropicRequestDecoder decodeRequestBreakpointKey = this::decodeRequestBreakpointKey;
+        private final LlmAnthropicRequestDecoder decodeRequestBreakpointMode = this::decodeRequestBreakpointMode;
+        private final LlmAnthropicRequestDecoder decodeRequestBreakpointTtl = this::decodeRequestBreakpointTtl;
+        private final LlmAnthropicRequestDecoder decodeRequestSkip = this::decodeRequestSkip;
+        private final LlmAnthropicRequestDecoder decodeRequestDone = this::decodeRequestDone;
+        private LlmAnthropicRequestDecoder requestDecoder;
+        private LlmAnthropicRequestDecoder requestThen;
+        private JsonParserEx requestParser;
+        private int requestSkipDepth;
+        private final StringBuilder breakpointText = new StringBuilder();
+        private String breakpointMode;
+        private String breakpointTtl;
+        private boolean marked;
+        private String markedTtl;
         private LlmAnthropicMediaFromCanonical documentTransform;
         private boolean cited;
         private boolean structured;
@@ -3780,6 +3808,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.requestPath = server.path + PATH_MESSAGES;
             this.sameDialect = !stream.crossDialect;
             this.generator = JsonEx.createGenerator();
+            this.hold = new LlmRequestHold(holdPool, initialId);
         }
 
         private void doNetBegin(
@@ -3873,16 +3902,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             case KIND_CONTROL -> controlPipeline();
             default -> null;
             };
-        }
-
-        private LlmTextPipeline sectionText()
-        {
-            if (sectionText == null)
-            {
-                sectionText = new LlmTextPipeline(this::onSectionText, breakpoints);
-            }
-
-            return sectionText;
         }
 
         private LlmSectionPipeline imagePipeline()
@@ -3999,6 +4018,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void cleanupHeldSlot()
         {
             collector.reset();
+            hold.release();
 
             if (heldSlot != NO_SLOT)
             {
@@ -4045,16 +4065,476 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             effort = exclusiveEffort;
         }
 
-        private void onSectionText(
-            JsonStringView chars,
-            int from,
-            int to)
+        private JsonParserEx requestParser()
         {
-            if (beginEncode(0))
+            if (requestParser == null)
             {
-                putEscaped(chars, from, to);
+                requestParser = JsonEx.createParser();
+            }
+
+            return requestParser;
+        }
+
+        private void decodeRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            DirectBufferEx input = buffer;
+            int from = offset;
+            int limit = offset + length;
+
+            if (hold.length(LlmRequestHold.TAIL) > 0)
+            {
+                if (hold.append(LlmRequestHold.TAIL, buffer, offset, length))
+                {
+                    input = hold.buffer();
+                    from = 0;
+                    limit = hold.length(LlmRequestHold.TAIL);
+                }
+                else
+                {
+                    encodeFailed = true;
+                }
+            }
+
+            if (!encodeFailed && beginEncode(0))
+            {
+                int progress = from;
+                int previous;
+                LlmAnthropicRequestDecoder previousDecoder;
+
+                do
+                {
+                    previous = progress;
+                    previousDecoder = requestDecoder;
+                    progress = requestDecoder.decode(input, progress, limit, last);
+                }
+                while ((progress != previous && progress < limit || requestDecoder != previousDecoder) && !encodeFailed);
+
+                if (progress < limit && !last && requestDecoder != decodeRequestDone && !encodeFailed)
+                {
+                    encodeFailed |= !hold.replace(LlmRequestHold.TAIL, input, progress, limit - progress);
+                }
+                else
+                {
+                    hold.clear(LlmRequestHold.TAIL);
+                }
+
                 endEncode();
             }
+        }
+
+        private JsonParserEx wrapRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return requestParser().wrap(buffer, offset, limit, last);
+        }
+
+        private int positionRequest(
+            int limit)
+        {
+            return limit - requestParser.remaining();
+        }
+
+        private int decodeRequestTextRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextRoot && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_DOCUMENT)
+                    {
+                        requestDecoder = decodeRequestTextObject;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextObject(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextObject && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                    {
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        final JsonStringView key = parser.getStringView();
+
+                        requestSkipDepth = 0;
+                        requestThen = decodeRequestTextKey;
+
+                        if (MEMBER_TEXT.contentEquals(key))
+                        {
+                            requestDecoder = decodeRequestTextValue;
+                        }
+                        else if (LlmCacheBreakpoint.MEMBER.contentEquals(key))
+                        {
+                            requestDecoder = decodeRequestBreakpoint;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestSkip;
+                        }
+                    }
+                    else
+                    {
+                        requestDecoder = decodeRequestDone;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextValue);
+        }
+
+        private int decodeRequestTextContinue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextContinue);
+        }
+
+        private int decodeRequestTextPiece(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last,
+            LlmAnthropicRequestDecoder state)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == state && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.VALUE_STRING)
+                    {
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final int length = chars.length();
+
+                        putEscaped(chars, 0, length);
+
+                        if (deferred)
+                        {
+                            parser.consumed(length);
+                            requestDecoder = decodeRequestTextContinue;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestTextKey;
+                        }
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestBreakpoint(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestBreakpoint && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        breakpointMode = null;
+                        breakpointTtl = null;
+                        requestDecoder = decodeRequestBreakpointKey;
+                    }
+                    else if (event == JsonEvent.START_ARRAY)
+                    {
+                        requestSkipDepth = 1;
+                        requestDecoder = decodeRequestSkip;
+                    }
+                    else
+                    {
+                        requestDecoder = requestThen;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestBreakpointKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestBreakpointKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        final JsonStringView key = parser.getStringView();
+
+                        requestSkipDepth = 0;
+                        requestThen = decodeRequestBreakpointKey;
+
+                        if (LlmCacheBreakpoint.MODE.contentEquals(key) && breakpointMode == null)
+                        {
+                            requestDecoder = decodeRequestBreakpointMode;
+                        }
+                        else if (LlmCacheBreakpoint.TTL.contentEquals(key) && breakpointTtl == null)
+                        {
+                            requestDecoder = decodeRequestBreakpointTtl;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestSkip;
+                        }
+                    }
+                    else
+                    {
+                        marked = breakpoints.admit(breakpointMode, breakpointTtl);
+                        markedTtl = marked ? breakpoints.ttl() : null;
+                        requestThen = decodeRequestTextKey;
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestBreakpointMode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestBreakpointMode && parser.hasNextEvent())
+                {
+                    final String value = requestBreakpointValue(parser);
+
+                    breakpointMode = value != null ? value : breakpointMode;
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestBreakpointTtl(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestBreakpointTtl && parser.hasNextEvent())
+                {
+                    final String value = requestBreakpointValue(parser);
+
+                    breakpointTtl = value != null ? value : breakpointTtl;
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private String requestBreakpointValue(
+            JsonParserEx parser)
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean nested = event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY;
+            String value = null;
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                final boolean deferred = parser.deferredBytes();
+                final JsonStringView chars = parser.getStringView();
+
+                breakpointText.append(chars);
+
+                if (deferred)
+                {
+                    parser.consumed(chars.length());
+                }
+                else
+                {
+                    value = breakpointText.toString();
+                    breakpointText.setLength(0);
+                    requestDecoder = decodeRequestBreakpointKey;
+                }
+            }
+            else
+            {
+                value = "";
+                requestSkipDepth = nested ? 1 : 0;
+                requestDecoder = nested ? decodeRequestSkip : decodeRequestBreakpointKey;
+            }
+
+            return value;
+        }
+
+        private int decodeRequestSkip(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestSkip && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                    {
+                        requestSkipDepth++;
+                    }
+                    else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+                    {
+                        requestSkipDepth--;
+                    }
+
+                    if (parser.deferredBytes())
+                    {
+                        parser.consumed(parser.getStringView().length());
+                    }
+                    else if (requestSkipDepth == 0 && event != JsonEvent.KEY_NAME)
+                    {
+                        requestDecoder = requestThen;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestDone(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return limit;
         }
 
         private int modelRoom()
@@ -4155,8 +4635,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText();
-                encodeText.begin();
+                requestDecoder = decodeRequestTextRoot;
+                requestParser().reset();
             }
         }
 
@@ -4376,12 +4856,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     endEncode();
                 }
             }
-            else if (encodeText != null)
+            else if (requestDecoder != null)
             {
-                if (!encodeText.feed(buffer, offset, length, fin))
-                {
-                    encodeFailed = true;
-                }
+                decodeRequest(buffer, offset, length, fin);
             }
             else if (!translated && sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(0))
             {
@@ -4470,10 +4947,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void doEncodeSectionEnd(
             boolean isError)
         {
-            final boolean marked = encodeText != null && encodeText.marked();
-            final String markedTtl = marked ? encodeText.markedTtl() : null;
+            final boolean cacheMarked = marked;
+            final String cacheTtl = markedTtl;
 
-            encodeText = null;
+            marked = false;
+            markedTtl = null;
+            requestDecoder = null;
+            hold.clear(LlmRequestHold.TAIL);
 
             if (sectionKind == KIND_USER_DOCUMENT && documentTransform != null)
             {
@@ -4504,9 +4984,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     generator.writeEndEscaped();
 
-                    if (marked)
+                    if (cacheMarked)
                     {
-                        writeCacheControl(markedTtl);
+                        writeCacheControl(cacheTtl);
                     }
 
                     textBlockOpen = true;
