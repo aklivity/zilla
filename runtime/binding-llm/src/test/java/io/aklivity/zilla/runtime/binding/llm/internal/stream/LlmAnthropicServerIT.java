@@ -1351,6 +1351,30 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.redacted.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.redacted.100k/server"})
+    public void shouldTransformResponseStreamingReasoningRedacted100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.signature.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.signature.100k/server"})
+    public void shouldTransformResponseStreamingReasoningSignature100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.reasoning.tag/client",
