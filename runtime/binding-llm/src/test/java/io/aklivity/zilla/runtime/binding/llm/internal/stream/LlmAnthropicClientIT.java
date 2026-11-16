@@ -265,6 +265,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.text.citations.filtered/client",
+        "${net}/anthropic.section.assistant.text.citations.filtered/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextCitationsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCall() throws Exception
@@ -636,6 +646,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.user.image.inline/client",
         "${net}/anthropic.section.user.image.inline/server"})
     public void shouldEncodeAnthropicSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.inline.fragmented/client",
+        "${net}/anthropic.section.user.image.inline/server"})
+    public void shouldEncodeAnthropicSectionUserImageInlineFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -1329,6 +1349,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.tool.call.cache.control/client",
         "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control.duplicate/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallCacheControlDuplicate() throws Exception
     {
         k3po.finish();
     }
@@ -3169,6 +3199,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.user.document.citations/client",
         "${net}/anthropic.section.user.document.citations/server"})
     public void shouldEncodeAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.document.citations.keys/client",
+        "${net}/anthropic.section.user.document.citations.keys/server"})
+    public void shouldEncodeAnthropicSectionUserDocumentCitationsKeys() throws Exception
     {
         k3po.finish();
     }
