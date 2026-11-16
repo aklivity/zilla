@@ -9112,6 +9112,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.response.controls.padded/client",
+        "${app}/openai.responses.response.controls.padded/server"})
+    public void shouldOpenaiResponsesResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.response.controls.many.stream/client",
         "${app}/openai.responses.response.controls.many.stream/server"})
     public void shouldOpenaiResponsesResponseControlsManyStream() throws Exception
