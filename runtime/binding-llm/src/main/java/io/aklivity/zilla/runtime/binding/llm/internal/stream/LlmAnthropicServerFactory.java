@@ -243,7 +243,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final BufferPool encodePool;
     private final BufferPool replyEncodePool;
     private final BufferPool replyPool;
-    private final BufferPool holdPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int replyPadding;
@@ -322,7 +321,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
-        this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.replyEncodePool = context.bufferPool().duplicate();
         this.replyPool = context.bufferPool().duplicate();
@@ -4797,6 +4795,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 finishing()) && writable())
             {
                 final MutableDirectBufferEx buffer = decodeSlot != NO_SLOT ? replyPool.buffer(decodeSlot) : null;
+                final int from = decodeSlotFrom;
+                final int heldBefore = hold.held();
 
                 if (finishing())
                 {
@@ -4825,9 +4825,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         onAppSection(buffer, frame);
                     }
                 }
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    decodeSlotFrom = Math.min(Math.max(decodeSlotFrom, from + hold.held() - heldBefore), decodeSlotOffset);
+                }
+
+                if (decodeSlot != NO_SLOT && hold.held() > 0 && decoder != decodeReplyResume)
+                {
+                    final int base = hold.held();
+                    final int unread = decodeSlotOffset - decodeSlotFrom;
+
+                    buffer.putBytes(base, buffer, decodeSlotFrom, unread);
+                    decodeSlotOffset = base + unread;
+                    decodeSlotFrom = base;
+                }
             }
 
-            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset && decoder != decodeReplyResume)
+            if (decodeSlot != NO_SLOT && decodeSlotFrom == decodeSlotOffset && hold.held() == 0 &&
+                decoder != decodeReplyResume)
             {
                 cleanupDecodeSlot();
             }
@@ -6290,7 +6306,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlMode;
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
-        private int heldSlot = NO_SLOT;
 
         private int kind;
         private int valueMember;
@@ -6902,12 +6917,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private MutableDirectBufferEx heldBuffer()
         {
-            if (heldSlot == NO_SLOT)
-            {
-                heldSlot = holdPool.acquire(replyId);
-            }
-
-            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+            return decodeSlot != NO_SLOT ? replyPool.buffer(decodeSlot) : null;
         }
 
         private void cleanup(
@@ -6924,12 +6934,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void cleanupHeld()
         {
             hold.reset();
-
-            if (heldSlot != NO_SLOT)
-            {
-                holdPool.release(heldSlot);
-                heldSlot = NO_SLOT;
-            }
         }
 
         private void writeStopSequence()

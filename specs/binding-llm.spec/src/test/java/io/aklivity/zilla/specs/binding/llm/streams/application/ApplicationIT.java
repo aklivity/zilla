@@ -4009,6 +4009,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.transform.response.streaming.reasoning.redacted.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.redacted.100k/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningRedacted100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.reasoning.signature.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.signature.100k/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningSignature100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.transform.response.streaming.reasoning.tag/client",
         "${app}/anthropic.transform.response.streaming.reasoning.tag/server"})
     public void shouldAnthropicTransformResponseStreamingReasoningTag() throws Exception
