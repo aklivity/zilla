@@ -92,6 +92,7 @@ public class LlmOpenaiClientBM
     private static final int IN_FLIGHT = 5_000;
     private static final int SMALL_LENGTH = 400;
     private static final int LARGE_LENGTH = 10_000;
+    private static final int HUGE_LENGTH = 1_000_000;
     private static final int FRAME_BUFFER_CAPACITY = 64 * 1024;
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
@@ -131,7 +132,7 @@ public class LlmOpenaiClientBM
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
-        @Param({"small", "10k"})
+        @Param({"small", "10k", "1m"})
         public String size;
 
         @Param({"false", "true"})
@@ -169,7 +170,7 @@ public class LlmOpenaiClientBM
         @Setup(Level.Trial)
         public void init() throws Exception
         {
-            textLength = "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
+            textLength = "1m".equals(size) ? HUGE_LENGTH : "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
 
             final String text = base64(textLength);
 
