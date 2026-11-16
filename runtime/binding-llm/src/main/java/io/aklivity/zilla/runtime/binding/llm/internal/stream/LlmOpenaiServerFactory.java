@@ -125,7 +125,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String DELIMITER_END = ">";
     private static final int ARGS_HEADROOM = 16;
     private static final Map<String, Object> ESCAPED_OPTIONS = Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true);
-    private static final int NO_TAKEN = -1;
     private static final int ARGS_IDLE = 0;
     private static final int ARGS_FULL = 1;
     private static final int ARGS_DONE = 2;
@@ -4663,7 +4662,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int replyPayloadFrom;
         private int replyWindowFrom;
         private int replySkipDepth;
-        private int replyArgsDepth;
+        private final LlmEventCopier replyCopier = new LlmEventCopier();
         private String judgedKey;
         private String replyMember;
         private LlmOpenaiReplyDecoder replyMemberState;
@@ -5004,7 +5003,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     replyMember = MEMBER_ARGUMENTS;
                     replyMemberState = decodeReplyArgs;
-                    replyArgsDepth = 0;
+                    replyCopier.reset();
                     argsGenerator().reset();
                 }
 
@@ -5205,7 +5204,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                     pending = false;
 
-                    if (replyArgsDepth == 0 && event != JsonEvent.START_OBJECT)
+                    if (replyCopier.depth() == 0 && event != JsonEvent.START_OBJECT)
                     {
                         replySkipDepth = event == JsonEvent.START_ARRAY ? 1 : 0;
                         decoder = event == JsonEvent.START_ARRAY ? decodeReplyTextSkip : decodeReplyTextKey;
@@ -5231,15 +5230,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                         }
 
                         final JsonGeneratorEx args = argsGenerator();
-                        final int taken = copyEvent(args, event, parser);
+                        final int taken = replyCopier.copy(args, event, parser);
 
                         if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
                         {
-                            complete = replyArgsDepth == 0;
+                            complete = replyCopier.depth() == 0;
                             stop = complete;
                         }
 
-                        if (taken != NO_TAKEN)
+                        if (taken != LlmEventCopier.NO_TAKEN)
                         {
                             consumed = taken;
                             holding = !parser.deferredBytes();
@@ -5321,67 +5320,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return argsGenerator;
         }
 
-        private int copyEvent(
-            JsonGeneratorEx target,
-            JsonEvent event,
-            JsonParserEx parser)
-        {
-            int taken = NO_TAKEN;
-
-            switch (event)
-            {
-            case START_OBJECT:
-                target.writeStartObject();
-                replyArgsDepth++;
-                break;
-            case START_ARRAY:
-                target.writeStartArray();
-                replyArgsDepth++;
-                break;
-            case END_OBJECT, END_ARRAY:
-                target.writeEnd();
-                replyArgsDepth--;
-                break;
-            case VALUE_TRUE:
-                target.write(true);
-                break;
-            case VALUE_FALSE:
-                target.write(false);
-                break;
-            case VALUE_NULL:
-                target.writeNull();
-                break;
-            default:
-                final boolean deferred = parser.deferredBytes();
-                final JsonStringView chars = parser.getStringView();
-                final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
-                final int before = target.consumed();
-
-                if (event == JsonEvent.KEY_NAME)
-                {
-                    target.writeKey(chars, completion);
-                }
-                else if (event == JsonEvent.VALUE_NUMBER)
-                {
-                    target.writeNumber(chars, completion);
-                }
-                else
-                {
-                    target.write(chars, completion);
-                }
-
-                final int consumed = target.consumed() - before;
-
-                if (consumed < chars.length() || deferred)
-                {
-                    taken = consumed;
-                }
-                break;
-            }
-
-            return taken;
-        }
-
         private int pullControl(
             JsonParserEx parser,
             boolean resumed)
@@ -5412,17 +5350,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     pending = false;
                     pulled = true;
 
-                    final int taken = copyEvent(value, event, parser);
+                    final int taken = replyCopier.copy(value, event, parser);
                     final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY &&
                         event != JsonEvent.KEY_NAME;
 
-                    if (taken != NO_TAKEN)
+                    if (taken != LlmEventCopier.NO_TAKEN)
                     {
                         consumed = taken;
                         holding = !parser.deferredBytes();
                         stop = true;
                     }
-                    else if (replyArgsDepth == 0 && scalar)
+                    else if (replyCopier.depth() == 0 && scalar)
                     {
                         complete = true;
                         stop = true;
@@ -5459,7 +5397,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 onEncodeControlBegin(memberKeys.target().toString());
                 replyArgs().reset();
-                replyArgsDepth = 0;
+                replyCopier.reset();
                 state = decodeReplyControlValue;
             }
             else if (action == LlmMemberKeys.JUDGE)
