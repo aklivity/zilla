@@ -208,6 +208,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String REASONING_TEXT = "text";
     private static final String REASONING_SIGNATURE = "x:signature";
     private static final String REASONING_DATA = "x:redacted_data";
+    private static final int OBJECT_OPENING = "{\"\":\"".length();
+    private static final int SECTION_OPENING = Math.max(ARGUMENTS_PREFIX.length, OBJECT_OPENING +
+        Math.max(Math.max(MEMBER_TEXT.length(), REASONING_TEXT.length()),
+            Math.max(REASONING_SIGNATURE.length(), REASONING_DATA.length())));
     private static final String MEMBER_INPUT = "input";
     private static final String MEMBER_PARTIAL_JSON = "partial_json";
     private static final String TYPE_MESSAGE = "message";
@@ -821,7 +825,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int replyWindow()
         {
             return Math.max(0, replyMax - (int) (replySeq - replyAck) - controlSlotOffset - controlClosing() -
-                eventReserve() - sectionClosing());
+                eventReserve() - sectionOpening() - sectionClosing());
+        }
+
+        private int sectionOpening()
+        {
+            return sectionOpen ? 0 : SECTION_OPENING;
         }
 
         private int sectionClosing()
@@ -1444,14 +1453,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                             flushControl(progress);
                         }
 
-                        if (decoder == previous)
-                        {
-                            decodeWindowLimit = NONE;
+                        decodeWindowLimit = NONE;
 
-                            if (unconstrained)
-                            {
-                                progress = limit;
-                            }
+                        if (decoder == previous && unconstrained)
+                        {
+                            progress = limit;
                         }
                     }
                 }
