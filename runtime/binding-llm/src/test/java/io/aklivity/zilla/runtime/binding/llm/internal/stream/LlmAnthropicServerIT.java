@@ -373,6 +373,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.rejected.output.config.format.type/client",
+        "${app}/anthropic.section.rejected.output.config.format.type/server"})
+    public void shouldDecodeAnthropicSectionRejectedOutputConfigFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.rejected.part.type.last/client",
         "${app}/anthropic.section.rejected.part.type.last/server"})
     public void shouldDecodeAnthropicSectionRejectedPartTypeLast() throws Exception

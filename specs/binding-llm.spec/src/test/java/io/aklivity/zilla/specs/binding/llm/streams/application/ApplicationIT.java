@@ -1651,6 +1651,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.rejected.output.config.format.type/client",
+        "${app}/anthropic.section.rejected.output.config.format.type/server"})
+    public void shouldAnthropicSectionRejectedOutputConfigFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.rejected.part.type.last/client",
         "${app}/anthropic.section.rejected.part.type.last/server"})
     public void shouldAnthropicSectionRejectedPartTypeLast() throws Exception
