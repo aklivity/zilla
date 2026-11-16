@@ -41,7 +41,6 @@ public class LlmUnsupportedMembersTest
         "{'openai/rs:background':false,'openai/rs:previous_response_id':null,'openai/rs:conversation':null}";
 
     private static final List<Function<LlmModelCapability, LlmToolTransform>> DIALECTS = List.of(
-        capability -> LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
         capability -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
         capability -> LlmAnthropicControlFromCanonical.members(false, capability),
         capability -> LlmGeminiControlFromCanonical.members(false, capability));
@@ -208,8 +207,6 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
 
-        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
-            json(RESPONSES_HARMLESS), "{}");
         assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
             json(CHAT_HARMLESS), "{}");
         assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
@@ -238,9 +235,6 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = unsupported("seed");
 
-        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
-            json("{'x:seed':1,'x:parallel_tool_calls':false}"),
-            json("{'parallel_tool_calls':false}"));
         assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
             json("{'x:seed':1,'x:parallel_tool_calls':false}"),
             json("{'parallel_tool_calls':false}"));
@@ -250,14 +244,6 @@ public class LlmUnsupportedMembersTest
         assertTransforms(LlmGeminiControlFromCanonical.members(false, capability),
             json("{'x:seed':1,'x:top_k':5}"),
             json("{'generationConfig':{'topK':5}}"));
-    }
-
-    @Test
-    public void shouldNotListAnythingByDefault()
-    {
-        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, LlmModelCapability.UNSPECIFIED),
-            json("{'x:parallel_tool_calls':false,'x:response_format':{'type':'json_object'},'x:tool_choice':'auto'}"),
-            json("{'parallel_tool_calls':false,'response_format':{'type':'json_object'},'tool_choice':'auto'}"));
     }
 
     private static void assertRejected(
@@ -282,8 +268,7 @@ public class LlmUnsupportedMembersTest
             ? List.of(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
                 LlmAnthropicControlFromCanonical.members(false, capability),
                 LlmGeminiControlFromCanonical.members(false, capability))
-            : List.of(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
-                LlmAnthropicControlFromCanonical.members(false, capability),
+            : List.of(LlmAnthropicControlFromCanonical.members(false, capability),
                 LlmGeminiControlFromCanonical.members(false, capability));
 
         for (LlmToolTransform transform : transforms)

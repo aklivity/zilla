@@ -152,11 +152,9 @@ public class LlmSectionPipelineBM
 
     private LlmSectionPipeline toolDefinitionToCanonical;
     private LlmSectionPipeline toolDefinitionFromAnthropic;
-    private LlmSectionPipeline toolDefinitionFromOpenai;
     private LlmSectionPipeline toolCallToCanonical;
     private LlmSectionPipeline toolCallFromCanonical;
     private LlmSectionPipeline toolCallOpenaiToCanonical;
-    private LlmSectionPipeline toolCallOpenaiFromCanonical;
     private LlmSectionPipeline toolDefinitionGeminiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiFromCanonical;
     private LlmSectionPipeline toolCallGeminiToCanonical;
@@ -167,10 +165,8 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline imageFromAnthropic;
     private LlmSectionPipeline citationsToCanonical;
     private LlmSectionPipeline citationsFromAnthropic;
-    private LlmSectionPipeline citationsFromOpenai;
     private LlmSectionPipeline controlAnthropicToCanonical;
     private LlmSectionPipeline controlAnthropicFromCanonical;
-    private LlmSectionPipeline controlOpenaiFromCanonical;
     private LlmSectionPipeline reasoningResponsesFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
     private LlmSectionPipeline imageResponsesFromCanonical;
@@ -205,11 +201,9 @@ public class LlmSectionPipelineBM
     {
         toolDefinitionToCanonical = pipeline(new LlmAnthropicToolDefinitionToCanonical());
         toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical(true));
-        toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical("openai/ccs"));
         toolCallToCanonical = pipeline(new LlmAnthropicToolCallToCanonical());
         toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use", true));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
-        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical("openai/ccs"));
         toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
         toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical(true));
         toolCallGeminiToCanonical = pipeline(new LlmGeminiToolCallToCanonical());
@@ -220,10 +214,8 @@ public class LlmSectionPipelineBM
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
         citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
-        citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical("openai/ccs"));
         controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
         controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
-        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical("openai/ccs", true));
 
         reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical("openai/rs"));
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
@@ -279,12 +271,6 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int toolDefinitionFromCanonicalOpenai()
-    {
-        return run(toolDefinitionFromOpenai, none, toolDefinitionCanonical, toolDefinitionCanonical.capacity());
-    }
-
-    @Benchmark
     public int toolCallToCanonical()
     {
         return run(toolCallToCanonical, toolCallAttributes, toolCallNative, toolCallNative.capacity());
@@ -312,13 +298,6 @@ public class LlmSectionPipelineBM
     public int toolCallToCanonicalOpenai()
     {
         return run(toolCallOpenaiToCanonical, toolCallAttributes, toolCallOpenaiNative, toolCallOpenaiNative.capacity());
-    }
-
-    @Benchmark
-    public int toolCallFromCanonicalOpenai()
-    {
-        return run(toolCallOpenaiFromCanonical, toolCallAttributes, toolCallOpenaiCanonical,
-            toolCallOpenaiCanonical.capacity());
     }
 
     @Benchmark
@@ -408,12 +387,6 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int citationsFromCanonicalOpenai()
-    {
-        return run(citationsFromOpenai, none, citationsCanonical, citationsCanonical.capacity());
-    }
-
-    @Benchmark
     public int reasoningFromCanonicalResponses()
     {
         return run(reasoningResponsesFromCanonical, none, reasoningResponsesCanonical,
@@ -460,12 +433,6 @@ public class LlmSectionPipelineBM
     public int controlFromCanonicalAnthropic()
     {
         return run(controlAnthropicFromCanonical, none, controlAnthropicCanonical, controlAnthropicCanonical.capacity());
-    }
-
-    @Benchmark
-    public int controlFromCanonicalOpenai()
-    {
-        return run(controlOpenaiFromCanonical, none, controlOpenaiCanonical, controlOpenaiCanonical.capacity());
     }
 
     @Benchmark

@@ -36,7 +36,6 @@ public class LlmScalarCaptureTest
     private static final LlmModelCapability CAPABILITY = LlmModelCapability.UNSPECIFIED;
 
     private static final List<Supplier<LlmToolTransform>> CANONICAL_EFFORT_AND_BUDGET = List.of(
-        () -> LlmOpenaiControlFromCanonical.members("openai/ccs", false, CAPABILITY),
         () -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", CAPABILITY),
         () -> LlmAnthropicControlFromCanonical.members(false, CAPABILITY),
         () -> LlmGeminiControlFromCanonical.members(false, CAPABILITY));

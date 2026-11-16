@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRoundTrips;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.quote;
 
 import java.util.function.Consumer;
 
@@ -79,21 +78,4 @@ public class LlmToolCallCanonicalRoundTripTest
                 "'tags':[1,2],'input':{'text':'" + LONG + "'},'gap':null}"));
     }
 
-    @Test
-    public void shouldRoundTripOpenaiToolCall()
-    {
-        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical("openai/ccs"),
-            attributes,
-            json("{'id':'toolu_1','type':'function','function':{'name':'get_weather','arguments':") +
-                quote(json("{'city':'Paris'}")) + "}}");
-    }
-
-    @Test
-    public void shouldRoundTripOpenaiNativeOnlyMembersBeforeAndAfterArguments()
-    {
-        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical("openai/ccs"),
-            attributes,
-            json("{'id':'toolu_1','type':'function','index':0,'function':{'name':'get_weather','arguments':") +
-                quote(json("{'text':'" + LONG + "'}")) + json("},'note':'" + LONG + "'}"));
-    }
 }
