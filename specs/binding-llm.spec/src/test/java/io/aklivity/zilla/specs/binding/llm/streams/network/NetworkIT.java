@@ -1109,6 +1109,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/client",
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/server"})
+    public void shouldAnthropicSectionAssistantToolCallArgumentsDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.conversation/client",
         "${net}/anthropic.section.conversation/server"})
     public void shouldAnthropicSectionConversation() throws Exception
@@ -1238,6 +1247,15 @@ public class NetworkIT
         "${net}/anthropic.section.tool.definition/client",
         "${net}/anthropic.section.tool.definition/server"})
     public void shouldAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.definition.defaults/client",
+        "${net}/anthropic.section.tool.definition.defaults/server"})
+    public void shouldAnthropicSectionToolDefinitionDefaults() throws Exception
     {
         k3po.finish();
     }

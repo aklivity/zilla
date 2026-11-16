@@ -275,6 +275,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.tool.call.arguments.default/client",
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallArgumentsDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.conversation/client",
         "${net}/anthropic.section.conversation/server"})
     public void shouldEncodeAnthropicSectionConversation() throws Exception
@@ -328,6 +338,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.tool.definition/client",
         "${net}/anthropic.section.tool.definition/server"})
     public void shouldEncodeAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.definition.defaults/client",
+        "${net}/anthropic.section.tool.definition.defaults/server"})
+    public void shouldEncodeAnthropicSectionToolDefinitionDefaults() throws Exception
     {
         k3po.finish();
     }
@@ -2072,6 +2092,17 @@ public class LlmAnthropicClientIT
         "${app}/transform.rejected.tool.choice.allowed/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
     public void shouldRejectRequestToolChoiceAllowedFromAnthropicAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.call.member/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolCallMemberFromOpenaiAsAnthropicNamingSectionAndDialects() throws Exception
     {
         k3po.finish();
     }
