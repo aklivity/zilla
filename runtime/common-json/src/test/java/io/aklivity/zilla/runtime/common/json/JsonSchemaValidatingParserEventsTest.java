@@ -59,7 +59,7 @@ class JsonSchemaValidatingParserEventsTest
     @Test
     void shouldThrowOnInvalidInstancePulledAsEventsWhenThrowing()
     {
-        final JsonParserEx parser = (JsonParserEx) JsonSchema.of(STRING_SCHEMA).newParser(true, JsonEx.createParser());
+        final JsonParserEx parser = JsonSchema.of(STRING_SCHEMA).newParser(true, JsonEx.createParser());
         final byte[] bytes = "5 ".getBytes(UTF_8);
         parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
 
@@ -139,7 +139,7 @@ class JsonSchemaValidatingParserEventsTest
     @Test
     void shouldNotSkipValuesThatCannotBeValidated()
     {
-        final JsonParserEx parser = (JsonParserEx) JsonSchema.of(STRING_SCHEMA).newParser(false, JsonEx.createParser());
+        final JsonParserEx parser = JsonSchema.of(STRING_SCHEMA).newParser(false, JsonEx.createParser());
 
         assertThrows(UnsupportedOperationException.class, parser::skipValue);
     }
@@ -169,6 +169,55 @@ class JsonSchemaValidatingParserEventsTest
         }
     }
 
+    @Test
+    void shouldRelayPartialConsumptionOfAFragmentedValue()
+    {
+        final String document = "{\"a\":\"" + "x".repeat(200) + "\"} ";
+        final String schema = "{\"type\":\"object\"}";
+
+        final List<String> expected = fragments(JsonEx.createParser(), document);
+        final List<String> actual = fragments(JsonSchema.of(schema).newParser(false, JsonEx.createParser()), document);
+
+        assertFalse(expected.isEmpty());
+        assertEquals(expected, actual);
+    }
+
+    private static List<String> fragments(
+        JsonParserEx parser,
+        String document)
+    {
+        final byte[] bytes = document.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final List<String> events = new ArrayList<>();
+
+        int offset = 0;
+        int limit = Math.min(16, bytes.length);
+
+        while (events.size() < 1000 && !events.contains("END_DOCUMENT 0 false"))
+        {
+            parser.wrap(buffer, offset, limit, limit == bytes.length);
+
+            while (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean scalar = event == JsonEvent.VALUE_STRING;
+                final int length = scalar ? parser.getStringView().length() : 0;
+
+                events.add(event + " " + length + " " + parser.deferredBytes());
+
+                if (scalar && parser.deferredBytes())
+                {
+                    parser.consumed(Math.max(1, length / 2));
+                }
+            }
+
+            offset = limit - parser.remaining();
+            limit = Math.min(offset + 16, bytes.length);
+        }
+
+        return events;
+    }
+
     private static List<JsonEvent> pull(
         String schema,
         String document,
@@ -176,7 +225,7 @@ class JsonSchemaValidatingParserEventsTest
         int window,
         List<JsonSchemaDiagnostic> diagnostics)
     {
-        final JsonParserEx parser = (JsonParserEx) JsonSchema.of(schema).newParser(false, JsonEx.createParser(),
+        final JsonParserEx parser = JsonSchema.of(schema).newParser(false, JsonEx.createParser(),
             diagnostics::add);
         final byte[] bytes = document.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);

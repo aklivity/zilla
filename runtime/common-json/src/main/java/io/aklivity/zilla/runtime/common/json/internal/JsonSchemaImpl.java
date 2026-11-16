@@ -316,6 +316,23 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     @Override
+    public JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser)
+    {
+        return newParser(throwing, parser, null);
+    }
+
+    @Override
+    public JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser,
+        Consumer<JsonSchemaDiagnostic> reporter)
+    {
+        return new ValidatingParser(throwing, parser, reporter);
+    }
+
+    @Override
     public JsonTransform validator()
     {
         return new Validator(false);
@@ -2650,6 +2667,13 @@ public final class JsonSchemaImpl implements JsonSchema
         public boolean deferredBytes()
         {
             return delegateEx.deferredBytes();
+        }
+
+        @Override
+        public void consumed(
+            int sourceUnits)
+        {
+            delegateEx.consumed(sourceUnits);
         }
 
         private void report(
