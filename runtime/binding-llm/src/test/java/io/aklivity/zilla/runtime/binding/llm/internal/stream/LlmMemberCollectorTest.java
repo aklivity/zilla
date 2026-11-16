@@ -210,42 +210,6 @@ public class LlmMemberCollectorTest
     }
 
     @Test
-    public void shouldHoldInTheRequestHoldBehindATail()
-    {
-        final LlmRequestHold hold = new LlmRequestHold(new LlmTestBufferPool(CAPACITY, 1), 1L);
-        final UnsafeBufferEx tail = new UnsafeBufferEx("tail-bytes".getBytes(UTF_8));
-        final ByteArrayOutputStream output = new ByteArrayOutputStream();
-        final LlmMemberCollector collector = new LlmMemberCollector(BOTH,
-            (buffer, offset, length) -> collect(output, buffer, offset, length), hold, LlmRequestHold.DEFER);
-
-        hold.append(LlmRequestHold.TAIL, tail, 0, tail.capacity());
-        collector.begin();
-        feed(collector, "\"a\":1,\"generationConfig\":{\"x\":1},\"toolConfig\":{\"y\":2}", 5);
-        hold.clear(LlmRequestHold.TAIL);
-
-        assertThat(output.toString(UTF_8), equalTo("\"a\":1"));
-        assertThat(drained(collector, 0), equalTo(List.of("\"x\":1")));
-        assertThat(drained(collector, 1), equalTo(List.of("\"y\":2")));
-        assertThat(collector.held(), equalTo(hold.length(LlmRequestHold.DEFER)));
-    }
-
-    @Test
-    public void shouldOverflowWhenTheRequestHoldIsFull()
-    {
-        final LlmRequestHold hold = new LlmRequestHold(new LlmTestBufferPool(32, 1), 1L);
-        final LlmMemberCollector collector = new LlmMemberCollector(CONFIG, (buffer, offset, length) ->
-        {
-        }, hold, LlmRequestHold.DEFER);
-
-        collector.begin();
-        feed(collector, "\"generationConfig\":{\"temperature\":0.7,\"topP\":0.9,\"topK\":40}", 7);
-
-        assertThat(collector.overflowed(), is(true));
-        assertThat(collector.overflow(), equalTo("generationConfig"));
-        assertThat(hold.length(LlmRequestHold.DEFER), equalTo(0));
-    }
-
-    @Test
     public void shouldForgetHeldOnReset()
     {
         final Run run = collect(CONFIG, CAPACITY, 4, "\"generationConfig\":{\"x\":1}");

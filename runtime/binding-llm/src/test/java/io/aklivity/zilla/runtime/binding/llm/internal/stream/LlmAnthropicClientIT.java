@@ -3142,6 +3142,26 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.residue.large/client",
+        "${net}/anthropic.request.residue.large/server"})
+    public void shouldEncodeAnthropicRequestResidueLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.residue.sections/client",
+        "${net}/anthropic.request.residue.sections/server"})
+    public void shouldEncodeAnthropicRequestResidueSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
     @ScriptProperty({"tier \"default\"", "wire \"standard_only\""})
     @Specification({
         "${app}/anthropic.request.service.tier/client",
