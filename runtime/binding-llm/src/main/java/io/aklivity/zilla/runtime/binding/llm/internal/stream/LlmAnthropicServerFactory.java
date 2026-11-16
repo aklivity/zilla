@@ -68,7 +68,9 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -164,9 +166,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static final int MIN_WINDOW = 64;
     private static final int CONTROL_GROWTH = 3;
-    private static final int CONTROL_OPEN_CAPACITY = 8;
 
-    private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
     private static final int HELD_TAIL_MAX = LlmBreakpointStash.CAPACITY + 2;
     private static final int BREAKPOINT_KEY_NONE = 0;
@@ -179,9 +179,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MEMBER_THINKING = "thinking";
     private static final String MEMBER_METADATA = "metadata";
     private static final String MEMBER_SERVICE_TIER = "service_tier";
-    private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
-    private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
-    private static final int TEXT_ESCAPE_EXPANSION = 6;
+    private static final DirectBufferEx TEXT_OPEN = new UnsafeBufferEx("{".getBytes(UTF_8));
+    private static final DirectBufferEx TEXT_KEY = new UnsafeBufferEx("\"text\":\"".getBytes(UTF_8));
+    private static final DirectBufferEx TEXT_SUFFIX = new UnsafeBufferEx("\"}".getBytes(UTF_8));
+    private static final int TEXT_FRAMING = "{\"text\":\"".length() + "\"}".length();
     private static final int MIN_TEXT_INPUT = "\"system\":\"\"".length();
 
     private static final String ROLE_USER = "user";
@@ -308,10 +309,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicReplyDecoder decodeReplyControlJudge = this::decodeReplyControlJudge;
     private final LlmAnthropicReplyDecoder decodeReplyTextDone = this::decodeReplyTextDone;
 
-    private byte[] textBytes;
-    private UnsafeBufferEx textBuffer;
-    private byte[] pieceBytes;
-    private UnsafeBufferEx pieceBuffer;
+    private final UnsafeBufferEx pieceBuffer;
+    private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final JsonStringBody body = new JsonStringBody();
 
     public LlmAnthropicServerFactory(
         EngineContext context)
@@ -330,10 +330,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.textBytes = new byte[1024];
-        this.textBuffer = new UnsafeBufferEx(textBytes);
-        this.pieceBytes = new byte[1024];
-        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
+        this.pieceBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -2390,28 +2387,35 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             final boolean fin = !parser.deferredBytes();
             final boolean tail = fin && (server.textThen == decodePart || server.textThen == decodeToolResult);
-            final CharSequence chars = parser.getStringView();
-            final int taken = chars.length();
-            final int length = encode(server, chars, fin);
-            final int piece = encodePiece(server, length, fin, tail);
+            final JsonStringView chars = parser.getStringView();
+            final int length = chars.length();
+            final int taken = !fin && length > 1 && Character.isHighSurrogate(chars.charAt(length - 1)) ? length - 1 : length;
+            final int piece = encodePiece(server, chars, taken, fin, tail);
 
-            if (tail)
+            if (piece < 0)
             {
-                server.hold(traceId, authorization, pieceBuffer, piece);
+                server.onDecodeParseError(traceId);
             }
             else
             {
-                server.onDecodeData(traceId, authorization, pieceBuffer, 0, piece, fin);
-            }
+                if (tail)
+                {
+                    server.hold(traceId, authorization, pieceBuffer, piece);
+                }
+                else
+                {
+                    server.onDecodeData(traceId, authorization, pieceBuffer, 0, piece, fin);
+                }
 
-            if (fin)
-            {
-                server.textOpen = false;
-                server.decoder = server.textThen;
-            }
-            else
-            {
-                parser.consumed(taken);
+                if (fin)
+                {
+                    server.textOpen = false;
+                    server.decoder = server.textThen;
+                }
+                else
+                {
+                    parser.consumed(taken);
+                }
             }
         }
         else if (event == JsonEvent.VALUE_NULL && !server.textOpen)
@@ -2684,165 +2688,56 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return blockType;
     }
 
-    private void reservePiece(
-        int capacity)
-    {
-        if (pieceBytes.length < capacity)
-        {
-            pieceBytes = new byte[capacity];
-            pieceBuffer = new UnsafeBufferEx(pieceBytes);
-        }
-    }
-
     private int encodePiece(
         LlmAnthropicServer server,
-        int length,
+        JsonStringView chars,
+        int taken,
         boolean fin,
         boolean tail)
     {
-        reservePiece(TEXT_PREFIX.length + server.partBreakpoint.length() + length * TEXT_ESCAPE_EXPANSION + TEXT_SUFFIX.length);
+        final boolean init = Flags.hasInit(server.blockFlags);
+        final boolean marked = init && server.partBreakpoint.present();
+        final int marker = marked ? server.partBreakpoint.length() + 1 : 0;
+        final int prefix = init ? TEXT_OPEN.capacity() + marker + TEXT_KEY.capacity() : 0;
+        final int suffix = !fin ? 0 : tail ? 1 : TEXT_SUFFIX.capacity();
+        final int width = body.length(chars, 0, taken);
 
-        final JsonGeneratorEx generator = server.generator;
+        int length = -1;
 
-        generator.wrap(pieceBuffer, 0, pieceBytes.length);
-
-        if (Flags.hasInit(server.blockFlags))
+        if (prefix + width + suffix <= pieceBuffer.capacity())
         {
-            generator.reset();
-            generator.writeStartObject();
+            int position = 0;
 
-            if (server.partBreakpoint.present())
+            if (init)
             {
-                generator.writeMembers(server.partBreakpoint.buffer(), 0, server.partBreakpoint.length(), Completion.COMPLETE);
-                server.partBreakpoint.clear();
-            }
+                pieceBuffer.putBytes(position, TEXT_OPEN, 0, TEXT_OPEN.capacity());
+                position += TEXT_OPEN.capacity();
 
-            generator.writeKey(MEMBER_TEXT).writeStartEscaped();
-        }
-
-        generator.writeSegment(textBuffer, 0, length);
-
-        if (fin)
-        {
-            generator.writeEndEscaped();
-
-            if (!tail)
-            {
-                generator.writeEnd();
-            }
-        }
-
-        return generator.length();
-    }
-
-    private int encode(
-        LlmAnthropicServer server,
-        CharSequence chars,
-        boolean fin)
-    {
-        final int length = chars.length();
-
-        if (textBytes.length < length * 3 + 8)
-        {
-            textBytes = new byte[length * 3 + 8];
-            textBuffer = new UnsafeBufferEx(textBytes);
-        }
-
-        int position = 0;
-        int index = 0;
-
-        if (server.textHighSurrogate != 0 && length > 0)
-        {
-            final char c = chars.charAt(0);
-            if (Character.isLowSurrogate(c))
-            {
-                position = put(Character.toCodePoint(server.textHighSurrogate, c), position);
-                index = 1;
-            }
-            else
-            {
-                position = put(REPLACEMENT_CHARACTER, position);
-            }
-            server.textHighSurrogate = 0;
-        }
-
-        while (index < length)
-        {
-            final char c = chars.charAt(index++);
-
-            if (Character.isHighSurrogate(c))
-            {
-                if (index < length)
+                if (marked)
                 {
-                    final char d = chars.charAt(index);
-                    if (Character.isLowSurrogate(d))
-                    {
-                        position = put(Character.toCodePoint(c, d), position);
-                        index++;
-                    }
-                    else
-                    {
-                        position = put(REPLACEMENT_CHARACTER, position);
-                    }
+                    pieceBuffer.putBytes(position, server.partBreakpoint.buffer(), 0, server.partBreakpoint.length());
+                    position += server.partBreakpoint.length();
+                    pieceBuffer.putByte(position++, (byte) ',');
+                    server.partBreakpoint.clear();
                 }
-                else if (fin)
-                {
-                    position = put(REPLACEMENT_CHARACTER, position);
-                }
-                else
-                {
-                    server.textHighSurrogate = c;
-                }
+
+                pieceBuffer.putBytes(position, TEXT_KEY, 0, TEXT_KEY.capacity());
+                position += TEXT_KEY.capacity();
             }
-            else if (Character.isLowSurrogate(c))
+
+            position += body.transfer(chars, 0, taken,
+                pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + position));
+
+            if (fin)
             {
-                position = put(REPLACEMENT_CHARACTER, position);
+                pieceBuffer.putBytes(position, TEXT_SUFFIX, 0, suffix);
+                position += suffix;
             }
-            else
-            {
-                position = put(c, position);
-            }
+
+            length = position;
         }
 
-        if (fin && server.textHighSurrogate != 0)
-        {
-            position = put(REPLACEMENT_CHARACTER, position);
-            server.textHighSurrogate = 0;
-        }
-
-        return position;
-    }
-
-    private int put(
-        int codePoint,
-        int position)
-    {
-        int next = position;
-
-        if (codePoint < 0x80)
-        {
-            textBytes[next++] = (byte) codePoint;
-        }
-        else if (codePoint < 0x800)
-        {
-            textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else if (codePoint < 0x10000)
-        {
-            textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-        else
-        {
-            textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-            textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-        }
-
-        return next;
+        return length;
     }
 
     private static boolean isWhitespace(
@@ -2971,7 +2866,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private String textIsError;
         private int textMessage;
         private boolean textOpen;
-        private char textHighSurrogate;
 
         private String probeExtension;
 
@@ -3297,8 +3191,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int credit)
         {
             final int reserved = heldTail();
-            final int framing = TEXT_PREFIX.length + TEXT_SUFFIX.length;
-            final int reserve = decoder == decodeText && textOpen ? TEXT_SUFFIX.length : framing;
+            final int framing = TEXT_FRAMING;
+            final int reserve = decoder == decodeText && textOpen ? TEXT_SUFFIX.capacity() : framing;
             final int textGrowth = 1 + (framing + MIN_TEXT_INPUT - 1) / MIN_TEXT_INPUT;
             final int growth = decoder == decodeText ? textGrowth : Math.max(textGrowth, CONTROL_GROWTH);
 
@@ -3325,7 +3219,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int credit,
             int room)
         {
-            final int available = Math.min(credit, room);
+            final int available = Math.min(Math.min(credit, room), pieceBuffer.capacity());
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
             return available - appendRoom;
@@ -3373,7 +3267,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             DirectBufferEx buffer,
             int length)
         {
-            reserveHeld(length);
+            reserveHeld();
 
             heldBuffer.putBytes(0, buffer, 0, length);
             heldLength = length;
@@ -3382,19 +3276,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             heldPending = true;
         }
 
-        private void reserveHeld(
-            int length)
+        private void reserveHeld()
         {
             if (heldBuffer == null)
             {
-                heldBuffer = new UnsafeBufferEx(new byte[length + HELD_TAIL_MAX]);
-            }
-            else if (heldBuffer.capacity() < length + HELD_TAIL_MAX)
-            {
-                final MutableDirectBufferEx grown = new UnsafeBufferEx(new byte[length + HELD_TAIL_MAX]);
-
-                grown.putBytes(0, heldBuffer, 0, heldLength);
-                heldBuffer = grown;
+                heldBuffer = new UnsafeBufferEx(new byte[pieceBuffer.capacity() + HELD_TAIL_MAX]);
             }
         }
 
@@ -3857,9 +3743,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 controlKey.append(key);
             }
 
-            reservePiece(controlKey.length() * TEXT_ESCAPE_EXPANSION + CONTROL_OPEN_CAPACITY);
-
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+            generator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
             generator.reset();
             generator.writeStartObject().writeKey(controlKey);
 
