@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.7.0...2.7.1)
+
+**Merged pull requests:**
+
+- perf\(common-json\): copy plain string runs into the output and release steps behind the window [\#3286](https://github.com/aklivity/zilla/pull/3286) ([jfallows](https://github.com/jfallows))
+
 ## [2.7.0](https://github.com/aklivity/zilla/tree/2.7.0) (2026-11-16)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.6.0...2.7.0)
