@@ -4104,6 +4104,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     }
 
+                    if (!utf8Validator.isValidString(mqttSubscribePayload.filter()))
+                    {
+                        onDecodeError(traceId, authorization, MALFORMED_PACKET);
+                        decoder = decodeIgnoreAll;
+                        break;
+                    }
+
                     final boolean validTopicFilter = validator.isTopicFilterValid(filter);
                     if (!validTopicFilter)
                     {
@@ -4248,6 +4255,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         if (filter == null)
                         {
                             onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            decoder = decodeIgnoreAll;
+                            break;
+                        }
+
+                        if (!utf8Validator.isValidString(mqttSubscribePayload.filter()))
+                        {
+                            onDecodeError(traceId, authorization, MALFORMED_PACKET);
                             decoder = decodeIgnoreAll;
                             break;
                         }
@@ -4523,6 +4537,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (topicFilter == null)
                 {
                     decodeReasonCode = PROTOCOL_ERROR;
+                    break;
+                }
+                if (!utf8Validator.isValidString(mqttUnsubscribePayload.filter()))
+                {
+                    decodeReasonCode = MALFORMED_PACKET;
                     break;
                 }
                 if (!validator.isTopicFilterValid(topicFilter))
@@ -8178,6 +8197,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = PROTOCOL_ERROR;
             }
+            else if (!utf8Validator.isValidString(topicName))
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
             else
             {
                 flags = calculatePublishApplicationFlags(typeAndFlags);
@@ -8202,6 +8225,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_CONTENT_TYPE:
                         final String16FW mContentType = mqttProperty.contentType();
+                        if (!utf8Validator.isValidString(mContentType))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         if (mContentType.value() != null)
                         {
                             final int offset = mContentType.offset();
@@ -8244,6 +8272,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_RESPONSE_TOPIC:
                         final String16FW mResponseTopic = mqttProperty.responseTopic();
+                        if (!utf8Validator.isValidString(mResponseTopic))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         if (mResponseTopic.value() != null)
                         {
                             final String responseTopicName = mResponseTopic.asString();
@@ -8266,6 +8299,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
                         final String16FW userPropertyKey = userProperty.key();
                         final String16FW userPropertyValue = userProperty.value();
+                        if (!utf8Validator.isValidString(userPropertyKey) || !utf8Validator.isValidString(userPropertyValue))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userPropertyKey);
                         final MqttModel model =
                             MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
