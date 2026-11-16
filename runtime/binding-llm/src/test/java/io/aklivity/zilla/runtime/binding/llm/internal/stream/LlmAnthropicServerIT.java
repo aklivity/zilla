@@ -1252,6 +1252,52 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
+        "${net}/anthropic.transform.response.tool.call.10k/client",
+        "${app}/transform.response.tool.call.10k/server"})
+    public void shouldTransformResponseToolCall10kFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text.100k/client",
+        "${app}/transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
         "${net}/anthropic.transform.response.text.multibyte/client",
         "${app}/transform.response.text.multibyte/server"})
     public void shouldTransformResponseTextMultibyteFromAnthropic() throws Exception
