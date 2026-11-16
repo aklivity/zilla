@@ -1686,6 +1686,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.text.citations.filtered/client",
+        "${app}/anthropic.section.assistant.text.citations.filtered/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.assistant.tool.call/client",
         "${app}/anthropic.section.assistant.tool.call/server"})
     public void shouldAnthropicSectionAssistantToolCall() throws Exception
@@ -2067,6 +2076,15 @@ public class ApplicationIT
         "${app}/anthropic.section.user.image.inline/client",
         "${app}/anthropic.section.user.image.inline/server"})
     public void shouldAnthropicSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.image.inline.fragmented/client",
+        "${app}/anthropic.section.user.image.inline.fragmented/server"})
+    public void shouldAnthropicSectionUserImageInlineFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -3543,6 +3561,15 @@ public class ApplicationIT
         "${app}/anthropic.section.assistant.tool.call.cache.control/client",
         "${app}/anthropic.section.assistant.tool.call.cache.control/server"})
     public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control.duplicate/client",
+        "${app}/anthropic.section.assistant.tool.call.cache.control.duplicate/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControlDuplicate() throws Exception
     {
         k3po.finish();
     }
@@ -8988,6 +9015,15 @@ public class ApplicationIT
         "${app}/anthropic.section.user.document.citations/client",
         "${app}/anthropic.section.user.document.citations/server"})
     public void shouldForwardAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document.citations.keys/client",
+        "${app}/anthropic.section.user.document.citations.keys/server"})
+    public void shouldAnthropicSectionUserDocumentCitationsKeys() throws Exception
     {
         k3po.finish();
     }
