@@ -46,9 +46,13 @@ read zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 
+read zilla:data.null
+
 read notify BROKERS_LEARNED
 
-read abort
+write aborted
+
+read aborted
 
 connect await BROKERS_LEARNED
         "zilla://streams/app0"
