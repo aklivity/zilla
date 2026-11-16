@@ -537,6 +537,17 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/client",
         "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/server"})
     public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception

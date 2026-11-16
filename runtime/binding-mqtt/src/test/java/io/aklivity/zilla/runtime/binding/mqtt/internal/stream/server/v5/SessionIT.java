@@ -373,6 +373,26 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.sent.reset.before.connack/client",
+        "${app}/session.server.sent.reset.before.connack/server"})
+    public void shouldRejectConnectWhenServerSentResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.sent.reset.after.connack/client",
+        "${app}/session.server.sent.reset.after.connack/server"})
+    public void shouldDisconnectWhenServerSentResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.redirect.yaml")
     @Specification({
         "${net}/session.redirect/client"})

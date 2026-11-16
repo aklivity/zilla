@@ -303,10 +303,8 @@ public interface JsonParserEx extends JsonParser
      * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the parser advances
      * its {@code getLocation().getStreamOffset()} and re-exposes the value remainder on resume — the
      * output-side pushback that lets a terminal sink stream a length-delimited value without keeping its own
-     * offset. The default does nothing, for a parser whose values are never delivered in bounded pieces.
+     * offset. A parser whose values are never delivered in bounded pieces does nothing.
      */
-    default void consumed(
-        int sourceBytes)
-    {
-    }
+    void consumed(
+        int sourceBytes);
 }

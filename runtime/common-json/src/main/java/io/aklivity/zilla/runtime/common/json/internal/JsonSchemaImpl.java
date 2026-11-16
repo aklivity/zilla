@@ -274,7 +274,7 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        return drive(eval(), new ParserSource().wrap(parser), parser);
+        return drive(eval(), Trace.NONE, new ParserSource().wrap(parser), parser);
     }
 
     @Override
@@ -282,20 +282,38 @@ public final class JsonSchemaImpl implements JsonSchema
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter)
     {
-        return drive(eval(new Trace(reporter)), new ParserSource().wrap(parser), parser);
+        final Trace trace = new Trace(reporter);
+
+        return drive(eval(trace), trace, new ParserSource().wrap(parser), parser);
     }
 
     private static boolean drive(
         Eval eval,
+        Trace trace,
         JsonSource source,
         JsonParser parser)
     {
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
-            verdict = eval.feed(parser.next(), source);
+            verdict = feed(eval, trace, parser.next(), source);
         }
         return verdict == Verdict.VALID;
+    }
+
+    private static Verdict feed(
+        Eval eval,
+        Trace trace,
+        Event event,
+        JsonSource source)
+    {
+        trace.enter(event);
+
+        final Verdict verdict = eval.feed(event, source);
+
+        trace.leave(event);
+
+        return verdict;
     }
 
     @Override
@@ -310,6 +328,23 @@ public final class JsonSchemaImpl implements JsonSchema
     public JsonParser newParser(
         boolean throwing,
         JsonParser parser,
+        Consumer<JsonSchemaDiagnostic> reporter)
+    {
+        return new ValidatingParser(throwing, parser, reporter);
+    }
+
+    @Override
+    public JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser)
+    {
+        return newParser(throwing, parser, null);
+    }
+
+    @Override
+    public JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser,
         Consumer<JsonSchemaDiagnostic> reporter)
     {
         return new ValidatingParser(throwing, parser, reporter);
@@ -2288,28 +2323,38 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // reports a failing keyword against the location of the instance value being read. The location depends on
+    // the events alone, not on which subschemas apply to a value, so one tracker follows the event stream from its
+    // entry point and every evaluator that reports reads the same location. It keeps a count of values for each
+    // open container and, for each object, the name of the current key, which the evaluator that routes the key to a
+    // subschema supplies: the schema's own name for a declared property, so no key is copied, or the key's text when
+    // it is routed to a subschema that can fail. The pointer is rendered only when a keyword fails
     private static final class Trace
     {
         private static final Trace NONE = new Trace(null);
+        private static final int FRAMES = 16;
 
         private final Consumer<JsonSchemaDiagnostic> reporter;
-        private final StringBuilder pointer;
+
+        private boolean[] arrays;
+        private int[] counts;
+        private String[] names;
+        private int depth;
+        private int pathDepth;
 
         private Trace(
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.reporter = reporter;
-            this.pointer = reporter != null ? new StringBuilder() : null;
+            this.arrays = reporter != null ? new boolean[FRAMES] : null;
+            this.counts = reporter != null ? new int[FRAMES] : null;
+            this.names = reporter != null ? new String[FRAMES] : null;
         }
 
-        // defensively re-empties the pointer for reuse across documents; push()/pop() keep it balanced
-        // in the normal case, but this guards against any path that leaves it non-empty
         private void reset()
         {
-            if (pointer != null)
-            {
-                pointer.setLength(0);
-            }
+            depth = 0;
+            pathDepth = 0;
         }
 
         private boolean active()
@@ -2317,37 +2362,93 @@ public final class JsonSchemaImpl implements JsonSchema
             return reporter != null;
         }
 
-        private int push(
-            String segment)
+        // supplies the name of the key the object being read is at
+        private void key(
+            String name)
         {
-            int mark = 0;
             if (active())
             {
-                mark = pointer.length();
-                pointer.append('/').append(escape(segment));
+                names[depth - 1] = name;
             }
-            return mark;
         }
 
-        private int push(
-            int index)
+        // moves to the value the event starts, or to the key the next value is under
+        private void enter(
+            Event event)
         {
-            int mark = 0;
             if (active())
             {
-                mark = pointer.length();
-                pointer.append('/').append(index);
+                switch (event)
+                {
+                case KEY_NAME:
+                    names[depth - 1] = null;
+                    pathDepth = depth - 1;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    pathDepth = depth - 1;
+                    break;
+                case START_OBJECT:
+                case START_ARRAY:
+                    if (depth > 0)
+                    {
+                        counts[depth - 1]++;
+                    }
+                    open(event == Event.START_ARRAY);
+                    pathDepth = depth - 1;
+                    break;
+                default:
+                    if (depth > 0)
+                    {
+                        counts[depth - 1]++;
+                    }
+                    pathDepth = depth;
+                    break;
+                }
             }
-            return mark;
         }
 
-        private void pop(
-            int mark)
+        // leaves the value the event completes
+        private void leave(
+            Event event)
         {
-            if (active())
+            if (active() && (event == Event.END_OBJECT || event == Event.END_ARRAY))
             {
-                pointer.setLength(mark);
+                depth--;
             }
+        }
+
+        private void open(
+            boolean array)
+        {
+            if (depth == arrays.length)
+            {
+                arrays = Arrays.copyOf(arrays, depth * 2);
+                counts = Arrays.copyOf(counts, depth * 2);
+                names = Arrays.copyOf(names, depth * 2);
+            }
+            arrays[depth] = array;
+            counts[depth] = 0;
+            names[depth] = null;
+            depth++;
+        }
+
+        private String pointer()
+        {
+            final StringBuilder pointer = new StringBuilder();
+            for (int frame = 0; frame < pathDepth; frame++)
+            {
+                pointer.append('/');
+                if (arrays[frame])
+                {
+                    pointer.append(counts[frame] - 1);
+                }
+                else
+                {
+                    pointer.append(escapePointer(names[frame]));
+                }
+            }
+            return pointer.toString();
         }
 
         private void report(
@@ -2361,16 +2462,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 reporter.accept(new JsonSchemaDiagnostic(
                     location.getLineNumber(),
                     location.getColumnNumber(),
-                    pointer.toString(),
+                    pointer(),
                     keyword,
                     message));
             }
-        }
-
-        private static String escape(
-            String segment)
-        {
-            return segment.replace("~", "~0").replace("/", "~1");
         }
     }
 
@@ -2385,6 +2480,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final boolean throwing;
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
+        private final Trace trace;
         private final Eval eval;
         private final ParserSource source;
 
@@ -2400,7 +2496,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.throwing = throwing;
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
-            this.eval = diagnostics != null ? eval(new Trace(this::report)) : eval();
+            this.trace = diagnostics != null ? new Trace(this::report) : Trace.NONE;
+            this.eval = diagnostics != null ? eval(trace) : eval();
             this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
@@ -2411,7 +2508,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event = delegate.next();
             if (verdict == Verdict.PENDING)
             {
-                verdict = eval.feed(event, source);
+                verdict = feed(eval, trace, event, source);
                 if (verdict == Verdict.INVALID && throwing)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2476,6 +2573,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 delegateEx.reset();
             }
+            trace.reset();
             eval.reset();
             verdict = Verdict.PENDING;
             if (diagnostics != null)
@@ -2510,6 +2608,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 delegateEx.nextDocument();
             }
+            trace.reset();
             eval.reset();
             verdict = Verdict.PENDING;
             if (diagnostics != null)
@@ -2564,11 +2663,51 @@ public final class JsonSchemaImpl implements JsonSchema
             return delegateEx.hasNextEvent();
         }
 
+        // validation reads structured events, so a segmented delivery request is declined; a scalar fragmented
+        // across windows is fed once, when it completes, unless a keyword reads its content, which a fragment
+        // cannot supply, so it is invalid rather than passed unchecked
         @Override
         public JsonEvent nextEvent(
             Mode mode)
         {
-            return delegateEx.nextEvent(mode);
+            final JsonEvent event = delegateEx.nextEvent(Mode.STRUCTURED);
+
+            if (verdict == Verdict.PENDING)
+            {
+                verdict = validate(event);
+                if (verdict == Verdict.INVALID && throwing)
+                {
+                    throw new JsonValidationException(diagnostics);
+                }
+            }
+
+            return event;
+        }
+
+        private Verdict validate(
+            JsonEvent event)
+        {
+            final boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
+            final boolean framing = event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT;
+            final boolean fragment = scalar && delegateEx.deferredBytes();
+
+            Verdict result = Verdict.PENDING;
+
+            if (fragment && eval.needsContentNow())
+            {
+                final Event scalarEvent = toEvent(event);
+
+                trace.enter(scalarEvent);
+                trace.report("content", "value exceeds the input window and a keyword reads its content", source);
+                trace.leave(scalarEvent);
+                result = Verdict.INVALID;
+            }
+            else if (!framing && !fragment)
+            {
+                result = feed(eval, trace, toEvent(event), source);
+            }
+
+            return result;
         }
 
         @Override
@@ -2593,25 +2732,32 @@ public final class JsonSchemaImpl implements JsonSchema
         public JsonVerbatim getVerbatim(
             int limit)
         {
-            return delegateEx.getVerbatim(limit);
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
         public void skipValue()
         {
-            delegateEx.skipValue();
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
         public void verbatim()
         {
-            delegateEx.verbatim();
+            throw new UnsupportedOperationException("a validating parser reads every event");
         }
 
         @Override
         public boolean deferredBytes()
         {
             return delegateEx.deferredBytes();
+        }
+
+        @Override
+        public void consumed(
+            int sourceUnits)
+        {
+            delegateEx.consumed(sourceUnits);
         }
 
         private void report(
@@ -2823,7 +2969,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
                 // remainder the sink leaves after advancing the consumed cursor
-                Verdict verdict = eval.feed(toEvent(event), source);
+                Verdict verdict = feed(eval, trace, toEvent(event), source);
                 if (verdict == Verdict.INVALID && !lenient)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2856,7 +3002,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
                 Status downstream = sink.transform(decline, source, forward(event));
-                Verdict verdict = eval.feed(toEvent(event), keyName ? keySourceRO.wrap(source) : source);
+                Verdict verdict = feed(eval, trace, toEvent(event), keyName ? keySourceRO.wrap(source) : source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
                 if (verdict == Verdict.INVALID && !lenient)
@@ -3023,7 +3169,6 @@ public final class JsonSchemaImpl implements JsonSchema
         private int count;
         private int currentIndex;
         private Eval directChild;
-        private int directChildMark;
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
@@ -3099,7 +3244,6 @@ public final class JsonSchemaImpl implements JsonSchema
             count = 0;
             currentIndex = 0;
             directChild = null;
-            directChildMark = 0;
             directChildren = null;
             containsChild = null;
             containsMatched = 0;
@@ -3699,36 +3843,25 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
             JsonSchemaImpl schema = null;
-            int matchedIndex = -1;
             for (int i = 0; i < propertyKeys.length; i++)
             {
                 if (charsEqual(propertyKeys[i], key))
                 {
                     schema = propertySchemas[i];
-                    matchedIndex = i;
+                    // a declared property: the schema owns this exact name, so the location refers to it
+                    trace.key(propertyKeys[i]);
                     break;
                 }
             }
             if (schema == null)
             {
                 schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
-            }
-            if (matchedIndex >= 0)
-            {
-                // a declared property: the schema already owns this exact name, so the pointer segment
-                // reuses it directly rather than copying the document's own key
-                directChildMark = trace.push(propertyKeys[matchedIndex]);
-            }
-            else if (schema != ANY && trace.active())
-            {
-                // an additionalProperties key the schema doesn't already know by name, routed to a
-                // fallible sub-schema (or disallowed outright via NONE): only here does the pointer
-                // need the document's own key text, materialized once, on this less-common path
-                directChildMark = trace.push(key.toString());
-            }
-            else
-            {
-                directChildMark = 0;
+                if (schema != ANY && trace.active())
+                {
+                    // routed to a subschema that can fail without the schema naming the key: only here does
+                    // the location need the document's own key text
+                    trace.key(key.toString());
+                }
             }
             directChild = propEvalFor(schema);
             directChildren = null;
@@ -3800,7 +3933,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 int index = count;
                 count++;
                 currentIndex = index;
-                directChildMark = trace.push(index);
                 directChild = itemEvalFor(elementSchema(index));
                 if (annotate && coversItem(index))
                 {
@@ -3884,7 +4016,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     directInvalid |= verdict == Verdict.INVALID;
                     directChild = null;
-                    trace.pop(directChildMark);
                     complete = true;
                 }
             }
@@ -3898,10 +4029,6 @@ public final class JsonSchemaImpl implements JsonSchema
                         directInvalid |= verdict == Verdict.INVALID;
                         complete = true;
                     }
-                }
-                if (complete)
-                {
-                    trace.pop(directChildMark);
                 }
             }
             if (containsChild != null)
@@ -3951,7 +4078,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void setApplicableFor(
             String key)
         {
-            directChildMark = trace.push(key);
+            trace.key(key);
             boolean matched;
             if (patternProperties == null)
             {

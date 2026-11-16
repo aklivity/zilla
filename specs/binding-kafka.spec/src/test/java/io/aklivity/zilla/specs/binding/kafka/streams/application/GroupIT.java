@@ -129,9 +129,45 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/rebalance.assignment.userdata.repeated/client",
+        "${app}/rebalance.assignment.userdata.repeated/server"})
+    public void shouldAssignUserdataAcrossRepeatedRebalance() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reassign.new.topic/client",
         "${app}/reassign.new.topic/server"})
     public void shouldReassignOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.new.topic/client",
+        "${app}/rebalance.new.topic/server"})
+    public void shouldRebalanceOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.new.topic.before.join.group.response/client",
+        "${app}/rebalance.new.topic.before.join.group.response/server"})
+    public void shouldRebalanceOnNewTopicBeforeJoinGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/rebalance.new.topic.before.member.assignment/client",
+        "${app}/rebalance.new.topic.before.member.assignment/server"})
+    public void shouldRebalanceOnNewTopicBeforeMemberAssignment() throws Exception
     {
         k3po.finish();
     }
