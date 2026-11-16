@@ -56,6 +56,7 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -2325,41 +2326,43 @@ public final class JsonSchemaImpl implements JsonSchema
 
     // reports a failing keyword against the location of the instance value being read. The location depends on
     // the events alone, not on which subschemas apply to a value, so one tracker follows the event stream from its
-    // entry point and every evaluator that reports reads the same location
+    // entry point and every evaluator that reports reads the same location. It keeps only what the location is
+    // made of, a count of values and the current key per open container, and renders the pointer when a keyword
+    // fails, so the events that pass cost no allocation and no pointer building
     private static final class Trace
     {
         private static final Trace NONE = new Trace(null);
-        // a mark for a value without a pointer segment of its own: the root
-        private static final int NO_MARK = -1;
         private static final int FRAMES = 16;
 
         private final Consumer<JsonSchemaDiagnostic> reporter;
-        private final StringBuilder pointer;
+        private final ExpandableArrayBufferEx keys;
 
         private boolean[] arrays;
-        private int[] indexes;
-        private int[] marks;
-        private String[] keys;
+        private int[] counts;
+        private int[] keyStarts;
+        private int[] keyEnds;
+        private int keysLength;
         private int depth;
-        private int valueMark;
+        private int pathDepth;
 
         private Trace(
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.reporter = reporter;
-            this.pointer = reporter != null ? new StringBuilder() : null;
+            this.keys = reporter != null ? new ExpandableArrayBufferEx() : null;
             this.arrays = reporter != null ? new boolean[FRAMES] : null;
-            this.indexes = reporter != null ? new int[FRAMES] : null;
-            this.marks = reporter != null ? new int[FRAMES] : null;
-            this.keys = reporter != null ? new String[FRAMES] : null;
+            this.counts = reporter != null ? new int[FRAMES] : null;
+            this.keyStarts = reporter != null ? new int[FRAMES] : null;
+            this.keyEnds = reporter != null ? new int[FRAMES] : null;
         }
 
         private void reset()
         {
-            if (pointer != null)
+            if (keys != null)
             {
-                pointer.setLength(0);
+                keysLength = 0;
                 depth = 0;
+                pathDepth = 0;
             }
         }
 
@@ -2378,17 +2381,31 @@ public final class JsonSchemaImpl implements JsonSchema
                 switch (event)
                 {
                 case KEY_NAME:
-                    keys[depth - 1] = parser.getStringView().toString();
+                    final int frame = depth - 1;
+                    keysLength = keyStarts[frame];
+                    keysLength += copyKey(parser.getStringView(), keysLength);
+                    keyEnds[frame] = keysLength;
+                    pathDepth = frame;
                     break;
                 case END_OBJECT:
                 case END_ARRAY:
+                    pathDepth = depth - 1;
+                    break;
+                case START_OBJECT:
+                case START_ARRAY:
+                    if (depth > 0)
+                    {
+                        counts[depth - 1]++;
+                    }
+                    open(event == Event.START_ARRAY);
+                    pathDepth = depth - 1;
                     break;
                 default:
-                    valueMark = segment();
-                    if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+                    if (depth > 0)
                     {
-                        open(event == Event.START_ARRAY);
+                        counts[depth - 1]++;
                     }
+                    pathDepth = depth;
                     break;
                 }
             }
@@ -2398,44 +2415,27 @@ public final class JsonSchemaImpl implements JsonSchema
         private void leave(
             Event event)
         {
-            if (active())
+            if (active() && (event == Event.END_OBJECT || event == Event.END_ARRAY))
             {
-                switch (event)
-                {
-                case KEY_NAME:
-                case START_OBJECT:
-                case START_ARRAY:
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    pop(marks[depth]);
-                    break;
-                default:
-                    pop(valueMark);
-                    break;
-                }
+                depth--;
+                keysLength = keyStarts[depth];
             }
         }
 
-        private int segment()
+        // plain characters are copied as the bytes they are, anything else through its UTF-8 encoding
+        private int copyKey(
+            JsonStringView key,
+            int offset)
         {
-            int mark = NO_MARK;
-            if (depth > 0)
+            final int length = key.length();
+            int copied = key.copyPlain(0, length, keys, offset);
+            if (copied < length)
             {
-                final int frame = depth - 1;
-                mark = pointer.length();
-                pointer.append('/');
-                if (arrays[frame])
-                {
-                    pointer.append(indexes[frame]++);
-                }
-                else
-                {
-                    pointer.append(escape(keys[frame]));
-                }
+                final byte[] bytes = key.toString().getBytes(UTF_8);
+                keys.putBytes(offset, bytes);
+                copied = bytes.length;
             }
-            return mark;
+            return copied;
         }
 
         private void open(
@@ -2444,24 +2444,34 @@ public final class JsonSchemaImpl implements JsonSchema
             if (depth == arrays.length)
             {
                 arrays = Arrays.copyOf(arrays, depth * 2);
-                indexes = Arrays.copyOf(indexes, depth * 2);
-                marks = Arrays.copyOf(marks, depth * 2);
-                keys = Arrays.copyOf(keys, depth * 2);
+                counts = Arrays.copyOf(counts, depth * 2);
+                keyStarts = Arrays.copyOf(keyStarts, depth * 2);
+                keyEnds = Arrays.copyOf(keyEnds, depth * 2);
             }
             arrays[depth] = array;
-            indexes[depth] = 0;
-            marks[depth] = valueMark;
-            keys[depth] = null;
+            counts[depth] = 0;
+            keyStarts[depth] = keysLength;
+            keyEnds[depth] = keysLength;
             depth++;
         }
 
-        private void pop(
-            int mark)
+        private String pointer()
         {
-            if (mark != NO_MARK)
+            final StringBuilder pointer = new StringBuilder();
+            for (int frame = 0; frame < pathDepth; frame++)
             {
-                pointer.setLength(mark);
+                pointer.append('/');
+                if (arrays[frame])
+                {
+                    pointer.append(counts[frame] - 1);
+                }
+                else
+                {
+                    pointer.append(escapePointer(keys.getStringWithoutLengthUtf8(keyStarts[frame],
+                        keyEnds[frame] - keyStarts[frame])));
+                }
             }
+            return pointer.toString();
         }
 
         private void report(
@@ -2475,16 +2485,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 reporter.accept(new JsonSchemaDiagnostic(
                     location.getLineNumber(),
                     location.getColumnNumber(),
-                    pointer.toString(),
+                    pointer(),
                     keyword,
                     message));
             }
-        }
-
-        private static String escape(
-            String segment)
-        {
-            return segment.replace("~", "~0").replace("/", "~1");
         }
     }
 
