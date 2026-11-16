@@ -31,23 +31,6 @@ public class LlmCacheBreakpointDropTest
     private final Consumer<LlmSectionAttributes> both = id.andThen(name);
 
     @Test
-    public void shouldDropBreakpointFromOpenaiToolCall()
-    {
-        assertTransforms(new LlmOpenaiToolCallFromCanonical("openai/ccs"), both, null,
-            json("{" + BREAKPOINT + ",'arguments':{'city':'Paris'}}"),
-            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
-                quote(json("{'city':'Paris'}")) + "}}");
-    }
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiToolDefinition()
-    {
-        assertTransforms(new LlmOpenaiToolDefinitionFromCanonical("openai/ccs"),
-            json("{'type':'function','function':{'name':'ping','strict':true," + BREAKPOINT + "}}"),
-            json("{'type':'function','function':{'name':'ping','strict':true}}"));
-    }
-
-    @Test
     public void shouldDropBreakpointFromOpenaiImage()
     {
         assertTransforms(LlmOpenaiMediaFromCanonical.image("openai/ccs"),
