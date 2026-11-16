@@ -3801,10 +3801,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private JsonGeneratorEx controlGenerator;
         private JsonGeneratorEx requestTarget;
         private final StringBuilder controlHeld = new StringBuilder();
-        private final LlmCapturedValue controlChoice = new LlmCapturedValue();
-        private final LlmCapturedScalar controlScalar = new LlmCapturedScalar();
-        private final LlmToolChoice toolChoice = new LlmToolChoice();
-        private final LlmSchemaScanner schemaScanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
+        private LlmCapturedValue controlChoice;
+        private LlmCapturedScalar controlScalar;
+        private LlmToolChoice toolChoice;
+        private LlmSchemaScanner schemaScanner;
         private String controlMember;
         private boolean controlOverflow;
         private int controlFormat;
@@ -5880,6 +5880,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else if (LlmSharedMembers.TOOL_CHOICE.contentEquals(member))
             {
+                if (controlChoice == null)
+                {
+                    controlChoice = new LlmCapturedValue();
+                    toolChoice = new LlmToolChoice();
+                }
+
                 controlChoice.clear();
                 requestDecoder = decodeRequestControlChoice;
             }
@@ -5966,6 +5972,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     final JsonEvent event = parser.nextEvent();
                     final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY;
+
+                    if (controlScalar == null)
+                    {
+                        controlScalar = new LlmCapturedScalar();
+                    }
 
                     controlScalar.clear();
 
@@ -6568,6 +6579,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         {
                             controlGenerator.writeKey(MEMBER_SCHEMA);
                             copier.reset();
+                            if (schemaScanner == null)
+                            {
+                                schemaScanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
+                            }
+
                             schemaScanner.begin();
                             requestDecoder = decodeRequestControlSchemaValue;
                         }
