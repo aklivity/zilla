@@ -1345,6 +1345,18 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void doMqttReset(
+            long traceId)
+        {
+            final Flyweight mqttResetEx = mqttSessionResetExRW
+                .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                .typeId(mqttTypeId)
+                .reasonCode(MQTT_IMPLEMENTATION_SPECIFIC_ERROR)
+                .build();
+
+            doMqttReset(traceId, mqttResetEx);
+        }
+
         private void doMqttWindow(
             long authorization,
             long traceId,
@@ -1622,7 +1634,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         public void onPartitionsReset(
             long traceId)
         {
-            doMqttReset(traceId, EMPTY_OCTETS);
+            doMqttReset(traceId);
         }
 
         private void doFetchSessionOffsets(
@@ -3296,7 +3308,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
         }
 
         protected void onKafkaWindow(
@@ -4350,7 +4362,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
         }
 
         private void doKafkaBegin(
@@ -4604,7 +4616,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -4617,7 +4629,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
         }
 
         private void doKafkaBegin(
@@ -5518,7 +5530,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
         }
 
         private void doKafkaBegin(
@@ -5728,7 +5740,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.doMqttReset(traceId, EMPTY_OCTETS);
+            delegate.doMqttReset(traceId);
         }
 
         private void onKafkaWindow(

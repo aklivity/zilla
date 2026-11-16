@@ -328,8 +328,8 @@ class EncodedStringViewTest
             {
                 for (int max : new int[] {0, 1, 7, 8, 9, 64, 65, 4096})
                 {
-                    final byte[] target = new byte[Math.max(max, 1)];
-                    final int copied = view.copyPlain(from, max, target);
+                    final byte[] target = new byte[Math.max(max, 1) + PADDING];
+                    final int copied = view.copyPlain(from, max, new UnsafeBufferEx(target), PADDING);
 
                     int expected = 0;
                     while (expected < max && from + expected < view.length() && plain(view.charAt(from + expected)))
@@ -341,7 +341,7 @@ class EncodedStringViewTest
 
                     for (int index = 0; index < copied; index++)
                     {
-                        assertEquals(view.charAt(from + index), (char) target[index], value + " at " + (from + index));
+                        assertEquals(view.charAt(from + index), (char) target[PADDING + index], value + " at " + (from + index));
                     }
                 }
             }
