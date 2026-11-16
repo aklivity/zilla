@@ -1524,6 +1524,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.reordered/client",
+        "${app}/anthropic.section.assistant.reasoning.reordered/server"})
+    public void shouldAnthropicSectionAssistantReasoningReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.assistant.reasoning.signature.first/client",
         "${app}/anthropic.section.assistant.reasoning.signature.first/server"})
     public void shouldAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
