@@ -134,9 +134,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int KIND_SERVER_TOOL_RESULT = 12;
     private static final int KIND_CITATIONS = 13;
     private static final int KIND_CONTROL = 14;
-    private static final int CONTROL_PENDING = 0;
-    private static final int CONTROL_WRITE = 1;
-    private static final int CONTROL_DROP = 2;
     private static final int KIND_SERVER_TOOL_CALL = 15;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_SERVER_TOOL_DEFINITION = 17;
@@ -145,12 +142,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ROLE_USER = 1;
     private static final int ROLE_ASSISTANT = 2;
 
-    private static final int TOOL_RESULT_CONTENT_OPEN = 1;
-    private static final int TOOL_RESULT_CONTENT_CLOSED = 2;
-    private static final int REGION_NONE = 0;
-    private static final int REGION_MESSAGES = 1;
-    private static final int REGION_SYSTEM = 2;
-    private static final int REGION_TOOLS = 3;
+    private static final int REGION_MESSAGES = 1 << 0;
+    private static final int REGION_SYSTEM = 1 << 2;
+    private static final int REGION_TOOLS = 1 << 4;
+    private static final int REGION_BLOCK_OPENED = 1 << 6;
+    private static final int REGION_RESULT_CONTENT_OPENED = 1 << 7;
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
@@ -3793,7 +3789,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int encodeSlotOffset;
         private boolean encodeFailed;
 
-        private int region = REGION_NONE;
+        private int regions;
         private final LlmRequestHold hold;
         private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(BREAKPOINTS_MAX, BREAKPOINT_TTLS);
         private final LlmAnthropicRequestDecoder decodeRequestRoot = this::decodeRequestRoot;
@@ -3875,20 +3871,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean cited;
         private boolean structured;
         private String conflicted;
-        private boolean messagesOpened;
-        private boolean systemOpened;
-        private boolean toolsOpened;
         private int messageIndex = NO_MESSAGE;
         private int messageRole = ROLE_NONE;
         private boolean toolResultError;
-        private boolean textBlockOpen;
-        private int toolResultContent;
         private String toolResultId;
         private int sectionKind;
         private boolean sectionOpen;
         private boolean rawOpen;
         private int controlMessage;
-        private int controlMode;
         private String choiceType;
         private int parallelCalls = PARALLEL_UNSET;
         private int effort = LlmEffort.ABSENT;
@@ -6719,14 +6709,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void openToolResultContent()
         {
-            if (toolResultContent == 0)
+            if ((regions & REGION_RESULT_CONTENT_OPENED) == 0)
             {
                 generator.writeStartArray(MEMBER_CONTENT);
-                toolResultContent = TOOL_RESULT_CONTENT_OPEN;
-            }
-            else if (toolResultContent == TOOL_RESULT_CONTENT_CLOSED)
-            {
-                encodeFailed = true;
+                regions |= REGION_RESULT_CONTENT_OPENED;
             }
         }
 
@@ -6758,7 +6744,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (kind == KIND_CITATIONS)
                 {
-                    if (textBlockOpen)
+                    if ((regions & REGION_BLOCK_OPENED) != 0)
                     {
                         generator.writeKey(MEMBER_CITATIONS);
                     }
@@ -6770,7 +6756,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 else if (kind == KIND_CONTROL)
                 {
                     controlMessage = message;
-                    controlMode = CONTROL_PENDING;
                 }
                 else
                 {
@@ -6869,7 +6854,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                             .write(MEMBER_TOOL_USE_ID, toolCallId);
                         toolResultId = toolCallId;
                         toolResultError = false;
-                        toolResultContent = 0;
+                        regions &= ~REGION_RESULT_CONTENT_OPENED;
                     }
 
                     openToolResultContent();
@@ -6889,43 +6874,28 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
+        private boolean regionOpen(
+            int region)
+        {
+            return (regions & (region | region << 1)) == region;
+        }
+
         private void openRegion(
             int next)
         {
-            if (region != next)
+            if (!regionOpen(next))
             {
                 closeRegion();
 
-                final boolean reopened = switch (next)
-                {
-                case REGION_MESSAGES -> messagesOpened;
-                case REGION_SYSTEM -> systemOpened;
-                default -> toolsOpened;
-                };
-
-                if (reopened)
+                if ((regions & next) != 0)
                 {
                     encodeFailed = true;
                 }
                 else
                 {
-                    switch (next)
-                    {
-                    case REGION_MESSAGES:
-                        messagesOpened = true;
-                        generator.writeStartArray(MEMBER_MESSAGES);
-                        break;
-                    case REGION_SYSTEM:
-                        systemOpened = true;
-                        generator.writeStartArray(MEMBER_SYSTEM);
-                        break;
-                    default:
-                        toolsOpened = true;
-                        generator.writeStartArray(MEMBER_TOOLS);
-                        break;
-                    }
-
-                    region = next;
+                    generator.writeStartArray(next == REGION_MESSAGES ? MEMBER_MESSAGES :
+                        next == REGION_SYSTEM ? MEMBER_SYSTEM : MEMBER_TOOLS);
+                    regions |= next;
                 }
             }
         }
@@ -6934,15 +6904,19 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             closeTextBlock();
 
-            if (region == REGION_MESSAGES)
+            if (regionOpen(REGION_MESSAGES))
             {
                 closeMessage();
             }
 
-            if (region != REGION_NONE)
+            final int open = regionOpen(REGION_MESSAGES) ? REGION_MESSAGES :
+                regionOpen(REGION_SYSTEM) ? REGION_SYSTEM :
+                regionOpen(REGION_TOOLS) ? REGION_TOOLS : 0;
+
+            if (open != 0)
             {
                 generator.writeEnd();
-                region = REGION_NONE;
+                regions |= open << 1;
             }
         }
 
@@ -6974,7 +6948,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (toolResultId != null)
             {
-                if (toolResultContent == TOOL_RESULT_CONTENT_OPEN)
+                if ((regions & REGION_RESULT_CONTENT_OPENED) != 0)
                 {
                     generator.writeEnd();
                 }
@@ -6988,7 +6962,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 toolResultId = null;
                 toolResultError = false;
-                toolResultContent = 0;
+                regions &= ~REGION_RESULT_CONTENT_OPENED;
             }
         }
 
@@ -7007,10 +6981,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void closeTextBlock()
         {
-            if (textBlockOpen)
+            if ((regions & REGION_BLOCK_OPENED) != 0)
             {
                 generator.writeEnd();
-                textBlockOpen = false;
+                regions &= ~REGION_BLOCK_OPENED;
             }
         }
 
@@ -7052,12 +7026,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (controlMode == CONTROL_PENDING)
-            {
-                controlMode = openControl() ? CONTROL_WRITE : CONTROL_DROP;
-            }
-
-            if (controlMode == CONTROL_WRITE)
+            if (openControl())
             {
                 if (fits(length))
                 {
@@ -7080,7 +7049,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 closeRegion();
             }
 
-            return root || textBlockOpen;
+            return root || (regions & REGION_BLOCK_OPENED) != 0;
         }
 
         private void putEscaped(
@@ -7147,13 +7116,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         writeCacheControl(cacheTtl);
                     }
 
-                    textBlockOpen = true;
+                    regions |= REGION_BLOCK_OPENED;
                     sectionOpen = false;
                 }
                 else if (sectionKind == KIND_CITATIONS)
                 {
                     generator.writeEnd();
-                    textBlockOpen = false;
+                    regions &= ~REGION_BLOCK_OPENED;
                 }
 
                 endEncode();
