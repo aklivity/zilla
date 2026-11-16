@@ -213,4 +213,26 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectUnsubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }
