@@ -3895,9 +3895,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int budget = LlmEffort.ABSENT;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
         private final LlmAnthropicThinking thinking = new LlmAnthropicThinking();
-        private int heldSlot = NO_SLOT;
-        private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::heldBuffer);
-        private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
+        private final LlmMemberCollector collector;
+        private final LlmMembersOutput controlOutput;
         private final LlmMembersOutput.Members heldOutput = this::putHeld;
 
         private int decodeSlot = NO_SLOT;
@@ -3929,6 +3928,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.memberKeys = new LlmMemberKeys(sameDialect ? NAME : null);
             this.generator = JsonEx.createGenerator();
             this.hold = new LlmRequestHold(holdPool, initialId);
+            this.collector = new LlmMemberCollector(CONTAINERS, this::putControl, hold, LlmRequestHold.DEFER);
+            this.controlOutput = new LlmMembersOutput(collector);
         }
 
         private void doNetBegin(
@@ -4017,26 +4018,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             return collector.held();
         }
 
-        private MutableDirectBufferEx heldBuffer()
-        {
-            if (heldSlot == NO_SLOT)
-            {
-                heldSlot = holdPool.acquire(initialId);
-            }
-
-            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
-        }
-
         private void cleanupHeldSlot()
         {
             collector.reset();
             hold.release();
-
-            if (heldSlot != NO_SLOT)
-            {
-                holdPool.release(heldSlot);
-                heldSlot = NO_SLOT;
-            }
         }
 
         private void putHeld(

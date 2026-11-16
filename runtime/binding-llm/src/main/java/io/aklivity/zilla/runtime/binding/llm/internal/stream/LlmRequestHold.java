@@ -166,6 +166,24 @@ final class LlmRequestHold
         return replaced;
     }
 
+    void trim(
+        int region,
+        int length)
+    {
+        final int delta = lengths[region] - length;
+
+        if (delta > 0)
+        {
+            final MutableDirectBufferEx buffer = pool.buffer(slot);
+            final int start = offset(region);
+            final int end = start + lengths[region];
+
+            buffer.putBytes(start + length, buffer, end, total - end);
+            lengths[region] = length;
+            total -= delta;
+        }
+    }
+
     void clear(
         int region)
     {
