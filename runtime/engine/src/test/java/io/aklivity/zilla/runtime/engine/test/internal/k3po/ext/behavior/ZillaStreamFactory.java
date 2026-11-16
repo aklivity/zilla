@@ -250,6 +250,7 @@ public final class ZillaStreamFactory
             channel.sourceAck(acknowledge);
             channel.sourceId(streamId);
             channel.sourceAuth(begin.authorization());
+            channel.sourceAffinity(begin.affinity());
             channel.stateOpeningRead();
 
             channel.beginInputFuture().setSuccess();

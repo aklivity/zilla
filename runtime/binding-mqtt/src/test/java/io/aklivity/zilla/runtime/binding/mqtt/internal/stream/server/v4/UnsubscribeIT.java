@@ -16,12 +16,10 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -46,8 +44,6 @@ public class UnsubscribeIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.UnsubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
@@ -59,7 +55,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
-        "${app}/unsubscribe.after.subscribe/server"})
+        "${app}/unsubscribe.after.subscribe.v4/server"})
     public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
@@ -69,7 +65,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.topic.filter.single/client",
-        "${app}/unsubscribe.topic.filter.single/server"})
+        "${app}/unsubscribe.topic.filter.single.v4/server"})
     public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
@@ -79,7 +75,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.publish.unfragmented/client",
-        "${app}/unsubscribe.publish.unfragmented/server"})
+        "${app}/unsubscribe.publish.unfragmented.v4/server"})
     public void shouldAcknowledgeAndPublishUnfragmented() throws Exception
     {
         k3po.finish();
@@ -89,7 +85,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
-        "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact.v4/server"})
     public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -99,7 +95,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.no.matching.subscription/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
@@ -109,7 +105,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
@@ -119,7 +115,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.reject.missing.packet.id/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldRejectWithoutPacketId() throws Exception
     {
         k3po.finish();
@@ -129,21 +125,39 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.reject.no.topic.filter/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
     }
 
-    @Before
-    public void setSubscriptionId()
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/unsubscribe.topic.filter.unroutable/client",
+        "${app}/unsubscribe.topic.filter.unroutable/server"})
+    public void shouldUnsubscribeTopicFilterUnroutable() throws Exception
     {
-        subscriptionId = 0;
+        k3po.finish();
     }
 
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not.v4/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
     {
-        return ++subscriptionId;
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.while.publish.fragmented/client",
+        "${app}/unsubscribe.while.publish.fragmented.v4/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
     }
 }

@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -31,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class SubscribeIT
 {
@@ -45,8 +45,6 @@ public class SubscribeIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.SubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
@@ -58,7 +56,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.retained.not.supported/client",
-        "${app}/subscribe.retained.not.supported/server"})
+        "${app}/subscribe.retained.not.supported.v4/server"})
     public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -68,7 +66,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message/client",
-        "${app}/subscribe.one.message/server"})
+        "${app}/subscribe.one.message.v4/server"})
     public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
@@ -78,7 +76,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filter.single.exact/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldFilterExact() throws Exception
     {
         k3po.finish();
@@ -88,7 +86,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filter.multi.level.wildcard/client",
-        "${app}/subscribe.topic.filter.multi.level.wildcard/server"})
+        "${app}/subscribe.topic.filter.multi.level.wildcard.v4/server"})
     public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -98,7 +96,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
-        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
+        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard.v4/server"})
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -108,7 +106,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filter.single.level.wildcard/client",
-        "${app}/subscribe.topic.filter.single.level.wildcard/server"})
+        "${app}/subscribe.topic.filter.single.level.wildcard.v4/server"})
     public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -118,7 +116,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filter.two.single.level.wildcard/client",
-        "${app}/subscribe.topic.filter.two.single.level.wildcard/server"})
+        "${app}/subscribe.topic.filter.two.single.level.wildcard.v4/server"})
     public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
@@ -128,7 +126,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.aggregated.both.exact/client",
-        "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
+        "${app}/subscribe.topic.filters.aggregated.both.exact.v4/server"})
     public void shouldFilterAggregatedBothExact() throws Exception
     {
         k3po.finish();
@@ -138,7 +136,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.exact/client",
-        "${app}/subscribe.topic.filters.isolated.both.exact/server"})
+        "${app}/subscribe.topic.filters.isolated.both.exact.v4/server"})
     public void shouldFilterIsolatedBothExact() throws Exception
     {
         k3po.finish();
@@ -148,7 +146,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
-        "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
+        "${app}/subscribe.topic.filters.isolated.both.wildcard.v4/server"})
     public void shouldFilterIsolatedBothWildcard() throws Exception
     {
         k3po.finish();
@@ -158,7 +156,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
-        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard.v4/server"})
     public void shouldFilterAggregatedExactAndWildcard() throws Exception
     {
         k3po.finish();
@@ -168,7 +166,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.disjoint.wildcards/client",
-        "${app}/subscribe.topic.filters.disjoint.wildcards/server"})
+        "${app}/subscribe.topic.filters.disjoint.wildcards.v4/server"})
     public void shouldFilterDisjointWildcard() throws Exception
     {
         k3po.finish();
@@ -178,7 +176,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
-        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard.v4/server"})
     public void shouldFilterIsolatedExactAndWildcard() throws Exception
     {
         k3po.finish();
@@ -188,7 +186,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.overlapping.wildcards/client",
-        "${app}/subscribe.topic.filters.overlapping.wildcards/server"})
+        "${app}/subscribe.topic.filters.overlapping.wildcards.v4/server"})
     public void shouldFilterOverlappingWildcard() throws Exception
     {
         k3po.finish();
@@ -198,7 +196,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message/client",
-        "${app}/subscribe.receive.message/server"})
+        "${app}/subscribe.receive.message.v4/server"})
     public void shouldReceiveOneMessageAfterPublish() throws Exception
     {
         k3po.finish();
@@ -208,7 +206,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.overlapping.wildcard/client",
-        "${app}/subscribe.receive.message.overlapping.wildcard/server"})
+        "${app}/subscribe.receive.message.overlapping.wildcard.v4/server"})
     public void shouldReceiveMessageOverlappingWildcard() throws Exception
     {
         k3po.finish();
@@ -218,7 +216,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.wildcard/client",
-        "${app}/subscribe.receive.message.wildcard/server"})
+        "${app}/subscribe.receive.message.wildcard.v4/server"})
     public void shouldReceiveOneMessageWithPatternTopic() throws Exception
     {
         k3po.finish();
@@ -249,7 +247,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.unroutable/client",
         "${app}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -258,7 +256,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.qos1/client",
-        "${app}/subscribe.receive.message.qos1/server"})
+        "${app}/subscribe.receive.message.qos1.v4/server"})
     public void shouldReceiveMessageQoS1() throws Exception
     {
         k3po.finish();
@@ -268,7 +266,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.qos2/client",
-        "${app}/subscribe.receive.message.qos2/server"})
+        "${app}/subscribe.receive.message.qos2.v4/server"})
     public void shouldReceiveMessageQoS2() throws Exception
     {
         k3po.finish();
@@ -278,7 +276,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.qos1/client",
-        "${app}/subscribe.receive.message.qos1.published.qos2/server"})
+        "${app}/subscribe.receive.message.qos1.published.qos2.v4/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
     {
         k3po.finish();
@@ -288,7 +286,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message/client",
-        "${app}/subscribe.receive.message.qos0.published.qos1/server"})
+        "${app}/subscribe.receive.message.qos0.published.qos1.v4/server"})
     public void shouldReceiveMessageQoS0PublishedAsQoS1() throws Exception
     {
         k3po.finish();
@@ -298,7 +296,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message/client",
-        "${app}/subscribe.receive.message.qos0.published.qos2/server"})
+        "${app}/subscribe.receive.message.qos0.published.qos2.v4/server"})
     public void shouldReceiveMessageQoS0PublishedAsQoS2() throws Exception
     {
         k3po.finish();
@@ -308,7 +306,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.messages.mixture.qos/client",
-        "${app}/subscribe.receive.messages.mixture.qos/server"})
+        "${app}/subscribe.receive.messages.mixture.qos.v4/server"})
     public void shouldReceiveMessagesMixtureQos() throws Exception
     {
         k3po.finish();
@@ -318,7 +316,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
-        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/server"})
     public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
     {
         k3po.finish();
@@ -349,7 +347,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reconnect.replay.qos1.unacked.message/client",
-        "${app}/subscribe.reconnect.replay.qos1.unacked.message/server"})
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message.v4/server"})
     public void shouldReplayUnackedQoS1MessageAtReconnect() throws Exception
     {
         k3po.finish();
@@ -359,7 +357,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reconnect.replay.qos2.unreceived.message/client",
-        "${app}/subscribe.reconnect.replay.qos2.unreceived.message/server"})
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message.v4/server"})
     public void shouldReplayUnreceivedQoS2MessageAtReconnect() throws Exception
     {
         k3po.finish();
@@ -369,7 +367,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reconnect.replay.qos2.incomplete.message/client",
-        "${app}/subscribe.reconnect.replay.qos2.incomplete.message/server"})
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message.v4/server"})
     public void shouldReplayIncompleteQoS2MessageAtReconnect() throws Exception
     {
         k3po.finish();
@@ -379,7 +377,7 @@ public class SubscribeIT
     @Configuration("server.when.topic.params.yaml")
     @Specification({
         "${net}/subscribe.topic.guarded.identity.param/client",
-        "${app}/subscribe.topic.guarded.identity.param/server"})
+        "${app}/subscribe.topic.guarded.identity.param.v4/server"})
     public void shouldFilterGuardedIdentityParam() throws Exception
     {
         k3po.finish();
@@ -389,7 +387,7 @@ public class SubscribeIT
     @Configuration("server.when.topic.params.attribute.yaml")
     @Specification({
         "${net}/subscribe.topic.guarded.identity.param/client",
-        "${app}/subscribe.topic.guarded.identity.param/server"})
+        "${app}/subscribe.topic.guarded.identity.param.v4/server"})
     public void shouldFilterGuardedAttributeParam() throws Exception
     {
         k3po.finish();
@@ -400,20 +398,215 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
     {
         k3po.finish();
     }
 
-    @Before
-    public void setSubscriptionId()
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.puback.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubackWithUnknownPacketId() throws Exception
     {
-        subscriptionId = 0;
+        k3po.finish();
     }
 
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrec.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldReleasePubrecWithUnknownPacketId() throws Exception
     {
-        return ++subscriptionId;
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubcomp.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.mixed/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed.v4/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.all/client",
+        "${app}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.guarded.roles.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filter.unauthorized/client",
+        "${app}/subscribe.topic.filter.unauthorized.v4/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.2 variable header is the Packet Identifier; [MQTT-4.8.0-1] protocol violation closes the connection
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.3.1-1], [MQTT-4.8.0-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-3]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.malformed.subscription.options/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMalformedSubscriptionOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe.v4/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "1")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1.v4/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${app}/subscribe.replace.same.qos.v4/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${app}/subscribe.replace.downgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${app}/subscribe.replace.upgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.second.filter.malformed.subscription.options/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterMalformedSubscriptionOptions() throws Exception
+    {
+        k3po.finish();
     }
 }

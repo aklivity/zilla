@@ -507,6 +507,46 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/client",
+        "${app}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/client",
+        "${app}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.two.topics.interleaved.acks/client",
+        "${app}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.two.messages.one.ack/client",
+        "${app}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2Message() throws Exception
@@ -591,6 +631,87 @@ public class PublishIT
         "${net}/publish.retained.per.connection/client",
         "${app}/publish.retained.per.connection/server"})
     public void shouldPublishNonRetainedAfterRetainedOnOtherConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${app}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${app}/publish.qos1.unroutable/server"})
+    public void shouldPublishQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos2.unroutable/client",
+        "${app}/publish.qos2.unroutable/server"})
+    public void shouldPublishQos2Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected/client",
+        "${app}/publish.qos1.message.rejected/server"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected.in.flight.acknowledged/client",
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/server"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.message.rejected/client",
+        "${app}/publish.qos2.message.rejected/server"})
+    public void shouldPublishQos2MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.invalid.property.identifier/client",
+        "${app}/session.connect/server"})
+    public void shouldPublishRejectInvalidPropertyIdentifier() throws Exception
     {
         k3po.finish();
     }

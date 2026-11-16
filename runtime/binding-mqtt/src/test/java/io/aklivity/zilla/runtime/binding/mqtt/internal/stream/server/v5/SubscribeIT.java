@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.NO_LOCAL_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -46,8 +46,6 @@ public class SubscribeIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5.SubscribeIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .external("app1")
@@ -180,7 +178,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/client",
-        "${app}/subscribe.topic.filters.isolated.both.exact/server"})
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/server"})
     public void shouldFilterIsolatedBothExactNoSubscriptionId() throws Exception
     {
         k3po.finish();
@@ -432,7 +430,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.unroutable/client",
         "${app}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -453,6 +451,26 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.qos2/client",
         "${app}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
+        "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
+    public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1.puback.failure.reason.code/client",
+        "${app}/subscribe.receive.message.qos1.puback.failure.reason.code/server"})
+    public void shouldReceiveMessageQoS1AfterPubackFailureReasonCode() throws Exception
     {
         k3po.finish();
     }
@@ -593,15 +611,9 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
     {
         k3po.finish();
-    }
-
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
-    {
-        return ++subscriptionId;
     }
 
     @Test
@@ -620,6 +632,326 @@ public class SubscribeIT
         "${net}/subscribe.qos2.drop.exceeds.max.packet.size/client",
         "${app}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
     public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.puback.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubackWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrec.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldReleasePubrecWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubcomp.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrec.failure.reason.code.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldIgnorePubrecFailureWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.mixed/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.all/client",
+        "${app}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.guarded.roles.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filter.unauthorized/client",
+        "${app}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3.1 Maximum QoS 3 is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.reserved.option.bit.6/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectReservedOptionBit6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.reserved.option.bit.7/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectReservedOptionBit7() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3.1 Retain Handling 3 is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.retain.handling.3/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectRetainHandling3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.1 [MQTT-2.2.1-3], 4.13.1 Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.2.1.2 Subscription Identifier more than once is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.subscription.id.repeated/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectSubscriptionIdRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3 SUBSCRIBE with no Payload is a Protocol Error
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "1")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${app}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.same.options/client",
+        "${app}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${app}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${app}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.add.subscription.id/client",
+        "${app}/subscribe.replace.add.subscription.id/server"})
+    public void shouldSubscribeReplaceAddSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.replace.remove.subscription.id/client",
+        "${app}/subscribe.replace.remove.subscription.id/server"})
+    public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.112/client",
+        "${app}/subscribe.receive.message.subscription.id.112/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId112() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.127/client",
+        "${app}/subscribe.receive.message.subscription.id.127/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.subscription.id.255/client",
+        "${app}/subscribe.receive.message.subscription.id.255/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId255() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.second.filter.reserved.option.bit.6/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterReservedOptionBit6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.8.3.1 Maximum QoS 3 is a Protocol Error, earlier filters not subscribed
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.second.filter.maximum.qos.3/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterMaximumQos3() throws Exception
     {
         k3po.finish();
     }

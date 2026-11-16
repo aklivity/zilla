@@ -311,7 +311,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.unroutable/client",
         "${app}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -348,6 +348,24 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.qos2/client",
         "${app}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
+        "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
+    public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.puback.failure.reason.code/client",
+        "${app}/subscribe.receive.message.qos1.puback.failure.reason.code/server"})
+    public void shouldReceiveMessageQoS1AfterPubackFailureReasonCode() throws Exception
     {
         k3po.finish();
     }
@@ -446,7 +464,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.invalid.topic.guarded.identity.param/client",
         "${app}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
     {
         k3po.finish();
     }
@@ -465,6 +483,518 @@ public class SubscribeIT
         "${app}/subscribe.qos2.drop.exceeds.max.packet.size/client",
         "${app}/subscribe.qos2.drop.exceeds.max.packet.size/server"})
     public void shouldCompleteDroppedQoS2MessageExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.mixed/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.all/client",
+        "${app}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.unauthorized/client",
+        "${app}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.request.qos1.maximum.qos.1/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.qos/client",
+        "${app}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.options/client",
+        "${app}/subscribe.replace.same.options/server"})
+    public void shouldSubscribeReplaceSameOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.downgrade.qos/client",
+        "${app}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.upgrade.qos/client",
+        "${app}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.add.subscription.id/client",
+        "${app}/subscribe.replace.add.subscription.id/server"})
+    public void shouldSubscribeReplaceAddSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.remove.subscription.id/client",
+        "${app}/subscribe.replace.remove.subscription.id/server"})
+    public void shouldSubscribeReplaceRemoveSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.subscription.id.112/client",
+        "${app}/subscribe.receive.message.subscription.id.112/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId112() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.subscription.id.127/client",
+        "${app}/subscribe.receive.message.subscription.id.127/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.subscription.id.255/client",
+        "${app}/subscribe.receive.message.subscription.id.255/server"})
+    public void shouldSubscribeReceiveMessageSubscriptionId255() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.one.message.v4/client",
+        "${app}/subscribe.one.message.v4/server"})
+    public void shouldSubscribeOneMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/client",
+        "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/server"})
+    public void shouldSubscribeReceiveMessageOverlappingWildcardMixedQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos0.published.qos1.v4/client",
+        "${app}/subscribe.receive.message.qos0.published.qos1.v4/server"})
+    public void shouldSubscribeReceiveMessageQos0PublishedQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.published.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos1.published.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos1PublishedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.v4/client",
+        "${app}/subscribe.receive.message.qos1.v4/server"})
+    public void shouldSubscribeReceiveMessageQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.v4/client",
+        "${app}/subscribe.receive.message.v4/server"})
+    public void shouldSubscribeReceiveMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.wildcard.v4/client",
+        "${app}/subscribe.receive.message.wildcard.v4/server"})
+    public void shouldSubscribeReceiveMessageWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.messages.mixture.qos.v4/client",
+        "${app}/subscribe.receive.messages.mixture.qos.v4/server"})
+    public void shouldSubscribeReceiveMessagesMixtureQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos1.unacked.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos1UnackedMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos2.incomplete.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos2IncompleteMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message.v4/client",
+        "${app}/subscribe.reconnect.replay.qos2.unreceived.message.v4/server"})
+    public void shouldSubscribeReconnectReplayQos2UnreceivedMessageV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.retained.not.supported.v4/client",
+        "${app}/subscribe.retained.not.supported.v4/server"})
+    public void shouldSubscribeRetainedNotSupportedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.multi.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.multi.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterMultiLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.single.and.multi.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterSingleAndMultiLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.exact.v4/client",
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
+    public void shouldSubscribeTopicFilterSingleExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.single.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.single.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterSingleLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.two.single.level.wildcard.v4/client",
+        "${app}/subscribe.topic.filter.two.single.level.wildcard.v4/server"})
+    public void shouldSubscribeTopicFilterTwoSingleLevelWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filter.unauthorized.v4/client",
+        "${app}/subscribe.topic.filter.unauthorized.v4/server"})
+    public void shouldSubscribeTopicFilterUnauthorizedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.aggregated.both.exact.v4/client",
+        "${app}/subscribe.topic.filters.aggregated.both.exact.v4/server"})
+    public void shouldSubscribeTopicFiltersAggregatedBothExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersAggregatedExactAndWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.disjoint.wildcards.v4/client",
+        "${app}/subscribe.topic.filters.disjoint.wildcards.v4/server"})
+    public void shouldSubscribeTopicFiltersDisjointWildcardsV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/client",
+        "${app}/subscribe.topic.filters.isolated.both.exact.no.subscription.id/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothExactNoSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.exact.v4/client",
+        "${app}/subscribe.topic.filters.isolated.both.exact.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.both.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.isolated.both.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedBothWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard.v4/client",
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard.v4/server"})
+    public void shouldSubscribeTopicFiltersIsolatedExactAndWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.overlapping.wildcards.v4/client",
+        "${app}/subscribe.topic.filters.overlapping.wildcards.v4/server"})
+    public void shouldSubscribeTopicFiltersOverlappingWildcardsV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.unroutable.mixed.v4/client",
+        "${app}/subscribe.topic.filters.unroutable.mixed.v4/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.guarded.identity.param.v4/client",
+        "${app}/subscribe.topic.guarded.identity.param.v4/server"})
+    public void shouldSubscribeTopicGuardedIdentityParamV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.overlapping.wildcard.v4/client",
+        "${app}/subscribe.receive.message.overlapping.wildcard.v4/server"})
+    public void shouldSubscribeReceiveMessageOverlappingWildcardV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos0.published.qos2.v4/client",
+        "${app}/subscribe.receive.message.qos0.published.qos2.v4/server"})
+    public void shouldSubscribeReceiveMessageQos0PublishedQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1.v4/client",
+        "${app}/subscribe.downgrade.qos2.configured.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2ConfiguredMaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1.v4/client",
+        "${app}/subscribe.downgrade.qos2.maximum.qos.1.v4/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.downgrade.qos.v4/client",
+        "${app}/subscribe.replace.downgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceDowngradeQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.same.qos.v4/client",
+        "${app}/subscribe.replace.same.qos.v4/server"})
+    public void shouldSubscribeReplaceSameQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.replace.upgrade.qos.v4/client",
+        "${app}/subscribe.replace.upgrade.qos.v4/server"})
+    public void shouldSubscribeReplaceUpgradeQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.request.qos1.maximum.qos.1.v4/client",
+        "${app}/subscribe.request.qos1.maximum.qos.1.v4/server"})
+    public void shouldSubscribeRequestQos1MaximumQos1V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe.v4/client",
+        "${app}/subscribe.topic.filters.non.successful.unsubscribe.v4/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.publish.payload.format.invalid/client",
+        "${app}/server.sent.publish.payload.format.invalid/server"})
+    public void shouldServerSentPublishPayloadFormatInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.second.filter/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterWithoutSubscribingFirst() throws Exception
     {
         k3po.finish();
     }

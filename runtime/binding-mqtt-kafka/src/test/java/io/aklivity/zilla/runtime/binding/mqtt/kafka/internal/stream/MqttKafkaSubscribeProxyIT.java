@@ -201,6 +201,28 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.retain.shared.subscription.id/client",
+        "${kafka}/subscribe.retain.shared.subscription.id/server"})
+    public void shouldReceiveRetainedWithSharedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.reordered/client",
+        "${kafka}/subscribe.filter.change.retain.reordered/server"})
+    public void shouldReceiveRetainedAfterFilterChangeReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message.fragmented/server"})
     public void shouldReceiveOneMessageFragmented() throws Exception
@@ -575,6 +597,28 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
+        "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
+    public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
@@ -765,6 +809,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.skip.removed.retained.message/client",
         "${kafka}/subscribe.retained.empty.value/server"})
     public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.one.message.subscription.id.127/client",
+        "${kafka}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
     {
         k3po.finish();
     }

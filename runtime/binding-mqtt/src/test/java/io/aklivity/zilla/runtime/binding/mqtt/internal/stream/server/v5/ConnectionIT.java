@@ -623,4 +623,35 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.invalid.property.identifier/client"})
+    public void shouldConnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.will.reject.invalid.property.identifier/client"})
+    public void shouldConnectWillRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.invalid.property.identifier/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -283,6 +283,42 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos1.two.topics.interleaved.acks/client",
+        "${app}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.two.messages.one.ack/client",
+        "${app}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.two.topics.interleaved.acks/client",
+        "${app}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.two.messages.one.ack/client",
+        "${app}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos2.no.dupicate.before.pubrel/client",
         "${app}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
@@ -358,6 +394,87 @@ public class PublishIT
         "${app}/publish.retained.per.connection/client",
         "${app}/publish.retained.per.connection/server"})
     public void shouldPublishNonRetainedAfterRetainedOnOtherConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/recovery.pubrel.unknown.packet.id/client",
+        "${app}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.unroutable/client",
+        "${app}/publish.qos1.unroutable/server"})
+    public void shouldPublishQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.unroutable/client",
+        "${app}/publish.qos2.unroutable/server"})
+    public void shouldPublishQos2Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected/client",
+        "${app}/publish.qos1.message.rejected/server"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/client",
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/server"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.message.rejected/client",
+        "${app}/publish.qos2.message.rejected/server"})
+    public void shouldPublishQos2MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.message.rejected.close.connection/client",
+        "${app}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.subscribe.batched.v4/client",
+        "${app}/publish.subscribe.batched.v4/server"})
+    public void shouldPublishSubscribeBatchedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.publish.qos.exceeds.maximum/client",
+        "${app}/server.sent.publish.qos.exceeds.maximum/server"})
+    public void shouldServerSentPublishQosExceedsMaximum() throws Exception
     {
         k3po.finish();
     }

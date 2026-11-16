@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
@@ -222,5 +223,39 @@ public class UnionChildFWTest
         UnionChildFW unionChild = flyweightRO.wrap(buffer, 0, limit);
         assertEquals(16, unionChild.width16());
         assertEquals(KIND_WIDTH16, unionChild.kind());
+    }
+
+    @Test
+    public void shouldNotTryWrapWhenKindNotMember()
+    {
+        setAllTestValuesCase8(buffer, 10);
+        buffer.putByte(10 + Long.BYTES, (byte) 4);
+        assertNull(flyweightRO.tryWrap(buffer, 10, buffer.capacity()));
+    }
+
+    @Test
+    public void shouldNotWrapWhenKindNotMember()
+    {
+        setAllTestValuesCase8(buffer, 10);
+        buffer.putByte(10 + Long.BYTES, (byte) 4);
+        try
+        {
+            flyweightRO.wrap(buffer, 10, buffer.capacity());
+            fail("Exception not thrown");
+        }
+        catch (IllegalStateException e)
+        {
+            assertEquals("Unrecognized kind: 4", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldTryWrapAndWrapWhenKindIsMember()
+    {
+        int size = setAllTestValuesCase16(buffer, 10);
+        assertSame(flyweightRO, flyweightRO.tryWrap(buffer, 10, buffer.capacity()));
+        assertEquals(10 + size, flyweightRO.limit());
+        assertSame(flyweightRO, flyweightRO.wrap(buffer, 10, buffer.capacity()));
+        assertEquals(10 + size, flyweightRO.limit());
     }
 }

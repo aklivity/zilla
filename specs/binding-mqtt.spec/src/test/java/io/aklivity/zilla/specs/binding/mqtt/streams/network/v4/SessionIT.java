@@ -173,4 +173,21 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${net}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.non.successful.resume/client",
+        "${net}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
 }

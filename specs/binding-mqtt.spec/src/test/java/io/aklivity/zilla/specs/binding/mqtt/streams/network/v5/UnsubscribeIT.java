@@ -121,4 +121,49 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.topic.filter.unroutable/client",
+        "${net}/unsubscribe.topic.filter.unroutable/server"})
+    public void shouldUnsubscribeTopicFilterUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
+        "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.while.publish.fragmented/client",
+        "${net}/unsubscribe.while.publish.fragmented/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unsuback.too.short/client",
+        "${net}/server.sent.unsuback.too.short/server"})
+    public void shouldServerSentUnsubackTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unsuback.invalid.fixed.header.flags/client",
+        "${net}/server.sent.unsuback.invalid.fixed.header.flags/server"})
+    public void shouldServerSentUnsubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
 }

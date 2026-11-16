@@ -90,4 +90,26 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // 1.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.unsuback.too.short/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentUnsubackTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.1.3 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.unsuback.invalid.fixed.header.flags/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentUnsubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
 }

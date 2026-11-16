@@ -889,6 +889,45 @@ scope protocol
             }
         }
 
+        scope offset_delete
+        {
+            struct OffsetDeleteRequest // v0
+            {
+                string16 groupId;
+                int32 topicCount;
+            }
+
+            struct TopicRequest
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct PartitionRequest
+            {
+                int32 partitionIndex;
+            }
+
+            struct OffsetDeleteResponse
+            {
+                int16 error;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct TopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct PartitionResponse
+            {
+                int32 partitionIndex;
+                int16 error;
+            }
+        }
+
         scope list_groups
         {
             struct ListGroupsRequest // v4

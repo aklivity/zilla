@@ -132,4 +132,48 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.invalid.property.identifier/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 1.2 Malformed Packet, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.too.short/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.3.4 Topic Alias invalid, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.zero/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTopicAliasZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.3.4 QoS not supported, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.qos.exceeds.maximum/server",
+        "${app}/server.sent.publish.qos.exceeds.maximum/client"})
+    public void shouldServerSentPublishQosExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
 }

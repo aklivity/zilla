@@ -27,13 +27,16 @@ import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 public final class KafkaClientRoute
 {
     private static final LongConsumer[] NO_META_FLUSHES = new LongConsumer[0];
+    private static final LongConsumer[] NO_META_REFRESHES = new LongConsumer[0];
 
     public final long resolvedId;
     public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
     public final LongConsumer metaFlush = this::flushMeta;
+    public final LongConsumer metaRefreshed = this::refreshedMeta;
 
     private LongConsumer[] metaFlushes = NO_META_FLUSHES;
+    private LongConsumer[] metaRefreshes = NO_META_REFRESHES;
 
     public KafkaClientRoute(
         long resolvedId)
@@ -55,12 +58,38 @@ public final class KafkaClientRoute
         metaFlushes = ArrayUtil.remove(metaFlushes, flush);
     }
 
+    public boolean hasMeta()
+    {
+        return metaFlushes.length != 0;
+    }
+
+    public void registerMetaRefreshed(
+        LongConsumer refreshed)
+    {
+        metaRefreshes = ArrayUtil.add(metaRefreshes, refreshed);
+    }
+
+    public void unregisterMetaRefreshed(
+        LongConsumer refreshed)
+    {
+        metaRefreshes = ArrayUtil.remove(metaRefreshes, refreshed);
+    }
+
     private void flushMeta(
         long traceId)
     {
         for (LongConsumer flush : metaFlushes)
         {
             flush.accept(traceId);
+        }
+    }
+
+    private void refreshedMeta(
+        long traceId)
+    {
+        for (LongConsumer refreshed : metaRefreshes)
+        {
+            refreshed.accept(traceId);
         }
     }
 

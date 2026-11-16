@@ -18,6 +18,9 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
@@ -146,5 +149,40 @@ public class UnionStringFWTest
         final UnionStringFW unionString = flyweightRO.wrap(buffer,  0,  limit);
 
         assertEquals("valueOfString3", unionString.string3().asString());
+    }
+
+    @Test
+    public void shouldNotTryWrapWhenKindNotMember()
+    {
+        buffer.putByte(0, (byte) 4);
+        assertNull(flyweightRO.tryWrap(buffer, 0, buffer.capacity()));
+    }
+
+    @Test
+    public void shouldNotWrapWhenKindNotMember()
+    {
+        buffer.putByte(0, (byte) 4);
+        try
+        {
+            flyweightRO.wrap(buffer, 0, buffer.capacity());
+            fail("Exception not thrown");
+        }
+        catch (IllegalStateException e)
+        {
+            assertEquals("Unrecognized kind: 4", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldTryWrapAndWrapWhenKindIsMember()
+    {
+        final int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+                                     .string3("valueOfString3")
+                                     .build()
+                                     .limit();
+        assertSame(flyweightRO, flyweightRO.tryWrap(buffer, 0, buffer.capacity()));
+        assertEquals(limit, flyweightRO.limit());
+        assertSame(flyweightRO, flyweightRO.wrap(buffer, 0, buffer.capacity()));
+        assertEquals(limit, flyweightRO.limit());
     }
 }

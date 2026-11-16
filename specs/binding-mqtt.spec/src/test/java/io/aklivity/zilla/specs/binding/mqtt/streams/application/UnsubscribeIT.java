@@ -81,4 +81,84 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.topic.filter.unroutable/client",
+        "${app}/unsubscribe.topic.filter.unroutable/server"})
+    public void shouldUnsubscribeTopicFilterUnroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.while.publish.fragmented/client",
+        "${app}/unsubscribe.while.publish.fragmented/server"})
+    public void shouldCompleteFragmentedPublishBeforeUnsubscribeAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${app}/unsubscribe.after.subscribe.v4/client",
+        "${app}/unsubscribe.after.subscribe.v4/server"})
+    public void shouldUnsubscribeAfterSubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact.v4/client",
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact.v4/server"})
+    public void shouldUnsubscribeAggregatedTopicFiltersBothExactV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.publish.unfragmented.v4/client",
+        "${app}/unsubscribe.publish.unfragmented.v4/server"})
+    public void shouldUnsubscribePublishUnfragmentedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.topic.filter.single.v4/client",
+        "${app}/unsubscribe.topic.filter.single.v4/server"})
+    public void shouldUnsubscribeTopicFilterSingleV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not.v4/client",
+        "${app}/unsubscribe.topic.filters.mixed.subscribed.and.not.v4/server"})
+    public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNotV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.while.publish.fragmented.v4/client",
+        "${app}/unsubscribe.while.publish.fragmented.v4/server"})
+    public void shouldUnsubscribeWhilePublishFragmentedV4() throws Exception
+    {
+        k3po.finish();
+    }
 }

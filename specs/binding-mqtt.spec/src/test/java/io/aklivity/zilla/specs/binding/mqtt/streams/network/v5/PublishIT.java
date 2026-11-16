@@ -439,6 +439,42 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/client",
+        "${net}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/client",
+        "${net}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.two.topics.interleaved.acks/client",
+        "${net}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.two.messages.one.ack/client",
+        "${net}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${net}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
@@ -505,6 +541,114 @@ public class PublishIT
         "${net}/publish.retained.per.connection/client",
         "${net}/publish.retained.per.connection/server"})
     public void shouldPublishNonRetainedAfterRetainedOnOtherConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${net}/ack.pubrel.unknown.packet.id/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${net}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${net}/publish.qos1.unroutable/server"})
+    public void shouldPublishQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.unroutable/client",
+        "${net}/publish.qos2.unroutable/server"})
+    public void shouldPublishQos2Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.message.rejected/client",
+        "${net}/publish.qos1.message.rejected/server"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.message.rejected.in.flight.acknowledged/client",
+        "${net}/publish.qos1.message.rejected.in.flight.acknowledged/server"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.message.rejected/client",
+        "${net}/publish.qos2.message.rejected/server"})
+    public void shouldPublishQos2MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.invalid.property.identifier/client",
+        "${net}/publish.reject.invalid.property.identifier/server"})
+    public void shouldPublishRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.invalid.property.identifier/client",
+        "${net}/server.sent.publish.invalid.property.identifier/server"})
+    public void shouldServerSentPublishInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.too.short/client",
+        "${net}/server.sent.publish.too.short/server"})
+    public void shouldServerSentPublishTooShort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.zero/client",
+        "${net}/server.sent.publish.topic.alias.zero/server"})
+    public void shouldServerSentPublishTopicAliasZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.qos.exceeds.maximum/client",
+        "${net}/server.sent.publish.qos.exceeds.maximum/server"})
+    public void shouldServerSentPublishQosExceedsMaximum() throws Exception
     {
         k3po.finish();
     }

@@ -1,0 +1,129 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("zilla:test-mqtt0-client")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "1")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 2, 3, 3, mqtt_kafka:subscribeMetadata()
+                                                                    .v2()
+                                                                         .metadata(1)
+                                                                         .build()
+                                                                     .build())
+                                .build()
+                            .build()}
+
+connected
+
+write await SECOND_CLIENT_CONNECTED
+
+write advise zilla:flush
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3, "")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 3)
+                                  .build()
+                              .build()}
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .groupId("zilla:test-mqtt0-client2")
+                                .filter()
+                                    .headers("zilla:filter")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:qos", "0")
+                                    .headerNot("zilla:qos", "1")
+                                    .build()
+                                .evaluation("EAGER")
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(0, 5, 6, 6, mqtt_kafka:subscribeMetadata()
+                                                                    .v2()
+                                                                         .metadata(1)
+                                                                         .build()
+                                                                     .build())
+                                .build()
+                            .build()}
+
+connected
+
+write notify SECOND_CLIENT_CONNECTED
+
+write advise zilla:flush
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 6, "")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .consumer()
+                                  .progress(0, 6)
+                                  .build()
+                              .build()}
