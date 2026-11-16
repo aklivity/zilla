@@ -43,6 +43,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isConnackReasonCode;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -5998,7 +5999,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final OctetsFW extension = reset.extension();
                 final MqttResetExFW mqttResetEx = extension.get(mqttResetExRO::tryWrap);
 
-                byte reasonCode = SESSION_TAKEN_OVER;
+                byte reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
                 boolean serverRefExists = false;
                 String16FW serverRef = null;
                 String16FW reason = null;
@@ -6012,13 +6013,19 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (reasonCode == SUCCESS)
                     {
-                        reasonCode = serverRefExists ? SERVER_MOVED : SESSION_TAKEN_OVER;
+                        reasonCode = serverRefExists ? SERVER_MOVED : IMPLEMENTATION_SPECIFIC_ERROR;
                     }
                 }
 
                 if (!connected)
                 {
                     doCancelConnectTimeout();
+
+                    if (!isConnackReasonCode(reasonCode))
+                    {
+                        reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
+                    }
+
                     doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
                         false, serverRefExists ? serverRef : null, reason, version);
                 }

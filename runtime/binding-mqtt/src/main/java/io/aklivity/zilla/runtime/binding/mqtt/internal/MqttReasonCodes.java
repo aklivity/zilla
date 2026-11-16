@@ -60,7 +60,10 @@ public final class MqttReasonCodes
     public static final byte TOPIC_NAME_INVALID = (byte) 0x90;
     public static final byte PAYLOAD_FORMAT_INVALID = (byte) 0x99;
     public static final byte QOS_NOT_SUPPORTED = (byte) 0x9b;
+    public static final byte USE_ANOTHER_SERVER = (byte) 0x9c;
     public static final byte SERVER_MOVED = (byte) 0x9d;
+    public static final byte QUOTA_EXCEEDED = (byte) 0x97;
+    public static final byte CONNECTION_RATE_EXCEEDED = (byte) 0x9f;
 
     public static final byte PACKET_IDENTIFIER_IN_USE = (byte) 0x91;
     public static final byte PACKET_IDENTIFIER_NOT_FOUND = (byte) 0x92;
@@ -68,6 +71,25 @@ public final class MqttReasonCodes
     public static final byte TOPIC_ALIAS_INVALID = (byte) 0x94;
 
     public static final byte RETAIN_NOT_SUPPORTED = (byte) 0x9A;
+
+    public static boolean isConnackReasonCode(
+        int reasonCode)
+    {
+        final int code = reasonCode & 0xff;
+
+        return code == SUCCESS ||
+            code >= (UNSPECIFIED_ERROR & 0xff) && code <= (BANNED & 0xff) ||
+            code == (BAD_AUTHENTICATION_METHOD & 0xff) ||
+            code == (TOPIC_NAME_INVALID & 0xff) ||
+            code == (PACKET_TOO_LARGE & 0xff) ||
+            code == (QUOTA_EXCEEDED & 0xff) ||
+            code == (PAYLOAD_FORMAT_INVALID & 0xff) ||
+            code == (RETAIN_NOT_SUPPORTED & 0xff) ||
+            code == (QOS_NOT_SUPPORTED & 0xff) ||
+            code == (USE_ANOTHER_SERVER & 0xff) ||
+            code == (SERVER_MOVED & 0xff) ||
+            code == (CONNECTION_RATE_EXCEEDED & 0xff);
+    }
 
     private MqttReasonCodes()
     {
