@@ -247,6 +247,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int CONTAINER_OUTPUT_CONFIG = 1;
     private static final int CONTAINER_THINKING = 2;
     private static final int CONTAINER_METADATA = 3;
+    private static final int NO_CONTAINER = -1;
+    private static final int RECORD_LENGTH_OFFSET = Byte.BYTES;
+    private static final int RECORD_HEADER = Byte.BYTES + Integer.BYTES;
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_USE_ID = "tool_use_id";
     private static final String MEMBER_IS_ERROR = "is_error";
@@ -356,6 +359,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx containerBuffer;
+    private final MutableDirectBufferEx recordHeader = new UnsafeBufferEx(new byte[RECORD_HEADER]);
     private final Matcher contentTypeMatcher;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
@@ -389,6 +394,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.containerBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
@@ -3834,9 +3840,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int budget = LlmEffort.ABSENT;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
         private final LlmAnthropicThinking thinking = new LlmAnthropicThinking();
-        private final LlmMemberCollector collector;
-        private final LlmMembersOutput controlOutput;
-        private final LlmMembersOutput.Members heldOutput = this::putHeld;
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
+        private final LlmAnthropicRequestDecoder decodeRequestControlContainer = this::decodeRequestControlContainer;
+        private final LlmAnthropicRequestDecoder decodeRequestContainerMember = this::decodeRequestContainerMember;
+        private JsonGeneratorEx containerGenerator;
+        private LlmMembersOutput containerOutput;
+        private int requestContainer = NO_CONTAINER;
+        private int recordOffset;
+        private String heldOverflow;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -3867,8 +3878,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.memberKeys = new LlmMemberKeys(sameDialect ? NAME : null);
             this.generator = JsonEx.createGenerator();
             this.hold = new LlmRequestHold(holdPool, initialId);
-            this.collector = new LlmMemberCollector(CONTAINERS, this::putControl, hold, LlmRequestHold.DEFER);
-            this.controlOutput = new LlmMembersOutput(collector);
         }
 
         private void doNetBegin(
@@ -3948,27 +3957,134 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private String rejectedMember()
         {
-            return collector.overflowed() ? collector.overflow() : conflicted != null ? conflicted :
+            return heldOverflow != null ? heldOverflow : conflicted != null ? conflicted :
                 rejectedRequestMember != null ? LlmSharedMembers.wire(rejectedRequestMember) : null;
         }
 
         private int heldReserve()
         {
-            return collector.held();
+            return hold.length(LlmRequestHold.DEFER);
         }
 
         private void cleanupHeldSlot()
         {
-            collector.reset();
+            heldOverflow = null;
             hold.release();
         }
 
-        private void putHeld(
+        private boolean holds(
+            int container)
+        {
+            final DirectBufferEx held = hold.buffer();
+            final int base = hold.offset(LlmRequestHold.DEFER);
+            final int heldLength = hold.length(LlmRequestHold.DEFER);
+            boolean holds = false;
+            int offset = 0;
+
+            while (!holds && offset < heldLength)
+            {
+                holds = held.getByte(base + offset) == container;
+                offset += RECORD_HEADER + held.getInt(base + offset + RECORD_LENGTH_OFFSET);
+            }
+
+            return holds;
+        }
+
+        private void drain(
+            int container)
+        {
+            final DirectBufferEx held = hold.buffer();
+            final int base = hold.offset(LlmRequestHold.DEFER);
+            final int heldLength = hold.length(LlmRequestHold.DEFER);
+            int offset = 0;
+
+            while (offset < heldLength)
+            {
+                final int length = held.getInt(base + offset + RECORD_LENGTH_OFFSET);
+
+                if (held.getByte(base + offset) == container && length > 0)
+                {
+                    generator.writeMembers(held, base + offset + RECORD_HEADER, length, Completion.COMPLETE);
+                }
+
+                offset += RECORD_HEADER + length;
+            }
+        }
+
+        private boolean openContainer(
+            int container)
+        {
+            recordHeader.putByte(0, (byte) container);
+            recordHeader.putInt(RECORD_LENGTH_OFFSET, 0);
+
+            final int opened = hold.length(LlmRequestHold.DEFER);
+            final boolean appended = hold.append(LlmRequestHold.DEFER, recordHeader, 0, RECORD_HEADER);
+
+            if (appended)
+            {
+                recordOffset = opened;
+
+                if (containerGenerator == null)
+                {
+                    containerGenerator = JsonEx.createGenerator();
+                    containerOutput = new LlmMembersOutput(this::putContainer);
+                }
+
+                containerOutput.begin();
+                containerGenerator.wrap(containerBuffer, 0, containerBuffer.capacity());
+                containerGenerator.reset();
+            }
+            else
+            {
+                heldOverflow = CONTAINERS[container];
+                encodeFailed = true;
+            }
+
+            return appended;
+        }
+
+        private void putContainer(
             DirectBufferEx buffer,
             int offset,
             int length)
         {
-            generator.writeMembers(buffer, offset, length, Completion.COMPLETE);
+            if (hold.append(LlmRequestHold.DEFER, buffer, offset, length))
+            {
+                final MutableDirectBufferEx held = hold.buffer();
+                final int lengthAt = hold.offset(LlmRequestHold.DEFER) + recordOffset + RECORD_LENGTH_OFFSET;
+
+                held.putInt(lengthAt, held.getInt(lengthAt) + length);
+            }
+            else
+            {
+                heldOverflow = CONTAINERS[hold.buffer().getByte(hold.offset(LlmRequestHold.DEFER) + recordOffset)];
+                encodeFailed = true;
+            }
+        }
+
+        private void flushContainer(
+            boolean last)
+        {
+            final int length = containerGenerator.length();
+
+            if (length > 0 || last)
+            {
+                containerOutput.put(containerBuffer, 0, length, last);
+                containerGenerator.wrap(containerBuffer, 0, containerBuffer.capacity());
+            }
+        }
+
+        private static int containerOf(
+            CharSequence member)
+        {
+            int found = NO_CONTAINER;
+
+            for (int index = 0; found == NO_CONTAINER && index < CONTAINERS.length; index++)
+            {
+                found = CONTAINERS[index].contentEquals(member) ? index : NO_CONTAINER;
+            }
+
+            return found;
         }
 
         private void onControlEnd()
@@ -4596,7 +4712,15 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             JsonParserEx parser,
             JsonEvent event)
         {
-            final int taken = copier.copy(requestTarget, event, parser);
+            copyEvent(requestTarget, parser, event);
+        }
+
+        private void copyEvent(
+            JsonGeneratorEx target,
+            JsonParserEx parser,
+            JsonEvent event)
+        {
+            final int taken = copier.copy(target, event, parser);
 
             if (taken != LlmEventCopier.NO_TAKEN)
             {
@@ -5799,9 +5923,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (action == LlmMemberKeys.COPY)
                 {
-                    controlGenerator.writeKey(memberKeys.target());
-                    copier.reset();
-                    requestDecoder = decodeRequestMember;
+                    requestContainer = containerOf(memberKeys.target());
+
+                    if (requestContainer != NO_CONTAINER)
+                    {
+                        requestDecoder = decodeRequestControlContainer;
+                    }
+                    else
+                    {
+                        controlGenerator.writeKey(memberKeys.target());
+                        copier.reset();
+                        requestDecoder = decodeRequestMember;
+                    }
                 }
                 else if (action == LlmMemberKeys.JUDGE)
                 {
@@ -5895,6 +6028,76 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 requestDecoder = decodeRequestSkip;
             }
+        }
+
+        private int decodeRequestControlContainer(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlContainer && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    copier.reset();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        if (openContainer(requestContainer))
+                        {
+                            copyEvent(containerGenerator, parser, event);
+                            requestDecoder = decodeRequestContainerMember;
+                        }
+                    }
+                    else
+                    {
+                        controlGenerator.writeKey(CONTAINERS[requestContainer]);
+                        copyRequestEvent(parser, event);
+                        requestDecoder = copier.depth() == 0 && !parser.deferredBytes() ? requestThen : decodeRequestMember;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestContainerMember(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestContainerMember &&
+                    containerGenerator.remaining() >= CONTROL_HEADROOM && parser.hasNextEvent())
+                {
+                    copyEvent(containerGenerator, parser, parser.nextEvent());
+
+                    if (copier.depth() == 0 && !parser.deferredBytes())
+                    {
+                        flushContainer(true);
+                        requestDecoder = requestThen;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
         }
 
         private int decodeRequestControlClamp(
@@ -6096,10 +6299,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (LlmSharedMembers.USER.equals(controlMember))
                 {
-                    controlGenerator.writeKey(MEMBER_METADATA)
-                        .writeStartObject()
-                        .write(MEMBER_USER_ID, value.toString())
-                        .writeEnd();
+                    if (openContainer(CONTAINER_METADATA))
+                    {
+                        containerGenerator.writeStartObject().write(MEMBER_USER_ID, value.toString()).writeEnd();
+                        flushContainer(true);
+                    }
                 }
                 else
                 {
@@ -6254,14 +6458,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 choiceType = toolChoice.kind() == LlmToolChoice.FUNCTION ? CHOICE_TYPE_TOOL : choiceTypeOf(toolChoice.mode());
 
-                controlGenerator.writeKey(MEMBER_TOOL_CHOICE).writeStartObject().write(MEMBER_TYPE_CHOICE, choiceType);
-
-                if (toolChoice.kind() == LlmToolChoice.FUNCTION)
+                if (openContainer(CONTAINER_TOOL_CHOICE))
                 {
-                    controlGenerator.write(MEMBER_NAME, toolChoice.name());
-                }
+                    containerGenerator.writeStartObject().write(MEMBER_TYPE_CHOICE, choiceType);
 
-                controlGenerator.writeEnd();
+                    if (toolChoice.kind() == LlmToolChoice.FUNCTION)
+                    {
+                        containerGenerator.write(MEMBER_NAME, toolChoice.name());
+                    }
+
+                    containerGenerator.writeEnd();
+                    flushContainer(true);
+                }
             }
             else
             {
@@ -6390,7 +6598,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (controlFormat != FORMAT_OMITTED)
                 {
-                    controlGenerator.writeEnd().writeEnd();
+                    containerGenerator.writeEnd().writeEnd();
+                    flushContainer(true);
                 }
 
                 controlFormat = FORMAT_OFF;
@@ -6415,13 +6624,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    controlGenerator.writeKey(MEMBER_OUTPUT_CONFIG)
-                        .writeStartObject()
-                        .writeKey(MEMBER_FORMAT)
-                        .writeStartObject()
-                        .write(MEMBER_TYPE, TYPE_JSON_SCHEMA);
-                    structured = true;
-                    controlFormat = FORMAT_SCHEMA;
+                    opened = openContainer(CONTAINER_OUTPUT_CONFIG);
+
+                    if (opened)
+                    {
+                        containerGenerator.writeStartObject()
+                            .writeKey(MEMBER_FORMAT)
+                            .writeStartObject()
+                            .write(MEMBER_TYPE, TYPE_JSON_SCHEMA);
+                        structured = true;
+                        controlFormat = FORMAT_SCHEMA;
+                    }
                 }
             }
             else
@@ -6549,7 +6762,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         if (MEMBER_SCHEMA.contentEquals(parser.getStringView()))
                         {
-                            controlGenerator.writeKey(MEMBER_SCHEMA);
+                            containerGenerator.writeKey(MEMBER_SCHEMA);
                             copier.reset();
                             schemaRejection = new LlmAnthropicOutputSchema.Rejection();
                             requestSource = outputSchema.newParser(requestParser(), schemaRejection);
@@ -6590,7 +6803,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             try
             {
-                while (requestDecoder == decodeRequestControlSchemaValue && headroom() && parser.hasNextEvent())
+                while (requestDecoder == decodeRequestControlSchemaValue &&
+                    containerGenerator.remaining() >= CONTROL_HEADROOM && parser.hasNextEvent())
                 {
                     final JsonEvent event = parser.nextEvent();
 
@@ -6600,7 +6814,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                     else
                     {
-                        copyRequestEvent(parser, event);
+                        copyEvent(containerGenerator, parser, event);
 
                         if (copier.depth() == 0 && !parser.deferredBytes())
                         {
@@ -6727,7 +6941,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginControl()
         {
             capability = stream.binding.capability(stream.model);
-            collector.begin();
             controlOutput.begin();
             requestTarget = controlGenerator();
             requestTarget.reset();
@@ -6752,6 +6965,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 controlOutput.put(extBuffer, 0, length, requestDecoder == decodeRequestDone);
                 controlGenerator.wrap(extBuffer, 0, extBuffer.capacity());
+            }
+
+            if (containerGenerator != null && containerGenerator.length() > 0)
+            {
+                flushContainer(false);
             }
         }
 
@@ -7071,7 +7289,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 final int maxTokens = maxOutputTokens != NO_MAX_OUTPUT_TOKENS ? maxOutputTokens : defaultMaxTokens;
 
                 if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_TOOL_CHOICE + ENCODE_OUTPUT_CONFIG +
-                    ENCODE_THINKING + ENCODE_METADATA + collector.held()))
+                    ENCODE_THINKING + ENCODE_METADATA + hold.length(LlmRequestHold.DEFER)))
                 {
                     closeRegion();
                     thinking.resolve(capability, effort, budget, maxTokens);
@@ -7095,7 +7313,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final String effort = thinking.effort();
 
-            if (effort != null || collector.holds(CONTAINER_OUTPUT_CONFIG))
+            if (effort != null || holds(CONTAINER_OUTPUT_CONFIG))
             {
                 generator.writeStartObject(MEMBER_OUTPUT_CONFIG);
 
@@ -7104,7 +7322,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     generator.write(MEMBER_EFFORT, effort);
                 }
 
-                collector.drain(CONTAINER_OUTPUT_CONFIG, heldOutput);
+                drain(CONTAINER_OUTPUT_CONFIG);
                 generator.writeEnd();
             }
         }
@@ -7113,7 +7331,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final String type = thinking.type();
 
-            if (type != null || collector.holds(CONTAINER_THINKING))
+            if (type != null || holds(CONTAINER_THINKING))
             {
                 generator.writeStartObject(MEMBER_THINKING);
 
@@ -7127,24 +7345,24 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                 }
 
-                collector.drain(CONTAINER_THINKING, heldOutput);
+                drain(CONTAINER_THINKING);
                 generator.writeEnd();
             }
         }
 
         private void writeMetadata()
         {
-            if (collector.holds(CONTAINER_METADATA))
+            if (holds(CONTAINER_METADATA))
             {
                 generator.writeStartObject(MEMBER_METADATA);
-                collector.drain(CONTAINER_METADATA, heldOutput);
+                drain(CONTAINER_METADATA);
                 generator.writeEnd();
             }
         }
 
         private void writeToolChoice()
         {
-            final boolean held = collector.holds(CONTAINER_TOOL_CHOICE);
+            final boolean held = holds(CONTAINER_TOOL_CHOICE);
             final boolean parallel = parallelCalls != PARALLEL_UNSET &&
                 !CHOICE_TYPE_NONE.equals(choiceType);
 
@@ -7157,7 +7375,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     generator.write(MEMBER_TYPE_CHOICE, CHOICE_TYPE_AUTO);
                 }
 
-                collector.drain(CONTAINER_TOOL_CHOICE, heldOutput);
+                drain(CONTAINER_TOOL_CHOICE);
 
                 if (parallel)
                 {

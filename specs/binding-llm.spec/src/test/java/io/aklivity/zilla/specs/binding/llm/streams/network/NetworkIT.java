@@ -8814,6 +8814,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.request.residue.large/client",
+        "${net}/anthropic.request.residue.large/server"})
+    public void shouldForwardAnthropicRequestResidueLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.residue.sections/client",
+        "${net}/anthropic.request.residue.sections/server"})
+    public void shouldForwardAnthropicRequestResidueSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.request.service.tier/client",
         "${net}/anthropic.request.service.tier/server"})
     public void shouldForwardAnthropicRequestServiceTier() throws Exception
