@@ -274,7 +274,7 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        return drive(eval(), new ParserSource().wrap(parser), parser);
+        return drive(eval(), Trace.NONE, new ParserSource().wrap(parser), parser);
     }
 
     @Override
@@ -282,20 +282,38 @@ public final class JsonSchemaImpl implements JsonSchema
         JsonParser parser,
         Consumer<JsonSchemaDiagnostic> reporter)
     {
-        return drive(eval(new Trace(reporter)), new ParserSource().wrap(parser), parser);
+        final Trace trace = new Trace(reporter);
+
+        return drive(eval(trace), trace, new ParserSource().wrap(parser), parser);
     }
 
     private static boolean drive(
         Eval eval,
+        Trace trace,
         JsonSource source,
         JsonParser parser)
     {
         Verdict verdict = Verdict.PENDING;
         while (parser.hasNext() && verdict == Verdict.PENDING)
         {
-            verdict = eval.feed(parser.next(), source);
+            verdict = feed(eval, trace, parser.next(), source);
         }
         return verdict == Verdict.VALID;
+    }
+
+    private static Verdict feed(
+        Eval eval,
+        Trace trace,
+        Event event,
+        JsonSource source)
+    {
+        trace.enter(event, source);
+
+        final Verdict verdict = eval.feed(event, source);
+
+        trace.leave(event);
+
+        return verdict;
     }
 
     @Override
@@ -2305,27 +2323,43 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // reports a failing keyword against the location of the instance value being read. The location depends on
+    // the events alone, not on which subschemas apply to a value, so one tracker follows the event stream from its
+    // entry point and every evaluator that reports reads the same location
     private static final class Trace
     {
         private static final Trace NONE = new Trace(null);
+        // a mark for a value without a pointer segment of its own: the root
+        private static final int NO_MARK = -1;
+        private static final int FRAMES = 16;
 
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final StringBuilder pointer;
+
+        private boolean[] arrays;
+        private int[] indexes;
+        private int[] marks;
+        private String[] keys;
+        private int depth;
+        private int valueMark;
 
         private Trace(
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.reporter = reporter;
             this.pointer = reporter != null ? new StringBuilder() : null;
+            this.arrays = reporter != null ? new boolean[FRAMES] : null;
+            this.indexes = reporter != null ? new int[FRAMES] : null;
+            this.marks = reporter != null ? new int[FRAMES] : null;
+            this.keys = reporter != null ? new String[FRAMES] : null;
         }
 
-        // defensively re-empties the pointer for reuse across documents; push()/pop() keep it balanced
-        // in the normal case, but this guards against any path that leaves it non-empty
         private void reset()
         {
             if (pointer != null)
             {
                 pointer.setLength(0);
+                depth = 0;
             }
         }
 
@@ -2334,34 +2368,97 @@ public final class JsonSchemaImpl implements JsonSchema
             return reporter != null;
         }
 
-        private int push(
-            String segment)
+        // moves to the value the event starts, or records the key the next value is under
+        private void enter(
+            Event event,
+            JsonSource parser)
         {
-            int mark = 0;
             if (active())
             {
+                switch (event)
+                {
+                case KEY_NAME:
+                    keys[depth - 1] = parser.getStringView().toString();
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    break;
+                default:
+                    valueMark = segment();
+                    if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+                    {
+                        open(event == Event.START_ARRAY);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // leaves the value the event completes
+        private void leave(
+            Event event)
+        {
+            if (active())
+            {
+                switch (event)
+                {
+                case KEY_NAME:
+                case START_OBJECT:
+                case START_ARRAY:
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    pop(marks[depth]);
+                    break;
+                default:
+                    pop(valueMark);
+                    break;
+                }
+            }
+        }
+
+        private int segment()
+        {
+            int mark = NO_MARK;
+            if (depth > 0)
+            {
+                final int frame = depth - 1;
                 mark = pointer.length();
-                pointer.append('/').append(escape(segment));
+                pointer.append('/');
+                if (arrays[frame])
+                {
+                    pointer.append(indexes[frame]++);
+                }
+                else
+                {
+                    pointer.append(escape(keys[frame]));
+                }
             }
             return mark;
         }
 
-        private int push(
-            int index)
+        private void open(
+            boolean array)
         {
-            int mark = 0;
-            if (active())
+            if (depth == arrays.length)
             {
-                mark = pointer.length();
-                pointer.append('/').append(index);
+                arrays = Arrays.copyOf(arrays, depth * 2);
+                indexes = Arrays.copyOf(indexes, depth * 2);
+                marks = Arrays.copyOf(marks, depth * 2);
+                keys = Arrays.copyOf(keys, depth * 2);
             }
-            return mark;
+            arrays[depth] = array;
+            indexes[depth] = 0;
+            marks[depth] = valueMark;
+            keys[depth] = null;
+            depth++;
         }
 
         private void pop(
             int mark)
         {
-            if (active())
+            if (mark != NO_MARK)
             {
                 pointer.setLength(mark);
             }
@@ -2430,7 +2527,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event = delegate.next();
             if (verdict == Verdict.PENDING)
             {
-                verdict = eval.feed(event, source);
+                verdict = feed(eval, trace, event, source);
                 if (verdict == Verdict.INVALID && throwing)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2495,6 +2592,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 delegateEx.reset();
             }
+            trace.reset();
             eval.reset();
             verdict = Verdict.PENDING;
             if (diagnostics != null)
@@ -2529,6 +2627,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 delegateEx.nextDocument();
             }
+            trace.reset();
             eval.reset();
             verdict = Verdict.PENDING;
             if (diagnostics != null)
@@ -2615,12 +2714,16 @@ public final class JsonSchemaImpl implements JsonSchema
 
             if (fragment && eval.needsContentNow())
             {
+                final Event scalarEvent = toEvent(event);
+
+                trace.enter(scalarEvent, source);
                 trace.report("content", "value exceeds the input window and a keyword reads its content", source);
+                trace.leave(scalarEvent);
                 result = Verdict.INVALID;
             }
             else if (!framing && !fragment)
             {
-                result = eval.feed(toEvent(event), source);
+                result = feed(eval, trace, toEvent(event), source);
             }
 
             return result;
@@ -2885,7 +2988,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 // a complete scalar: validate before forwarding, so eval reads the whole value rather than the
                 // remainder the sink leaves after advancing the consumed cursor
-                Verdict verdict = eval.feed(toEvent(event), source);
+                Verdict verdict = feed(eval, trace, toEvent(event), source);
                 if (verdict == Verdict.INVALID && !lenient)
                 {
                     throw new JsonValidationException(diagnostics);
@@ -2918,7 +3021,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
                 Status downstream = sink.transform(decline, source, forward(event));
-                Verdict verdict = eval.feed(toEvent(event), keyName ? keySourceRO.wrap(source) : source);
+                Verdict verdict = feed(eval, trace, toEvent(event), keyName ? keySourceRO.wrap(source) : source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
                 if (verdict == Verdict.INVALID && !lenient)
@@ -3085,7 +3188,6 @@ public final class JsonSchemaImpl implements JsonSchema
         private int count;
         private int currentIndex;
         private Eval directChild;
-        private int directChildMark;
         private Eval[] directChildren;
         private Eval containsChild;
         private int containsMatched;
@@ -3161,7 +3263,6 @@ public final class JsonSchemaImpl implements JsonSchema
             count = 0;
             currentIndex = 0;
             directChild = null;
-            directChildMark = 0;
             directChildren = null;
             containsChild = null;
             containsMatched = 0;
@@ -3761,36 +3862,17 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
             JsonSchemaImpl schema = null;
-            int matchedIndex = -1;
             for (int i = 0; i < propertyKeys.length; i++)
             {
                 if (charsEqual(propertyKeys[i], key))
                 {
                     schema = propertySchemas[i];
-                    matchedIndex = i;
                     break;
                 }
             }
             if (schema == null)
             {
                 schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
-            }
-            if (matchedIndex >= 0)
-            {
-                // a declared property: the schema already owns this exact name, so the pointer segment
-                // reuses it directly rather than copying the document's own key
-                directChildMark = trace.push(propertyKeys[matchedIndex]);
-            }
-            else if (schema != ANY && trace.active())
-            {
-                // an additionalProperties key the schema doesn't already know by name, routed to a
-                // fallible sub-schema (or disallowed outright via NONE): only here does the pointer
-                // need the document's own key text, materialized once, on this less-common path
-                directChildMark = trace.push(key.toString());
-            }
-            else
-            {
-                directChildMark = 0;
             }
             directChild = propEvalFor(schema);
             directChildren = null;
@@ -3862,7 +3944,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 int index = count;
                 count++;
                 currentIndex = index;
-                directChildMark = trace.push(index);
                 directChild = itemEvalFor(elementSchema(index));
                 if (annotate && coversItem(index))
                 {
@@ -3946,7 +4027,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     directInvalid |= verdict == Verdict.INVALID;
                     directChild = null;
-                    trace.pop(directChildMark);
                     complete = true;
                 }
             }
@@ -3960,10 +4040,6 @@ public final class JsonSchemaImpl implements JsonSchema
                         directInvalid |= verdict == Verdict.INVALID;
                         complete = true;
                     }
-                }
-                if (complete)
-                {
-                    trace.pop(directChildMark);
                 }
             }
             if (containsChild != null)
@@ -4013,7 +4089,6 @@ public final class JsonSchemaImpl implements JsonSchema
         private void setApplicableFor(
             String key)
         {
-            directChildMark = trace.push(key);
             boolean matched;
             if (patternProperties == null)
             {
