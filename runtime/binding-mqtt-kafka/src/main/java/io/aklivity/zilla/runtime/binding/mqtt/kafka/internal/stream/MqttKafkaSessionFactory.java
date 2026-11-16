@@ -5169,7 +5169,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         MqttKafkaBindingConfig binding)
     {
         final Set<String16FW> messagesTopics =
-            binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
+            binding.routes.stream()
+                .filter(r -> !r.with.containsParams())
+                .map(r -> r.with.resolveMessages())
+                .collect(Collectors.toSet());
         messagesTopics.add(binding.messagesTopic());
 
         return messagesTopics;
