@@ -41,6 +41,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"There was an error parsing the body\"}}"
+read "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Invalid content block\"}}"
 
 read closed
