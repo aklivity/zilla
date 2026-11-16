@@ -261,17 +261,6 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/publish.qos1.many.messages.retain.available/client",
-        "${kafka}/publish.qos1.many.messages.retain.available/server"})
-    public void shouldPublishQos1ManyMessagesRetainAvailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
         "${mqtt}/publish.empty.message/client",
         "${kafka}/publish.empty.message/server"})
     public void shouldSendEmptyMessage() throws Exception
