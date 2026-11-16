@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaA
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
@@ -4710,12 +4712,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private long initialBud;
         private int initialPad;
 
         private long replySeq;
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private int encodeSlotLimit;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -4949,6 +4956,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialBud = budgetId;
             initialPad = padding;
             state = StreamState.openInitial(state);
 
@@ -4956,8 +4964,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!wasOpen)
             {
-                doKafkaRequest(traceId, authorization, budgetId);
+                doEncodeRequest(traceId, authorization);
             }
+
+            doKafkaRequest(traceId, authorization);
         }
 
         private void onKafkaChallenge(
@@ -4986,38 +4996,56 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 state, initialMax, traceId, authorization, affinity, requestLength, api, version);
         }
 
-        private void doKafkaRequest(
+        private void doEncodeRequest(
             long traceId,
-            long authorization,
-            long budgetId)
+            long authorization)
         {
-            final int reserved = requestLength + initialPad;
-            final int available = initialMax - (int) (initialSeq - initialAck);
-            final int requestSlot = bufferPool.acquire(initialId);
+            encodeSlot = bufferPool.acquire(initialId);
 
-            if (requestSlot == NO_SLOT)
+            if (encodeSlot == NO_SLOT)
             {
                 onKafkaFailure(traceId, authorization);
             }
+            else if (generateRequest(bufferPool.buffer(encodeSlot)))
+            {
+                encodeSlotOffset = 0;
+                encodeSlotLimit = requestLength;
+            }
             else
             {
-                final MutableDirectBufferEx requestBuffer = bufferPool.buffer(requestSlot);
-                final boolean built = reserved <= available && generateRequest(requestBuffer);
+                cleanupEncodeSlot();
+                onKafkaFailure(traceId, authorization);
+            }
+        }
 
-                if (built)
+        private void doKafkaRequest(
+            long traceId,
+            long authorization)
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx encodeBuffer = bufferPool.buffer(encodeSlot);
+                final int length = encodeSlotLimit - encodeSlotOffset;
+                final int available = initialMax - (int) (initialSeq - initialAck);
+                final int reserved = Math.max(Math.min(length + initialPad, available), 0);
+
+                if (reserved > initialPad)
                 {
+                    final int flushed = reserved - initialPad;
+                    final int flags = (encodeSlotOffset == 0 ? INIT : 0) | (flushed == length ? FIN : 0);
+
                     doData(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                        traceId, authorization, budgetId, COMPLETE, reserved, requestBuffer, 0, requestLength, EMPTY_OCTETS);
+                        traceId, authorization, initialBud, flags, reserved, encodeBuffer, encodeSlotOffset, flushed,
+                        EMPTY_OCTETS);
                     initialSeq += reserved;
+                    encodeSlotOffset += flushed;
 
                     assert initialSeq <= initialAck + initialMax;
-                }
 
-                bufferPool.release(requestSlot);
-
-                if (!built)
-                {
-                    onKafkaFailure(traceId, authorization);
+                    if (encodeSlotOffset == encodeSlotLimit)
+                    {
+                        cleanupEncodeSlot();
+                    }
                 }
             }
         }
@@ -5033,6 +5061,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
             }
 
+            cleanupEncodeSlot();
             cleanupDecodeSlot();
         }
 
@@ -5048,6 +5077,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
             }
 
+            cleanupEncodeSlot();
             cleanupDecodeSlot();
         }
 
@@ -5062,6 +5092,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId, EMPTY_OCTETS);
             }
 
+            cleanupEncodeSlot();
             cleanupDecodeSlot();
         }
 
@@ -5078,6 +5109,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, padding, replyPad, capabilities);
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                bufferPool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSlotLimit = 0;
+            }
         }
 
         private void cleanupDecodeSlot()
