@@ -10269,4 +10269,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.user.straddle/client",
+        "${net}/openai.request.user.straddle/server"})
+    public void shouldOpenaiRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.reasoning.effort.straddle/client",
+        "${net}/openai.request.reasoning.effort.straddle/server"})
+    public void shouldOpenaiRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.service.tier.window/client",
+        "${net}/openai.request.service.tier.window/server"})
+    public void shouldOpenaiRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

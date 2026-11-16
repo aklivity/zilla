@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class ApplicationIT
 {
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/llm/streams/application");
 
@@ -9753,6 +9754,33 @@ public class ApplicationIT
         "${app}/transform.response.tool.call.100k/client",
         "${app}/transform.response.tool.call.100k/server"})
     public void shouldForwardTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.user.straddle/client",
+        "${app}/openai.request.user.straddle/server"})
+    public void shouldForwardOpenaiRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.effort.straddle/client",
+        "${app}/openai.request.reasoning.effort.straddle/server"})
+    public void shouldForwardOpenaiRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier.window/client",
+        "${app}/openai.request.service.tier.window/server"})
+    public void shouldForwardOpenaiRequestServiceTierWindow() throws Exception
     {
         k3po.finish();
     }
