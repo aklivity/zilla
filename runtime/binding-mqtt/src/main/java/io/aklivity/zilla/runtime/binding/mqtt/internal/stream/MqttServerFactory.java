@@ -3852,7 +3852,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 doSignalKeepAliveTimeout(traceId);
             }
-            else if (version == MQTT_PROTOCOL_VERSION_5 && qos > 0 && acknowledgesPublish(publishReasonCode))
+            else if (acknowledgesFailedPublish(qos, publishReasonCode))
             {
                 switch (qos)
                 {
@@ -3873,6 +3873,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             return publishReasonCode == SUCCESS;
+        }
+
+        private boolean acknowledgesFailedPublish(
+            int qos,
+            int reasonCode)
+        {
+            return version == MQTT_PROTOCOL_VERSION_5 && qos > 0 && acknowledgesPublish(reasonCode);
         }
 
         private void onDecodePublishPayload(
@@ -6924,11 +6931,41 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long authorization,
                 byte reasonCode)
             {
-                onDecodeError(traceId, authorization, reasonCode);
-                decoder = decodeIgnoreAll;
+                if (acknowledgesFailedPublish(qos, reasonCode))
+                {
+                    final int failureReasonCode = Byte.toUnsignedInt(reasonCode);
 
-                decodeNetwork(traceId);
-                cleanupAbort(traceId);
+                    for (int index = 0; index < pendingAckReasonCodes.size(); index++)
+                    {
+                        pendingAckReasonCodes.setInt(index, failureReasonCode);
+                    }
+
+                    acknowledgePublishPackets(Long.MAX_VALUE, traceId, authorization);
+
+                    if (decodePublisherKey == topicKey && decoder == decodePublishPayload)
+                    {
+                        if (publishPayloadModeling)
+                        {
+                            decodeablePublishPayloadBytes = publishPayloadConsumable;
+                            publishPayloadModeling = false;
+                        }
+
+                        publishPayloadDeferred = 0;
+
+                        onDecodePublish(traceId, authorization, qos, decodedRetained, decodedPacketId, failureReasonCode);
+                    }
+
+                    cleanupAbort(traceId);
+                    decodeNetwork(traceId);
+                }
+                else
+                {
+                    onDecodeError(traceId, authorization, reasonCode);
+                    decoder = decodeIgnoreAll;
+
+                    decodeNetwork(traceId);
+                    cleanupAbort(traceId);
+                }
             }
 
             private void onPublishSignal(
