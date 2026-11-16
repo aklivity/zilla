@@ -67,4 +67,14 @@ public class ClientInitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id/client",
+        "${net}/produce.new.id.coordinator.not.available/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
 }

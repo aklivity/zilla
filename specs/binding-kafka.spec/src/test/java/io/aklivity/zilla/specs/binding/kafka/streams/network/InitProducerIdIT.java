@@ -54,4 +54,13 @@ public class InitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/produce.new.id.coordinator.not.available/client",
+        "${net}/produce.new.id.coordinator.not.available/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
 }
