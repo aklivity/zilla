@@ -54,4 +54,13 @@ public class InitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/produce.new.id.cluster.authorization.failed/client",
+        "${app}/produce.new.id.cluster.authorization.failed/server"})
+    public void shouldRejectInitProducerIdClusterAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }

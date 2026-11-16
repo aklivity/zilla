@@ -284,6 +284,24 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.server.sent.reset.before.connack/client",
+        "${app}/session.server.sent.reset.before.connack/server"})
+    public void shouldResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.server.sent.reset.after.connack/client",
+        "${app}/session.server.sent.reset.after.connack/server"})
+    public void shouldResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.server.redirect.after.connack/client",
         "${app}/session.server.redirect.after.connack/server"})
     public void shouldRedirectAfterConnack() throws Exception
