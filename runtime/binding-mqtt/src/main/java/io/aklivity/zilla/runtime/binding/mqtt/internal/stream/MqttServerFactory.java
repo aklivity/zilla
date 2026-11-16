@@ -1657,33 +1657,36 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     if (server.publishPayloadDeferred == 0)
                     {
-                        server.onDecodePublish(traceId, authorization, server.decodedQos, server.decodedRetained,
-                            server.decodedPacketId);
+                        reasonCode = server.onDecodePublish(traceId, authorization, server.decodedQos,
+                            server.decodedRetained, server.decodedPacketId);
                     }
 
-                    server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
-                        server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
-                        server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
-                        server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
-
-                    if (server.publishPayloadModeling)
+                    if (reasonCode == SUCCESS)
                     {
-                        server.publishPayloadModelProgress += sizeClaimed;
+                        server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
+                            server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
+                            server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
+                            server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
 
-                        if (server.decodeablePublishPayloadBytes == 0)
+                        if (server.publishPayloadModeling)
                         {
-                            progress = offset + server.publishPayloadConsumable;
-                            server.publishPayloadModeling = false;
-                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                            server.publishPayloadModelProgress += sizeClaimed;
+
+                            if (server.decodeablePublishPayloadBytes == 0)
+                            {
+                                progress = offset + server.publishPayloadConsumable;
+                                server.publishPayloadModeling = false;
+                                server.decoder = decodePacketTypeByVersion.get(server.version);
+                            }
                         }
-                    }
-                    else
-                    {
-                        progress = payload.offset() + sizeClaimed;
-
-                        if (server.decodeablePublishPayloadBytes == 0)
+                        else
                         {
-                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                            progress = payload.offset() + sizeClaimed;
+
+                            if (server.decodeablePublishPayloadBytes == 0)
+                            {
+                                server.decoder = decodePacketTypeByVersion.get(server.version);
+                            }
                         }
                     }
                 }
@@ -3843,7 +3846,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             return acknowledged;
         }
 
-        private void onDecodePublish(
+        private int onDecodePublish(
             long traceId,
             long authorization,
             int qos,
@@ -3857,26 +3860,25 @@ public final class MqttServerFactory implements MqttStreamFactory
                 reasonCode = RETAIN_NOT_SUPPORTED;
             }
 
-            if (reasonCode != SUCCESS)
+            if (reasonCode == SUCCESS)
             {
-                onDecodeError(traceId, authorization, reasonCode);
-                decoder = decodeIgnoreAll;
-            }
-
-            if (unreleasedPacketIds.contains(packetId))
-            {
-                switch (version)
+                if (unreleasedPacketIds.contains(packetId))
                 {
-                case 4:
-                    doEncodePubrecV4(traceId, authorization, packetId);
-                    break;
-                case 5:
-                    doEncodePubrecV5(traceId, authorization, packetId, SUCCESS);
-                    break;
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubrecV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrecV5(traceId, authorization, packetId, SUCCESS);
+                        break;
+                    }
                 }
+
+                doSignalKeepAliveTimeout(traceId);
             }
 
-            doSignalKeepAliveTimeout(traceId);
+            return reasonCode;
         }
 
         private void onDecodePublishPayload(
