@@ -1219,6 +1219,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.reordered/client",
+        "${net}/anthropic.section.assistant.reasoning.reordered/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.reasoning.signature.first/client",
         "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
     public void shouldEncodeAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
