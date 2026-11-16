@@ -1289,6 +1289,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         return progress;
     }
 
+    private int topicReasonCode(
+        String topic)
+    {
+        return topic.indexOf('\u0000') != -1 ? MALFORMED_PACKET : PROTOCOL_ERROR;
+    }
+
     private int decodePublishV4(
         MqttServer server,
         final long traceId,
@@ -4109,7 +4115,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final boolean validTopicFilter = validator.isTopicFilterValid(filter);
                     if (!validTopicFilter)
                     {
-                        onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                        onDecodeError(traceId, authorization, topicReasonCode(filter));
                         decoder = decodeIgnoreAll;
                         break;
                     }
@@ -4257,7 +4263,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         final boolean validTopicFilter = validator.isTopicFilterValid(filter);
                         if (!validTopicFilter)
                         {
-                            onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+                            onDecodeError(traceId, authorization, topicReasonCode(filter));
                             decoder = decodeIgnoreAll;
                             break;
                         }
@@ -4525,6 +4531,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (topicFilter == null)
                 {
                     decodeReasonCode = PROTOCOL_ERROR;
+                    break;
+                }
+                if (!validator.isTopicFilterValid(topicFilter))
+                {
+                    decodeReasonCode = topicReasonCode(topicFilter);
                     break;
                 }
 
@@ -8227,6 +8238,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         final String16FW mResponseTopic = mqttProperty.responseTopic();
                         if (mResponseTopic.value() != null)
                         {
+                            final String responseTopicName = mResponseTopic.asString();
+                            if (!validator.isTopicNameValid(responseTopicName))
+                            {
+                                reasonCode = topicReasonCode(responseTopicName);
+                                break decode;
+                            }
+
                             final int offset = mResponseTopic.offset();
                             final int limit = mResponseTopic.limit();
 
@@ -8273,6 +8291,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     decodeProgress = mqttProperty.limit();
                 }
                 userProperties = userPropertiesRW.build();
+
+                if (reasonCode == SUCCESS && !validator.isTopicNameValid(topic))
+                {
+                    reasonCode = topicReasonCode(topic);
+                }
             }
 
             return reasonCode;
@@ -8292,6 +8315,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (topic == null)
             {
                 reasonCode = PROTOCOL_ERROR;
+            }
+            else if (!validator.isTopicNameValid(topic))
+            {
+                reasonCode = topicReasonCode(topic);
             }
             else
             {
