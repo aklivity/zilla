@@ -375,4 +375,14 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.ill.formed.utf8/client",
+        "${net}/publish.reject.topic.name.ill.formed.utf8/server"})
+    public void shouldRejectPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
 }
