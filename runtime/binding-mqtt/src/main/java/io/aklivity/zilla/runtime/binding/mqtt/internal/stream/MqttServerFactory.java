@@ -8362,6 +8362,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = PROTOCOL_ERROR;
             }
+            else if (!utf8Validator.isValidString(topicName))
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
             else if (!validator.isTopicNameValid(topic))
             {
                 reasonCode = topicReasonCode(topic);
