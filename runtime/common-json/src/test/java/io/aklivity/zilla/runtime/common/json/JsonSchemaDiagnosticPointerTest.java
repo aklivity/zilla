@@ -108,6 +108,53 @@ class JsonSchemaDiagnosticPointerTest
         assertEquals(List.of("/a/2 type"), all(schema, "{\"b\":[1,2],\"a\":[1,2,\"x\"]} "));
     }
 
+    @Test
+    void shouldPointAtAKeyTheSchemaForbids()
+    {
+        assertEquals("/b false", first("{\"properties\":{\"a\":{}},\"additionalProperties\":false}", "{\"b\":1} "));
+    }
+
+    @Test
+    void shouldPointAtAKeyRoutedToAnAdditionalPropertiesSubschema()
+    {
+        assertEquals("/x type", first("{\"additionalProperties\":{\"type\":\"string\"}}", "{\"x\":1} "));
+    }
+
+    @Test
+    void shouldPointAtAKeyRoutedToAPatternPropertiesSubschema()
+    {
+        assertEquals("/xa type", first("{\"patternProperties\":{\"^x\":{\"type\":\"string\"}}}", "{\"xa\":1} "));
+    }
+
+    @Test
+    void shouldEscapeTheKeyInThePointer()
+    {
+        assertEquals("/a~1b~0c type", first("{\"additionalProperties\":{\"type\":\"string\"}}", "{\"a/b~c\":1} "));
+    }
+
+    @Test
+    void shouldPointAtTheKeyWhenOneSubschemaNamesItAndAnotherRoutesItAsAdditional()
+    {
+        final String schema = "{\"properties\":{\"a\":{\"type\":\"string\"}}," +
+            "\"allOf\":[{\"additionalProperties\":{\"type\":\"string\"}}]}";
+
+        assertEquals(List.of("/a type", "/a type"), all(schema, "{\"a\":1} "));
+    }
+
+    @Test
+    void shouldPointAtANestedKeyRoutedAsAdditionalUnderADeclaredOne()
+    {
+        final String schema = "{\"properties\":{\"a\":{\"additionalProperties\":{\"type\":\"string\"}}}}";
+
+        assertEquals("/a/b type", first(schema, "{\"a\":{\"b\":1}} "));
+    }
+
+    @Test
+    void shouldPointAtTheObjectWhoseKeyViolatesPropertyNames()
+    {
+        assertEquals(" maxLength", first("{\"propertyNames\":{\"maxLength\":1}}", "{\"abc\":1} "));
+    }
+
     private static String first(
         String schema,
         String document)

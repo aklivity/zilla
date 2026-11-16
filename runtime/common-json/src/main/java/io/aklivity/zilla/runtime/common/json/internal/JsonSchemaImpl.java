@@ -56,7 +56,6 @@ import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -308,7 +307,7 @@ public final class JsonSchemaImpl implements JsonSchema
         Event event,
         JsonSource source)
     {
-        trace.enter(event, source);
+        trace.enter(event);
 
         final Verdict verdict = eval.feed(event, source);
 
@@ -2326,22 +2325,20 @@ public final class JsonSchemaImpl implements JsonSchema
 
     // reports a failing keyword against the location of the instance value being read. The location depends on
     // the events alone, not on which subschemas apply to a value, so one tracker follows the event stream from its
-    // entry point and every evaluator that reports reads the same location. It keeps only what the location is
-    // made of, a count of values and the current key per open container, and renders the pointer when a keyword
-    // fails, so the events that pass cost no allocation and no pointer building
+    // entry point and every evaluator that reports reads the same location. It keeps a count of values for each
+    // open container and, for each object, the name of the current key, which the evaluator that routes the key to a
+    // subschema supplies: the schema's own name for a declared property, so no key is copied, or the key's text when
+    // it is routed to a subschema that can fail. The pointer is rendered only when a keyword fails
     private static final class Trace
     {
         private static final Trace NONE = new Trace(null);
         private static final int FRAMES = 16;
 
         private final Consumer<JsonSchemaDiagnostic> reporter;
-        private final ExpandableArrayBufferEx keys;
 
         private boolean[] arrays;
         private int[] counts;
-        private int[] keyStarts;
-        private int[] keyEnds;
-        private int keysLength;
+        private String[] names;
         private int depth;
         private int pathDepth;
 
@@ -2349,21 +2346,15 @@ public final class JsonSchemaImpl implements JsonSchema
             Consumer<JsonSchemaDiagnostic> reporter)
         {
             this.reporter = reporter;
-            this.keys = reporter != null ? new ExpandableArrayBufferEx() : null;
             this.arrays = reporter != null ? new boolean[FRAMES] : null;
             this.counts = reporter != null ? new int[FRAMES] : null;
-            this.keyStarts = reporter != null ? new int[FRAMES] : null;
-            this.keyEnds = reporter != null ? new int[FRAMES] : null;
+            this.names = reporter != null ? new String[FRAMES] : null;
         }
 
         private void reset()
         {
-            if (keys != null)
-            {
-                keysLength = 0;
-                depth = 0;
-                pathDepth = 0;
-            }
+            depth = 0;
+            pathDepth = 0;
         }
 
         private boolean active()
@@ -2371,21 +2362,27 @@ public final class JsonSchemaImpl implements JsonSchema
             return reporter != null;
         }
 
-        // moves to the value the event starts, or records the key the next value is under
+        // supplies the name of the key the object being read is at
+        private void key(
+            String name)
+        {
+            if (active())
+            {
+                names[depth - 1] = name;
+            }
+        }
+
+        // moves to the value the event starts, or to the key the next value is under
         private void enter(
-            Event event,
-            JsonSource parser)
+            Event event)
         {
             if (active())
             {
                 switch (event)
                 {
                 case KEY_NAME:
-                    final int frame = depth - 1;
-                    keysLength = keyStarts[frame];
-                    keysLength += copyKey(parser.getStringView(), keysLength);
-                    keyEnds[frame] = keysLength;
-                    pathDepth = frame;
+                    names[depth - 1] = null;
+                    pathDepth = depth - 1;
                     break;
                 case END_OBJECT:
                 case END_ARRAY:
@@ -2418,24 +2415,7 @@ public final class JsonSchemaImpl implements JsonSchema
             if (active() && (event == Event.END_OBJECT || event == Event.END_ARRAY))
             {
                 depth--;
-                keysLength = keyStarts[depth];
             }
-        }
-
-        // plain characters are copied as the bytes they are, anything else through its UTF-8 encoding
-        private int copyKey(
-            JsonStringView key,
-            int offset)
-        {
-            final int length = key.length();
-            int copied = key.copyPlain(0, length, keys, offset);
-            if (copied < length)
-            {
-                final byte[] bytes = key.toString().getBytes(UTF_8);
-                keys.putBytes(offset, bytes);
-                copied = bytes.length;
-            }
-            return copied;
         }
 
         private void open(
@@ -2445,13 +2425,11 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 arrays = Arrays.copyOf(arrays, depth * 2);
                 counts = Arrays.copyOf(counts, depth * 2);
-                keyStarts = Arrays.copyOf(keyStarts, depth * 2);
-                keyEnds = Arrays.copyOf(keyEnds, depth * 2);
+                names = Arrays.copyOf(names, depth * 2);
             }
             arrays[depth] = array;
             counts[depth] = 0;
-            keyStarts[depth] = keysLength;
-            keyEnds[depth] = keysLength;
+            names[depth] = null;
             depth++;
         }
 
@@ -2467,8 +2445,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 else
                 {
-                    pointer.append(escapePointer(keys.getStringWithoutLengthUtf8(keyStarts[frame],
-                        keyEnds[frame] - keyStarts[frame])));
+                    pointer.append(escapePointer(names[frame]));
                 }
             }
             return pointer.toString();
@@ -2720,7 +2697,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 final Event scalarEvent = toEvent(event);
 
-                trace.enter(scalarEvent, source);
+                trace.enter(scalarEvent);
                 trace.report("content", "value exceeds the input window and a keyword reads its content", source);
                 trace.leave(scalarEvent);
                 result = Verdict.INVALID;
@@ -3871,12 +3848,20 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (charsEqual(propertyKeys[i], key))
                 {
                     schema = propertySchemas[i];
+                    // a declared property: the schema owns this exact name, so the location refers to it
+                    trace.key(propertyKeys[i]);
                     break;
                 }
             }
             if (schema == null)
             {
                 schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
+                if (schema != ANY && trace.active())
+                {
+                    // routed to a subschema that can fail without the schema naming the key: only here does
+                    // the location need the document's own key text
+                    trace.key(key.toString());
+                }
             }
             directChild = propEvalFor(schema);
             directChildren = null;
@@ -4093,6 +4078,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private void setApplicableFor(
             String key)
         {
+            trace.key(key);
             boolean matched;
             if (patternProperties == null)
             {
