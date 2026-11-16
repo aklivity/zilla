@@ -197,6 +197,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int NO_MESSAGE = -2;
     private static final int ROOT_CONTROL = -1;
     private static final int ESCAPE_EXPANSION = 6;
+    private static final int REGION_BODY_HELD = 1 << 0;
+    private static final int REGION_MESSAGES_OPENED = 1 << 1;
+    private static final int REGION_MESSAGES_CLOSED = 1 << 2;
+    private static final int REGION_TOOLS_OPENED = 1 << 3;
+    private static final int REGION_TOOLS_CLOSED = 1 << 4;
     private static final int CALL_FUNCTION = 1 << 0;
     private static final int CALL_ARGUMENTS = 1 << 1;
     private static final String TOOL_TYPE = "function";
@@ -980,7 +985,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final String section = requestSection.name().toLowerCase().replace('_', '-');
                 final int kind = sectionKind(requestSection);
 
-                message = http.messagesClosed && kind != KIND_TOOL_DEFINITION
+                message = http.messagesClosed() && kind != KIND_TOOL_DEFINITION
                     ? MESSAGE_SECTION_CONVERT_AFTER_TOOLS.formatted(section, dialect, NAME)
                     : MESSAGE_SECTION_CONVERT.formatted(section, dialect, NAME);
             }
@@ -4032,16 +4037,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int deferSlot = NO_SLOT;
         private int deferLength;
         private boolean deferStarted;
-        private boolean bodyHeld;
+        private int regions = REGION_BODY_HELD;
         private boolean rawOpen;
         private boolean encodeFailed;
-        private boolean sectionsStarted;
 
         private int messageIndex = NO_MESSAGE;
-        private boolean messagesOpened;
-        private boolean messagesClosed;
-        private boolean toolsOpened;
-        private boolean toolsClosed;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
@@ -4142,7 +4142,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.sameDialect = NAME.equals(stream.dialect);
             this.generator = JsonEx.createGenerator();
             this.requestTarget = generator;
-            this.bodyHeld = true;
         }
 
         private void doNetBegin(
@@ -4218,6 +4217,31 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private String rejectedMember()
         {
             return rejectedRequestMember;
+        }
+
+        private boolean bodyHeld()
+        {
+            return (regions & REGION_BODY_HELD) != 0;
+        }
+
+        private boolean messagesOpened()
+        {
+            return (regions & REGION_MESSAGES_OPENED) != 0;
+        }
+
+        private boolean messagesClosed()
+        {
+            return (regions & REGION_MESSAGES_CLOSED) != 0;
+        }
+
+        private boolean toolsOpened()
+        {
+            return (regions & REGION_TOOLS_OPENED) != 0;
+        }
+
+        private boolean toolsClosed()
+        {
+            return (regions & REGION_TOOLS_CLOSED) != 0;
         }
 
         private JsonParserEx requestParser()
@@ -5896,7 +5920,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 sectionKind = KIND_DROPPED;
             }
-            else if (kind == 0 || kind != KIND_TOOL_DEFINITION && kind != KIND_CONTROL && messagesClosed)
+            else if (kind == 0 || kind != KIND_TOOL_DEFINITION && kind != KIND_CONTROL && messagesClosed())
             {
                 encodeFailed = true;
             }
@@ -5945,11 +5969,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void startSections()
         {
-            if (!sectionsStarted)
-            {
-                sectionsStarted = true;
-                bodyHeld = false;
-            }
+            regions &= ~REGION_BODY_HELD;
         }
 
         private void beginTranslated(
@@ -6014,7 +6034,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (controlMessage == NONE && messagesOpened && !messagesClosed)
+            if (controlMessage == NONE && messagesOpened() && !messagesClosed())
             {
                 deferControl(buffer, offset, length);
             }
@@ -6090,10 +6110,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void closeMessages()
         {
-            if (messagesOpened && !messagesClosed)
+            if (messagesOpened() && !messagesClosed())
             {
                 generator.writeEnd();
-                messagesClosed = true;
+                regions |= REGION_MESSAGES_CLOSED;
 
                 if (deferLength > 0)
                 {
@@ -6156,18 +6176,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             closeMessage();
             closeMessages();
 
-            if (toolsClosed)
+            if (toolsClosed())
             {
                 encodeFailed = true;
             }
             else
             {
-                if (!toolsOpened)
+                if (!toolsOpened())
                 {
                     generator.writeStartArray(MEMBER_TOOLS);
                 }
 
-                toolsOpened = true;
+                regions |= REGION_TOOLS_OPENED;
             }
         }
 
@@ -6213,16 +6233,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void openMessages()
         {
-            if (toolsOpened && !toolsClosed)
+            if (toolsOpened() && !toolsClosed())
             {
                 generator.writeEnd();
-                toolsClosed = true;
+                regions |= REGION_TOOLS_CLOSED;
             }
 
-            if (!messagesOpened)
+            if (!messagesOpened())
             {
                 generator.writeStartArray(MEMBER_MESSAGES);
-                messagesOpened = true;
+                regions |= REGION_MESSAGES_OPENED;
             }
         }
 
@@ -6360,7 +6380,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     closeMessage();
                     closeRegions();
 
-                    if (!messagesOpened)
+                    if (!messagesOpened())
                     {
                         generator.writeStartArray(MEMBER_MESSAGES).writeEnd();
                     }
@@ -6381,17 +6401,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     endEncode();
                 }
 
-                bodyHeld = false;
+                regions &= ~REGION_BODY_HELD;
                 state = StreamState.closingInitial(state);
             }
         }
 
         private void closeRegions()
         {
-            if (toolsOpened && !toolsClosed)
+            if (toolsOpened() && !toolsClosed())
             {
                 generator.writeEnd();
-                toolsClosed = true;
+                regions |= REGION_TOOLS_CLOSED;
             }
 
             closeMessages();
@@ -6633,7 +6653,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (encodeSlot != NO_SLOT)
                 {
-                    final int flushLimit = bodyHeld ? 0 : encodeSlotOffset;
+                    final int flushLimit = bodyHeld() ? 0 : encodeSlotOffset;
                     final long window = initialMax - (initialSeq - initialAck) - initialPad;
                     final int lengthMax = (int) Math.max(Math.min(flushLimit, window), 0L);
                     final int length = lengthMax > 0 ? claimInitial(traceId, 1, lengthMax) : 0;
