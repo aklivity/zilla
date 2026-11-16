@@ -75,6 +75,21 @@ final class LlmCacheBreakpoint
         return admit;
     }
 
+    boolean admit(
+        String mode,
+        String requestedTtl)
+    {
+        final boolean admit = MODE_EXPLICIT.equals(mode) && admitted < limit;
+
+        if (admit)
+        {
+            ttl = select(requestedTtl, ttls);
+            admitted++;
+        }
+
+        return admit;
+    }
+
     String ttl()
     {
         return ttl;
