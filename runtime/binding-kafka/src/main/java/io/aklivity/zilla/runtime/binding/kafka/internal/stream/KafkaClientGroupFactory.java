@@ -4764,7 +4764,15 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long budgetId,
             OctetsFW extension)
         {
-            doHeartbeatRequest(traceId);
+            if (extension.sizeof() > 0)
+            {
+                delegate.client = joinGroup;
+                joinGroup.doJoinGroupRequest(traceId);
+            }
+            else
+            {
+                doHeartbeatRequest(traceId);
+            }
         }
 
         @Override
