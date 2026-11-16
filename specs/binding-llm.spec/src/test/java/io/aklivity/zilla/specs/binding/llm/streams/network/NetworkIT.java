@@ -10279,4 +10279,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user.straddle/client",
+        "${net}/anthropic.request.user.straddle/server"})
+    public void shouldAnthropicRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.effort.straddle/client",
+        "${net}/anthropic.request.reasoning.effort.straddle/server"})
+    public void shouldAnthropicRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier.window/client",
+        "${net}/anthropic.request.service.tier.window/server"})
+    public void shouldAnthropicRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

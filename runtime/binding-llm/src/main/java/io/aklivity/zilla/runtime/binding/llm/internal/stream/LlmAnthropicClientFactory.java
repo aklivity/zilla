@@ -3796,20 +3796,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmAnthropicRequestDecoder breakpointThen;
         private final LlmEventCopier copier = new LlmEventCopier();
         private final LlmMemberKeys memberKeys;
-        private final StringBuilder judgeHeld = new StringBuilder();
         private String requestJudged;
         private int requestVerdict;
         private String rejectedRequestMember;
         private JsonGeneratorEx controlGenerator;
         private JsonGeneratorEx requestTarget;
-        private final StringBuilder controlHeld = new StringBuilder();
         private LlmCapturedValue controlChoice;
-        private LlmCapturedScalar controlScalar;
         private LlmToolChoice toolChoice;
         private LlmAnthropicOutputSchema.Rejection schemaRejection;
         private JsonParserEx requestSource;
         private String controlMember;
-        private boolean controlOverflow;
         private int controlFormat;
         private String requestPassKey;
         private String callId;
@@ -4670,16 +4666,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     else if (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER || event == JsonEvent.KEY_NAME)
                     {
                         final JsonStringView chars = parser.getStringView();
-                        final boolean deferred = parser.deferredBytes();
 
-                        judgeHeld.append(chars);
-                        parser.consumed(chars.length());
+                        requestVerdict = LlmLegality.advance(requestJudged, requestVerdict, requestSkipDepth, event, chars);
 
-                        if (!deferred)
+                        if (parser.deferredBytes())
                         {
-                            requestVerdict =
-                                LlmLegality.advance(requestJudged, requestVerdict, requestSkipDepth, event, judgeHeld);
-                            judgeHeld.setLength(0);
+                            parser.consumed(chars.length());
                         }
                     }
                     else
@@ -5840,8 +5832,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final int listed = capability.unsupported != 0 ? LlmMember.of(member) : LlmMember.INVALID;
 
-            controlHeld.setLength(0);
-
             if (listed != LlmMember.INVALID && capability.unsupported(listed))
             {
                 if (LlmMember.behavioural(listed))
@@ -5921,16 +5911,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     if (parser.nextEvent() == JsonEvent.VALUE_NUMBER)
                     {
-                        final boolean deferred = parser.deferredBytes();
-                        final JsonStringView chars = parser.getStringView();
+                        final JsonStringView value = parser.getStringView();
 
-                        controlHeld.append(chars);
-                        parser.consumed(chars.length());
+                        writeClamped(value);
 
-                        if (!deferred)
+                        if (parser.deferredBytes())
                         {
-                            writeClamped(controlHeld.toString());
-                            controlHeld.setLength(0);
+                            parser.consumed(value.length());
+                            requestSkipDepth = 0;
+                            requestDecoder = decodeRequestSkip;
+                        }
+                        else
+                        {
                             requestDecoder = decodeRequestControlKey;
                         }
                     }
@@ -5949,14 +5941,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void writeClamped(
-            String number)
+            CharSequence number)
         {
-            final double value = Double.parseDouble(number);
+            final double value = Double.parseDouble(number.toString());
             final String bounded = value < TEMPERATURE_MINIMUM
                 ? Double.toString(TEMPERATURE_MINIMUM)
                 : value > TEMPERATURE_MAXIMUM
                     ? Double.toString(TEMPERATURE_MAXIMUM)
-                    : number;
+                    : number.toString();
 
             controlGenerator.writeKey(LlmSharedMembers.TEMPERATURE).writeNumber(bounded);
         }
@@ -5974,28 +5966,22 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 if (requestDecoder == decodeRequestControlScalar && parser.hasNextEvent())
                 {
                     final JsonEvent event = parser.nextEvent();
+                    final boolean deferred = parser.deferredBytes();
                     final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY;
+                    final boolean whole = scalar && !deferred;
+                    final CharSequence text = whole && (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
+                        ? parser.getStringView()
+                        : null;
 
-                    if (controlScalar == null)
+                    onControlScalar(whole ? event : null, text);
+
+                    if (deferred)
                     {
-                        controlScalar = new LlmCapturedScalar();
+                        parser.consumed(parser.getStringView().length());
                     }
-
-                    controlScalar.clear();
-
-                    if (scalar)
-                    {
-                        final String text = event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING
-                            ? parser.getStringView().toString()
-                            : null;
-
-                        controlScalar.add(event, text, Integer.MAX_VALUE);
-                    }
-
-                    onControlScalar(scalar ? event : null);
 
                     requestSkipDepth = scalar ? 0 : 1;
-                    requestDecoder = scalar ? decodeRequestControlKey : decodeRequestSkip;
+                    requestDecoder = whole ? decodeRequestControlKey : decodeRequestSkip;
                 }
             }
             catch (JsonException ex)
@@ -6007,7 +5993,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         private void onControlScalar(
-            JsonEvent scalar)
+            JsonEvent scalar,
+            CharSequence text)
         {
             if (LlmSharedMembers.PARALLEL_TOOL_CALLS.equals(controlMember))
             {
@@ -6026,7 +6013,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else if (LlmSharedMembers.REASONING_EFFORT.equals(controlMember))
             {
-                final int value = scalar != null ? LlmReasoning.effortOf(controlScalar) : LlmEffort.INVALID;
+                final int value = scalar != null ? LlmReasoning.effortOf(scalar, text) : LlmEffort.INVALID;
 
                 if (value == LlmEffort.INVALID)
                 {
@@ -6039,7 +6026,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else
             {
-                final int value = scalar != null ? LlmReasoning.budgetOf(controlScalar) : LlmEffort.INVALID;
+                final int value = scalar != null ? LlmReasoning.budgetOf(scalar, text) : LlmEffort.INVALID;
 
                 if (value == LlmEffort.INVALID)
                 {
@@ -6068,25 +6055,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (event == JsonEvent.VALUE_STRING)
                     {
-                        final boolean deferred = parser.deferredBytes();
-                        final JsonStringView chars = parser.getStringView();
-                        final int length = chars.length();
+                        final JsonStringView value = parser.getStringView();
 
-                        if (!controlOverflow && controlHeld.length() + length > controlLimit() << 1)
+                        if (parser.deferredBytes())
                         {
-                            controlOverflow = true;
-                            controlHeld.setLength(0);
+                            parser.consumed(value.length());
+                            requestSkipDepth = 0;
+                            requestDecoder = decodeRequestSkip;
                         }
-                        else if (!controlOverflow)
+                        else
                         {
-                            controlHeld.append(chars);
-                        }
-
-                        parser.consumed(length);
-
-                        if (!deferred)
-                        {
-                            releaseControlLimit();
+                            writeControlLimit(value);
                             requestDecoder = decodeRequestControlKey;
                         }
                     }
@@ -6110,20 +6089,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             return LlmSharedMembers.USER.equals(controlMember) ? USER_ID_MAX : LlmServiceTiers.NAME_MAX;
         }
 
-        private void releaseControlLimit()
+        private void writeControlLimit(
+            CharSequence value)
         {
-            if (!controlOverflow && controlHeld.codePointCount(0, controlHeld.length()) <= controlLimit())
+            if (Character.codePointCount(value, 0, value.length()) <= controlLimit())
             {
                 if (LlmSharedMembers.USER.equals(controlMember))
                 {
                     controlGenerator.writeKey(MEMBER_METADATA)
                         .writeStartObject()
-                        .write(MEMBER_USER_ID, controlHeld.toString())
+                        .write(MEMBER_USER_ID, value.toString())
                         .writeEnd();
                 }
                 else
                 {
-                    final String adapted = LlmServiceTiers.anthropic(capability, controlHeld);
+                    final String adapted = LlmServiceTiers.anthropic(capability, value);
 
                     if (adapted != null)
                     {
@@ -6131,9 +6111,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                 }
             }
-
-            controlHeld.setLength(0);
-            controlOverflow = false;
         }
 
         private int decodeRequestControlStop(
@@ -6236,17 +6213,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         final JsonStringView chars = parser.getStringView();
 
-                        controlHeld.append(chars);
-                        parser.consumed(chars.length());
-
-                        if (!deferred)
+                        if (deferred)
                         {
-                            accepted = controlChoice.add(event, controlHeld.toString(), CAPTURED_MAX);
-                            controlHeld.setLength(0);
+                            parser.consumed(chars.length());
+                            accepted = false;
                         }
                         else
                         {
-                            accepted = controlHeld.length() <= CAPTURED_MAX;
+                            accepted = controlChoice.add(event, chars.toString(), CAPTURED_MAX);
                         }
                     }
                     else
@@ -6387,7 +6361,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (MEMBER_TYPE.contentEquals(key))
             {
-                controlHeld.setLength(0);
                 requestDecoder = decodeRequestControlFormatType;
             }
             else if (MEMBER_JSON_SCHEMA.contentEquals(key))
@@ -6475,26 +6448,22 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (event == JsonEvent.VALUE_STRING)
                     {
-                        final boolean deferred = parser.deferredBytes();
                         final JsonStringView chars = parser.getStringView();
+                        final boolean deferred = parser.deferredBytes();
+                        final int kind = deferred ? FORMAT_OFF : formatKindOf(chars);
 
-                        controlHeld.append(chars);
-                        parser.consumed(chars.length());
-
-                        if (!deferred)
+                        if (deferred)
                         {
-                            final int kind = formatKindOf(controlHeld);
+                            parser.consumed(chars.length());
+                        }
 
-                            controlHeld.setLength(0);
-
-                            if (kind != FORMAT_OFF && openControlFormat(kind))
-                            {
-                                requestDecoder = decodeRequestControlFormatKey;
-                            }
-                            else
-                            {
-                                rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
-                            }
+                        if (kind != FORMAT_OFF && openControlFormat(kind))
+                        {
+                            requestDecoder = decodeRequestControlFormatKey;
+                        }
+                        else
+                        {
+                            rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
                         }
                     }
                     else
