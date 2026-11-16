@@ -165,6 +165,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/rebalance.new.topic.before.member.assignment/client",
+        "${app}/rebalance.new.topic.before.member.assignment/server"})
+    public void shouldRebalanceOnNewTopicBeforeMemberAssignment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/rebalance.multiple.members.with.same.group.id/client",
         "${app}/rebalance.multiple.members.with.same.group.id/server"})
     public void shouldRebalanceMultipleMembersWithSameGroupId() throws Exception
