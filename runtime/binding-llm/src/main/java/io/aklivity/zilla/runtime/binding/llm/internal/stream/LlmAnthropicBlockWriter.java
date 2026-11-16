@@ -21,7 +21,6 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
-import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 final class LlmAnthropicBlockWriter
 {
@@ -29,6 +28,7 @@ final class LlmAnthropicBlockWriter
     static final int VALUE = 1;
     static final int REJECT = 2;
     static final int SKIP = 3;
+    static final int DESCEND = 4;
 
     static final int ACTION_DROP = 0;
     static final int ACTION_COPY = 1;
@@ -41,12 +41,25 @@ final class LlmAnthropicBlockWriter
     static final int ACTION_SOURCE = 8;
     static final int ACTION_CITATIONS = 9;
     static final int ACTION_DATA = 10;
+    static final int ACTION_RANGE = 11;
+    static final int ACTION_FORMAT = 12;
+    static final int ACTION_FORMAT_TYPE = 13;
+    static final int ACTION_TYPE = 14;
 
     static final int KIND_TOOL_CALL = 0;
     static final int KIND_TOOL_DEFINITION = 1;
     static final int KIND_REASONING = 2;
     static final int KIND_MEDIA = 3;
     static final int KIND_CITATIONS = 4;
+    static final int KIND_CONTROL = 5;
+
+    static final int CONTAINER_OUTPUT_CONFIG = 0;
+    static final int CONTAINER_THINKING = 1;
+    static final int CONTAINER_METADATA = 2;
+
+    static final int RESIDUE_NONE = 0;
+    static final int RESIDUE_OPEN = 1;
+    static final int RESIDUE_LIFTED = 2;
 
     private static final int CITATION_NONE = 0;
     private static final int CITATION_URL = 1;
@@ -54,6 +67,10 @@ final class LlmAnthropicBlockWriter
     private static final int NEST_NONE = 0;
     private static final int NEST_OPEN = 1;
     private static final int NEST_CLOSED = 2;
+    private static final int THINKING_UNSET = 0;
+    private static final int THINKING_ENABLED = 1;
+    private static final int THINKING_BUDGET = 2;
+    private static final int CAPTURE_MAX = 2048;
 
     private static final String PREFIX = LlmAnthropicDialectFactorySpi.NAME + ":";
     private static final String MEMBER_TYPE = "type";
@@ -87,12 +104,46 @@ final class LlmAnthropicBlockWriter
     private static final String MEMBER_OTHER_TYPE = PREFIX + MEMBER_TYPE;
     private static final String DATA_URI_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
+    private static final String MEMBER_STREAM = "stream";
+    private static final String MEMBER_DISABLE_PARALLEL = "disable_parallel_tool_use";
+    private static final String MEMBER_NATIVE_TOOL_CHOICE = PREFIX + "tool_choice";
+    private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
+    private static final String MEMBER_SHARED_PARALLEL = "x:parallel_tool_calls";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = PREFIX + "service_tier";
+    private static final String MEMBER_NATIVE_OUTPUT_CONFIG = PREFIX + "output_config";
+    private static final String MEMBER_NATIVE_THINKING = PREFIX + "thinking";
+    private static final String MEMBER_NATIVE_METADATA = PREFIX + "metadata";
+    private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
+    private static final String MEMBER_SHARED_THINKING_BUDGET = "x:thinking_budget_tokens";
+    private static final String MEMBER_SHARED_USER = "x:user";
+    private static final String MEMBER_FORMAT = "format";
+    private static final String MEMBER_SCHEMA = "schema";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String MEMBER_EFFORT = "effort";
+    private static final String MEMBER_BUDGET_TOKENS = "budget_tokens";
+    private static final String MEMBER_USER_ID = "user_id";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_DISABLED = "disabled";
+    private static final String TYPE_ENABLED = "enabled";
+    private static final String TYPE_AUTO = "auto";
+    private static final String TYPE_ANY = "any";
+    private static final String TYPE_NONE = "none";
+    private static final String TYPE_TOOL = "tool";
+    private static final String EFFORT_NONE = "none";
+    private static final String DEFAULT_FORMAT_NAME = "response";
     private static final int HEADROOM = 16;
+    private static final int FORMAT_ROOM =
+        "{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"response\"".length() + HEADROOM;
 
     private final LlmOutputSink sink;
     private final JsonGeneratorEx generator;
     private final StringBuilder key = new StringBuilder();
     private final StringBuilder ttl = new StringBuilder();
+    private final StringBuilder capture = new StringBuilder();
+    private final LlmCapturedValue captured = new LlmCapturedValue();
+    private final LlmToolChoice choice = new LlmToolChoice();
 
     private MutableDirectBufferEx buffer;
     private int origin;
@@ -116,6 +167,11 @@ final class LlmAnthropicBlockWriter
     private boolean captureEnabled;
     private int citation;
     private int nest;
+    private int controlContainer;
+    private int thinking;
+    private int typeResidue;
+    private boolean separating;
+    private byte separator;
 
     LlmAnthropicBlockWriter(
         LlmOutputSink sink,
@@ -508,6 +564,297 @@ final class LlmAnthropicBlockWriter
         return outcome;
     }
 
+    void beginMember(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator)
+    {
+        begin(buffer, origin, KIND_CONTROL);
+
+        this.separator = (byte) separator;
+        this.separating = true;
+
+        generator.writeStartObject();
+    }
+
+    void memberKey(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator,
+        CharSequence name)
+    {
+        beginMember(buffer, origin, separator);
+        generator.writeKey(name);
+        flush(false);
+    }
+
+    void endMember()
+    {
+        flush(false);
+    }
+
+    void container(
+        int container)
+    {
+        this.controlContainer = container;
+        this.thinking = THINKING_UNSET;
+    }
+
+    int streamValue(
+        JsonEvent event)
+    {
+        final boolean flag = flag(event);
+
+        if (flag)
+        {
+            generator.writeKey(MEMBER_STREAM);
+            writeFlag(event);
+        }
+
+        return flag ? VALUE : REJECT;
+    }
+
+    int tierValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final String tier = event == JsonEvent.VALUE_STRING && !parser.deferredBytes()
+            ? LlmServiceTiers.canonicalAnthropic(parser.getStringView().toString())
+            : null;
+        int outcome;
+
+        if (tier != null)
+        {
+            generator.writeKey(MEMBER_SHARED_SERVICE_TIER);
+            generator.write(tier);
+            outcome = VALUE;
+        }
+        else
+        {
+            generator.writeKey(MEMBER_NATIVE_SERVICE_TIER);
+            outcome = copyValue(event, parser);
+        }
+
+        return outcome;
+    }
+
+    int toolChoiceValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = captureValue(event, parser);
+
+        if (outcome == VALUE)
+        {
+            if (captured.isObject(0))
+            {
+                splitToolChoice();
+            }
+            else
+            {
+                generator.writeKey(MEMBER_NATIVE_TOOL_CHOICE);
+                replay(0, captured.count());
+            }
+
+            captured.clear();
+        }
+
+        return outcome;
+    }
+
+    int containerValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = DESCEND;
+
+        if (event != JsonEvent.START_OBJECT)
+        {
+            generator.writeKey(residueKey());
+            outcome = copyValue(event, parser);
+        }
+
+        return outcome;
+    }
+
+    int containerAction(
+        CharSequence name,
+        int residue)
+    {
+        int action = ACTION_COPY;
+
+        if (controlContainer == CONTAINER_OUTPUT_CONFIG && MEMBER_FORMAT.contentEquals(name))
+        {
+            lift(residue, MEMBER_SHARED_RESPONSE_FORMAT);
+            action = ACTION_FORMAT;
+        }
+        else if (controlContainer == CONTAINER_OUTPUT_CONFIG && MEMBER_EFFORT.contentEquals(name))
+        {
+            lift(residue, null);
+            pendingKey = MEMBER_SHARED_REASONING_EFFORT;
+            action = ACTION_OPTIONAL;
+        }
+        else if (controlContainer == CONTAINER_METADATA && MEMBER_USER_ID.contentEquals(name))
+        {
+            lift(residue, null);
+            pendingKey = MEMBER_SHARED_USER;
+            action = ACTION_OPTIONAL;
+        }
+        else if (controlContainer == CONTAINER_THINKING && MEMBER_TYPE.contentEquals(name))
+        {
+            action = ACTION_TYPE;
+        }
+        else if (controlContainer == CONTAINER_THINKING && MEMBER_BUDGET_TOKENS.contentEquals(name))
+        {
+            lift(residue, null);
+            thinking = THINKING_BUDGET;
+            action = ACTION_RANGE;
+        }
+        else
+        {
+            openResidue(residue);
+            generator.writeKey(name);
+        }
+
+        return action;
+    }
+
+    int typeValue(
+        JsonEvent event,
+        JsonParserEx parser,
+        int residue)
+    {
+        int outcome;
+
+        typeResidue = residue;
+
+        if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes() &&
+            TYPE_DISABLED.contentEquals(parser.getStringView()))
+        {
+            lift(residue, null);
+            generator.write(MEMBER_SHARED_REASONING_EFFORT, EFFORT_NONE);
+            typeResidue = RESIDUE_LIFTED;
+            outcome = VALUE;
+        }
+        else if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes() &&
+            TYPE_ENABLED.contentEquals(parser.getStringView()))
+        {
+            thinking = thinking == THINKING_BUDGET ? THINKING_BUDGET : THINKING_ENABLED;
+            outcome = VALUE;
+        }
+        else
+        {
+            openResidue(residue);
+            generator.writeKey(MEMBER_TYPE);
+            typeResidue = RESIDUE_OPEN;
+            outcome = copyValue(event, parser);
+        }
+
+        return outcome;
+    }
+
+    int typeResidue()
+    {
+        return typeResidue;
+    }
+
+    int rangeValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        if (event == JsonEvent.VALUE_NUMBER && !parser.deferredBytes())
+        {
+            final CharSequence number = parser.getStringView();
+            final double value = Double.parseDouble(number.toString());
+
+            if (value >= 0 && value <= Integer.MAX_VALUE && value == Math.rint(value))
+            {
+                generator.writeKey(MEMBER_SHARED_THINKING_BUDGET);
+                generator.writeNumber(number, Completion.COMPLETE);
+            }
+
+            outcome = VALUE;
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            outcome = VALUE;
+        }
+
+        return outcome;
+    }
+
+    int formatValue(
+        JsonEvent event)
+    {
+        int outcome = REJECT;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            ensure(FORMAT_ROOM);
+
+            generator.writeStartObject()
+                .write(MEMBER_TYPE, TYPE_JSON_SCHEMA)
+                .writeStartObject(MEMBER_JSON_SCHEMA)
+                .write(MEMBER_NAME, DEFAULT_FORMAT_NAME);
+            outcome = DESCEND;
+        }
+
+        return outcome;
+    }
+
+    int formatAction(
+        CharSequence name)
+    {
+        int action = ACTION_DROP;
+
+        if (MEMBER_SCHEMA.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_SCHEMA);
+            action = ACTION_COPY;
+        }
+        else if (MEMBER_TYPE.contentEquals(name))
+        {
+            action = ACTION_FORMAT_TYPE;
+        }
+
+        return action;
+    }
+
+    int formatType(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final boolean accepted = event == JsonEvent.VALUE_STRING && !parser.deferredBytes() &&
+            TYPE_JSON_SCHEMA.contentEquals(parser.getStringView());
+
+        return accepted ? VALUE : REJECT;
+    }
+
+    void closeFormat()
+    {
+        generator.writeEnd().writeEnd();
+    }
+
+    void closeContainer(
+        int residue)
+    {
+        if (thinking == THINKING_ENABLED)
+        {
+            openResidue(residue);
+            generator.write(MEMBER_TYPE, TYPE_ENABLED).writeEnd();
+        }
+        else if (residue == RESIDUE_OPEN)
+        {
+            generator.writeEnd();
+        }
+        else if (residue == RESIDUE_NONE)
+        {
+            generator.writeStartObject(residueKey()).writeEnd();
+        }
+    }
+
     void flush(
         boolean last)
     {
@@ -515,6 +862,12 @@ final class LlmAnthropicBlockWriter
 
         if (length > 0 || last)
         {
+            if (separating && length > 0)
+            {
+                buffer.putByte(origin, separator);
+                separating = false;
+            }
+
             sink.put(buffer, origin, length, last);
             generator.wrap(buffer, origin, buffer.capacity());
         }
@@ -535,6 +888,10 @@ final class LlmAnthropicBlockWriter
         this.pendingKey = null;
         this.pendingPrefix = null;
         this.mediaType = null;
+        this.separating = false;
+        this.thinking = THINKING_UNSET;
+        this.capture.setLength(0);
+        this.captured.clear();
 
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
@@ -767,6 +1124,239 @@ final class LlmAnthropicBlockWriter
         generator.writeKey(key);
     }
 
+    private void lift(
+        int residue,
+        String key)
+    {
+        if (residue == RESIDUE_OPEN)
+        {
+            generator.writeEnd();
+        }
+
+        if (key != null)
+        {
+            generator.writeKey(key);
+        }
+    }
+
+    private void openResidue(
+        int residue)
+    {
+        if (residue != RESIDUE_OPEN)
+        {
+            generator.writeStartObject(residueKey());
+        }
+    }
+
+    private String residueKey()
+    {
+        return switch (controlContainer)
+        {
+        case CONTAINER_THINKING -> MEMBER_NATIVE_THINKING;
+        case CONTAINER_METADATA -> MEMBER_NATIVE_METADATA;
+        default -> MEMBER_NATIVE_OUTPUT_CONFIG;
+        };
+    }
+
+    private void splitToolChoice()
+    {
+        final String type = captured.string(captured.member(0, MEMBER_TYPE));
+        final String function = captured.string(captured.member(0, MEMBER_NAME));
+        final JsonEvent disabled = captured.event(captured.member(0, MEMBER_DISABLE_PARALLEL));
+
+        choice.clear();
+
+        if (TYPE_AUTO.equals(type))
+        {
+            choice.mode(LlmToolChoice.MODE_AUTO);
+        }
+        else if (TYPE_ANY.equals(type))
+        {
+            choice.mode(LlmToolChoice.MODE_REQUIRED);
+        }
+        else if (TYPE_NONE.equals(type))
+        {
+            choice.mode(LlmToolChoice.MODE_NONE);
+        }
+        else if (TYPE_TOOL.equals(type) && function != null)
+        {
+            choice.function(function);
+        }
+
+        final boolean typed = choice.kind() != LlmToolChoice.UNRECOGNIZED;
+        final boolean named = choice.kind() == LlmToolChoice.FUNCTION;
+        final boolean flagged = disabled == JsonEvent.VALUE_TRUE || disabled == JsonEvent.VALUE_FALSE;
+
+        if (typed)
+        {
+            ensure(HEADROOM + MEMBER_SHARED_TOOL_CHOICE.length() + CAPTURE_MAX);
+            generator.writeKey(MEMBER_SHARED_TOOL_CHOICE);
+            choice.emitCanonical(generator);
+        }
+
+        if (flagged)
+        {
+            ensure(HEADROOM + MEMBER_SHARED_PARALLEL.length());
+            generator.write(MEMBER_SHARED_PARALLEL, disabled != JsonEvent.VALUE_TRUE);
+        }
+
+        boolean residue = false;
+        int index = 1;
+
+        while (captured.event(index) == JsonEvent.KEY_NAME)
+        {
+            final String name = captured.text(index);
+            final boolean consumed = typed && MEMBER_TYPE.equals(name) ||
+                named && MEMBER_NAME.equals(name) ||
+                flagged && MEMBER_DISABLE_PARALLEL.equals(name);
+            final int next = captured.end(index + 1);
+
+            if (!consumed)
+            {
+                ensure(HEADROOM + MEMBER_NATIVE_TOOL_CHOICE.length());
+
+                if (!residue)
+                {
+                    residue = true;
+                    generator.writeStartObject(MEMBER_NATIVE_TOOL_CHOICE);
+                }
+
+                copyText(JsonEvent.KEY_NAME, name, false);
+                replay(index + 1, next);
+            }
+
+            index = next;
+        }
+
+        if (residue)
+        {
+            ensure(HEADROOM);
+            generator.writeEnd();
+        }
+        else if (!typed && !flagged)
+        {
+            ensure(HEADROOM + MEMBER_NATIVE_TOOL_CHOICE.length());
+            generator.writeStartObject(MEMBER_NATIVE_TOOL_CHOICE).writeEnd();
+        }
+    }
+
+    private int captureValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        switch (event)
+        {
+        case START_OBJECT, START_ARRAY:
+            depth++;
+            outcome = captured.add(event, null, CAPTURE_MAX) ? MORE : REJECT;
+            break;
+        case END_OBJECT, END_ARRAY:
+            depth--;
+            outcome = captured.add(event, null, CAPTURE_MAX) ? depth == 0 ? VALUE : MORE : REJECT;
+            break;
+        case VALUE_TRUE, VALUE_FALSE, VALUE_NULL:
+            outcome = captured.add(event, null, CAPTURE_MAX) ? depth == 0 ? VALUE : MORE : REJECT;
+            break;
+        default:
+            capture.append(parser.getStringView());
+
+            if (capture.length() > CAPTURE_MAX)
+            {
+                outcome = REJECT;
+            }
+            else if (!parser.deferredBytes())
+            {
+                final String text = capture.toString();
+
+                capture.setLength(0);
+                outcome = captured.add(event, text, CAPTURE_MAX)
+                    ? depth == 0 && event != JsonEvent.KEY_NAME ? VALUE : MORE
+                    : REJECT;
+            }
+            break;
+        }
+
+        return outcome;
+    }
+
+    private void replay(
+        int from,
+        int to)
+    {
+        for (int index = from; index < to; index++)
+        {
+            ensure(HEADROOM);
+
+            final String text = captured.text(index);
+
+            switch (captured.event(index))
+            {
+            case START_OBJECT:
+                generator.writeStartObject();
+                break;
+            case START_ARRAY:
+                generator.writeStartArray();
+                break;
+            case END_OBJECT, END_ARRAY:
+                generator.writeEnd();
+                break;
+            case KEY_NAME:
+                copyText(JsonEvent.KEY_NAME, text, false);
+                break;
+            case VALUE_STRING:
+                copyText(JsonEvent.VALUE_STRING, text, false);
+                break;
+            case VALUE_NUMBER:
+                copyText(JsonEvent.VALUE_NUMBER, text, false);
+                break;
+            case VALUE_TRUE:
+                generator.write(true);
+                break;
+            case VALUE_FALSE:
+                generator.write(false);
+                break;
+            default:
+                generator.writeNull();
+                break;
+            }
+        }
+    }
+
+    private void ensure(
+        int need)
+    {
+        if (generator.remaining() < need)
+        {
+            flush(false);
+        }
+
+        if (generator.remaining() < need)
+        {
+            throw new JsonException("insufficient room to write the next member");
+        }
+    }
+
+    private void writeFlag(
+        JsonEvent event)
+    {
+        if (event == JsonEvent.VALUE_NULL)
+        {
+            generator.writeNull();
+        }
+        else
+        {
+            generator.write(event == JsonEvent.VALUE_TRUE);
+        }
+    }
+
+    private static boolean flag(
+        JsonEvent event)
+    {
+        return event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL;
+    }
+
     private void copy(
         JsonEvent event,
         JsonParserEx parser)
@@ -802,7 +1392,7 @@ final class LlmAnthropicBlockWriter
 
     private void copyText(
         JsonEvent event,
-        JsonStringView chars,
+        CharSequence chars,
         boolean deferred)
     {
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
