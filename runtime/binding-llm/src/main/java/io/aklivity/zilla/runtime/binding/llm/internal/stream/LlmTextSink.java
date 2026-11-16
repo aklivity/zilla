@@ -24,14 +24,11 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 final class LlmTextSink implements JsonSink
 {
     private final LlmTextPipeline.CharOutput output;
-    private final boolean completing;
 
     LlmTextSink(
-        LlmTextPipeline.CharOutput output,
-        boolean completing)
+        LlmTextPipeline.CharOutput output)
     {
         this.output = output;
-        this.completing = completing;
     }
 
     @Override
@@ -55,11 +52,7 @@ final class LlmTextSink implements JsonSink
 
             control.consumed(length);
 
-            status = deferred || !completing ? Status.ADVANCED : Status.COMPLETED;
-        }
-        else if (event == JsonEvent.END_DOCUMENT && !completing)
-        {
-            status = Status.COMPLETED;
+            status = deferred ? Status.ADVANCED : Status.COMPLETED;
         }
 
         return status;

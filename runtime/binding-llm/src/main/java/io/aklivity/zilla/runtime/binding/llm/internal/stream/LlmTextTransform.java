@@ -19,24 +19,19 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmTextTransform extends LlmToolTransform
 {
     private final boolean optional;
-    private final LlmCacheBreakpoint breakpoints;
 
     private boolean extracted;
-    private boolean marked;
-    private String markedTtl;
 
     LlmTextTransform()
     {
-        this(false, null);
+        this(false);
     }
 
     LlmTextTransform(
-        boolean optional,
-        LlmCacheBreakpoint breakpoints)
+        boolean optional)
     {
-        super(MODE_EXTRACT, null, 1, breakpoints != null ? new LlmCapturedValue() : null);
+        super(MODE_EXTRACT);
         this.optional = optional;
-        this.breakpoints = breakpoints;
     }
 
     boolean extracted()
@@ -44,23 +39,11 @@ final class LlmTextTransform extends LlmToolTransform
         return extracted;
     }
 
-    boolean marked()
-    {
-        return marked;
-    }
-
-    String markedTtl()
-    {
-        return markedTtl;
-    }
-
     @Override
     public void reset()
     {
         super.reset();
         extracted = false;
-        marked = false;
-        markedTtl = null;
     }
 
     @Override
@@ -72,17 +55,7 @@ final class LlmTextTransform extends LlmToolTransform
 
         extracted |= text;
 
-        return text ? PASS_STRING : breakpoints != null && matches(key, LlmCacheBreakpoint.MEMBER) ? capture(key) : DROP;
-    }
-
-    @Override
-    protected Status onCaptured(
-        LlmCapturedValue value)
-    {
-        marked = breakpoints.admit(value);
-        markedTtl = marked ? breakpoints.ttl() : null;
-
-        return Status.ADVANCED;
+        return text ? PASS_STRING : DROP;
     }
 
     @Override

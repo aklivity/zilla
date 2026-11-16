@@ -270,6 +270,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int SEEN_OPENED = 1 << 6;
     private static final int SEEN_ENABLED = 1 << 7;
     private static final int SEEN_ENABLED_KEY = 1 << 8;
+    private static final int SEEN_CACHED = 1 << 9;
     private static final String MEMBER_SOURCE = "source";
     private static final String MEMBER_MEDIA_TYPE = "media_type";
     private static final String MEMBER_FILE_ID = "file_id";
@@ -551,15 +552,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         };
     }
 
-    private static boolean part(
-        int kind)
-    {
-        return kind == KIND_SYSTEM_INSTRUCTION ||
-            kind == KIND_USER_TEXT ||
-            kind == KIND_ASSISTANT_TEXT ||
-            kind == KIND_TOOL_RESULT;
-    }
-
     private static boolean parsed(
         int kind)
     {
@@ -605,12 +597,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         return type == LlmSectionType.ASSISTANT_REASONING || type == LlmSectionType.SYSTEM_INSTRUCTION ||
             type == LlmSectionType.USER_TEXT || type == LlmSectionType.ASSISTANT_TEXT ||
             type == LlmSectionType.ASSISTANT_REFUSAL || type == LlmSectionType.TOOL_RESULT;
-    }
-
-    private static boolean textual(
-        LlmSectionType type)
-    {
-        return objectShaped(type) && type != LlmSectionType.ASSISTANT_REASONING;
     }
 
     private static int nesting(
@@ -4382,6 +4368,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         else if (admitted)
                         {
                             writeCacheControl(breakpoints.ttl());
+                            seenMask |= SEEN_CACHED;
                         }
 
                         requestThen = breakpointThen;
@@ -4565,7 +4552,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             requestSkipDepth = 0;
             requestThen = keys;
 
-            if (LlmCacheBreakpoint.MEMBER.contentEquals(key) && breakpointed(sectionKind))
+            if (LlmCacheBreakpoint.MEMBER.contentEquals(key) && breakpointed(sectionKind) && (seenMask & SEEN_CACHED) == 0)
             {
                 breakpointThen = keys;
                 requestDecoder = decodeRequestBreakpoint;

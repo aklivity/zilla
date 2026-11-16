@@ -41,7 +41,6 @@ public class LlmUnsupportedMembersTest
         "{'openai/rs:background':false,'openai/rs:previous_response_id':null,'openai/rs:conversation':null}";
 
     private static final List<Function<LlmModelCapability, LlmToolTransform>> DIALECTS = List.of(
-        capability -> LlmAnthropicControlFromCanonical.members(false, capability),
         capability -> LlmGeminiControlFromCanonical.members(false, capability));
 
     @Test
@@ -206,8 +205,6 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
 
-        assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
-        assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(RESPONSES_HARMLESS), "{}");
         assertTransforms(LlmGeminiControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
         assertTransforms(LlmGeminiControlFromCanonical.members(false, capability), json(RESPONSES_HARMLESS), "{}");
     }
@@ -232,9 +229,6 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = unsupported("seed");
 
-        assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability),
-            json("{'x:seed':1,'x:top_k':5}"),
-            json("{'top_k':5}"));
         assertTransforms(LlmGeminiControlFromCanonical.members(false, capability),
             json("{'x:seed':1,'x:top_k':5}"),
             json("{'generationConfig':{'topK':5}}"));
@@ -258,11 +252,7 @@ public class LlmUnsupportedMembersTest
         String value)
     {
         final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
-        final List<LlmToolTransform> transforms = member.startsWith("openai/ccs")
-            ? List.of(LlmAnthropicControlFromCanonical.members(false, capability),
-                LlmGeminiControlFromCanonical.members(false, capability))
-            : List.of(LlmAnthropicControlFromCanonical.members(false, capability),
-                LlmGeminiControlFromCanonical.members(false, capability));
+        final List<LlmToolTransform> transforms = List.of(LlmGeminiControlFromCanonical.members(false, capability));
 
         for (LlmToolTransform transform : transforms)
         {
