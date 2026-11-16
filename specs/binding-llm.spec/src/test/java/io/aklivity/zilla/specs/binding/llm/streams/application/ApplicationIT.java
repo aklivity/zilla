@@ -9839,4 +9839,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.user.straddle/client",
+        "${app}/anthropic.request.user.straddle/server"})
+    public void shouldForwardAnthropicRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.straddle/client",
+        "${app}/anthropic.request.reasoning.effort.straddle/server"})
+    public void shouldForwardAnthropicRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.service.tier.window/client",
+        "${app}/anthropic.request.service.tier.window/server"})
+    public void shouldForwardAnthropicRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

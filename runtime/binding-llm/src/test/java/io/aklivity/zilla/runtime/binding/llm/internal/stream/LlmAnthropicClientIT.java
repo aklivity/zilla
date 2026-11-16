@@ -3641,4 +3641,34 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.user.straddle/client",
+        "${net}/anthropic.request.user.straddle/server"})
+    public void shouldEncodeAnthropicRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.straddle/client",
+        "${net}/anthropic.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeAnthropicRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.service.tier.window/client",
+        "${net}/anthropic.request.service.tier.window/server"})
+    public void shouldEncodeAnthropicRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }
