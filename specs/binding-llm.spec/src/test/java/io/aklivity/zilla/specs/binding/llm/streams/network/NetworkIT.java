@@ -1038,6 +1038,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.text.citations.filtered/client",
+        "${net}/anthropic.section.assistant.text.citations.filtered/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldAnthropicSectionAssistantToolCall() throws Exception
@@ -3183,6 +3192,15 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.tool.call.cache.control/client",
         "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
     public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControlDuplicate() throws Exception
     {
         k3po.finish();
     }
@@ -8889,6 +8907,15 @@ public class NetworkIT
         "${net}/anthropic.section.user.document.citations/client",
         "${net}/anthropic.section.user.document.citations/server"})
     public void shouldForwardAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.document.citations.keys/client",
+        "${net}/anthropic.section.user.document.citations.keys/server"})
+    public void shouldAnthropicSectionUserDocumentCitationsKeys() throws Exception
     {
         k3po.finish();
     }
