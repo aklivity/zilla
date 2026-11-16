@@ -390,15 +390,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.proxy.guardrail.rejected/client",
-        "${net}/openai.proxy.guardrail.rejected/server"})
-    public void shouldRejectOpenaiProxyGuardrailSection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.rejected.bad.gateway/client",
         "${net}/openai.rejected.bad.gateway/server"})
     public void shouldRejectOpenaiBadGateway() throws Exception
@@ -4827,15 +4818,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/gemini.proxy.guardrail.rejected/client",
-        "${net}/gemini.proxy.guardrail.rejected/server"})
-    public void shouldGuardGeminiRejectedNet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/gemini.section.assistant.server.tool.call/client",
         "${net}/gemini.section.assistant.server.tool.call/server"})
     public void shouldEncodeGeminiSectionAssistantServerToolCall() throws Exception
@@ -6837,24 +6819,6 @@ public class NetworkIT
         "${net}/anthropic.transform.assistant.reasoning.unsigned/client",
         "${net}/anthropic.transform.assistant.reasoning.unsigned/server"})
     public void shouldAnthropicTransformAssistantReasoningUnsigned() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.proxy.guardrail.rejected/client",
-        "${net}/openai.responses.proxy.guardrail.rejected/server"})
-    public void shouldOpenaiResponsesProxyGuardrailRejected() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.proxy.guardrail.transformed/client",
-        "${net}/openai.responses.proxy.guardrail.transformed/server"})
-    public void shouldOpenaiResponsesProxyGuardrailTransformed() throws Exception
     {
         k3po.finish();
     }

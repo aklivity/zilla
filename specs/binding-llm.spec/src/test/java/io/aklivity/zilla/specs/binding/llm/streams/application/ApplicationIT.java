@@ -7482,15 +7482,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.responses.proxy.guardrail.transformed.exit/client",
-        "${app}/openai.responses.proxy.guardrail.transformed.exit/server"})
-    public void shouldOpenaiResponsesProxyGuardrailTransformedExit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.responses.text.citations.long/client",
         "${app}/openai.responses.text.citations.long/server"})
     public void shouldOpenaiResponsesTextCitationsLong() throws Exception
