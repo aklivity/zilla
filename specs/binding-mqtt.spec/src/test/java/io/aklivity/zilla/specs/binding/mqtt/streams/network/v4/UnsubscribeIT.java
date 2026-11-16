@@ -148,4 +148,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.empty/client",
+        "${net}/unsubscribe.reject.topic.filter.empty/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
 }

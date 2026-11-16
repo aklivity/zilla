@@ -221,4 +221,16 @@ public class ValidatorTest
     {
         assertFalse(validator.isTopicFilterValid("+topic/name/#"));
     }
+
+    @Test
+    public void shouldNotValidateEmptyTopicFilter()
+    {
+        assertFalse(validator.isTopicFilterValid(""));
+    }
+
+    @Test
+    public void shouldNotValidateTopicFilterWithNullCharacter()
+    {
+        assertFalse(validator.isTopicFilterValid("sensor\u0000one"));
+    }
 }

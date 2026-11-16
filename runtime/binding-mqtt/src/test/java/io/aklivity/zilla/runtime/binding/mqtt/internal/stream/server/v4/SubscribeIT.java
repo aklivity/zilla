@@ -619,4 +619,24 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.empty/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectTopicFilterWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

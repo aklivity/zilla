@@ -775,4 +775,44 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.wildcard/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.empty/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.response.topic.wildcard/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishResponseTopicWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
 }
