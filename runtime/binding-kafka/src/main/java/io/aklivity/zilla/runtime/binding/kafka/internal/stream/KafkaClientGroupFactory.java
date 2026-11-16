@@ -1360,6 +1360,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
         private long replyBudgetId;
         private int topicMetadataLimit;
+        private int topicMetadataVersion;
+        private int joinedTopicMetadataVersion;
 
         KafkaGroupStream(
             MessageConsumer sender,
@@ -1541,6 +1543,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                     {
                         metadataBuffer.putBytes(0, metadata.value(), 0, metadataSize);
                         topicMetadataLimit = metadataSize;
+                        topicMetadataVersion++;
                     }
                 });
 
@@ -3862,6 +3865,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             final int metadataLimit = delegate.topicMetadataLimit > 0 ? doGenerateSubscriptionMetadata() :
                 doGenerateEmptySubscriptionMetadata();
 
+            delegate.joinedTopicMetadataVersion = delegate.topicMetadataVersion;
+
             final ProtocolMetadataFW protocolMetadata =
                 protocolMetadataRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                     .name(delegate.protocol)
@@ -5402,12 +5407,20 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cancelHeartbeat();
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
-                originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
-
-            if (!encoders.isEmpty())
+            if (delegate.topicMetadataVersion != delegate.joinedTopicMetadataVersion)
             {
-                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+                delegate.client = joinGroup;
+                joinGroup.doJoinGroupRequest(traceId);
+            }
+            else
+            {
+                heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+                    originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
+
+                if (!encoders.isEmpty())
+                {
+                    signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+                }
             }
         }
 
