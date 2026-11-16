@@ -10306,4 +10306,148 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.user.window/client",
+        "${net}/openai.request.user.window/server"})
+    public void shouldOpenaiRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.service.tier.straddle/client",
+        "${net}/openai.request.service.tier.straddle/server"})
+    public void shouldOpenaiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.stop.straddle/client",
+        "${net}/openai.request.stop.straddle/server"})
+    public void shouldOpenaiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.stop.window/client",
+        "${net}/openai.request.stop.window/server"})
+    public void shouldOpenaiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.reasoning.budget.straddle/client",
+        "${net}/openai.request.reasoning.budget.straddle/server"})
+    public void shouldOpenaiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.reasoning.effort.window/client",
+        "${net}/openai.request.reasoning.effort.window/server"})
+    public void shouldOpenaiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.reasoning.budget.window/client",
+        "${net}/openai.request.reasoning.budget.window/server"})
+    public void shouldOpenaiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user.window/client",
+        "${net}/anthropic.request.user.window/server"})
+    public void shouldAnthropicRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier.straddle/client",
+        "${net}/anthropic.request.service.tier.straddle/server"})
+    public void shouldAnthropicRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.stop.straddle/client",
+        "${net}/anthropic.request.stop.straddle/server"})
+    public void shouldAnthropicRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.stop.window/client",
+        "${net}/anthropic.request.stop.window/server"})
+    public void shouldAnthropicRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.straddle/client",
+        "${net}/anthropic.request.reasoning.budget.straddle/server"})
+    public void shouldAnthropicRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.effort.window/client",
+        "${net}/anthropic.request.reasoning.effort.window/server"})
+    public void shouldAnthropicRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.window/client",
+        "${net}/anthropic.request.reasoning.budget.window/server"})
+    public void shouldAnthropicRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.type.window/client",
+        "${net}/anthropic.request.response.format.type.window/server"})
+    public void shouldAnthropicRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.type.straddle/client",
+        "${net}/anthropic.request.response.format.type.straddle/server"})
+    public void shouldAnthropicRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }

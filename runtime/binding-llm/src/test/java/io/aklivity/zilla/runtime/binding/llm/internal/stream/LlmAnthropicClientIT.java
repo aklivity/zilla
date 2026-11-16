@@ -3671,4 +3671,94 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.user.window/client",
+        "${net}/anthropic.request.user.window/server"})
+    public void shouldEncodeAnthropicRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.service.tier.straddle/client",
+        "${net}/anthropic.request.service.tier.straddle/server"})
+    public void shouldEncodeAnthropicRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.stop.straddle/client",
+        "${net}/anthropic.request.stop.straddle/server"})
+    public void shouldEncodeAnthropicRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.stop.window/client",
+        "${net}/anthropic.request.stop.window/server"})
+    public void shouldEncodeAnthropicRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.straddle/client",
+        "${net}/anthropic.request.reasoning.budget.straddle/server"})
+    public void shouldEncodeAnthropicRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.window/client",
+        "${net}/anthropic.request.reasoning.effort.window/server"})
+    public void shouldEncodeAnthropicRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.window/client",
+        "${net}/anthropic.request.reasoning.budget.window/server"})
+    public void shouldEncodeAnthropicRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.type.window/client",
+        "${net}/anthropic.request.response.format.type.window/server"})
+    public void shouldEncodeAnthropicRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.type.straddle/client",
+        "${net}/anthropic.request.response.format.type.straddle/server"})
+    public void shouldEncodeAnthropicRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }
