@@ -6627,12 +6627,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (!encodeFailed && schemaRejection.rejected())
                     {
-                        final boolean text = event == JsonEvent.KEY_NAME ||
-                            event == JsonEvent.VALUE_STRING ||
-                            event == JsonEvent.VALUE_NUMBER;
-
-                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT + " keyword " +
-                            schemaRejection.keyword(text ? parser.getStringView() : ""));
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT + " keyword " + schemaRejection.keyword());
                     }
                     else
                     {

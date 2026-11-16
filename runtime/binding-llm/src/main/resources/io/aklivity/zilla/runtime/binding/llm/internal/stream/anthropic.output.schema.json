@@ -2,16 +2,20 @@
     "$ref": "#/$defs/schema",
     "$defs": {
         "schema": {
-            "propertyNames": {
-                "not": {
-                    "enum": [
-                        "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength", "maxLength",
-                        "maxItems", "uniqueItems", "contains", "minContains", "maxContains"
-                    ]
-                }
-            },
             "items": { "$ref": "#/$defs/schema" },
             "properties": {
+                "minimum": false,
+                "maximum": false,
+                "exclusiveMinimum": false,
+                "exclusiveMaximum": false,
+                "multipleOf": false,
+                "minLength": false,
+                "maxLength": false,
+                "maxItems": false,
+                "uniqueItems": false,
+                "contains": false,
+                "minContains": false,
+                "maxContains": false,
                 "$ref": { "pattern": "^#." },
                 "minItems": { "minimum": 0, "maximum": 1, "multipleOf": 1 },
                 "properties": { "$ref": "#/$defs/map" },

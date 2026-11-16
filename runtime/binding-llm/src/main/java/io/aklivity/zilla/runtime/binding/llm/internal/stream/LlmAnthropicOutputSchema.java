@@ -28,7 +28,6 @@ import io.aklivity.zilla.runtime.common.json.JsonSchemaDiagnostic;
 final class LlmAnthropicOutputSchema
 {
     private static final String RESOURCE = "anthropic.output.schema.json";
-    private static final String PROPERTY_NAMES = "propertyNames";
 
     private final JsonSchema schema;
 
@@ -59,7 +58,7 @@ final class LlmAnthropicOutputSchema
         public void accept(
             JsonSchemaDiagnostic next)
         {
-            if (diagnostic == null || PROPERTY_NAMES.equals(next.keyword()))
+            if (diagnostic == null)
             {
                 diagnostic = next;
             }
@@ -70,12 +69,11 @@ final class LlmAnthropicOutputSchema
             return diagnostic != null;
         }
 
-        String keyword(
-            CharSequence key)
+        String keyword()
         {
             final String pointer = diagnostic.pointer();
 
-            return PROPERTY_NAMES.equals(diagnostic.keyword()) ? key.toString() : pointer.substring(pointer.lastIndexOf('/') + 1);
+            return pointer.substring(pointer.lastIndexOf('/') + 1);
         }
     }
 }
