@@ -457,6 +457,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.reset.in.flight/client",
+        "${app}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.qos2.reset/client",
         "${app}/publish.qos2.reset/server"})
     public void shouldAcknowledgeQos2PublishReset() throws Exception

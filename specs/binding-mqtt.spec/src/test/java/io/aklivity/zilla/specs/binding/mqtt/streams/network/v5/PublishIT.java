@@ -212,6 +212,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.qos1.reset.in.flight/client",
+        "${net}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.qos2.reset/client",
         "${net}/publish.qos2.reset/server"})
     public void shouldAcknowledgeQos2PublishReset() throws Exception
