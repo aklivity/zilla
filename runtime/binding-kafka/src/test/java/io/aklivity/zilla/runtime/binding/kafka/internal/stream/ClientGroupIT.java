@@ -231,6 +231,36 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/rebalance.new.topic/client",
+        "${net}/rebalance.new.topic/server"})
+    public void shouldRebalanceOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance.new.topic.before.join.group.response/client",
+        "${net}/rebalance.new.topic.before.join.group.response/server"})
+    public void shouldRebalanceOnNewTopicBeforeJoinGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/rebalance.new.topic.before.member.assignment/client",
+        "${net}/rebalance.new.topic/server"})
+    public void shouldRebalanceOnNewTopicBeforeMemberAssignment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/group.authorization.failed/client",
         "${net}/group.authorization.failed/server"})
     public void shouldPropagateGroupAuthorizationFailedError() throws Exception

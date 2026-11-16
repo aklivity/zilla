@@ -165,6 +165,24 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/rebalance.new.topic/client",
+        "${net}/rebalance.new.topic/server"})
+    public void shouldRebalanceOnNewTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/rebalance.new.topic.before.join.group.response/client",
+        "${net}/rebalance.new.topic.before.join.group.response/server"})
+    public void shouldRebalanceOnNewTopicBeforeJoinGroupResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/group.authorization.failed/client",
         "${net}/group.authorization.failed/server"})
     public void shouldPropagateGroupAuthorizationFailedError() throws Exception
