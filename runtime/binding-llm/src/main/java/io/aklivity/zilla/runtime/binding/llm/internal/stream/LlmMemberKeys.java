@@ -21,6 +21,7 @@ final class LlmMemberKeys
     static final int DROP = 0;
     static final int COPY = 1;
     static final int JUDGE = 2;
+    static final int SHARED = 3;
 
     private static final char DIALECT_END = ':';
     private static final String SHARED_DIALECT = "x";
@@ -36,6 +37,19 @@ final class LlmMemberKeys
 
     int select(
         CharSequence key)
+    {
+        return select(key, false);
+    }
+
+    int selectShared(
+        CharSequence key)
+    {
+        return select(key, true);
+    }
+
+    private int select(
+        CharSequence key,
+        boolean shared)
     {
         final int length = key.length();
         int colon = 0;
@@ -58,7 +72,12 @@ final class LlmMemberKeys
         }
         else if (colon == SHARED_DIALECT.length() && SHARED_DIALECT.charAt(0) == key.charAt(0))
         {
-            action = DROP;
+            action = shared ? SHARED : DROP;
+
+            if (shared)
+            {
+                target.wrap(key, colon + 1, length);
+            }
         }
         else if (LlmDialectNames.admits(key, 0, colon, dialect))
         {
