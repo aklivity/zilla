@@ -113,7 +113,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_ERROR = -1;
     private static final int STATUS_BAD_GATEWAY = 502;
-    private static final int EVENT_FRAMES = 4;
+    private static final int EVENT_FRAMES = 3;
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
@@ -681,6 +681,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int controlSlot = NO_SLOT;
         private int controlSlotOffset;
         private int controlEntry;
+        private int controlCount;
         private int controlFrom = NONE;
         private int controlMessage;
         private int controlDepth;
@@ -736,8 +737,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - controlSlotOffset -
-                EVENT_FRAMES * replyPad - sectionClosing());
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - controlSlotOffset - controlClosing() -
+                eventReserve() - sectionClosing());
         }
 
         private int sectionClosing()
@@ -1323,6 +1324,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         {
                             int window = Math.min(limit - offset, replyWindow() / decodeGrowth());
 
+                            if (window == 0 && limit > offset && decoder == decodeControlValue && controlSlot != NO_SLOT &&
+                                replyCredit() > 0)
+                            {
+                                beginControlStream();
+                                window = Math.min(limit - offset, replyWindow() / decodeGrowth());
+                            }
+
                             decodeWindowLimit = offset + window;
                         }
 
@@ -1448,15 +1456,28 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private boolean hasNextEvent()
         {
-            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+            return (!begun() || draining || eventSlack() >= eventReserve()) && parser.hasNextEvent();
         }
 
         private int eventSlack()
         {
-            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
-
-            return replyMax - (int) (replySeq - replyAck) - controlSlotOffset - pending -
+            return replyMax - (int) (replySeq - replyAck) - controlSlotOffset - controlPending() -
                 parser.remaining() * decodeGrowth() - sectionClosing();
+        }
+
+        private int eventReserve()
+        {
+            return (EVENT_FRAMES + controlCount) * replyPad;
+        }
+
+        private int controlClosing()
+        {
+            return controlFrom != NONE ? CONTROL_CLOSING : 0;
+        }
+
+        private int controlPending()
+        {
+            return controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
         }
 
         private int decodeGrowth()
@@ -1794,6 +1815,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_ARRAY)
                 {
+                    closeSection();
                     decoder = decodeRoot;
                 }
                 else if (event == JsonEvent.START_OBJECT)
@@ -2909,6 +2931,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             else
             {
                 controlEntry = controlSlotOffset;
+                controlCount++;
                 controlSlotOffset += CONTROL_HEADER;
                 encodePool.buffer(controlSlot).putBytes(controlSlotOffset, controlBuffer, 0, controlGenerator.length());
                 controlSlotOffset += controlGenerator.length();
@@ -2999,7 +3022,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int controlHoldMax()
         {
-            return Math.min(encodeMax, replyMax) - EVENT_FRAMES * replyPad;
+            return Math.min(encodeMax, replyMax) - eventReserve();
         }
 
         private void beginControlStream()
@@ -3064,6 +3087,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             if (controlFrom != NONE)
             {
                 controlSlotOffset = controlEntry;
+                controlCount--;
                 controlFrom = NONE;
 
                 if (controlSlotOffset == 0)
@@ -3102,6 +3126,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 controlSlot = NO_SLOT;
                 controlSlotOffset = 0;
             }
+
+            controlCount = 0;
         }
 
         private void beginUsage()

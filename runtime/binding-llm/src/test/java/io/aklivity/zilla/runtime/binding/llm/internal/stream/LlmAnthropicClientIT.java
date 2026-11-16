@@ -3502,6 +3502,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.response.controls.padded/client",
+        "${net}/anthropic.response.controls.many/server"})
+    public void shouldDecodeAnthropicResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.rejected.reset/client",
         "${net}/anthropic.rejected.reset/server"})
     public void shouldResetAnthropicRequestWhenUpstreamResets() throws Exception
