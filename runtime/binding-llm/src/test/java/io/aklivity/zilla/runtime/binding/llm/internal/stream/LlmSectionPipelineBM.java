@@ -157,9 +157,7 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline toolCallGeminiFromCanonical;
     private LlmSectionPipeline imageGeminiToCanonical;
     private LlmSectionPipeline imageGeminiFromCanonical;
-    private LlmSectionPipeline imageToCanonical;
     private LlmSectionPipeline imageFromAnthropic;
-    private LlmSectionPipeline citationsToCanonical;
     private LlmSectionPipeline citationsFromAnthropic;
     private LlmSectionPipeline controlAnthropicToCanonical;
     private LlmSectionPipeline controlAnthropicFromCanonical;
@@ -201,9 +199,7 @@ public class LlmSectionPipelineBM
         toolCallGeminiFromCanonical = pipeline(new LlmGeminiToolCallFromCanonical(true));
         imageGeminiToCanonical = pipeline(LlmGeminiMediaToCanonical.image());
         imageGeminiFromCanonical = pipeline(LlmGeminiMediaFromCanonical.image(true));
-        imageToCanonical = pipeline(LlmAnthropicMediaToCanonical.image());
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
-        citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
         citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
         controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
         controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
@@ -271,18 +267,6 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int imageInlineToCanonical()
-    {
-        return run(imageToCanonical, imageAttributes, imageNative, imageNative.capacity());
-    }
-
-    @Benchmark
-    public int imageInlineToCanonicalFragmented()
-    {
-        return run(imageToCanonical, imageAttributes, imageNative, WINDOW);
-    }
-
-    @Benchmark
     public int imageInlineFromCanonicalAnthropic()
     {
         return run(imageFromAnthropic, imageAttributes, imageCanonical, imageCanonical.capacity());
@@ -336,12 +320,6 @@ public class LlmSectionPipelineBM
     public int imageInlineFromCanonicalGemini()
     {
         return run(imageGeminiFromCanonical, imageAttributes, imageCanonical, imageCanonical.capacity());
-    }
-
-    @Benchmark
-    public int citationsToCanonical()
-    {
-        return run(citationsToCanonical, none, citationsNative, citationsNative.capacity());
     }
 
     @Benchmark

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRoundTrips;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -84,24 +83,6 @@ public class LlmAnthropicBlockMembersTest
     }
 
     @Test
-    public void shouldDecodeDocumentCitationsAndBreakpoint()
-    {
-        assertTransforms(LlmAnthropicMediaToCanonical.document(),
-            json("{'type':'document','citations':{'enabled':true},'source':{'type':'file','file_id':'file_1'}," +
-                "'cache_control':{'type':'ephemeral','ttl':'1h'}}"),
-            json("{'type':'file','x:citations':{'enabled':true},'file':{'file_id':'file_1'}," +
-                "'prompt_cache_breakpoint':{'mode':'explicit','ttl':'1h'}}"));
-    }
-
-    @Test
-    public void shouldNotCarryCitationsThatAreNotEnabled()
-    {
-        assertTransforms(LlmAnthropicMediaToCanonical.document(),
-            json("{'type':'document','citations':{'enabled':false},'source':{'type':'file','file_id':'file_1'}}"),
-            json("{'type':'file','file':{'file_id':'file_1'}}"));
-    }
-
-    @Test
     public void shouldEncodeDocumentCitationsAndBreakpoint()
     {
         final LlmAnthropicMediaFromCanonical document = LlmAnthropicMediaFromCanonical.document(false, breakpoints);
@@ -146,15 +127,6 @@ public class LlmAnthropicBlockMembersTest
                 "'prompt_cache_breakpoint':{'mode':'explicit'}}"),
             json("{'type':'image','source':{'type':'file','file_id':'file_1'},'cache_control':{'type':'ephemeral'}}"));
         assertThat(image.cited(), is(false));
-    }
-
-    @Test
-    public void shouldRoundTripDocumentCitations()
-    {
-        assertRoundTrips(LlmAnthropicMediaToCanonical.document(),
-            LlmAnthropicMediaFromCanonical.document(true, breakpoints), reference,
-            json("{'type':'document','source':{'type':'file','file_id':'file_1'},'citations':{'enabled':true}," +
-                "'cache_control':{'type':'ephemeral'}}"));
     }
 
     @Test

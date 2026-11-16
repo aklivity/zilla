@@ -37,9 +37,23 @@ final class LlmAnthropicBlockWriter
     static final int ACTION_OPTIONAL = 4;
     static final int ACTION_HOLD = 5;
     static final int ACTION_BREAKPOINT = 6;
+    static final int ACTION_REJECT = 7;
+    static final int ACTION_SOURCE = 8;
+    static final int ACTION_CITATIONS = 9;
+    static final int ACTION_DATA = 10;
 
     static final int KIND_TOOL_CALL = 0;
     static final int KIND_TOOL_DEFINITION = 1;
+    static final int KIND_REASONING = 2;
+    static final int KIND_MEDIA = 3;
+    static final int KIND_CITATIONS = 4;
+
+    private static final int CITATION_NONE = 0;
+    private static final int CITATION_URL = 1;
+    private static final int CITATION_OTHER = 2;
+    private static final int NEST_NONE = 0;
+    private static final int NEST_OPEN = 1;
+    private static final int NEST_CLOSED = 2;
 
     private static final String PREFIX = LlmAnthropicDialectFactorySpi.NAME + ":";
     private static final String MEMBER_TYPE = "type";
@@ -52,8 +66,27 @@ final class LlmAnthropicBlockWriter
     private static final String MEMBER_PARAMETERS = "parameters";
     private static final String MEMBER_STRICT = "strict";
     private static final String MEMBER_FUNCTION = "function";
+    private static final String MEMBER_DATA_NAME = "data";
+    private static final String SHARED_CITATIONS = LlmCitationsEnabled.SHARED_MEMBER;
     private static final String TYPE_CUSTOM = "custom";
     private static final String TYPE_FUNCTION = "function";
+    private static final String MEMBER_THINKING = "thinking";
+    private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_SIGNATURE = "signature";
+    private static final String MEMBER_REDACTED = "data";
+    private static final String SHARED_SIGNATURE = "x:signature";
+    private static final String SHARED_REDACTED = "x:redacted_data";
+    private static final String MEMBER_SOURCE = "source";
+    private static final String MEMBER_MEDIA_TYPE = "media_type";
+    private static final String MEMBER_URL = "url";
+    private static final String MEMBER_FILE_ID = "file_id";
+    private static final String MEMBER_TITLE = "title";
+    private static final String MEMBER_ENABLED = "enabled";
+    private static final String TYPE_URL_LOCATION = "web_search_result_location";
+    private static final String TYPE_URL_CITATION = "url_citation";
+    private static final String MEMBER_OTHER_TYPE = PREFIX + MEMBER_TYPE;
+    private static final String DATA_URI_PREFIX = "data:";
+    private static final String BASE64_MARKER = ";base64,";
     private static final int HEADROOM = 16;
 
     private final LlmOutputSink sink;
@@ -73,6 +106,16 @@ final class LlmAnthropicBlockWriter
     private boolean breakpointKeyType;
     private boolean breakpointKeyTtl;
     private boolean breakpointEphemeral;
+    private String container;
+    private String dataMember;
+    private String urlMember;
+    private String mediaType;
+    private String pendingPrefix;
+    private int captureDepth;
+    private boolean captureKeyEnabled;
+    private boolean captureEnabled;
+    private int citation;
+    private int nest;
 
     LlmAnthropicBlockWriter(
         LlmOutputSink sink,
@@ -110,10 +153,175 @@ final class LlmAnthropicBlockWriter
         generator.writeStartObject().write(MEMBER_TYPE, TYPE_FUNCTION).writeStartObject(MEMBER_FUNCTION);
     }
 
+    void beginReasoning(
+        MutableDirectBufferEx buffer,
+        int origin)
+    {
+        begin(buffer, origin, KIND_REASONING);
+
+        generator.writeStartObject();
+    }
+
+    void beginMedia(
+        MutableDirectBufferEx buffer,
+        int origin,
+        boolean image,
+        String mediaType)
+    {
+        begin(buffer, origin, KIND_MEDIA);
+
+        this.container = image ? "image_url" : "file";
+        this.dataMember = image ? MEMBER_URL : "file_data";
+        this.urlMember = image ? MEMBER_URL : "file_url";
+        this.mediaType = mediaType;
+
+        generator.writeStartObject().write(MEMBER_TYPE, container);
+    }
+
+    void beginCitations(
+        MutableDirectBufferEx buffer,
+        int origin)
+    {
+        begin(buffer, origin, KIND_CITATIONS);
+
+        generator.writeStartArray();
+    }
+
+    void beginElement()
+    {
+        generator.writeStartObject();
+
+        heldType = null;
+        citation = CITATION_NONE;
+        nest = NEST_NONE;
+    }
+
+    boolean elements()
+    {
+        return kind == KIND_CITATIONS;
+    }
+
+    void endElement()
+    {
+        if (heldType != null)
+        {
+            resolveCitation();
+        }
+
+        closeNested();
+        generator.writeEnd();
+    }
+
     int action(
         CharSequence name)
     {
-        return kind == KIND_TOOL_CALL ? toolCallAction(name) : toolDefinitionAction(name);
+        return switch (kind)
+        {
+        case KIND_TOOL_CALL -> toolCallAction(name);
+        case KIND_TOOL_DEFINITION -> toolDefinitionAction(name);
+        case KIND_REASONING -> reasoningAction(name);
+        case KIND_MEDIA -> mediaAction(name);
+        default -> citationAction(name);
+        };
+    }
+
+    int sourceAction(
+        CharSequence name)
+    {
+        int action = ACTION_DROP;
+
+        if (MEMBER_DATA_NAME.contentEquals(name))
+        {
+            if (mediaType != null)
+            {
+                generator.writeKey(dataMember);
+                pendingPrefix = DATA_URI_PREFIX + mediaType + BASE64_MARKER;
+                action = ACTION_DATA;
+            }
+            else
+            {
+                action = ACTION_REJECT;
+            }
+        }
+        else if (MEMBER_URL.contentEquals(name))
+        {
+            generator.writeKey(urlMember);
+            action = ACTION_STRING;
+        }
+        else if (MEMBER_FILE_ID.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_FILE_ID);
+            action = ACTION_STRING;
+        }
+        else if (!MEMBER_TYPE.contentEquals(name) && !MEMBER_MEDIA_TYPE.contentEquals(name))
+        {
+            writePrefixed(name);
+            action = ACTION_COPY;
+        }
+
+        return action;
+    }
+
+    void closeSource()
+    {
+        generator.writeEnd();
+    }
+
+    int dataValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        if (event == JsonEvent.VALUE_STRING)
+        {
+            if (pendingPrefix != null)
+            {
+                generator.write(pendingPrefix, Completion.INCOMPLETE);
+                pendingPrefix = null;
+            }
+
+            outcome = copyValue(event, parser);
+        }
+
+        return outcome;
+    }
+
+    int citationsValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        switch (event)
+        {
+        case START_OBJECT, START_ARRAY:
+            captureDepth++;
+            break;
+        case END_OBJECT, END_ARRAY:
+            captureDepth--;
+            break;
+        case KEY_NAME:
+            captureKeyEnabled = captureDepth == 1 && MEMBER_ENABLED.contentEquals(parser.getStringView());
+            break;
+        case VALUE_TRUE:
+            captureEnabled |= captureDepth == 1 && captureKeyEnabled;
+            break;
+        default:
+            break;
+        }
+
+        int outcome = MORE;
+
+        if (captureDepth == 0)
+        {
+            if (captureEnabled)
+            {
+                generator.writeKey(SHARED_CITATIONS).writeStartObject().write(MEMBER_ENABLED, true).writeEnd();
+            }
+
+            outcome = VALUE;
+        }
+
+        return outcome;
     }
 
     boolean reserve(
@@ -150,7 +358,7 @@ final class LlmAnthropicBlockWriter
                 generator.writeStartObject(MEMBER_ARGUMENTS).writeEnd();
             }
         }
-        else
+        else if (kind == KIND_TOOL_DEFINITION)
         {
             accepted = named && (heldType == null || TYPE_CUSTOM.equals(heldType));
 
@@ -325,9 +533,152 @@ final class LlmAnthropicBlockWriter
         this.named = false;
         this.heldType = null;
         this.pendingKey = null;
+        this.pendingPrefix = null;
+        this.mediaType = null;
 
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
+    }
+
+    private int reasoningAction(
+        CharSequence name)
+    {
+        int action = ACTION_COPY;
+
+        if (MEMBER_TYPE.contentEquals(name))
+        {
+            action = ACTION_DROP;
+        }
+        else if (MEMBER_THINKING.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_TEXT);
+            action = ACTION_STRING;
+        }
+        else if (MEMBER_SIGNATURE.contentEquals(name))
+        {
+            generator.writeKey(SHARED_SIGNATURE);
+        }
+        else if (MEMBER_REDACTED.contentEquals(name))
+        {
+            generator.writeKey(SHARED_REDACTED);
+        }
+        else
+        {
+            writePrefixed(name);
+        }
+
+        return action;
+    }
+
+    private int mediaAction(
+        CharSequence name)
+    {
+        int action = ACTION_DROP;
+
+        if (MEMBER_SOURCE.contentEquals(name))
+        {
+            generator.writeKey(container).writeStartObject();
+            action = ACTION_SOURCE;
+        }
+        else if (LlmCacheBreakpoint.NATIVE_MEMBER.contentEquals(name))
+        {
+            action = beginBreakpoint();
+        }
+        else if (LlmCitationsEnabled.MEMBER.contentEquals(name))
+        {
+            captureDepth = 0;
+            captureKeyEnabled = false;
+            captureEnabled = false;
+            action = ACTION_CITATIONS;
+        }
+        else if (!MEMBER_TYPE.contentEquals(name))
+        {
+            writePrefixed(name);
+            action = ACTION_COPY;
+        }
+
+        return action;
+    }
+
+    private int citationAction(
+        CharSequence name)
+    {
+        int action;
+
+        if (MEMBER_TYPE.contentEquals(name))
+        {
+            action = ACTION_HOLD;
+        }
+        else if (citation == CITATION_NONE && heldType == null)
+        {
+            action = ACTION_REJECT;
+        }
+        else
+        {
+            resolveCitation();
+
+            final boolean title = MEMBER_TITLE.contentEquals(name);
+
+            if (citation == CITATION_URL && (title || MEMBER_URL.contentEquals(name)))
+            {
+                if (nest == NEST_CLOSED)
+                {
+                    action = ACTION_REJECT;
+                }
+                else
+                {
+                    openNested();
+
+                    if (title)
+                    {
+                        pendingKey = MEMBER_TITLE;
+                        action = ACTION_OPTIONAL;
+                    }
+                    else
+                    {
+                        generator.writeKey(MEMBER_URL);
+                        action = ACTION_STRING;
+                    }
+                }
+            }
+            else
+            {
+                closeNested();
+                writePrefixed(name);
+                action = ACTION_COPY;
+            }
+        }
+
+        return action;
+    }
+
+    private void resolveCitation()
+    {
+        if (citation == CITATION_NONE)
+        {
+            final boolean url = TYPE_URL_LOCATION.equals(heldType);
+
+            generator.writeKey(url ? MEMBER_TYPE : MEMBER_OTHER_TYPE).write(url ? TYPE_URL_CITATION : heldType);
+            citation = url ? CITATION_URL : CITATION_OTHER;
+        }
+    }
+
+    private void openNested()
+    {
+        if (nest == NEST_NONE)
+        {
+            generator.writeKey(TYPE_URL_CITATION).writeStartObject();
+            nest = NEST_OPEN;
+        }
+    }
+
+    private void closeNested()
+    {
+        if (nest == NEST_OPEN)
+        {
+            generator.writeEnd();
+            nest = NEST_CLOSED;
+        }
     }
 
     private int toolCallAction(
