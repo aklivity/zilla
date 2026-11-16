@@ -369,6 +369,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final JsonStringBody body = new JsonStringBody();
     private final JsonStringView.Decoded emptyChars = new JsonStringView.Decoded().wrap("");
     private final JsonGeneratorEx controlGenerator = JsonEx.createGenerator();
+    private final LlmAnthropicThinking thinking = new LlmAnthropicThinking();
 
     private byte[] pieceBytes;
     private UnsafeBufferEx pieceBuffer;
@@ -3833,7 +3834,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
-        private final LlmAnthropicThinking thinking = new LlmAnthropicThinking();
         private final LlmMemberCollector collector;
         private final LlmMembersOutput controlOutput;
         private final LlmMembersOutput.Members heldOutput = this::putHeld;
