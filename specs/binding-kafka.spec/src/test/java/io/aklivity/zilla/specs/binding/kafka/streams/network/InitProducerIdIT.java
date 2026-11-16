@@ -63,4 +63,22 @@ public class InitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/produce.new.id.request.timed.out/client",
+        "${net}/produce.new.id.request.timed.out/server"})
+    public void shouldGenerateNewProducerIdAfterRequestTimedOut() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/produce.new.id.cluster.authorization.failed/client",
+        "${net}/produce.new.id.cluster.authorization.failed/server"})
+    public void shouldRejectInitProducerIdClusterAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
