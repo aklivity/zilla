@@ -886,6 +886,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.topic.trailing.empty.level/client",
+        "${kafka}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.abort.deliver.will.non.expiring/client",
         "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
     public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
