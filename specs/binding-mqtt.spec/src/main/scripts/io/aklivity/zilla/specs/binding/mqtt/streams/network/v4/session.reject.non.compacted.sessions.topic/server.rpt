@@ -31,6 +31,6 @@ read  [0x10 0x11]                    # CONNECT
 
 write [0x20 0x02]                    # CONNACK
       [0x00]                         # flags = none
-      [0x83]                         # reason code = = implementation specific error
+      [0x03]                         # return code = server unavailable
 
 write close
