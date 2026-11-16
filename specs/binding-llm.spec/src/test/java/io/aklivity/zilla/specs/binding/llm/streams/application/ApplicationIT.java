@@ -9086,6 +9086,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.response.controls.padded/client",
+        "${app}/anthropic.response.controls.padded/server"})
+    public void shouldAnthropicResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.response.controls.many.stream/client",
         "${app}/anthropic.response.controls.many.stream/server"})
     public void shouldAnthropicResponseControlsManyStream() throws Exception
