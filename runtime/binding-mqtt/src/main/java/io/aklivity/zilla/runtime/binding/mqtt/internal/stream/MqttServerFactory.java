@@ -34,6 +34,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.RETAIN_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SERVER_BUSY;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SERVER_MOVED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SERVER_UNAVAILABLE_V4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SESSION_TAKEN_OVER;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SHARED_SUBSCRIPTION_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBACK_FAILURE_CODE_V4;
@@ -6021,12 +6022,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     doCancelConnectTimeout();
 
-                    if (!isConnackReasonCode(reasonCode))
+                    int connackReasonCode = isConnackReasonCode(reasonCode) ? reasonCode : IMPLEMENTATION_SPECIFIC_ERROR;
+
+                    if (version == MQTT_PROTOCOL_VERSION_4 && (connackReasonCode & 0xff) > MAX_CONNACK_REASONCODE_V4)
                     {
-                        reasonCode = IMPLEMENTATION_SPECIFIC_ERROR;
+                        connackReasonCode = SERVER_UNAVAILABLE_V4;
                     }
 
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId,
+                    doEncodeConnack(traceId, authorization, connackReasonCode, assignedClientId,
                         false, serverRefExists ? serverRef : null, reason, version);
                 }
                 else if (version == MQTT_PROTOCOL_VERSION_5)
