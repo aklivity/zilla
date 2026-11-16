@@ -158,6 +158,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.topic.trailing.empty.level/client",
+        "${kafka}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.options.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({

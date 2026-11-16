@@ -498,6 +498,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/client",
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.two.single.level.wildcard/server"})
     public void shouldFilterTwoSingleLevelWildcard() throws Exception

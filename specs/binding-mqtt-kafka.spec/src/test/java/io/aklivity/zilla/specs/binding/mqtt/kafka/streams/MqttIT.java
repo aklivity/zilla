@@ -101,6 +101,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.topic.trailing.empty.level/client",
+        "${mqtt}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.10k/client",
         "${mqtt}/publish.10k/server"})
     public void shouldSendMessage10k() throws Exception
@@ -428,6 +437,15 @@ public class MqttIT
         "${mqtt}/subscribe.topic.filter.single.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.single.level.wildcard/server"})
     public void shouldFilterSingleLevelWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/client",
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
     {
         k3po.finish();
     }
