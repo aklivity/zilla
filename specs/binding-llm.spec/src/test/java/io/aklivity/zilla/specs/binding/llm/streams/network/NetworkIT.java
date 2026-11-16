@@ -2792,6 +2792,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.transform.response.tool.call.10k/client",
+        "${net}/anthropic.transform.response.tool.call.10k/server"})
+    public void shouldAnthropicTransformResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${net}/anthropic.transform.response.tool.call.100k/server"})
+    public void shouldAnthropicTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.text.100k/client",
         "${net}/openai.transform.response.text.100k/server"})
     public void shouldOpenaiTransformResponseText100k() throws Exception
