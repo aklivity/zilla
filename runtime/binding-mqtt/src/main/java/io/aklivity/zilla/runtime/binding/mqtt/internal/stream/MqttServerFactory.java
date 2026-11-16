@@ -4947,9 +4947,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int payloadSize = payload.sizeof();
             final int deferred = subscribeDataEx.subscribe().deferred();
 
-            String topicName = subscribeDataEx.subscribe().topic().asString();
+            final String16FW topicName = subscribeDataEx.subscribe().topic();
 
-            final int topicNameLength = topicName != null ? topicName.length() : 0;
+            final int topicNameLength = Math.max(topicName.length(), 0);
 
             final int publishApplicationFlags = subscribeDataEx.subscribe().flags();
 
@@ -5013,9 +5013,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
                 subscribeDataEx.subscribe().properties();
 
-            String topicName = subscribeDataEx.subscribe().topic().asString();
+            final String16FW topicName = subscribeDataEx.subscribe().topic();
 
-            final int topicNameLength = topicName != null ? topicName.length() : 0;
+            final int topicNameLength = Math.max(topicName.length(), 0);
 
             AtomicInteger propertiesSize = new AtomicInteger();
 
