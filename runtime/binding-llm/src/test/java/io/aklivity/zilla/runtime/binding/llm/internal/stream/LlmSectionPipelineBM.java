@@ -130,7 +130,6 @@ public class LlmSectionPipelineBM
 
     private static final String CONTROL_VALUE =
         "{\"user_id\":\"u_1\",\"tags\":[\"a\",\"b\",\"c\"],\"nested\":{\"k\":\"v\",\"n\":[1,2,3]}}";
-    private static final String CONTROL_NATIVE = "{\"metadata\":" + CONTROL_VALUE + "}";
     private static final String CONTROL_ANTHROPIC_CANONICAL = "{\"anthropic:metadata\":" + CONTROL_VALUE + "}";
     private static final String CONTROL_OPENAI_CANONICAL = "{\"openai:metadata\":" + CONTROL_VALUE + "}";
 
@@ -161,7 +160,6 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline imageGeminiFromCanonical;
     private LlmSectionPipeline imageFromAnthropic;
     private LlmSectionPipeline citationsFromAnthropic;
-    private LlmSectionPipeline controlAnthropicToCanonical;
     private LlmSectionPipeline controlAnthropicFromCanonical;
     private LlmSectionPipeline reasoningResponsesFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
@@ -183,7 +181,6 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx imageCanonical;
     private UnsafeBufferEx citationsNative;
     private UnsafeBufferEx citationsCanonical;
-    private UnsafeBufferEx controlNative;
     private UnsafeBufferEx controlAnthropicCanonical;
     private UnsafeBufferEx controlOpenaiCanonical;
     private UnsafeBufferEx textObject;
@@ -206,7 +203,6 @@ public class LlmSectionPipelineBM
         imageGeminiFromCanonical = pipeline(LlmGeminiMediaFromCanonical.image(true));
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
         citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
-        controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
         controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
 
         reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical("openai/rs"));
@@ -234,7 +230,6 @@ public class LlmSectionPipelineBM
         imageCanonical = buffer(IMAGE_CANONICAL);
         citationsNative = buffer(CITATIONS_NATIVE);
         citationsCanonical = buffer(CITATIONS_CANONICAL);
-        controlNative = buffer(CONTROL_NATIVE);
         controlAnthropicCanonical = buffer(CONTROL_ANTHROPIC_CANONICAL);
         controlOpenaiCanonical = buffer(CONTROL_OPENAI_CANONICAL);
         textObject = buffer(TEXT_OBJECT);
@@ -365,18 +360,6 @@ public class LlmSectionPipelineBM
     public int citationsToCanonicalResponses()
     {
         return run(citationsResponsesToCanonical, none, citationsResponsesNative, citationsResponsesNative.capacity());
-    }
-
-    @Benchmark
-    public int controlToCanonicalAnthropic()
-    {
-        return run(controlAnthropicToCanonical, none, controlNative, controlNative.capacity());
-    }
-
-    @Benchmark
-    public int controlToCanonicalAnthropicFragmented()
-    {
-        return run(controlAnthropicToCanonical, none, controlNative, WINDOW);
     }
 
     @Benchmark

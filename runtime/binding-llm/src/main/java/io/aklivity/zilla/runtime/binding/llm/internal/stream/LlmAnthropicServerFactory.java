@@ -161,8 +161,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
         new UnsafeBufferEx("{\"stream_options\":{\"include_usage\":true}}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
-    private static final DirectBufferEx CONTROL_BEGIN = new UnsafeBufferEx("{".getBytes(UTF_8));
-    private static final DirectBufferEx CONTROL_CONTINUE = new UnsafeBufferEx(",".getBytes(UTF_8));
     private static final String SHARED_PREFIX = "x:";
 
     private static final int MIN_WINDOW = 64;
@@ -298,6 +296,19 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeBlockElement = this::decodeBlockElement;
     private final LlmAnthropicServerDecoder decodeBlockData = this::decodeBlockData;
     private final LlmAnthropicServerDecoder decodeBlockCitations = this::decodeBlockCitations;
+    private final LlmAnthropicServerDecoder decodeBlockRange = this::decodeBlockRange;
+    private final LlmAnthropicServerDecoder decodeControlStream = this::decodeControlStream;
+    private final LlmAnthropicServerDecoder decodeControlToolChoice = this::decodeControlToolChoice;
+    private final LlmAnthropicServerDecoder decodeControlTier = this::decodeControlTier;
+    private final LlmAnthropicServerDecoder decodeControlContainer = this::decodeControlContainer;
+    private final LlmAnthropicServerDecoder decodeControlResidueNone = this::decodeControlResidueNone;
+    private final LlmAnthropicServerDecoder decodeControlResidueOpen = this::decodeControlResidueOpen;
+    private final LlmAnthropicServerDecoder decodeControlResidueLifted = this::decodeControlResidueLifted;
+    private final LlmAnthropicServerDecoder decodeControlType = this::decodeControlType;
+    private final LlmAnthropicServerDecoder decodeControlFormat = this::decodeControlFormat;
+    private final LlmAnthropicServerDecoder decodeControlFormatKey = this::decodeControlFormatKey;
+    private final LlmAnthropicServerDecoder decodeControlFormatType = this::decodeControlFormatType;
+    private final LlmAnthropicServerDecoder decodeControlMember = this::decodeControlMember;
     private final LlmBlockHandler blockKey = this::onBlockKey;
     private final LlmBlockHandler blockDrop = this::onBlockDrop;
     private final LlmBlockHandler blockCopy = this::onBlockCopy;
@@ -311,6 +322,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmBlockHandler blockElement = this::onBlockElement;
     private final LlmBlockHandler blockData = this::onBlockData;
     private final LlmBlockHandler blockCitations = this::onBlockCitations;
+    private final LlmBlockHandler blockRange = this::onBlockRange;
+    private final LlmBlockHandler controlStream = this::onControlStream;
+    private final LlmBlockHandler controlToolChoice = this::onControlToolChoice;
+    private final LlmBlockHandler controlTier = this::onControlTier;
+    private final LlmBlockHandler controlContainer = this::onControlContainer;
+    private final LlmBlockHandler controlResidueNone = this::onControlResidueNone;
+    private final LlmBlockHandler controlResidueOpen = this::onControlResidueOpen;
+    private final LlmBlockHandler controlResidueLifted = this::onControlResidueLifted;
+    private final LlmBlockHandler controlType = this::onControlType;
+    private final LlmBlockHandler controlFormat = this::onControlFormat;
+    private final LlmBlockHandler controlFormatKey = this::onControlFormatKey;
+    private final LlmBlockHandler controlFormatType = this::onControlFormatType;
 
     private final LlmAnthropicReplyDecoder decodeReplyNext = this::decodeReplyNext;
     private final LlmAnthropicReplyDecoder decodeReplyResume = this::decodeReplyResume;
@@ -738,6 +761,400 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         int limit)
     {
         return decodeBlock(server, traceId, decodeBlockCitations, blockCitations);
+    }
+
+    private int decodeBlockRange(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockRange, blockRange);
+    }
+
+    private int decodeControlStream(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlStream, controlStream);
+    }
+
+    private int decodeControlToolChoice(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlToolChoice, controlToolChoice);
+    }
+
+    private int decodeControlTier(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlTier, controlTier);
+    }
+
+    private int decodeControlContainer(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlContainer, controlContainer);
+    }
+
+    private int decodeControlResidueNone(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlResidueNone, controlResidueNone);
+    }
+
+    private int decodeControlResidueOpen(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlResidueOpen, controlResidueOpen);
+    }
+
+    private int decodeControlResidueLifted(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlResidueLifted, controlResidueLifted);
+    }
+
+    private int decodeControlType(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlType, controlType);
+    }
+
+    private int decodeControlFormat(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlFormat, controlFormat);
+    }
+
+    private int decodeControlFormatKey(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlFormatKey, controlFormatKey);
+    }
+
+    private int decodeControlFormatType(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeControlFormatType, controlFormatType);
+    }
+
+    private int decodeControlMember(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.endControlMember(traceId, authorization);
+
+        return server.position();
+    }
+
+    private int onBlockRange(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.rangeValue(event, parser));
+    }
+
+    private int onControlStream(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        server.streaming = event == JsonEvent.VALUE_TRUE;
+
+        return onBlockValue(server, server.blockWriter.streamValue(event));
+    }
+
+    private int onControlToolChoice(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.toolChoiceValue(event, parser));
+    }
+
+    private int onControlTier(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.tierValue(event, parser);
+
+        if (outcome == LlmAnthropicBlockWriter.MORE)
+        {
+            server.decoder = decodeBlockCopy;
+        }
+
+        return onBlockValue(server, outcome);
+    }
+
+    private int onControlContainer(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = server.blockWriter.containerValue(event, parser);
+
+        if (outcome == LlmAnthropicBlockWriter.DESCEND)
+        {
+            server.decoder = decodeControlResidueNone;
+            outcome = LlmAnthropicBlockWriter.MORE;
+        }
+        else if (outcome == LlmAnthropicBlockWriter.MORE)
+        {
+            server.decoder = decodeBlockCopy;
+        }
+
+        return onBlockValue(server, outcome);
+    }
+
+    private int onControlResidueNone(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onControlKey(server, event, parser, LlmAnthropicBlockWriter.RESIDUE_NONE);
+    }
+
+    private int onControlResidueOpen(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onControlKey(server, event, parser, LlmAnthropicBlockWriter.RESIDUE_OPEN);
+    }
+
+    private int onControlResidueLifted(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onControlKey(server, event, parser, LlmAnthropicBlockWriter.RESIDUE_LIFTED);
+    }
+
+    private int onControlKey(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser,
+        int residue)
+    {
+        int outcome = LlmAnthropicBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            final int action = server.blockWriter.containerAction(parser.getStringView(), residue);
+
+            outcome = switch (action)
+            {
+            case LlmAnthropicBlockWriter.ACTION_COPY ->
+                server.onBlockAction(action, decodeControlResidueOpen);
+            case LlmAnthropicBlockWriter.ACTION_TYPE ->
+            {
+                server.valueThen = residueDecoder(residue);
+                server.decoder = decodeControlType;
+                yield LlmAnthropicBlockWriter.MORE;
+            }
+            default ->
+                server.onBlockAction(action, decodeControlResidueLifted);
+            };
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeContainer(residue);
+            server.decoder = decodeControlMember;
+        }
+        else
+        {
+            outcome = LlmAnthropicBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onControlType(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.typeValue(event, parser, residueOf(server.valueThen));
+
+        server.valueThen = residueDecoder(server.blockWriter.typeResidue());
+
+        if (outcome == LlmAnthropicBlockWriter.MORE)
+        {
+            server.decoder = decodeBlockCopy;
+        }
+
+        return onBlockValue(server, outcome);
+    }
+
+    private int onControlFormat(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = server.blockWriter.formatValue(event);
+
+        if (outcome == LlmAnthropicBlockWriter.DESCEND)
+        {
+            server.decoder = decodeControlFormatKey;
+            outcome = LlmAnthropicBlockWriter.MORE;
+        }
+
+        return outcome;
+    }
+
+    private int onControlFormatKey(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmAnthropicBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            outcome = server.onBlockAction(server.blockWriter.formatAction(parser.getStringView()), decodeControlFormatKey);
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeFormat();
+            server.decoder = decodeControlResidueLifted;
+        }
+        else
+        {
+            outcome = LlmAnthropicBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onControlFormatType(
+        LlmAnthropicServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.formatType(event, parser));
+    }
+
+    private LlmAnthropicServerDecoder residueDecoder(
+        int residue)
+    {
+        return switch (residue)
+        {
+        case LlmAnthropicBlockWriter.RESIDUE_OPEN -> decodeControlResidueOpen;
+        case LlmAnthropicBlockWriter.RESIDUE_LIFTED -> decodeControlResidueLifted;
+        default -> decodeControlResidueNone;
+        };
+    }
+
+    private int residueOf(
+        LlmAnthropicServerDecoder decoder)
+    {
+        return decoder == decodeControlResidueOpen
+            ? LlmAnthropicBlockWriter.RESIDUE_OPEN
+            : decoder == decodeControlResidueLifted
+                ? LlmAnthropicBlockWriter.RESIDUE_LIFTED
+                : LlmAnthropicBlockWriter.RESIDUE_NONE;
     }
 
     private int onBlockSource(
@@ -1668,7 +2085,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private boolean isConverted(
         CharSequence key)
     {
-        return matches(key, MEMBER_TOOL_CHOICE) ||
+        return matches(key, MEMBER_STREAM) ||
+            matches(key, MEMBER_TOOL_CHOICE) ||
             matches(key, MEMBER_OUTPUT_CONFIG) ||
             matches(key, MEMBER_THINKING) ||
             matches(key, MEMBER_METADATA) ||
@@ -3157,14 +3575,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int blockSlot = NO_SLOT;
         private final LlmOutputSink blockSink = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
-        private LlmSectionPipeline blockPipeline;
         private final StringBuilder controlKey = new StringBuilder();
-        private LlmSectionPipeline controlPipeline;
-        private LlmAnthropicControlToCanonical controlTransform;
-        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
-        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
 
         private LlmAnthropicServer(
             MessageConsumer network,
@@ -3773,30 +4184,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (isConverted(key))
             {
-                controlConverted(key, CONTROL_CONTINUE);
+                beginControlMember(key, ',');
             }
             else
             {
-                onDecodeControlKey(key, true, ',');
+                onDecodeControlKey(key, ',');
+                captureOpen = true;
+                captureDepth = 0;
+                captureFrom = position();
+                decoder = decodeControlSeparator;
             }
-
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = decodeControlSeparator;
-        }
-
-        private void controlConverted(
-            CharSequence key,
-            DirectBufferEx separator)
-        {
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
-
-            blockPipeline = controlPipeline();
-            blockPipeline.begin(blockAttributes);
-            memberOutput.begin();
-
-            onDecodeControlKey(key, false, '{');
         }
 
         private void closeControl(
@@ -3815,25 +4212,64 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             captureThen = then;
 
-            if (matches(key, MEMBER_STREAM))
+            if (isConverted(key))
             {
-                blockPipeline = controlPipeline();
-                blockPipeline.begin(blockAttributes);
-                onDecodeControlKey(key, false, '{');
-            }
-            else if (isConverted(key))
-            {
-                controlConverted(key, CONTROL_BEGIN);
+                beginControlMember(key, '{');
             }
             else
             {
-                onDecodeControlKey(key, true, '{');
+                onDecodeControlKey(key, '{');
+                captureOpen = true;
+                captureDepth = 0;
+                captureFrom = position();
+                decoder = decodeControlSeparator;
+            }
+        }
+
+        private void beginControlMember(
+            CharSequence key,
+            char separator)
+        {
+            writing = writer();
+            writing.beginMember(blockBuffer(), 0, separator);
+            valueThen = decodeControlMember;
+
+            if (matches(key, MEMBER_STREAM))
+            {
+                decoder = decodeControlStream;
+            }
+            else if (matches(key, MEMBER_TOOL_CHOICE))
+            {
+                decoder = decodeControlToolChoice;
+            }
+            else if (matches(key, MEMBER_SERVICE_TIER))
+            {
+                decoder = decodeControlTier;
+            }
+            else
+            {
+                writing.container(matches(key, MEMBER_OUTPUT_CONFIG)
+                    ? LlmAnthropicBlockWriter.CONTAINER_OUTPUT_CONFIG
+                    : matches(key, MEMBER_THINKING)
+                        ? LlmAnthropicBlockWriter.CONTAINER_THINKING
+                        : LlmAnthropicBlockWriter.CONTAINER_METADATA);
+                decoder = decodeControlContainer;
+            }
+        }
+
+        private void endControlMember(
+            long traceId,
+            long authorization)
+        {
+            writing.endMember();
+            writing = null;
+
+            if (captureThen != decodeRootControl)
+            {
+                closeControl(traceId, authorization);
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = decodeControlSeparator;
+            decoder = decoder == decodeIgnore ? decoder : captureThen;
         }
 
         private void endCapture(
@@ -3842,18 +4278,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, captureThen != decodeRootControl);
 
-            if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
-            {
-                if (captureThen == decodeRootControl &&
-                    !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
-                {
-                    onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
-                }
-
-                onDecodeControl();
-            }
-
-            blockPipeline = null;
             captureOpen = false;
             probing = false;
             decoder = decoder == decodeIgnore ? decoder : captureThen;
@@ -3909,8 +4333,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             blockFlags = Flags.INIT;
 
             blockAttributes.clear();
-
-            blockPipeline = null;
         }
 
         private void onDecodeData(
@@ -3925,56 +4347,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 final boolean closing = blockSection == LlmSectionType.CONTROL && last;
 
-                if (!onDecodeBlockData(traceId, authorization, buffer, offset, length, last && !closing) ||
-                    closing && !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+                onDecodeSectionData(traceId, authorization, buffer, offset, length, last && !closing);
+
+                if (closing)
                 {
-                    onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+                    onDecodeSectionData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true);
                 }
             }
         }
 
-        private boolean onDecodeBlockData(
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            boolean accepted = true;
-
-            if (blockPipeline == null)
-            {
-                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
-            }
-            else
-            {
-                accepted = blockPipeline.feed(buffer, offset, length, last,
-                    captureThen == decodeRootControl ? memberOutput : blockOutput);
-            }
-
-            return accepted;
-        }
-
-        private LlmSectionPipeline controlPipeline()
-        {
-            if (controlPipeline == null)
-            {
-                controlTransform = new LlmAnthropicControlToCanonical();
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
-            }
-
-            return controlPipeline;
-        }
-
         private void onDecodeControlKey(
             CharSequence key,
-            boolean prefixed,
             char open)
         {
             controlKey.setLength(0);
 
-            final String shared = prefixed ? LlmSharedMembers.anthropic(key) : null;
+            final String shared = LlmSharedMembers.anthropic(key);
 
             if (shared != null)
             {
@@ -3982,29 +4370,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else
             {
-                if (prefixed)
-                {
-                    controlKey.append(NAME).append(':');
-                }
-
-                controlKey.append(key);
+                controlKey.append(NAME).append(':').append(key);
             }
 
-            generator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
-            generator.reset();
-            generator.writeStartObject().writeKey(controlKey);
-
-            pieceBuffer.putByte(0, (byte) open);
-
-            onDecodeBlockData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
-        }
-
-        private void onDecodeControl()
-        {
-            if (controlTransform.streamSeen())
-            {
-                streaming = controlTransform.streaming();
-            }
+            writer().memberKey(blockBuffer(), 0, open, controlKey);
         }
 
         private LlmAnthropicBlockWriter writer()
@@ -4061,6 +4430,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case LlmAnthropicBlockWriter.ACTION_SOURCE -> decodeBlockSource;
             case LlmAnthropicBlockWriter.ACTION_DATA -> decodeBlockData;
             case LlmAnthropicBlockWriter.ACTION_CITATIONS -> decodeBlockCitations;
+            case LlmAnthropicBlockWriter.ACTION_RANGE -> decodeBlockRange;
+            case LlmAnthropicBlockWriter.ACTION_FORMAT -> decodeControlFormat;
+            case LlmAnthropicBlockWriter.ACTION_FORMAT_TYPE -> decodeControlFormatType;
             default -> decodeBlockDrop;
             };
 
