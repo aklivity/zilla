@@ -129,6 +129,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/rebalance.assignment.userdata.repeated/client",
+        "${app}/rebalance.assignment.userdata.repeated/server"})
+    public void shouldAssignUserdataAcrossRepeatedRebalance() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reassign.new.topic/client",
         "${app}/reassign.new.topic/server"})
     public void shouldReassignOnNewTopic() throws Exception

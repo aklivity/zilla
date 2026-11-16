@@ -4893,8 +4893,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
                 {
                     Array32FW<TopicAssignmentFW> topicPartitions = a.assignments();
 
-                    assignmentTopicsUserdataRW.wrap(userdataBuffer, assignmentTopicsUserdataRW.limit(),
-                        userdataBuffer.capacity());
+                    assignmentTopicsUserdataRW.wrap(userdataBuffer, 0, userdataBuffer.capacity());
 
                     int newProgressOffset = doGenerateAssignmentMetadata(topicPartitions, assignmentTopicsUserdataRW,
                         progressOffset.get());
