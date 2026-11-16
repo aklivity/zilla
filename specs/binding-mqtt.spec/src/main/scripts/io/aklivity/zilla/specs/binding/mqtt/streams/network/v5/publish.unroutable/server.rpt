@@ -36,7 +36,7 @@ write [0x20 0x03]                   # CONNACK
       [0x00]                        # properties = none
 
 write [0xe0 0x02]                   # disconnect header
-      [0x83]                        # reason = implementation specific error
+      [0x80]                        # reason = unspecified error
       [0x00]                        # properties = none
 
 write close
