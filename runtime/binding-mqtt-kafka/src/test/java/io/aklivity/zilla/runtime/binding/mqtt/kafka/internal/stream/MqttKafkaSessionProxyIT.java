@@ -347,6 +347,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiryAfterSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.reconnect.during.expire.reset.group.offsets/client",
         "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
     public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception

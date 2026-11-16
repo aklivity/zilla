@@ -803,6 +803,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiryAfterSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.reconnect.during.expire.reset.group.offsets/client",
         "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
     public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
