@@ -1538,4 +1538,31 @@ public class KafkaIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.parent.level/client",
+        "${kafka}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/client",
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retain.parent.level/client",
+        "${kafka}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
 }
