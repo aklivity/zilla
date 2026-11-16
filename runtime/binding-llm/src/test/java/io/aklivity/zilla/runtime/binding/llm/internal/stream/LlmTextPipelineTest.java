@@ -33,8 +33,6 @@ public class LlmTextPipelineTest
     private final StringBuilder chars = new StringBuilder();
     private final LlmTextPipeline pipeline = new LlmTextPipeline(this::collect);
     private final LlmTextPipeline optional = new LlmTextPipeline(this::collect, true);
-    private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(4, "5m", "1h");
-    private final LlmTextPipeline breakpointed = new LlmTextPipeline(this::collect, breakpoints);
 
     @Test
     public void shouldDeliverTextContent()
@@ -146,65 +144,9 @@ public class LlmTextPipelineTest
     }
 
     @Test
-    public void shouldMarkBreakpointAfterText()
-    {
-        assertMarks(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'explicit','ttl':'30m'}}"), "Hello", "1h");
-    }
-
-    @Test
-    public void shouldMarkBreakpointBeforeText()
-    {
-        assertMarks(json("{'prompt_cache_breakpoint':{'mode':'explicit'},'text':'Hello'}"), "Hello", null);
-    }
-
-    @Test
-    public void shouldNotMarkBreakpointWithoutExplicitMode()
-    {
-        assertMarks(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'auto'}}"), "Hello", false);
-    }
-
-    @Test
-    public void shouldDropBreakpointWithoutBreakpoints()
+    public void shouldDropBreakpointMember()
     {
         assertDelivers(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'explicit'}}"), "Hello");
-    }
-
-    private void assertMarks(
-        String json,
-        String expected,
-        String ttl)
-    {
-        assertMarks(json, expected, true);
-        assertThat(breakpointed.markedTtl(), equalTo(ttl));
-    }
-
-    private void assertMarks(
-        String json,
-        String expected,
-        boolean marked)
-    {
-        for (int window : WINDOWS)
-        {
-            final byte[] bytes = json.getBytes(UTF_8);
-            final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
-
-            chars.setLength(0);
-            breakpoints.reset();
-            breakpointed.begin();
-
-            boolean accepted = true;
-
-            for (int offset = 0; accepted && offset < bytes.length; offset += window)
-            {
-                final int length = Math.min(window, bytes.length - offset);
-
-                accepted = breakpointed.feed(input, offset, length, offset + length == bytes.length);
-            }
-
-            assertThat("accepted window " + window, accepted, is(true));
-            assertThat("window " + window, chars.toString(), equalTo(expected));
-            assertThat("marked window " + window, breakpointed.marked(), is(marked));
-        }
     }
 
     private void assertDelivers(

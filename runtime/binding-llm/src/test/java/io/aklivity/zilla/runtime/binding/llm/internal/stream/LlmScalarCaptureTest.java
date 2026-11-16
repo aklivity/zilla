@@ -37,16 +37,13 @@ public class LlmScalarCaptureTest
 
     private static final List<Supplier<LlmToolTransform>> CANONICAL_EFFORT_AND_BUDGET = List.of(
         () -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", CAPABILITY),
-        () -> LlmAnthropicControlFromCanonical.members(false, CAPABILITY),
         () -> LlmGeminiControlFromCanonical.members(false, CAPABILITY));
 
     private static final List<Supplier<LlmToolTransform>> CANONICAL_PARALLEL_AND_FORMAT = List.of(
-        () -> LlmAnthropicControlFromCanonical.members(false, CAPABILITY),
         () -> LlmGeminiControlFromCanonical.members(false, CAPABILITY));
 
     private static final List<Supplier<LlmToolTransform>> CANONICAL_FORMAT = List.of(
         () -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", CAPABILITY),
-        () -> LlmAnthropicControlFromCanonical.members(false, CAPABILITY),
         () -> LlmGeminiControlFromCanonical.members(false, CAPABILITY));
 
     @Test
