@@ -18,6 +18,7 @@ import java.lang.foreign.MemorySegment;
 import java.nio.ByteOrder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
@@ -64,7 +65,8 @@ public interface JsonStringView extends CharSequenceEx
     default int copyPlain(
         int from,
         int max,
-        byte[] target)
+        MutableDirectBufferEx target,
+        int offset)
     {
         final int limit = Math.min(max, length() - from);
         int copied = 0;
@@ -78,7 +80,7 @@ public interface JsonStringView extends CharSequenceEx
                 break;
             }
 
-            target[copied++] = (byte) c;
+            target.putByte(offset + copied++, (byte) c);
         }
 
         return copied;
@@ -215,7 +217,8 @@ public interface JsonStringView extends CharSequenceEx
         public int copyPlain(
             int from,
             int max,
-            byte[] target)
+            MutableDirectBufferEx target,
+            int offset)
         {
             final int limit = Math.min(max, length - from);
             int copied = 0;
@@ -243,7 +246,7 @@ public interface JsonStringView extends CharSequenceEx
                         break;
                     }
 
-                    target[copied + next - position] = (byte) c;
+                    target.putByte(offset + copied + next - position, (byte) c);
                     next++;
                 }
 
@@ -668,7 +671,8 @@ public interface JsonStringView extends CharSequenceEx
         public int copyPlain(
             int from,
             int max,
-            byte[] target)
+            MutableDirectBufferEx target,
+            int offset)
         {
             final int available = Math.min(max, length - from);
             int copied = 0;
@@ -680,11 +684,11 @@ public interface JsonStringView extends CharSequenceEx
                     while (copied + Long.BYTES <= available && position + Long.BYTES <= limit &&
                         printableWord(buffer.getLong(position)))
                     {
-                        buffer.getBytes(position, target, copied, Long.BYTES);
+                        target.putLong(offset + copied, buffer.getLong(position));
                         position += Long.BYTES;
                         cursorChar += Long.BYTES;
                         copied += Long.BYTES;
-                        previous = (char) (target[copied - 1] & 0xff);
+                        previous = (char) (target.getByte(offset + copied - 1) & 0xff);
                         unitByte = position - 1;
                     }
                 }
@@ -698,7 +702,7 @@ public interface JsonStringView extends CharSequenceEx
                         break;
                     }
 
-                    target[copied++] = (byte) c;
+                    target.putByte(offset + copied++, (byte) c);
                 }
             }
 

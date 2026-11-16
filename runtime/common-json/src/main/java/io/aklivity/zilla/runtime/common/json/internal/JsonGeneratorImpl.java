@@ -49,7 +49,6 @@ import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
  */
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
-    private static final int PLAIN_RUN_MAX = 4096;
     private static final long ONES = 0x0101010101010101L;
     private static final long HIGH_BITS = 0x8080808080808080L;
     private static final long BACKSLASHES = ONES * '\\';
@@ -80,7 +79,6 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private MutableDirectBufferEx buffer = EMPTY;
     private int offset;
     private int progress;
-    private byte[] plainRunBytes;
     private int limit;
     private int depth;
     private int consumed;
@@ -1118,10 +1116,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int length = value.length();
         while (index < length)
         {
-            final int run = stagePlainRun(value, index, Math.min(length - index, budget - progress));
+            final int run = copyPlainRun(value, index, Math.min(length - index, budget - progress));
             if (run > 0)
             {
-                writePlainRun(run);
                 index += run;
                 continue;
             }
@@ -1136,39 +1133,34 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return index;
     }
 
-    private int stagePlainRun(
+    private int copyPlainRun(
         CharSequence value,
         int index,
         int max)
     {
-        if (plainRunBytes == null)
-        {
-            plainRunBytes = new byte[PLAIN_RUN_MAX];
-        }
+        int run = 0;
 
-        final int limit = Math.min(max, PLAIN_RUN_MAX);
         if (value instanceof JsonStringView view)
         {
-            return view.copyPlain(index, limit, plainRunBytes);
+            run = view.copyPlain(index, max, buffer, progress);
         }
-        int run = 0;
-        while (run < limit)
+        else
         {
-            final char c = value.charAt(index + run);
-            if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+            while (run < max)
             {
-                break;
+                final char c = value.charAt(index + run);
+                if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+                {
+                    break;
+                }
+                buffer.putByte(progress + run, (byte) c);
+                run++;
             }
-            plainRunBytes[run++] = (byte) c;
         }
-        return run;
-    }
 
-    private void writePlainRun(
-        int run)
-    {
-        buffer.putBytes(progress, plainRunBytes, 0, run);
         progress += run;
+
+        return run;
     }
 
     private void emitStringCodePoint(
