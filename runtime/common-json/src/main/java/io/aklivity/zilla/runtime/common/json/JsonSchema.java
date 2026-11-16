@@ -119,6 +119,27 @@ public interface JsonSchema
         Consumer<JsonSchemaDiagnostic> reporter);
 
     /**
+     * Wraps a {@link JsonParserEx} so that the events it delivers are validated against this schema, whether
+     * they are pulled with {@link JsonParser#next()} or with {@link JsonParserEx#nextEvent(JsonParserEx.Mode)}.
+     * Because validation reads every event, a segmented delivery request is declined,
+     * {@link JsonParserEx#skipValue()}, {@link JsonParserEx#getVerbatim(int)} and {@link JsonParserEx#verbatim()}
+     * are unsupported, and a string, number or key larger than the input window is invalid when a keyword reads its
+     * content. Otherwise behaves as {@link #newParser(boolean, JsonParser)}.
+     */
+    JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser);
+
+    /**
+     * Variant of {@link #newParser(boolean, JsonParserEx)} that additionally reports each failing keyword,
+     * instance JSON-Pointer and message to {@code reporter} as it is detected.
+     */
+    JsonParserEx newParser(
+        boolean throwing,
+        JsonParserEx parser,
+        Consumer<JsonSchemaDiagnostic> reporter);
+
+    /**
      * Returns a {@link JsonTransform} stage that validates the event stream against this schema
      * while forwarding every event unchanged to the downstream sink. As a transparent emitter it
      * lets a downstream projector see the complete, unpruned stream (required for whole-value
