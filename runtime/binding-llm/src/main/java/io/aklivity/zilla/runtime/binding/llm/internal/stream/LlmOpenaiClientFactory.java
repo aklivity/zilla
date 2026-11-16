@@ -724,8 +724,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - heldPending() -
-                EVENT_FRAMES * replyPad - sectionClosing());
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - controlClosing() -
+                heldPending() - EVENT_FRAMES * replyPad - sectionClosing());
         }
 
         private int sectionClosing()
@@ -1308,6 +1308,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                                 flushHeld();
                                 window = Math.min(limit - offset, replyWindow());
                             }
+                            else if (window == 0 && limit > offset && decoder == decodeControlValue && controlSlot != NO_SLOT &&
+                                replyCredit() > 0)
+                            {
+                                beginControlStream();
+                                window = Math.min(limit - offset, replyWindow());
+                            }
 
                             decodeWindowLimit = offset + window;
                         }
@@ -1334,14 +1340,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                             flushControl(progress);
                         }
 
-                        if (decoder == previous)
-                        {
-                            decodeWindowLimit = NONE;
+                        decodeWindowLimit = NONE;
 
-                            if (unconstrained)
-                            {
-                                progress = limit;
-                            }
+                        if (decoder == previous && unconstrained)
+                        {
+                            progress = limit;
                         }
                     }
                 }
@@ -1455,15 +1458,23 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean hasNextEvent()
         {
-            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+            return (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad) && parser.hasNextEvent();
         }
 
         private int eventSlack()
         {
-            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - controlPending() -
+                heldPending() - parser.remaining() - sectionClosing();
+        }
 
-            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - heldPending() - pending -
-                parser.remaining() - sectionClosing();
+        private int controlClosing()
+        {
+            return controlFrom != NONE ? CONTROL_CLOSING : 0;
+        }
+
+        private int controlPending()
+        {
+            return controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
         }
 
         private void flushHeld()

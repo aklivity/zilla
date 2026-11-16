@@ -2999,6 +2999,16 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.controls.padded/client",
+        "${net}/openai.response.controls.many/server"})
+    public void shouldDecodeOpenaiResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
     @Specification({
