@@ -89,15 +89,6 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
         this(containers, members, new SlotStore(slot));
     }
 
-    LlmMemberCollector(
-        String[] containers,
-        LlmMembersOutput.Members members,
-        LlmRequestHold hold,
-        int region)
-    {
-        this(containers, members, new HoldStore(hold, region));
-    }
-
     private LlmMemberCollector(
         String[] containers,
         LlmMembersOutput.Members members,
@@ -529,68 +520,6 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
             int length)
         {
             slot.get().putInt(recordOffset + RECORD_LENGTH_OFFSET, length);
-        }
-    }
-
-    private static final class HoldStore implements Store
-    {
-        private final LlmRequestHold hold;
-        private final int region;
-
-        private HoldStore(
-            LlmRequestHold hold,
-            int region)
-        {
-            this.hold = hold;
-            this.region = region;
-        }
-
-        @Override
-        public int length()
-        {
-            return hold.length(region);
-        }
-
-        @Override
-        public boolean append(
-            DirectBufferEx source,
-            int offset,
-            int length)
-        {
-            return hold.append(region, source, offset, length);
-        }
-
-        @Override
-        public void trim(
-            int length)
-        {
-            hold.trim(region, length);
-        }
-
-        @Override
-        public void clear()
-        {
-            hold.clear(region);
-        }
-
-        @Override
-        public DirectBufferEx buffer()
-        {
-            return hold.buffer();
-        }
-
-        @Override
-        public int base()
-        {
-            return hold.offset(region);
-        }
-
-        @Override
-        public void patchLength(
-            int recordOffset,
-            int length)
-        {
-            hold.buffer().putInt(hold.offset(region) + recordOffset + RECORD_LENGTH_OFFSET, length);
         }
     }
 }

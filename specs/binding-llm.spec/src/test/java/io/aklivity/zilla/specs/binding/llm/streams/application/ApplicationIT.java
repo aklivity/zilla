@@ -8922,6 +8922,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.request.residue.large/client",
+        "${app}/anthropic.request.residue.large/server"})
+    public void shouldForwardAnthropicRequestResidueLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.residue.sections/client",
+        "${app}/anthropic.request.residue.sections/server"})
+    public void shouldForwardAnthropicRequestResidueSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.request.service.tier/client",
         "${app}/anthropic.request.service.tier/server"})
     public void shouldForwardAnthropicRequestServiceTier() throws Exception
