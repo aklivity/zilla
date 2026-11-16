@@ -359,6 +359,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final Matcher contentTypeMatcher;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
+    private final LlmAnthropicOutputSchema outputSchema;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
@@ -400,6 +401,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.encodeMax = encodePool.slotCapacity();
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.supplyInitialId = context::supplyInitialId;
+        this.outputSchema = new LlmAnthropicOutputSchema();
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
@@ -3804,7 +3806,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmCapturedValue controlChoice;
         private LlmCapturedScalar controlScalar;
         private LlmToolChoice toolChoice;
-        private LlmSchemaScanner schemaScanner;
+        private LlmAnthropicOutputSchema.Rejection schemaRejection;
+        private JsonParserEx requestSource;
         private String controlMember;
         private boolean controlOverflow;
         private int controlFormat;
@@ -4060,13 +4063,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int limit,
             boolean last)
         {
-            return requestParser().wrap(buffer, offset, limit, last);
+            return requestSource.wrap(buffer, offset, limit, last);
         }
 
         private int positionRequest(
             int limit)
         {
-            return limit - requestParser.remaining();
+            return limit - requestSource.remaining();
         }
 
         private int decodeRequestRoot(
@@ -6579,12 +6582,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         {
                             controlGenerator.writeKey(MEMBER_SCHEMA);
                             copier.reset();
-                            if (schemaScanner == null)
-                            {
-                                schemaScanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
-                            }
-
-                            schemaScanner.begin();
+                            schemaRejection = new LlmAnthropicOutputSchema.Rejection();
+                            requestSource = outputSchema.newParser(requestParser(), schemaRejection);
                             requestDecoder = decodeRequestControlSchemaValue;
                         }
                         else
@@ -6625,15 +6624,15 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 while (requestDecoder == decodeRequestControlSchemaValue && headroom() && parser.hasNextEvent())
                 {
                     final JsonEvent event = parser.nextEvent();
-                    final boolean text = event == JsonEvent.KEY_NAME ||
-                        event == JsonEvent.VALUE_STRING ||
-                        event == JsonEvent.VALUE_NUMBER;
-                    final boolean deferredString = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
-                    final String keyword = schemaScanner.scan(event, text ? parser.getStringView() : null, deferredString);
 
-                    if (keyword != null)
+                    if (!encodeFailed && schemaRejection.rejected())
                     {
-                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT + " keyword " + keyword);
+                        final boolean text = event == JsonEvent.KEY_NAME ||
+                            event == JsonEvent.VALUE_STRING ||
+                            event == JsonEvent.VALUE_NUMBER;
+
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT + " keyword " +
+                            schemaRejection.keyword(text ? parser.getStringView() : ""));
                     }
                     else
                     {
@@ -6641,6 +6640,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                         if (copier.depth() == 0 && !parser.deferredBytes())
                         {
+                            requestSource = requestParser();
                             requestDecoder = decodeRequestControlSchemaKey;
                         }
                     }
@@ -6755,7 +6755,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
 
                 requestDecoder = decodeRequestRoot;
-                requestParser().reset();
+                requestSource = requestParser();
+                requestSource.reset();
             }
         }
 
