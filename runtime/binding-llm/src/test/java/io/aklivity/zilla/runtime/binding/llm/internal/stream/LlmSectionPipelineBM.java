@@ -150,9 +150,7 @@ public class LlmSectionPipelineBM
     private final LlmSectionAttributes imageAttributes = new LlmSectionAttributes();
     private final LlmSectionAttributes none = new LlmSectionAttributes();
 
-    private LlmSectionPipeline toolDefinitionToCanonical;
     private LlmSectionPipeline toolDefinitionFromAnthropic;
-    private LlmSectionPipeline toolCallToCanonical;
     private LlmSectionPipeline toolCallFromCanonical;
     private LlmSectionPipeline toolCallOpenaiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiToCanonical;
@@ -199,9 +197,7 @@ public class LlmSectionPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        toolDefinitionToCanonical = pipeline(new LlmAnthropicToolDefinitionToCanonical());
         toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical(true));
-        toolCallToCanonical = pipeline(new LlmAnthropicToolCallToCanonical());
         toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use", true));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
         toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
@@ -253,39 +249,15 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int toolDefinitionToCanonical()
-    {
-        return run(toolDefinitionToCanonical, none, toolDefinitionNative, toolDefinitionNative.capacity());
-    }
-
-    @Benchmark
-    public int toolDefinitionToCanonicalFragmented()
-    {
-        return run(toolDefinitionToCanonical, none, toolDefinitionNative, WINDOW);
-    }
-
-    @Benchmark
     public int toolDefinitionFromCanonicalAnthropic()
     {
         return run(toolDefinitionFromAnthropic, none, toolDefinitionCanonical, toolDefinitionCanonical.capacity());
     }
 
     @Benchmark
-    public int toolCallToCanonical()
-    {
-        return run(toolCallToCanonical, toolCallAttributes, toolCallNative, toolCallNative.capacity());
-    }
-
-    @Benchmark
     public int toolCallFromCanonical()
     {
         return run(toolCallFromCanonical, toolCallAttributes, toolCallCanonical, toolCallCanonical.capacity());
-    }
-
-    @Benchmark
-    public int toolCallToCanonicalFragmented()
-    {
-        return run(toolCallToCanonical, toolCallAttributes, toolCallNative, WINDOW);
     }
 
     @Benchmark

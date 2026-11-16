@@ -37,45 +37,6 @@ public class LlmAnthropicBlockMembersTest
         attributes.source(LlmSectionAttributes.SOURCE_REFERENCE);
 
     @Test
-    public void shouldDecodeToolCallCacheControlAsBreakpoint()
-    {
-        assertTransforms(new LlmAnthropicToolCallToCanonical(),
-            json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1}," +
-                "'cache_control':{'type':'ephemeral','ttl':'1h'}}"),
-            json("{'arguments':{'a':1},'prompt_cache_breakpoint':{'mode':'explicit','ttl':'1h'}}"));
-    }
-
-    @Test
-    public void shouldDecodeCacheControlWithoutTtlAndDropUnknownMembers()
-    {
-        assertTransforms(new LlmAnthropicToolCallToCanonical(),
-            json("{'cache_control':{'x':[1,{'a':null}],'type':'ephemeral'},'type':'tool_use','id':'toolu_1','name':'ping'," +
-                "'input':{'a':1}}"),
-            json("{'prompt_cache_breakpoint':{'mode':'explicit'},'arguments':{'a':1}}"));
-    }
-
-    @Test
-    public void shouldDropCacheControlThatIsNotEphemeral()
-    {
-        assertTransforms(new LlmAnthropicToolCallToCanonical(),
-            json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1},'cache_control':{'type':'persistent'}}"),
-            json("{'arguments':{'a':1}}"));
-        assertTransforms(new LlmAnthropicToolCallToCanonical(),
-            json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1},'cache_control':null}"),
-            json("{'arguments':{'a':1}}"));
-    }
-
-    @Test
-    public void shouldDecodeToolDefinitionCacheControlAndStrict()
-    {
-        assertTransforms(new LlmAnthropicToolDefinitionToCanonical(),
-            json("{'name':'ping','strict':true,'cache_control':{'type':'ephemeral','ttl':'5m'}," +
-                "'input_schema':{'type':'object'}}"),
-            json("{'type':'function','function':{'name':'ping','strict':true," +
-                "'prompt_cache_breakpoint':{'mode':'explicit','ttl':'5m'},'parameters':{'type':'object'}}}"));
-    }
-
-    @Test
     public void shouldEncodeToolDefinitionStrictAndBreakpoint()
     {
         assertTransforms(new LlmAnthropicToolDefinitionFromCanonical(true, breakpoints),
@@ -83,14 +44,6 @@ public class LlmAnthropicBlockMembersTest
                 "'prompt_cache_breakpoint':{'mode':'explicit','ttl':'30m'},'parameters':{'type':'object'}}}"),
             json("{'name':'ping','strict':false,'cache_control':{'type':'ephemeral','ttl':'1h'}," +
                 "'input_schema':{'type':'object'}}"));
-    }
-
-    @Test
-    public void shouldRoundTripToolDefinitionStrict()
-    {
-        assertRoundTrips(new LlmAnthropicToolDefinitionToCanonical(),
-            new LlmAnthropicToolDefinitionFromCanonical(false, breakpoints),
-            json("{'name':'ping','description':'Ping','input_schema':{'type':'object'},'strict':true}"));
     }
 
     @Test
