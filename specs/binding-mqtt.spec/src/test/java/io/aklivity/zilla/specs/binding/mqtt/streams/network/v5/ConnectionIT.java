@@ -770,4 +770,24 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.ill.formed.utf8/client",
+        "${net}/server.sent.connack.assigned.client.id.ill.formed.utf8/server"})
+    public void shouldServerSentConnackAssignedClientIdIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.null.character/client",
+        "${net}/server.sent.connack.assigned.client.id.null.character/server"})
+    public void shouldServerSentConnackAssignedClientIdNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

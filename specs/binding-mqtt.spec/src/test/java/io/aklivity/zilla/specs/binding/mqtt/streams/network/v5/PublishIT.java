@@ -849,4 +849,104 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.topic.name.ill.formed.utf8/client",
+        "${net}/server.sent.publish.topic.name.ill.formed.utf8/server"})
+    public void shouldServerSentPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.content.type.ill.formed.utf8/client",
+        "${net}/server.sent.publish.content.type.ill.formed.utf8/server"})
+    public void shouldServerSentPublishContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.response.topic.ill.formed.utf8/client",
+        "${net}/server.sent.publish.response.topic.ill.formed.utf8/server"})
+    public void shouldServerSentPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.ill.formed.utf8/client",
+        "${net}/server.sent.publish.user.property.key.ill.formed.utf8/server"})
+    public void shouldServerSentPublishUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.ill.formed.utf8/client",
+        "${net}/server.sent.publish.user.property.value.ill.formed.utf8/server"})
+    public void shouldServerSentPublishUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.topic.name.null.character/client",
+        "${net}/server.sent.publish.topic.name.null.character/server"})
+    public void shouldServerSentPublishTopicNameNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.content.type.null.character/client",
+        "${net}/server.sent.publish.content.type.null.character/server"})
+    public void shouldServerSentPublishContentTypeNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.response.topic.null.character/client",
+        "${net}/server.sent.publish.response.topic.null.character/server"})
+    public void shouldServerSentPublishResponseTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.null.character/client",
+        "${net}/server.sent.publish.user.property.key.null.character/server"})
+    public void shouldServerSentPublishUserPropertyKeyNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.null.character/client",
+        "${net}/server.sent.publish.user.property.value.null.character/server"})
+    public void shouldServerSentPublishUserPropertyValueNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }
