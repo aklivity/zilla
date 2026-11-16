@@ -56,7 +56,13 @@ final class LlmReasoning
     static int effortOf(
         LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event();
+        return effortOf(value.event(), value.text());
+    }
+
+    static int effortOf(
+        JsonEvent event,
+        CharSequence text)
+    {
         int effort = LlmEffort.INVALID;
 
         if (event == JsonEvent.VALUE_NULL)
@@ -65,7 +71,7 @@ final class LlmReasoning
         }
         else if (event == JsonEvent.VALUE_STRING)
         {
-            effort = LlmEffort.of(value.text());
+            effort = LlmEffort.of(text);
         }
 
         return effort;
@@ -74,7 +80,13 @@ final class LlmReasoning
     static int budgetOf(
         LlmCapturedScalar value)
     {
-        final JsonEvent event = value.event();
+        return budgetOf(value.event(), value.text());
+    }
+
+    static int budgetOf(
+        JsonEvent event,
+        CharSequence text)
+    {
         int budget = LlmEffort.INVALID;
 
         if (event == JsonEvent.VALUE_NULL)
@@ -83,16 +95,16 @@ final class LlmReasoning
         }
         else if (event == JsonEvent.VALUE_NUMBER)
         {
-            budget = budgetOf(value.text());
+            budget = budgetOf(text);
         }
 
         return budget;
     }
 
     static int budgetOf(
-        String text)
+        CharSequence text)
     {
-        long budget = text.isEmpty() ? LlmEffort.INVALID : 0;
+        long budget = text.length() == 0 ? LlmEffort.INVALID : 0;
 
         for (int index = 0; budget != LlmEffort.INVALID && index < text.length(); index++)
         {

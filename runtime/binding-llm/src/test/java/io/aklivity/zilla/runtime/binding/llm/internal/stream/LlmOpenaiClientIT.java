@@ -3038,4 +3038,34 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.user.straddle/client",
+        "${net}/openai.request.user.straddle/server"})
+    public void shouldEncodeOpenaiRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.effort.straddle/client",
+        "${net}/openai.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeOpenaiRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.service.tier.window/client",
+        "${net}/openai.request.service.tier.window/server"})
+    public void shouldEncodeOpenaiRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }
