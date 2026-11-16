@@ -69,6 +69,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.connect.with.session.expiry.never/client",
+        "${app}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.connect.override.session.expiry/client",
         "${app}/session.connect.override.session.expiry/server"})
     public void shouldConnectServerOverridesSessionExpiry() throws Exception
@@ -420,4 +430,54 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.publish.qos.max.per.connection/client",
+        "${app}/session.publish.qos.max.per.connection/server"})
+    public void shouldRejectPublishQosAboveSessionMaximumPerConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${app}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.subscribe.non.successful.resume/client",
+        "${app}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.resume.subscription.id.127/client",
+        "${app}/session.resume.subscription.id.127/server"})
+    public void shouldSessionResumeSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.resume.session.state.version.1.generated.subscription.id/client",
+        "${app}/session.resume.session.state.version.1.generated.subscription.id/server"})
+    public void shouldSessionResumeSessionStateVersion1GeneratedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

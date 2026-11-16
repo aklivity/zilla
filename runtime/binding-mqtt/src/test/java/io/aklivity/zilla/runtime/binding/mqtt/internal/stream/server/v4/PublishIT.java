@@ -17,12 +17,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,8 +47,6 @@ public class PublishIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.PublishIT::supplySubscriptionId")
 
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
@@ -58,6 +54,16 @@ public class PublishIT
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.retain.not.supported/client",
+        "${app}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("server.validator.yaml")
@@ -163,7 +169,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.subscribe.batched/client",
-        "${app}/publish.subscribe.batched/server"})
+        "${app}/publish.subscribe.batched.v4/server"})
     public void shouldPublishSubscribeBatched() throws Exception
     {
         k3po.finish();
@@ -279,6 +285,46 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/client",
+        "${app}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/client",
+        "${app}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.two.topics.interleaved.acks/client",
+        "${app}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.two.messages.one.ack/client",
+        "${app}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("Github Actions aklivity/zilla#1182")
     @Test
     @Configuration("server.yaml")
@@ -330,15 +376,33 @@ public class PublishIT
         k3po.finish();
     }
 
-    @Before
-    public void setSubscriptionId()
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${app}/session.connect/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
     {
-        subscriptionId = 0;
+        k3po.finish();
     }
 
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${app}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
     {
-        return ++subscriptionId;
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected.close.connection/client",
+        "${app}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
     }
 }

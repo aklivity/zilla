@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * Immutable, read-only view of the value observed at the current {@link AvroEvent} as an
@@ -53,7 +54,7 @@ public interface AvroSource
      * current call and may be reused by the next one; a caller that needs to retain the text must copy
      * it (e.g. {@code String.valueOf(...)}) or use {@link #getString()} instead.
      */
-    CharSequence getStringView();
+    CharSequenceEx getStringView();
 
     /**
      * Valid only on a {@link AvroEvent#FIELD_NAME} event; the record field name from the schema

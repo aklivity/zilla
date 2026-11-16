@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -47,8 +46,6 @@ public class PingIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.PingIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
@@ -70,7 +67,7 @@ public class PingIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/ping.keep.alive/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
     public void shouldPingAtKeepAliveInterval() throws Exception
     {
@@ -80,11 +77,5 @@ public class PingIT
         Thread.sleep(1000);
         k3po.notifyBarrier("WAIT_1_SECOND2");
         k3po.finish();
-    }
-
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
-    {
-        return ++subscriptionId;
     }
 }

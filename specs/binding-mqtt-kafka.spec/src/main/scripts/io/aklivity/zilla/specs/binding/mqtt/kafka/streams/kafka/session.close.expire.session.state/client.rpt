@@ -122,11 +122,68 @@ write zilla:data.ext ${kafka:dataEx()
                              .produce()
                                .deferred(0)
                                .partition(-1, -1)
+                               .key("client-1#offsets")
+                               .hashKey("client-1")
+                               .build()
+                           .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
                                .key("client-2")
                                .hashKey("client-2")
                                .build()
                            .build()}
 write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2#offsets")
+                               .hashKey("client-2")
+                               .build()
+                           .build()}
+write flush
+
+
+connect
+        "zilla://streams/kafka0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:dataEx()
+                           .typeId(zilla:id("kafka"))
+                           .describe()
+                               .config("cleanup.policy", "compact")
+                               .build()
+                           .build()}
+
+write close
 
 
 connect

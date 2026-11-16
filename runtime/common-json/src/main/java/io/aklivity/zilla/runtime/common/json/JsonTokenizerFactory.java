@@ -15,11 +15,11 @@
 package io.aklivity.zilla.runtime.common.json;
 
 import java.util.ServiceLoader;
+import java.util.function.Function;
 
-// Selects the JsonTokenizer implementation for this JVM, once: the highest-priority candidate among those that
-// report themselves available. A JsonParserImpl instance caches the selected factory rather than calling
-// instantiate() per construction, so ServiceLoader lookup (and an implementation's own availability probe)
-// happens once per JVM, not once per parser.
+// Selects the JsonTokenizer implementation for this JVM, once: the highest-priority candidate. A JsonParserImpl
+// instance caches the selected factory rather than calling instantiate() per construction, so ServiceLoader lookup
+// (and an implementation's own probe) happens once per JVM, not once per parser.
 public interface JsonTokenizerFactory
 {
     // quoted holds a key back until its separator, whitespace and the value's first byte are in the window, so the
@@ -27,32 +27,34 @@ public interface JsonTokenizerFactory
     JsonTokenizer create(
         boolean quoted);
 
-    // Higher wins among available() candidates.
-    int priority();
-
-    // Whether this implementation can run in this JVM (e.g. a required CPU/JVM feature is present). Checked
-    // once, not per parser.
-    boolean available();
+    // Higher wins. A factory that cannot run in this JVM, or that is not enabled by property, answers a priority
+    // below the baseline's, so it is never chosen; property reads the named property, or null when it is not set.
+    int priority(
+        Function<String, String> property);
 
     static JsonTokenizerFactory instantiate()
     {
-        return instantiate(ServiceLoader.load(JsonTokenizerFactory.class));
+        return instantiate(ServiceLoader.load(JsonTokenizerFactory.class), System::getProperty);
     }
 
     static JsonTokenizerFactory instantiate(
-        Iterable<JsonTokenizerFactory> candidates)
+        Iterable<JsonTokenizerFactory> candidates,
+        Function<String, String> property)
     {
         JsonTokenizerFactory selected = null;
+        int selectedPriority = Integer.MIN_VALUE;
         for (JsonTokenizerFactory candidate : candidates)
         {
-            if (candidate.available() && (selected == null || candidate.priority() > selected.priority()))
+            final int priority = candidate.priority(property);
+            if (selected == null || priority > selectedPriority)
             {
                 selected = candidate;
+                selectedPriority = priority;
             }
         }
         if (selected == null)
         {
-            throw new IllegalStateException("No available JsonTokenizerFactory found");
+            throw new IllegalStateException("No JsonTokenizerFactory found");
         }
         return selected;
     }

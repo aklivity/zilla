@@ -28,13 +28,14 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_LEASE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_RENEW;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.TOPIC_ALIAS_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttConfigurationTest
 {
@@ -43,6 +44,7 @@ public class MqttConfigurationTest
     public static final String KEEP_ALIVE_MINIMUM_NAME = "zilla.binding.mqtt.keep.alive.minimum";
     public static final String KEEP_ALIVE_MAXIMUM_NAME = "zilla.binding.mqtt.keep.alive.maximum";
     public static final String MAXIMUM_QOS_NAME = "zilla.binding.mqtt.maximum.qos";
+    public static final String PUBLISH_QOS_MAX_NAME = "zilla.binding.mqtt.publish.qos.max";
     public static final String RETAIN_AVAILABLE_NAME = "zilla.binding.mqtt.retain.available";
     public static final String TOPIC_ALIAS_MAXIMUM_NAME = "zilla.binding.mqtt.topic.alias.maximum";
     public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";
@@ -51,7 +53,6 @@ public class MqttConfigurationTest
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
     public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
-    public static final String SUBSCRIPTION_ID_NAME = "zilla.binding.mqtt.subscription.id";
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.instance.id";
     public static final String SESSION_LEASE_NAME = "zilla.binding.mqtt.session.lease";
     public static final String SESSION_RENEW_NAME = "zilla.binding.mqtt.session.renew";
@@ -72,9 +73,16 @@ public class MqttConfigurationTest
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
         assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);
-        assertEquals(SUBSCRIPTION_ID.name(), SUBSCRIPTION_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
         assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);
+    }
+
+    @Test
+    public void shouldDefaultMaximumQosToExactlyOnce()
+    {
+        MqttConfiguration configuration = new MqttConfiguration(new Configuration());
+
+        assertEquals(2, configuration.maximumQos());
     }
 }

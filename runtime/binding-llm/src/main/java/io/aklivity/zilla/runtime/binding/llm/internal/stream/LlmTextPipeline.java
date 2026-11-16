@@ -21,23 +21,15 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 final class LlmTextPipeline
 {
     @FunctionalInterface
-    interface Output
-    {
-        void put(
-            DirectBufferEx buffer,
-            int offset,
-            int length);
-    }
-
-    @FunctionalInterface
     interface CharOutput
     {
         void put(
-            CharSequence chars,
+            JsonStringView chars,
             int from,
             int to);
     }
@@ -51,29 +43,23 @@ final class LlmTextPipeline
     private boolean completed;
 
     LlmTextPipeline(
-        Output output)
-    {
-        this(new LlmUtf8Output(output), false, null);
-    }
-
-    LlmTextPipeline(
-        Output output,
-        boolean optional)
-    {
-        this(new LlmUtf8Output(output), optional, null);
-    }
-
-    LlmTextPipeline(
-        Output output,
-        LlmCacheBreakpoint breakpoints)
-    {
-        this(new LlmUtf8Output(output), false, breakpoints);
-    }
-
-    LlmTextPipeline(
         CharOutput output)
     {
         this(output, false, null);
+    }
+
+    LlmTextPipeline(
+        CharOutput output,
+        boolean optional)
+    {
+        this(output, optional, null);
+    }
+
+    LlmTextPipeline(
+        CharOutput output,
+        LlmCacheBreakpoint breakpoints)
+    {
+        this(output, false, breakpoints);
     }
 
     private LlmTextPipeline(

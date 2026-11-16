@@ -58,6 +58,7 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
 
     private long sourceId;
     private long sourceAuth;
+    private long sourceAffinity;
     private long targetId;
     private long targetAuth;
 
@@ -334,6 +335,17 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
     public long sourceAuth()
     {
         return sourceAuth;
+    }
+
+    public void sourceAffinity(
+        long sourceAffinity)
+    {
+        this.sourceAffinity = sourceAffinity;
+    }
+
+    public long sourceAffinity()
+    {
+        return sourceAffinity;
     }
 
     public void targetAuth(long targetAuth)

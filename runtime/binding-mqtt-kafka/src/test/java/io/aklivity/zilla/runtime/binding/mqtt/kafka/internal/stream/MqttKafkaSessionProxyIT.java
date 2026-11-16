@@ -86,7 +86,6 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.subscribe/client",
         "${kafka}/session.subscribe/server"})
@@ -99,11 +98,22 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.log.event.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "0")
     @Specification({
         "${mqtt}/session.reject.non.compacted.sessions.topic/client",
         "${kafka}/session.reject.non.compacted.sessions.topic/server"})
     public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.log.event.retained.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.retained.topic.not.compacted/client",
+        "${kafka}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
     {
         k3po.finish();
     }
@@ -161,9 +171,151 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.flush.unknown.packet.id/client",
+        "${kafka}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.server.sent.reset/client",
         "${kafka}/session.server.sent.reset/server"})
     public void shouldSessionStreamReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.reconnect.non.expiring/client",
+        "${kafka}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.large.interval/client",
+        "${kafka}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.immediately/client",
+        "${kafka}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.reconnect.clean.start/client",
+        "${kafka}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.discard.offsets/server"})
+    public void shouldDiscardOffsetsOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
+    public void shouldResetGroupOffsetsOnCleanStartNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPartitionError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
+    public void shouldResetGroupOffsetsOnCleanStartGroupNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
+    public void shouldResetGroupOffsetsOnCleanStartBrokerZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.offsets.immediately/server"})
+    public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.large.interval/client",
+        "${kafka}/session.close.expire.session.offsets.large.interval/server"})
+    public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
     {
         k3po.finish();
     }
@@ -267,6 +419,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
@@ -292,6 +455,17 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.qos2.abort.before.session.established/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
     {
         k3po.finish();
     }
@@ -397,6 +571,75 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenOptionsPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.publish.qos.max.0.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0WhenOptionsPublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1WhenMessagesWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.filter/client",
+        "${kafka}/session.subscribe.unmatched.filter/server"})
+    public void shouldSessionSubscribeUnmatchedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.all/client",
+        "${kafka}/session.subscribe.unmatched.all/server"})
+    public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.resume/client",
+        "${kafka}/session.subscribe.unmatched.resume/server"})
+    public void shouldSessionSubscribeUnmatchedResume() throws Exception
     {
         k3po.finish();
     }

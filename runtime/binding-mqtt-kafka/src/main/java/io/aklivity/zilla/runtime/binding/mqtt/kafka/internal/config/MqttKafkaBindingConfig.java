@@ -37,6 +37,10 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 
 public class MqttKafkaBindingConfig
 {
+    public static final int UNSPECIFIED_ERROR = 0x80;
+
+    private static final int SUCCESS = 0x00;
+
     private final List<MqttKafkaRouteConfig> bootstrapRoutes;
 
     public final long id;
@@ -46,6 +50,7 @@ public class MqttKafkaBindingConfig
     public final List<Function<String, String>> clients;
 
     public MqttKafkaSessionFactory.KafkaSignalStream willProxy;
+    public int capabilities;
 
     private final MqttQoS publishQosMax;
     private final String16FW messagesTopic;
@@ -96,9 +101,23 @@ public class MqttKafkaBindingConfig
         Array32FW<MqttTopicFilterFW> filters)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) &&
-                filters.anyMatch(f -> r.matches(f.pattern().asString(), MqttKafkaConditionKind.SUBSCRIBE)))
+            .filter(r -> filters.anyMatch(f -> subscribes(r, authorization, f.pattern().asString())))
             .collect(Collectors.toList());
+    }
+
+    public int resolveSubscribeReasonCode(
+        long authorization,
+        String topic)
+    {
+        return routes.stream().anyMatch(r -> subscribes(r, authorization, topic)) ? SUCCESS : UNSPECIFIED_ERROR;
+    }
+
+    private boolean subscribes(
+        MqttKafkaRouteConfig route,
+        long authorization,
+        String topic)
+    {
+        return route.authorized(authorization) && route.matches(topic, MqttKafkaConditionKind.SUBSCRIBE);
     }
 
     public MqttQoS publishQosMax()

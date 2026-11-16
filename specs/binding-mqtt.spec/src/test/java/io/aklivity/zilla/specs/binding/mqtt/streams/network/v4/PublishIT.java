@@ -39,6 +39,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.reject.retain.not.supported/client",
+        "${net}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages/client",
         "${net}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -225,6 +234,42 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/client",
+        "${net}/publish.qos1.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS1MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/client",
+        "${net}/publish.qos1.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS1MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.two.topics.interleaved.acks/client",
+        "${net}/publish.qos2.two.topics.interleaved.acks/server"})
+    public void shouldPublishQoS2MessagesToTwoTopicsWithInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.two.messages.one.ack/client",
+        "${net}/publish.qos2.two.messages.one.ack/server"})
+    public void shouldPublishTwoQoS2MessagesAcknowledgedTogether() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.qos2.no.dupicate.before.pubrel/client",
         "${net}/publish.qos2.no.dupicate.before.pubrel/server"})
     public void shouldPublishQoS2NoDupBeforePubrel() throws Exception
@@ -264,6 +309,33 @@ public class PublishIT
         "${net}/publish.invalid.topic.guarded.identity.param/client",
         "${net}/publish.invalid.topic.guarded.identity.param/server"})
     public void shouldRejectTopicWithInvalidGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubrel.unknown.packet.id/client",
+        "${net}/ack.pubrel.unknown.packet.id/server"})
+    public void shouldCompletePubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/recovery.pubrel.unknown.packet.id/client",
+        "${net}/recovery.pubrel.unknown.packet.id/server"})
+    public void shouldCompleteRecoveredPubrelWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos1.message.rejected.close.connection/client",
+        "${net}/publish.qos1.message.rejected.close.connection/server"})
+    public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
     {
         k3po.finish();
     }

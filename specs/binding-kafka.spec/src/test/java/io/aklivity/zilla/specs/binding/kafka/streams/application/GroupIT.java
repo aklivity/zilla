@@ -129,6 +129,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${app}/rebalance.assignment.userdata.repeated/client",
+        "${app}/rebalance.assignment.userdata.repeated/server"})
+    public void shouldAssignUserdataAcrossRepeatedRebalance() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reassign.new.topic/client",
         "${app}/reassign.new.topic/server"})
     public void shouldReassignOnNewTopic() throws Exception
@@ -204,6 +213,15 @@ public class GroupIT
         "${app}/broker.connection.error/client",
         "${app}/broker.connection.error/server"})
     public void shouldHandleBrokerConnectionError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/begin.affinity/client",
+        "${app}/begin.affinity/server"})
+    public void shouldPassBeginAffinity() throws Exception
     {
         k3po.finish();
     }

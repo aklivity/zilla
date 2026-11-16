@@ -19,39 +19,60 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
 public class JsonTokenizerFactoryTest
 {
-    @Test
-    public void shouldSelectHighestPriorityAvailableCandidate()
-    {
-        final JsonTokenizerFactory low = candidate(0, true);
-        final JsonTokenizerFactory high = candidate(100, true);
+    private static final Function<String, String> NO_PROPERTIES = name -> null;
 
-        final JsonTokenizerFactory selected = JsonTokenizerFactory.instantiate(List.of(low, high));
+    @Test
+    public void shouldSelectHighestPriorityCandidate()
+    {
+        final JsonTokenizerFactory low = candidate(property -> 0);
+        final JsonTokenizerFactory high = candidate(property -> 100);
+
+        final JsonTokenizerFactory selected = JsonTokenizerFactory.instantiate(List.of(low, high), NO_PROPERTIES);
 
         assertSame(high, selected);
     }
 
     @Test
-    public void shouldSkipUnavailableCandidateEvenWhenHigherPriority()
+    public void shouldNotSelectCandidateThatAnswersBelowTheBaseline()
     {
-        final JsonTokenizerFactory low = candidate(0, true);
-        final JsonTokenizerFactory unavailableHigh = candidate(100, false);
+        final JsonTokenizerFactory baseline = candidate(property -> 0);
+        final JsonTokenizerFactory declined = candidate(property -> -100);
 
-        final JsonTokenizerFactory selected = JsonTokenizerFactory.instantiate(List.of(low, unavailableHigh));
-
-        assertSame(low, selected);
+        assertSame(baseline, JsonTokenizerFactory.instantiate(List.of(declined, baseline), NO_PROPERTIES));
+        assertSame(baseline, JsonTokenizerFactory.instantiate(List.of(baseline, declined), NO_PROPERTIES));
     }
 
     @Test
-    public void shouldThrowWhenNoCandidateAvailable()
+    public void shouldSelectTheFirstOfEqualPriorityCandidates()
     {
-        final JsonTokenizerFactory unavailable = candidate(0, false);
+        final JsonTokenizerFactory first = candidate(property -> 50);
+        final JsonTokenizerFactory second = candidate(property -> 50);
 
-        assertThrows(IllegalStateException.class, () -> JsonTokenizerFactory.instantiate(List.of(unavailable)));
+        assertSame(first, JsonTokenizerFactory.instantiate(List.of(first, second), NO_PROPERTIES));
+    }
+
+    @Test
+    public void shouldLetAPropertyDecideThePriority()
+    {
+        final JsonTokenizerFactory baseline = candidate(property -> 0);
+        final JsonTokenizerFactory optIn = candidate(property -> Integer.parseInt(
+            property.apply("test.priority") != null ? property.apply("test.priority") : "-100"));
+
+        assertSame(baseline, JsonTokenizerFactory.instantiate(List.of(baseline, optIn), NO_PROPERTIES));
+        assertSame(optIn, JsonTokenizerFactory.instantiate(List.of(baseline, optIn), Map.of("test.priority", "100")::get));
+    }
+
+    @Test
+    public void shouldThrowWhenThereIsNoCandidate()
+    {
+        assertThrows(IllegalStateException.class, () -> JsonTokenizerFactory.instantiate(List.of(), NO_PROPERTIES));
     }
 
     @Test
@@ -59,12 +80,11 @@ public class JsonTokenizerFactoryTest
     {
         final JsonTokenizerFactory factory = JsonTokenizerFactory.instantiate();
 
-        assertEquals(0, factory.priority());
+        assertEquals(0, factory.priority(NO_PROPERTIES));
     }
 
     private static JsonTokenizerFactory candidate(
-        int priority,
-        boolean available)
+        Function<Function<String, String>, Integer> priority)
     {
         return new JsonTokenizerFactory()
         {
@@ -76,15 +96,10 @@ public class JsonTokenizerFactoryTest
             }
 
             @Override
-            public int priority()
+            public int priority(
+                Function<String, String> property)
             {
-                return priority;
-            }
-
-            @Override
-            public boolean available()
-            {
-                return available;
+                return priority.apply(property);
             }
         };
     }

@@ -221,6 +221,16 @@ public class ClientGroupIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/rebalance.assignment.userdata.repeated/client",
+        "${net}/rebalance.assignment.userdata.repeated/server"})
+    public void shouldAssignUserdataAcrossRepeatedRebalance() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/group.authorization.failed/client",
         "${net}/group.authorization.failed/server"})
     public void shouldPropagateGroupAuthorizationFailedError() throws Exception

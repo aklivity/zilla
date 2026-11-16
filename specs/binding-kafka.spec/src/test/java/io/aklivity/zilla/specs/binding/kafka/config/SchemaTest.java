@@ -46,6 +46,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateCacheClient()
+    {
+        JsonObject config = schema.validate("cache.client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateCacheServer()
+    {
+        JsonObject config = schema.validate("cache.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateCacheOptionsBootstrap()
     {
         JsonObject config = schema.validate("cache.options.bootstrap.yaml");

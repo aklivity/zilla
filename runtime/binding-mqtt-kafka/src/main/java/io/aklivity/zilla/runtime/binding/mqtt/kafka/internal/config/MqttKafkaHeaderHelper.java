@@ -33,6 +33,7 @@ public class MqttKafkaHeaderHelper
 
     private static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
     private static final String KAFKA_QOS_HEADER_NAME = "zilla:qos";
+    private static final String KAFKA_RETAIN_HEADER_NAME = "zilla:retain";
 
     private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:expiry";
 
@@ -49,6 +50,7 @@ public class MqttKafkaHeaderHelper
     public final OctetsFW kafkaReplyFilterHeaderName;
     public final OctetsFW kafkaLocalHeaderName;
     public final OctetsFW kafkaQosHeaderName;
+    public final OctetsFW kafkaRetainHeaderName;
     public final OctetsFW kafkaTimeoutHeaderName;
     public final OctetsFW kafkaContentTypeHeaderName;
     public final OctetsFW kafkaFormatHeaderName;
@@ -64,6 +66,7 @@ public class MqttKafkaHeaderHelper
     public OctetsFW contentType;
     public String format;
     public String qos;
+    public boolean retained;
     public OctetsFW replyTo;
     public OctetsFW replyKey;
     public OctetsFW correlation;
@@ -75,6 +78,7 @@ public class MqttKafkaHeaderHelper
         kafkaReplyFilterHeaderName = stringToOctets(KAFKA_REPLY_FILTER_HEADER_NAME);
         kafkaLocalHeaderName = stringToOctets(KAFKA_LOCAL_HEADER_NAME);
         kafkaQosHeaderName = stringToOctets(KAFKA_QOS_HEADER_NAME);
+        kafkaRetainHeaderName = stringToOctets(KAFKA_RETAIN_HEADER_NAME);
         kafkaTimeoutHeaderName = stringToOctets(KAFKA_TIMEOUT_HEADER_NAME);
         kafkaContentTypeHeaderName = stringToOctets(KAFKA_CONTENT_TYPE_HEADER_NAME);
         kafkaFormatHeaderName = stringToOctets(KAFKA_FORMAT_HEADER_NAME);
@@ -87,6 +91,7 @@ public class MqttKafkaHeaderHelper
         visitors.put(kafkaReplyFilterHeaderName, this::skip);
         visitors.put(kafkaLocalHeaderName, this::skip);
         visitors.put(kafkaQosHeaderName, this::visitQos);
+        visitors.put(kafkaRetainHeaderName, this::visitRetain);
         visitors.put(kafkaTimeoutHeaderName, this::visitTimeout);
         visitors.put(kafkaContentTypeHeaderName, this::visitContentType);
         visitors.put(kafkaFormatHeaderName, this::visitFormat);
@@ -104,6 +109,7 @@ public class MqttKafkaHeaderHelper
         this.replyTo = null;
         this.correlation = null;
         this.qos = null;
+        this.retained = false;
         this.userPropertiesOffsets = new IntArrayList();
         if (dataEx != null)
         {
@@ -152,6 +158,12 @@ public class MqttKafkaHeaderHelper
         OctetsFW value)
     {
         qos = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+    }
+
+    private void visitRetain(
+        OctetsFW value)
+    {
+        retained = true;
     }
 
     private void visitReplyTo(

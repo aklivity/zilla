@@ -1231,7 +1231,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.text.escaped/client",
-        "${app}/transform.response.text.escaped/server"})
+        "${app}/anthropic.transform.response.text.escaped/server"})
     public void shouldTransformResponseTextEscapedFromAnthropic() throws Exception
     {
         k3po.finish();

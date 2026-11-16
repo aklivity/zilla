@@ -61,6 +61,15 @@ public class ServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/ssl.request.then.end/client" })
+    public void shouldHandleSslRequestThenEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gss.encrypt.request/client",
         "${app}/gss.encrypt.request/server" })
     public void shouldHandleGssEncryptRequest() throws Exception

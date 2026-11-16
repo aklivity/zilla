@@ -32,6 +32,8 @@ final class LlmMediaDecoder
     private static final byte[] BASE64 = ";base64".getBytes(UTF_8);
     private static final int HEADER_LIMIT = 256;
     private static final int INITIAL_CAPACITY = 4096;
+    private static final int NON_ASCII = 0x80;
+    private static final byte NON_ASCII_BYTE = (byte) 0xFF;
 
     @FunctionalInterface
     private interface MediaDecoder
@@ -128,13 +130,15 @@ final class LlmMediaDecoder
     }
 
     private void onText(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
+        CharSequence chars,
+        int from,
+        int to)
     {
-        for (int index = 0; index < length; index++)
+        for (int index = from; index < to; index++)
         {
-            decoder.decode(buffer.getByte(offset + index));
+            final char c = chars.charAt(index);
+
+            decoder.decode(c < NON_ASCII ? (byte) c : NON_ASCII_BYTE);
         }
     }
 

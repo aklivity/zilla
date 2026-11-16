@@ -40,6 +40,6 @@ write zilla:begin.ext ${http:beginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-write "{\"id\":\"id_1\",\"object\":\"chat.completion\",\"model\":\"model\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"café 😀 \\\"quoted\\\"\\nnext\\t\\\\ end\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+write "{\"id\":\"id_1\",\"object\":\"chat.completion\",\"model\":\"model\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"café 😀 \\\"quoted\\\"\\nnext\\t\\\\ end a\\/b \\u00e9 \\ud83d\\ude00\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 write close

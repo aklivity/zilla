@@ -1767,6 +1767,17 @@ public class LlmOpenaiResponsesClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
+        "${app}/openai.responses.transform.response.text.verbatim/client",
+        "${net}/openai.responses.transform.response.text.verbatim/server"})
+    public void shouldTransformResponseTextVerbatimAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Specification({
         "${app}/openai.responses.transform.response.refusal/client",
         "${net}/openai.responses.transform.response.refusal.sse/server"})
     public void shouldTransformResponseRefusalSseAsOpenaiResponses() throws Exception

@@ -1063,33 +1063,40 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long traceId,
             long authorization)
         {
-            state = StreamState.closeInitial(state);
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
+            {
+                state = StreamState.closeInitial(state);
 
-            doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
-                traceId, authorization, EMPTY_OCTETS);
-
-            state = StreamState.closeInitial(state);
+                doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
         }
 
         private void doApplicationAbort(
             long traceId,
             long authorization)
         {
-            state = StreamState.abortingInitial(state);
-            state = StreamState.closeInitial(state);
+            if (StreamState.initialOpening(state) && !StreamState.initialClosed(state))
+            {
+                state = StreamState.abortingInitial(state);
+                state = StreamState.closeInitial(state);
 
-            doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
-                traceId, authorization, EMPTY_OCTETS);
+                doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax, state,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
         }
 
         private void doApplicationReset(
             long traceId,
             long authorization)
         {
-            state = StreamState.closeReply(state);
+            if (StreamState.initialOpening(state) && !StreamState.replyClosed(state))
+            {
+                state = StreamState.closeReply(state);
 
-            doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
-                traceId, authorization, EMPTY_OCTETS);
+                doReset(application, originId, routedId, replyId, replySeq, replyAck, replyMax, state,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
         }
 
         private void doApplicationAbortAndReset(

@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * Synthesizes a {@code consume} tool result envelope directly against a terminal {@link JsonSink}
@@ -550,6 +551,8 @@ public final class McpKafkaConsumeResult
     // reported, so a step suspended mid-write resumes from exactly where it left off.
     private static final class Resumable implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private CharSequence value;
         private int offset;
 
@@ -574,9 +577,9 @@ public final class McpKafkaConsumeResult
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return value.subSequence(offset, value.length());
+            return decoded.wrap(value.subSequence(offset, value.length()));
         }
 
         @Override

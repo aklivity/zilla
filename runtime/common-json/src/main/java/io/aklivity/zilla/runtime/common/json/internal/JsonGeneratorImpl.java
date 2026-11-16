@@ -34,6 +34,8 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 
 /**
  * Streaming, compact {@link JsonGeneratorEx} that writes directly into a {@link
@@ -47,6 +49,11 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  */
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
+    private static final long ONES = 0x0101010101010101L;
+    private static final long HIGH_BITS = 0x8080808080808080L;
+    private static final long BACKSLASHES = ONES * '\\';
+    private static final long QUOTES = ONES * '"';
+    private static final long CONTROLS = ONES * 0x20;
     private static final int MAX_DEPTH = 64;
     private static final int REPLACEMENT = 0xfffd;
     // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
@@ -79,6 +86,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // output path is bound once for the level and rebound only when a scope opens or closes. The state below
     // is created on the first scope and never otherwise.
     private int escapeDepth;
+    private final SegmentTransferTarget transferTarget = new SegmentTransferTarget();
     private IntConsumer[] escapePuts;
     private SegmentWriter[] escapeSegments;
     private int[] scopeFrames;
@@ -89,6 +97,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // at most one of these positions holds at a time: a value is expected after a key, or an
     // incomplete string/number fragment is open awaiting its remaining fragments
     private Pending pending = Pending.NONE;
+    // counts the targets and contexts the generator has started, so a mark taken before one is not rewound to
+    private int generation;
+    private Mark mark;
 
     public JsonGeneratorImpl()
     {
@@ -129,6 +140,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         this.progress = offset;
         this.limit = limit;
         this.consumed = 0;
+        this.generation++;
         return this;
     }
 
@@ -147,6 +159,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     @Override
     public void reset()
     {
+        this.generation++;
         this.depth = 0;
         this.pending = Pending.NONE;
         this.scopeCount = 0;
@@ -161,6 +174,71 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public int remaining()
     {
         return limit - progress;
+    }
+
+    @Override
+    public void mark()
+    {
+        if (mark == null)
+        {
+            mark = new Mark();
+        }
+
+        mark.generation = generation;
+        mark.progress = progress;
+        mark.consumed = consumed;
+        mark.depth = depth;
+        mark.escapeDepth = escapeDepth;
+        mark.scopeCount = scopeCount;
+        mark.colonPending = colonPending;
+        mark.pending = pending;
+
+        System.arraycopy(inArray, 0, mark.inArray, 0, depth);
+        System.arraycopy(hasMembers, 0, mark.hasMembers, 0, depth);
+
+        if (scopeCount > 0)
+        {
+            if (mark.scopeFrames.length < scopeCount)
+            {
+                mark.scopeFrames = new int[Math.max(scopeCount, mark.scopeFrames.length << 1)];
+            }
+
+            System.arraycopy(scopeFrames, 0, mark.scopeFrames, 0, scopeCount);
+        }
+    }
+
+    @Override
+    public void rewind()
+    {
+        if (mark == null || mark.generation != generation)
+        {
+            throw new IllegalStateException("rewind needs a mark taken since the generator was last wrapped or reset");
+        }
+
+        progress = mark.progress;
+        consumed = mark.consumed;
+        depth = mark.depth;
+        scopeCount = mark.scopeCount;
+        colonPending = mark.colonPending;
+        pending = mark.pending;
+
+        System.arraycopy(mark.inArray, 0, inArray, 0, depth);
+        System.arraycopy(mark.hasMembers, 0, hasMembers, 0, depth);
+
+        if (scopeCount > 0)
+        {
+            if (scopeFrames == null || scopeFrames.length < scopeCount)
+            {
+                scopeFrames = new int[Math.max(scopeCount, INITIAL_ESCAPE_LEVELS)];
+            }
+
+            System.arraycopy(mark.scopeFrames, 0, scopeFrames, 0, scopeCount);
+        }
+
+        if (escapeDepth != mark.escapeDepth)
+        {
+            bind(mark.escapeDepth);
+        }
     }
 
     @Override
@@ -752,6 +830,68 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     @Override
     public JsonGeneratorImpl writeSegment(
+        JsonStringView value,
+        int from,
+        int to)
+    {
+        final JsonStringView.Kind kind = value.kind();
+
+        if (kind == JsonStringView.Kind.ENCODED && escapeDepth == 1 ||
+            kind == JsonStringView.Kind.ESCAPED && escapeDepth == 2)
+        {
+            writeTransfer(value, from, to);
+        }
+        else
+        {
+            writeSegment((CharSequence) value, from, to);
+        }
+
+        return this;
+    }
+
+    private void writeTransfer(
+        JsonStringView value,
+        int from,
+        int to)
+    {
+        final int free = limit - progress;
+
+        int end = to;
+        int length = value.transferLength(from, to);
+
+        if (length > free)
+        {
+            end = from;
+            length = 0;
+
+            for (boolean fits = true; fits && end < to; )
+            {
+                final boolean pair = Character.isHighSurrogate(value.charAt(end)) && end + 1 < to &&
+                    Character.isLowSurrogate(value.charAt(end + 1));
+                final int width = pair ? 2 : 1;
+                final int next = value.transferLength(end, end + width);
+
+                fits = length + next <= free;
+
+                if (fits)
+                {
+                    length += next;
+                    end += width;
+                }
+            }
+        }
+
+        if (length > 0)
+        {
+            value.transferTo(from, end, transferTarget.wrap(buffer.segment(), buffer.wrapAdjustment() + progress));
+            progress += length;
+        }
+
+        consumed += end - from;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeSegment(
         DirectBufferEx source,
         int index,
         int length,
@@ -976,6 +1116,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         final int length = value.length();
         while (index < length)
         {
+            final int run = copyPlainRun(value, index, Math.min(length - index, budget - progress));
+            if (run > 0)
+            {
+                index += run;
+                continue;
+            }
             final int codePoint = scalar(Character.codePointAt(value, index));
             if (budget - progress < codePointWidth(codePoint))
             {
@@ -985,6 +1131,36 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             emitStringCodePoint(codePoint);
         }
         return index;
+    }
+
+    private int copyPlainRun(
+        CharSequence value,
+        int index,
+        int max)
+    {
+        int run = 0;
+
+        if (value instanceof JsonStringView view)
+        {
+            run = view.copyPlain(index, max, buffer, progress);
+        }
+        else
+        {
+            while (run < max)
+            {
+                final char c = value.charAt(index + run);
+                if (c < 0x20 || c >= 0x80 || c == '"' || c == '\\')
+                {
+                    break;
+                }
+                buffer.putByte(progress + run, (byte) c);
+                run++;
+            }
+        }
+
+        progress += run;
+
+        return run;
     }
 
     private void emitStringCodePoint(
@@ -1226,17 +1402,26 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
+        final int room = limit - progress;
+        final int words = Math.min(length, room) & ~(Long.BYTES - 1);
         int written = 0;
+        while (written < words && plainWord(source.getLong(index + written)))
+        {
+            written += Long.BYTES;
+        }
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
-            if (limit - progress < unit)
+            if (room - written < unit)
             {
                 break;
             }
-            buffer.putBytes(progress, source, index + written, unit);
-            progress += unit;
             written += unit;
+        }
+        if (written > 0)
+        {
+            buffer.putBytes(progress, source, index, written);
+            progress += written;
         }
         consumed += written;
         return written;
@@ -1249,7 +1434,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         int index,
         int length)
     {
-        int written = 0;
+        int written = copyUnescapedWords(source, index, length);
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
@@ -1265,6 +1450,42 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
         consumed += written;
         return written;
+    }
+
+    // Copies leading eight-byte words that are all plain ASCII (no quote, backslash or control byte), which
+    // escape to themselves, with one write; returns the number of source bytes copied.
+    private int copyUnescapedWords(
+        DirectBufferEx source,
+        int index,
+        int length)
+    {
+        final int words = Math.min(length, limit - progress) & ~(Long.BYTES - 1);
+        int copied = 0;
+        while (copied < words && unescapedWord(source.getLong(index + copied)))
+        {
+            copied += Long.BYTES;
+        }
+        if (copied > 0)
+        {
+            buffer.putBytes(progress, source, index, copied);
+            progress += copied;
+        }
+        return copied;
+    }
+
+    private static boolean unescapedWord(
+        long word)
+    {
+        final long below = (word - CONTROLS) & ~word;
+        final long found = below | zeroBytes(word ^ QUOTES) | zeroBytes(word ^ BACKSLASHES) | word;
+
+        return (found & HIGH_BITS) == 0L;
+    }
+
+    private static long zeroBytes(
+        long word)
+    {
+        return (word - ONES) & ~word;
     }
 
     // Escapes whole source units for a scope nested inside another escape level, through the bound output
@@ -1291,6 +1512,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         }
         consumed += written;
         return written;
+    }
+
+    // Whether all eight bytes are ASCII and none is a backslash, so each is a whole unit of one byte.
+    private static boolean plainWord(
+        long word)
+    {
+        final long slashes = word ^ BACKSLASHES;
+        final long hasSlash = (slashes - ONES) & ~slashes;
+        return ((word | hasSlash) & HIGH_BITS) == 0L;
     }
 
     // Byte length of the next source unit: a backslash escape (2 or 6 bytes) or a UTF-8 char (1-4 bytes),
@@ -1556,6 +1786,22 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
             DirectBufferEx source,
             int index,
             int length);
+    }
+
+    // the state a mark holds, kept apart so a generator that never marks carries only the reference
+    private static final class Mark
+    {
+        final boolean[] inArray = new boolean[MAX_DEPTH];
+        final boolean[] hasMembers = new boolean[MAX_DEPTH];
+        int[] scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
+        int generation;
+        int progress;
+        int consumed;
+        int depth;
+        int escapeDepth;
+        int scopeCount;
+        boolean colonPending;
+        Pending pending;
     }
 
     private enum Pending

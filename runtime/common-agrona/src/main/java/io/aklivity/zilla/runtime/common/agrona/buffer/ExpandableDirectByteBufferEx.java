@@ -125,4 +125,14 @@ public class ExpandableDirectByteBufferEx extends ExpandableDirectByteBuffer imp
         MemorySegment.copy(srcSegment, JAVA_BYTE, srcIndex,
             segment(), JAVA_BYTE, wrapAdjustment() + index, length);
     }
+
+    @Override
+    public int putStringWithoutLengthUtf8(
+        int index,
+        CharSequence value,
+        int from,
+        int to)
+    {
+        return MutableDirectBufferEx.putUtf8(this, index, value, from, to);
+    }
 }

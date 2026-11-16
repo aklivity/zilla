@@ -344,6 +344,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.filter.change.retain.no.local/client",
+        "${kafka}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterDeferred() throws Exception
@@ -374,6 +383,60 @@ public class KafkaIT
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/client",
+        "${kafka}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/client",
+        "${kafka}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${kafka}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retain.shared.subscription.id/client",
+        "${kafka}/subscribe.retain.shared.subscription.id/server"})
+    public void shouldReceiveRetainedWithSharedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.reordered/client",
+        "${kafka}/subscribe.filter.change.retain.reordered/server"})
+    public void shouldReceiveRetainedAfterFilterChangeReordered() throws Exception
     {
         k3po.finish();
     }
@@ -614,6 +677,42 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.reconnect.non.expiring/client",
+        "${kafka}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.large.interval/client",
+        "${kafka}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.state.immediately/client",
+        "${kafka}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.reconnect.clean.start/client",
+        "${kafka}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.reconnect.non.clean.start/client",
         "${kafka}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
@@ -686,6 +785,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.offsets.immediately/server"})
+    public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.offsets.large.interval/client",
+        "${kafka}/session.close.expire.session.offsets.large.interval/server"})
+    public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.close.expire.session.state/client",
         "${kafka}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
@@ -716,6 +833,15 @@ public class KafkaIT
         "${kafka}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
     {
         k3po.finish();
     }
@@ -770,6 +896,15 @@ public class KafkaIT
         "${kafka}/session.will.message.qos2.abort.before.session.established/client",
         "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.end.before.session.established/client",
+        "${kafka}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
     {
         k3po.finish();
     }
@@ -860,6 +995,60 @@ public class KafkaIT
         "${kafka}/publish.qos2/client",
         "${kafka}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.clean.start.discard.offsets/server"})
+    public void shouldDiscardOffsetsOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/client",
+        "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
+    public void shouldResetGroupOffsetsOnCleanStartNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/client",
+        "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPartitionError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/client",
+        "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
+    public void shouldResetGroupOffsetsOnCleanStartGroupNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/client",
+        "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
+    public void shouldResetGroupOffsetsOnCleanStartBrokerZero() throws Exception
     {
         k3po.finish();
     }
@@ -966,6 +1155,24 @@ public class KafkaIT
         "${kafka}/subscribe.receive.message.qos1/client",
         "${kafka}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
+        "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
+    public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${kafka}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
     {
         k3po.finish();
     }
@@ -1080,6 +1287,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.expire.message/client",
+        "${kafka}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.server.sent.abort.before.begin/client",
         "${kafka}/publish.server.sent.abort.before.begin/server"})
     public void shouldReceiveServerSentAbortBeforeBeginPublish() throws Exception
@@ -1095,4 +1329,148 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.1/client",
+        "${kafka}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.retained.topic.not.compacted/client",
+        "${kafka}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.publish.qos.max.0/client",
+        "${kafka}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.empty.retained.message/client",
+        "${kafka}/publish.empty.retained.message/server"})
+    public void shouldPublishEmptyRetainedMessageAsTombstone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.tombstone/client",
+        "${kafka}/subscribe.retained.tombstone/server"})
+    public void shouldSkipTombstoneOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.empty.value/client",
+        "${kafka}/subscribe.retained.empty.value/server"})
+    public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.flush.unknown.packet.id/client",
+        "${kafka}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1.server.sent.reset/client",
+        "${kafka}/publish.qos1.server.sent.reset/server"})
+    public void shouldPublishQos1ServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1.server.sent.reset.in.flight/client",
+        "${kafka}/publish.qos1.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1ServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/client",
+        "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/server"})
+    public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1.reject.large.message/client",
+        "${kafka}/publish.qos1.reject.large.message/server"})
+    public void shouldPublishQos1RejectLargeMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos1.retained.server.sent.reset/client",
+        "${kafka}/publish.qos1.retained.server.sent.reset/server"})
+    public void shouldPublishQos1RetainedServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.filter/client",
+        "${kafka}/session.subscribe.unmatched.filter/server"})
+    public void shouldSessionSubscribeUnmatchedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.all/client",
+        "${kafka}/session.subscribe.unmatched.all/server"})
+    public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.unmatched.resume/client",
+        "${kafka}/session.subscribe.unmatched.resume/server"})
+    public void shouldSessionSubscribeUnmatchedResume() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${kafka}/subscribe.one.message.subscription.id.127/client",
+        "${kafka}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

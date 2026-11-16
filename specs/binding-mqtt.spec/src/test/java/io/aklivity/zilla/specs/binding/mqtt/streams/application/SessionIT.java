@@ -49,6 +49,33 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.non.clean.start/client",
+        "${app}/session.connect.non.clean.start/server"})
+    public void shouldConnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.clean.start/client",
+        "${app}/session.connect.clean.start/server"})
+    public void shouldConnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.with.session.expiry.never/client",
+        "${app}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.redirect.support/client",
         "${app}/session.connect.redirect.support/server"})
     public void shouldConnectSupportSharding() throws Exception
@@ -314,6 +341,158 @@ public class SessionIT
         "${app}/session.invalid.session.timeout.before.connack/client",
         "${app}/session.invalid.session.timeout.before.connack/server"})
     public void shouldPropagateMqttReasonCodeAndStringBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.publish.qos.max.per.connection/client",
+        "${app}/session.publish.qos.max.per.connection/server"})
+    public void shouldRejectPublishQosAboveSessionMaximumPerConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.unroutable.resume/client",
+        "${app}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/client",
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeUnroutableResumeSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.non.successful.resume/client",
+        "${app}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.non.successful.resume.session.expiry.never/client",
+        "${app}/session.subscribe.non.successful.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeNonSuccessfulResumeSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${app}/session.resume.subscription.id.127/client",
+        "${app}/session.resume.subscription.id.127/server"})
+    public void shouldSessionResumeSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.resume.session.state.version.1.generated.subscription.id/client",
+        "${app}/session.resume.session.state.version.1.generated.subscription.id/server"})
+    public void shouldSessionResumeSessionStateVersion1GeneratedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.abort.reconnect.non.clean.start.v4/client",
+        "${app}/session.abort.reconnect.non.clean.start.v4/server"})
+    public void shouldSessionAbortReconnectNonCleanStartV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.v4/client",
+        "${app}/session.client.takeover.v4/server"})
+    public void shouldSessionClientTakeoverV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.exists.clean.start.v4/client",
+        "${app}/session.exists.clean.start.v4/server"})
+    public void shouldSessionExistsCleanStartV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.multiple.isolated.v4/client",
+        "${app}/session.subscribe.multiple.isolated.v4/server"})
+    public void shouldSessionSubscribeMultipleIsolatedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.publish.routing.v4/client",
+        "${app}/session.subscribe.publish.routing.v4/server"})
+    public void shouldSessionSubscribePublishRoutingV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.v4/client",
+        "${app}/session.subscribe.v4/server"})
+    public void shouldSessionSubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.deferred.v4/client",
+        "${app}/session.unsubscribe.after.subscribe.deferred.v4/server"})
+    public void shouldSessionUnsubscribeAfterSubscribeDeferredV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.v4/client",
+        "${app}/session.unsubscribe.after.subscribe.v4/server"})
+    public void shouldSessionUnsubscribeAfterSubscribeV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.via.session.state.v4/client",
+        "${app}/session.unsubscribe.via.session.state.v4/server"})
+    public void shouldSessionUnsubscribeViaSessionStateV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.abort.on.network.error/client",
+        "${app}/session.abort.on.network.error/server"})
+    public void shouldAbortOnNetworkError() throws Exception
     {
         k3po.finish();
     }

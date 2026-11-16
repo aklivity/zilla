@@ -2266,6 +2266,16 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
     @Override
     public int putStringWithoutLengthUtf8(
         int index,
+        CharSequence value,
+        int from,
+        int to)
+    {
+        return MutableDirectBufferEx.putUtf8(this, index, value, from, to);
+    }
+
+    @Override
+    public int putStringWithoutLengthUtf8(
+        int index,
         String value)
     {
         final byte[] bytes = value != null
@@ -4054,6 +4064,16 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
             MemorySegment.copy(MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0,
                 segment, BYTE_LAYOUT, index + Integer.BYTES, length);
             return Integer.BYTES + length;
+        }
+
+        @Override
+        public int putStringWithoutLengthUtf8(
+            int index,
+            CharSequence value,
+            int from,
+            int to)
+        {
+            return MutableDirectBufferEx.putUtf8(this, index, value, from, to);
         }
 
         @Override

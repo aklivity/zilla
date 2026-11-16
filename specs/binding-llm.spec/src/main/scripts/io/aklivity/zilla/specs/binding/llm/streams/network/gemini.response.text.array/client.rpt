@@ -41,6 +41,6 @@ read "[{\"c"
 read "andidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello \\"
 read "\"there\\\" é\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},"
 read "\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\""
-read "世 🌍\\n\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"end\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}\n]"
+read "世 🌍\\n\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"end a\\/b \\u00e9 \\ud83d\\ude00\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},\n{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}\n]"
 
 read closed

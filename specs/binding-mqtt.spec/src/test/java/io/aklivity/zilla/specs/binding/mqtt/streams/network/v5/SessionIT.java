@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.connect.with.session.expiry.never/client",
+        "${net}/session.connect.with.session.expiry.never/server"})
+    public void shouldConnectWithSessionExpiryNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.connect.override.session.expiry/client",
         "${net}/session.connect.override.session.expiry/server"})
     public void shouldConnectServerOverridesSessionExpiry() throws Exception
@@ -291,4 +300,49 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.publish.qos.max.per.connection/client",
+        "${net}/session.publish.qos.max.per.connection/server"})
+    public void shouldRejectPublishQosAboveSessionMaximumPerConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${net}/session.subscribe.unroutable.resume/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.non.successful.resume/client",
+        "${net}/session.subscribe.non.successful.resume/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${net}/session.resume.subscription.id.127/client",
+        "${net}/session.resume.subscription.id.127/server"})
+    public void shouldSessionResumeSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.resume.session.state.version.1.generated.subscription.id/client",
+        "${net}/session.resume.session.state.version.1.generated.subscription.id/server"})
+    public void shouldSessionResumeSessionStateVersion1GeneratedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

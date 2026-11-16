@@ -490,4 +490,184 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.publish/client",
+        "${net}/connect.max.packet.size.other.connection.publish/server"})
+    public void shouldPublishLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.other.connection.subscribe/client",
+        "${net}/connect.max.packet.size.other.connection.subscribe/server"})
+    public void shouldSubscribeLargerThanOtherConnectionMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.maximum.packet.size.repeated/client",
+        "${net}/connect.reject.maximum.packet.size.repeated/server"})
+    public void shouldRejectRepeatedMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/client",
+        "${net}/connect.max.packet.size.exceeded.by.packet.overhead/server"})
+    public void shouldDropPublishWhenPacketExceedsMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.receive.maximum.zero/client",
+        "${net}/connect.reject.receive.maximum.zero/server"})
+    public void shouldRejectZeroReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.receive.maximum.repeated/client",
+        "${net}/connect.reject.receive.maximum.repeated/server"})
+    public void shouldRejectRepeatedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.publish.maximum.qos.1/client",
+        "${net}/connect.publish.maximum.qos.1/server"})
+    public void shouldConnectWithPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.publish.maximum.qos.0/client",
+        "${net}/connect.publish.maximum.qos.0/server"})
+    public void shouldConnectWithPublishMaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/client",
+        "${net}/connect.will.reject.will.qos.2.publish.maximum.qos.1/server"})
+    public void shouldRejectWillQos2WhenPublishMaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.reject.invalid.property.identifier/client",
+        "${net}/connect.reject.invalid.property.identifier/server"})
+    public void shouldConnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.will.reject.invalid.property.identifier/client",
+        "${net}/connect.will.reject.invalid.property.identifier/server"})
+    public void shouldConnectWillRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.invalid.property.identifier/client",
+        "${net}/disconnect.reject.invalid.property.identifier/server"})
+    public void shouldDisconnectRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.invalid.property.identifier/client",
+        "${net}/server.sent.connack.invalid.property.identifier/server"})
+    public void shouldServerSentConnackInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.second.connack/client",
+        "${net}/server.sent.second.connack/server"})
+    public void shouldServerSentSecondConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.invalid.property.identifier/client",
+        "${net}/server.sent.disconnect.invalid.property.identifier/server"})
+    public void shouldServerSentDisconnectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.property.not.valid/client",
+        "${net}/server.sent.disconnect.property.not.valid/server"})
+    public void shouldServerSentDisconnectPropertyNotValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.reason.string.repeated/client",
+        "${net}/server.sent.disconnect.reason.string.repeated/server"})
+    public void shouldServerSentDisconnectReasonStringRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.disconnect.server.reference.repeated/client",
+        "${net}/server.sent.disconnect.server.reference.repeated/server"})
+    public void shouldServerSentDisconnectServerReferenceRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unknown.packet.type/client",
+        "${net}/server.sent.unknown.packet.type/server"})
+    public void shouldServerSentUnknownPacketType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.packet.too.large/client",
+        "${net}/server.sent.packet.too.large/server"})
+    public void shouldServerSentPacketTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -15,27 +15,34 @@
 #
 
 connect "zilla://streams/net0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-    option zilla:byteorder "network"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
-write [0x10 0x20]                     # CONNECT
-      [0x00 0x04] "MQTT"              # protocol name
-      [0x04]                          # protocol version
-      [0x82]                          # flags = username, clean start
-      [0x00 0x3c]                     # keep alive = 60s
-      [0x00 0x06] "client"            # client id
-      [0x00 0x0c] "Bearer TOKEN"      # username
+write [0x10 0x20]                       # CONNECT
+      [0x00 0x04] "MQTT"                # protocol name
+      [0x04]                            # protocol version
+      [0x82]                            # flags = username, clean start
+      [0x00 0x3c]                       # keep alive = 60s
+      [0x00 0x06] "client"              # client id
+      [0x00 0x0c] "Bearer TOKEN"        # username
 
-read  [0x20 0x02]                     # CONNACK
-      [0x00]                          # flags = none
-      [0x00]                          # reason code
+read  [0x20 0x02]                       # CONNACK
+      [0x00]                            # flags = none
+      [0x00]                            # reason code
 
-write [0x82 0x15]                     # SUBSCRIBE
-      [0x00 0x01]                     # packet id = 1
-      [0x00 0x10] "sensor/none/data"  # topic filter
-      [0x00]                          # options = at-most-once
+write [0x82 0x15]                       # SUBSCRIBE
+      [0x00 0x01]                       # packet id = 1
+      [0x00 0x10] "sensor/none/data"    # topic filter
+      [0x00]                            # options = at-most-once
 
+read  [0x90 0x03]                       # SUBACK
+      [0x00 0x01]                       # packet id = 1
+      [0x80]                            # reason code
+
+write [0xe0 0x00]                       # DISCONNECT
+
+write close
 read closed

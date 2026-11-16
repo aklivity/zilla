@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 // Phase 3 (inject): a transform injects a canonical member between two verbatim runs, exercising the
 // VERBATIM ... STRUCTURED ... VERBATIM interleaving. The generator tracks structural state continuously as
@@ -248,6 +249,8 @@ class JsonInjectTest
     // never consulted for an injected source.
     private static final class InjectSource implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private final CharSequence text;
 
         private InjectSource(
@@ -257,9 +260,9 @@ class JsonInjectTest
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return text;
+            return decoded.wrap(text);
         }
 
         @Override

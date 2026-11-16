@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
+import io.aklivity.zilla.runtime.common.lang.CharSequenceEx;
 
 /**
  * Backs {@link AvroPipeline}: a thin pump that re-targets the {@link AvroParser} cursor at the frame
@@ -274,7 +275,7 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
-        public CharSequence getStringView()
+        public CharSequenceEx getStringView()
         {
             return parser.getStringView();
         }

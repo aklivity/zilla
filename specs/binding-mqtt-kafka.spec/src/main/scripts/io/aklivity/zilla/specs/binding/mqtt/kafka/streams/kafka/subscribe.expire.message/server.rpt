@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property deltaMillis 1000L
+property deltaMillis 5000L
 property timestamp ${kafka:timestamp() - deltaMillis}
 
 accept "zilla://streams/kafka0"

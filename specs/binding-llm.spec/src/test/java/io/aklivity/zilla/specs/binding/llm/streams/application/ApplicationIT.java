@@ -5691,6 +5691,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.section.user.text.escaped/client",
+        "${app}/openai.responses.section.user.text.escaped/server"})
+    public void shouldOpenaiResponsesSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.section.developer.instruction/client",
         "${app}/openai.responses.section.developer.instruction/server"})
     public void shouldOpenaiResponsesSectionDeveloperInstruction() throws Exception
@@ -6693,6 +6702,15 @@ public class ApplicationIT
         "${app}/openai.responses.transform.response.text.escaped/client",
         "${app}/openai.responses.transform.response.text.escaped/server"})
     public void shouldOpenaiResponsesTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.transform.response.text.verbatim/client",
+        "${app}/openai.responses.transform.response.text.verbatim/server"})
+    public void shouldOpenaiResponsesTransformResponseTextVerbatim() throws Exception
     {
         k3po.finish();
     }

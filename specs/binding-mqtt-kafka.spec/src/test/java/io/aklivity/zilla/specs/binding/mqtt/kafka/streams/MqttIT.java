@@ -272,6 +272,60 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/client",
+        "${mqtt}/subscribe.publish.retained.no.retain.as.published/server"})
+    public void shouldSubscribePublishRetainedNoRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/client",
+        "${mqtt}/subscribe.publish.not.retained.retain.as.published/server"})
+    public void shouldSubscribePublishNotRetainedRetainAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/client",
+        "${mqtt}/subscribe.publish.retained.retain.as.published.multiple.filters/server"})
+    public void shouldSubscribePublishRetainedRetainAsPublishedMultipleFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retain.shared.subscription.id/client",
+        "${mqtt}/subscribe.retain.shared.subscription.id/server"})
+    public void shouldReceiveRetainedWithSharedSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.reordered/client",
+        "${mqtt}/subscribe.filter.change.retain.reordered/server"})
+    public void shouldReceiveRetainedAfterFilterChangeReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldReceiveCorrelationData() throws Exception
@@ -302,6 +356,15 @@ public class MqttIT
         "${mqtt}/subscribe.filter.change.retain/client",
         "${mqtt}/subscribe.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterFilterChange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.no.local/client",
+        "${mqtt}/subscribe.filter.change.retain.no.local/server"})
+    public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
     {
         k3po.finish();
     }
@@ -553,6 +616,64 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.close.reconnect.non.expiring/client",
+        "${mqtt}/session.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.large.interval/client",
+        "${mqtt}/session.close.expire.session.state.large.interval/server"})
+    public void shouldExpireSessionOnCloseAfterLargeInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.state.immediately/client",
+        "${mqtt}/session.close.expire.session.state.immediately/server"})
+    public void shouldExpireSessionOnCloseImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.reconnect.clean.start/client",
+        "${mqtt}/session.close.reconnect.clean.start/server"})
+    public void shouldReconnectCleanStartAfterNonExpiringSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${mqtt}/session.close.expire.session.offsets.immediately/server"})
+    public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.large.interval/client",
+        "${mqtt}/session.close.expire.session.offsets.large.interval/server"})
+    public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.state/client",
         "${mqtt}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
@@ -578,6 +699,17 @@ public class MqttIT
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${mqtt}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
+        "${mqtt}/session.will.message.abort.deliver.will.non.expiring/server"})
+    public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");
@@ -652,6 +784,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.qos2.end.before.session.established/client",
+        "${mqtt}/session.qos2.end.before.session.established/server"})
+    public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
         "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
@@ -676,6 +819,16 @@ public class MqttIT
         "${mqtt}/publish.qos2/client",
         "${mqtt}/publish.qos2/server"})
     public void shouldPublishQoS2Message() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${mqtt}/session.clean.start.discard.offsets/server"})
+    public void shouldDiscardOffsetsOnCleanStart() throws Exception
     {
         k3po.start();
         k3po.finish();
@@ -764,6 +917,24 @@ public class MqttIT
         "${mqtt}/subscribe.receive.message.qos1/client",
         "${mqtt}/subscribe.receive.message.qos1/server"})
     public void shouldReceiveMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
+        "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
+    public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/client",
+        "${mqtt}/subscribe.qos2.second.client.restore.keeps.packet.id.offset/server"})
+    public void shouldKeepPacketIdOffsetWhenSecondClientRestoresQoS2() throws Exception
     {
         k3po.finish();
     }
@@ -869,6 +1040,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.message.expiry.interval.reduced/server"})
+    public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.retained.message.expiry.interval.reduced/server"})
+    public void shouldReceiveRetainedMessageWithReducedExpiryInterval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message/client",
+        "${mqtt}/subscribe.retained.expire.message/server"})
+    public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
@@ -895,4 +1093,144 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.1/client",
+        "${mqtt}/session.publish.qos.max.1/server"})
+    public void shouldAdvertisePublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.retained.topic.not.compacted/client",
+        "${mqtt}/session.retained.topic.not.compacted/server"})
+    public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.publish.qos.max.0/client",
+        "${mqtt}/session.publish.qos.max.0/server"})
+    public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.empty.retained.message/client",
+        "${mqtt}/publish.empty.retained.message/server"})
+    public void shouldSendEmptyRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.skip.removed.retained.message/client",
+        "${mqtt}/subscribe.skip.removed.retained.message/server"})
+    public void shouldSkipRemovedRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.flush.unknown.packet.id/client",
+        "${mqtt}/session.flush.unknown.packet.id/server"})
+    public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset/client",
+        "${mqtt}/publish.qos1.server.sent.reset/server"})
+    public void shouldPublishQos1ServerSentReset() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.in.flight/client",
+        "${mqtt}/publish.qos1.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1ServerSentResetInFlight() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/client",
+        "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/server"})
+    public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.reject.large.message/client",
+        "${mqtt}/publish.qos1.reject.large.message/server"})
+    public void shouldPublishQos1RejectLargeMessage() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.retained.server.sent.reset/client",
+        "${mqtt}/publish.qos1.retained.server.sent.reset/server"})
+    public void shouldPublishQos1RetainedServerSentReset() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.filter/client",
+        "${mqtt}/session.subscribe.unmatched.filter/server"})
+    public void shouldSessionSubscribeUnmatchedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.all/client",
+        "${mqtt}/session.subscribe.unmatched.all/server"})
+    public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.unmatched.resume/client",
+        "${mqtt}/session.subscribe.unmatched.resume/server"})
+    public void shouldSessionSubscribeUnmatchedResume() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.one.message.subscription.id.127/client",
+        "${mqtt}/subscribe.one.message.subscription.id.127/server"})
+    public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

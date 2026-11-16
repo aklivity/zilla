@@ -39,6 +39,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.retained.not.supported/client",
+        "${net}/subscribe.retained.not.supported/server"})
+    public void shouldSubscribeWithoutRetainedReplayWhenRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.one.message/client",
         "${net}/subscribe.one.message/server"})
     public void shouldReceiveOneMessage() throws Exception
@@ -58,9 +67,9 @@ public class SubscribeIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/subscribe.reject.missing.packet.id/client",
-        "${net}/subscribe.reject.missing.packet.id/server"})
-    public void shouldRejectWithoutPacketId() throws Exception
+        "${net}/subscribe.reject.omitted.packet.id/client",
+        "${net}/subscribe.reject.omitted.packet.id/server"})
+    public void shouldRejectOmittedPacketId() throws Exception
     {
         k3po.finish();
     }
@@ -222,7 +231,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.unroutable/client",
         "${net}/subscribe.unroutable/server"})
-    public void shouldRejectUnroutable() throws Exception
+    public void shouldSubscribeUnroutable() throws Exception
     {
         k3po.finish();
     }
@@ -330,7 +339,155 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.guarded.identity.param/client",
         "${net}/subscribe.invalid.topic.guarded.identity.param/server"})
-    public void shouldRejectInvalidGuardedIdentityParam() throws Exception
+    public void shouldSubscribeInvalidTopicGuardedIdentityParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.puback.unknown.packet.id/client",
+        "${net}/ack.puback.unknown.packet.id/server"})
+    public void shouldIgnorePubackWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubrec.unknown.packet.id/client",
+        "${net}/ack.pubrec.unknown.packet.id/server"})
+    public void shouldReleasePubrecWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ack.pubcomp.unknown.packet.id/client",
+        "${net}/ack.pubcomp.unknown.packet.id/server"})
+    public void shouldIgnorePubcompWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.mixed/client",
+        "${net}/subscribe.topic.filters.unroutable.mixed/server"})
+    public void shouldSubscribeTopicFiltersUnroutableMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.unroutable.all/client",
+        "${net}/subscribe.topic.filters.unroutable.all/server"})
+    public void shouldSubscribeTopicFiltersUnroutableAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filter.unauthorized/client",
+        "${net}/subscribe.topic.filter.unauthorized/server"})
+    public void shouldSubscribeTopicFilterUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.maximum.qos.3/client",
+        "${net}/subscribe.reject.maximum.qos.3/server"})
+    public void shouldRejectMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.3.1-1], [MQTT-4.8.0-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.packet.id.zero/client",
+        "${net}/subscribe.reject.packet.id.zero/server"})
+    public void shouldRejectPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-3]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${net}/subscribe.reject.missing.topic.filters/server"})
+    public void shouldRejectMissingTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.non.successful.unsubscribe/client",
+        "${net}/subscribe.topic.filters.non.successful.unsubscribe/server"})
+    public void shouldSubscribeTopicFiltersNonSuccessfulUnsubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/client",
+        "${net}/subscribe.downgrade.qos2.maximum.qos.1/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.downgrade.qos2.maximum.qos.0/client",
+        "${net}/subscribe.downgrade.qos2.maximum.qos.0/server"})
+    public void shouldSubscribeDowngradeQos2MaximumQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.same.qos/client",
+        "${net}/subscribe.replace.same.qos/server"})
+    public void shouldSubscribeReplaceSameQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.downgrade.qos/client",
+        "${net}/subscribe.replace.downgrade.qos/server"})
+    public void shouldSubscribeReplaceDowngradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.replace.upgrade.qos/client",
+        "${net}/subscribe.replace.upgrade.qos/server"})
+    public void shouldSubscribeReplaceUpgradeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3-8.3-4] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.second.filter.malformed.subscription.options/client",
+        "${net}/subscribe.reject.second.filter.malformed.subscription.options/server"})
+    public void shouldRejectSecondFilterMalformedSubscriptionOptions() throws Exception
     {
         k3po.finish();
     }

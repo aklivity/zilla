@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 abstract class LlmToolTransform implements JsonTransform
 {
@@ -2149,6 +2150,8 @@ abstract class LlmToolTransform implements JsonTransform
 
     private static final class LiteralSource implements JsonSource
     {
+        private final JsonStringView.Decoded decoded = new JsonStringView.Decoded();
+
         private final LiteralView view;
 
         private boolean fragment;
@@ -2182,9 +2185,9 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         @Override
-        public CharSequence getStringView()
+        public JsonStringView getStringView()
         {
-            return view;
+            return decoded.wrap(view);
         }
 
         @Override

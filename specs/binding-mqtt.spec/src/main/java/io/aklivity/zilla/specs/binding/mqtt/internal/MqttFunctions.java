@@ -58,6 +58,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
@@ -471,6 +472,13 @@ public final class MqttFunctions
                 subscribeDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
             }
 
+            public MqttSubscribeDataExBuilder deferred(
+                int deferred)
+            {
+                subscribeDataExRW.deferred(deferred);
+                return this;
+            }
+
             public MqttSubscribeDataExBuilder topic(
                 String topic)
             {
@@ -718,6 +726,13 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttPublishFlushExBuilder publish()
+        {
+            flushExRW.kind(MqttExtensionKind.PUBLISH.value());
+
+            return new MqttPublishFlushExBuilder();
+        }
+
         public MqttSessionFlushExBuilder session()
         {
             flushExRW.kind(MqttExtensionKind.SESSION.value());
@@ -730,6 +745,37 @@ public final class MqttFunctions
             flushExRW.kind(MqttExtensionKind.SUBSCRIBE.value());
 
             return new MqttSubscribeFlushExBuilder();
+        }
+
+        public final class MqttPublishFlushExBuilder
+        {
+            private final MqttPublishFlushExFW.Builder publishFlushExRW = new MqttPublishFlushExFW.Builder();
+
+            private MqttPublishFlushExBuilder()
+            {
+                publishFlushExRW.wrap(writeBuffer, MqttFlushExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+            }
+
+            public MqttPublishFlushExBuilder packetId(
+                int packetId)
+            {
+                publishFlushExRW.packetId(packetId);
+                return this;
+            }
+
+            public MqttPublishFlushExBuilder reasonCode(
+                int reasonCode)
+            {
+                publishFlushExRW.reasonCode(reasonCode);
+                return this;
+            }
+
+            public MqttFlushExBuilder build()
+            {
+                final MqttPublishFlushExFW publishFlushEx = publishFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, publishFlushEx.limit());
+                return MqttFlushExBuilder.this;
+            }
         }
 
         public final class MqttSessionFlushExBuilder
@@ -882,6 +928,13 @@ public final class MqttFunctions
             sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
+        public MqttSessionStateBuilder version(
+            int version)
+        {
+            sessionStateRW.version(version);
+            return this;
+        }
+
         public MqttSessionStateBuilder subscription(
             String pattern)
         {
@@ -903,6 +956,22 @@ public final class MqttFunctions
             int reasonCode)
         {
             sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).reasonCode(reasonCode).pattern(pattern));
+            return this;
+        }
+
+        public MqttSessionStateBuilder subscriptionWithReasonCode(
+            String pattern,
+            int id,
+            String qosName,
+            int reasonCode,
+            String... flagNames)
+        {
+            int flags = Arrays.stream(flagNames)
+                .mapToInt(f -> 1 << MqttSubscribeFlags.valueOf(f).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            int qos = MqttQoS.valueOf(qosName).ordinal();
+            sessionStateRW.subscriptionsItem(f -> f
+                .subscriptionId(id).qos(qos).flags(flags).reasonCode(reasonCode).pattern(pattern));
             return this;
         }
 
@@ -1492,7 +1561,7 @@ public final class MqttFunctions
             private Integer flags;
             private Integer capabilities;
             private Integer subscribeQosMax;
-            private int publishQosMax;
+            private Integer publishQosMax;
             private Integer packetSizeMax;
 
             private MqttSessionBeginExMatcherBuilder()
@@ -1574,6 +1643,7 @@ public final class MqttFunctions
                     matchPacketIds(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     matchSubscribeQosMax(sessionBeginEx) &&
+                    matchPublishQosMax(sessionBeginEx) &&
                     matchPacketSizeMax(sessionBeginEx) &&
                     matchCapabilities(sessionBeginEx);
             }
@@ -1601,6 +1671,12 @@ public final class MqttFunctions
                 final MqttSessionBeginExFW sessionBeginEx)
             {
                 return subscribeQosMax == null || subscribeQosMax == sessionBeginEx.subscribeQosMax();
+            }
+
+            private boolean matchPublishQosMax(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                return publishQosMax == null || publishQosMax == sessionBeginEx.publishQosMax();
             }
 
             private boolean matchPacketSizeMax(
@@ -2139,6 +2215,15 @@ public final class MqttFunctions
         private Integer kind;
         private Predicate<MqttFlushExFW> caseMatcher;
 
+        public MqttPublishFlushExMatcherBuilder publish()
+        {
+            final MqttPublishFlushExMatcherBuilder matcherBuilder = new MqttPublishFlushExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.PUBLISH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public MqttSessionFlushExMatcherBuilder session()
         {
             final MqttSessionFlushExMatcherBuilder matcherBuilder = new MqttSessionFlushExMatcherBuilder();
@@ -2199,6 +2284,55 @@ public final class MqttFunctions
             final MqttFlushExFW flushEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class MqttPublishFlushExMatcherBuilder
+        {
+            private Integer packetId;
+            private Integer reasonCode;
+
+            private MqttPublishFlushExMatcherBuilder()
+            {
+            }
+
+            public MqttPublishFlushExMatcherBuilder packetId(
+                int packetId)
+            {
+                this.packetId = packetId;
+                return this;
+            }
+
+            public MqttPublishFlushExMatcherBuilder reasonCode(
+                int reasonCode)
+            {
+                this.reasonCode = reasonCode;
+                return this;
+            }
+
+            public MqttFlushExMatcherBuilder build()
+            {
+                return MqttFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttFlushExFW flushEx)
+            {
+                final MqttPublishFlushExFW publishFlushEx = flushEx.publish();
+                return matchPacketId(publishFlushEx) &&
+                    matchReasonCode(publishFlushEx);
+            }
+
+            private boolean matchPacketId(
+                final MqttPublishFlushExFW flush)
+            {
+                return packetId == null || packetId == flush.packetId();
+            }
+
+            private boolean matchReasonCode(
+                final MqttPublishFlushExFW flush)
+            {
+                return reasonCode == null || reasonCode == flush.reasonCode();
+            }
         }
 
         public final class MqttSessionFlushExMatcherBuilder

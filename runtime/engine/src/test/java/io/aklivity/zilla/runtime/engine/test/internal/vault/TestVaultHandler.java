@@ -54,6 +54,7 @@ import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntry
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.KeyStoreCache;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
@@ -269,7 +270,7 @@ public final class TestVaultHandler implements VaultHandler
                 if (store.size() != 0)
                 {
                     factory = KeyManagerFactory.getInstance("PKIX");
-                    factory.init(store, protection.getPassword());
+                    factory.init(new KeyStoreCache(store).keyStore(), protection.getPassword());
                 }
             }
             catch (Exception ex)

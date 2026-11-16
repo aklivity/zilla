@@ -19,12 +19,10 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SUBSCRIPTION_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -50,8 +48,6 @@ public class SessionIT
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configure(SUBSCRIPTION_ID_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v4.SessionIT::supplySubscriptionId")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .external("app1")
@@ -64,7 +60,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.subscribe/client",
-        "${app}/session.subscribe/server"})
+        "${app}/session.subscribe.v4/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
     {
         k3po.finish();
@@ -74,7 +70,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.subscribe.multiple.isolated/client",
-        "${app}/session.subscribe.multiple.isolated/server"})
+        "${app}/session.subscribe.multiple.isolated.v4/server"})
     public void shouldSubscribeMultipleSaveSubscriptionsInSession() throws Exception
     {
         k3po.finish();
@@ -94,7 +90,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.unsubscribe.after.subscribe/client",
-        "${app}/session.unsubscribe.after.subscribe/server"})
+        "${app}/session.unsubscribe.after.subscribe.v4/server"})
     public void shouldUnsubscribeSaveNewSessionState() throws Exception
     {
         k3po.finish();
@@ -104,7 +100,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.unsubscribe.after.subscribe.deferred/client",
-        "${app}/session.unsubscribe.after.subscribe.deferred/server"})
+        "${app}/session.unsubscribe.after.subscribe.deferred.v4/server"})
     public void shouldUnsubscribeAfterSubscribeDeferred() throws Exception
     {
         k3po.finish();
@@ -114,7 +110,7 @@ public class SessionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.subscribe/client",
-        "${app}/session.unsubscribe.via.session.state/server"})
+        "${app}/session.unsubscribe.via.session.state.v4/server"})
     public void shouldUnsubscribeViaSessionState() throws Exception
     {
         k3po.finish();
@@ -167,7 +163,7 @@ public class SessionIT
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
         "${net}/session.exists.clean.start/client",
-        "${app}/session.exists.clean.start/server"})
+        "${app}/session.exists.clean.start.v4/server"})
     public void shouldCloseExistingConnectionCleanStart() throws Exception
     {
         k3po.finish();
@@ -176,8 +172,28 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.connect.non.clean.start/client",
+        "${app}/session.connect.non.clean.start/server"})
+    public void shouldConnectNonCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.connect.clean.start/client",
+        "${app}/session.connect.clean.start/server"})
+    public void shouldConnectCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.abort.reconnect.non.clean.start/client",
-        "${app}/session.abort.reconnect.non.clean.start/server"})
+        "${app}/session.abort.reconnect.non.clean.start.v4/server"})
     public void shouldClientAbortAndReconnectWithNonCleanStart() throws Exception
     {
         k3po.finish();
@@ -189,7 +205,7 @@ public class SessionIT
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
         "${net}/session.client.takeover/client",
-        "${app}/session.client.takeover/server"})
+        "${app}/session.client.takeover.v4/server"})
     public void shouldClientTakeOverSession() throws Exception
     {
         k3po.finish();
@@ -209,21 +225,29 @@ public class SessionIT
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/session.subscribe.publish.routing/client",
-        "${app}/session.subscribe.publish.routing/server"})
+        "${app}/session.subscribe.publish.routing.v4/server"})
     public void shouldSubscribeAndPublishToNonDefaultRoute() throws Exception
     {
         k3po.finish();
     }
 
-    @Before
-    public void setSubscriptionId()
+    @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/session.subscribe.unroutable.resume/client",
+        "${app}/session.subscribe.unroutable.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeUnroutableResume() throws Exception
     {
-        subscriptionId = 0;
+        k3po.finish();
     }
 
-    private static int subscriptionId = 0;
-    public static int supplySubscriptionId()
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.subscribe.non.successful.resume/client",
+        "${app}/session.subscribe.non.successful.resume.session.expiry.never/server"})
+    public void shouldSessionSubscribeNonSuccessfulResume() throws Exception
     {
-        return ++subscriptionId;
+        k3po.finish();
     }
 }

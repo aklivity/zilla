@@ -28,14 +28,9 @@ final class LlmBreakpointStash
     private static final byte[] TTL = ",\"ttl\":\"".getBytes(UTF_8);
     private static final int TTL_MAX = 16;
 
-    private final MutableDirectBufferEx buffer;
+    private MutableDirectBufferEx buffer;
 
     private int length;
-
-    LlmBreakpointStash()
-    {
-        this.buffer = new UnsafeBufferEx(new byte[CAPACITY]);
-    }
 
     boolean present()
     {
@@ -60,13 +55,19 @@ final class LlmBreakpointStash
     void copyFrom(
         LlmBreakpointStash source)
     {
-        buffer.putBytes(0, source.buffer, 0, source.length);
+        if (source.length > 0)
+        {
+            allocate().putBytes(0, source.buffer, 0, source.length);
+        }
+
         length = source.length;
     }
 
     void set(
         CharSequence ttl)
     {
+        final MutableDirectBufferEx buffer = allocate();
+
         int next = 0;
 
         buffer.putBytes(next, PREFIX);
@@ -87,6 +88,16 @@ final class LlmBreakpointStash
 
         buffer.putByte(next++, (byte) '}');
         length = next;
+    }
+
+    private MutableDirectBufferEx allocate()
+    {
+        if (buffer == null)
+        {
+            buffer = new UnsafeBufferEx(new byte[CAPACITY]);
+        }
+
+        return buffer;
     }
 
     private static boolean plain(

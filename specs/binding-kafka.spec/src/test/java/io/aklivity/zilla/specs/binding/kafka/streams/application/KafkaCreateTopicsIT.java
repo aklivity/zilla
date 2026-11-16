@@ -48,6 +48,42 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.affinity/client",
+        "${app}/create.topics.v7.affinity/server"})
+    public void shouldCreateTopicsV3WithAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker/client",
+        "${app}/create.topics.v7.broker/server"})
+    public void shouldCreateTopicsV3ToBrokerByAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.zero/client",
+        "${app}/create.topics.v7.broker.zero/server"})
+    public void shouldCreateTopicsV3ToBrokerZeroWhenKnown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown/client",
+        "${app}/create.topics.v7.broker.unknown/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBroker() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.unsupported/client",
         "${app}/create.topics.v7.unsupported/server"})
     public void shouldRejectCreateTopicsV3WhenUnsupported() throws Exception
@@ -60,6 +96,24 @@ public class KafkaCreateTopicsIT
         "${app}/create.topics.v7.idle.reset.reconnect/client",
         "${app}/create.topics.v7.idle.reset.reconnect/server"})
     public void shouldReconnectAfterIdleConnectionReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown.refreshed/client",
+        "${app}/create.topics.v7.broker.unknown.refreshed/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown.refresh.failed/client",
+        "${app}/create.topics.v7.broker.unknown.refresh.failed/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenRefreshFails() throws Exception
     {
         k3po.finish();
     }

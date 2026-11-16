@@ -392,11 +392,10 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     }
 
     private void onText(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
+        CharSequence chars,
+        int from,
+        int to)
     {
-        slotBuffer.putBytes(textLength, buffer, offset, length);
-        textLength += length;
+        textLength += slotBuffer.putStringWithoutLengthUtf8(textLength, chars, from, to);
     }
 }

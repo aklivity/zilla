@@ -41,6 +41,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:qos", "0")
+                               .header("zilla:retain", "1")
                                .build()
                            .build()}
 write ${kafka:randomBytes(8192)}
@@ -77,6 +78,7 @@ write zilla:data.ext ${kafka:dataEx()
                                .header("zilla:filter", "one")
                                .header("zilla:local", "client")
                                .header("zilla:qos", "0")
+                               .header("zilla:retain", "1")
                                .build()
                            .build()}
 write ${kafka:randomBytes(8192)}

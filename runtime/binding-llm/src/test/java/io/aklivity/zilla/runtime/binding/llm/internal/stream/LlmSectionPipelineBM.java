@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -140,7 +141,7 @@ public class LlmSectionPipelineBM
 
     private final LlmSectionPipeline.Output counter = (buffer, offset, length, last) -> produced += length;
     private final LlmTextPipeline textPipeline =
-        new LlmTextPipeline((DirectBufferEx buffer, int offset, int length) -> produced += length);
+        new LlmTextPipeline((JsonStringView chars, int from, int to) -> produced += to - from);
 
     private final LlmTextModelPipeline guardedPipeline = new LlmTextModelPipeline(new GuardChain(),
         new LlmTestBufferPool(32 * 1024, 1), 1L, new UnsafeBufferEx(new byte[OUTPUT]), true);

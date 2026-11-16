@@ -156,6 +156,15 @@ public class GroupIT
 
     @Test
     @Specification({
+        "${net}/rebalance.assignment.userdata.repeated/client",
+        "${net}/rebalance.assignment.userdata.repeated/server"})
+    public void shouldAssignUserdataAcrossRepeatedRebalance() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/group.authorization.failed/client",
         "${net}/group.authorization.failed/server"})
     public void shouldPropagateGroupAuthorizationFailedError() throws Exception

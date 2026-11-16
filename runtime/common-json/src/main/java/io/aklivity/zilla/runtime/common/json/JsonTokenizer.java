@@ -14,9 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import jakarta.json.stream.JsonParser;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 // Pluggable scan engine behind JsonParserImpl, selected per JVM via JsonTokenizerFactory. A tokenizer owns the
 // JSON grammar's resumable state machine over a caller-supplied, buffer-resident input window; the parser drives
@@ -44,31 +43,30 @@ public interface JsonTokenizer
 
     boolean advance();
 
-    JsonParser.Event event();
+    JsonEvent event();
 
     void clearEvent();
 
-    String stringValue();
+    // The current key, string or number as a range of the wrapped window, so its chars are read in place and never
+    // copied: where it begins, how many encoded bytes it spans, how many decoded chars it holds, and whether each
+    // char is the one byte that encodes it, with no escape or multi-byte character. The length is -1 when the token
+    // is not read in place, as a string streamed as segments. Valid until the tokenizer advances or the window
+    // is replaced.
+    int tokenOffset();
 
-    // Non-allocating view of the current string token (a deferred key or a readable value), valid while the
-    // decoded chars are still retained because nobody has materialized them yet.
-    CharSequence stringView();
+    int tokenLength();
 
-    // The parser reports, before a resuming advance, how many chars of the current fragment the consumer took,
-    // so resume keeps the unconsumed remainder rather than discarding the whole fragment.
-    void markScratchConsumed(
-        int consumed);
+    int tokenChars();
 
-    // The consumer has taken consumed chars of the pending string fragment, which is read from the window: the
-    // position moves to the first byte it left, so the caller re-presents the rest with the next window.
-    void positionAfter(
-        int consumed);
+    boolean tokenPlain();
+
+    // The consumer left the last bytes of the pending string fragment, which is read from the window: the position
+    // moves back to the first byte it left, so the caller re-presents the rest with the next window.
+    void decline(
+        int bytes);
 
     // Whether the consumer left part of the pending string fragment.
     boolean declined();
-
-    // The window is being replaced, so the part of the fragment the consumer left is no longer pending.
-    void acceptDeclined();
 
     long streamOffset();
 
@@ -86,14 +84,6 @@ public interface JsonTokenizer
     // string with its escapes undone, delivering START_ESCAPED and END_ESCAPED as markers around the events of the
     // document.
     void escape();
-
-    // Whether an event, or a scope marker, is waiting to be taken.
-    boolean pending();
-
-    // The scope marker waiting to be taken, or null.
-    JsonEvent marker();
-
-    void clearMarker();
 
     // Whether the tokenizer is reading the document of an escaped scope.
     boolean inScope();
@@ -122,6 +112,21 @@ public interface JsonTokenizer
     // rewinding streamOffset/line/column the way reset() does — for a multi-document session over one feed.
     void nextDocument();
 
+    // Writes the state that survives a window boundary into the buffer at the offset and returns the number of
+    // bytes written, so one tokenizer can serve many streams: restore() puts it back, in this or any other
+    // tokenizer, before the next wrap(). Throws IllegalStateException unless an event has been taken and cleared,
+    // so no event is pending. It does not allocate.
+    int save(
+        MutableDirectBufferEx buffer,
+        int offset);
+
+    // Reads the state save() wrote at the offset, replacing the state of this tokenizer, whatever it held; the
+    // caller wraps the next window, starting with the bytes the previous one left unconsumed, before the next
+    // advance(). Any mark is discarded.
+    void restore(
+        DirectBufferEx buffer,
+        int offset);
+
     // Takes a mark at the current whole-token boundary for a later rewind(); throws IllegalStateException if
     // called mid-token (a pending event, a resume in progress, or a fragment still open).
     void mark();
@@ -130,15 +135,6 @@ public interface JsonTokenizer
     // IllegalStateException if there is no mark, if the mark's window has since been replaced by a later
     // wrap(), or if the parse has already left the container the mark was taken in.
     void rewind();
-
-    // Takes back a key whose first fragment was delivered and declined, so the caller re-presents it: the scan
-    // goes back to priorEnd (the end of the token ahead of the key) when priorEnd is still available (at or
-    // after floor), or to the key's own start otherwise.
-    void rewindKey(
-        long priorEnd,
-        long priorLine,
-        long priorColumn,
-        long floor);
 
     // Gives back the separator and whitespace scanned past the last delivered token when the window ended
     // before the next token began, so only whole tokens are ever consumed and the caller re-presents the rest

@@ -118,7 +118,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
                 config, context, bindings::get, accountant.creditor());
 
         final KafkaClientApiFactory clientApiFactory = new KafkaClientApiFactory(
-            config, context, bindings::get, accountant::supplyDebitor, signaler, context.streamFactory());
+            config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute, signaler, context.streamFactory());
 
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaBeginExFW.KIND_API_REQUEST, clientApiFactory);

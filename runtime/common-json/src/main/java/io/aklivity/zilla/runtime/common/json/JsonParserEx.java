@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 
 /**
  * A {@link JsonParser} extended with the streaming-over-buffers surface the standard
@@ -141,6 +143,33 @@ public interface JsonParserEx extends JsonParser
     }
 
     /**
+     * Writes the state that survives a window boundary into the buffer at the offset and returns the number of
+     * bytes written, so one parser can serve many streams: {@link #restore(DirectBufferEx, int)} puts it back, in
+     * this or any other parser. The record is small and fixed in layout, and the parser allocates nothing.
+     * <p>
+     * The parser must be at a clean boundary: no event pending, no segment, fragment or skipped value open, and
+     * the window's unconsumed tail ({@link #remaining()} bytes), which the caller retains and re-presents at the
+     * front of the next window, being the only bytes of the document not yet read.
+     *
+     * @throws IllegalStateException if the parser is not at a clean boundary
+     * @throws UnsupportedOperationException if this parser cannot save its state
+     */
+    int save(
+        MutableDirectBufferEx buffer,
+        int offset);
+
+    /**
+     * Replaces the state of this parser with the record {@link #save(MutableDirectBufferEx, int)} wrote at the
+     * offset, whatever it held. The next window wrapped must begin with the bytes the saved parser left
+     * unconsumed.
+     *
+     * @throws UnsupportedOperationException if this parser cannot restore its state
+     */
+    void restore(
+        DirectBufferEx buffer,
+        int offset);
+
+    /**
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native JSON form is identity; one that parses a foreign representation is not.
      */
@@ -203,11 +232,12 @@ public interface JsonParserEx extends JsonParser
      * number lexeme, or an object key — valid until the parser advances. The zero-copy peer of
      * {@link #getString()}: a streaming caller reads or matches the value (or key) without materializing a
      * {@code String}. The backing buffer is reused across events, so copy out anything needed beyond the
-     * current event. A string value parsed whole from the input window is a {@link JsonStringView}. This
-     * promotes the {@link JsonSource#getStringView()} accessor onto the parser surface
-     * so a caller holding a {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
+     * current event. The view transfers the chars as the bytes they are written as, and for a token read in place
+     * those are the bytes of the input exactly as they were written. This promotes the
+     * {@link JsonSource#getStringView()} accessor onto the parser surface so a caller holding a
+     * {@code JsonParserEx} reads scalars without narrowing to {@link JsonSource}.
      */
-    CharSequence getStringView();
+    JsonStringView getStringView();
 
     /**
      * Arms the string value that follows the current {@link JsonEvent#KEY_NAME} to be parsed as a stringified
