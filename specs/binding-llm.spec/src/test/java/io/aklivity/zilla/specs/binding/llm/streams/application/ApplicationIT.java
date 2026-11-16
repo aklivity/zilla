@@ -1615,6 +1615,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.tool.call.arguments.default/client",
+        "${app}/anthropic.section.assistant.tool.call.arguments.default/server"})
+    public void shouldAnthropicSectionAssistantToolCallArgumentsDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.conversation/client",
         "${app}/anthropic.section.conversation/server"})
     public void shouldAnthropicSectionConversation() throws Exception
@@ -1735,6 +1744,15 @@ public class ApplicationIT
         "${app}/anthropic.section.tool.definition/client",
         "${app}/anthropic.section.tool.definition/server"})
     public void shouldAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition.defaults/client",
+        "${app}/anthropic.section.tool.definition.defaults/server"})
+    public void shouldAnthropicSectionToolDefinitionDefaults() throws Exception
     {
         k3po.finish();
     }
@@ -8080,6 +8098,15 @@ public class ApplicationIT
         "${app}/transform.rejected.tool.choice.allowed/client",
         "${app}/transform.rejected.tool.choice.allowed/server"})
     public void shouldTransformRejectedToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.tool.call.member/client",
+        "${app}/transform.rejected.tool.call.member/server"})
+    public void shouldTransformRejectedToolCallMember() throws Exception
     {
         k3po.finish();
     }
