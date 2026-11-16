@@ -911,6 +911,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.qos2.meta.reset/client",
+        "${kafka}/session.qos2.meta.reset/server"})
+    public void shouldResetMqttSessionWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.init.producer.reset/client",
+        "${kafka}/session.qos2.init.producer.reset/server"})
+    public void shouldResetMqttSessionWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.offset.fetch.reset/client",
+        "${kafka}/session.qos2.offset.fetch.reset/server"})
+    public void shouldResetMqttSessionWhenOffsetFetchStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.clean.start.abort.zero.window/client",
         "${kafka}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
