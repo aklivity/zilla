@@ -1083,6 +1083,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.rejected.output.config.format.type/client",
+        "${net}/anthropic.section.rejected.output.config.format.type/server"})
+    public void shouldAnthropicSectionRejectedOutputConfigFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.rejected.part.type.last/client",
         "${net}/anthropic.section.rejected.part.type.last/server"})
     public void shouldAnthropicSectionRejectedPartTypeLast() throws Exception
