@@ -43,6 +43,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -1364,8 +1365,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
                     if (publisher == null)
                     {
-                        server.onDecodePublishUnroutable(traceId, authorization, mqttPublishHelper.qos,
-                            mqttPublishHelper.packetId);
+                        server.decodeablePublishPayloadBytes =
+                            publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
+                        server.onDecodePublish(traceId, authorization, mqttPublishHelper.qos, mqttPublishHelper.retained,
+                            mqttPublishHelper.packetId, UNSPECIFIED_ERROR);
+                        progress = publishLimit;
                         break decode;
                     }
                 }
@@ -1484,14 +1488,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
                     if (publisher == null)
                     {
-                        if (server.onDecodePublishUnroutable(traceId, authorization, mqttPublishHelper.qos,
-                            mqttPublishHelper.packetId))
-                        {
-                            server.decodeablePublishPayloadBytes =
-                                publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
-                            server.decoder = decodeRejectedPublishPayload;
-                            progress = publishLimit;
-                        }
+                        server.decodeablePublishPayloadBytes =
+                            publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
+                        server.onDecodePublish(traceId, authorization, mqttPublishHelper.qos, mqttPublishHelper.retained,
+                            mqttPublishHelper.packetId, UNSPECIFIED_ERROR);
+                        progress = publishLimit;
                         break decode;
                     }
                 }
@@ -1655,13 +1656,15 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (reasonCode == SUCCESS && canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
                 {
+                    boolean accepted = true;
+
                     if (server.publishPayloadDeferred == 0)
                     {
-                        reasonCode = server.onDecodePublish(traceId, authorization, server.decodedQos,
-                            server.decodedRetained, server.decodedPacketId);
+                        accepted = server.onDecodePublish(traceId, authorization, server.decodedQos,
+                            server.decodedRetained, server.decodedPacketId, SUCCESS);
                     }
 
-                    if (reasonCode == SUCCESS)
+                    if (accepted)
                     {
                         server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
                             server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
@@ -3817,50 +3820,22 @@ public final class MqttServerFactory implements MqttStreamFactory
             return stream;
         }
 
-        private boolean onDecodePublishUnroutable(
-            long traceId,
-            long authorization,
-            int qos,
-            int packetId)
-        {
-            final boolean acknowledged = version == MQTT_PROTOCOL_VERSION_5 && qos > 0;
-
-            if (acknowledged)
-            {
-                switch (qos)
-                {
-                case 1:
-                    doEncodePubackV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
-                    break;
-                case 2:
-                    doEncodePubrecV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
-                    break;
-                }
-            }
-            else
-            {
-                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
-                decoder = decodeIgnoreAll;
-            }
-
-            return acknowledged;
-        }
-
-        private int onDecodePublish(
+        private boolean onDecodePublish(
             long traceId,
             long authorization,
             int qos,
             boolean retained,
-            int packetId)
+            int packetId,
+            int reasonCode)
         {
-            int reasonCode = SUCCESS;
+            int publishReasonCode = reasonCode;
 
-            if (retained && !retainAvailable(capabilities))
+            if (publishReasonCode == SUCCESS && retained && !retainAvailable(capabilities))
             {
-                reasonCode = RETAIN_NOT_SUPPORTED;
+                publishReasonCode = RETAIN_NOT_SUPPORTED;
             }
 
-            if (reasonCode == SUCCESS)
+            if (publishReasonCode == SUCCESS)
             {
                 if (unreleasedPacketIds.contains(packetId))
                 {
@@ -3877,8 +3852,27 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 doSignalKeepAliveTimeout(traceId);
             }
+            else if (version == MQTT_PROTOCOL_VERSION_5 && qos > 0 && acknowledgesPublish(publishReasonCode))
+            {
+                switch (qos)
+                {
+                case 1:
+                    doEncodePubackV5(traceId, authorization, packetId, publishReasonCode);
+                    break;
+                case 2:
+                    doEncodePubrecV5(traceId, authorization, packetId, publishReasonCode);
+                    break;
+                }
 
-            return reasonCode;
+                decoder = decodeRejectedPublishPayload;
+            }
+            else
+            {
+                onDecodeError(traceId, authorization, publishReasonCode);
+                decoder = decodeIgnoreAll;
+            }
+
+            return publishReasonCode == SUCCESS;
         }
 
         private void onDecodePublishPayload(
