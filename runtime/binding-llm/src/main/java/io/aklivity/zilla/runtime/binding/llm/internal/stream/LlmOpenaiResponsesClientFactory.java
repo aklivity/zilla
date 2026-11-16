@@ -2840,14 +2840,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                             flushLateValue(progress);
                         }
 
-                        if (decoder == previous)
-                        {
-                            decodeWindowLimit = NONE;
+                        decodeWindowLimit = NONE;
 
-                            if (unconstrained)
-                            {
-                                progress = limit;
-                            }
+                        if (decoder == previous && unconstrained)
+                        {
+                            progress = limit;
                         }
                     }
                 }
@@ -2945,7 +2942,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private boolean hasNextEvent()
         {
-            return parser.hasNextEvent() && (!begun() || eventSlack() >= EVENT_FRAMES * replyPad);
+            return (!begun() || eventSlack() >= EVENT_FRAMES * replyPad) && parser.hasNextEvent();
         }
 
         private int eventSlack()
