@@ -1197,6 +1197,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/client",
         "${mqtt}/publish.qos1.server.sent.reset.after.acknowledged/server"})
     public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
