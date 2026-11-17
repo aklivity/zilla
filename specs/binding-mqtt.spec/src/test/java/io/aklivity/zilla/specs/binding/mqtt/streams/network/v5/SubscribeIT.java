@@ -875,4 +875,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/server"})
+    public void shouldRejectSubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
 }

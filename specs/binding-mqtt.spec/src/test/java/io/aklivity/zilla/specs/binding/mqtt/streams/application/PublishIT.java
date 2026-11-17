@@ -532,4 +532,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.one.message.second.client/client",
+        "${app}/publish.one.message.second.client/server"})
+    public void shouldPublishOneMessageFromSecondClient() throws Exception
+    {
+        k3po.finish();
+    }
 }

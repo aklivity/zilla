@@ -639,4 +639,15 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectSubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
 }

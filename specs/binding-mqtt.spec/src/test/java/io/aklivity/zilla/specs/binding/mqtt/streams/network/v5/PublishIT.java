@@ -769,4 +769,84 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.ill.formed.utf8/client",
+        "${net}/publish.reject.topic.name.ill.formed.utf8/server"})
+    public void shouldRejectPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.content.type.ill.formed.utf8/client",
+        "${net}/publish.reject.content.type.ill.formed.utf8/server"})
+    public void shouldRejectPublishContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.user.property.key.ill.formed.utf8/client",
+        "${net}/publish.reject.user.property.key.ill.formed.utf8/server"})
+    public void shouldRejectPublishUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.user.property.value.ill.formed.utf8/client",
+        "${net}/publish.reject.user.property.value.ill.formed.utf8/server"})
+    public void shouldRejectPublishUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/publish.reject.content.type.null.character/client",
+        "${net}/publish.reject.content.type.null.character/server"})
+    public void shouldRejectPublishContentTypeNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/publish.reject.user.property.key.null.character/client",
+        "${net}/publish.reject.user.property.key.null.character/server"})
+    public void shouldRejectPublishUserPropertyKeyNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/publish.reject.user.property.value.null.character/client",
+        "${net}/publish.reject.user.property.value.null.character/server"})
+    public void shouldRejectPublishUserPropertyValueNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.response.topic.ill.formed.utf8/client",
+        "${net}/publish.reject.response.topic.ill.formed.utf8/server"})
+    public void shouldRejectPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
 }

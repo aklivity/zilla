@@ -205,4 +205,24 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/server"})
+    public void shouldRejectUnsubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.null.character/client",
+        "${net}/unsubscribe.reject.topic.filter.null.character/server"})
+    public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }
