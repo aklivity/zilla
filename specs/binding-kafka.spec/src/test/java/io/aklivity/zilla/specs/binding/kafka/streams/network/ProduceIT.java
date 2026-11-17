@@ -202,6 +202,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.values.no.producer.id/client",
+        "${net}/message.values.no.producer.id/server"})
+    public void shouldSendMessageValuesNoProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.values.producer.id.changes/client",
         "${net}/message.values.producer.id.changes/server"})
     public void shouldSendMessageValuesWithProducerIdThatChanges() throws Exception
