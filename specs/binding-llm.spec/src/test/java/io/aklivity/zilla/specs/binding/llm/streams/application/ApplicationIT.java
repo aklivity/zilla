@@ -9884,4 +9884,85 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.user.window/client",
+        "${app}/anthropic.request.user.window/server"})
+    public void shouldForwardAnthropicRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.service.tier.straddle/client",
+        "${app}/anthropic.request.service.tier.straddle/server"})
+    public void shouldForwardAnthropicRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.stop.straddle/client",
+        "${app}/anthropic.request.stop.straddle/server"})
+    public void shouldForwardAnthropicRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.stop.window/client",
+        "${app}/anthropic.request.stop.window/server"})
+    public void shouldForwardAnthropicRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.straddle/client",
+        "${app}/anthropic.request.reasoning.budget.straddle/server"})
+    public void shouldForwardAnthropicRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.window/client",
+        "${app}/anthropic.request.reasoning.effort.window/server"})
+    public void shouldForwardAnthropicRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.window/client",
+        "${app}/anthropic.request.reasoning.budget.window/server"})
+    public void shouldForwardAnthropicRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.type.window/client",
+        "${app}/anthropic.request.response.format.type.window/server"})
+    public void shouldForwardAnthropicRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.type.straddle/client",
+        "${app}/anthropic.request.response.format.type.straddle/server"})
+    public void shouldForwardAnthropicRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }
