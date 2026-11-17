@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import java.util.BitSet;
+import java.util.Locale;
+
 import jakarta.json.JsonException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -36,11 +39,14 @@ final class LlmGeminiBlockWriter
     static final int ACTION_DESCEND = 4;
     static final int ACTION_TEXT = 5;
     static final int ACTION_ID = 6;
+    static final int ACTION_SCHEMA = 7;
+    static final int ACTION_OPTIONAL = 8;
 
     static final int MODE_CALL = 0;
     static final int MODE_RESULT = 1;
     static final int MODE_SERVER_CALL = 2;
     static final int MODE_SERVER_RESULT = 3;
+    static final int MODE_DEFINITION = 4;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
@@ -52,6 +58,18 @@ final class LlmGeminiBlockWriter
     private static final String MEMBER_OUTPUT = "output";
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_DESCRIPTION = "description";
+    private static final String MEMBER_PARAMETERS = "parameters";
+    private static final String MEMBER_TYPE = "type";
+    private static final String MEMBER_FUNCTION = "function";
+    private static final int OPTIONAL_UNDECIDED = 0;
+    private static final int OPTIONAL_COPY = 1;
+    private static final int OPTIONAL_DROP = 2;
+    private static final int PENDING_NONE = 0;
+    private static final int PENDING_TYPE = 1;
+    private static final int PENDING_MAP = 2;
+    private static final int PENDING_SCHEMA = 3;
+    private static final int PENDING_PLAIN = 4;
     private static final int REQUIRE_NONE = 0;
     private static final int REQUIRE_OBJECT = 1;
     private static final int REQUIRE_STRING = 2;
@@ -60,6 +78,7 @@ final class LlmGeminiBlockWriter
     private static final String MEMBER_ARGS = "args";
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final int HEADROOM = 16;
+    private static final String[] TYPES = {"STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL"};
 
     private final LlmOutputSink sink;
     private final JsonGeneratorEx generator;
@@ -72,6 +91,12 @@ final class LlmGeminiBlockWriter
     private boolean argumented;
     private int required;
     private int mode;
+    private boolean named;
+    private int optionalMode;
+    private int pending;
+    private int rawDepth;
+    private final BitSet names = new BitSet();
+    private final BitSet types = new BitSet();
     private String heldId;
     private boolean shaped;
 
@@ -105,10 +130,22 @@ final class LlmGeminiBlockWriter
         this.functioned = false;
         this.argumented = false;
         this.required = REQUIRE_NONE;
+        this.named = false;
+        this.optionalMode = OPTIONAL_UNDECIDED;
+        this.pending = PENDING_NONE;
+        this.rawDepth = 0;
+        this.names.clear();
+        this.types.clear();
 
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
         generator.writeStartObject();
+
+        if (mode == MODE_DEFINITION)
+        {
+            generator.write(MEMBER_TYPE, MEMBER_FUNCTION);
+            generator.writeStartObject(MEMBER_FUNCTION);
+        }
     }
 
     int pending()
@@ -145,7 +182,11 @@ final class LlmGeminiBlockWriter
     {
         int action = ACTION_COPY;
 
-        if (mode == MODE_SERVER_RESULT)
+        if (mode == MODE_DEFINITION)
+        {
+            action = definitionAction(name);
+        }
+        else if (mode == MODE_SERVER_RESULT)
         {
             generator.writeKey(name);
         }
@@ -179,7 +220,7 @@ final class LlmGeminiBlockWriter
 
     boolean complete()
     {
-        return mode == MODE_SERVER_RESULT || functioned;
+        return mode == MODE_SERVER_RESULT || mode == MODE_DEFINITION && named || functioned;
     }
 
     int functionAction(
@@ -209,6 +250,80 @@ final class LlmGeminiBlockWriter
         }
 
         return action;
+    }
+
+    int definitionAction(
+        CharSequence name)
+    {
+        int action = ACTION_COPY;
+
+        if (MEMBER_NAME.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_NAME);
+            named = true;
+            required = REQUIRE_STRING;
+        }
+        else if (MEMBER_DESCRIPTION.contentEquals(name))
+        {
+            optionalMode = OPTIONAL_UNDECIDED;
+            action = ACTION_OPTIONAL;
+        }
+        else if ("parametersJsonSchema".contentEquals(name) || "parameters_json_schema".contentEquals(name))
+        {
+            generator.writeKey(MEMBER_PARAMETERS);
+            required = REQUIRE_OBJECT;
+        }
+        else if (MEMBER_PARAMETERS.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_PARAMETERS);
+            required = REQUIRE_OBJECT;
+            names.clear();
+            types.clear();
+            pending = PENDING_NONE;
+            rawDepth = 0;
+            action = ACTION_SCHEMA;
+        }
+        else
+        {
+            writePrefixedKey(name);
+        }
+
+        return action;
+    }
+
+    int optional(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        if (optionalMode == OPTIONAL_UNDECIDED)
+        {
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                generator.writeKey(MEMBER_DESCRIPTION);
+                optionalMode = OPTIONAL_COPY;
+            }
+            else
+            {
+                optionalMode = OPTIONAL_DROP;
+            }
+        }
+
+        return optionalMode == OPTIONAL_COPY ? copyValue(event, parser) : drop(event, parser);
+    }
+
+    int schema(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        if (required == REQUIRE_NONE || event == JsonEvent.START_OBJECT)
+        {
+            required = REQUIRE_NONE;
+            outcome = schemaEvent(event, parser);
+        }
+
+        return outcome;
     }
 
     int serverCallAction(
@@ -343,6 +458,11 @@ final class LlmGeminiBlockWriter
 
     void finish()
     {
+        if (mode == MODE_DEFINITION)
+        {
+            generator.writeEnd();
+        }
+
         generator.writeEnd();
         flush(true);
     }
@@ -357,6 +477,106 @@ final class LlmGeminiBlockWriter
             sink.put(buffer, origin, length, last);
             generator.wrap(buffer, origin, buffer.capacity());
         }
+    }
+
+    private int schemaEvent(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int level = depth;
+
+        if (rawDepth > 0)
+        {
+            rawDepth += step(event);
+            copy(event, parser);
+        }
+        else if (event == JsonEvent.KEY_NAME)
+        {
+            schemaKey(level, parser.getStringView());
+            copy(event, parser);
+        }
+        else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+        {
+            copy(event, parser);
+
+            if (pending == PENDING_PLAIN)
+            {
+                rawDepth = 1;
+            }
+            else
+            {
+                names.set(depth, pending == PENDING_MAP);
+                types.set(depth, pending == PENDING_TYPE);
+            }
+
+            pending = PENDING_NONE;
+        }
+        else if (event == JsonEvent.VALUE_STRING && (pending == PENDING_TYPE || types.get(level)))
+        {
+            final String lower = lowerType(parser.getStringView());
+
+            if (lower != null && !parser.deferredBytes())
+            {
+                generator.write(lower);
+            }
+            else
+            {
+                copy(event, parser);
+            }
+
+            pending = PENDING_NONE;
+        }
+        else
+        {
+            copy(event, parser);
+            pending = PENDING_NONE;
+        }
+
+        return depth == 0 && !deferred(event, parser) ? VALUE : MORE;
+    }
+
+    private void schemaKey(
+        int level,
+        JsonStringView name)
+    {
+        if (names.get(level))
+        {
+            pending = PENDING_SCHEMA;
+        }
+        else if (MEMBER_TYPE.contentEquals(name))
+        {
+            pending = PENDING_TYPE;
+        }
+        else if ("properties".contentEquals(name) || "patternProperties".contentEquals(name) ||
+            "$defs".contentEquals(name) || "definitions".contentEquals(name))
+        {
+            pending = PENDING_MAP;
+        }
+        else if ("items".contentEquals(name) || "additionalProperties".contentEquals(name) ||
+            "anyOf".contentEquals(name) || "oneOf".contentEquals(name) || "allOf".contentEquals(name))
+        {
+            pending = PENDING_SCHEMA;
+        }
+        else
+        {
+            pending = PENDING_PLAIN;
+        }
+    }
+
+    private static String lowerType(
+        CharSequence value)
+    {
+        String lower = null;
+
+        for (String type : TYPES)
+        {
+            if (type.contentEquals(value))
+            {
+                lower = type.toLowerCase(Locale.ROOT);
+            }
+        }
+
+        return lower;
     }
 
     private void writePrefixedKey(

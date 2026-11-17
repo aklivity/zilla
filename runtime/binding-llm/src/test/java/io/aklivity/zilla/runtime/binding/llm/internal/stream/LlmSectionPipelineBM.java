@@ -119,7 +119,6 @@ public class LlmSectionPipelineBM
     private final LlmSectionAttributes none = new LlmSectionAttributes();
 
     private LlmSectionPipeline toolCallOpenaiToCanonical;
-    private LlmSectionPipeline toolDefinitionGeminiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiFromCanonical;
     private LlmSectionPipeline toolCallGeminiFromCanonical;
     private LlmSectionPipeline imageGeminiToCanonical;
@@ -145,7 +144,6 @@ public class LlmSectionPipelineBM
     public void init()
     {
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
-        toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
         toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical(true));
         toolCallGeminiFromCanonical = pipeline(new LlmGeminiToolCallFromCanonical(true));
         imageGeminiToCanonical = pipeline(LlmGeminiMediaToCanonical.image());
@@ -184,12 +182,6 @@ public class LlmSectionPipelineBM
     public int toolCallToCanonicalOpenaiFragmented()
     {
         return run(toolCallOpenaiToCanonical, toolCallAttributes, toolCallOpenaiNative, WINDOW);
-    }
-
-    @Benchmark
-    public int toolDefinitionToCanonicalGemini()
-    {
-        return run(toolDefinitionGeminiToCanonical, none, toolDefinitionGeminiNative, toolDefinitionGeminiNative.capacity());
     }
 
     @Benchmark
