@@ -225,6 +225,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_DESCRIPTION = "description";
     private static final String MEMBER_PARAMETERS = "parameters";
     private static final String MEMBER_URL = "url";
+    private static final String TYPE_URL_CITATION = "url_citation";
     private static final String MEMBER_IMAGE_URL = "image_url";
     private static final String MEMBER_FILE = "file";
     private static final String MEMBER_INPUT_AUDIO = "input_audio";
@@ -6236,7 +6237,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private String pendingItemType;
         private String pendingItemId;
         private LlmSectionPipeline serverToolPipeline;
-        private LlmSectionPipeline citationsPipeline;
         private LlmSectionPipeline reasoningPipeline;
         private LlmOpenaiResponsesServerToolFromCanonical serverToolTransform;
         private final CallOutput callOutput = new CallOutput();
@@ -6268,6 +6268,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponsesRequestDecoder decodeRequestDefinitionObject = this::decodeRequestDefinitionObject;
         private final LlmOpenaiResponsesRequestDecoder decodeRequestDefinitionKey = this::decodeRequestDefinitionKey;
         private final LlmOpenaiResponsesRequestDecoder decodeRequestString = this::decodeRequestString;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestCitationsRoot = this::decodeRequestCitationsRoot;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestCitationsArray = this::decodeRequestCitationsArray;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestCitationsElement = this::decodeRequestCitationsElement;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestCitationsKey = this::decodeRequestCitationsKey;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestCitationsContainer = this::decodeRequestCitationsContainer;
         private final LlmOpenaiResponsesRequestDecoder decodeRequestFlatRoot = this::decodeRequestFlatRoot;
         private final LlmOpenaiResponsesRequestDecoder decodeRequestFlatObject = this::decodeRequestFlatObject;
         private final LlmOpenaiResponsesRequestDecoder decodeRequestFlatKey = this::decodeRequestFlatKey;
@@ -6422,20 +6427,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
             case KIND_CONTROL -> controlPipeline();
             case KIND_SERVER_TOOL_CALL, KIND_SERVER_TOOL_RESULT -> serverToolPipeline();
-            case KIND_CITATIONS -> citationsPipeline();
             default -> null;
             };
-        }
-
-        private LlmSectionPipeline citationsPipeline()
-        {
-            if (citationsPipeline == null)
-            {
-                citationsPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsFromCanonical.array(NAME),
-                    transformBuffer);
-            }
-
-            return citationsPipeline;
         }
 
         private LlmSectionPipeline reasoningPipeline()
@@ -7555,6 +7548,172 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
+        private int decodeRequestCitationsRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestOpen(buffer, offset, limit, last, decodeRequestCitationsRoot, JsonEvent.START_DOCUMENT,
+                decodeRequestCitationsArray);
+        }
+
+        private int decodeRequestCitationsArray(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final int progress = decodeRequestOpen(buffer, offset, limit, last, decodeRequestCitationsArray,
+                JsonEvent.START_ARRAY, decodeRequestCitationsElement);
+
+            if (requestDecoder == decodeRequestCitationsElement)
+            {
+                generator.writeStartArray();
+            }
+
+            return progress;
+        }
+
+        private int decodeRequestCitationsElement(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestCitationsElement && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        generator.writeStartObject();
+                        requestLevel = 1;
+                        requestDecoder = decodeRequestCitationsKey;
+                    }
+                    else if (event == JsonEvent.END_ARRAY)
+                    {
+                        generator.writeEnd();
+                        requestDecoder = decodeRequestDone;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestCitationsKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestCitationsKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        final CharSequence key = parser.getStringView();
+
+                        if (requestLevel == 1 && TYPE_URL_CITATION.contentEquals(key))
+                        {
+                            requestDecoder = decodeRequestCitationsContainer;
+                        }
+                        else
+                        {
+                            selectMember(key, decodeRequestCitationsKey);
+                        }
+                    }
+                    else if (event == JsonEvent.END_OBJECT && requestLevel == 2)
+                    {
+                        requestLevel = 1;
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        generator.writeEnd();
+                        requestDecoder = decodeRequestCitationsElement;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestCitationsContainer(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final int progress = decodeRequestOpen(buffer, offset, limit, last, decodeRequestCitationsContainer,
+                JsonEvent.START_OBJECT, decodeRequestCitationsKey);
+
+            if (requestDecoder == decodeRequestCitationsKey)
+            {
+                requestLevel = 2;
+            }
+
+            return progress;
+        }
+
+        private int decodeRequestOpen(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last,
+            LlmOpenaiResponsesRequestDecoder state,
+            JsonEvent expected,
+            LlmOpenaiResponsesRequestDecoder next)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == state && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == expected)
+                    {
+                        requestDecoder = next;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
         private int decodeRequestDefinitionFunction(
             DirectBufferEx buffer,
             int offset,
@@ -7885,6 +8044,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 break;
             case KIND_TOOL_DEFINITION:
                 requestDecoder = decodeRequestDefinitionRoot;
+                requestParser().reset();
+                break;
+            case KIND_CITATIONS:
+                requestDecoder = decodeRequestCitationsRoot;
                 requestParser().reset();
                 break;
             case KIND_USER_IMAGE:
