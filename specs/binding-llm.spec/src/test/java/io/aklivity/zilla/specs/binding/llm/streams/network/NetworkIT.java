@@ -39,6 +39,50 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.request.user.straddle/client",
+        "${net}/openai.responses.request.user.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.reasoning.effort.straddle/client",
+        "${net}/openai.responses.request.reasoning.effort.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.service.tier.window/client",
+        "${net}/openai.responses.request.service.tier.window/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.user.window/client",
+        "${net}/openai.responses.request.user.window/server"})
+    public void shouldForwardOpenaiResponsesRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.service.tier.straddle/client",
+        "${net}/openai.responses.request.service.tier.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${net}/reject.unknown.dialect/client",
         "${net}/reject.unknown.dialect/server"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception

@@ -39,6 +39,50 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.request.user.straddle/client",
+        "${app}/openai.responses.request.user.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.effort.straddle/client",
+        "${app}/openai.responses.request.reasoning.effort.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier.window/client",
+        "${app}/openai.responses.request.service.tier.window/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.user.window/client",
+        "${app}/openai.responses.request.user.window/server"})
+    public void shouldForwardOpenaiResponsesRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier.straddle/client",
+        "${app}/openai.responses.request.service.tier.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/openai.response.invalid.content.type/client",
         "${app}/openai.response.invalid.content.type/server"})
     public void shouldAbortResponseWithInvalidContentType() throws Exception

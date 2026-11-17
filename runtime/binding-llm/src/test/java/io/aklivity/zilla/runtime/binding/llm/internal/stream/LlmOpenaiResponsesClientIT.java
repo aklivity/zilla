@@ -2958,4 +2958,54 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.user.straddle/client",
+        "${net}/openai.responses.request.user.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.reasoning.effort.straddle/client",
+        "${net}/openai.responses.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.service.tier.window/client",
+        "${net}/openai.responses.request.service.tier.window/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.user.window/client",
+        "${net}/openai.responses.request.user.window/server"})
+    public void shouldEncodeOpenaiResponsesRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.service.tier.straddle/client",
+        "${net}/openai.responses.request.service.tier.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }
