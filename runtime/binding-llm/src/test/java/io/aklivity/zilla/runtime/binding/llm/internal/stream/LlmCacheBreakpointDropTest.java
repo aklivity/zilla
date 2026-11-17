@@ -56,31 +56,6 @@ public class LlmCacheBreakpointDropTest
     }
 
     @Test
-    public void shouldDropBreakpointFromOpenaiResponsesToolCall()
-    {
-        assertTransforms(new LlmOpenaiResponsesToolCallFromCanonical("openai/rs"), both, null,
-            json("{'arguments':{'a':1}," + BREAKPOINT + "}"),
-            json("{'type':'function_call','arguments':") + quote(json("{'a':1}")) +
-                json(",'call_id':'call_1','name':'get_weather'}"));
-    }
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiResponsesToolDefinition()
-    {
-        assertTransforms(new LlmOpenaiResponsesToolDefinitionFromCanonical("openai/rs"),
-            json("{'type':'function','function':{'name':'get_weather','strict':true," + BREAKPOINT + "}}"),
-            json("{'type':'function','name':'get_weather','strict':true}"));
-    }
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiResponsesImage()
-    {
-        assertTransforms(LlmOpenaiResponsesMediaFromCanonical.image("openai/rs"),
-            json("{'type':'image_url'," + BREAKPOINT + ",'image_url':{'file_id':'file_1'}}"),
-            json("{'type':'input_image','file_id':'file_1'}"));
-    }
-
-    @Test
     public void shouldDropBreakpointFromGeminiToolCall()
     {
         assertTransforms(new LlmGeminiToolCallFromCanonical(false), both, null,

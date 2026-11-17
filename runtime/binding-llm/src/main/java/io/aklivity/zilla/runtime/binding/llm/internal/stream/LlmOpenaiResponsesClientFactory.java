@@ -2154,7 +2154,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 final boolean pair = Character.isHighSurrogate(c) && index + 1 < length &&
                     Character.isLowSurrogate(chars.charAt(index + 1));
                 final int width = pair ? 2 : 1;
-                final int next = cost + (escaped ? outputWidth(chars, index, width) : pair ? 4 : utf8Width(c));
+                final int next = cost + (escaped ? outputWidth(chars, index, width) :
+                    MutableDirectBufferEx.utf8Length(chars, index, index + width));
 
                 fits = next <= room;
 
@@ -2167,12 +2168,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
 
             return take;
-        }
-
-        private static int utf8Width(
-            char c)
-        {
-            return c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
         }
 
         private int encodeEscaped(
@@ -2343,28 +2338,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             final int length = chars.length();
 
-            ensureItemCapacity(length * 3);
-
-            for (int index = 0; index < length; index++)
-            {
-                final char c = chars.charAt(index);
-
-                if (c < 0x80)
-                {
-                    itemBytes[itemLength++] = (byte) c;
-                }
-                else if (c < 0x800)
-                {
-                    itemBytes[itemLength++] = (byte) (0xC0 | c >> 6);
-                    itemBytes[itemLength++] = (byte) (0x80 | c & 0x3F);
-                }
-                else
-                {
-                    itemBytes[itemLength++] = (byte) (0xE0 | c >> 12);
-                    itemBytes[itemLength++] = (byte) (0x80 | c >> 6 & 0x3F);
-                    itemBytes[itemLength++] = (byte) (0x80 | c & 0x3F);
-                }
-            }
+            ensureItemCapacity(MutableDirectBufferEx.utf8Length(chars, 0, length));
+            itemLength += itemBuffer.putStringWithoutLengthUtf8(itemLength, chars, 0, length);
         }
 
         private void ensureItemCapacity(

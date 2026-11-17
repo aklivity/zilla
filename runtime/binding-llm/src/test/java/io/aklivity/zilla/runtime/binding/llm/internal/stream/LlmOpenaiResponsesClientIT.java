@@ -3008,4 +3008,34 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.tool.call.breakpoint/client",
+        "${net}/openai.responses.section.tool.call.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionToolCallBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.tool.definition.breakpoint/client",
+        "${net}/openai.responses.section.tool.definition.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionToolDefinitionBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.breakpoint/client",
+        "${net}/openai.responses.section.user.image.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionUserImageBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
 }

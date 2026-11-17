@@ -81,6 +81,33 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.tool.call.breakpoint/client",
+        "${app}/openai.responses.section.tool.call.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolCallBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.tool.definition.breakpoint/client",
+        "${app}/openai.responses.section.tool.definition.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.user.image.breakpoint/client",
+        "${app}/openai.responses.section.user.image.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionUserImageBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
     @Test
     @Specification({
         "${app}/openai.response.invalid.content.type/client",

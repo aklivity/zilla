@@ -81,6 +81,33 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.breakpoint/client",
+        "${net}/openai.responses.section.tool.call.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolCallBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.breakpoint/client",
+        "${net}/openai.responses.section.tool.definition.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.breakpoint/client",
+        "${net}/openai.responses.section.user.image.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionUserImageBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
     @Test
     @Specification({
         "${net}/reject.unknown.dialect/client",
