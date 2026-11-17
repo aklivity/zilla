@@ -158,6 +158,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.topic.trailing.empty.level/client",
+        "${kafka}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.options.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
@@ -518,6 +529,17 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.qos1.server.sent.reset.in.flight/client",
         "${kafka}/publish.qos1.server.sent.reset.in.flight/server"})
     public void shouldPublishQos1ServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
     {
         k3po.finish();
     }

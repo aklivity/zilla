@@ -128,6 +128,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.trailing.empty.level/client",
+        "${kafka}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.one.message.changed.topic.name/client",
         "${kafka}/publish.one.message.changed.topic.name/server"})
     public void shouldSendOneMessageWithChangedTopicName() throws Exception
@@ -551,6 +560,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/client",
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
@@ -794,6 +812,35 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.close.expire.session.reset.group.offsets/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiryAfterSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.reconnect.during.expire.reset.group.offsets/client",
+        "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
+    public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("CONNECT_SENT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.close.expire.session.offsets.large.interval/client",
         "${kafka}/session.close.expire.session.offsets.large.interval/server"})
     public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
@@ -833,6 +880,15 @@ public class KafkaIT
         "${kafka}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.topic.trailing.empty.level/client",
+        "${kafka}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
     {
         k3po.finish();
     }
@@ -905,6 +961,33 @@ public class KafkaIT
         "${kafka}/session.qos2.end.before.session.established/client",
         "${kafka}/session.qos2.end.before.session.established/server"})
     public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.meta.reset/client",
+        "${kafka}/session.qos2.meta.reset/server"})
+    public void shouldResetMqttSessionWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.init.producer.reset/client",
+        "${kafka}/session.qos2.init.producer.reset/server"})
+    public void shouldResetMqttSessionWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.qos2.offset.fetch.reset/client",
+        "${kafka}/session.qos2.offset.fetch.reset/server"})
+    public void shouldResetMqttSessionWhenOffsetFetchStreamReset() throws Exception
     {
         k3po.finish();
     }
@@ -1040,6 +1123,15 @@ public class KafkaIT
         "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/client",
         "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
     public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailableWhenPublishQosMax1() throws Exception
     {
         k3po.finish();
     }
@@ -1413,6 +1505,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${kafka}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/client",
         "${kafka}/publish.qos1.server.sent.reset.after.acknowledged/server"})
     public void shouldPublishQos1ServerSentResetAfterAcknowledged() throws Exception
@@ -1473,4 +1574,31 @@ public class KafkaIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.parent.level/client",
+        "${kafka}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/client",
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retain.parent.level/client",
+        "${kafka}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
 }

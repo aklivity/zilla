@@ -294,6 +294,7 @@ public final class JsonParserImpl implements JsonParserEx
         syncedOffset = offset;
         syncedLength = limit - offset;
         frameBaseStreamOffset = tokenizer.streamOffset();
+        releaseSteps();
         tokenizer.wrap(buffer, offset, limit, terminal);
         tokenizer.window(limit - offset);
         return this;
@@ -634,6 +635,7 @@ public final class JsonParserImpl implements JsonParserEx
             syncedOffset = offset;
             syncedLength = length;
             frameBaseStreamOffset = tokenizer.streamOffset();
+            releaseSteps();
             tokenizer.wrap(buffer, offset, offset + length, terminal);
         }
     }
@@ -1307,6 +1309,16 @@ public final class JsonParserImpl implements JsonParserEx
         append(toStep(kind), end);
     }
 
+    // a step ending at or before the window base lies in bytes the window no longer holds, so getVerbatim() can
+    // never hand it out; releasing it keeps the log to the steps of the window for a reader that never drains it
+    private void releaseSteps()
+    {
+        while (stepHead < stepCount && stepEnds[stepHead] <= frameBaseStreamOffset)
+        {
+            stepHead++;
+        }
+    }
+
     // A continuing fragment of a token whose step is already recorded adds no step -- a second step for the same
     // token would be applied as a second member or element -- but the bytes it carries extend that step's token
     // while it is still unpulled, keeping a bounded block's bytes and steps agreed on a token boundary.
@@ -1637,9 +1649,10 @@ public final class JsonParserImpl implements JsonParserEx
         public int copyPlain(
             int from,
             int max,
-            byte[] target)
+            MutableDirectBufferEx target,
+            int targetOffset)
         {
-            return base.copyPlain(offset + from, max, target);
+            return base.copyPlain(offset + from, max, target, targetOffset);
         }
 
         @Override

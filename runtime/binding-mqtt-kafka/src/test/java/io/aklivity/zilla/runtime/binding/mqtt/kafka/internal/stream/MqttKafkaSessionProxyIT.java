@@ -300,11 +300,67 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.clean.start.qos.max.1/client",
+        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartCoordinatorNotAvailableWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.close.expire.session.offsets.immediately/client",
         "${kafka}/session.close.expire.session.offsets.immediately/server"})
     public void shouldExpireSessionAndOffsetsImmediately() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.publish.topic.with.messages.params.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiryWhenMessagesWithParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expire.session.offsets.immediately/client",
+        "${kafka}/session.close.expire.session.reset.group.offsets.small.window/server"})
+    public void shouldResetGroupOffsetsOnSessionExpiryAfterSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.reconnect.during.expire.reset.group.offsets/client",
+        "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
+    public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
     {
         k3po.finish();
     }
@@ -419,6 +475,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.will.message.topic.trailing.empty.level/client",
+        "${kafka}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
         "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
     public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
@@ -466,6 +533,37 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.qos2.end.before.session.established/client",
         "${kafka}/session.qos2.end.before.session.established/server"})
     public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.qos2.meta.reset/client",
+        "${kafka}/session.qos2.meta.reset/server"})
+    public void shouldResetMqttSessionWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.qos2.init.producer.reset/client",
+        "${kafka}/session.qos2.init.producer.reset/server"})
+    public void shouldResetMqttSessionWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.qos2.offset.fetch.reset/client",
+        "${kafka}/session.qos2.offset.fetch.reset/server"})
+    public void shouldResetMqttSessionWhenOffsetFetchStreamReset() throws Exception
     {
         k3po.finish();
     }

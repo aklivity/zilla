@@ -240,6 +240,24 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.server.sent.reset.before.connack/client",
+        "${net}/session.server.sent.reset.before.connack/server"})
+    public void shouldRejectConnectWhenServerSentResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.server.sent.reset.after.connack/client",
+        "${net}/session.server.sent.reset.after.connack/server"})
+    public void shouldDisconnectWhenServerSentResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.server.redirect.after.connack/client",
         "${net}/session.server.redirect.after.connack/server"})
     public void shouldRedirectAfterConnack() throws Exception

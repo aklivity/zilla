@@ -102,6 +102,15 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.reconnect.backoff.reset/client",
+        "${app}/create.topics.v7.reconnect.backoff.reset/server"})
+    public void shouldResetReconnectBackoffAfterConnectionOpened() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.broker.unknown.refreshed/client",
         "${app}/create.topics.v7.broker.unknown.refreshed/server"})
     public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshed() throws Exception
@@ -111,9 +120,36 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.broker.unknown.refreshed.shared/client",
+        "${app}/create.topics.v7.broker.unknown.refreshed.shared/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshedShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.broker.unknown.refresh.failed/client",
         "${app}/create.topics.v7.broker.unknown.refresh.failed/server"})
     public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenRefreshFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown.refresh.meta.aborted/client",
+        "${app}/create.topics.v7.broker.unknown.refresh.meta.aborted/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenLastMetaStreamAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/create.topics.v7.broker.unknown.refresh.meta.ended/client",
+        "${app}/create.topics.v7.broker.unknown.refresh.meta.ended/server"})
+    public void shouldRejectCreateTopicsV3ToUnknownBrokerWhenLastMetaStreamEnded() throws Exception
     {
         k3po.finish();
     }

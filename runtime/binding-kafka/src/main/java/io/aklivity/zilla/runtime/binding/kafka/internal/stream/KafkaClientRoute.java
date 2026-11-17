@@ -53,9 +53,15 @@ public final class KafkaClientRoute
     }
 
     public void unregisterMetaFlush(
-        LongConsumer flush)
+        LongConsumer flush,
+        long traceId)
     {
         metaFlushes = ArrayUtil.remove(metaFlushes, flush);
+
+        if (!hasMeta())
+        {
+            refreshedMeta(traceId);
+        }
     }
 
     public boolean hasMeta()

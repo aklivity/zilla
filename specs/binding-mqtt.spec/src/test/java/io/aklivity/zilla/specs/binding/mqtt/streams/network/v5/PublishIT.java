@@ -700,6 +700,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/server.sent.publish.topic.alias.exceeds.maximum/client",
+        "${net}/server.sent.publish.topic.alias.exceeds.maximum/server"})
+    public void shouldServerSentPublishTopicAliasExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.unmapped/client",
+        "${net}/server.sent.publish.topic.alias.unmapped/server"})
+    public void shouldServerSentPublishTopicAliasUnmapped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.sent.publish.qos.exceeds.maximum/client",
         "${net}/server.sent.publish.qos.exceeds.maximum/server"})
     public void shouldServerSentPublishQosExceedsMaximum() throws Exception

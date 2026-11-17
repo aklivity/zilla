@@ -361,6 +361,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private final long publishTimeoutMillis;
     private final long connackTimeoutMillis;
+    private final short topicAliasMaximumLimit;
     private final int encodeBudgetMax;
     private final CharsetDecoder utf8Decoder;
 
@@ -396,6 +397,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connackTimeoutMillis = SECONDS.toMillis(config.connackTimeout());
+        this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
@@ -1290,7 +1292,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private long pingRespTimeoutMillis = (long) (KEEP_ALIVE * 0.5);
 
         private boolean connectAcked;
-        private short topicAliasMaximum = Short.MAX_VALUE;
+        private short topicAliasMaximum;
         private int flags = 0;
 
         private int capabilities = SHARED_SUBSCRIPTION_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
@@ -2354,6 +2356,14 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
                     .sessionExpiry(sessionExpiry)
+                    .build();
+                propertiesSize = mqttProperty.limit();
+            }
+
+            if (topicAliasMaximumLimit > 0)
+            {
+                mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    .topicAliasMaximum(topicAliasMaximumLimit)
                     .build();
                 propertiesSize = mqttProperty.limit();
             }
@@ -4253,7 +4263,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
                             alias = mqttProperty.topicAlias() & 0xFFFF;
 
-                            if (alias <= 0 || alias > client.topicAliasMaximum)
+                            if (alias <= 0 || alias > topicAliasMaximumLimit)
                             {
                                 reasonCode = TOPIC_ALIAS_INVALID;
                                 break decode;

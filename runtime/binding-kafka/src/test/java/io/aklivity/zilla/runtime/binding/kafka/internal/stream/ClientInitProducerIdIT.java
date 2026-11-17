@@ -57,4 +57,44 @@ public class ClientInitProducerIdIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id/client",
+        "${net}/produce.new.id.coordinator.load.in.progress/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorLoadInProgress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id/client",
+        "${net}/produce.new.id.coordinator.not.available/server"})
+    public void shouldGenerateNewProducerIdAfterCoordinatorNotAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id/client",
+        "${net}/produce.new.id.request.timed.out/server"})
+    public void shouldGenerateNewProducerIdAfterRequestTimedOut() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/produce.new.id.cluster.authorization.failed/client",
+        "${net}/produce.new.id.cluster.authorization.failed/server"})
+    public void shouldRejectInitProducerIdClusterAuthorizationFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
