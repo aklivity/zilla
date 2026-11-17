@@ -10117,4 +10117,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.window.deferred/client",
+        "${app}/gemini.streaming.window.deferred/server"})
+    public void shouldForwardGeminiStreamingWindowDeferred() throws Exception
+    {
+        k3po.finish();
+    }
 }

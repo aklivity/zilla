@@ -2003,4 +2003,14 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.streaming.window.deferred/client",
+        "${app}/gemini.streaming.window.deferred/server"})
+    public void shouldForwardGeminiStreamingWindowDeferred() throws Exception
+    {
+        k3po.finish();
+    }
 }

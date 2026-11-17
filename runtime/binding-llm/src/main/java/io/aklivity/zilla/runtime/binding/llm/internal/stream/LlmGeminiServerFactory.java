@@ -291,6 +291,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
     private final LlmGeminiServerDecoder decodeStart = this::decodeStart;
     private final LlmGeminiServerDecoder decodeRootStart = this::decodeRootStart;
+    private final LlmGeminiServerDecoder decodeStreamStart = this::decodeStreamStart;
     private final LlmGeminiServerDecoder decodeRoot = this::decodeRoot;
     private final LlmGeminiServerDecoder decodeRootControl = this::decodeRootControl;
     private final LlmGeminiServerDecoder decodeContentsStart = this::decodeContentsStart;
@@ -1328,6 +1329,24 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int offset,
             int progress,
             int limit);
+    }
+
+    private int decodeStreamStart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.stream.doAppData(traceId, authorization, Flags.COMPLETE, LlmSectionType.CONTROL, -1, null, null,
+            STREAM_SECTION, 0, STREAM_SECTION.capacity());
+        server.decoder = decodeStart;
+
+        return progress;
     }
 
     private int decodeStart(
@@ -3936,8 +3955,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (streaming)
             {
-                stream.doAppData(traceId, initialAuthorization, Flags.COMPLETE, LlmSectionType.CONTROL, -1, null, null,
-                    STREAM_SECTION, 0, STREAM_SECTION.capacity());
+                decoder = decodeStreamStart;
             }
         }
 
@@ -4180,8 +4198,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             final int credit = (int) Math.max(stream.initialAvailable() - pending, 0L);
             final int available = credit;
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
+            final int leadRoom = decoder == decodeStreamStart ? STREAM_SECTION.capacity() : 0;
 
-            return available - appendRoom;
+            return available - appendRoom - leadRoom;
         }
 
         private int position()

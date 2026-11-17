@@ -10638,4 +10638,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.window.deferred/client",
+        "${net}/gemini.streaming.window.deferred/server"})
+    public void shouldEncodeGeminiStreamingWindowDeferred() throws Exception
+    {
+        k3po.finish();
+    }
 }
