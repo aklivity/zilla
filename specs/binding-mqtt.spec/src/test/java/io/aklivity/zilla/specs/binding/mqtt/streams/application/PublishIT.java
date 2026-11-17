@@ -490,6 +490,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos1.empty.reset.before.window/client",
+        "${app}/publish.qos1.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos1EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.empty.reset.before.window/client",
+        "${app}/publish.qos2.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos2EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos1.message.rejected/client",
         "${app}/publish.qos1.message.rejected/server"})
     public void shouldPublishQos1MessageRejected() throws Exception
