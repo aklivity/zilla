@@ -416,6 +416,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private final int llmTypeId;
     private final int httpTypeId;
     private final UnsafeBufferEx typeMemberRW;
+    private final JsonGeneratorEx tailSizing = JsonEx.createGenerator();
 
     private byte[] textBytes;
     private UnsafeBufferEx textBuffer;
@@ -4066,26 +4067,20 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private int tailAllowance()
         {
-            final MutableDirectBufferEx held = encrypted.buffer();
-            final int from = encrypted.offset();
-            final int length = encrypted.remaining();
-            final int credit = tailCredit();
+            final int fixed = (headerPending() ? memberHeaderLength() + replyPad : 0) + replyPad + TEXT_SUFFIX.length + replyPad;
+            final int room = tailCredit() - fixed;
 
-            int cost = (headerPending() ? memberHeaderLength() + replyPad : 0) + replyPad + TEXT_SUFFIX.length + replyPad;
             int take = 0;
-            boolean fits = true;
 
-            while (fits && take < length)
+            if (room > 0)
             {
-                final int next = cost + escapedWidth((char) (held.getByte(from + take) & 0xFF));
-
-                fits = next <= credit;
-
-                if (fits)
-                {
-                    cost = next;
-                    take++;
-                }
+                reservePiece(TEXT_PREFIX.length + room);
+                tailSizing.wrap(pieceBuffer, 0, TEXT_PREFIX.length + room);
+                tailSizing.reset();
+                tailSizing.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
+                final int before = tailSizing.consumed();
+                tailSizing.writeSegment(encrypted.buffer(), encrypted.offset(), encrypted.remaining());
+                take = tailSizing.consumed() - before;
             }
 
             return take;
@@ -5378,35 +5373,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
 
             return take;
-        }
-
-        private static int escapedWidth(
-            char c)
-        {
-            final int width;
-
-            if (c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f')
-            {
-                width = 2;
-            }
-            else if (c < 0x20)
-            {
-                width = 6;
-            }
-            else if (c < 0x80)
-            {
-                width = 1;
-            }
-            else if (c < 0x800)
-            {
-                width = 2;
-            }
-            else
-            {
-                width = 3;
-            }
-
-            return width;
         }
 
         private void text(
