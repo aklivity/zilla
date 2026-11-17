@@ -568,4 +568,40 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.exchange.complete/client",
+        "${app}/publish.qos2.exchange.complete/server"})
+    public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.pubrec.failure.reason.code/client",
+        "${app}/publish.qos2.pubrec.failure.reason.code/server"})
+    public void shouldPublishQos2PubrecFailureReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.pubcomp.packet.id.not.found/client",
+        "${app}/publish.qos2.pubcomp.packet.id.not.found/server"})
+    public void shouldPublishQos2PubcompPacketIdNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.acks.reordered/client",
+        "${app}/publish.qos2.acks.reordered/server"})
+    public void shouldPublishQos2AcksReordered() throws Exception
+    {
+        k3po.finish();
+    }
 }

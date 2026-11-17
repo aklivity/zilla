@@ -326,7 +326,12 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttClientDecoder decodeConnack = this::decodeConnack;
     private final MqttClientDecoder decodeSuback = this::decodeSuback;
     private final MqttClientDecoder decodeUnsuback = this::decodeUnsuback;
-    private final MqttClientDecoder decodePuback = this::decodePuback;
+    private final MqttClientDecoder decodePuback = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBACK_FIXED_HEADER, MqttClient::onDecodePuback);
+    private final MqttClientDecoder decodePubrec = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBREC_FIXED_HEADER, MqttClient::onDecodePubrec);
+    private final MqttClientDecoder decodePubcomp = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBCOMP_FIXED_HEADER, MqttClient::onDecodePubcomp);
     private final MqttClientDecoder decodePublish = this::decodePublish;
     private final MqttClientDecoder decodePublishPayload = this::decodePublishPayload;
     private final MqttClientDecoder decodePubrel = this::decodePubrel;
@@ -347,9 +352,9 @@ public final class MqttClientFactory implements MqttStreamFactory
         decodersByPacketType.put(MqttPacketType.UNSUBACK, decodeUnsuback);
         decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
         decodersByPacketType.put(MqttPacketType.PUBACK, decodePuback);
-        // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
+        decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
-        // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
+        decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
         decodersByPacketType.put(MqttPacketType.PINGRESP, decodePingresp);
         decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnect);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
@@ -1062,14 +1067,15 @@ public final class MqttClientFactory implements MqttStreamFactory
         return progress;
     }
 
-    private int decodePuback(
+    private int decodeAck(
         MqttClient client,
         final long traceId,
         final long authorization,
-        final long budgetId,
         final DirectBufferEx buffer,
         final int offset,
-        final int limit)
+        final int limit,
+        final int fixedHeader,
+        final MqttAckHandler handler)
     {
         final int length = limit - offset;
 
@@ -1080,25 +1086,25 @@ public final class MqttClientFactory implements MqttStreamFactory
             int reasonCode = SUCCESS;
 
             final int packetLimit = offset + client.decodeablePacketBytes;
-            final MqttAckHeaderFW puback = mqttAckHeaderRO.tryWrap(buffer, offset, packetLimit);
+            final MqttAckHeaderFW ack = mqttAckHeaderRO.tryWrap(buffer, offset, packetLimit);
             decode:
             {
-                if (puback == null)
+                if (ack == null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
                 }
-                else if ((puback.typeAndFlags() & 0b1111_1111) != PUBACK_FIXED_HEADER)
+                else if ((ack.typeAndFlags() & 0b1111_1111) != fixedHeader)
                 {
                     reasonCode = MALFORMED_PACKET;
                     break decode;
                 }
 
-                final int pubackReasonCode = puback.remainingLength() > 2
-                    ? buffer.getByte(puback.limit()) & 0xff
+                final int ackReasonCode = ack.remainingLength() > 2
+                    ? buffer.getByte(ack.limit()) & 0xff
                     : SUCCESS;
 
-                reasonCode = client.onDecodePuback(traceId, authorization, puback.packetId(), pubackReasonCode);
+                reasonCode = handler.onDecode(client, traceId, authorization, ack.packetId(), ackReasonCode);
                 client.decodeablePacketBytes = 0;
                 client.decoder = decodePacketType;
                 progress = packetLimit;
@@ -1357,6 +1363,16 @@ public final class MqttClientFactory implements MqttStreamFactory
     }
 
     @FunctionalInterface
+    private interface MqttAckHandler
+    {
+        int onDecode(
+            MqttClient client,
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode);
+    }
+
     private interface MqttClientDecoder
     {
         int decode(
@@ -1372,6 +1388,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final class MqttClient
     {
         private final MqttPacketIds<Object> packetIds;
+        private final Int2ObjectHashMap<PendingPublish> pendingPubcomps;
         private final long originId;
         private final long routedId;
         private final long replyId;
@@ -1472,6 +1489,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             this.topicAliases = new Int2ObjectHashMap<>();
             this.maximumPacketSize = maximumPacketSize;
             this.packetIds = new MqttPacketIds<>();
+            this.pendingPubcomps = new Int2ObjectHashMap<>();
             this.guard = guard;
             this.credentials = credentials;
             this.authField = authField;
@@ -2110,7 +2128,8 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             int error = SUCCESS;
 
-            if (packetIds.get(packetId) instanceof PendingPublish pending)
+            if (packetIds.get(packetId) instanceof PendingPublish pending &&
+                pending.qos == MqttQoS.AT_LEAST_ONCE.value())
             {
                 packetIds.release(packetId);
                 pending.stream.onPublishAcknowledged(traceId, authorization, pending, reasonCode);
@@ -2121,6 +2140,54 @@ public final class MqttClientFactory implements MqttStreamFactory
             }
 
             return error;
+        }
+
+        private int onDecodePubrec(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            int error = SUCCESS;
+
+            if (packetIds.get(packetId) instanceof PendingPublish pending &&
+                pending.qos == MqttQoS.EXACTLY_ONCE.value() &&
+                !pendingPubcomps.containsKey(packetId))
+            {
+                if (reasonCode < FAILURE_REASON_CODE_MIN)
+                {
+                    pendingPubcomps.put(packetId, pending);
+                    doEncodeAck(traceId, authorization, PUBREL_FIXED_HEADER, packetId, SUCCESS);
+                }
+                else
+                {
+                    packetIds.release(packetId);
+                }
+
+                pending.stream.onPublishAcknowledged(traceId, authorization, pending, reasonCode);
+            }
+            else
+            {
+                error = PROTOCOL_ERROR;
+            }
+
+            return error;
+        }
+
+        private int onDecodePubcomp(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            final PendingPublish pending = pendingPubcomps.remove(packetId);
+
+            if (pending != null)
+            {
+                packetIds.release(packetId);
+            }
+
+            return pending != null ? SUCCESS : PROTOCOL_ERROR;
         }
 
         private void onDecodePublishRetransmit(
@@ -2524,7 +2591,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final int propertiesSize0 = propertiesSize.get();
                 final PendingPublish pending = qos == MqttQoS.AT_MOST_ONCE.value()
                     ? null
-                    : new PendingPublish(stream, mqttPublishDataEx.packetId(), sequence);
+                    : new PendingPublish(stream, mqttPublishDataEx.packetId(), sequence, qos);
                 final int packetId = pending == null ? MqttPacketIds.NO_PACKET_ID : packetIds.allocate(pending);
 
                 if (pending != null && packetId == MqttPacketIds.NO_PACKET_ID)
@@ -4585,12 +4652,15 @@ public final class MqttClientFactory implements MqttStreamFactory
         private final MqttPublishStream stream;
         private final int applicationPacketId;
         private final long sequence;
+        private final int qos;
 
         private PendingPublish(
             MqttPublishStream stream,
             int applicationPacketId,
-            long sequence)
+            long sequence,
+            int qos)
         {
+            this.qos = qos;
             this.stream = stream;
             this.applicationPacketId = applicationPacketId;
             this.sequence = sequence;
