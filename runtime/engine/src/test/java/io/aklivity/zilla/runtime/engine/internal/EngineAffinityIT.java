@@ -38,6 +38,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.TestBinding;
@@ -47,7 +48,7 @@ public class EngineAffinityIT
 {
     private static final String ENGINE_DIRECTORY = "target/zilla-itests";
     private static final long ROUTED_ID = 1L;
-    private static final int WORKERS = 3;
+    private static final int WORKERS = 32;
     private static final long WORKER_INDEX_MASK = 0x00ff_ffffL;
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
@@ -105,7 +106,13 @@ public class EngineAffinityIT
             workers.add(context.resolveAffinityId(keyHash) & WORKER_INDEX_MASK);
         }
 
-        assertThat(workers, equalTo(Set.of(0L, 1L, 2L)));
+        Set<Long> expected = new TreeSet<>();
+        for (long worker = 0L; worker < WORKERS; worker++)
+        {
+            expected.add(worker);
+        }
+
+        assertThat(workers, equalTo(expected));
     }
 
     @Test
@@ -138,6 +145,20 @@ public class EngineAffinityIT
             long initialId = context.supplyInitialId(ROUTED_ID, affinityId);
 
             assertThat((initialId >> 48) & 0xffL, equalTo(affinityId & WORKER_INDEX_MASK));
+        }
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldPreferLocalWorkerForBindingWithDefaultAffinity()
+    {
+        for (EngineContext context : contexts())
+        {
+            long bindingId = NamespacedId.id(context.supplyTypeId("test"), context.supplyTypeId("net0"));
+
+            long initialId = context.supplyInitialId(bindingId);
+
+            assertThat((initialId >> 48) & 0xffL, equalTo(context.affinity() & WORKER_INDEX_MASK));
         }
     }
 

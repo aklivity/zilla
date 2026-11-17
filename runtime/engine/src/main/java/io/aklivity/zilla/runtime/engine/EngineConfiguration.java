@@ -105,6 +105,8 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA_PLAIN;
     public static final BooleanPropertyDef ENGINE_VERBOSE_COMPOSITES;
     public static final PropertyDef<Clock> ENGINE_CLOCK;
+    private static final int MAX_WORKERS = Long.SIZE;
+
     public static final IntPropertyDef ENGINE_WORKERS;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
@@ -174,7 +176,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_VERBOSE_EVENTS = config.property("verbose.events", false);
         ENGINE_CLOCK = config.property(Clock.class, "clock",
             EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);
-        ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
+        ENGINE_WORKERS = config.property("workers", Math.min(Runtime.getRuntime().availableProcessors(), MAX_WORKERS));
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
         ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
@@ -410,7 +412,15 @@ public class EngineConfiguration extends Configuration
 
     public int workers()
     {
-        return ENGINE_WORKERS.getAsInt(this);
+        final int workers = ENGINE_WORKERS.getAsInt(this);
+
+        if (workers > MAX_WORKERS)
+        {
+            throw new IllegalArgumentException(String.format("%s=%d exceeds the maximum of %d workers",
+                ENGINE_WORKERS.name(), workers, MAX_WORKERS));
+        }
+
+        return workers;
     }
 
     public String cacertsStoreType()

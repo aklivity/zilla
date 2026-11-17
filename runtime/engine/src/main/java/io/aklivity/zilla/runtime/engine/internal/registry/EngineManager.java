@@ -589,16 +589,25 @@ public class EngineManager
             }
             binding.metricIds = metricIds.stream().mapToLong(Long::longValue).toArray();
 
-            long affinity = tuning.affinity(binding.id);
-
-            final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
-            for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
-            {
-                affinity &= ~(1 << bitindex);
-            }
+            final int maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
+            final long affinity = limitAffinity(tuning.affinity(binding.id), maxbits);
 
             tuning.affinity(binding.id, affinity);
         }
+    }
+
+    static long limitAffinity(
+        long affinity,
+        int maxbits)
+    {
+        long limited = affinity;
+
+        for (int bitindex = 0; Long.bitCount(limited) > maxbits; bitindex++)
+        {
+            limited &= ~(1L << bitindex);
+        }
+
+        return limited;
     }
 
     private void register(

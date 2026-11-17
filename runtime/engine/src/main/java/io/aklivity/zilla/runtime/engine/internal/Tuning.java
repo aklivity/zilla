@@ -36,7 +36,7 @@ import org.agrona.collections.Long2LongHashMap;
 
 public final class Tuning implements AutoCloseable
 {
-    private final int available;
+    private final long available;
     private final Long2LongHashMap affinities;
     private final Path tuning;
 
@@ -46,7 +46,7 @@ public final class Tuning implements AutoCloseable
         Path directory,
         int count)
     {
-        this.available = (1 << count) - 1;
+        this.available = count >= Long.SIZE ? -1L : (1L << count) - 1L;
         this.affinities = new Long2LongHashMap(-1L);
         this.tuning = directory.resolve("tuning");
     }
