@@ -19,6 +19,7 @@ import java.util.Locale;
 
 import jakarta.json.JsonException;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -51,6 +52,9 @@ final class LlmGeminiBlockWriter
     static final int MODE_MEDIA = 5;
     static final int MODE_CONTROL = 6;
     static final int MODE_VALUE = 7;
+
+    static final int CONFIG_FORMAT = 1;
+    static final int CONFIG_THINKING = 2;
 
     static final int CAPTURE_TOOL_CONFIG = 1;
     static final int CAPTURE_SERVICE_TIER = 2;
@@ -85,6 +89,36 @@ final class LlmGeminiBlockWriter
     private static final String MEMBER_ARGS = "args";
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final int CAPTURE_MAX = 768;
+    private static final int DEPTH_TEXT_PENDING = -1;
+    private static final int VALUE_NONE = 0;
+    private static final int VALUE_COPY = 1;
+    private static final int VALUE_CAPTURE = 2;
+    private static final int VALUE_DROP = 3;
+    private static final int FORMAT_OFF = 0;
+    private static final int FORMAT_UNDECIDED = 1;
+    private static final int FORMAT_RESIDUE = 2;
+    private static final int FORMAT_TEXT = 3;
+    private static final int FORMAT_LIFTED = 4;
+    private static final int FORMAT_SCHEMA = 5;
+    private static final int FORMAT_RESIDUE_TEXT = 6;
+    private static final int FORMAT_LIFTED_CLOSED = 7;
+    private static final int FORMAT_PASS = 8;
+    private static final int THINKING_NONE = 0;
+    private static final int THINKING_RESIDUE = 1;
+    private static final int THINKING_LIFTED = 2;
+    private static final String MEMBER_TEXT_FORMAT = "text";
+    private static final String MEMBER_SCHEMA = "schema";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
+    private static final String MEMBER_SHARED_THINKING_BUDGET = "x:thinking_budget_tokens";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_JSON_OBJECT = "json_object";
+    private static final String DEFAULT_NAME = "response";
+    private static final String MIME_JSON = "application/json";
+    private static final String MIME_JSON_ENUM = "APPLICATION_JSON";
+    private static final String[] LEVELS = {"MINIMAL", "LOW", "MEDIUM", "HIGH"};
+    private static final String[] EFFORTS = {"minimal", "low", "medium", "high"};
     private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
     private static final String MEMBER_TOOL_CONFIG_NATIVE = "gemini:toolConfig";
     private static final String MEMBER_TOOL_CONFIG_NATIVE_SNAKE = "gemini:tool_config";
@@ -128,6 +162,15 @@ final class LlmGeminiBlockWriter
     private final LlmCapturedValue captured = new LlmCapturedValue();
     private final LlmToolChoice choice = new LlmToolChoice();
     private int captureKind;
+    private int configKind;
+    private int configDepth;
+    private int valueState;
+    private int fmt;
+    private int think;
+    private String residueKey;
+    private String formatKey;
+    private String thinkingKey;
+    private String capturedMember;
     private String captureKey;
     private boolean separating;
     private byte separator;
@@ -195,6 +238,455 @@ final class LlmGeminiBlockWriter
         {
             generator.write(MEMBER_TYPE, mediaCanonical);
         }
+    }
+
+    void beginConfig(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator,
+        int kind,
+        CharSequence key,
+        String residue)
+    {
+        beginMember(buffer, origin, separator);
+
+        this.configKind = kind;
+        this.configDepth = 0;
+        this.valueState = VALUE_NONE;
+        this.fmt = FORMAT_OFF;
+        this.think = THINKING_NONE;
+        this.residueKey = residue;
+        this.formatKey = key.toString();
+        this.thinkingKey = PREFIX + key;
+    }
+
+    int config(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        if (valueState == VALUE_COPY)
+        {
+            copy(event, parser);
+
+            if (depth == 0 && !deferred(event, parser))
+            {
+                valueState = VALUE_NONE;
+                outcome = configDepth == 0 ? passClose() : MORE;
+            }
+        }
+        else if (valueState == VALUE_DROP)
+        {
+            depth += step(event);
+
+            if (depth == 0 && !deferred(event, parser))
+            {
+                valueState = VALUE_NONE;
+            }
+        }
+        else if (valueState == VALUE_CAPTURE)
+        {
+            outcome = captureConfig(event, parser);
+        }
+        else if (configDepth == 0)
+        {
+            outcome = configRoot(event, parser);
+        }
+        else if (configDepth == DEPTH_TEXT_PENDING)
+        {
+            if (event == JsonEvent.START_OBJECT)
+            {
+                configDepth = 2;
+                fmt = FORMAT_TEXT;
+            }
+            else
+            {
+                outcome = REJECT;
+            }
+        }
+        else if (event == JsonEvent.KEY_NAME)
+        {
+            configKey(parser.getStringView());
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            outcome = configEnd();
+        }
+        else
+        {
+            outcome = REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int configRoot(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            configDepth = 1;
+
+            if (configKind == CONFIG_FORMAT)
+            {
+                fmt = FORMAT_UNDECIDED;
+            }
+            else
+            {
+                think = THINKING_NONE;
+            }
+        }
+        else if (configKind == CONFIG_FORMAT)
+        {
+            generator.writeStartObject(residueKey).writeKey(formatKey);
+            fmt = FORMAT_PASS;
+            valueState = VALUE_COPY;
+            depth = 0;
+            copy(event, parser);
+
+            if (depth == 0 && !deferred(event, parser))
+            {
+                valueState = VALUE_NONE;
+                outcome = passClose();
+            }
+        }
+        else
+        {
+            generator.writeKey(thinkingKey);
+            valueState = VALUE_COPY;
+            depth = 0;
+            copy(event, parser);
+
+            if (depth == 0 && !deferred(event, parser))
+            {
+                valueState = VALUE_NONE;
+                outcome = VALUE;
+            }
+        }
+
+        return outcome;
+    }
+
+    private int passClose()
+    {
+        int outcome = VALUE;
+
+        if (configKind == CONFIG_FORMAT && fmt == FORMAT_PASS)
+        {
+            generator.writeEnd();
+        }
+
+        return outcome;
+    }
+
+    private void configKey(
+        CharSequence name)
+    {
+        if (configKind == CONFIG_THINKING)
+        {
+            thinkingKey(name);
+        }
+        else if (configDepth == 1)
+        {
+            formatMember(name);
+        }
+        else
+        {
+            textMember(name);
+        }
+    }
+
+    private void thinkingKey(
+        CharSequence name)
+    {
+        if ("thinkingLevel".contentEquals(name) || "thinking_level".contentEquals(name) ||
+            "thinkingBudget".contentEquals(name) || "thinking_budget".contentEquals(name))
+        {
+            capturedMember = name.toString();
+            startCapture();
+        }
+        else
+        {
+            if (think != THINKING_RESIDUE)
+            {
+                generator.writeStartObject(thinkingKey);
+                think = THINKING_RESIDUE;
+            }
+
+            generator.writeKey(name);
+            startCopy();
+        }
+    }
+
+    private void formatMember(
+        CharSequence name)
+    {
+        if (fmt == FORMAT_UNDECIDED && MEMBER_TEXT_FORMAT.contentEquals(name))
+        {
+            configDepth = DEPTH_TEXT_PENDING;
+        }
+        else if (fmt == FORMAT_UNDECIDED || fmt == FORMAT_RESIDUE)
+        {
+            openWrapper(false);
+            fmt = FORMAT_RESIDUE;
+            generator.writeKey(name);
+            startCopy();
+        }
+        else
+        {
+            startDrop();
+        }
+    }
+
+    private void textMember(
+        CharSequence name)
+    {
+        if (fmt == FORMAT_TEXT && ("mimeType".contentEquals(name) || "mime_type".contentEquals(name)))
+        {
+            capturedMember = name.toString();
+            startCapture();
+        }
+        else if (fmt == FORMAT_TEXT || fmt == FORMAT_RESIDUE_TEXT)
+        {
+            openWrapper(true);
+            fmt = FORMAT_RESIDUE_TEXT;
+            generator.writeKey(name);
+            startCopy();
+        }
+        else if (fmt == FORMAT_LIFTED && MEMBER_SCHEMA.contentEquals(name))
+        {
+            generator.write(MEMBER_TYPE, TYPE_JSON_SCHEMA);
+            generator.writeStartObject(MEMBER_JSON_SCHEMA);
+            generator.write(MEMBER_NAME, DEFAULT_NAME);
+            generator.writeKey(MEMBER_SCHEMA);
+            fmt = FORMAT_SCHEMA;
+            startCopy();
+        }
+        else
+        {
+            startDrop();
+        }
+    }
+
+    private void openWrapper(
+        boolean text)
+    {
+        if (fmt == FORMAT_UNDECIDED || fmt == FORMAT_TEXT)
+        {
+            generator.writeStartObject(residueKey);
+            generator.writeStartObject(formatKey);
+        }
+
+        if (text && fmt != FORMAT_RESIDUE_TEXT)
+        {
+            generator.writeStartObject(MEMBER_TEXT_FORMAT);
+        }
+    }
+
+    private void startCopy()
+    {
+        valueState = VALUE_COPY;
+        depth = 0;
+    }
+
+    private void startDrop()
+    {
+        valueState = VALUE_DROP;
+        depth = 0;
+    }
+
+    private void startCapture()
+    {
+        valueState = VALUE_CAPTURE;
+        depth = 0;
+        captured.clear();
+    }
+
+    private int captureConfig(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        final boolean text = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
+
+        if (!(text && parser.deferredBytes()) &&
+            captured.add(event, text ? parser.getStringView().toString() : null, CAPTURE_MAX))
+        {
+            outcome = MORE;
+            depth += step(event);
+
+            if (depth == 0)
+            {
+                valueState = VALUE_NONE;
+
+                if (configKind == CONFIG_THINKING)
+                {
+                    thinkingCaptured();
+                }
+                else
+                {
+                    mimeCaptured();
+                }
+            }
+        }
+
+        return outcome;
+    }
+
+    private void thinkingCaptured()
+    {
+        final boolean level = "thinkingLevel".equals(capturedMember) || "thinking_level".equals(capturedMember);
+        final String effort = level ? effortOf(captured.string(0)) : null;
+        final int budget = !level && captured.event(0) == JsonEvent.VALUE_NUMBER
+            ? LlmReasoning.budgetOf(captured.text(0))
+            : -1;
+
+        if (effort != null)
+        {
+            liftThinking(MEMBER_SHARED_REASONING_EFFORT, effort, false);
+        }
+        else if (budget == 0)
+        {
+            liftThinking(MEMBER_SHARED_REASONING_EFFORT, LlmEffort.nameOf(LlmEffort.NONE), false);
+        }
+        else if (budget > 0)
+        {
+            liftThinking(MEMBER_SHARED_THINKING_BUDGET, captured.text(0), true);
+        }
+        else
+        {
+            if (think != THINKING_RESIDUE)
+            {
+                generator.writeStartObject(thinkingKey);
+            }
+
+            generator.writeKey(capturedMember);
+            writeCaptured(0);
+            think = THINKING_RESIDUE;
+        }
+    }
+
+    private void liftThinking(
+        String name,
+        String text,
+        boolean number)
+    {
+        if (think == THINKING_RESIDUE)
+        {
+            generator.writeEnd();
+        }
+
+        generator.writeKey(name);
+
+        if (number)
+        {
+            generator.writeNumber(text, Completion.COMPLETE);
+        }
+        else
+        {
+            generator.write(text);
+        }
+
+        think = THINKING_LIFTED;
+    }
+
+    private void mimeCaptured()
+    {
+        final String mime = captured.string(0);
+
+        if (MIME_JSON.equalsIgnoreCase(mime) || MIME_JSON_ENUM.equals(mime))
+        {
+            generator.writeStartObject(MEMBER_SHARED_RESPONSE_FORMAT);
+            fmt = FORMAT_LIFTED;
+        }
+        else
+        {
+            openWrapper(true);
+            generator.writeKey(capturedMember);
+            writeCaptured(0);
+            fmt = FORMAT_RESIDUE_TEXT;
+        }
+    }
+
+    private int configEnd()
+    {
+        int outcome = MORE;
+
+        if (configKind == CONFIG_THINKING)
+        {
+            if (think == THINKING_RESIDUE)
+            {
+                generator.writeEnd();
+            }
+            else if (think == THINKING_NONE)
+            {
+                generator.writeStartObject(thinkingKey).writeEnd();
+            }
+
+            outcome = VALUE;
+        }
+        else if (configDepth == 2)
+        {
+            textClose();
+            configDepth = 1;
+        }
+        else
+        {
+            if (fmt == FORMAT_UNDECIDED || fmt == FORMAT_RESIDUE)
+            {
+                openWrapper(false);
+                generator.writeEnd();
+                generator.writeEnd();
+            }
+
+            outcome = VALUE;
+        }
+
+        return outcome;
+    }
+
+    private void textClose()
+    {
+        switch (fmt)
+        {
+        case FORMAT_TEXT:
+            openWrapper(true);
+            generator.writeEnd();
+            fmt = FORMAT_RESIDUE;
+            break;
+        case FORMAT_LIFTED:
+            generator.write(MEMBER_TYPE, TYPE_JSON_OBJECT);
+            generator.writeEnd();
+            fmt = FORMAT_LIFTED_CLOSED;
+            break;
+        case FORMAT_SCHEMA:
+            generator.writeEnd();
+            generator.writeEnd();
+            fmt = FORMAT_LIFTED_CLOSED;
+            break;
+        default:
+            generator.writeEnd();
+            fmt = FORMAT_RESIDUE;
+            break;
+        }
+    }
+
+    private static String effortOf(
+        String level)
+    {
+        String effort = null;
+
+        for (int index = 0; effort == null && level != null && index < LEVELS.length; index++)
+        {
+            effort = LEVELS[index].equalsIgnoreCase(level) ? EFFORTS[index] : null;
+        }
+
+        return effort;
     }
 
     void beginMember(

@@ -139,7 +139,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MEMBER_THOUGHT_SIGNATURE_SNAKE = "thought_signature";
     private static final int CALLS_MAX = 16;
     private static final String TOOL_CALL_ID_PREFIX = "call_";
-    private static final int BLOCK_BUFFER_MAX = 4096;
     private static final Map<String, StringEventPositions> PARSER_CONFIG =
         Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED);
 
@@ -278,7 +277,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
-    private final MutableDirectBufferEx transformBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -305,13 +303,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeSystem = this::decodeSystem;
     private final LlmGeminiServerDecoder decodePartsStart = this::decodePartsStart;
     private final LlmGeminiServerDecoder decodeParts = this::decodeParts;
-    private final LlmGeminiServerDecoder decodePart = this::decodePart;
     private final LlmGeminiServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmGeminiServerDecoder decodeTools = this::decodeTools;
     private final LlmGeminiServerDecoder decodeToolKey = this::decodeToolKey;
     private final LlmGeminiServerDecoder decodeDeclarationsStart = this::decodeDeclarationsStart;
     private final LlmGeminiServerDecoder decodeDeclarations = this::decodeDeclarations;
-    private final LlmGeminiServerDecoder decodeTool = this::decodeTool;
     private final LlmGeminiServerDecoder decodeToolStart = this::decodeToolStart;
     private final LlmGeminiServerDecoder decodeDeclarationStart = this::decodeDeclarationStart;
     private final LlmGeminiServerDecoder decodeSkipStart = this::decodeSkipStart;
@@ -327,6 +323,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeBlockData = this::decodeBlockData;
     private final LlmGeminiServerDecoder decodeBlockControl = this::decodeBlockControl;
     private final LlmGeminiServerDecoder decodeBlockValue = this::decodeBlockValue;
+    private final LlmGeminiServerDecoder decodeBlockConfig = this::decodeBlockConfig;
     private final LlmGeminiServerDecoder decodeBlockCapture = this::decodeBlockCapture;
     private final LlmGeminiServerDecoder decodeBlockTokens = this::decodeBlockTokens;
     private final LlmGeminiServerDecoder decodeBlockSchema = this::decodeBlockSchema;
@@ -343,6 +340,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiBlockHandler blockData = this::onBlockData;
     private final LlmGeminiBlockHandler blockControl = this::onBlockControl;
     private final LlmGeminiBlockHandler blockValue = this::onBlockMember;
+    private final LlmGeminiBlockHandler blockConfig = this::onBlockConfig;
     private final LlmGeminiBlockHandler blockCapture = this::onBlockCapture;
     private final LlmGeminiBlockHandler blockTokens = this::onBlockTokens;
     private final LlmGeminiBlockHandler blockSchema = this::onBlockSchema;
@@ -361,7 +359,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeConfigOpen = this::decodeConfigOpen;
     private final LlmGeminiServerDecoder decodeConfigClosed = this::decodeConfigClosed;
     private final LlmGeminiServerDecoder decodeConfigMime = this::decodeConfigMime;
-    private final LlmGeminiServerDecoder decodeConfigConverted = this::decodeConfigConverted;
     private final LlmGeminiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmGeminiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmGeminiServerDecoder decodeIgnore = this::decodeIgnore;
@@ -382,7 +379,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         this.replyPool = context.bufferPool().duplicate();
         this.replyPadding = replyPool.slotCapacity() / REPLY_PADDING_FRACTION;
         this.decodeMax = decodePool.slotCapacity();
-        this.transformBuffer = new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2681,6 +2677,35 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return outcome == LlmGeminiBlockWriter.VALUE ? LlmGeminiBlockWriter.MORE : outcome;
     }
 
+    private int decodeBlockConfig(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockConfig, blockConfig);
+    }
+
+    private int onBlockConfig(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.config(event, parser);
+
+        if (outcome == LlmGeminiBlockWriter.VALUE)
+        {
+            server.endConfig();
+        }
+
+        return outcome == LlmGeminiBlockWriter.VALUE ? LlmGeminiBlockWriter.MORE : outcome;
+    }
+
     private int decodeBlockValue(
         LlmGeminiServer server,
         long traceId,
@@ -3058,36 +3083,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.capture(server.probe.type(), textMessage(server), decodeParts);
-                server.probing = true;
-                server.decoder = decodeTool;
-            }
-        }
-
-        return server.position();
-    }
-
-    private int decodePart(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodePart && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = onCaptureEvent(server, event);
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endCapture(traceId, authorization);
+                server.onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
             }
         }
 
@@ -3390,36 +3386,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeTool(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeTool && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
-
-            server.probe.onEvent(event, parser);
-            server.captureDepth = server.probe.depth();
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endCapture(traceId, authorization);
-            }
-        }
-
-        return server.position();
-    }
-
     private int decodeControlSeparator(
         LlmGeminiServer server,
         long traceId,
@@ -3597,33 +3563,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             default:
                 server.onDecodeParseError(traceId);
                 break decode;
-            }
-        }
-
-        return server.position();
-    }
-
-    private int decodeConfigConverted(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeConfigConverted && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = onCaptureEvent(server, event);
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endConfigConverted(traceId, authorization);
             }
         }
 
@@ -3939,15 +3878,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int callCount;
         private int callMessage = -1;
         private int callOrdinal;
-        private LlmSectionPipeline blockPipeline;
         private final StringBuilder controlKey = new StringBuilder();
         private final StringBuilder configKey = new StringBuilder();
-        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
-        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
-        private LlmSectionPipeline toolConfigPipeline;
-        private LlmGeminiControlToCanonical toolConfigTransform;
         private final StringBuilder mimeKey = new StringBuilder();
         private final StringBuilder mimeType = new StringBuilder();
         private LlmGeminiServerDecoder mimeThen;
@@ -4418,21 +4350,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             return outcome;
         }
 
-        private void capture(
-            LlmSectionType type,
-            int blockMessage,
-            LlmGeminiServerDecoder then)
-        {
-            final int from = position() - 1;
-
-            onDecodeBlock(type, blockMessage);
-
-            captureThen = then;
-            captureOpen = true;
-            captureDepth = 1;
-            captureFrom = from;
-        }
-
         private void onDecodeRootKey(
             CharSequence key)
         {
@@ -4525,6 +4442,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             decoder = state;
         }
 
+        private void beginConfigContainer(
+            CharSequence key)
+        {
+            writing = blockWriter();
+            writing.beginConfig(pieceBuffer, 0, controlOpen(),
+                isResponseFormat(key) ? LlmGeminiBlockWriter.CONFIG_FORMAT : LlmGeminiBlockWriter.CONFIG_THINKING, key,
+                NAME + ':' + configKey);
+            decoder = decodeBlockConfig;
+        }
+
+        private void endConfig()
+        {
+            blockWriter.flush(false);
+            writing = null;
+            decoder = decodeConfigClosed;
+        }
+
         private void endValue()
         {
             blockWriter.flush(false);
@@ -4545,17 +4479,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             blockWriter.endMember();
             writing = null;
             decoder = captureThen;
-        }
-
-        private LlmSectionPipeline toolConfigPipeline()
-        {
-            if (toolConfigPipeline == null)
-            {
-                toolConfigTransform = new LlmGeminiControlToCanonical();
-                toolConfigPipeline = new LlmSectionPipeline(toolConfigTransform, transformBuffer);
-            }
-
-            return toolConfigPipeline;
         }
 
         private void closeControl(
@@ -4601,8 +4524,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     onDecodeConfigResidueClose();
                 }
 
-                onDecodeConfigConverted(key);
-                decoder = decodeConfigConverted;
+                beginConfigContainer(key);
             }
             else if (isResponseMimeType(key))
             {
@@ -4671,37 +4593,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             captureOpen = false;
             decoder = then;
-        }
-
-        private void onDecodeConfigConverted(
-            CharSequence key)
-        {
-            final DirectBufferEx separator = Flags.hasInit(blockFlags) ? CONTROL_BEGIN : CONTROL_CONTINUE;
-
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
-
-            blockPipeline = toolConfigPipeline();
-            toolConfigTransform.residueKey(NAME + ':' + configKey);
-            blockPipeline.begin(blockAttributes);
-            memberOutput.begin();
-
-            onDecodeControlKey(key, false, '{');
-        }
-
-        private void endConfigConverted(
-            long traceId,
-            long authorization)
-        {
-            flushCapture(traceId, authorization, false);
-
-            if (!onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
-            {
-                onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
-            }
-
-            blockPipeline = null;
-            captureOpen = false;
-            decoder = decodeConfigClosed;
         }
 
         private void endConfigMime(
@@ -4775,13 +4666,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, captureThen != decodeRootControl);
 
-            if (blockSection == LlmSectionType.CONTROL && blockPipeline != null && captureThen == decodeRootControl &&
-                !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
-            {
-                onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
-            }
-
-            blockPipeline = null;
             captureOpen = false;
             probing = false;
             decoder = decoder == decodeIgnore ? decoder : captureThen;
@@ -4811,8 +4695,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             blockFlags = Flags.INIT;
 
             blockAttributes.clear();
-
-            blockPipeline = null;
         }
 
         private void onDecodeData(
@@ -4843,19 +4725,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            boolean accepted = true;
+            onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
 
-            if (blockPipeline == null)
-            {
-                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
-            }
-            else
-            {
-                accepted = blockPipeline.feed(buffer, offset, length, last,
-                    blockSection == LlmSectionType.CONTROL && captureThen == decodeRootControl ? memberOutput : blockOutput);
-            }
-
-            return accepted;
+            return true;
         }
 
         private void onDecodeControlKey(
