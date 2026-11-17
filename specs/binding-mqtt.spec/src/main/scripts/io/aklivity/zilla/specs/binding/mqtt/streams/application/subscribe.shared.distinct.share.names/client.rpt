@@ -88,7 +88,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
-                                 .sharedFilter("consumer1", "sensor/one", 1, "AT_MOST_ONCE")
+                                 .sharedFilter("consumer1", "sensor/one", -1, "AT_MOST_ONCE")
                                  .build()
                              .build()}
 
@@ -104,7 +104,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
-                                 .sharedFilter("consumer2", "sensor/one", 2, "AT_MOST_ONCE")
+                                 .sharedFilter("consumer2", "sensor/one", -2, "AT_MOST_ONCE")
                                  .build()
                              .build()}
 

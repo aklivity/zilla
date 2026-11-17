@@ -91,7 +91,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
-                                 .sharedFilter("consumer1", "sensor/two", 1, "AT_MOST_ONCE")
+                                 .sharedFilter("consumer1", "sensor/two", -1, "AT_MOST_ONCE")
                                  .build()
                              .build()}
 

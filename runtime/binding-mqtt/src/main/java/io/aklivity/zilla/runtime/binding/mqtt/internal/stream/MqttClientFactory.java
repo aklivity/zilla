@@ -107,9 +107,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterV1FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttAckHeaderFW;
@@ -317,6 +319,8 @@ public final class MqttClientFactory implements MqttStreamFactory
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
     private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
+    private final Array32FW.Builder<Varint32FW.Builder, Varint32FW> filterIdsRW =
+        new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW());
     private final BinaryFW.Builder passwordRW = new BinaryFW.Builder();
 
     private final MqttClientDecoder decodeInitialType = this::decodeInitialType;
@@ -360,6 +364,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBufferEx propertyBuffer;
     private final MutableDirectBufferEx userPropertiesBuffer;
     private final MutableDirectBufferEx subscriptionIdsBuffer;
+    private final MutableDirectBufferEx filterIdsBuffer;
     private final MutableDirectBufferEx connectPayloadBuffer;
     private final MutableDirectBufferEx passwordBuffer;
     private final MutableDirectBufferEx willPropertyBuffer;
@@ -396,6 +401,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.filterIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.connectPayloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.passwordBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -1183,7 +1189,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
         if (subscriptions.stream().anyMatch(Subscription::shared))
         {
-            mqttSessionStateRW.sessionStateV3(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilter)));
+            mqttSessionStateRW.sessionStateV3(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilterV2)));
         }
         else
         {
@@ -2019,6 +2025,13 @@ public final class MqttClientFactory implements MqttStreamFactory
             OctetsFW payload,
             MqttSubscribeStream stream)
         {
+            filterIdsRW.wrap(filterIdsBuffer, 0, filterIdsBuffer.capacity());
+            final Array32FW<Varuint32FW> subscriptionIds = subscriptionIdsRW.build();
+            stream.subscriptions.stream()
+                .filter(sub -> topicMatches(sub.pattern(), mqttPublishHeaderRO.topic) &&
+                    (subscriptionIds.isEmpty() || subscriptionIds.matchFirst(i -> i.value() == sub.id) != null))
+                .forEach(sub -> filterIdsRW.item(i -> i.set(sub.filterId)));
+
             final MqttDataExFW.Builder builder = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .subscribe(s ->
@@ -2027,7 +2040,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     s.packetId(mqttPublishHeaderRO.packetId);
                     s.qos(mqttPublishHeaderRO.qos);
                     s.flags(mqttPublishHeaderRO.flags);
-                    s.subscriptionIds(subscriptionIdsRW.build());
+                    s.subscriptionIds(filterIdsRW.build());
                     s.expiryInterval(mqttPublishHeaderRO.expiryInterval);
                     s.contentType(mqttPublishHeaderRO.contentType);
                     s.format(f -> f.set(mqttPublishHeaderRO.payloadFormat));
@@ -3035,6 +3048,16 @@ public final class MqttClientFactory implements MqttStreamFactory
             return flags;
         }
 
+        private int resolveSubscriptionId(
+            String filter)
+        {
+            return sessionStream.subscriptions.stream()
+                .filter(s -> s.filter.equals(filter))
+                .mapToInt(s -> s.id)
+                .findFirst()
+                .orElse(0);
+        }
+
         private boolean existStreamForId(
             int subscriptionId)
         {
@@ -3648,7 +3671,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 {
                     Subscription subscription =
                         new Subscription().withTopicFilter(filter.shareName().asString(), filter.pattern().asString());
-                    subscription.id = (int) filter.subscriptionId();
+                    subscription.filterId = filter.subscriptionId();
+                    subscription.id = client.resolveSubscriptionId(subscription.filter);
                     subscription.flags = filter.flags();
                     subscription.qos = filter.qos();
                     subscriptions.add(subscription);
@@ -3700,7 +3724,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 {
                     Subscription subscription =
                         new Subscription().withTopicFilter(f.shareName().asString(), f.pattern().asString());
-                    subscription.id = (int) f.subscriptionId();
+                    subscription.filterId = f.subscriptionId();
+                    subscription.id = client.resolveSubscriptionId(subscription.filter);
                     subscription.flags = f.flags();
                     subscription.qos = f.qos();
                     newSubscribeState.add(subscription);
@@ -4660,6 +4685,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final class Subscription
     {
         private int id = 0;
+        private int filterId = 0;
         private String filter;
         private int qos;
         private int flags;
@@ -4706,6 +4732,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final Subscription subscription = new Subscription();
             subscription.id = id;
+            subscription.filterId = filterId;
             subscription.filter = filter;
             subscription.qos = qos;
             subscription.flags = flags;
@@ -4713,8 +4740,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             return subscription;
         }
 
-        private MqttTopicFilterFW.Builder asTopicFilter(
-            MqttTopicFilterFW.Builder builder)
+        private MqttTopicFilterV2FW.Builder asTopicFilterV2(
+            MqttTopicFilterV2FW.Builder builder)
         {
             return builder
                 .subscriptionId(id)
