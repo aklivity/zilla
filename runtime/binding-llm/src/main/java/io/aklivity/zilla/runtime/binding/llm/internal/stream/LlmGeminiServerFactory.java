@@ -171,9 +171,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final int VALUE_ARGS = 0;
     private static final int VALUE_MEMBER = 1;
     private static final int VALUE_INLINE = 2;
-    private static final int REQUEST_CANONICAL_GROWTH = 4;
-    private static final int REQUEST_ENCODE_SLACK = 512;
-    private static final int REQUEST_RECORD_HEADER = 28;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
@@ -4146,8 +4143,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             long traceId)
         {
             if (StreamState.initialClosing(state) && !StreamState.initialClosed(state) &&
-                decodeSlot == NO_SLOT && decoder != decodeIgnore &&
-                (stream == null || stream.requestSlot == NO_SLOT))
+                decodeSlot == NO_SLOT && decoder != decodeIgnore)
             {
                 state = StreamState.closeInitial(state);
                 onDecodeEnd(traceId);
@@ -4163,8 +4159,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private int windowMax()
         {
-            final int room = (encodePool.slotCapacity() - REQUEST_ENCODE_SLACK) / REQUEST_CANONICAL_GROWTH;
-            final int credit = Math.min(initialMax, room);
+            final int credit = stream != null ? Math.min(initialMax, stream.initialMax) : initialMax;
 
             return Math.max(credit - FRAMING_RESERVE, 0) / CONTROL_GROWTH - MIN_WINDOW;
         }
@@ -4173,7 +4168,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             final int pending = blockWriter != null ? blockWriter.pending() : 0;
             final int credit = (int) Math.max(stream.initialAvailable() - pending, 0L);
-            final int available = Math.min(credit, stream.requestRoom());
+            final int available = credit;
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
             return available - appendRoom;
@@ -5442,10 +5437,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private int state;
 
-        private int requestSlot = NO_SLOT;
-        private int requestSlotOffset;
-        private int requestSlotProgress;
-        private int requestHeadSent;
 
         private LlmGeminiReplyDecoder decoder;
         private LlmGeminiReplyDecoder dataDecoder;
@@ -5547,7 +5538,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             final LlmResetExFW resetEx = extension.get(llmResetExRO::tryWrap);
 
             state = StreamState.closeInitial(state);
-            cleanupRequestSlot();
 
             if (resetEx != null && !StreamState.replyOpening(server.state))
             {
@@ -5570,7 +5560,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             initialBud = window.budgetId();
             state = StreamState.openInitial(state);
 
-            drainRequestSlot(traceId);
 
             server.decodeNet(traceId, server.initialAuthorization, 0L);
         }
@@ -6748,7 +6737,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void doAppAbort(
             long traceId)
         {
-            cleanupRequestSlot();
 
             if (!StreamState.initialClosed(state))
             {
@@ -6875,20 +6863,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     extLength = dataEx.sizeof();
                 }
 
-                if (enqueueData(traceId, authorization, flags, extLength, buffer, offset, length))
-                {
-                    drainRequestSlot(traceId);
-                }
-                else
-                {
-                    server.doNetReset(traceId);
-                    doAppAbort(traceId);
-                    server.cleanup(traceId);
-                }
+                doAppPayload(traceId, authorization, flags, extLength, buffer, offset, length);
             }
         }
 
-        private boolean enqueueData(
+        private void doAppPayload(
             long traceId,
             long authorization,
             int flags,
@@ -6897,131 +6876,32 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            final int required = REQUEST_RECORD_HEADER + extLength + length;
+            final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(server.routedId)
+                .routedId(server.exitId)
+                .streamId(initialId)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .state(state)
+                .maximum(initialMax)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(initialBud)
+                .reserved(length)
+                .payload(buffer, offset, length);
 
-            if (requestSlot == NO_SLOT)
+            if (extLength > 0)
             {
-                requestSlot = encodePool.acquire(initialId);
+                builder.extension(extBuffer, 0, extLength);
             }
 
-            boolean encoded = requestSlot != NO_SLOT;
+            final DataFW data = builder.build();
 
-            if (encoded)
-            {
-                final MutableDirectBufferEx slot = encodePool.buffer(requestSlot);
+            app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
 
-                if (requestSlotOffset + required > encodePool.slotCapacity() && requestSlotProgress > 0)
-                {
-                    final int remaining = requestSlotOffset - requestSlotProgress;
-
-                    slot.putBytes(0, slot, requestSlotProgress, remaining);
-                    requestSlotOffset = remaining;
-                    requestSlotProgress = 0;
-                }
-
-                encoded = requestSlotOffset + required <= encodePool.slotCapacity();
-
-                if (encoded)
-                {
-                    slot.putLong(requestSlotOffset, traceId);
-                    slot.putLong(requestSlotOffset + 8, authorization);
-                    slot.putInt(requestSlotOffset + 16, flags);
-                    slot.putInt(requestSlotOffset + 20, extLength);
-                    slot.putInt(requestSlotOffset + 24, length);
-                    slot.putBytes(requestSlotOffset + REQUEST_RECORD_HEADER, extBuffer, 0, extLength);
-                    slot.putBytes(requestSlotOffset + REQUEST_RECORD_HEADER + extLength, buffer, offset, length);
-                    requestSlotOffset += required;
-                }
-            }
-
-            return encoded;
-        }
-
-        private void drainRequestSlot(
-            long traceId)
-        {
-            while (requestSlot != NO_SLOT && requestSlotProgress < requestSlotOffset && !StreamState.initialClosed(state))
-            {
-                final MutableDirectBufferEx slot = encodePool.buffer(requestSlot);
-                final int record = requestSlotProgress;
-                final long recordTraceId = slot.getLong(record);
-                final long recordAuthorization = slot.getLong(record + 8);
-                final int flags = slot.getInt(record + 16);
-                final int extLength = slot.getInt(record + 20);
-                final int payloadLength = slot.getInt(record + 24);
-                final int payloadOffset = record + REQUEST_RECORD_HEADER + extLength;
-
-                final int remaining = payloadLength - requestHeadSent;
-                final int length = (int) Math.min(remaining, Math.max(initialAvailable(), 0L));
-
-                if (length < remaining && length == 0)
-                {
-                    break;
-                }
-
-                final boolean first = requestHeadSent == 0;
-                final boolean last = length == remaining;
-                final int sentFlags = (first ? flags & Flags.INIT : 0) | (last ? flags & Flags.FIN : 0);
-
-                final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(server.routedId)
-                    .routedId(server.exitId)
-                    .streamId(initialId)
-                    .sequence(initialSeq)
-                    .acknowledge(initialAck)
-                    .state(state)
-                    .maximum(initialMax)
-                    .traceId(recordTraceId)
-                    .authorization(recordAuthorization)
-                    .flags(sentFlags)
-                    .budgetId(initialBud)
-                    .reserved(length)
-                    .payload(slot, payloadOffset + requestHeadSent, length);
-
-                if (first && extLength > 0)
-                {
-                    builder.extension(slot, record + REQUEST_RECORD_HEADER, extLength);
-                }
-
-                final DataFW data = builder.build();
-
-                app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-
-                initialSeq += length;
-                requestHeadSent += length;
-
-                if (last)
-                {
-                    requestSlotProgress = payloadOffset + payloadLength;
-                    requestHeadSent = 0;
-                }
-            }
-
-            if (requestSlotProgress == requestSlotOffset || StreamState.initialClosed(state))
-            {
-                cleanupRequestSlot();
-                server.flushNetEnd(traceId);
-            }
-        }
-
-        private void cleanupRequestSlot()
-        {
-            if (requestSlot != NO_SLOT)
-            {
-                encodePool.release(requestSlot);
-                requestSlot = NO_SLOT;
-            }
-
-            requestSlotOffset = 0;
-            requestSlotProgress = 0;
-            requestHeadSent = 0;
-        }
-
-        private int requestRoom()
-        {
-            final int room = encodePool.slotCapacity() - (requestSlotOffset - requestSlotProgress) - REQUEST_ENCODE_SLACK;
-
-            return Math.max(room, 0) / REQUEST_CANONICAL_GROWTH;
+            initialSeq += length;
+            server.flushNetEnd(traceId);
         }
 
         private void beginEncode()
@@ -7654,7 +7534,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             doAppReset(traceId);
             cleanupDecodeSlot();
             cleanupEncodeSlot();
-            cleanupRequestSlot();
             cleanupHeld();
         }
 
