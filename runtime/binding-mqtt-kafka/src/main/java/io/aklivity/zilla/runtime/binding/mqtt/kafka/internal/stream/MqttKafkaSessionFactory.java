@@ -409,12 +409,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Optional<MqttKafkaRouteConfig> route = binding.routes.stream().findFirst();
             final long routeId = route.map(r -> r.id).orElse(0L);
 
-            final Set<String16FW> messagesTopics =
-                binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
-            messagesTopics.add(binding.messagesTopic());
-
             binding.willProxy = new KafkaSignalStream(binding.id, routeId,
-                binding.sessionsTopic(), binding.messagesTopic(), binding.retainedTopic(), messagesTopics);
+                binding.sessionsTopic(), binding.messagesTopic(), binding.retainedTopic(), resolveMessagesTopics(binding));
             binding.willProxy.doKafkaBegin(currentTimeMillis());
         }
         sessionIds.put(bindingId, supplySessionId.get());
@@ -534,13 +530,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.fetchedPartitions = new ArrayList<>();
             this.initializablePartitions = new ArrayList<>();
             this.binding = supplyBinding.apply(bindingId);
-            final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
             this.publishQosMax = publishQosMax.value();
             if (publishQosMax == MqttQoS.EXACTLY_ONCE)
             {
-                this.messagesTopics = binding.routes.stream().map(r -> r.with.resolveMessages()).collect(Collectors.toSet());
-                this.messagesTopics.add(messagesTopic);
+                this.messagesTopics = resolveMessagesTopics(binding);
                 this.unfetchedKafkaTopics = messagesTopics.size() + 1;
                 this.unackedPacketIds = new IntArrayQueue();
             }
@@ -658,7 +652,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             awaitedReset = groupOffsetsResets.get(clientId);
 
-            if (awaitedReset != null)
+            if (awaitedReset == null && publishQosMax != 2 && isSetCleanStart(sessionFlags))
+            {
+                awaitedReset = newGroupOffsetsReset(routedId, resolvedId, clientId,
+                    resolveMessagesTopics(binding), retainedTopic);
+                awaitedReset.awaiting.add(this);
+                awaitedReset.doOpenMetas(traceId, authorization);
+            }
+            else if (awaitedReset != null)
             {
                 awaitedReset.awaiting.add(this);
             }
@@ -2129,19 +2130,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doKafkaTombstone(clientId, clientId);
             doKafkaTombstone(clientIdOffsets, clientId);
 
-            doResetGroupOffsets(clientId);
-        }
-
-        private void doResetGroupOffsets(
-            String16FW clientId)
-        {
-            final long traceId = supplyTraceId.get();
-            final String groupId = String.format("%s-%s", groupIdPrefix, clientId.asString());
-            final KafkaGroupOffsetsReset reset = new KafkaGroupOffsetsReset(originId, routedId, clientId, groupId,
-                messagesTopics, retainedTopic);
-
-            groupOffsetsResets.put(clientId, reset);
-            reset.doOpenMetas(traceId);
+            newGroupOffsetsReset(originId, routedId, clientId, messagesTopics, retainedTopic)
+                .doOpenMetas(supplyTraceId.get(), 0L);
         }
 
         private void doKafkaTombstone(
@@ -5229,6 +5219,35 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         }
     }
 
+    private static Set<String16FW> resolveMessagesTopics(
+        MqttKafkaBindingConfig binding)
+    {
+        final Set<String16FW> messagesTopics =
+            binding.routes.stream()
+                .filter(r -> !r.with.containsParams())
+                .map(r -> r.with.resolveMessages())
+                .collect(Collectors.toSet());
+        messagesTopics.add(binding.messagesTopic());
+
+        return messagesTopics;
+    }
+
+    private KafkaGroupOffsetsReset newGroupOffsetsReset(
+        long originId,
+        long routedId,
+        String16FW clientId,
+        Set<String16FW> messagesTopics,
+        String16FW retainedTopic)
+    {
+        final String groupId = String.format("%s-%s", groupIdPrefix, clientId.asString());
+        final KafkaGroupOffsetsReset reset =
+            new KafkaGroupOffsetsReset(originId, routedId, clientId, groupId, messagesTopics, retainedTopic);
+
+        groupOffsetsResets.put(clientId, reset);
+
+        return reset;
+    }
+
     private final class KafkaGroupOffsetsReset implements GroupOffsetsResetDelegate
     {
         private final long originId;
@@ -5266,18 +5285,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         }
 
         private void doOpenMetas(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             messagesTopics.forEach(t ->
             {
                 final KafkaMetaStream meta = new KafkaMetaStream(originId, routedId, this, t, false);
                 metas.add(meta);
-                meta.doKafkaBegin(traceId, 0, 0);
+                meta.doKafkaBegin(traceId, authorization, 0);
             });
 
             final KafkaMetaStream retainedMeta = new KafkaMetaStream(originId, routedId, this, retainedTopic, true);
             metas.add(retainedMeta);
-            retainedMeta.doKafkaBegin(traceId, 0, 0);
+            retainedMeta.doKafkaBegin(traceId, authorization, 0);
         }
 
         @Override
