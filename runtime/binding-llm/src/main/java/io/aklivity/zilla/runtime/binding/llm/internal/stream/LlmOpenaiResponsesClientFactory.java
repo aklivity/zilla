@@ -876,6 +876,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private LlmOpenaiResponsesCitationDecoder citationThen;
         private int citationMask;
         private int citationDepth;
+        private int citationTaken;
         private LlmOpenaiResponsesDecoder annotationThen;
         private int annotationFrom = NONE;
         private int lateFrom = NONE;
@@ -4611,7 +4612,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (citationParser == null)
             {
-                citationParser = JsonEx.createParser();
+                citationParser = JsonEx.createParser(PARSER_CONFIG);
             }
 
             return citationParser;
@@ -5022,9 +5023,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (advanced)
             {
+                generator.mark();
                 generator.writeStartEscaped();
                 citationThen = then;
-                advanced = writeCitationString();
+                advanced = writeCitationString(true);
             }
 
             return advanced;
@@ -5032,46 +5034,52 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private boolean decodeCitationString()
         {
+            final JsonEvent event = nextCitationEvent();
+
             boolean advanced = false;
 
-            if (citationParser.hasNextEvent())
+            if (event == JsonEvent.VALUE_STRING)
             {
-                if (citationParser.nextEvent() == JsonEvent.VALUE_STRING)
-                {
-                    advanced = writeCitationString();
-                }
-                else
-                {
-                    rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
-                }
+                advanced = writeCitationString(false);
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
             }
 
             return advanced;
         }
 
-        private boolean writeCitationString()
+        private boolean writeCitationString(
+            boolean first)
         {
             final JsonStringView chars = citationParser.getStringView();
             final int length = chars.length();
             final int before = generator.consumed();
 
-            generator.writeSegment(chars, 0, length);
+            generator.writeSegment(chars, citationTaken, length);
 
-            final int taken = generator.consumed() - before;
-            final boolean finished = taken == length;
+            citationTaken += generator.consumed() - before;
+
+            final boolean finished = citationTaken == length;
 
             if (finished)
             {
+                citationTaken = 0;
                 citationDecoder = decodeCitationClose;
             }
             else
             {
-                if (taken > 0)
+                if (first && citationTaken == 0)
                 {
-                    citationParser.consumed(taken);
+                    generator.rewind();
+                }
+                else
+                {
+                    citationDecoder = decodeCitationString;
                 }
 
-                citationDecoder = decodeCitationString;
+                citationParser.rewind();
             }
 
             return finished;
