@@ -35,11 +35,20 @@ final class LlmGeminiBlockWriter
     static final int ACTION_ESCAPE = 3;
     static final int ACTION_DESCEND = 4;
     static final int ACTION_TEXT = 5;
+    static final int ACTION_ID = 6;
+
+    static final int MODE_CALL = 0;
+    static final int MODE_RESULT = 1;
+    static final int MODE_SERVER_CALL = 2;
+    static final int MODE_SERVER_RESULT = 3;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
     private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
     private static final String MEMBER_RESPONSE = "response";
+    private static final String MEMBER_EXECUTABLE_CODE = "executableCode";
+    private static final String MEMBER_EXECUTABLE_CODE_SNAKE = "executable_code";
+    private static final String MEMBER_WIRE_ID = "gemini:id";
     private static final String MEMBER_OUTPUT = "output";
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_TEXT = "text";
@@ -62,7 +71,8 @@ final class LlmGeminiBlockWriter
     private boolean functioned;
     private boolean argumented;
     private int required;
-    private boolean result;
+    private int mode;
+    private String heldId;
     private boolean shaped;
 
     LlmGeminiBlockWriter(
@@ -77,16 +87,17 @@ final class LlmGeminiBlockWriter
         MutableDirectBufferEx buffer,
         int origin)
     {
-        begin(buffer, origin, false, false);
+        begin(buffer, origin, MODE_CALL, false);
     }
 
     void begin(
         MutableDirectBufferEx buffer,
         int origin,
-        boolean result,
+        int mode,
         boolean shaped)
     {
-        this.result = result;
+        this.mode = mode;
+        this.heldId = null;
         this.shaped = shaped;
         this.buffer = buffer;
         this.origin = origin;
@@ -134,7 +145,11 @@ final class LlmGeminiBlockWriter
     {
         int action = ACTION_COPY;
 
-        if ((result ? MEMBER_FUNCTION_RESPONSE : MEMBER_FUNCTION_CALL).contentEquals(name))
+        if (mode == MODE_SERVER_RESULT)
+        {
+            generator.writeKey(name);
+        }
+        else if (functionKey(name))
         {
             functioned = true;
             action = ACTION_FUNCTION;
@@ -147,12 +162,36 @@ final class LlmGeminiBlockWriter
         return action;
     }
 
+    void enterFunction()
+    {
+        if (mode == MODE_SERVER_CALL)
+        {
+            generator.writeKey(MEMBER_ARGUMENTS);
+            generator.writeStartObject();
+        }
+    }
+
+    void holdId(
+        String id)
+    {
+        this.heldId = id;
+    }
+
+    boolean complete()
+    {
+        return mode == MODE_SERVER_RESULT || functioned;
+    }
+
     int functionAction(
         CharSequence name)
     {
         int action = ACTION_DROP;
 
-        if (result)
+        if (mode == MODE_SERVER_CALL)
+        {
+            action = serverCallAction(name);
+        }
+        else if (mode == MODE_RESULT)
         {
             action = resultAction(name);
         }
@@ -166,6 +205,20 @@ final class LlmGeminiBlockWriter
         else if (!MEMBER_NAME.contentEquals(name) && !MEMBER_ID.contentEquals(name))
         {
             writePrefixedKey(name);
+            action = ACTION_COPY;
+        }
+
+        return action;
+    }
+
+    int serverCallAction(
+        CharSequence name)
+    {
+        int action = ACTION_ID;
+
+        if (!MEMBER_ID.contentEquals(name))
+        {
+            generator.writeKey(name);
             action = ACTION_COPY;
         }
 
@@ -235,11 +288,31 @@ final class LlmGeminiBlockWriter
 
     void closeFunction()
     {
-        if (!argumented && !result)
+        if (mode == MODE_SERVER_CALL)
+        {
+            generator.writeEnd();
+
+            if (heldId != null)
+            {
+                generator.write(MEMBER_WIRE_ID, heldId);
+            }
+        }
+        else if (mode == MODE_CALL && !argumented)
         {
             generator.writeStartObject(MEMBER_ARGUMENTS).writeEnd();
             argumented = true;
         }
+    }
+
+    private boolean functionKey(
+        CharSequence name)
+    {
+        return switch (mode)
+        {
+        case MODE_CALL -> MEMBER_FUNCTION_CALL.contentEquals(name);
+        case MODE_RESULT -> MEMBER_FUNCTION_RESPONSE.contentEquals(name);
+        default -> MEMBER_EXECUTABLE_CODE.contentEquals(name) || MEMBER_EXECUTABLE_CODE_SNAKE.contentEquals(name);
+        };
     }
 
     int drop(
