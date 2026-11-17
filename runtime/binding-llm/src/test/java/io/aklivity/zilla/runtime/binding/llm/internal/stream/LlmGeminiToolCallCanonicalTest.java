@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRejects;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRoundTrips;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 
@@ -27,67 +26,11 @@ public class LlmGeminiToolCallCanonicalTest
 {
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmGeminiToolCallToCanonical to = new LlmGeminiToolCallToCanonical();
     private final LlmGeminiToolCallFromCanonical from = new LlmGeminiToolCallFromCanonical(true);
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
     private final Consumer<LlmSectionAttributes> both = id.andThen(name);
-
-    @Test
-    public void shouldWrapArgsAsArguments()
-    {
-        assertTransforms(to,
-            json("{'functionCall':{'name':'get_weather','args':{'city':'Paris'},'id':'call_1'}}"),
-            json("{'arguments':{'city':'Paris'}}"));
-    }
-
-    @Test
-    public void shouldWrapAbsentArgsAsEmptyArguments()
-    {
-        assertTransforms(to,
-            json("{'functionCall':{'name':'ping'}}"),
-            json("{'arguments':{}}"));
-    }
-
-    @Test
-    public void shouldWrapArgsInAnyOrder()
-    {
-        assertTransforms(to,
-            json("{'functionCall':{'id':'call_1','args':{'a':1},'name':'ping'}}"),
-            json("{'arguments':{'a':1}}"));
-    }
-
-    @Test
-    public void shouldCarryThoughtSignature()
-    {
-        assertTransforms(to,
-            json("{'functionCall':{'name':'ping','args':{'a':1}},'thoughtSignature':'c2ln'}"),
-            json("{'arguments':{'a':1},'gemini:thoughtSignature':'c2ln'}"));
-    }
-
-    @Test
-    public void shouldCarryThoughtSignatureBeforeFunctionCall()
-    {
-        assertTransforms(to,
-            json("{'thoughtSignature':'c2ln','functionCall':{'name':'ping','args':{'a':1}}}"),
-            json("{'gemini:thoughtSignature':'c2ln','arguments':{'a':1}}"));
-    }
-
-    @Test
-    public void shouldWrapArgsLargerThanWindow()
-    {
-        assertTransforms(to,
-            json("{'functionCall':{'name':'ping','args':{'text':'" + HUGE + "'},'id':'call_1'}}"),
-            json("{'arguments':{'text':'" + HUGE + "'}}"));
-    }
-
-    @Test
-    public void shouldRejectArgsThatAreNotAnObject()
-    {
-        assertRejects(to, json("{'functionCall':{'name':'ping','args':'x'}}"));
-        assertRejects(to, json("{'functionCall':{'name':'ping','args':[1]}}"));
-    }
 
     @Test
     public void shouldWriteFunctionCallWithAttributesKnownAtBegin()
@@ -162,13 +105,5 @@ public class LlmGeminiToolCallCanonicalTest
     public void shouldRejectFunctionCallWithoutName()
     {
         assertRejects(from, json("{'arguments':{'a':1}}"));
-    }
-
-    @Test
-    public void shouldRoundTripFunctionCall()
-    {
-        assertRoundTrips(to, from, both,
-            json("{'functionCall':{'name':'get_weather','args':{'city':'Paris'},'id':'call_1'}," +
-                "'thoughtSignature':'c2ln'}"));
     }
 }

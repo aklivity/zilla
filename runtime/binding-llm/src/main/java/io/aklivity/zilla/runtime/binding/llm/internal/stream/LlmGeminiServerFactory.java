@@ -318,6 +318,16 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeSkipStart = this::decodeSkipStart;
     private final LlmGeminiServerDecoder decodePartCaptureStart = this::decodePartCaptureStart;
     private final LlmGeminiServerDecoder decodePartTextKey = this::decodePartTextKey;
+    private final LlmGeminiServerDecoder decodeBlockKey = this::decodeBlockKey;
+    private final LlmGeminiServerDecoder decodeBlockFunction = this::decodeBlockFunction;
+    private final LlmGeminiServerDecoder decodeBlockFunctionKey = this::decodeBlockFunctionKey;
+    private final LlmGeminiServerDecoder decodeBlockDrop = this::decodeBlockDrop;
+    private final LlmGeminiServerDecoder decodeBlockCopy = this::decodeBlockCopy;
+    private final LlmGeminiBlockHandler blockKey = this::onBlockKey;
+    private final LlmGeminiBlockHandler blockFunction = this::onBlockFunction;
+    private final LlmGeminiBlockHandler blockFunctionKey = this::onBlockFunctionKey;
+    private final LlmGeminiBlockHandler blockDrop = this::onBlockDrop;
+    private final LlmGeminiBlockHandler blockCopy = this::onBlockCopy;
     private final LlmGeminiServerDecoder decodePartTextValue = this::decodePartTextValue;
     private final LlmGeminiServerDecoder decodePartTextPiece = this::decodePartTextPiece;
     private final LlmGeminiServerDecoder decodePartTextCopy = this::decodePartTextCopy;
@@ -1282,6 +1292,15 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
 
         return stream.positionReply(buffer, offset, decodeReplyId);
+    }
+
+    @FunctionalInterface
+    private interface LlmGeminiBlockHandler
+    {
+        int handle(
+            LlmGeminiServer server,
+            JsonEvent event,
+            JsonParserEx parser);
     }
 
     @FunctionalInterface
@@ -2427,6 +2446,212 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return length;
     }
 
+    private int decodeBlock(
+        LlmGeminiServer server,
+        long traceId,
+        LlmGeminiServerDecoder state,
+        LlmGeminiBlockHandler handler)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == state && parser.hasNextEvent())
+        {
+            final int outcome = server.onBlockEvent(parser.nextEvent(), parser, handler);
+
+            if (outcome == LlmGeminiBlockWriter.REJECT)
+            {
+                server.onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeBlockKey(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockKey, blockKey);
+    }
+
+    private int decodeBlockFunction(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockFunction, blockFunction);
+    }
+
+    private int decodeBlockFunctionKey(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockFunctionKey, blockFunctionKey);
+    }
+
+    private int decodeBlockDrop(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockDrop, blockDrop);
+    }
+
+    private int decodeBlockCopy(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockCopy, blockCopy);
+    }
+
+    private int onBlockKey(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmGeminiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            switch (server.blockWriter.rootAction(parser.getStringView()))
+            {
+            case LlmGeminiBlockWriter.ACTION_FUNCTION:
+                server.decoder = decodeBlockFunction;
+                break;
+            default:
+                server.decodeBlockNext = decodeBlockKey;
+                server.decoder = decodeBlockCopy;
+                break;
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT && server.blockWriter.functioned())
+        {
+            server.endCall();
+        }
+        else
+        {
+            outcome = LlmGeminiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFunction(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmGeminiBlockWriter.MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            server.decoder = decodeBlockFunctionKey;
+        }
+        else
+        {
+            outcome = LlmGeminiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockFunctionKey(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmGeminiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            if (server.blockWriter.functionAction(parser.getStringView()) == LlmGeminiBlockWriter.ACTION_COPY)
+            {
+                server.decodeBlockNext = decodeBlockFunctionKey;
+                server.decoder = decodeBlockCopy;
+            }
+            else
+            {
+                server.decodeBlockNext = decodeBlockFunctionKey;
+                server.decoder = decodeBlockDrop;
+            }
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.blockWriter.closeFunction();
+            server.decoder = decodeBlockKey;
+        }
+        else
+        {
+            outcome = LlmGeminiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockDrop(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.drop(event, parser));
+    }
+
+    private int onBlockCopy(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        return onBlockValue(server, server.blockWriter.copyValue(event, parser));
+    }
+
+    private int onBlockValue(
+        LlmGeminiServer server,
+        int outcome)
+    {
+        int result = outcome;
+
+        if (outcome == LlmGeminiBlockWriter.VALUE)
+        {
+            server.decoder = server.decodeBlockNext;
+            result = LlmGeminiBlockWriter.MORE;
+        }
+
+        return result;
+    }
+
     private int decodePartProbeStart(
         LlmGeminiServer server,
         long traceId,
@@ -2450,9 +2675,16 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 break decode;
             }
 
-            server.capture(server.probe.type(), textMessage(server), decodeParts);
-            server.probing = true;
-            server.decoder = decodeTool;
+            if (server.probe.type() == LlmSectionType.TOOL_CALL)
+            {
+                server.beginCall();
+            }
+            else
+            {
+                server.capture(server.probe.type(), textMessage(server), decodeParts);
+                server.probing = true;
+                server.decoder = decodeTool;
+            }
         }
 
         return server.position();
@@ -3417,6 +3649,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmGeminiServerDecoder skipThen;
         private int skipDepth;
         private LlmSectionType partSection;
+        private LlmGeminiBlockWriter blockWriter;
+        private LlmGeminiServerDecoder decodeBlockNext;
         private String partKey;
         private int partMembers;
         private final LlmEventCopier partCopier = new LlmEventCopier();
@@ -3447,7 +3681,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline assistantTextPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
-        private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
         private LlmSectionPipeline toolResultPipeline;
@@ -3748,7 +3981,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private int available()
         {
-            final int credit = (int) Math.max(stream.initialAvailable(), 0L);
+            final int pending = blockWriter != null ? blockWriter.pending() : 0;
+            final int credit = (int) Math.max(stream.initialAvailable() - pending, 0L);
             final int available = Math.min(credit, stream.requestRoom());
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
@@ -3814,6 +4048,74 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
 
             return ready;
+        }
+
+        private void beginCall()
+        {
+            onDecodeBlock(LlmSectionType.TOOL_CALL, textMessage(this));
+
+            probing = true;
+            blockWriter().begin(pieceBuffer, 0);
+            decoder = decodeBlockKey;
+        }
+
+        private void endCall()
+        {
+            blockWriter.finish();
+            probing = false;
+            decoder = decodeParts;
+        }
+
+        private LlmGeminiBlockWriter blockWriter()
+        {
+            if (blockWriter == null)
+            {
+                blockWriter = new LlmGeminiBlockWriter(
+                    (buffer, offset, length, last) ->
+                        onDecodeData(decodeTraceId, decodeAuthorization, buffer, offset, length, last),
+                    JsonEx.createGenerator());
+            }
+
+            return blockWriter;
+        }
+
+        private int onBlockEvent(
+            JsonEvent event,
+            JsonParserEx parser,
+            LlmGeminiBlockHandler handler)
+        {
+            int outcome = LlmGeminiBlockWriter.MORE;
+
+            if (probing)
+            {
+                probe.onEvent(event, parser);
+            }
+
+            final boolean fragment = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+            final int length = fragment ? parser.getStringView().length() : 0;
+
+            try
+            {
+                if (blockWriter.reserve(event, parser))
+                {
+                    outcome = handler.handle(this, event, parser);
+
+                    if (fragment && outcome != LlmGeminiBlockWriter.REJECT)
+                    {
+                        parser.consumed(length);
+                    }
+                }
+                else
+                {
+                    outcome = LlmGeminiBlockWriter.REJECT;
+                }
+            }
+            catch (JsonException ex)
+            {
+                outcome = LlmGeminiBlockWriter.REJECT;
+            }
+
+            return outcome;
         }
 
         private void capture(
@@ -4302,11 +4604,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 pipeline = toolResultPipeline;
                 break;
             case TOOL_CALL:
-                if (toolCallPipeline == null)
-                {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallToCanonical(), transformBuffer);
-                }
-                pipeline = toolCallPipeline;
                 break;
             case TOOL_DEFINITION:
                 if (toolDefinitionPipeline == null)
