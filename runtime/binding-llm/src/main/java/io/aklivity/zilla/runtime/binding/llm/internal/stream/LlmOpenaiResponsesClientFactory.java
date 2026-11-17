@@ -72,7 +72,6 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
@@ -255,6 +254,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_DESCRIPTION = "description";
     private static final String MEMBER_PARAMETERS = "parameters";
     private static final String MEMBER_URL = "url";
+    private static final String MEMBER_TITLE = "title";
+    private static final String MEMBER_START_INDEX = "start_index";
+    private static final String MEMBER_END_INDEX = "end_index";
     private static final int TOOL_CALL = 1;
     private static final int TOOL_RESULT = 2;
     private static final int TOOL_OUTPUT = 3;
@@ -327,6 +329,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_ANNOTATION = "annotation";
     private static final String MEMBER_ENCRYPTED = "encrypted_content";
     private static final String MEMBER_OPENAI_ID = DIALECT_PREFIX + "id";
+    private static final String MEMBER_OPENAI_TYPE = DIALECT_PREFIX + MEMBER_TYPE;
     private static final String MEMBER_OPENAI_ENCRYPTED = DIALECT_PREFIX + MEMBER_ENCRYPTED;
     private static final String MESSAGE_ENCRYPTED_BOUND =
         "Encrypted content preceding the reasoning summary exceeds the supported bound.";
@@ -349,7 +352,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int REASONING_PENDING = 2;
     private static final int REASONING_READY = 3;
     private static final int MEMBER_ROOM = 96;
-    private static final int CITATIONS_GROWTH = 4;
+    private static final int CITATION_NESTED = 1 << 0;
+    private static final int CITATION_NESTED_CLOSED = 1 << 1;
+    private static final int CITATION_TYPED = 1 << 2;
+    private static final int CITATION_URL = 1 << 3;
+    private static final int CITATION_SEPARATOR = 1;
+    private static final int CITATION_KEY_OVERHEAD = 4;
     private static final String MEMBER_REFUSAL = "refusal";
     private static final String MEMBER_SUMMARY = "summary";
     private static final String MEMBER_ANNOTATIONS = "annotations";
@@ -399,7 +407,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
-    private final MutableDirectBufferEx transformBuffer;
     private final int holdLimit;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
@@ -417,6 +424,18 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private final int httpTypeId;
     private final UnsafeBufferEx typeMemberRW;
     private final JsonGeneratorEx tailSizing = JsonEx.createGenerator();
+    private final StringBuilder citationKey = new StringBuilder();
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationArray = LlmOpenaiResponsesStream::decodeCitationArray;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationElement = LlmOpenaiResponsesStream::decodeCitationElement;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationKey = LlmOpenaiResponsesStream::decodeCitationKey;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationType = LlmOpenaiResponsesStream::decodeCitationType;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationUrl = LlmOpenaiResponsesStream::decodeCitationUrl;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationTitle = LlmOpenaiResponsesStream::decodeCitationTitle;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationSkip = LlmOpenaiResponsesStream::decodeCitationSkip;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationValue = LlmOpenaiResponsesStream::decodeCitationValue;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationString = LlmOpenaiResponsesStream::decodeCitationString;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationClose = LlmOpenaiResponsesStream::decodeCitationClose;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationDone = LlmOpenaiResponsesStream::decodeCitationDone;
 
     private byte[] textBytes;
     private UnsafeBufferEx textBuffer;
@@ -443,7 +462,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         this.containerBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
-        this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.holdLimit = (encodeMax - ENCODE_CLOSING) / (2 * ESCAPE_EXPANSION);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.typeMemberRW = new UnsafeBufferEx(new byte[TYPE_MEMBER_MAX]);
@@ -528,6 +546,13 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             int offset,
             int limit,
             boolean last);
+    }
+
+    @FunctionalInterface
+    private interface LlmOpenaiResponsesCitationDecoder
+    {
+        boolean decode(
+            LlmOpenaiResponsesStream stream);
     }
 
     @FunctionalInterface
@@ -846,10 +871,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private final LlmHeldTail encrypted;
         private final LlmHeldTail annotations;
         private final LlmHeldTail lateMembers;
-        private final LlmSectionAttributes annotationAttributes = new LlmSectionAttributes();
-        private final LlmSectionPipeline.Output citationsOutput =
-            (buffer, offset, length, last) -> putCitations(buffer, offset, length);
-        private LlmSectionPipeline annotationPipeline;
+        private JsonParserEx citationParser;
+        private LlmOpenaiResponsesCitationDecoder citationDecoder;
+        private LlmOpenaiResponsesCitationDecoder citationThen;
+        private int citationMask;
+        private int citationDepth;
         private LlmOpenaiResponsesDecoder annotationThen;
         private int annotationFrom = NONE;
         private int lateFrom = NONE;
@@ -4278,8 +4304,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (annotated())
                 {
-                    annotationAttributes.clear();
-                    annotationPipeline().begin(annotationAttributes);
+                    citationParser().reset();
+                    citationDecoder = decodeCitationArray;
                     openText(LlmSectionType.CITATIONS);
                 }
 
@@ -4517,16 +4543,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             return found;
         }
 
-        private LlmSectionPipeline annotationPipeline()
-        {
-            if (annotationPipeline == null)
-            {
-                annotationPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsToCanonical.array(), transformBuffer);
-            }
-
-            return annotationPipeline;
-        }
-
         private int decodeCitations(
             DirectBufferEx buffer,
             int offset,
@@ -4536,55 +4552,557 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             while (decoder == decodeCitations && progress && !rejected())
             {
-                progress = false;
-
-                final int remaining = annotations.remaining();
-                final int take = Math.min(remaining, citationsAllowance());
-
-                if (take > 0)
-                {
-                    final boolean last = take == remaining;
-
-                    if (last)
-                    {
-                        decoder = annotationThen;
-                    }
-
-                    if (annotationPipeline.advance(annotations.buffer(), annotations.offset(),
-                        annotations.offset() + take, last, citationsOutput, Integer.MAX_VALUE) == Status.REJECTED)
-                    {
-                        rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
-                    }
-
-                    final int consumed = annotationPipeline.consumed();
-                    annotations.consumed(consumed);
-                    progress = consumed > 0;
-
-                    if (last)
-                    {
-                        closeSection();
-                        annotations.release();
-                    }
-                }
+                progress = citationRound();
             }
 
             return position();
         }
 
-        private int citationsAllowance()
+        private boolean citationRound()
         {
-            return Math.max(0, (Math.min(tailCredit(), encodeMax) - 3 * replyPad - TEXT_SUFFIX.length) / CITATIONS_GROWTH);
+            final int room = citationsRoom();
+
+            boolean progress = false;
+
+            if (room > 0)
+            {
+                final int from = annotations.offset();
+                final int length = annotations.remaining();
+
+                reservePiece(room);
+                generator.wrap(pieceBuffer, 0, room);
+                citationParser().wrap(annotations.buffer(), from, from + length, true);
+
+                try
+                {
+                    while (citationDecoder != decodeCitationDone && !rejected() && citationDecoder.decode(this))
+                    {
+                        progress = true;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+                }
+
+                final int consumed = length - citationParser.remaining();
+                final int written = generator.length();
+
+                annotations.consumed(consumed);
+                progress |= consumed > 0 || written > 0;
+
+                if (written > 0 && !rejected())
+                {
+                    emitSection(pieceBuffer, 0, written, false);
+                }
+
+                if (citationDecoder == decodeCitationDone && !rejected())
+                {
+                    decoder = annotationThen;
+                    closeSection();
+                    annotations.release();
+                }
+            }
+
+            return progress;
         }
 
-        private void putCitations(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
+        private JsonParserEx citationParser()
         {
-            if (length > 0)
+            if (citationParser == null)
             {
-                emitSection(buffer, offset, length, false);
+                citationParser = JsonEx.createParser();
             }
+
+            return citationParser;
+        }
+
+        private int citationsCeiling()
+        {
+            return encodeMax - 3 * replyPad - TEXT_SUFFIX.length;
+        }
+
+        private int citationsRoom()
+        {
+            return Math.min(tailCredit(), encodeMax) - 3 * replyPad - TEXT_SUFFIX.length;
+        }
+
+        private JsonEvent nextCitationEvent()
+        {
+            citationParser.mark();
+
+            return citationParser.hasNextEvent() ? citationParser.nextEvent() : null;
+        }
+
+        private boolean citationFits(
+            int width)
+        {
+            final boolean fits = width <= generator.remaining();
+
+            if (width > citationsCeiling())
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+            else if (!fits)
+            {
+                citationParser.rewind();
+            }
+
+            return fits && !rejected();
+        }
+
+        private int citationKeyWidth(
+            JsonStringView key)
+        {
+            return CITATION_KEY_OVERHEAD + body.length(key, 0, key.length());
+        }
+
+        private boolean decodeCitationArray()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.START_DOCUMENT)
+            {
+                advanced = true;
+            }
+            else if (event == JsonEvent.START_ARRAY)
+            {
+                generator.reset();
+                generator.writeStartArray();
+                citationDecoder = decodeCitationElement;
+                advanced = true;
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationElement()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.START_OBJECT)
+            {
+                advanced = citationFits(CITATION_SEPARATOR + 1);
+
+                if (advanced)
+                {
+                    generator.writeStartObject();
+                    citationMask = 0;
+                    citationDecoder = decodeCitationKey;
+                }
+            }
+            else if (event == JsonEvent.END_ARRAY)
+            {
+                advanced = citationFits(1);
+
+                if (advanced)
+                {
+                    generator.writeEnd();
+                    citationDecoder = decodeCitationDone;
+                }
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationKey()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.END_OBJECT)
+            {
+                advanced = citationFits((citationMask & CITATION_NESTED) != 0 ? 2 : 1);
+
+                if (advanced)
+                {
+                    closeCitationNested();
+                    generator.writeEnd();
+                    citationDecoder = decodeCitationElement;
+                }
+            }
+            else if (event == JsonEvent.KEY_NAME)
+            {
+                advanced = selectCitationMember(citationParser.getStringView());
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+
+            return advanced;
+        }
+
+        private boolean selectCitationMember(
+            JsonStringView key)
+        {
+            final String nested = (citationMask & CITATION_URL) != 0 ? citationNestedMember(key) : null;
+
+            boolean advanced = true;
+
+            if (MEMBER_TYPE.contentEquals(key))
+            {
+                citationDecoder = decodeCitationType;
+            }
+            else if ((citationMask & CITATION_TYPED) == 0 || nested != null && (citationMask & CITATION_NESTED_CLOSED) != 0)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+                advanced = false;
+            }
+            else if (nested != null)
+            {
+                advanced = selectCitationNested(nested);
+            }
+            else
+            {
+                advanced = selectCitationPrefixed(key);
+            }
+
+            return advanced;
+        }
+
+        private boolean selectCitationNested(
+            String member)
+        {
+            final boolean open = (citationMask & CITATION_NESTED) == 0;
+            final boolean title = MEMBER_TITLE.equals(member);
+            final int width = (open ? CITATION_KEY_OVERHEAD + TYPE_URL_CITATION.length() + 1 : 0) +
+                (title ? 0 : CITATION_KEY_OVERHEAD + member.length());
+
+            final boolean advanced = citationFits(width);
+
+            if (advanced)
+            {
+                if (open)
+                {
+                    generator.writeKey(TYPE_URL_CITATION).writeStartObject();
+                    citationMask |= CITATION_NESTED;
+                }
+
+                if (title)
+                {
+                    citationDecoder = decodeCitationTitle;
+                }
+                else
+                {
+                    generator.writeKey(member);
+                    citationDepth = 0;
+                    citationDecoder = MEMBER_URL.equals(member) ? decodeCitationUrl : decodeCitationValue;
+                }
+            }
+
+            return advanced;
+        }
+
+        private boolean selectCitationPrefixed(
+            JsonStringView key)
+        {
+            final int width = ((citationMask & CITATION_NESTED) != 0 ? 1 : 0) + DIALECT_PREFIX.length() + citationKeyWidth(key);
+
+            final boolean advanced = citationFits(width);
+
+            if (advanced)
+            {
+                closeCitationNested();
+                citationKey.setLength(0);
+                citationKey.append(DIALECT_PREFIX).append(key);
+                generator.writeKey(citationKey);
+                citationDepth = 0;
+                citationDecoder = decodeCitationValue;
+            }
+
+            return advanced;
+        }
+
+        private void closeCitationNested()
+        {
+            if ((citationMask & CITATION_NESTED) != 0)
+            {
+                generator.writeEnd();
+                citationMask = citationMask & ~CITATION_NESTED | CITATION_NESTED_CLOSED;
+            }
+        }
+
+        private boolean decodeCitationType()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                final JsonStringView value = citationParser.getStringView();
+                final int length = value.length();
+
+                if ((citationMask & CITATION_TYPED) != 0)
+                {
+                    citationDecoder = decodeCitationKey;
+                    advanced = true;
+                }
+                else if (length > LlmToolTransform.HELD_MAX)
+                {
+                    rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+                }
+                else
+                {
+                    final boolean url = TYPE_URL_CITATION.contentEquals(value);
+                    final int width = url
+                        ? CITATION_KEY_OVERHEAD + MEMBER_TYPE.length() + TYPE_URL_CITATION.length() + 2
+                        : CITATION_KEY_OVERHEAD + MEMBER_OPENAI_TYPE.length() + 2 + body.length(value, 0, length);
+
+                    advanced = citationFits(width);
+
+                    if (advanced)
+                    {
+                        generator.writeKey(url ? MEMBER_TYPE : MEMBER_OPENAI_TYPE).write(value, Completion.COMPLETE);
+                        citationMask |= url ? CITATION_TYPED | CITATION_URL : CITATION_TYPED;
+                        citationDecoder = decodeCitationKey;
+                    }
+                }
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationUrl()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                advanced = openCitationString(decodeCitationKey);
+            }
+            else if (event != null)
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationTitle()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                advanced = citationFits(CITATION_KEY_OVERHEAD + MEMBER_TITLE.length() + 1);
+
+                if (advanced)
+                {
+                    generator.writeKey(MEMBER_TITLE);
+                    advanced = openCitationString(decodeCitationKey);
+                }
+            }
+            else if (event != null)
+            {
+                citationDepth = nesting(event);
+                citationDecoder = citationDepth == 0 ? decodeCitationKey : decodeCitationSkip;
+                advanced = true;
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationSkip()
+        {
+            boolean advanced = false;
+
+            if (citationParser.hasNextEvent())
+            {
+                citationDepth += nesting(citationParser.nextEvent());
+                citationDecoder = citationDepth == 0 ? decodeCitationKey : decodeCitationSkip;
+                advanced = true;
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationValue()
+        {
+            final JsonEvent event = nextCitationEvent();
+
+            boolean advanced = false;
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                advanced = openCitationString(citationDepth == 0 ? decodeCitationKey : decodeCitationValue);
+            }
+            else if (event != null)
+            {
+                advanced = copyCitationEvent(event);
+
+                if (advanced && citationDepth == 0)
+                {
+                    citationDecoder = decodeCitationKey;
+                }
+            }
+
+            return advanced;
+        }
+
+        private boolean copyCitationEvent(
+            JsonEvent event)
+        {
+            final JsonStringView chars = citationParser.getStringView();
+
+            final int width = switch (event)
+            {
+            case START_OBJECT, START_ARRAY -> CITATION_SEPARATOR + 1;
+            case END_OBJECT, END_ARRAY -> 1;
+            case KEY_NAME -> citationKeyWidth(chars);
+            case VALUE_NUMBER -> CITATION_SEPARATOR + chars.length();
+            case VALUE_FALSE -> CITATION_SEPARATOR + 5;
+            default -> CITATION_SEPARATOR + 4;
+            };
+
+            final boolean advanced = citationFits(width);
+
+            if (advanced)
+            {
+                switch (event)
+                {
+                case START_OBJECT:
+                    generator.writeStartObject();
+                    break;
+                case START_ARRAY:
+                    generator.writeStartArray();
+                    break;
+                case END_OBJECT, END_ARRAY:
+                    generator.writeEnd();
+                    break;
+                case KEY_NAME:
+                    generator.writeKey(chars, Completion.COMPLETE);
+                    break;
+                case VALUE_NUMBER:
+                    generator.writeNumber(chars, Completion.COMPLETE);
+                    break;
+                case VALUE_TRUE:
+                    generator.write(true);
+                    break;
+                case VALUE_FALSE:
+                    generator.write(false);
+                    break;
+                default:
+                    generator.writeNull();
+                    break;
+                }
+
+                citationDepth += nesting(event);
+            }
+
+            return advanced;
+        }
+
+        private boolean openCitationString(
+            LlmOpenaiResponsesCitationDecoder then)
+        {
+            boolean advanced = citationFits(CITATION_SEPARATOR + 1);
+
+            if (advanced)
+            {
+                generator.writeStartEscaped();
+                citationThen = then;
+                advanced = writeCitationString();
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationString()
+        {
+            boolean advanced = false;
+
+            if (citationParser.hasNextEvent())
+            {
+                if (citationParser.nextEvent() == JsonEvent.VALUE_STRING)
+                {
+                    advanced = writeCitationString();
+                }
+                else
+                {
+                    rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+                }
+            }
+
+            return advanced;
+        }
+
+        private boolean writeCitationString()
+        {
+            final JsonStringView chars = citationParser.getStringView();
+            final int length = chars.length();
+            final int before = generator.consumed();
+
+            generator.writeSegment(chars, 0, length);
+
+            final int taken = generator.consumed() - before;
+            final boolean finished = taken == length;
+
+            if (finished)
+            {
+                citationDecoder = decodeCitationClose;
+            }
+            else
+            {
+                if (taken > 0)
+                {
+                    citationParser.consumed(taken);
+                }
+
+                citationDecoder = decodeCitationString;
+            }
+
+            return finished;
+        }
+
+        private boolean decodeCitationClose()
+        {
+            final boolean advanced = generator.remaining() >= 1;
+
+            if (advanced)
+            {
+                generator.writeEndEscaped();
+                citationDecoder = citationThen;
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationDone()
+        {
+            return false;
+        }
+
+        private static String citationNestedMember(
+            JsonStringView key)
+        {
+            return MEMBER_URL.contentEquals(key) ? MEMBER_URL
+                : MEMBER_TITLE.contentEquals(key) ? MEMBER_TITLE
+                : MEMBER_START_INDEX.contentEquals(key) ? MEMBER_START_INDEX
+                : MEMBER_END_INDEX.contentEquals(key) ? MEMBER_END_INDEX
+                : null;
         }
 
         private void cleanupHolds()
