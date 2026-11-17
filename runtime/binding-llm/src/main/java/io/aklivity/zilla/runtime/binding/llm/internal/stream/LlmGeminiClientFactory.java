@@ -32,6 +32,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmMember;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
@@ -138,9 +139,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
     private static final int CALLS_MAX = 16;
-    private static final int CONTROL_PENDING = 0;
-    private static final int CONTROL_WRITE = 1;
-    private static final int CONTROL_DROP = 2;
 
     private static final int ROLE_NONE = 0;
     private static final int ROLE_USER = 1;
@@ -236,8 +234,47 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_THINKING_LEVEL = "thinkingLevel";
     private static final String MEMBER_THINKING_BUDGET = "thinkingBudget";
     private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG, MEMBER_TOOL_CONFIG, MEMBER_THINKING_CONFIG};
+    private static final String[] CONTAINER_ALIASES = {"generation_config", "tool_config", "thinking_config"};
     private static final int CONTAINER_GENERATION_CONFIG = 0;
+    private static final int CONTAINER_TOOL_CONFIG = 1;
     private static final int CONTAINER_THINKING_CONFIG = 2;
+    private static final int NO_CONTAINER = -1;
+    private static final int RECORD_LENGTH_OFFSET = Byte.BYTES;
+    private static final int RECORD_HEADER = Byte.BYTES + Integer.BYTES;
+    private static final int CONTROL_HEADROOM = 16;
+    private static final int CAPTURED_MAX = 4096;
+    private static final int STOP_ENTRIES_MAX = 5;
+    private static final double SEED_MINIMUM = Integer.MIN_VALUE;
+    private static final double SEED_MAXIMUM = Integer.MAX_VALUE;
+    private static final String MEMBER_STREAM = "stream";
+    private static final String MEMBER_STREAM_OPTIONS = "stream_options";
+    private static final String MEMBER_SERVICE_TIER = "serviceTier";
+    private static final String MEMBER_SERVICE_TIER_SNAKE = "service_tier";
+    private static final String MEMBER_TOP_P = "topP";
+    private static final String MEMBER_TOP_K = "topK";
+    private static final String MEMBER_FREQUENCY_PENALTY = "frequencyPenalty";
+    private static final String MEMBER_PRESENCE_PENALTY = "presencePenalty";
+    private static final String MEMBER_SEED = "seed";
+    private static final String MEMBER_STOP_SEQUENCES = "stopSequences";
+    private static final String MEMBER_FUNCTION_CALLING_CONFIG = "functionCallingConfig";
+    private static final String MEMBER_MODE = "mode";
+    private static final String MEMBER_ALLOWED_FUNCTION_NAMES = "allowedFunctionNames";
+    private static final String MODE_AUTO = "AUTO";
+    private static final String MODE_ANY = "ANY";
+    private static final String MODE_NONE = "NONE";
+    private static final String MEMBER_RESPONSE_FORMAT = "responseFormat";
+    private static final String MIME_JSON = "APPLICATION_JSON";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String MEMBER_SCHEMA = "schema";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_JSON_OBJECT = "json_object";
+    private static final String TYPE_TEXT = "text";
+    private static final int FORMAT_OFF = 0;
+    private static final int FORMAT_UNSET = 1;
+    private static final int FORMAT_SCHEMA = 2;
+    private static final int FORMAT_OMITTED = 3;
+    private static final int FORMAT_OBJECT = 4;
+    private static final int FORMAT_TEXT = 5;
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String ROLE_NAME_USER = "user";
     private static final String ROLE_NAME_MODEL = "model";
@@ -312,6 +349,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx containerBuffer;
+    private final MutableDirectBufferEx recordHeader = new UnsafeBufferEx(new byte[RECORD_HEADER]);
+    private final LlmGeminiOutputSchema outputSchema;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx transformBuffer;
     private final DirectBufferEx emptyBufferRO;
@@ -340,6 +380,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.containerBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.outputSchema = new LlmGeminiOutputSchema();
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
@@ -527,6 +569,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     {
         return kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION ||
+            kind == KIND_CONTROL ||
             media(kind);
     }
 
@@ -3823,19 +3866,45 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final String[] callIds = new String[CALLS_MAX];
         private final String[] callNames = new String[CALLS_MAX];
         private int callCount;
-        private LlmSectionPipeline controlPipeline;
-        private LlmGeminiControlFromCanonical controlTransform;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
-        private int heldSlot = NO_SLOT;
         private int controlMessage;
-        private int controlMode;
         private LlmSectionPipeline.Output sectionTarget;
         private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
-        private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::heldBuffer);
-        private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
-        private final LlmMembersOutput.Members heldOutput = this::putHeld;
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
+        private final LlmGeminiRequestDecoder decodeRequestControlKey = this::decodeRequestControlKey;
+        private final LlmGeminiRequestDecoder decodeRequestControlContainer = this::decodeRequestControlContainer;
+        private final LlmGeminiRequestDecoder decodeRequestContainerMember = this::decodeRequestContainerMember;
+        private final LlmGeminiRequestDecoder decodeRequestContainerValue = this::decodeRequestContainerValue;
+        private final LlmGeminiRequestDecoder decodeRequestContainerClose = this::decodeRequestContainerClose;
+        private final LlmGeminiRequestDecoder decodeRequestControlScalar = this::decodeRequestControlScalar;
+        private final LlmGeminiRequestDecoder decodeRequestControlSeed = this::decodeRequestControlSeed;
+        private final LlmGeminiRequestDecoder decodeRequestControlLimit = this::decodeRequestControlLimit;
+        private final LlmGeminiRequestDecoder decodeRequestControlStop = this::decodeRequestControlStop;
+        private final LlmGeminiRequestDecoder decodeRequestControlElement = this::decodeRequestControlElement;
+        private final LlmGeminiRequestDecoder decodeRequestControlChoice = this::decodeRequestControlChoice;
+        private final LlmGeminiRequestDecoder decodeRequestControlFormat = this::decodeRequestControlFormat;
+        private final LlmGeminiRequestDecoder decodeRequestControlFormatKey = this::decodeRequestControlFormatKey;
+        private final LlmGeminiRequestDecoder decodeRequestControlFormatType = this::decodeRequestControlFormatType;
+        private final LlmGeminiRequestDecoder decodeRequestControlSchema = this::decodeRequestControlSchema;
+        private final LlmGeminiRequestDecoder decodeRequestControlSchemaKey = this::decodeRequestControlSchemaKey;
+        private final LlmGeminiRequestDecoder decodeRequestControlSchemaValue = this::decodeRequestControlSchemaValue;
+        private String rejectedRequestMember;
+        private JsonGeneratorEx controlGenerator;
+        private JsonGeneratorEx requestTarget;
+        private JsonGeneratorEx containerGenerator;
+        private LlmMembersOutput containerOutput;
+        private LlmCapturedValue controlChoice;
+        private LlmToolChoice toolChoice;
+        private LlmGeminiOutputSchema.Rejection schemaRejection;
+        private JsonParserEx requestSource;
+        private String controlMember;
+        private int controlFormat;
+        private int controlEntries;
+        private int requestContainer = NO_CONTAINER;
+        private int recordOffset;
+        private String heldOverflow;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -3976,50 +4045,138 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return serverToolPipeline;
         }
 
-        private LlmSectionPipeline controlPipeline()
-        {
-            if (controlPipeline == null)
-            {
-                capability = stream.binding.capability(stream.model);
-                controlTransform = LlmGeminiControlFromCanonical.members(sameDialect, capability);
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
-            }
-
-            return controlPipeline;
-        }
-
         private String rejectedMember()
         {
-            final String shared = controlTransform != null ? controlTransform.rejectedMember() : null;
-
-            return collector.overflowed() ? collector.overflow() : shared != null ? LlmSharedMembers.wire(shared) : null;
+            return heldOverflow != null ? heldOverflow :
+                rejectedRequestMember != null ? LlmSharedMembers.wire(rejectedRequestMember) : null;
         }
 
         private int heldReserve()
         {
-            return collector.held();
-        }
-
-        private MutableDirectBufferEx heldBuffer()
-        {
-            if (heldSlot == NO_SLOT)
-            {
-                heldSlot = holdPool.acquire(initialId);
-            }
-
-            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+            return hold.length(LlmRequestHold.DEFER);
         }
 
         private void cleanupHeldSlot()
         {
-            collector.reset();
+            heldOverflow = null;
             hold.release();
+        }
 
-            if (heldSlot != NO_SLOT)
+        private boolean holds(
+            int container)
+        {
+            final DirectBufferEx held = hold.buffer();
+            final int base = hold.offset(LlmRequestHold.DEFER);
+            final int heldLength = hold.length(LlmRequestHold.DEFER);
+            boolean holds = false;
+            int offset = 0;
+
+            while (!holds && offset < heldLength)
             {
-                holdPool.release(heldSlot);
-                heldSlot = NO_SLOT;
+                holds = held.getByte(base + offset) == container;
+                offset += RECORD_HEADER + held.getInt(base + offset + RECORD_LENGTH_OFFSET);
             }
+
+            return holds;
+        }
+
+        private void drain(
+            int container)
+        {
+            final DirectBufferEx held = hold.buffer();
+            final int base = hold.offset(LlmRequestHold.DEFER);
+            final int heldLength = hold.length(LlmRequestHold.DEFER);
+            int offset = 0;
+
+            while (offset < heldLength)
+            {
+                final int length = held.getInt(base + offset + RECORD_LENGTH_OFFSET);
+
+                if (held.getByte(base + offset) == container && length > 0)
+                {
+                    generator.writeMembers(held, base + offset + RECORD_HEADER, length, Completion.COMPLETE);
+                }
+
+                offset += RECORD_HEADER + length;
+            }
+        }
+
+        private boolean openContainer(
+            int container)
+        {
+            recordHeader.putByte(0, (byte) container);
+            recordHeader.putInt(RECORD_LENGTH_OFFSET, 0);
+
+            final int opened = hold.length(LlmRequestHold.DEFER);
+            final boolean appended = hold.append(LlmRequestHold.DEFER, recordHeader, 0, RECORD_HEADER);
+
+            if (appended)
+            {
+                recordOffset = opened;
+
+                if (containerGenerator == null)
+                {
+                    containerGenerator = JsonEx.createGenerator();
+                    containerOutput = new LlmMembersOutput(this::putContainer);
+                }
+
+                containerOutput.begin();
+                containerGenerator.wrap(containerBuffer, 0, containerBuffer.capacity());
+                containerGenerator.reset();
+            }
+            else
+            {
+                heldOverflow = CONTAINERS[container];
+                encodeFailed = true;
+            }
+
+            return appended;
+        }
+
+        private void putContainer(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (hold.append(LlmRequestHold.DEFER, buffer, offset, length))
+            {
+                final MutableDirectBufferEx held = hold.buffer();
+                final int lengthAt = hold.offset(LlmRequestHold.DEFER) + recordOffset + RECORD_LENGTH_OFFSET;
+
+                held.putInt(lengthAt, held.getInt(lengthAt) + length);
+            }
+            else
+            {
+                heldOverflow = CONTAINERS[hold.buffer().getByte(hold.offset(LlmRequestHold.DEFER) + recordOffset)];
+                encodeFailed = true;
+            }
+        }
+
+        private void flushContainer(
+            boolean last)
+        {
+            final int length = containerGenerator.length();
+
+            if (length > 0 || last)
+            {
+                containerOutput.put(containerBuffer, 0, length, last);
+                containerGenerator.wrap(containerBuffer, 0, containerBuffer.capacity());
+            }
+        }
+
+        private static int containerOf(
+            CharSequence member)
+        {
+            int found = NO_CONTAINER;
+
+            for (int index = 0; found == NO_CONTAINER && index < CONTAINERS.length; index++)
+            {
+                found = CONTAINERS[index].contentEquals(member) || CONTAINER_ALIASES[index].contentEquals(member)
+                    ? index
+                    : NO_CONTAINER;
+            }
+
+            return found;
         }
 
         private JsonParserEx requestParser()
@@ -4058,6 +4215,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && beginEncode(0))
             {
+                requestTarget = sectionKind == KIND_CONTROL ? controlGenerator() : generator;
+
+                if (sectionKind == KIND_CONTROL)
+                {
+                    controlGenerator.wrap(extBuffer, 0, extBuffer.capacity());
+                }
+
                 int progress = from;
                 int previous;
                 LlmGeminiRequestDecoder previousDecoder;
@@ -4067,6 +4231,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     previous = progress;
                     previousDecoder = requestDecoder;
                     progress = requestDecoder.decode(input, progress, limit, last);
+
+                    if (sectionKind == KIND_CONTROL)
+                    {
+                        flushRequestControl();
+                    }
                 }
                 while ((progress != previous && progress < limit || requestDecoder != previousDecoder) && !encodeFailed);
 
@@ -4089,13 +4258,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int limit,
             boolean last)
         {
-            return requestParser().wrap(buffer, offset, limit, last);
+            return requestSource.wrap(buffer, offset, limit, last);
         }
 
         private int positionRequest(
             int limit)
         {
-            return limit - requestParser.remaining();
+            return limit - requestSource.remaining();
         }
 
         private int decodeRequestRoot(
@@ -4407,6 +4576,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 generator.writeStartObject();
                 requestDecoder = decodeRequestMediaKey;
                 break;
+            case KIND_CONTROL:
+                controlGenerator.writeStartObject();
+                requestDecoder = decodeRequestControlKey;
+                break;
             default:
                 requestDecoder = decodeRequestTextKey;
                 break;
@@ -4474,7 +4647,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             JsonParserEx parser,
             JsonEvent event)
         {
-            final int taken = copier.copy(generator, event, parser);
+            copyEvent(requestTarget, parser, event);
+        }
+
+        private void copyEvent(
+            JsonGeneratorEx target,
+            JsonParserEx parser,
+            JsonEvent event)
+        {
+            final int taken = copier.copy(target, event, parser);
 
             if (taken != LlmEventCopier.NO_TAKEN)
             {
@@ -4565,6 +4746,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                         }
                         else
                         {
+                            rejectedRequestMember = sectionKind == KIND_CONTROL ? requestJudged : null;
                             encodeFailed = true;
                         }
                     }
@@ -5219,6 +5401,1082 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 startsWith(chars, mediaTypeEnd, BASE64_MARKER);
         }
 
+        private void beginControl()
+        {
+            capability = stream.binding.capability(stream.model);
+            controlOutput.begin();
+            requestTarget = controlGenerator();
+            requestTarget.reset();
+            controlFormat = FORMAT_OFF;
+        }
+
+        private JsonGeneratorEx controlGenerator()
+        {
+            if (controlGenerator == null)
+            {
+                controlGenerator = JsonEx.createGenerator();
+            }
+
+            return controlGenerator;
+        }
+
+        private void flushRequestControl()
+        {
+            final int length = controlGenerator.length();
+
+            if (length > 0 || requestDecoder == decodeRequestDone)
+            {
+                controlOutput.put(extBuffer, 0, length, requestDecoder == decodeRequestDone);
+                controlGenerator.wrap(extBuffer, 0, extBuffer.capacity());
+            }
+
+            if (containerGenerator != null && containerGenerator.length() > 0)
+            {
+                flushContainer(false);
+            }
+        }
+
+        private void rejectControl(
+            String member)
+        {
+            rejectedRequestMember = member;
+            encodeFailed = true;
+        }
+
+        private int decodeRequestControlKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlKey && controlGenerator.remaining() >= CONTROL_HEADROOM &&
+                    parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        selectControlMember(parser.getStringView());
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        controlGenerator.writeEnd();
+                        requestDecoder = decodeRequestDone;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void selectControlMember(
+            CharSequence key)
+        {
+            requestThen = decodeRequestControlKey;
+            requestSkipDepth = 0;
+
+            if (MEMBER_STREAM.contentEquals(key) || MEMBER_STREAM_OPTIONS.contentEquals(key))
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+            else
+            {
+                final int action = memberKeys.selectShared(key);
+
+                if (action == LlmMemberKeys.COPY)
+                {
+                    selectCopiedControl(memberKeys.target());
+                }
+                else if (action == LlmMemberKeys.JUDGE)
+                {
+                    judgeControl(key);
+                }
+                else if (action == LlmMemberKeys.SHARED)
+                {
+                    selectSharedControl(memberKeys.target());
+                }
+                else
+                {
+                    requestDecoder = decodeRequestSkip;
+                }
+            }
+        }
+
+        private void selectCopiedControl(
+            CharSequence target)
+        {
+            requestContainer = containerOf(target);
+
+            if (requestContainer != NO_CONTAINER)
+            {
+                requestDecoder = decodeRequestControlContainer;
+            }
+            else
+            {
+                controlGenerator.writeKey(MEMBER_SERVICE_TIER_SNAKE.contentEquals(target) ? MEMBER_SERVICE_TIER : target);
+                copier.reset();
+                requestDecoder = decodeRequestMember;
+            }
+        }
+
+        private void judgeControl(
+            CharSequence member)
+        {
+            requestJudged = member.toString();
+            requestVerdict = LlmLegality.UNDECIDED;
+            requestSkipDepth = 0;
+            requestDecoder = decodeRequestJudge;
+        }
+
+        private void selectSharedControl(
+            CharSequence member)
+        {
+            final int listed = capability.unsupported != 0 ? LlmMember.of(member) : LlmMember.INVALID;
+
+            if (listed != LlmMember.INVALID && capability.unsupported(listed))
+            {
+                if (LlmMember.behavioural(listed))
+                {
+                    judgeControl(member);
+                }
+                else
+                {
+                    requestDecoder = decodeRequestSkip;
+                }
+            }
+            else if (LlmSharedMembers.TEMPERATURE.contentEquals(member))
+            {
+                passControl(LlmSharedMembers.TEMPERATURE, capability.sampling);
+            }
+            else if (LlmSharedMembers.TOP_P.contentEquals(member))
+            {
+                passControl(MEMBER_TOP_P, capability.sampling);
+            }
+            else if (LlmSharedMembers.TOP_K.contentEquals(member))
+            {
+                passControl(MEMBER_TOP_K, capability.sampling);
+            }
+            else if (LlmSharedMembers.FREQUENCY_PENALTY.contentEquals(member))
+            {
+                passControl(MEMBER_FREQUENCY_PENALTY, true);
+            }
+            else if (LlmSharedMembers.PRESENCE_PENALTY.contentEquals(member))
+            {
+                passControl(MEMBER_PRESENCE_PENALTY, true);
+            }
+            else if (LlmSharedMembers.SEED.contentEquals(member))
+            {
+                requestDecoder = decodeRequestControlSeed;
+            }
+            else if (LlmSharedMembers.REASONING_EFFORT.contentEquals(member) ||
+                LlmSharedMembers.THINKING_BUDGET_TOKENS.contentEquals(member) ||
+                LlmSharedMembers.PARALLEL_TOOL_CALLS.contentEquals(member))
+            {
+                controlMember = member.toString();
+                requestDecoder = decodeRequestControlScalar;
+            }
+            else if (LlmSharedMembers.STOP.contentEquals(member))
+            {
+                requestDecoder = decodeRequestControlStop;
+            }
+            else if (LlmSharedMembers.TOOL_CHOICE.contentEquals(member))
+            {
+                if (controlChoice == null)
+                {
+                    controlChoice = new LlmCapturedValue();
+                    toolChoice = new LlmToolChoice();
+                }
+
+                controlChoice.clear();
+                requestDecoder = decodeRequestControlChoice;
+            }
+            else if (LlmSharedMembers.RESPONSE_FORMAT.contentEquals(member))
+            {
+                requestDecoder = decodeRequestControlFormat;
+            }
+            else if (LlmSharedMembers.SERVICE_TIER.contentEquals(member))
+            {
+                requestDecoder = decodeRequestControlLimit;
+            }
+            else
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+        }
+
+        private void passControl(
+            String key,
+            boolean admitted)
+        {
+            if (admitted && openContainer(CONTAINER_GENERATION_CONFIG))
+            {
+                containerGenerator.writeStartObject().writeKey(key);
+                copier.reset();
+                requestThen = decodeRequestContainerClose;
+                requestDecoder = decodeRequestContainerValue;
+            }
+            else if (!admitted)
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+        }
+
+        private int decodeRequestContainerClose(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            closeContribution();
+
+            return offset;
+        }
+
+        private void closeContribution()
+        {
+            containerGenerator.writeEnd();
+            flushContainer(true);
+            requestDecoder = decodeRequestControlKey;
+        }
+
+        private int decodeRequestContainerValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestContainerValue &&
+                    containerGenerator.remaining() >= CONTROL_HEADROOM && parser.hasNextEvent())
+                {
+                    copyEvent(containerGenerator, parser, parser.nextEvent());
+
+                    if (copier.depth() == 0 && !parser.deferredBytes())
+                    {
+                        requestDecoder = requestThen;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlContainer(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlContainer && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    copier.reset();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        if (openContainer(requestContainer))
+                        {
+                            copyEvent(containerGenerator, parser, event);
+                            requestDecoder = decodeRequestContainerMember;
+                        }
+                    }
+                    else
+                    {
+                        controlGenerator.writeKey(CONTAINERS[requestContainer]);
+                        copyRequestEvent(parser, event);
+                        requestDecoder = copier.depth() == 0 && !parser.deferredBytes() ? requestThen : decodeRequestMember;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestContainerMember(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestContainerMember &&
+                    containerGenerator.remaining() >= CONTROL_HEADROOM && parser.hasNextEvent())
+                {
+                    copyEvent(containerGenerator, parser, parser.nextEvent());
+
+                    if (copier.depth() == 0 && !parser.deferredBytes())
+                    {
+                        flushContainer(true);
+                        requestDecoder = requestThen;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlSeed(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlSeed && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.VALUE_NUMBER)
+                    {
+                        final JsonStringView value = parser.getStringView();
+
+                        if (parser.deferredBytes())
+                        {
+                            parser.consumed(value.length());
+                            requestSkipDepth = 0;
+                            requestDecoder = decodeRequestSkip;
+                        }
+                        else
+                        {
+                            writeSeed(value);
+                            requestDecoder = decodeRequestControlKey;
+                        }
+                    }
+                    else if (event == JsonEvent.VALUE_NULL)
+                    {
+                        requestDecoder = decodeRequestControlKey;
+                    }
+                    else
+                    {
+                        rejectControl(LlmSharedMembers.SEED);
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void writeSeed(
+            CharSequence number)
+        {
+            final double value = Double.parseDouble(number.toString());
+
+            if (value >= SEED_MINIMUM && value <= SEED_MAXIMUM && value == Math.rint(value) &&
+                openContainer(CONTAINER_GENERATION_CONFIG))
+            {
+                containerGenerator.writeStartObject().writeKey(MEMBER_SEED).writeNumber(number.toString()).writeEnd();
+                flushContainer(true);
+            }
+        }
+
+        private int decodeRequestControlScalar(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlScalar && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+                    final boolean deferred = parser.deferredBytes();
+                    final boolean scalar = event != JsonEvent.START_OBJECT && event != JsonEvent.START_ARRAY;
+                    final boolean whole = scalar && !deferred;
+                    final CharSequence text = whole && (event == JsonEvent.VALUE_NUMBER || event == JsonEvent.VALUE_STRING)
+                        ? parser.getStringView()
+                        : null;
+
+                    onControlScalar(whole ? event : null, text);
+
+                    if (deferred)
+                    {
+                        parser.consumed(parser.getStringView().length());
+                    }
+
+                    requestSkipDepth = scalar ? 0 : 1;
+                    requestDecoder = whole ? decodeRequestControlKey : decodeRequestSkip;
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void onControlScalar(
+            JsonEvent scalar,
+            CharSequence text)
+        {
+            if (LlmSharedMembers.PARALLEL_TOOL_CALLS.equals(controlMember))
+            {
+                if (scalar != JsonEvent.VALUE_TRUE && scalar != JsonEvent.VALUE_NULL)
+                {
+                    rejectControl(LlmSharedMembers.PARALLEL_TOOL_CALLS);
+                }
+            }
+            else if (LlmSharedMembers.REASONING_EFFORT.equals(controlMember))
+            {
+                final int value = scalar != null ? LlmReasoning.effortOf(scalar, text) : LlmEffort.INVALID;
+
+                if (value == LlmEffort.INVALID)
+                {
+                    rejectControl(LlmSharedMembers.REASONING_EFFORT);
+                }
+                else if (value != LlmEffort.ABSENT)
+                {
+                    effort = value;
+                }
+            }
+            else
+            {
+                final int value = scalar != null ? LlmReasoning.budgetOf(scalar, text) : LlmEffort.INVALID;
+
+                if (value == LlmEffort.INVALID)
+                {
+                    rejectControl(LlmSharedMembers.THINKING_BUDGET_TOKENS);
+                }
+                else if (value != LlmEffort.ABSENT)
+                {
+                    budget = value;
+                }
+            }
+        }
+
+        private int decodeRequestControlLimit(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlLimit && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.VALUE_STRING)
+                    {
+                        final JsonStringView value = parser.getStringView();
+
+                        if (parser.deferredBytes())
+                        {
+                            parser.consumed(value.length());
+                            requestSkipDepth = 0;
+                            requestDecoder = decodeRequestSkip;
+                        }
+                        else
+                        {
+                            writeServiceTier(value);
+                            requestDecoder = decodeRequestControlKey;
+                        }
+                    }
+                    else
+                    {
+                        requestSkipDepth = nesting(event);
+                        requestDecoder = requestSkipDepth == 0 ? decodeRequestControlKey : decodeRequestSkip;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void writeServiceTier(
+            CharSequence value)
+        {
+            if (Character.codePointCount(value, 0, value.length()) <= LlmServiceTiers.NAME_MAX)
+            {
+                final String adapted = LlmServiceTiers.gemini(capability, value);
+
+                if (adapted != null)
+                {
+                    controlGenerator.write(MEMBER_SERVICE_TIER, adapted);
+                }
+            }
+        }
+
+        private int decodeRequestControlStop(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlStop && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_ARRAY)
+                    {
+                        if (openContainer(CONTAINER_GENERATION_CONFIG))
+                        {
+                            containerGenerator.writeStartObject().writeStartArray(MEMBER_STOP_SEQUENCES);
+                            controlEntries = 0;
+                            requestDecoder = decodeRequestControlElement;
+                        }
+                    }
+                    else if (event == JsonEvent.VALUE_NULL)
+                    {
+                        requestDecoder = decodeRequestControlKey;
+                    }
+                    else
+                    {
+                        rejectControl(LlmSharedMembers.STOP);
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlElement(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlElement && containerGenerator.remaining() >= CONTROL_HEADROOM &&
+                    parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.END_ARRAY)
+                    {
+                        containerGenerator.writeEnd();
+                        closeContribution();
+                    }
+                    else if (!sameDialect && ++controlEntries > STOP_ENTRIES_MAX)
+                    {
+                        rejectControl(LlmSharedMembers.STOP);
+                    }
+                    else
+                    {
+                        copier.reset();
+                        copyEvent(containerGenerator, parser, event);
+
+                        if (copier.depth() > 0 || parser.deferredBytes())
+                        {
+                            requestThen = decodeRequestControlElement;
+                            requestDecoder = decodeRequestContainerValue;
+                        }
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlChoice(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlChoice && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+                    final boolean deferred = parser.deferredBytes();
+                    boolean accepted = true;
+
+                    requestSkipDepth += nesting(event);
+
+                    if (event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER)
+                    {
+                        final JsonStringView chars = parser.getStringView();
+
+                        if (deferred)
+                        {
+                            parser.consumed(chars.length());
+                            accepted = false;
+                        }
+                        else
+                        {
+                            accepted = controlChoice.add(event, chars.toString(), CAPTURED_MAX);
+                        }
+                    }
+                    else
+                    {
+                        accepted = controlChoice.add(event, null, CAPTURED_MAX);
+                    }
+
+                    if (!accepted)
+                    {
+                        rejectControl(LlmSharedMembers.TOOL_CHOICE);
+                    }
+                    else if (requestSkipDepth == 0 && event != JsonEvent.KEY_NAME && !deferred)
+                    {
+                        writeToolChoice(controlChoice);
+                        requestDecoder = decodeRequestControlKey;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void writeToolChoice(
+            LlmCapturedValue value)
+        {
+            if (toolChoice.parseCanonical(value))
+            {
+                if (openContainer(CONTAINER_TOOL_CONFIG))
+                {
+                    containerGenerator.writeStartObject()
+                        .writeStartObject(MEMBER_FUNCTION_CALLING_CONFIG)
+                        .write(MEMBER_MODE, modeOf(toolChoice));
+
+                    if (toolChoice.kind() == LlmToolChoice.FUNCTION)
+                    {
+                        containerGenerator.writeStartArray(MEMBER_ALLOWED_FUNCTION_NAMES).write(toolChoice.name()).writeEnd();
+                    }
+                    else if (toolChoice.kind() == LlmToolChoice.ALLOWED && !toolChoice.names().isEmpty())
+                    {
+                        containerGenerator.writeStartArray(MEMBER_ALLOWED_FUNCTION_NAMES);
+
+                        for (int index = 0; index < toolChoice.names().size(); index++)
+                        {
+                            containerGenerator.write(toolChoice.names().get(index));
+                        }
+
+                        containerGenerator.writeEnd();
+                    }
+
+                    containerGenerator.writeEnd().writeEnd();
+                    flushContainer(true);
+                }
+            }
+            else
+            {
+                rejectControl(LlmSharedMembers.TOOL_CHOICE);
+            }
+        }
+
+        private static String modeOf(
+            LlmToolChoice choice)
+        {
+            return choice.kind() == LlmToolChoice.FUNCTION ? MODE_ANY : switch (choice.mode())
+            {
+            case LlmToolChoice.MODE_REQUIRED -> MODE_ANY;
+            case LlmToolChoice.MODE_NONE -> MODE_NONE;
+            default -> MODE_AUTO;
+            };
+        }
+
+        private int decodeRequestControlFormat(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlFormat && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        controlFormat = FORMAT_UNSET;
+                        requestDecoder = decodeRequestControlFormatKey;
+                    }
+                    else if (event == JsonEvent.VALUE_NULL)
+                    {
+                        requestDecoder = decodeRequestControlKey;
+                    }
+                    else
+                    {
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlFormatKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlFormatKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        selectFormatMember(parser.getStringView());
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        closeControlFormat();
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void selectFormatMember(
+            CharSequence key)
+        {
+            requestSkipDepth = 0;
+            requestThen = decodeRequestControlFormatKey;
+
+            if (MEMBER_TYPE.contentEquals(key))
+            {
+                requestDecoder = decodeRequestControlFormatType;
+            }
+            else if (MEMBER_JSON_SCHEMA.contentEquals(key))
+            {
+                if (openControlFormat(FORMAT_SCHEMA))
+                {
+                    requestDecoder = decodeRequestControlSchema;
+                }
+                else
+                {
+                    rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
+                }
+            }
+            else
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+        }
+
+        private void closeControlFormat()
+        {
+            if (controlFormat == FORMAT_UNSET)
+            {
+                rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
+            }
+            else
+            {
+                if (controlFormat != FORMAT_OMITTED)
+                {
+                    containerGenerator.writeEnd().writeEnd().writeEnd();
+                    flushContainer(true);
+                }
+
+                controlFormat = FORMAT_OFF;
+                requestDecoder = decodeRequestControlKey;
+            }
+        }
+
+        private boolean openControlFormat(
+            int kind)
+        {
+            boolean opened = true;
+
+            if (controlFormat == FORMAT_UNSET)
+            {
+                if (kind == FORMAT_TEXT)
+                {
+                    controlFormat = FORMAT_OMITTED;
+                }
+                else
+                {
+                    opened = openContainer(CONTAINER_GENERATION_CONFIG);
+
+                    if (opened)
+                    {
+                        containerGenerator.writeStartObject()
+                            .writeStartObject(MEMBER_RESPONSE_FORMAT)
+                            .writeStartObject(MEMBER_TEXT)
+                            .write(MEMBER_MIME_TYPE, MIME_JSON);
+                        controlFormat = kind;
+                    }
+                }
+            }
+            else
+            {
+                opened = controlFormat == kind || controlFormat == FORMAT_OMITTED && kind == FORMAT_TEXT;
+            }
+
+            return opened;
+        }
+
+        private int decodeRequestControlFormatType(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestControlFormatType && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.VALUE_STRING)
+                    {
+                        final JsonStringView chars = parser.getStringView();
+                        final boolean deferred = parser.deferredBytes();
+                        final int kind = deferred ? FORMAT_OFF : formatKindOf(chars);
+
+                        if (deferred)
+                        {
+                            parser.consumed(chars.length());
+                        }
+
+                        if (kind != FORMAT_OFF && openControlFormat(kind))
+                        {
+                            requestDecoder = decodeRequestControlFormatKey;
+                        }
+                        else
+                        {
+                            rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
+                        }
+                    }
+                    else
+                    {
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private static int formatKindOf(
+            CharSequence type)
+        {
+            int kind = FORMAT_OFF;
+
+            if (TYPE_JSON_SCHEMA.contentEquals(type))
+            {
+                kind = FORMAT_SCHEMA;
+            }
+            else if (TYPE_JSON_OBJECT.contentEquals(type))
+            {
+                kind = FORMAT_OBJECT;
+            }
+            else if (TYPE_TEXT.contentEquals(type))
+            {
+                kind = FORMAT_TEXT;
+            }
+
+            return kind;
+        }
+
+        private int decodeRequestControlSchema(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlSchema && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                    {
+                        requestDecoder = decodeRequestControlSchemaKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlSchemaKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlSchemaKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        if (MEMBER_SCHEMA.contentEquals(parser.getStringView()))
+                        {
+                            containerGenerator.writeKey(MEMBER_SCHEMA);
+                            copier.reset();
+                            schemaRejection = new LlmGeminiOutputSchema.Rejection();
+                            requestSource = outputSchema.newParser(requestParser(), schemaRejection);
+                            requestDecoder = decodeRequestControlSchemaValue;
+                        }
+                        else
+                        {
+                            requestSkipDepth = 0;
+                            requestThen = decodeRequestControlSchemaKey;
+                            requestDecoder = decodeRequestSkip;
+                        }
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        requestDecoder = decodeRequestControlFormatKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestControlSchemaValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestControlSchemaValue &&
+                    containerGenerator.remaining() >= CONTROL_HEADROOM && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (!encodeFailed && schemaRejection.rejected())
+                    {
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT + " keyword " + schemaRejection.keyword());
+                    }
+                    else
+                    {
+                        copyEvent(containerGenerator, parser, event);
+
+                        if (copier.depth() == 0 && !parser.deferredBytes())
+                        {
+                            requestSource = requestParser();
+                            requestDecoder = decodeRequestControlSchemaKey;
+                        }
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
         private int decodeRequestDone(
             DirectBufferEx buffer,
             int offset,
@@ -5258,10 +6516,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 if (kind == KIND_CONTROL)
                 {
                     controlMessage = message;
-                    controlMode = CONTROL_PENDING;
-                    collector.begin();
-                    controlOutput.begin();
-                    beginSectionStreaming(controlPipeline(), controlOutput);
                 }
                 else if (kind == KIND_TOOL_DEFINITION)
                 {
@@ -5295,8 +6549,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && (text(kind) || parsed(kind)))
             {
+                if (kind == KIND_CONTROL)
+                {
+                    beginControl();
+                }
+
                 requestDecoder = decodeRequestRoot;
-                requestParser().reset();
+                requestSource = requestParser();
+                requestSource.reset();
                 signature = null;
             }
         }
@@ -5551,7 +6811,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (beginEncode(0))
                 {
-                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget) || collector.overflowed())
+                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget))
                     {
                         encodeFailed = true;
                     }
@@ -5586,12 +6846,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (controlMode == CONTROL_PENDING)
-            {
-                controlMode = openControl() ? CONTROL_WRITE : CONTROL_DROP;
-            }
-
-            if (controlMode == CONTROL_WRITE)
+            if (openControl())
             {
                 if (fits(length))
                 {
@@ -5635,7 +6890,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doEncodeSectionEnd(
             boolean isError)
         {
-            if (sectionKind == KIND_CONTROL && sectionStreaming)
+            if (sectionKind == KIND_CONTROL)
             {
                 onControlEnd();
             }
@@ -5699,16 +6954,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private void onControlEnd()
         {
-            if (controlTransform.effort() != LlmEffort.ABSENT)
-            {
-                effort = controlTransform.effort();
-            }
-
-            if (controlTransform.budget() != LlmEffort.ABSENT)
-            {
-                budget = controlTransform.budget();
-            }
-
             final int exclusiveEffort = LlmReasoning.exclusiveEffort(capability, effort, budget);
             budget = LlmReasoning.exclusiveBudget(capability, effort, budget);
             effort = exclusiveEffort;
@@ -5719,7 +6964,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (!StreamState.initialClosing(state) && !StreamState.initialClosed(state))
             {
-                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_THINKING + collector.held()))
+                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_THINKING + hold.length(LlmRequestHold.DEFER)))
                 {
                     closeRegion();
                     thinking.resolve(capability, effort, budget);
@@ -5730,12 +6975,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                             stream.crossDialect && maxOutputTokens != NO_MAX_OUTPUT_TOKENS;
                         final boolean reasoning = container == CONTAINER_GENERATION_CONFIG &&
                             (thinking.level() != null || thinking.budget() != LlmModelCapability.UNSET ||
-                            collector.holds(CONTAINER_THINKING_CONFIG));
+                            holds(CONTAINER_THINKING_CONFIG));
 
-                        if (collector.holds(container) || tokens || reasoning)
+                        if (holds(container) || tokens || reasoning)
                         {
                             generator.writeStartObject(CONTAINERS[container]);
-                            collector.drain(container, heldOutput);
+                            drain(container);
 
                             if (reasoning)
                             {
@@ -5774,16 +7019,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 generator.write(MEMBER_THINKING_BUDGET, thinking.budget());
             }
 
-            collector.drain(CONTAINER_THINKING_CONFIG, heldOutput);
+            drain(CONTAINER_THINKING_CONFIG);
             generator.writeEnd();
-        }
-
-        private void putHeld(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            generator.writeMembers(buffer, offset, length, Completion.COMPLETE);
         }
 
         private boolean beginEncode(

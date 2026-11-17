@@ -1,0 +1,38 @@
+{
+    "$ref": "#/$defs/schema",
+    "$defs": {
+        "schema": {
+            "items": { "$ref": "#/$defs/schema" },
+            "properties": {
+                "$ref": { "pattern": "^#" },
+                "properties": { "$ref": "#/$defs/map" },
+                "patternProperties": false,
+                "$defs": { "$ref": "#/$defs/map" },
+                "definitions": { "$ref": "#/$defs/map" },
+                "dependentSchemas": false,
+                "items": { "$ref": "#/$defs/schema" },
+                "additionalProperties": { "$ref": "#/$defs/schema" },
+                "not": false,
+                "contains": { "$ref": "#/$defs/schema" },
+                "if": false,
+                "then": false,
+                "else": false,
+                "propertyNames": { "$ref": "#/$defs/schema" },
+                "unevaluatedItems": { "$ref": "#/$defs/schema" },
+                "unevaluatedProperties": false,
+                "additionalItems": { "$ref": "#/$defs/schema" },
+                "contentSchema": { "$ref": "#/$defs/schema" },
+                "allOf": { "$ref": "#/$defs/list" },
+                "anyOf": { "$ref": "#/$defs/list" },
+                "oneOf": { "$ref": "#/$defs/list" },
+                "prefixItems": { "$ref": "#/$defs/list" }
+            }
+        },
+        "map": {
+            "additionalProperties": { "$ref": "#/$defs/schema" }
+        },
+        "list": {
+            "items": { "$ref": "#/$defs/schema" }
+        }
+    }
+}
