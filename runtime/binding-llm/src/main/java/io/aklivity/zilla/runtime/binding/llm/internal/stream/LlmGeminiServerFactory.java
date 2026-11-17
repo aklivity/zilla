@@ -325,6 +325,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeBlockId = this::decodeBlockId;
     private final LlmGeminiServerDecoder decodeBlockOptional = this::decodeBlockOptional;
     private final LlmGeminiServerDecoder decodeBlockData = this::decodeBlockData;
+    private final LlmGeminiServerDecoder decodeBlockControl = this::decodeBlockControl;
     private final LlmGeminiServerDecoder decodeBlockSchema = this::decodeBlockSchema;
     private final LlmGeminiServerDecoder decodeBlockResponse = this::decodeBlockResponse;
     private final LlmGeminiServerDecoder decodeBlockResponseKey = this::decodeBlockResponseKey;
@@ -337,6 +338,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiBlockHandler blockId = this::onBlockId;
     private final LlmGeminiBlockHandler blockOptional = this::onBlockOptional;
     private final LlmGeminiBlockHandler blockData = this::onBlockData;
+    private final LlmGeminiBlockHandler blockControl = this::onBlockControl;
     private final LlmGeminiBlockHandler blockSchema = this::onBlockSchema;
     private final LlmGeminiBlockHandler blockResponse = this::onBlockResponse;
     private final LlmGeminiBlockHandler blockResponseKey = this::onBlockResponseKey;
@@ -2648,6 +2650,35 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return outcome;
     }
 
+    private int decodeBlockControl(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockControl, blockControl);
+    }
+
+    private int onBlockControl(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.copyValue(event, parser);
+
+        if (outcome == LlmGeminiBlockWriter.VALUE)
+        {
+            server.endControl();
+        }
+
+        return outcome == LlmGeminiBlockWriter.VALUE ? LlmGeminiBlockWriter.MORE : outcome;
+    }
+
     private int decodeBlockData(
         LlmGeminiServer server,
         long traceId,
@@ -4494,13 +4525,28 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (isConverted(key))
             {
                 controlConverted(key);
+                onDecodeControlValue(decodeControlValue);
             }
             else
             {
-                onDecodeControlKey(key, true, controlOpen());
+                controlMember(key);
             }
+        }
 
-            onDecodeControlValue(decodeControlValue);
+        private void controlMember(
+            CharSequence key)
+        {
+            writing = blockWriter();
+            writing.beginMember(pieceBuffer, 0, controlOpen());
+            writing.memberKey(key);
+            decoder = decodeBlockControl;
+        }
+
+        private void endControl()
+        {
+            blockWriter.endMember();
+            writing = null;
+            decoder = captureThen;
         }
 
         private void controlConverted(
@@ -4739,13 +4785,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (isConverted(key))
             {
                 controlConverted(key);
+                onDecodeControlValue(decodeControlValue);
             }
             else
             {
-                onDecodeControlKey(key, true, '{');
+                controlMember(key);
             }
-
-            onDecodeControlValue(decodeControlValue);
         }
 
         private void endCapture(

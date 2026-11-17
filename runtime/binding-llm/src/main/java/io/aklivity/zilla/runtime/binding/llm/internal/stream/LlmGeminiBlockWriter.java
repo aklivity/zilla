@@ -49,6 +49,7 @@ final class LlmGeminiBlockWriter
     static final int MODE_SERVER_RESULT = 3;
     static final int MODE_DEFINITION = 4;
     static final int MODE_MEDIA = 5;
+    static final int MODE_CONTROL = 6;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
@@ -102,6 +103,8 @@ final class LlmGeminiBlockWriter
     private String mediaUrl;
     private boolean formatted;
     private String mediaType;
+    private boolean separating;
+    private byte separator;
     private boolean reference;
     private int pending;
     private int rawDepth;
@@ -132,6 +135,7 @@ final class LlmGeminiBlockWriter
         boolean shaped)
     {
         this.mode = mode;
+        this.separating = false;
         this.heldId = null;
         this.shaped = shaped;
         this.buffer = buffer;
@@ -161,6 +165,28 @@ final class LlmGeminiBlockWriter
         {
             generator.write(MEMBER_TYPE, mediaCanonical);
         }
+    }
+
+    void beginMember(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator)
+    {
+        begin(buffer, origin, MODE_CONTROL, false);
+
+        this.separator = (byte) separator;
+        this.separating = true;
+    }
+
+    void memberKey(
+        CharSequence name)
+    {
+        writePrefixedKey(name);
+    }
+
+    void endMember()
+    {
+        flush(false);
     }
 
     void media(
@@ -583,6 +609,12 @@ final class LlmGeminiBlockWriter
 
         if (length > 0 || last)
         {
+            if (separating && length > 0)
+            {
+                buffer.putByte(origin, separator);
+                separating = false;
+            }
+
             sink.put(buffer, origin, length, last);
             generator.wrap(buffer, origin, buffer.capacity());
         }
