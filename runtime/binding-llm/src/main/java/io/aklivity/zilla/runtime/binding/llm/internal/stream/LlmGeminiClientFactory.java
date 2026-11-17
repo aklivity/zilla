@@ -269,6 +269,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int SEEN_NAME = 1 << 1;
     private static final int SEEN_CALLED = 1 << 2;
     private static final int SEEN_SIGNATURE = 1 << 3;
+    private static final int SEEN_WIRE_ID = 1 << 4;
     private static final int CALL_CLOSE_RESERVE = ("},\"args\":{},\"id\":\"\",\"" + MEMBER_THOUGHT_SIGNATURE + "\":\"" +
         LlmGeminiToolCallFromCanonical.SIGNATURE_PLACEHOLDER + "\"}").length();
     private static final int SIGNATURE_RESERVE = LlmToolTransform.HELD_MAX +
@@ -322,6 +323,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final BufferPool holdPool;
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
     private final JsonStringBody body = new JsonStringBody();
+
+    private final LlmGeminiThinking thinking = new LlmGeminiThinking();
 
     private byte[] pieceBytes;
     private UnsafeBufferEx pieceBuffer;
@@ -3796,7 +3799,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String requestJudged;
         private int requestVerdict;
         private String requestPassKey;
-        private String callWireId;
         private int callReserve;
         private int seenMask;
         private JsonParserEx requestParser;
@@ -3824,7 +3826,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
         private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
-        private final LlmGeminiThinking thinking = new LlmGeminiThinking();
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
         private int heldSlot = NO_SLOT;
@@ -4324,7 +4325,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                             }
                             else
                             {
-                                callWireId = signatureBuilder.toString();
+                                seenMask |= SEEN_WIRE_ID;
                             }
 
                             requestDecoder = requestThen;
@@ -4653,7 +4654,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             final String toolName = sectionAttributes.toolName();
 
             seenMask = 0;
-            callWireId = null;
             callReserve = CALL_CLOSE_RESERVE + length(sectionAttributes.toolCallId()) * ESCAPE_EXPANSION;
 
             generator.writeStartObject().writeStartObject(MEMBER_FUNCTION_CALL);
@@ -4724,7 +4724,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             if ((seenMask & SEEN_CALLED) == 0)
             {
                 final String lateName = (seenMask & SEEN_NAME) == 0 ? sectionAttributes.toolName() : null;
-                final String toolCallId = callWireId != null ? callWireId : sectionAttributes.toolCallId();
+                final boolean wired = (seenMask & SEEN_WIRE_ID) != 0;
+                final String toolCallId = wired ? null : sectionAttributes.toolCallId();
 
                 if (lateName != null)
                 {
@@ -4736,7 +4737,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     generator.writeKey(MEMBER_ARGS).writeStartObject().writeEnd();
                 }
 
-                if (toolCallId != null)
+                if (wired)
+                {
+                    generator.writeKey(MEMBER_ID).write(signatureBuilder);
+                }
+                else if (toolCallId != null)
                 {
                     generator.write(MEMBER_ID, toolCallId);
                 }
