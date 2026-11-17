@@ -10623,9 +10623,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.section.tool.call.history.10k/client",
+        "${net}/gemini.section.tool.call.history.10k/server"})
+    public void shouldGeminiSectionToolCallHistory10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.request.tool.call.100k/client",
         "${net}/gemini.request.tool.call.100k/server"})
     public void shouldEncodeGeminiRequestToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.call.history.100k/client",
+        "${net}/gemini.section.tool.call.history.100k/server"})
+    public void shouldGeminiSectionToolCallHistory100k() throws Exception
     {
         k3po.finish();
     }
@@ -10641,9 +10659,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.response.tool.call.10k/client",
+        "${net}/gemini.response.tool.call.10k/server"})
+    public void shouldGeminiResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.streaming.window.deferred/client",
         "${net}/gemini.streaming.window.deferred/server"})
     public void shouldEncodeGeminiStreamingWindowDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.tool.call.100k/client",
+        "${net}/gemini.response.tool.call.100k/server"})
+    public void shouldGeminiResponseToolCall100k() throws Exception
     {
         k3po.finish();
     }
