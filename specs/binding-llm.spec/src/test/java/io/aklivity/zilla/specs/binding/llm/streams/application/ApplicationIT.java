@@ -10099,4 +10099,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.text.100k/client",
+        "${app}/gemini.request.text.100k/server"})
+    public void shouldForwardGeminiRequestText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.text.100k.padded/client",
+        "${app}/gemini.request.text.100k.padded/server"})
+    public void shouldForwardGeminiRequestText100kPadded() throws Exception
+    {
+        k3po.finish();
+    }
 }

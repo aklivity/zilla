@@ -10629,4 +10629,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.text.100k/client",
+        "${net}/gemini.request.text.100k/server"})
+    public void shouldEncodeGeminiRequestText100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

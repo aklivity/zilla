@@ -5431,6 +5431,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
         private long initialBud;
 
         private long replySeq;
@@ -5518,7 +5519,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private long initialAvailable()
         {
-            return initialMax - (initialSeq - initialAck);
+            return initialMax - (initialSeq - initialAck) - initialPad;
         }
 
         private boolean streaming()
@@ -5559,6 +5560,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             initialAck = window.acknowledge();
             initialMax = window.maximum();
+            initialPad = window.padding();
             initialBud = window.budgetId();
             state = StreamState.openInitial(state);
 
@@ -6890,7 +6892,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 .authorization(authorization)
                 .flags(flags)
                 .budgetId(initialBud)
-                .reserved(length)
+                .reserved(length + initialPad)
                 .payload(buffer, offset, length);
 
             if (extLength > 0)
@@ -6902,7 +6904,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
 
-            initialSeq += length;
+            initialSeq += length + initialPad;
             server.flushNetEnd(traceId);
         }
 

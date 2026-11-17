@@ -1972,4 +1972,35 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.text.100k/client",
+        "${app}/gemini.request.text.100k/server"})
+    public void shouldForwardGeminiRequestText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.text.100k/client",
+        "${app}/gemini.request.text.100k/server"})
+    public void shouldForwardGeminiRequestText100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.text.100k/client",
+        "${app}/gemini.request.text.100k.padded/server"})
+    public void shouldForwardGeminiRequestText100kPadded() throws Exception
+    {
+        k3po.finish();
+    }
 }
