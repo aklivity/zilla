@@ -2222,7 +2222,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 final JsonStringView key = parser.getStringView();
 
-                if (matches(key, "thought"))
+                if (matches(key, "thought") && server.blockSection != LlmSectionType.ASSISTANT_TEXT)
                 {
                     server.skipDepth = 0;
                     server.decoder = decodePartTextSkip;
@@ -2793,6 +2793,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             else if (server.probe.type() == LlmSectionType.TOOL_RESULT)
             {
                 server.beginCall(LlmSectionType.TOOL_RESULT);
+            }
+            else if (server.probe.type() == LlmSectionType.ASSISTANT_TEXT ||
+                server.probe.type() == LlmSectionType.ASSISTANT_REASONING)
+            {
+                server.onDecodeBlock(server.probe.type(), textMessage(server));
+                server.partMembers = 0;
+                server.decoder = decodePartTextKey;
             }
             else
             {
@@ -3794,8 +3801,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int blockMessage;
         private int blockFlags;
 
-        private LlmSectionPipeline reasoningPipeline;
-        private LlmSectionPipeline assistantTextPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
@@ -4699,26 +4704,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             switch (type)
             {
-            case SYSTEM_INSTRUCTION, USER_TEXT:
-                break;
-            case ASSISTANT_REASONING:
-                if (reasoningPipeline == null)
-                {
-                    reasoningPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(), transformBuffer);
-                }
-                pipeline = reasoningPipeline;
-                break;
-            case ASSISTANT_TEXT:
-                if (assistantTextPipeline == null)
-                {
-                    assistantTextPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(true), transformBuffer);
-                }
-                pipeline = assistantTextPipeline;
-                break;
-            case TOOL_RESULT:
-                break;
-            case TOOL_CALL:
-                break;
             case TOOL_DEFINITION:
                 if (toolDefinitionPipeline == null)
                 {
