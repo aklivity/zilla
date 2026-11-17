@@ -1966,9 +1966,17 @@ public final class MqttFunctions
             private String16FW responseTopic;
             private Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW;
             private Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW;
+            private Integer deferred;
 
             private MqttSubscribeDataExMatcherBuilder()
             {
+            }
+
+            public MqttSubscribeDataExMatcherBuilder deferred(
+                int deferred)
+            {
+                this.deferred = deferred;
+                return this;
             }
 
             public MqttSubscribeDataExMatcherBuilder topic(
@@ -2092,7 +2100,8 @@ public final class MqttFunctions
                 MqttDataExFW dataEx)
             {
                 final MqttSubscribeDataExFW subscribeDataEx = dataEx.subscribe();
-                return matchTopic(subscribeDataEx) &&
+                return matchDeferred(subscribeDataEx) &&
+                    matchTopic(subscribeDataEx) &&
                     matchPacketId(subscribeDataEx) &&
                     matchQos(subscribeDataEx) &&
                     matchFlags(subscribeDataEx) &&
@@ -2103,6 +2112,12 @@ public final class MqttFunctions
                     matchResponseTopic(subscribeDataEx) &&
                     matchCorrelation(subscribeDataEx) &&
                     matchUserProperties(subscribeDataEx);
+            }
+
+            private boolean matchDeferred(
+                final MqttSubscribeDataExFW data)
+            {
+                return deferred == null || deferred == data.deferred();
             }
 
             private boolean matchTopic(

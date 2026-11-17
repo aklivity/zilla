@@ -416,9 +416,49 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.reject.reconnect.non.clean.start/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/ack.pubrec.unknown.packet.id/client",
         "${app}/session.connect/server"})
     public void shouldReleasePubrecWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
     {
         k3po.finish();
     }
@@ -667,6 +707,46 @@ public class SubscribeIT
         "${net}/subscribe.shared.and.exact.non.successful/client",
         "${app}/subscribe.topic.filter.single.exact.v4/server"})
     public void shouldSubscribeSharedAndExactNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.suback.after.stream.begin/client",
+        "${app}/subscribe.suback.after.stream.begin.v4/server"})
+    public void shouldSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
     {
         k3po.finish();
     }

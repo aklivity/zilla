@@ -133,6 +133,15 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
+        "${net}/unsubscribe.before.suback.after.stream.begin/client",
+        "${net}/unsubscribe.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
         "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/server"})
     public void shouldUnsubscribeTopicFiltersMixedSubscribedAndNot() throws Exception
@@ -174,6 +183,15 @@ public class UnsubscribeIT
         "${net}/unsubscribe.reject.topic.filter.null.character/client",
         "${net}/unsubscribe.reject.topic.filter.null.character/server"})
     public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
     {
         k3po.finish();
     }
