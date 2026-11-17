@@ -182,6 +182,22 @@ final class LlmGeminiBlockWriter
     private String heldId;
     private boolean shaped;
 
+    static String longestKey()
+    {
+        String longest = MEMBER_SHARED_THINKING_BUDGET;
+
+        for (String key : new String[] {MEMBER_SHARED_RESPONSE_FORMAT, MEMBER_SHARED_REASONING_EFFORT,
+            MEMBER_SHARED_TOOL_CHOICE, MEMBER_SHARED_SERVICE_TIER})
+        {
+            if (key.length() > longest.length())
+            {
+                longest = key;
+            }
+        }
+
+        return longest;
+    }
+
     LlmGeminiBlockWriter(
         LlmOutputSink sink,
         JsonGeneratorEx generator)
