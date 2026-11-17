@@ -23,6 +23,8 @@ final class LlmMemberKeys
     static final int JUDGE = 2;
     static final int SHARED = 3;
 
+    static final String BREAKPOINT = "prompt_cache_breakpoint";
+
     private static final char DIALECT_END = ':';
     private static final String SHARED_DIALECT = "x";
 
@@ -65,7 +67,7 @@ final class LlmMemberKeys
         {
             target.wrap(key, 0, length);
 
-            if (LlmCacheBreakpoint.MEMBER.contentEquals(key))
+            if (BREAKPOINT.contentEquals(key))
             {
                 action = DROP;
             }

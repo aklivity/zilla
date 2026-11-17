@@ -154,6 +154,22 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ENCODE_BREAKPOINT = 64;
     private static final int BREAKPOINTS_MAX = 4;
     private static final String[] BREAKPOINT_TTLS = {"5m", "1h"};
+    private static final String MEMBER_BREAKPOINT = "prompt_cache_breakpoint";
+    private static final String MEMBER_BREAKPOINT_MODE = "mode";
+    private static final String BREAKPOINT_MODE_EXPLICIT = "explicit";
+    private static final int BREAKPOINT_VALUE_WAIT = 0;
+    private static final int BREAKPOINT_VALUE_WHOLE = 1;
+    private static final int BREAKPOINT_VALUE_INVALID = 2;
+    private static final int BREAKPOINT_VALUE_LENGTH_MAX = 10;
+    private static final int BREAKPOINT_MODE_ABSENT = 0;
+    private static final int BREAKPOINT_MODE_EXPLICIT_SEEN = 1;
+    private static final int BREAKPOINT_MODE_OTHER = 2;
+    private static final long BREAKPOINT_TTL_ABSENT = -2L;
+    private static final long NOT_A_DURATION = -1L;
+    private static final int DURATION_DIGITS_MAX = 9;
+    private static final int SECONDS_PER_MINUTE = 60;
+    private static final int SECONDS_PER_HOUR = 3600;
+    private static final int SECONDS_PER_DAY = 86400;
     private static final int ENCODE_MAX_TOKENS = 32;
     private static final int ENCODE_TOOL_CHOICE = 96;
     private static final int ENCODE_OUTPUT_CONFIG = 64;
@@ -562,6 +578,65 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_ASSISTANT_REASONING ||
             kind == KIND_CITATIONS ||
             kind == KIND_CONTROL;
+    }
+
+    static String roundUpTtl(
+        long wanted,
+        String[] offered)
+    {
+        String selected = null;
+
+        if (wanted >= 0L)
+        {
+            selected = offered[offered.length - 1];
+
+            for (int index = offered.length - 1; index >= 0; index--)
+            {
+                if (ttlSeconds(offered[index]) >= wanted)
+                {
+                    selected = offered[index];
+                }
+            }
+        }
+
+        return selected;
+    }
+
+    static long ttlSeconds(
+        CharSequence duration)
+    {
+        final int length = duration.length();
+        long seconds = NOT_A_DURATION;
+
+        if (length > 1 && length <= DURATION_DIGITS_MAX + 1)
+        {
+            final int unit = switch (duration.charAt(length - 1))
+            {
+            case 's' -> 1;
+            case 'm' -> SECONDS_PER_MINUTE;
+            case 'h' -> SECONDS_PER_HOUR;
+            case 'd' -> SECONDS_PER_DAY;
+            default -> 0;
+            };
+
+            long count = 0;
+            boolean digits = unit != 0;
+
+            for (int index = 0; digits && index < length - 1; index++)
+            {
+                final char digit = duration.charAt(index);
+
+                digits = digit >= '0' && digit <= '9';
+                count = digits ? count * 10 + digit - '0' : count;
+            }
+
+            if (digits)
+            {
+                seconds = count * unit;
+            }
+        }
+
+        return seconds;
     }
 
     private static boolean breakpointed(
@@ -3743,7 +3818,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int regions;
         private final LlmRequestHold hold;
-        private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(BREAKPOINTS_MAX, BREAKPOINT_TTLS);
         private final LlmAnthropicRequestDecoder decodeRequestRoot = this::decodeRequestRoot;
         private final LlmAnthropicRequestDecoder decodeRequestObject = this::decodeRequestObject;
         private final LlmAnthropicRequestDecoder decodeRequestTextKey = this::decodeRequestTextKey;
@@ -3812,9 +3886,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private String callName;
         private int seenMask;
         private int requestSkipDepth;
-        private final StringBuilder breakpointText = new StringBuilder();
-        private String breakpointMode;
-        private String breakpointTtl;
+        private int breakpointsAdmitted;
+        private int breakpointMode;
+        private long breakpointTtlSeconds;
         private boolean marked;
         private String markedTtl;
         private boolean cited;
@@ -4153,7 +4227,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         {
                             requestDecoder = decodeRequestTextValue;
                         }
-                        else if (LlmCacheBreakpoint.MEMBER.contentEquals(key))
+                        else if (MEMBER_BREAKPOINT.contentEquals(key))
                         {
                             breakpointThen = decodeRequestTextKey;
                             requestDecoder = decodeRequestBreakpoint;
@@ -4256,8 +4330,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (event == JsonEvent.START_OBJECT)
                     {
-                        breakpointMode = null;
-                        breakpointTtl = null;
+                        breakpointMode = BREAKPOINT_MODE_ABSENT;
+                        breakpointTtlSeconds = BREAKPOINT_TTL_ABSENT;
                         requestDecoder = decodeRequestBreakpointKey;
                     }
                     else if (event == JsonEvent.START_ARRAY)
@@ -4300,11 +4374,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         requestSkipDepth = 0;
                         requestThen = decodeRequestBreakpointKey;
 
-                        if (LlmCacheBreakpoint.MODE.contentEquals(key) && breakpointMode == null)
+                        if (MEMBER_BREAKPOINT_MODE.contentEquals(key) && breakpointMode == BREAKPOINT_MODE_ABSENT)
                         {
                             requestDecoder = decodeRequestBreakpointMode;
                         }
-                        else if (LlmCacheBreakpoint.TTL.contentEquals(key) && breakpointTtl == null)
+                        else if (MEMBER_TTL.contentEquals(key) && breakpointTtlSeconds == BREAKPOINT_TTL_ABSENT)
                         {
                             requestDecoder = decodeRequestBreakpointTtl;
                         }
@@ -4315,16 +4389,20 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                     else
                     {
-                        final boolean admitted = breakpoints.admit(breakpointMode, breakpointTtl);
+                        final boolean admitted = breakpointMode == BREAKPOINT_MODE_EXPLICIT_SEEN &&
+                            breakpointsAdmitted < BREAKPOINTS_MAX;
+                        final String ttl = admitted ? roundUpTtl(breakpointTtlSeconds, BREAKPOINT_TTLS) : null;
+
+                        breakpointsAdmitted += admitted ? 1 : 0;
 
                         if (text(sectionKind))
                         {
                             marked = admitted;
-                            markedTtl = admitted ? breakpoints.ttl() : null;
+                            markedTtl = ttl;
                         }
                         else if (admitted)
                         {
-                            writeCacheControl(breakpoints.ttl());
+                            writeCacheControl(ttl);
                             seenMask |= SEEN_CACHED;
                         }
 
@@ -4353,9 +4431,15 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (requestDecoder == decodeRequestBreakpointMode && parser.hasNextEvent())
                 {
-                    final String value = requestBreakpointValue(parser);
+                    final int outcome = requestBreakpointValue(parser);
 
-                    breakpointMode = value != null ? value : breakpointMode;
+                    if (outcome != BREAKPOINT_VALUE_WAIT && breakpointMode == BREAKPOINT_MODE_ABSENT)
+                    {
+                        breakpointMode = outcome == BREAKPOINT_VALUE_WHOLE &&
+                            BREAKPOINT_MODE_EXPLICIT.contentEquals(parser.getStringView())
+                            ? BREAKPOINT_MODE_EXPLICIT_SEEN
+                            : BREAKPOINT_MODE_OTHER;
+                    }
                 }
             }
             catch (JsonException ex)
@@ -4378,9 +4462,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (requestDecoder == decodeRequestBreakpointTtl && parser.hasNextEvent())
                 {
-                    final String value = requestBreakpointValue(parser);
+                    final int outcome = requestBreakpointValue(parser);
 
-                    breakpointTtl = value != null ? value : breakpointTtl;
+                    if (outcome != BREAKPOINT_VALUE_WAIT && breakpointTtlSeconds == BREAKPOINT_TTL_ABSENT)
+                    {
+                        breakpointTtlSeconds = outcome == BREAKPOINT_VALUE_WHOLE
+                            ? ttlSeconds(parser.getStringView())
+                            : NOT_A_DURATION;
+                    }
                 }
             }
             catch (JsonException ex)
@@ -4391,39 +4480,40 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             return positionRequest(limit);
         }
 
-        private String requestBreakpointValue(
+        private int requestBreakpointValue(
             JsonParserEx parser)
         {
             final JsonEvent event = parser.nextEvent();
-            final boolean nested = event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY;
-            String value = null;
+            int outcome = BREAKPOINT_VALUE_INVALID;
 
             if (event == JsonEvent.VALUE_STRING)
             {
-                final boolean deferred = parser.deferredBytes();
-                final JsonStringView chars = parser.getStringView();
+                final int length = parser.getStringView().length();
 
-                breakpointText.append(chars);
-
-                if (deferred)
+                if (!parser.deferredBytes())
                 {
-                    parser.consumed(chars.length());
+                    outcome = BREAKPOINT_VALUE_WHOLE;
+                    requestDecoder = decodeRequestBreakpointKey;
+                }
+                else if (length <= BREAKPOINT_VALUE_LENGTH_MAX)
+                {
+                    parser.consumed(0);
+                    outcome = BREAKPOINT_VALUE_WAIT;
                 }
                 else
                 {
-                    value = breakpointText.toString();
-                    breakpointText.setLength(0);
-                    requestDecoder = decodeRequestBreakpointKey;
+                    parser.consumed(length);
                 }
             }
             else
             {
-                value = "";
+                final boolean nested = event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY;
+
                 requestSkipDepth = nested ? 1 : 0;
                 requestDecoder = nested ? decodeRequestSkip : decodeRequestBreakpointKey;
             }
 
-            return value;
+            return outcome;
         }
 
         private int decodeRequestSkip(
@@ -4509,7 +4599,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             requestSkipDepth = 0;
             requestThen = keys;
 
-            if (LlmCacheBreakpoint.MEMBER.contentEquals(key) && breakpointed(sectionKind) && (seenMask & SEEN_CACHED) == 0)
+            if (MEMBER_BREAKPOINT.contentEquals(key) && breakpointed(sectionKind) && (seenMask & SEEN_CACHED) == 0)
             {
                 breakpointThen = keys;
                 requestDecoder = decodeRequestBreakpoint;

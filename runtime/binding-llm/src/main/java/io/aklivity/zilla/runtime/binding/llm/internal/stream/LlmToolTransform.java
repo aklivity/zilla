@@ -367,7 +367,7 @@ abstract class LlmToolTransform implements JsonTransform
 
         int action = PASS_VALUE;
 
-        if (colon == length && matches(key, LlmCacheBreakpoint.MEMBER))
+        if (colon == length && matches(key, LlmMemberKeys.BREAKPOINT))
         {
             action = breakpoint(key);
         }

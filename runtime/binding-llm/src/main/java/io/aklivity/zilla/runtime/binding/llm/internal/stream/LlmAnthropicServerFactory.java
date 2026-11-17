@@ -164,6 +164,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
 
     private static final int HELD_TAIL_MAX = LlmBreakpointStash.CAPACITY + 2;
+    private static final String MEMBER_CACHE_CONTROL = "cache_control";
+    private static final String MEMBER_CACHE_CONTROL_TYPE = "type";
+    private static final String MEMBER_CACHE_CONTROL_TTL = "ttl";
+    private static final String CACHE_CONTROL_EPHEMERAL = "ephemeral";
     private static final int BREAKPOINT_KEY_NONE = 0;
     private static final int BREAKPOINT_KEY_TYPE = 1;
     private static final int BREAKPOINT_KEY_TTL = 2;
@@ -2687,7 +2691,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeCitationsStart;
                 }
-                else if (matches(key, LlmCacheBreakpoint.NATIVE_MEMBER))
+                else if (matches(key, MEMBER_CACHE_CONTROL))
                 {
                     server.beginBreakpoint(server.partBreakpoint, decodePart);
                 }
@@ -2788,7 +2792,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_USE_ID_ORDER);
                     break decode;
                 }
-                else if (matches(key, LlmCacheBreakpoint.NATIVE_MEMBER))
+                else if (matches(key, MEMBER_CACHE_CONTROL))
                 {
                     server.beginBreakpoint(server.resultBreakpoint, decodeToolResult);
                 }
@@ -4022,14 +4026,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     final CharSequence key = parser.getStringView();
 
-                    breakpointKey = matches(key, LlmCacheBreakpoint.NATIVE_TYPE) ? BREAKPOINT_KEY_TYPE :
-                        matches(key, LlmCacheBreakpoint.TTL) ? BREAKPOINT_KEY_TTL : BREAKPOINT_KEY_NONE;
+                    breakpointKey = matches(key, MEMBER_CACHE_CONTROL_TYPE) ? BREAKPOINT_KEY_TYPE :
+                        matches(key, MEMBER_CACHE_CONTROL_TTL) ? BREAKPOINT_KEY_TTL : BREAKPOINT_KEY_NONE;
                 }
                 break;
             case VALUE_STRING:
                 if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TYPE)
                 {
-                    breakpointEphemeral = matches(parser.getStringView(), LlmCacheBreakpoint.NATIVE_EPHEMERAL);
+                    breakpointEphemeral = matches(parser.getStringView(), CACHE_CONTROL_EPHEMERAL);
                 }
                 else if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TTL)
                 {
