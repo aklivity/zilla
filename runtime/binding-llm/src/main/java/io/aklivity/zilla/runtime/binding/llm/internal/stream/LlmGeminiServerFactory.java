@@ -326,6 +326,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeBlockOptional = this::decodeBlockOptional;
     private final LlmGeminiServerDecoder decodeBlockData = this::decodeBlockData;
     private final LlmGeminiServerDecoder decodeBlockControl = this::decodeBlockControl;
+    private final LlmGeminiServerDecoder decodeBlockValue = this::decodeBlockValue;
+    private final LlmGeminiServerDecoder decodeBlockTokens = this::decodeBlockTokens;
     private final LlmGeminiServerDecoder decodeBlockSchema = this::decodeBlockSchema;
     private final LlmGeminiServerDecoder decodeBlockResponse = this::decodeBlockResponse;
     private final LlmGeminiServerDecoder decodeBlockResponseKey = this::decodeBlockResponseKey;
@@ -339,6 +341,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiBlockHandler blockOptional = this::onBlockOptional;
     private final LlmGeminiBlockHandler blockData = this::onBlockData;
     private final LlmGeminiBlockHandler blockControl = this::onBlockControl;
+    private final LlmGeminiBlockHandler blockValue = this::onBlockMember;
+    private final LlmGeminiBlockHandler blockTokens = this::onBlockTokens;
     private final LlmGeminiBlockHandler blockSchema = this::onBlockSchema;
     private final LlmGeminiBlockHandler blockResponse = this::onBlockResponse;
     private final LlmGeminiBlockHandler blockResponseKey = this::onBlockResponseKey;
@@ -354,9 +358,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeConfigFirst = this::decodeConfigFirst;
     private final LlmGeminiServerDecoder decodeConfigOpen = this::decodeConfigOpen;
     private final LlmGeminiServerDecoder decodeConfigClosed = this::decodeConfigClosed;
-    private final LlmGeminiServerDecoder decodeConfigLeaf = this::decodeConfigLeaf;
-    private final LlmGeminiServerDecoder decodeConfigResidue = this::decodeConfigResidue;
-    private final LlmGeminiServerDecoder decodeConfigTokens = this::decodeConfigTokens;
     private final LlmGeminiServerDecoder decodeConfigMime = this::decodeConfigMime;
     private final LlmGeminiServerDecoder decodeConfigSchema = this::decodeConfigSchema;
     private final LlmGeminiServerDecoder decodeConfigConverted = this::decodeConfigConverted;
@@ -2650,6 +2651,62 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return outcome;
     }
 
+    private int decodeBlockValue(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockValue, blockValue);
+    }
+
+    private int decodeBlockTokens(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockTokens, blockTokens);
+    }
+
+    private int onBlockMember(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.copyValue(event, parser);
+
+        if (outcome == LlmGeminiBlockWriter.VALUE)
+        {
+            server.endValue();
+        }
+
+        return outcome == LlmGeminiBlockWriter.VALUE ? LlmGeminiBlockWriter.MORE : outcome;
+    }
+
+    private int onBlockTokens(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        if (event == JsonEvent.VALUE_NUMBER && server.blockWriter.topLevel())
+        {
+            server.maxOutputTokens = parser.getInt();
+        }
+
+        return onBlockMember(server, event, parser);
+    }
+
     private int decodeBlockControl(
         LlmGeminiServer server,
         long traceId,
@@ -3517,60 +3574,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeConfigLeaf(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeConfigLeaf && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = onCaptureEvent(server, event);
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endConfigValue(traceId, authorization, decodeConfigClosed);
-            }
-        }
-
-        return server.position();
-    }
-
-    private int decodeConfigResidue(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeConfigResidue && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = onCaptureEvent(server, event);
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endConfigValue(traceId, authorization, decodeConfigOpen);
-            }
-        }
-
-        return server.position();
-    }
-
     private int decodeConfigSchema(
         LlmGeminiServer server,
         long traceId,
@@ -3652,48 +3655,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (server.captureDepth == 0 && !deferred)
             {
                 server.endConfigMime(traceId, authorization);
-            }
-        }
-
-        return server.position();
-    }
-
-    private int decodeConfigTokens(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        if (parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-
-            final boolean deferred;
-
-            if (event == JsonEvent.VALUE_NUMBER)
-            {
-                server.maxOutputTokens = parser.getInt();
-                deferred = false;
-            }
-            else
-            {
-                deferred = onCaptureEvent(server, event);
-            }
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endConfigValue(traceId, authorization, decodeConfigOpen);
-            }
-            else
-            {
-                server.decoder = decodeConfigResidue;
             }
         }
 
@@ -4542,6 +4503,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             decoder = decodeBlockControl;
         }
 
+        private void beginValue(
+            LlmGeminiServerDecoder then,
+            LlmGeminiServerDecoder state)
+        {
+            blockThen = then;
+            writing = blockWriter();
+            writing.beginValue(pieceBuffer, 0);
+            decoder = state;
+        }
+
+        private void endValue()
+        {
+            blockWriter.flush(false);
+            writing = null;
+            decoder = blockThen;
+        }
+
         private void endControl()
         {
             blockWriter.endMember();
@@ -4608,7 +4586,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
 
                 onDecodeSharedKey(shared, controlOpen());
-                decoder = decodeConfigLeaf;
+                beginValue(decodeConfigClosed, decodeBlockValue);
             }
             else if (isResponseFormat(key) || isThinkingConfig(key))
             {
@@ -4653,12 +4631,17 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
 
                 format = format == FORMAT_NONE && isResponseSchema(key) ? FORMAT_RESIDUE : format;
-                decoder = matches(key, MEMBER_MAX_OUTPUT_TOKENS) || matches(key, MEMBER_MAX_OUTPUT_TOKENS_SNAKE)
-                    ? decodeConfigTokens
-                    : decodeConfigResidue;
+
+                beginValue(decodeConfigOpen,
+                    matches(key, MEMBER_MAX_OUTPUT_TOKENS) || matches(key, MEMBER_MAX_OUTPUT_TOKENS_SNAKE)
+                        ? decodeBlockTokens
+                        : decodeBlockValue);
             }
 
-            onDecodeControlValue(decoder);
+            if (decoder != decodeBlockValue && decoder != decodeBlockTokens)
+            {
+                onDecodeControlValue(decoder);
+            }
         }
 
         private void onDecodeConfigResidueClose()

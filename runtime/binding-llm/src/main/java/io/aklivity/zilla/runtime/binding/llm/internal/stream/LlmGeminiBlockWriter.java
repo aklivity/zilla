@@ -50,6 +50,7 @@ final class LlmGeminiBlockWriter
     static final int MODE_DEFINITION = 4;
     static final int MODE_MEDIA = 5;
     static final int MODE_CONTROL = 6;
+    static final int MODE_VALUE = 7;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
@@ -154,7 +155,11 @@ final class LlmGeminiBlockWriter
 
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
-        generator.writeStartObject();
+
+        if (mode != MODE_VALUE)
+        {
+            generator.writeStartObject();
+        }
 
         if (mode == MODE_DEFINITION)
         {
@@ -176,6 +181,18 @@ final class LlmGeminiBlockWriter
 
         this.separator = (byte) separator;
         this.separating = true;
+    }
+
+    void beginValue(
+        MutableDirectBufferEx buffer,
+        int origin)
+    {
+        begin(buffer, origin, MODE_VALUE, false);
+    }
+
+    boolean topLevel()
+    {
+        return depth == 0;
     }
 
     void memberKey(
