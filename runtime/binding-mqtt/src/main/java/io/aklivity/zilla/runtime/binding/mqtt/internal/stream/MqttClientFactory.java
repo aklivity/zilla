@@ -2215,7 +2215,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             int flags,
             OctetsFW payload,
             OctetsFW extension,
-            String topic)
+            String topic,
+            int topicLength)
         {
             if (hasInit(flags))
             {
@@ -2233,8 +2234,6 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final MqttPayloadFormatFW format = mqttPublishDataEx.format();
                 final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
                     mqttPublishDataEx.properties();
-
-                final int topicLength = topic.length();
 
                 AtomicInteger propertiesSize = new AtomicInteger();
 
@@ -3729,6 +3728,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private long publishExpiresId = NO_CANCEL_ID;
         private long publishExpiresAt;
         private String topic;
+        private int topicLength;
 
         MqttPublishStream(
             MqttClient client,
@@ -3819,6 +3819,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                 final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
 
                 this.topic = mqttPublishBeginEx.topic().asString();
+                this.topicLength = Math.max(mqttPublishBeginEx.topic().length(), 0);
                 client.publishStreams.add(this);
 
                 doPublishBegin(traceId, authorization, affinity);
@@ -3856,7 +3857,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 if (payload != null && payload.sizeof() <= maximumPacketSize)
                 {
-                    client.doEncodePublish(traceId, authorization, flags, payload, extension, topic);
+                    client.doEncodePublish(traceId, authorization, flags, payload, extension, topic, topicLength);
                 }
                 else
                 {

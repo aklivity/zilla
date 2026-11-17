@@ -998,4 +998,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.multibyte/client",
+        "${app}/subscribe.topic.multibyte/server"})
+    public void shouldReceiveOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.topic.multibyte.v4/client",
+        "${app}/subscribe.topic.multibyte.v4/server"})
+    public void shouldReceiveOneMessageWithMultibyteTopicV4() throws Exception
+    {
+        k3po.finish();
+    }
 }

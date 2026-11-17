@@ -724,4 +724,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.topic.multibyte/client",
+        "${net}/publish.topic.multibyte/server"})
+    public void shouldSendOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
 }

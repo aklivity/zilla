@@ -491,4 +491,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.multibyte/client",
+        "${net}/subscribe.topic.multibyte/server"})
+    public void shouldReceiveOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
 }
