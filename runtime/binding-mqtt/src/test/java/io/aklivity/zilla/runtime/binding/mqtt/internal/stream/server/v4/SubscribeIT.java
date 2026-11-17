@@ -417,7 +417,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reject.reconnect.non.clean.start/client",
-        "${app}/subscribe.reject.reconnect.non.clean.start/server"})
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/server"})
     public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
     {
         k3po.finish();
@@ -437,7 +437,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
-        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin/server"})
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/server"})
     public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
     {
         k3po.finish();
@@ -447,7 +447,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
-        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin/server"})
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/server"})
     public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
     {
         k3po.finish();
@@ -457,7 +457,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
-        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin/server"})
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/server"})
     public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
     {
         k3po.finish();
@@ -735,7 +735,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.reject.stream.abort.before.begin/client",
-        "${app}/subscribe.reject.stream.abort.before.begin/server"})
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/server"})
     public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
     {
         k3po.finish();
@@ -745,7 +745,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
-        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/server"})
     public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
     {
         k3po.finish();

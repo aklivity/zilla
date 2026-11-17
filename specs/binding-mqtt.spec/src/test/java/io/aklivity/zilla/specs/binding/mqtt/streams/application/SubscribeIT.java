@@ -1376,4 +1376,58 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnectV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/client",
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
 }
