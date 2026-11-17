@@ -1201,6 +1201,16 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.text.citations.members.small.window/client",
+        "${net}/openai.responses.text.citations.members.small.window/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsMembersSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.text.citations.members.stream/client",
         "${net}/openai.responses.text.citations.members.stream/server"})
     public void shouldForwardOpenaiResponsesTextCitationsMembersStream() throws Exception

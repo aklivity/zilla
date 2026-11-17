@@ -6545,6 +6545,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.citations.members.small.window/client",
+        "${app}/openai.responses.text.citations.members.small.window/server"})
+    public void shouldOpenaiResponsesTextCitationsMembersSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.text.citations.members.stream/client",
         "${app}/openai.responses.text.citations.members.stream/server"})
     public void shouldOpenaiResponsesTextCitationsMembersStream() throws Exception
