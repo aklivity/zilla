@@ -181,6 +181,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String KEY_FINISH_REASON = "finishReason";
     private static final String MEMBER_ROLE = "role";
     private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_CANONICAL_SIGNATURE = "gemini:thoughtSignature";
     private static final String MEMBER_CANDIDATES = "candidates";
     private static final String MEMBER_CONTENT = "content";
     private static final String MEMBER_PARTS = "parts";
@@ -383,6 +384,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         return newStream;
+    }
+
+    @FunctionalInterface
+    private interface LlmGeminiRequestDecoder
+    {
+        int decode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last);
     }
 
     @FunctionalInterface
@@ -854,7 +865,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                 }
-                else if (fin && (http.sectionStreaming || http.encodeText != null))
+                else if (fin && (http.sectionStreaming || http.requestDecoder != null))
                 {
                     http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
@@ -3638,8 +3649,20 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean encodeFailed;
 
         private int region = REGION_NONE;
-        private LlmTextPipeline encodeText;
-        private LlmTextPipeline sectionText;
+        private final LlmRequestHold hold;
+        private final LlmGeminiRequestDecoder decodeRequestTextRoot = this::decodeRequestTextRoot;
+        private final LlmGeminiRequestDecoder decodeRequestTextObject = this::decodeRequestTextObject;
+        private final LlmGeminiRequestDecoder decodeRequestTextKey = this::decodeRequestTextKey;
+        private final LlmGeminiRequestDecoder decodeRequestTextValue = this::decodeRequestTextValue;
+        private final LlmGeminiRequestDecoder decodeRequestTextContinue = this::decodeRequestTextContinue;
+        private final LlmGeminiRequestDecoder decodeRequestSignature = this::decodeRequestSignature;
+        private final LlmGeminiRequestDecoder decodeRequestSkip = this::decodeRequestSkip;
+        private final LlmGeminiRequestDecoder decodeRequestDone = this::decodeRequestDone;
+        private LlmGeminiRequestDecoder requestDecoder;
+        private JsonParserEx requestParser;
+        private int requestSkipDepth;
+        private final StringBuilder signatureBuilder = new StringBuilder();
+        private String signature;
         private boolean contentsOpened;
         private boolean systemOpened;
         private boolean toolsOpened;
@@ -3658,8 +3681,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline serverToolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
         private LlmGeminiToolCallFromCanonical toolCallTransform;
-        private LlmGeminiSignatureFromCanonical signatureTransform;
-        private LlmSectionPipeline signaturePipeline;
         private int messageToolCalls;
         private int partDepth = 1;
         private final String[] callIds = new String[CALLS_MAX];
@@ -3675,9 +3696,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlMode;
         private LlmSectionPipeline.Output sectionTarget;
-        private final LlmSectionPipeline.Output signatureOutput = (buffer, offset, length, last) ->
-        {
-        };
         private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::heldBuffer);
         private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
@@ -3712,6 +3730,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 (generate ? OPERATION_GENERATE : OPERATION_STREAM + QUERY_ALT_SSE);
             this.sameDialect = !stream.crossDialect;
             this.generator = JsonEx.createGenerator();
+            this.hold = new LlmRequestHold(holdPool, initialId);
         }
 
         private void doNetBegin(
@@ -3811,27 +3830,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return signing(sectionKind) ? SIGNATURE_RESERVE : 0;
         }
 
-        private LlmTextPipeline sectionText()
-        {
-            if (sectionText == null)
-            {
-                sectionText = new LlmTextPipeline(this::onSectionText);
-            }
-
-            return sectionText;
-        }
-
-        private LlmSectionPipeline signaturePipeline()
-        {
-            if (signaturePipeline == null)
-            {
-                signatureTransform = new LlmGeminiSignatureFromCanonical();
-                signaturePipeline = new LlmSectionPipeline(signatureTransform, transformBuffer);
-            }
-
-            return signaturePipeline;
-        }
-
         private LlmSectionPipeline mediaPipeline(
             int kind)
         {
@@ -3928,6 +3926,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void cleanupHeldSlot()
         {
             collector.reset();
+            hold.release();
 
             if (heldSlot != NO_SLOT)
             {
@@ -3936,16 +3935,349 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
         }
 
-        private void onSectionText(
-            JsonStringView chars,
-            int from,
-            int to)
+        private JsonParserEx requestParser()
         {
-            if (beginEncode(0))
+            if (requestParser == null)
             {
-                putEscaped(chars, from, to);
+                requestParser = JsonEx.createParser();
+            }
+
+            return requestParser;
+        }
+
+        private void decodeRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            DirectBufferEx input = buffer;
+            int from = offset;
+            int limit = offset + length;
+
+            if (hold.length(LlmRequestHold.TAIL) > 0)
+            {
+                if (hold.append(LlmRequestHold.TAIL, buffer, offset, length))
+                {
+                    input = hold.buffer();
+                    from = 0;
+                    limit = hold.length(LlmRequestHold.TAIL);
+                }
+                else
+                {
+                    encodeFailed = true;
+                }
+            }
+
+            if (!encodeFailed && beginEncode(0))
+            {
+                int progress = from;
+                int previous;
+                LlmGeminiRequestDecoder previousDecoder;
+
+                do
+                {
+                    previous = progress;
+                    previousDecoder = requestDecoder;
+                    progress = requestDecoder.decode(input, progress, limit, last);
+                }
+                while ((progress != previous && progress < limit || requestDecoder != previousDecoder) && !encodeFailed);
+
+                if (progress < limit && !last && requestDecoder != decodeRequestDone && !encodeFailed)
+                {
+                    encodeFailed |= !hold.replace(LlmRequestHold.TAIL, input, progress, limit - progress);
+                }
+                else
+                {
+                    hold.clear(LlmRequestHold.TAIL);
+                }
+
                 endEncode();
             }
+        }
+
+        private JsonParserEx wrapRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return requestParser().wrap(buffer, offset, limit, last);
+        }
+
+        private int positionRequest(
+            int limit)
+        {
+            return limit - requestParser.remaining();
+        }
+
+        private int decodeRequestTextRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextRoot && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_DOCUMENT)
+                    {
+                        requestDecoder = decodeRequestTextObject;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextObject(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextObject && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                    {
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        final JsonStringView key = parser.getStringView();
+
+                        requestSkipDepth = 0;
+
+                        if (MEMBER_TEXT.contentEquals(key))
+                        {
+                            requestDecoder = decodeRequestTextValue;
+                        }
+                        else if (signing(sectionKind) && MEMBER_CANONICAL_SIGNATURE.contentEquals(key))
+                        {
+                            signatureBuilder.setLength(0);
+                            requestDecoder = decodeRequestSignature;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestSkip;
+                        }
+                    }
+                    else
+                    {
+                        requestDecoder = decodeRequestDone;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextValue);
+        }
+
+        private int decodeRequestTextContinue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextContinue);
+        }
+
+        private int decodeRequestTextPiece(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last,
+            LlmGeminiRequestDecoder state)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == state && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.VALUE_STRING)
+                    {
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final int length = chars.length();
+
+                        putEscaped(chars, 0, length);
+
+                        if (deferred)
+                        {
+                            parser.consumed(length);
+                            requestDecoder = decodeRequestTextContinue;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestTextKey;
+                        }
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestSignature(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestSignature && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.VALUE_STRING)
+                    {
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final int length = chars.length();
+
+                        signatureBuilder.append(chars);
+
+                        if (signatureBuilder.length() > LlmToolTransform.HELD_MAX)
+                        {
+                            encodeFailed = true;
+                        }
+                        else if (deferred)
+                        {
+                            parser.consumed(length);
+                        }
+                        else
+                        {
+                            signature = signatureBuilder.toString();
+                            requestDecoder = decodeRequestTextKey;
+                        }
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestSkip(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestSkip && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                    {
+                        requestSkipDepth++;
+                    }
+                    else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+                    {
+                        requestSkipDepth--;
+                    }
+
+                    if (parser.deferredBytes())
+                    {
+                        parser.consumed(parser.getStringView().length());
+                    }
+                    else if (requestSkipDepth == 0 && event != JsonEvent.KEY_NAME)
+                    {
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestDone(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return limit;
         }
 
         private void beginTextBlock()
@@ -4017,13 +4349,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText();
-                encodeText.begin();
-
-                if (signing(kind))
-                {
-                    signaturePipeline().begin(sectionAttributes);
-                }
+                requestDecoder = decodeRequestTextRoot;
+                requestParser().reset();
+                signature = null;
             }
         }
 
@@ -4290,11 +4618,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     endEncode();
                 }
             }
-            else if (encodeText != null && !encodeText.feed(buffer, offset, length, fin) ||
-                encodeText != null && signing(sectionKind) &&
-                    !signaturePipeline.feed(buffer, offset, length, fin, signatureOutput))
+            else if (requestDecoder != null)
             {
-                encodeFailed = true;
+                decodeRequest(buffer, offset, length, fin);
             }
         }
 
@@ -4373,10 +4699,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 onControlEnd();
             }
 
-            final String signature = encodeText != null && signing(sectionKind) ? signatureTransform.signature() : null;
+            final String signature = requestDecoder != null && signing(sectionKind) ? this.signature : null;
             final int signed = signature != null ? signature.length() + SIGNATURE_RESERVE - LlmToolTransform.HELD_MAX : 0;
 
-            encodeText = null;
+            this.signature = null;
+            requestDecoder = null;
+            hold.clear(LlmRequestHold.TAIL);
 
             if (signature != null && !LlmGeminiSignatureFromCanonical.plain(signature))
             {
