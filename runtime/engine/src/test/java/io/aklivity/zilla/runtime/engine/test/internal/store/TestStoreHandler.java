@@ -34,6 +34,9 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
+    private static final String INCREMENT = "increment";
+    private static final String REPLACE = "replace";
+
     private final ConcurrentMap<String, TestEntry> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
@@ -71,7 +74,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        assertOperation("put", key, value, ttl);
+        assertOperation(new Assertion("put", key, value, ttl));
         // put and putIfAbsent never expire so bindings configured with short leases keep their records
         entries.put(key, new TestEntry(value, Long.MAX_VALUE));
         notifyListeners(key, value);
@@ -85,7 +88,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        assertOperation("putIfAbsent", key, value, ttl);
+        assertOperation(new Assertion("putIfAbsent", key, value, ttl));
         final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
@@ -106,7 +109,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        assertOperation("delete", key, null, null);
+        assertOperation(new Assertion("delete", key, null, null));
         final TestEntry removed = entries.remove(key);
         if (removed != null)
         {
@@ -120,7 +123,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
-        assertOperation("getAndDelete", key, null, null);
+        assertOperation(new Assertion("getAndDelete", key, null, null));
         final TestEntry prior = entries.remove(key);
         if (prior != null)
         {
@@ -148,6 +151,7 @@ public final class TestStoreHandler implements StoreHandler
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
+        assertOperation(new Assertion("increment", key, null, Long.toString(counter), null, delta, ttl));
         notifyListeners(key, Long.toString(counter));
         final long result = counter;
         defer(() -> completion.accept(key, result));
@@ -171,6 +175,7 @@ public final class TestStoreHandler implements StoreHandler
         List<String> keys,
         LongConsumer completion)
     {
+        assertOperation(new Assertion("delete", null, keys, null, null, 0L, null));
         long removed = 0L;
         for (String key : keys)
         {
@@ -196,6 +201,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<Boolean> completion)
     {
+        assertOperation(new Assertion("replace", key, null, value, expected, 0L, ttl));
         boolean replaced;
         boolean contended;
         do
@@ -304,10 +310,7 @@ public final class TestStoreHandler implements StoreHandler
     }
 
     private void assertOperation(
-        String op,
-        String key,
-        String value,
-        Duration ttl)
+        Assertion actual)
     {
         if (assertions != null)
         {
@@ -315,19 +318,50 @@ public final class TestStoreHandler implements StoreHandler
 
             if (expected == null)
             {
-                throw new AssertionError(String.format("unexpected store operation %s %s", op, key));
+                throw new AssertionError(String.format("unexpected store operation %s %s", actual.op, target(actual)));
             }
 
-            if (!expected.op.equals(op) ||
-                !expected.key.equals(key) ||
-                !Objects.equals(expected.value, value) ||
-                !Objects.equals(expected.ttl, ttl))
+            if (!matches(expected, actual))
             {
                 throw new AssertionError(String.format(
-                    "expected store operation %s %s value=%s ttl=%s, was %s %s value=%s ttl=%s",
-                    expected.op, expected.key, expected.value, expected.ttl, op, key, value, ttl));
+                    "expected store operation %s, was %s", describe(expected), describe(actual)));
             }
         }
+    }
+
+    private static boolean matches(
+        Assertion expected,
+        Assertion actual)
+    {
+        return expected.op.equals(actual.op) &&
+            Objects.equals(expected.key, actual.key) &&
+            Objects.equals(expected.keys, actual.keys) &&
+            (INCREMENT.equals(expected.op) && expected.value == null || Objects.equals(expected.value, actual.value)) &&
+            Objects.equals(expected.expected, actual.expected) &&
+            expected.delta == actual.delta &&
+            Objects.equals(expected.ttl, actual.ttl);
+    }
+
+    private static String describe(
+        Assertion assertion)
+    {
+        final String target = target(assertion);
+
+        return switch (assertion.op)
+        {
+        case INCREMENT -> String.format("%s %s delta=%d value=%s ttl=%s",
+            assertion.op, target, assertion.delta, assertion.value, assertion.ttl);
+        case REPLACE -> String.format("%s %s expected=%s value=%s ttl=%s",
+            assertion.op, target, assertion.expected, assertion.value, assertion.ttl);
+        default -> String.format("%s %s value=%s ttl=%s",
+            assertion.op, target, assertion.value, assertion.ttl);
+        };
+    }
+
+    private static String target(
+        Assertion assertion)
+    {
+        return assertion.keys != null ? assertion.keys.toString() : assertion.key;
     }
 
     private void notifyListeners(
