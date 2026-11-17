@@ -148,4 +148,33 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.empty/client",
+        "${net}/unsubscribe.reject.topic.filter.empty/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/server"})
+    public void shouldRejectUnsubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-2]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.null.character/client",
+        "${net}/unsubscribe.reject.topic.filter.null.character/server"})
+    public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

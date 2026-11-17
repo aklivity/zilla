@@ -355,6 +355,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.pipelined.qos2.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos2.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos2AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.10k/client",
         "${app}/publish.10k/server"})
     public void shouldPublish10k() throws Exception
@@ -427,6 +445,51 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos2.reject.retain.not.supported/client",
+        "${app}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectQos2RetainedRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset.mid.payload/client",
+        "${app}/publish.qos1.reset.mid.payload/server"})
+    public void shouldAcknowledgeQos1PublishResetMidPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset.in.flight/client",
+        "${app}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.reset/client",
+        "${app}/publish.qos2.reset/server"})
+    public void shouldAcknowledgeQos2PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos1.message.rejected/client",
         "${app}/publish.qos1.message.rejected/server"})
     public void shouldPublishQos1MessageRejected() throws Exception
@@ -475,6 +538,24 @@ public class PublishIT
         "${app}/server.sent.publish.qos.exceeds.maximum/client",
         "${app}/server.sent.publish.qos.exceeds.maximum/server"})
     public void shouldServerSentPublishQosExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.topic.multibyte/client",
+        "${app}/publish.topic.multibyte/server"})
+    public void shouldSendOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.one.message.second.client/client",
+        "${app}/publish.one.message.second.client/server"})
+    public void shouldPublishOneMessageFromSecondClient() throws Exception
     {
         k3po.finish();
     }

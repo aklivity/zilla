@@ -208,6 +208,17 @@ public class ClientProduceIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/message.values.no.producer.id/client",
+        "${net}/message.values.no.producer.id/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
+    public void shouldSendMessageValuesNoProducerId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/message.values.producer.id.replay/client",
         "${net}/message.values.producer.id.replay/server"})
     public void shouldReplyMessageValuesWithProducerId() throws Exception

@@ -1803,7 +1803,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 if (encodeableRecordBatch == null ||
                     encodeableRecordBatch.producerId() != producerId ||
                     encodeableRecordBatch.producerEpoch() != producerEpoch ||
-                    encodeableRecordBatch.baseSequence() >= sequence)
+                    producerId != RECORD_BATCH_PRODUCER_ID_NONE && encodeableRecordBatch.baseSequence() >= sequence)
                 {
                     encodeableRecordBatch = recordBatchRW.wrap(encodeSlotBuffer, encodeSlotLimit, maxLimit)
                         .baseOffset(0)

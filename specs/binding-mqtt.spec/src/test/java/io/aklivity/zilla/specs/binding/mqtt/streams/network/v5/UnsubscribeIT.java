@@ -166,4 +166,63 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.invalid.property.identifier/client",
+        "${net}/unsubscribe.reject.invalid.property.identifier/server"})
+    public void shouldRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.property.truncated/client",
+        "${net}/unsubscribe.reject.property.truncated/server"})
+    public void shouldRejectPropertyThatDoesNotParse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.10.2.1.2 User Property
+    @Test
+    @Specification({
+        "${net}/unsubscribe.user.property/client",
+        "${net}/unsubscribe.user.property/server"})
+    public void shouldAcknowledgeWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.empty/client",
+        "${net}/unsubscribe.reject.topic.filter.empty/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${net}/unsubscribe.reject.topic.filter.ill.formed.utf8/server"})
+    public void shouldRejectUnsubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.null.character/client",
+        "${net}/unsubscribe.reject.topic.filter.null.character/server"})
+    public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -437,6 +437,66 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.reject.retain.not.supported/client",
+        "${app}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishQos1RetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.reject.retain.not.supported/client",
+        "${app}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectPublishQos2RetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset.mid.payload/client",
+        "${app}/publish.qos1.reset.mid.payload/server"})
+    public void shouldAcknowledgeQos1PublishResetMidPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset.in.flight/client",
+        "${app}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.reset/client",
+        "${app}/publish.qos2.reset/server"})
+    public void shouldAcknowledgeQos2PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception
@@ -587,6 +647,26 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.pipelined.qos2.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos2.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos2AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.10k/client",
         "${app}/publish.10k/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
@@ -712,6 +792,134 @@ public class PublishIT
         "${net}/publish.reject.invalid.property.identifier/client",
         "${app}/session.connect/server"})
     public void shouldPublishRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.wildcard/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.empty/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.response.topic.wildcard/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishResponseTopicWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.content.type.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.user.property.key.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.user.property.value.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.content.type.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishContentTypeNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.user.property.key.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishUserPropertyKeyNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.user.property.value.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishUserPropertyValueNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.response.topic.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishResponseTopicIllFormedUtf8() throws Exception
     {
         k3po.finish();
     }

@@ -945,6 +945,17 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // 1.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1], 3.8.3 filter that does not fit in the packet
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.second.filter.length.overruns.packet/client",
+        "${app}/subscribe.reject.second.filter/server"})
+    public void shouldRejectSecondFilterLengthOverrunsPacket() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 3.8.3.1 Maximum QoS 3 is a Protocol Error, earlier filters not subscribed
     @Test
     @Configuration("server.yaml")
@@ -952,6 +963,47 @@ public class SubscribeIT
         "${net}/subscribe.reject.second.filter.maximum.qos.3/client",
         "${app}/subscribe.reject.second.filter/server"})
     public void shouldRejectSecondFilterMaximumQos3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.topic.multibyte/client",
+        "${app}/subscribe.topic.multibyte/server"})
+    public void shouldReceiveOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.empty/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.null.character/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectTopicFilterWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectSubscribeTopicFilterIllFormedUtf8() throws Exception
     {
         k3po.finish();
     }

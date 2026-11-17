@@ -101,6 +101,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.topic.trailing.empty.level/client",
+        "${mqtt}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.10k/client",
         "${mqtt}/publish.10k/server"})
     public void shouldSendMessage10k() throws Exception
@@ -434,6 +443,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/client",
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
@@ -652,6 +670,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.reconnect.during.expire.reset.group.offsets/client",
+        "${mqtt}/session.reconnect.during.expire.reset.group.offsets/server"})
+    public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("OFFSET_DELETE_RECEIVED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.offsets.immediately/client",
         "${mqtt}/session.close.expire.session.offsets.immediately/server"})
     public void shouldExpireSessionAndOffsetsImmediately() throws Exception
@@ -699,6 +728,17 @@ public class MqttIT
         "${mqtt}/session.will.message.abort.deliver.will/client",
         "${mqtt}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.topic.trailing.empty.level/client",
+        "${mqtt}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");
@@ -790,6 +830,43 @@ public class MqttIT
     {
         k3po.start();
         k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.meta.reset/client",
+        "${mqtt}/session.qos2.meta.reset/server"})
+    public void shouldResetMqttSessionWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.init.producer.reset/client",
+        "${mqtt}/session.qos2.init.producer.reset/server"})
+    public void shouldResetMqttSessionWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.offset.fetch.reset/client",
+        "${mqtt}/session.qos2.offset.fetch.reset/server"})
+    public void shouldResetMqttSessionWhenOffsetFetchStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/client",
+        "${mqtt}/session.qos2.offset.fetch.data.then.caught.up/server"})
+    public void shouldSessionQos2OffsetFetchDataThenCaughtUp() throws Exception
+    {
+        k3po.start();
         k3po.finish();
     }
 
@@ -1105,6 +1182,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.clean.start.qos.max.1/client",
+        "${mqtt}/session.clean.start.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.retained.topic.not.compacted/client",
         "${mqtt}/session.retained.topic.not.compacted/server"})
     public void shouldAdvertiseRetainedUnavailableWhenRetainedTopicNotCompacted() throws Exception
@@ -1165,6 +1251,15 @@ public class MqttIT
     public void shouldPublishQos1ServerSentResetInFlight() throws Exception
     {
         k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
         k3po.finish();
     }
 
@@ -1233,4 +1328,31 @@ public class MqttIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level/client",
+        "${mqtt}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/client",
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retain.parent.level/client",
+        "${mqtt}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
 }

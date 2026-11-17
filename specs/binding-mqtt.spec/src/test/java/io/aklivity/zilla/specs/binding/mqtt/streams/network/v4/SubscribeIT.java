@@ -491,4 +491,41 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.multibyte/client",
+        "${net}/subscribe.topic.multibyte/server"})
+    public void shouldReceiveOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.empty/client",
+        "${net}/subscribe.reject.topic.filter.empty/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.null.character/client",
+        "${net}/subscribe.reject.topic.filter.null.character/server"})
+    public void shouldRejectTopicFilterWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
+        "${net}/subscribe.reject.topic.filter.ill.formed.utf8/server"})
+    public void shouldRejectSubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
 }

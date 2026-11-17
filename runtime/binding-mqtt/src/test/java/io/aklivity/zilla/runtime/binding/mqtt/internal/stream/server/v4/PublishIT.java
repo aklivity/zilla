@@ -276,6 +276,16 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${app}/publish.unroutable/server"})
+    public void shouldRejectQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.qos1.dup.after.puback/client",
@@ -349,6 +359,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${app}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.10k/client",
         "${app}/publish.10k/server"})
     public void shouldPublish10k() throws Exception
@@ -402,6 +422,17 @@ public class PublishIT
         "${net}/publish.qos1.message.rejected.close.connection/client",
         "${app}/publish.qos1.message.rejected.close.connection/server"})
     public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.topic.name.ill.formed.utf8/client",
+        "${app}/publish.one.message.second.client/server"})
+    public void shouldRejectPublishTopicNameIllFormedUtf8() throws Exception
     {
         k3po.finish();
     }

@@ -49,11 +49,11 @@ read  [0x34 0x16]                    # PUBLISH, qos = 2
       "message"                      # payload
 
 write [0x50 0x03]                    # PUBREC
-      [0x00 0x02]                    # packet id = 2
+      [0x00 0x01]                    # packet id = 1
       [0x00]                         # reason code
 
 write [0x50 0x03]                    # PUBREC
-      [0x00 0x01]                    # packet id = 1
+      [0x00 0x02]                    # packet id = 2
       [0x00]                         # reason code
 
 read  [0x62 0x04]                    # PUBREL

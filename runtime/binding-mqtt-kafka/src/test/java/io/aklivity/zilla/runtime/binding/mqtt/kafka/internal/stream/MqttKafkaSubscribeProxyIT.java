@@ -498,6 +498,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.topic.filter.trailing.empty.level/client",
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.two.single.level.wildcard/server"})
     public void shouldFilterTwoSingleLevelWildcard() throws Exception
@@ -820,6 +831,39 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.one.message.subscription.id.127/client",
         "${kafka}/subscribe.one.message.subscription.id.127/server"})
     public void shouldSubscribeOneMessageSubscriptionId127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level/client",
+        "${kafka}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/client",
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retain.parent.level/client",
+        "${kafka}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
     {
         k3po.finish();
     }

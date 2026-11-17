@@ -98,14 +98,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     -1733738047
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     1L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -138,14 +138,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     -1086312981
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     2L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -178,14 +178,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     1589435298
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     3L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -218,14 +218,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     -258804289
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     4L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -258,14 +258,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     292422646
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     5L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -298,14 +298,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     914845660
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     6L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -338,14 +338,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     -679765611
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     7L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]
@@ -378,14 +378,14 @@ write 145
      88                                # length
      -1
      [0x02]
-     1012046046
+     1865893143
      8s
      0                                  # last offset delta
      1716424650323L                     # first timestamp
      1716424650323L                     # last timestamp
-     -1L
-     -1s
-     -1
+     8L
+     1s
+     0
      1                                  # records
      ${kafka:varint(38)}
      [0x00]

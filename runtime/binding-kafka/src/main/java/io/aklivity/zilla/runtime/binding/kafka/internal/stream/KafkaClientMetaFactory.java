@@ -946,7 +946,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long authorization = end.authorization();
 
             state = StreamState.closeInitial(state);
-            clientRoute.unregisterMetaFlush(metaFlush);
+            clientRoute.unregisterMetaFlush(metaFlush, traceId);
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -957,7 +957,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long traceId = abort.traceId();
 
             state = StreamState.closeInitial(state);
-            clientRoute.unregisterMetaFlush(metaFlush);
+            clientRoute.unregisterMetaFlush(metaFlush, traceId);
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -1098,7 +1098,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             Flyweight extension)
         {
             state = StreamState.closeInitial(state);
-            clientRoute.unregisterMetaFlush(metaFlush);
+            clientRoute.unregisterMetaFlush(metaFlush, traceId);
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
@@ -1142,8 +1142,6 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
-
-            clientRoute.metaRefreshed.accept(traceId);
         }
 
         private final class KafkaMetaClient extends KafkaSaslClient

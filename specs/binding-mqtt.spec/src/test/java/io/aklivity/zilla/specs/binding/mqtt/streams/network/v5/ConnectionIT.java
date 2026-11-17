@@ -670,4 +670,124 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.client.id.ill.formed.utf8/client",
+        "${net}/connect.reject.client.id.ill.formed.utf8/server"})
+    public void shouldRejectConnectClientIdIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.client.id.null.character/client",
+        "${net}/connect.reject.client.id.null.character/server"})
+    public void shouldRejectConnectClientIdNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.user.name.ill.formed.utf8/client",
+        "${net}/connect.reject.user.name.ill.formed.utf8/server"})
+    public void shouldRejectConnectUserNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.user.name.null.character/client",
+        "${net}/connect.reject.user.name.null.character/server"})
+    public void shouldRejectConnectUserNameNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.ill.formed.utf8/client",
+        "${net}/connect.reject.will.topic.ill.formed.utf8/server"})
+    public void shouldRejectConnectWillTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.null.character/client",
+        "${net}/connect.reject.will.topic.null.character/server"})
+    public void shouldRejectConnectWillTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.content.type.ill.formed.utf8/client",
+        "${net}/connect.reject.will.content.type.ill.formed.utf8/server"})
+    public void shouldRejectConnectWillContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.response.topic.ill.formed.utf8/client",
+        "${net}/connect.reject.will.response.topic.ill.formed.utf8/server"})
+    public void shouldRejectConnectWillResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.user.property.key.ill.formed.utf8/client",
+        "${net}/connect.reject.will.user.property.key.ill.formed.utf8/server"})
+    public void shouldRejectConnectWillUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.user.property.value.ill.formed.utf8/client",
+        "${net}/connect.reject.will.user.property.value.ill.formed.utf8/server"})
+    public void shouldRejectConnectWillUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.ill.formed.utf8/client",
+        "${net}/server.sent.connack.assigned.client.id.ill.formed.utf8/server"})
+    public void shouldServerSentConnackAssignedClientIdIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.null.character/client",
+        "${net}/server.sent.connack.assigned.client.id.null.character/server"})
+    public void shouldServerSentConnackAssignedClientIdNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

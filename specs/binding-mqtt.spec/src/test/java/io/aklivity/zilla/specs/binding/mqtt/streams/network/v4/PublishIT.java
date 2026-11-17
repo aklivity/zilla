@@ -225,6 +225,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${net}/publish.qos1.unroutable/server"})
+    public void shouldRejectQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.qos1.dup.after.puback/client",
         "${net}/publish.qos1.dup.after.puback/server"})
     public void shouldPublishQoS1Message() throws Exception
@@ -288,6 +297,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/client",
+        "${net}/publish.pipelined.qos1.ack.out.of.order/server"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.10k/client",
         "${net}/publish.10k/server"})
     public void shouldPublish10k() throws Exception
@@ -336,6 +354,43 @@ public class PublishIT
         "${net}/publish.qos1.message.rejected.close.connection/client",
         "${net}/publish.qos1.message.rejected.close.connection/server"})
     public void shouldPublishQos1MessageRejectedCloseConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.wildcard/client",
+        "${net}/publish.reject.topic.name.wildcard/server"})
+    public void shouldRejectPublishTopicNameWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.empty/client",
+        "${net}/publish.reject.topic.name.empty/server"})
+    public void shouldRejectPublishTopicNameEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.null.character/client",
+        "${net}/publish.reject.topic.name.null.character/server"})
+    public void shouldRejectPublishTopicNameWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.ill.formed.utf8/client",
+        "${net}/publish.reject.topic.name.ill.formed.utf8/server"})
+    public void shouldRejectPublishTopicNameIllFormedUtf8() throws Exception
     {
         k3po.finish();
     }

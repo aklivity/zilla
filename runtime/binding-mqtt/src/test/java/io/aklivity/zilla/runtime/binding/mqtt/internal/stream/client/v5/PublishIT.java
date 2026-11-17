@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -30,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class PublishIT
 {
@@ -166,6 +168,30 @@ public class PublishIT
         k3po.finish();
     }
 
+    // 3.3.2.3.4 Topic Alias, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.exceeds.maximum/server",
+        "${app}/session.abort.on.network.error/client"})
+    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
+    public void shouldServerSentPublishTopicAliasExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.3.2.3.4 Topic Alias, 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.alias.unmapped/server",
+        "${app}/session.abort.on.network.error/client"})
+    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
+    public void shouldServerSentPublishTopicAliasUnmapped() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 3.3.4 QoS not supported, 4.13.1
     @Test
     @Configuration("client.yaml")
@@ -173,6 +199,126 @@ public class PublishIT
         "${net}/server.sent.publish.qos.exceeds.maximum/server",
         "${app}/server.sent.publish.qos.exceeds.maximum/client"})
     public void shouldServerSentPublishQosExceedsMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.topic.multibyte/server",
+        "${app}/publish.topic.multibyte/client"})
+    public void shouldSendOneMessageWithMultibyteTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.name.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.content.type.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.response.topic.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.name.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTopicNameNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.content.type.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishContentTypeNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.response.topic.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishResponseTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyKeyNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyValueNullCharacter() throws Exception
     {
         k3po.finish();
     }
