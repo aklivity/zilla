@@ -35,7 +35,7 @@ write  [0x20 0x03]                   # CONNACK
        [0x00]                        # reason code
        [0x00]                        # properties = none
 
-read   [0x82 0x12]                   # SUBSCRIBE
+read   [0x82 0x14]                   # SUBSCRIBE
        [0x00 0x01]                   # packet id = 1
        [0x02]                        # properties
        [0x0b 0x01]                   # subscription id = 1
