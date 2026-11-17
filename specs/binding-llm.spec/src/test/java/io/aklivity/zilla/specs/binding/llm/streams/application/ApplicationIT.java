@@ -5555,6 +5555,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.stream.options.shared.dropped/client",
+        "${app}/openai.responses.text.stream.options.shared.dropped/server"})
+    public void shouldOpenaiResponsesTextStreamOptionsSharedDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens/client",
         "${app}/openai.responses.incomplete.max.output.tokens/server"})
     public void shouldOpenaiResponsesIncompleteMaxOutputTokens() throws Exception

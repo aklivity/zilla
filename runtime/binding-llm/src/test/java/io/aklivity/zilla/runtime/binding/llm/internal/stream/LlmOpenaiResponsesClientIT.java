@@ -87,6 +87,16 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream.options.shared.dropped/client",
+        "${net}/openai.responses.text.stream.options.shared.dropped/server"})
+    public void shouldDropStreamOptionsWhenSharedMemberIsDroppedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens/client",

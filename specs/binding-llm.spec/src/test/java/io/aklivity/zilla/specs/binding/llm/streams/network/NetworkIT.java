@@ -5051,6 +5051,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.text.stream.options.shared.dropped/client",
+        "${net}/openai.responses.text.stream.options.shared.dropped/server"})
+    public void shouldOpenaiResponsesTextStreamOptionsSharedDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.incomplete.max.output.tokens/client",
         "${net}/openai.responses.incomplete.max.output.tokens/server"})
     public void shouldOpenaiResponsesIncompleteMaxOutputTokens() throws Exception
