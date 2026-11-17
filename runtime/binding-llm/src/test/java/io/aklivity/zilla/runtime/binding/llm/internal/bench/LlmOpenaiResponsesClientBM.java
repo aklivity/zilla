@@ -102,6 +102,9 @@ public class LlmOpenaiResponsesClientBM
     private static final byte[] NO_BYTES = new byte[0];
     private static final String ARGUMENTS_PREFIX = "{\\\"query\\\":\\\"";
     private static final String ARGUMENTS_SUFFIX = "\\\"}";
+    private static final String ANNOTATIONS = "[{\"type\":\"url_citation\",\"end_index\":8,\"start_index\":0," +
+        "\"title\":\"Sky colour\",\"url\":\"https://example.com/sky?utm_source=openai\"},{\"type\":\"file_citation\"," +
+        "\"file_id\":\"file_1\",\"filename\":\"a.pdf\",\"index\":0}]";
     private static final String RESPONSES_USAGE =
         "{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}";
 
@@ -139,7 +142,7 @@ public class LlmOpenaiResponsesClientBM
         @Param({"text", "toolCall"})
         public String request;
 
-        @Param({"text", "toolCall"})
+        @Param({"text", "toolCall", "cited"})
         public String response;
 
         @Param({"auto", "responses"})
@@ -209,7 +212,7 @@ public class LlmOpenaiResponsesClientBM
             sectionPayload = payloads.toArray(UnsafeBufferEx[]::new);
 
             bench.newServer("net0", new Responder(Trigger.END,
-                respond ? response(text, "toolCall".equals(response), bench.labelId("http")) : null));
+                respond ? response(text, "toolCall".equals(response), "cited".equals(response), bench.labelId("http")) : null));
         }
 
         @TearDown(Level.Trial)
@@ -358,6 +361,7 @@ public class LlmOpenaiResponsesClientBM
         private Response response(
             String text,
             boolean toolCall,
+            boolean cited,
             int httpTypeId)
         {
             final List<byte[]> events = new ArrayList<>();
@@ -365,11 +369,11 @@ public class LlmOpenaiResponsesClientBM
 
             if (streaming)
             {
-                responsesStreamingEvents(events, eventEx, httpTypeId, text, toolCall);
+                responsesStreamingEvents(events, eventEx, httpTypeId, text, toolCall, cited);
             }
             else
             {
-                events.add(responsesCompletion(text, toolCall).getBytes(UTF_8));
+                events.add(responsesCompletion(text, toolCall, cited).getBytes(UTF_8));
             }
 
             final byte[][] eventExtensions = new byte[events.size()][];
@@ -387,9 +391,17 @@ public class LlmOpenaiResponsesClientBM
                 0);
         }
 
+        private static String annotate(
+            String item,
+            boolean cited)
+        {
+            return cited ? item.replace("\"annotations\":[]", "\"annotations\":" + ANNOTATIONS) : item;
+        }
+
         private static String responsesCompletion(
             String text,
-            boolean toolCall)
+            boolean toolCall,
+            boolean cited)
         {
             final String item = toolCall
                 ? String.format("{\"id\":\"fc_1\",\"type\":\"function_call\",\"arguments\":\"%s%s%s\"," +
@@ -400,7 +412,7 @@ public class LlmOpenaiResponsesClientBM
                     text);
 
             return String.format("{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[%s]," +
-                "\"status\":\"completed\",\"usage\":%s}", item, RESPONSES_USAGE);
+                "\"status\":\"completed\",\"usage\":%s}", annotate(item, cited), RESPONSES_USAGE);
         }
 
         private static void responsesStreamingEvents(
@@ -408,7 +420,8 @@ public class LlmOpenaiResponsesClientBM
             List<byte[]> eventEx,
             int httpTypeId,
             String text,
-            boolean toolCall)
+            boolean toolCall,
+            boolean cited)
         {
             final String progress = "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\"," +
                 "\"status\":\"in_progress\",\"output\":[]}";
@@ -424,6 +437,7 @@ public class LlmOpenaiResponsesClientBM
                 : String.format("\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"completed\"," +
                     "\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"%s\"}]," +
                     "\"role\":\"assistant\"}", text);
+            final String doneItem = annotate(done, cited);
 
             int sequence = 0;
             sequence = responsesEvent(events, eventEx, httpTypeId, "response.created", progress, sequence);
@@ -467,13 +481,13 @@ public class LlmOpenaiResponsesClientBM
                     text + "\"", sequence);
                 sequence = responsesEvent(events, eventEx, httpTypeId, "response.content_part.done",
                     "\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\"," +
-                    "\"annotations\":[],\"logprobs\":[],\"text\":\"" + text + "\"}", sequence);
+                    annotate("\"annotations\":[],\"logprobs\":[],\"text\":\"" + text + "\"}", cited), sequence);
             }
 
             sequence = responsesEvent(events, eventEx, httpTypeId, "response.output_item.done",
-                done + ",\"output_index\":0", sequence);
+                doneItem + ",\"output_index\":0", sequence);
             responsesEvent(events, eventEx, httpTypeId, "response.completed",
-                "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[" + done.substring(
+                "\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[" + doneItem.substring(
                     "\"item\":".length()) + "],\"status\":\"completed\",\"usage\":" + RESPONSES_USAGE + "}", sequence);
         }
 
