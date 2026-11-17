@@ -44,7 +44,7 @@ read  [0x32 0x15]                    # PUBLISH, qos = 1
       "message"                      # payload
 
 write [0x40 0x02]                    # PUBACK
-      [0x00 0x02]                    # packet id = 2
+      [0x00 0x01]                    # packet id = 1
 
 write [0x40 0x02]                    # PUBACK
-      [0x00 0x01]                    # packet id = 1
+      [0x00 0x02]                    # packet id = 2
