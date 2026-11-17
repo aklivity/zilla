@@ -947,8 +947,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             session.doKafkaData(traceId, authorization, budgetId, reserved,
                 sessionPadding, flags, kafkaPayload, kafkaDataEx);
-
-            reconcileSharedSubscriptions(flags, payload);
         }
 
         private void onMqttFlush(
@@ -1232,13 +1230,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private void reconcileSharedSubscriptions(
             int flags,
-            OctetsFW payload)
+            MqttSessionStateFW sessionState)
         {
             if (store != null && flags == COMPLETE)
             {
                 final List<MqttKafkaMembership> subscribed = new ArrayList<>();
-                final MqttSessionStateFW sessionState = payload.sizeof() > 0
-                    ? mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit()) : null;
 
                 if (sessionState != null && sessionState.kind() == MqttSessionStateVersion.V3)
                 {
@@ -3805,7 +3801,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 int keyLen = key.length();
                 if (keyLen == delegate.clientId.length())
                 {
+                    final MqttSessionStateFW sessionState = payload.sizeof() > 0
+                        ? mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit()) : null;
+
                     delegate.doMqttSessionState(traceId, authorization, budgetId, reserved, flags, payload);
+                    delegate.reconcileSharedSubscriptions(flags, sessionState);
                 }
             }
         }
