@@ -342,4 +342,64 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.client.id.ill.formed.utf8/client"})
+    public void shouldRejectConnectClientIdIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.client.id.null.character/client"})
+    public void shouldRejectConnectClientIdNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.user.name.ill.formed.utf8/client"})
+    public void shouldRejectConnectUserNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.user.name.null.character/client"})
+    public void shouldRejectConnectUserNameNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.ill.formed.utf8/client"})
+    public void shouldRejectConnectWillTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.3-2]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.null.character/client"})
+    public void shouldRejectConnectWillTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

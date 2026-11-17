@@ -86,10 +86,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -483,7 +479,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBufferEx willMessageBuffer;
     private final MutableDirectBufferEx willUserPropertiesBuffer;
 
-    private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final MessageConsumer droppedHandler;
@@ -506,7 +501,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final int sessionExpiryGracePeriod;
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
-    private final CharsetDecoder utf8Decoder;
+    private final MqttUtf8Validator utf8Validator;
     private final Function<ModelConfig, ModelHandler> supplyModel;
     private final MutableDirectBufferEx modelBuffer;
     private final String16FW.Builder userPropertyValueRW = new String16FW.Builder();
@@ -532,7 +527,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.sessionExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -558,7 +552,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.validator = new MqttValidator();
-        this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
+        this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
         this.publishQosMaxDefault = config.publishQosMax();
         this.subscribeQosMaxDefault = config.maximumQos();
         final Optional<String16FW> clientId = Optional.ofNullable(config.clientId()).map(String16FW::new);
@@ -1104,6 +1098,12 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 final String16FW clientId = mqttConnect.clientId();
 
+                if (!utf8Validator.isValidString(clientId))
+                {
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
+
                 if (clientId.length() == 0 && !isCleanStart(flags))
                 {
                     reasonCode = IDENTIFIER_REJECTED;
@@ -1202,6 +1202,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 final String16FW clientId = mqttConnect.clientId();
                 progress = mqttConnect.limit();
+
+                if (!utf8Validator.isValidString(clientId))
+                {
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
 
                 if (clientId == null || clientId.length() > MAXIMUM_CLIENT_ID_LENGTH)
                 {
@@ -2215,21 +2221,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private boolean invalidUtf8(
         OctetsFW payload)
     {
-        boolean invalid = false;
-        byte[] payloadBytes = charsetBuffer.array();
-        final int payloadSize = payload.sizeof();
-        payload.value().getBytes(0, payloadBytes, 0, payloadSize);
-        try
-        {
-            charsetBuffer.position(0).limit(payloadSize);
-            utf8Decoder.decode(charsetBuffer);
-        }
-        catch (CharacterCodingException ex)
-        {
-            invalid = true;
-            utf8Decoder.reset();
-        }
-        return invalid;
+        return !utf8Validator.isWellFormed(payload.buffer(), payload.offset(), payload.sizeof());
     }
 
     private int decodeSubscribeV4(
@@ -8014,7 +8006,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     }
 
-                    if (willTopic == null || willTopic.asString().isEmpty())
+                    if (willTopic == null || willTopic.asString().isEmpty() || !utf8Validator.isValidString(willTopic))
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
@@ -8024,7 +8016,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (isSetUsername(flags))
                 {
                     username = usernameRO.tryWrap(buffer, progress, limit);
-                    if (username == null || username.sizeof() == 0)
+                    if (username == null || username.sizeof() == 0 || !utf8Validator.isValidString(username))
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
@@ -8080,6 +8072,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_CONTENT_TYPE:
                         final String16FW mContentType = mqttProperty.contentType();
+                        if (!utf8Validator.isValidString(mContentType))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         if (mContentType.value() != null)
                         {
                             final int offset = mContentType.offset();
@@ -8090,6 +8087,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_RESPONSE_TOPIC:
                         final String16FW mResponseTopic = mqttProperty.responseTopic();
+                        if (!utf8Validator.isValidString(mResponseTopic))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         if (mResponseTopic.value() != null)
                         {
                             final int offset = mResponseTopic.offset();
@@ -8103,6 +8105,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_USER_PROPERTY:
                         final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
+                        if (!utf8Validator.isValidString(userProperty.key()) ||
+                            !utf8Validator.isValidString(userProperty.value()))
+                        {
+                            reasonCode = MALFORMED_PACKET;
+                            break decode;
+                        }
                         willUserPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
                         break;
                     default:
