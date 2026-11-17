@@ -155,6 +155,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
+    private static final int OBJECT_OPENING = "{\"\":\"".length();
     private static final int ENCODE_SLACK = 320;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_TOKENS = 64;
@@ -206,6 +207,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"executableCode\":".getBytes(UTF_8));
     private static final int SERVER_CALL_GROWTH = ",\"gemini:id\":\"\"".length() - ",\"id\":\"\"".length();
     private static final DirectBufferEx RESULT_PREFIX = new UnsafeBufferEx("{\"codeExecutionResult\":".getBytes(UTF_8));
+    private static final int SECTION_OPENING = Math.max(Math.max(ARGUMENTS_PREFIX.capacity(), SERVER_CALL_PREFIX.capacity()),
+        Math.max(RESULT_PREFIX.capacity(), OBJECT_OPENING + MEMBER_TEXT.length()));
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
     private static final String USAGE_PROMPT_TOKENS = "promptTokenCount";
@@ -649,6 +652,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int controlSlot = NO_SLOT;
         private int controlSlotOffset;
         private int controlEntry;
+        private int controlCount;
         private int controlValue;
         private int controlFrom = NONE;
         private int controlMessage;
@@ -697,8 +701,23 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - controlSlotOffset -
-                EVENT_FRAMES * replyPad - sectionClosing());
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - controlSlotOffset - controlClosing() -
+                eventReserve() - sectionOpening() - sectionClosing());
+        }
+
+        private int sectionOpening()
+        {
+            return sectionOpen ? 0 : SECTION_OPENING;
+        }
+
+        private int controlClosing()
+        {
+            return controlFrom != NONE ? CONTROL_CLOSING : 0;
+        }
+
+        private int eventReserve()
+        {
+            return (EVENT_FRAMES + controlCount) * replyPad;
         }
 
         private int sectionClosing()
@@ -1239,12 +1258,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
             while (progress != previous && progress < limit || decoder != previousDecoder);
 
-            if (decoder == decodeCapture)
+            if (progress > offset)
             {
-                flushCapture(buffer);
-            }
+                if (decoder == decodeCapture)
+                {
+                    flushCapture(buffer);
+                }
 
-            flushControl(progress);
+                flushControl(progress);
+            }
 
             return progress;
         }
@@ -1311,14 +1333,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                             flushControl(progress);
                         }
 
-                        if (decoder == previous)
-                        {
-                            decodeWindowLimit = NONE;
+                        decodeWindowLimit = NONE;
 
-                            if (unconstrained)
-                            {
-                                progress = limit;
-                            }
+                        if (decoder == previous && unconstrained)
+                        {
+                            progress = limit;
                         }
                     }
                 }
@@ -1404,7 +1423,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private boolean hasNextEvent()
         {
-            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+            return (!begun() || draining || eventSlack() >= eventReserve()) && parser.hasNextEvent();
         }
 
         private int eventSlack()
@@ -2776,6 +2795,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             else
             {
                 controlEntry = controlSlotOffset;
+                controlCount++;
                 controlSlotOffset += CONTROL_HEADER;
                 encodePool.buffer(controlSlot).putBytes(controlSlotOffset, controlBuffer, 0, controlGenerator.length());
                 controlSlotOffset += controlGenerator.length();
@@ -2940,6 +2960,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             if (controlFrom != NONE)
             {
                 controlSlotOffset = controlEntry;
+                controlCount--;
                 controlFrom = NONE;
 
                 if (controlSlotOffset == 0)
@@ -2978,6 +2999,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 controlSlot = NO_SLOT;
                 controlSlotOffset = 0;
             }
+
+            controlCount = 0;
         }
 
         private void beginUsage()
