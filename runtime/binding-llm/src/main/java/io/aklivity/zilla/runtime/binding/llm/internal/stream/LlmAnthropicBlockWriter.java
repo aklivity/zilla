@@ -74,6 +74,12 @@ final class LlmAnthropicBlockWriter
 
     private static final String PREFIX = LlmAnthropicDialectFactorySpi.NAME + ":";
     private static final String MEMBER_TYPE = "type";
+    private static final String MEMBER_CACHE_CONTROL = "cache_control";
+    private static final String MEMBER_TTL = "ttl";
+    private static final String CACHE_CONTROL_EPHEMERAL = "ephemeral";
+    private static final String MEMBER_BREAKPOINT = "prompt_cache_breakpoint";
+    private static final String MEMBER_BREAKPOINT_MODE = "mode";
+    private static final String BREAKPOINT_MODE_EXPLICIT = "explicit";
     private static final String MEMBER_ID = "id";
     private static final String MEMBER_NAME = "name";
     private static final String MEMBER_INPUT = "input";
@@ -523,14 +529,14 @@ final class LlmAnthropicBlockWriter
             {
                 final CharSequence name = parser.getStringView();
 
-                breakpointKeyType = LlmCacheBreakpoint.NATIVE_TYPE.contentEquals(name);
-                breakpointKeyTtl = LlmCacheBreakpoint.TTL.contentEquals(name);
+                breakpointKeyType = MEMBER_TYPE.contentEquals(name);
+                breakpointKeyTtl = MEMBER_TTL.contentEquals(name);
             }
             break;
         case VALUE_STRING:
             if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKeyType)
             {
-                breakpointEphemeral = LlmCacheBreakpoint.NATIVE_EPHEMERAL.contentEquals(parser.getStringView());
+                breakpointEphemeral = CACHE_CONTROL_EPHEMERAL.contentEquals(parser.getStringView());
             }
             else if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKeyTtl)
             {
@@ -547,12 +553,12 @@ final class LlmAnthropicBlockWriter
         {
             if (breakpointEphemeral)
             {
-                generator.writeKey(LlmCacheBreakpoint.MEMBER).writeStartObject()
-                    .write(LlmCacheBreakpoint.MODE, LlmCacheBreakpoint.MODE_EXPLICIT);
+                generator.writeKey(MEMBER_BREAKPOINT).writeStartObject()
+                    .write(MEMBER_BREAKPOINT_MODE, BREAKPOINT_MODE_EXPLICIT);
 
                 if (ttl.length() > 0)
                 {
-                    generator.write(LlmCacheBreakpoint.TTL, ttl.toString());
+                    generator.write(MEMBER_TTL, ttl.toString());
                 }
 
                 generator.writeEnd();
@@ -937,7 +943,7 @@ final class LlmAnthropicBlockWriter
             generator.writeKey(container).writeStartObject();
             action = ACTION_SOURCE;
         }
-        else if (LlmCacheBreakpoint.NATIVE_MEMBER.contentEquals(name))
+        else if (MEMBER_CACHE_CONTROL.contentEquals(name))
         {
             action = beginBreakpoint();
         }
@@ -1049,7 +1055,7 @@ final class LlmAnthropicBlockWriter
             argumented = true;
             action = ACTION_OBJECT;
         }
-        else if (LlmCacheBreakpoint.NATIVE_MEMBER.contentEquals(name))
+        else if (MEMBER_CACHE_CONTROL.contentEquals(name))
         {
             action = beginBreakpoint();
         }
@@ -1092,7 +1098,7 @@ final class LlmAnthropicBlockWriter
             generator.writeKey(MEMBER_STRICT);
             action = ACTION_COPY;
         }
-        else if (LlmCacheBreakpoint.NATIVE_MEMBER.contentEquals(name))
+        else if (MEMBER_CACHE_CONTROL.contentEquals(name))
         {
             action = beginBreakpoint();
         }
