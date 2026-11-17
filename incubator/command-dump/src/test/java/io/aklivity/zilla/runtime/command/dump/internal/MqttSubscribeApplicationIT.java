@@ -49,4 +49,13 @@ public class MqttSubscribeApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.message.acknowledged/client",
+        "${app}/subscribe.shared.message.acknowledged/server"})
+    public void shouldReceiveSharedMessageAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
 }

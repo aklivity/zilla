@@ -90,9 +90,10 @@ public final class MqttRouteConfig
 
     boolean matchesSubscribe(
         long authorization,
+        String shareName,
         String topic)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(authorization, topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesSubscribe(authorization, shareName, topic));
     }
 
     boolean matchesPublish(

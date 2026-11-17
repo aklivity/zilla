@@ -120,6 +120,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
                                      .packetId(1)
+                                     .reasonCode(128)
                                      .build()
                                  .build()}
 
@@ -140,6 +141,7 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .subscribe()
                                      .qos("EXACTLY_ONCE")
                                      .packetId(2)
+                                     .reasonCode(151)
                                      .build()
                                  .build()}
 

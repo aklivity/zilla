@@ -650,4 +650,24 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.subscription.non.successful/client",
+        "${app}/session.connect.shared.subscriptions.not.supported/server"})
+    public void shouldSubscribeSharedSubscriptionNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.and.exact.non.successful/client",
+        "${app}/subscribe.topic.filter.single.exact.v4/server"})
+    public void shouldSubscribeSharedAndExactNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
 }
