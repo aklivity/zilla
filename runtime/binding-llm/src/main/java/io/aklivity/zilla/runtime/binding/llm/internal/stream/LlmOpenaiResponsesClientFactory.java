@@ -435,6 +435,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private final LlmOpenaiResponsesCitationDecoder decodeCitationValue = LlmOpenaiResponsesStream::decodeCitationValue;
     private final LlmOpenaiResponsesCitationDecoder decodeCitationString = LlmOpenaiResponsesStream::decodeCitationString;
     private final LlmOpenaiResponsesCitationDecoder decodeCitationClose = LlmOpenaiResponsesStream::decodeCitationClose;
+    private final LlmOpenaiResponsesCitationDecoder decodeCitationEnd = LlmOpenaiResponsesStream::decodeCitationEnd;
     private final LlmOpenaiResponsesCitationDecoder decodeCitationDone = LlmOpenaiResponsesStream::decodeCitationDone;
 
     private byte[] textBytes;
@@ -4702,13 +4703,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
             else if (event == JsonEvent.END_ARRAY)
             {
-                advanced = citationFits(1);
-
-                if (advanced)
-                {
-                    generator.writeEnd();
-                    citationDecoder = decodeCitationDone;
-                }
+                citationThen = decodeCitationDone;
+                citationDecoder = decodeCitationEnd;
+                advanced = true;
             }
             else if (event != null)
             {
@@ -4726,14 +4723,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (event == JsonEvent.END_OBJECT)
             {
-                advanced = citationFits((citationMask & CITATION_NESTED) != 0 ? 2 : 1);
-
-                if (advanced)
-                {
-                    closeCitationNested();
-                    generator.writeEnd();
-                    citationDecoder = decodeCitationElement;
-                }
+                citationThen = decodeCitationElement;
+                citationDecoder = decodeCitationEnd;
+                advanced = true;
             }
             else if (event == JsonEvent.KEY_NAME)
             {
@@ -5092,6 +5084,20 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             if (advanced)
             {
                 generator.writeEndEscaped();
+                citationDecoder = citationThen;
+            }
+
+            return advanced;
+        }
+
+        private boolean decodeCitationEnd()
+        {
+            final boolean advanced = generator.remaining() >= ((citationMask & CITATION_NESTED) != 0 ? 2 : 1);
+
+            if (advanced)
+            {
+                closeCitationNested();
+                generator.writeEnd();
                 citationDecoder = citationThen;
             }
 
