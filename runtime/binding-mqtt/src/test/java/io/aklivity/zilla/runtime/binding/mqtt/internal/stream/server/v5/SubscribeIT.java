@@ -528,6 +528,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.receive.message.dollar.topic/client",
+        "${app}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.qos1.reject.subscription.ids.not.supported/client",
         "${app}/subscribe.reject.subscription.ids.not.supported/server"})
     public void shouldRejectQos1SubscriptionIdentifiersNotSupported() throws Exception
