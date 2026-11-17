@@ -7115,9 +7115,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             return positionRequest(limit);
         }
 
+        private void writeControlKey(
+            CharSequence key)
+        {
+            openControlOptions();
+            controlGenerator.writeKey(key);
+        }
+
         private void openControlOptions()
         {
-            if ((controlMask & CONTROL_OPTIONS_OPENED) == 0)
+            if (requestLevel == 2 && (controlMask & CONTROL_OPTIONS_OPENED) == 0)
             {
                 controlGenerator.writeKey(MEMBER_STREAM_OPTIONS).writeStartObject();
                 controlMask |= CONTROL_OPTIONS_OPENED;
@@ -7151,22 +7158,18 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 final int action = memberKeys.selectShared(key);
 
-                if (requestLevel == 2 && action != LlmMemberKeys.DROP)
-                {
-                    openControlOptions();
-                }
-
                 if (action == LlmMemberKeys.COPY)
                 {
                     controlContainer = containerOf(memberKeys.target());
 
                     if (controlContainer != NO_CONTAINER)
                     {
+                        openControlOptions();
                         requestDecoder = decodeRequestControlContainer;
                     }
                     else
                     {
-                        controlGenerator.writeKey(memberKeys.target());
+                        writeControlKey(memberKeys.target());
                         copier.reset();
                         requestDecoder = decodeRequestMember;
                     }
@@ -7215,7 +7218,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 if (capability.sampling)
                 {
-                    controlGenerator.writeKey(member);
+                    writeControlKey(member);
                     copier.reset();
                     requestDecoder = decodeRequestMember;
                 }
@@ -7226,7 +7229,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
             else if (LlmSharedMembers.PARALLEL_TOOL_CALLS.contentEquals(member))
             {
-                controlGenerator.writeKey(member);
+                writeControlKey(member);
                 copier.reset();
                 requestDecoder = decodeRequestMember;
             }
@@ -7464,7 +7467,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (adapted != null)
                 {
-                    controlGenerator.writeKey(controlTarget).write(adapted);
+                    writeControlKey(controlTarget);
+                    controlGenerator.write(adapted);
                 }
             }
         }
@@ -7530,7 +7534,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (toolChoice.parseCanonical(value))
             {
-                controlGenerator.writeKey(LlmSharedMembers.TOOL_CHOICE);
+                writeControlKey(LlmSharedMembers.TOOL_CHOICE);
 
                 if (toolChoice.kind() == LlmToolChoice.MODE)
                 {
