@@ -10611,4 +10611,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.control.100k/client",
+        "${net}/gemini.request.control.100k/server"})
+    public void shouldEncodeGeminiRequestControl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.call.100k/client",
+        "${net}/gemini.request.tool.call.100k/server"})
+    public void shouldEncodeGeminiRequestToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

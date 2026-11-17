@@ -10081,4 +10081,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.control.100k/client",
+        "${app}/gemini.request.control.100k/server"})
+    public void shouldForwardGeminiRequestControl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.100k/client",
+        "${app}/gemini.request.tool.call.100k/server"})
+    public void shouldForwardGeminiRequestToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

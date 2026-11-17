@@ -1930,4 +1930,46 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.control.100k/client",
+        "${app}/gemini.request.control.100k/server"})
+    public void shouldForwardGeminiRequestControl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.control.100k/client",
+        "${app}/gemini.request.control.100k/server"})
+    public void shouldForwardGeminiRequestControl100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.call.100k/client",
+        "${app}/gemini.request.tool.call.100k/server"})
+    public void shouldForwardGeminiRequestToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.call.100k/client",
+        "${app}/gemini.request.tool.call.100k/server"})
+    public void shouldForwardGeminiRequestToolCall100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
 }
