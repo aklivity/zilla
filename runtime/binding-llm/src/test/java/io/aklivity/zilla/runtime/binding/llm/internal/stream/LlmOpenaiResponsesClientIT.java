@@ -1937,6 +1937,28 @@ public class LlmOpenaiResponsesClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling/client",
+        "${net}/openai.responses.text.citations.straddling/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsStraddling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling.small.window/client",
+        "${net}/openai.responses.text.citations.straddling.small.window/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsStraddlingSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.members/client",
         "${net}/openai.responses.text.citations.members.api/server"})

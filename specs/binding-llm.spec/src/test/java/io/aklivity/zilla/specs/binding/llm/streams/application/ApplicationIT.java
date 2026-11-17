@@ -7589,6 +7589,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.citations.straddling/client",
+        "${app}/openai.responses.text.citations.straddling/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling.small.window/client",
+        "${app}/openai.responses.text.citations.straddling.small.window/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddlingSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.response.controls.inline/client",
         "${app}/openai.responses.response.controls.inline/server"})
     public void shouldOpenaiResponsesResponseControlsInline() throws Exception

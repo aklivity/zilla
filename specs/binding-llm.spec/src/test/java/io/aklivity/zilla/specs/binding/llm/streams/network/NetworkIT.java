@@ -6941,6 +6941,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.text.citations.straddling/client",
+        "${net}/openai.responses.text.citations.straddling/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.straddling.small.window/client",
+        "${net}/openai.responses.text.citations.straddling.small.window/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddlingSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.response.controls.inline/client",
         "${net}/openai.responses.response.controls.inline/server"})
     public void shouldOpenaiResponsesResponseControlsInline() throws Exception
