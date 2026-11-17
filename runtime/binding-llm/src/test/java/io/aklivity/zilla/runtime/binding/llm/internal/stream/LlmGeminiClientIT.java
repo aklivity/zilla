@@ -2827,6 +2827,48 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.response.server.tool.call.100k/client",
+        "${net}/gemini.response.server.tool.call.100k/server"})
+    public void shouldForwardGeminiResponseServerToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/gemini.response.server.tool.call.100k/client",
+        "${net}/gemini.response.server.tool.call.100k/server"})
+    public void shouldForwardGeminiResponseServerToolCall100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.response.server.tool.call.fragmented/client",
+        "${net}/gemini.response.server.tool.call.fragmented/server"})
+    public void shouldForwardGeminiResponseServerToolCallFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/gemini.response.server.tool.call.fragmented/client",
+        "${net}/gemini.response.server.tool.call.fragmented/server"})
+    public void shouldForwardGeminiResponseServerToolCallFragmentedWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Specification({
         "${app}/gemini.section.tool.definition.parameters.100k/client",

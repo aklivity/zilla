@@ -10028,4 +10028,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.server.tool.call.100k/client",
+        "${app}/gemini.response.server.tool.call.100k/server"})
+    public void shouldGeminiResponseServerToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.server.tool.call.fragmented/client",
+        "${app}/gemini.response.server.tool.call.fragmented/server"})
+    public void shouldGeminiResponseServerToolCallFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }
