@@ -166,4 +166,34 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.invalid.property.identifier/client",
+        "${net}/unsubscribe.reject.invalid.property.identifier/server"})
+    public void shouldRejectInvalidPropertyIdentifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.property.truncated/client",
+        "${net}/unsubscribe.reject.property.truncated/server"})
+    public void shouldRejectPropertyThatDoesNotParse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.10.2.1.2 User Property
+    @Test
+    @Specification({
+        "${net}/unsubscribe.user.property/client",
+        "${net}/unsubscribe.user.property/server"})
+    public void shouldAcknowledgeWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
 }
