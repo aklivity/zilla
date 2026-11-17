@@ -2111,9 +2111,32 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (subscriber == null && !subscribesShared(topic, subscriptionId))
             {
                 subscriber = subscribeStreams.get(qos);
+
+                if (subscriber != null &&
+                    !subscriber.subscribes(topic, subscriptionId) &&
+                    subscribesPending(topic, subscriptionId))
+                {
+                    subscriber = null;
+                }
             }
 
             return subscriber;
+        }
+
+        private boolean subscribesPending(
+            String topic,
+            int subscriptionId)
+        {
+            boolean subscribes = false;
+
+            for (Subscription subscription : sessionStream.subscriptions)
+            {
+                subscribes |= !subscription.shared() &&
+                    topicMatches(subscription.pattern(), topic) &&
+                    (subscriptionId == 0 || subscription.id == subscriptionId);
+            }
+
+            return subscribes;
         }
 
         private boolean subscribesShared(

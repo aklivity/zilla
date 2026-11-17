@@ -1151,6 +1151,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.shared.receive.message.dollar.topic/client",
+        "${net}/subscribe.shared.receive.message.dollar.topic/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.dollar.topic.filter/client",
+        "${net}/subscribe.shared.receive.message.dollar.topic.filter/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/client",
         "${net}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/server"})
     public void shouldSubscribeSharedReceiveMessageQos1AckWithReasoncode() throws Exception
