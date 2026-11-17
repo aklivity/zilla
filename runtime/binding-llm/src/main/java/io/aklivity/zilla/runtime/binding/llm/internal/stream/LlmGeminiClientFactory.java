@@ -212,6 +212,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         Math.max(RESULT_PREFIX.capacity(), OBJECT_OPENING + MEMBER_TEXT.length()));
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
+    private static final String MEMBER_GEMINI_ID = NAME + ":" + MEMBER_ID;
+    private static final String MEMBER_ARGUMENTS = "arguments";
     private static final String USAGE_PROMPT_TOKENS = "promptTokenCount";
     private static final String USAGE_CANDIDATES_TOKENS = "candidatesTokenCount";
     private static final String USAGE_CACHED_TOKENS = "cachedContentTokenCount";
@@ -242,7 +244,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String ROLE_NAME_MODEL = "model";
     private static final String MEMBER_THOUGHT = "thought";
     private static final String MEMBER_THOUGHT_SIGNATURE = "thoughtSignature";
-    private static final String MEMBER_ARGUMENTS = "arguments";
     private static final String MEMBER_CANONICAL_ID = "gemini:id";
     private static final String MEMBER_FUNCTION = "function";
     private static final String MEMBER_PARAMETERS = "parameters";
@@ -517,6 +518,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         return value != null ? value.length() : 0;
     }
 
+    private static boolean scalar(
+        JsonEvent event)
+    {
+        return event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
+    }
+
     private static int nesting(
         JsonEvent event)
     {
@@ -572,6 +579,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodeServerCallStart = this::decodeServerCallStart;
         private final LlmGeminiResponseDecoder decodeServerCall = this::decodeServerCall;
         private final LlmGeminiResponseDecoder decodeServerCallValue = this::decodeServerCallValue;
+        private final LlmGeminiResponseDecoder decodeServerCallId = this::decodeServerCallId;
         private final LlmGeminiResponseDecoder decodeServerResultStart = this::decodeServerResultStart;
         private final LlmGeminiResponseDecoder decodePartHold = this::decodePartHold;
         private final LlmGeminiResponseDecoder decodeBlockText = this::decodeBlockText;
@@ -667,6 +675,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String sectionToolName;
         private String sectionSignature;
         private String serverCallId;
+        private final StringBuilder serverWireId = new StringBuilder();
+        private final LlmEventCopier serverCallCopier = new LlmEventCopier();
+        private JsonGeneratorEx serverCallGenerator;
         private final StringBuilder signatureBuilder = new StringBuilder();
         private LlmGeminiResponseDecoder captureThen;
         private int captureDepth;
@@ -1905,10 +1916,19 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private void beginServerCall()
         {
-            callId = null;
-            callArguments = 0;
+            if (serverCallGenerator == null)
+            {
+                serverCallGenerator = JsonEx.createGenerator();
+            }
+
+            serverWireId.setLength(0);
+            serverCallCopier.reset();
             sectionStarted = true;
-            writeSection(SERVER_CALL_PREFIX, 0, SERVER_CALL_PREFIX.capacity(), false);
+
+            wrapServerCall();
+            serverCallGenerator.reset();
+            serverCallGenerator.writeStartObject().writeStartObject(MEMBER_ARGUMENTS);
+            flushServerCall();
 
             decoder = decodeServerCall;
         }
@@ -1918,26 +1938,29 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
+            wrapServerCall();
+
             while (decoder == decodeServerCall && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    writeSection(pieceBuffer, 0, encodeServerCallEnd(callId), false);
+                    endServerCall();
                     decoder = decodePart;
                 }
                 else if (MEMBER_ID.contentEquals(parser.getStringView()))
                 {
-                    valueThen = decodeServerCall;
-                    decoder = decodeCallId;
+                    decoder = decodeServerCallId;
                 }
                 else
                 {
-                    writeSection(pieceBuffer, 0, encodeMemberKey(parser.getStringView(), callArguments > 0), false);
+                    copyServerCall(event);
                     decoder = decodeServerCallValue;
                 }
             }
+
+            flushServerCall();
 
             return position();
         }
@@ -1947,36 +1970,113 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (hasNextEvent())
+            wrapServerCall();
+
+            while (decoder == decodeServerCallValue && hasNextEvent())
             {
-                int valueFrom = offset;
+                copyServerCall(parser.nextEvent());
 
-                while (valueFrom < limit && (buffer.getByte(valueFrom) == ':' || isWhitespace(buffer.getByte(valueFrom))))
+                if (serverCallCopier.depth() == 0 && !parser.deferredBytes())
                 {
-                    valueFrom++;
+                    decoder = decodeServerCall;
                 }
+            }
 
+            flushServerCall();
+
+            return position();
+        }
+
+        private int decodeServerCallId(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeServerCallId && hasNextEvent())
+            {
                 final JsonEvent event = parser.nextEvent();
-                final boolean deferred = deferredScalar(event);
 
-                captureFrom = valueFrom;
-                captureDepth = nesting(event);
-                captureThen = decodeServerCall;
-                decoder = decodeCapture;
-
-                if (deferred)
+                if (event == JsonEvent.VALUE_STRING)
                 {
-                    parser.consumed(parser.getStringView().length());
-                    flushCapture(buffer);
+                    final boolean deferred = parser.deferredBytes();
+                    final JsonStringView chars = parser.getStringView();
+                    final int length = chars.length();
+
+                    serverWireId.append(chars);
+
+                    if (deferred)
+                    {
+                        parser.consumed(length);
+                    }
+                    else
+                    {
+                        decoder = decodeServerCall;
+                    }
                 }
-                else if (captureDepth == 0)
+                else
                 {
-                    flushCapture(buffer);
-                    decoder = captureThen;
+                    skipAfter(event, decodeServerCall);
                 }
             }
 
             return position();
+        }
+
+        private void copyServerCall(
+            JsonEvent event)
+        {
+            reserveServerCall(scalar(event) ? body.length(parser.getStringView(), 0, parser.getStringView().length()) : 0);
+
+            final int taken = serverCallCopier.copy(serverCallGenerator, event, parser);
+
+            if (taken != LlmEventCopier.NO_TAKEN)
+            {
+                parser.consumed(taken);
+            }
+        }
+
+        private void reserveServerCall(
+            int width)
+        {
+            final int capacity = width + TEXT_FRAMING;
+
+            if (serverCallGenerator.remaining() < capacity)
+            {
+                flushServerCall();
+                reservePiece(capacity);
+                wrapServerCall();
+            }
+        }
+
+        private void endServerCall()
+        {
+            reservePiece(serverWireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING);
+            wrapServerCall();
+
+            serverCallGenerator.writeEnd();
+
+            if (serverWireId.length() > 0)
+            {
+                serverCallGenerator.writeKey(MEMBER_GEMINI_ID).write(serverWireId);
+            }
+
+            flushServerCall();
+        }
+
+        private void wrapServerCall()
+        {
+            serverCallGenerator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
+        }
+
+        private void flushServerCall()
+        {
+            final int length = serverCallGenerator.length();
+
+            if (length > 0)
+            {
+                writeSection(pieceBuffer, 0, length, false);
+                wrapServerCall();
+            }
         }
 
         private void beginSectionObject(
@@ -3354,50 +3454,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             reservePiece(wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING);
 
-            return putWireId(wireId, 0);
-        }
-
-        private int encodeServerCallEnd(
-            String wireId)
-        {
-            reservePiece(1 + (wireId != null ? wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING : 0));
-
-            pieceBytes[0] = '}';
-
-            return wireId != null ? putWireId(wireId, 1) : 1;
-        }
-
-        private int encodeMemberKey(
-            CharSequence key,
-            boolean separated)
-        {
-            reservePiece(key.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING);
-
             int position = 0;
-
-            if (separated)
-            {
-                pieceBytes[position++] = ',';
-            }
-
-            pieceBytes[position++] = '"';
-
-            for (int index = 0; index < key.length(); index++)
-            {
-                position = putEscaped(key.charAt(index), position);
-            }
-
-            pieceBytes[position++] = '"';
-            pieceBytes[position++] = ':';
-
-            return position;
-        }
-
-        private int putWireId(
-            String wireId,
-            int offset)
-        {
-            int position = offset;
 
             for (int i = 0; i < MEMBER_WIRE_ID.length(); i++)
             {
