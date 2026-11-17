@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.client.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -30,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class SubscribeIT
 {
@@ -146,6 +148,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.messages.topic.alias.repeated/server",
         "${app}/subscribe.receive.messages.topic.alias.repeated/client"})
+    @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "2")
     public void shouldReceiveMessagesTopicAliasRepeated() throws Exception
     {
         k3po.finish();
