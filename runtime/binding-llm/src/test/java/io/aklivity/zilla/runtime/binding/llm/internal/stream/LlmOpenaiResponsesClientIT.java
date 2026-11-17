@@ -168,6 +168,17 @@ public class LlmOpenaiResponsesClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.section.user.text.100k/client",
+        "${net}/openai.responses.section.user.text.100k/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserText100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text/client",
         "${net}/openai.responses.section.assistant.text/server"})
@@ -1622,6 +1633,18 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/transform.assistant.tool.call.100k/client",
+        "${net}/openai.responses.transform.assistant.tool.call.100k/server"})
+    public void shouldTransformAssistantToolCall100kAsOpenaiResponsesWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.assistant.tool.call.10k/client",
         "${net}/openai.responses.transform.assistant.tool.call.10k/server"})
@@ -1670,6 +1693,18 @@ public class LlmOpenaiResponsesClientIT
         "${app}/transform.system.instruction.last.100k/client",
         "${net}/openai.responses.transform.system.instruction.last.100k/server"})
     public void shouldTransformSystemInstructionLast100kAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${net}/openai.responses.transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100kAsOpenaiResponsesWithSmallSlots() throws Exception
     {
         k3po.finish();
     }

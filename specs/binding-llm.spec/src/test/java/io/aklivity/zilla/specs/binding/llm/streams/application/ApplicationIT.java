@@ -5556,6 +5556,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.section.user.text.100k/client",
+        "${app}/openai.responses.section.user.text.100k/server"})
+    public void shouldOpenaiResponsesSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.section.assistant.text/client",
         "${app}/openai.responses.section.assistant.text/server"})
     public void shouldOpenaiResponsesSectionAssistantText() throws Exception

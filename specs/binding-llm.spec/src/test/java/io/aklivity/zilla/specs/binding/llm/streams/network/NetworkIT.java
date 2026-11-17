@@ -5052,6 +5052,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.section.user.text.100k/client",
+        "${net}/openai.responses.section.user.text.100k/server"})
+    public void shouldOpenaiResponsesSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.section.assistant.text/client",
         "${net}/openai.responses.section.assistant.text/server"})
     public void shouldOpenaiResponsesSectionAssistantText() throws Exception
