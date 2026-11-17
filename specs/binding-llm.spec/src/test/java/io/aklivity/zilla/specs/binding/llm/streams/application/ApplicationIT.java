@@ -10207,4 +10207,76 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.stop.window/client",
+        "${app}/gemini.request.stop.window/server"})
+    public void shouldForwardGeminiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.stop.straddle/client",
+        "${app}/gemini.request.stop.straddle/server"})
+    public void shouldForwardGeminiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.service.tier.straddle/client",
+        "${app}/gemini.request.service.tier.straddle/server"})
+    public void shouldForwardGeminiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.effort.window/client",
+        "${app}/gemini.request.reasoning.effort.window/server"})
+    public void shouldForwardGeminiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.window/client",
+        "${app}/gemini.request.reasoning.budget.window/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.straddle/client",
+        "${app}/gemini.request.reasoning.budget.straddle/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.type.window/client",
+        "${app}/gemini.request.response.format.type.window/server"})
+    public void shouldForwardGeminiRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.type.straddle/client",
+        "${app}/gemini.request.response.format.type.straddle/server"})
+    public void shouldForwardGeminiRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }

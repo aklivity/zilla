@@ -10701,4 +10701,76 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.stop.window/client",
+        "${net}/gemini.request.stop.window/server"})
+    public void shouldGeminiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.stop.straddle/client",
+        "${net}/gemini.request.stop.straddle/server"})
+    public void shouldGeminiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.service.tier.straddle/client",
+        "${net}/gemini.request.service.tier.straddle/server"})
+    public void shouldGeminiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.effort.window/client",
+        "${net}/gemini.request.reasoning.effort.window/server"})
+    public void shouldGeminiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.window/client",
+        "${net}/gemini.request.reasoning.budget.window/server"})
+    public void shouldGeminiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.straddle/client",
+        "${net}/gemini.request.reasoning.budget.straddle/server"})
+    public void shouldGeminiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.type.window/client",
+        "${net}/gemini.request.response.format.type.window/server"})
+    public void shouldGeminiRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.type.straddle/client",
+        "${net}/gemini.request.response.format.type.straddle/server"})
+    public void shouldGeminiRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -2877,4 +2877,84 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.stop.window/client",
+        "${net}/gemini.request.stop.window/server"})
+    public void shouldEncodeGeminiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.stop.straddle/client",
+        "${net}/gemini.request.stop.straddle/server"})
+    public void shouldEncodeGeminiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.service.tier.straddle/client",
+        "${net}/gemini.request.service.tier.straddle/server"})
+    public void shouldEncodeGeminiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.effort.window/client",
+        "${net}/gemini.request.reasoning.effort.window/server"})
+    public void shouldEncodeGeminiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.window/client",
+        "${net}/gemini.request.reasoning.budget.window/server"})
+    public void shouldEncodeGeminiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.straddle/client",
+        "${net}/gemini.request.reasoning.budget.straddle/server"})
+    public void shouldEncodeGeminiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.type.window/client",
+        "${net}/gemini.request.response.format.type.window/server"})
+    public void shouldEncodeGeminiRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.type.straddle/client",
+        "${net}/gemini.request.response.format.type.straddle/server"})
+    public void shouldEncodeGeminiRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
 }
