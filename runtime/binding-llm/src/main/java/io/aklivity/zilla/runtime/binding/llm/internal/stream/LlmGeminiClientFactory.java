@@ -309,6 +309,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int SEEN_WIRE_ID = 1 << 4;
     private static final int CALL_CLOSE_RESERVE = ("},\"args\":{},\"id\":\"\",\"" + MEMBER_THOUGHT_SIGNATURE + "\":\"" +
         LlmGeminiToolCallFromCanonical.SIGNATURE_PLACEHOLDER + "\"}").length();
+    private static final int SERVER_CALL_CLOSE_RESERVE = LlmToolTransform.HELD_MAX + "},\"id\":\"\"}".length();
     private static final int SIGNATURE_RESERVE = LlmToolTransform.HELD_MAX +
         ",\"thought\":true,\"thoughtSignature\":\"\"".length();
 
@@ -353,7 +354,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx recordHeader = new UnsafeBufferEx(new byte[RECORD_HEADER]);
     private final LlmGeminiOutputSchema outputSchema;
     private final Matcher contentTypeMatcher;
-    private final MutableDirectBufferEx transformBuffer;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -390,7 +390,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
-        this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -569,6 +568,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     {
         return kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION ||
+            kind == KIND_SERVER_TOOL_DEFINITION ||
+            kind == KIND_SERVER_TOOL_CALL ||
+            kind == KIND_SERVER_TOOL_RESULT ||
             kind == KIND_CONTROL ||
             media(kind);
     }
@@ -976,7 +978,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                 }
-                else if (fin && (http.sectionStreaming || http.requestDecoder != null))
+                else if (fin && http.requestDecoder != null)
                 {
                     http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
@@ -3833,6 +3835,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiRequestDecoder decodeRequestMediaSourceKey = this::decodeRequestMediaSourceKey;
         private final LlmGeminiRequestDecoder decodeRequestMediaData = this::decodeRequestMediaData;
         private final LlmGeminiRequestDecoder decodeRequestMediaDataContinue = this::decodeRequestMediaDataContinue;
+        private final LlmGeminiRequestDecoder decodeRequestServerKey = this::decodeRequestServerKey;
+        private final LlmGeminiRequestDecoder decodeRequestServerCallKey = this::decodeRequestServerCallKey;
+        private final LlmGeminiRequestDecoder decodeRequestServerArguments = this::decodeRequestServerArguments;
+        private final LlmGeminiRequestDecoder decodeRequestServerArgumentsKey = this::decodeRequestServerArgumentsKey;
         private final LlmGeminiRequestDecoder decodeRequestSkip = this::decodeRequestSkip;
         private final LlmGeminiRequestDecoder decodeRequestDone = this::decodeRequestDone;
         private LlmGeminiRequestDecoder requestDecoder;
@@ -3856,11 +3862,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean textBlockOpen;
         private int sectionKind;
         private boolean sectionOpen;
-        private boolean sectionStreaming;
         private boolean rawOpen;
-        private LlmSectionPipeline sectionPipeline;
-        private LlmSectionPipeline serverToolPipeline;
-        private LlmSectionPipeline serverToolCallPipeline;
         private int messageToolCalls;
         private int partDepth = 1;
         private final String[] callIds = new String[CALLS_MAX];
@@ -3870,8 +3872,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
         private int controlMessage;
-        private LlmSectionPipeline.Output sectionTarget;
-        private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
         private final LlmGeminiRequestDecoder decodeRequestControlKey = this::decodeRequestControlKey;
         private final LlmGeminiRequestDecoder decodeRequestControlContainer = this::decodeRequestControlContainer;
@@ -4022,27 +4022,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int closeReserve()
         {
             return signing(sectionKind) ? SIGNATURE_RESERVE : callReserve;
-        }
-
-        private LlmSectionPipeline serverToolCallPipeline()
-        {
-            if (serverToolCallPipeline == null)
-            {
-                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(sameDialect),
-                    transformBuffer);
-            }
-
-            return serverToolCallPipeline;
-        }
-
-        private LlmSectionPipeline serverToolPipeline()
-        {
-            if (serverToolPipeline == null)
-            {
-                serverToolPipeline = new LlmSectionPipeline(new LlmGeminiServerToolFromCanonical(), transformBuffer);
-            }
-
-            return serverToolPipeline;
         }
 
         private String rejectedMember()
@@ -4579,6 +4558,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             case KIND_CONTROL:
                 controlGenerator.writeStartObject();
                 requestDecoder = decodeRequestControlKey;
+                break;
+            case KIND_SERVER_TOOL_DEFINITION:
+            case KIND_SERVER_TOOL_RESULT:
+                generator.writeStartObject();
+                requestDecoder = decodeRequestServerKey;
+                break;
+            case KIND_SERVER_TOOL_CALL:
+                generator.writeStartObject().writeStartObject(MEMBER_EXECUTABLE_CODE);
+                requestDecoder = decodeRequestServerCallKey;
                 break;
             default:
                 requestDecoder = decodeRequestTextKey;
@@ -6477,6 +6465,190 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return positionRequest(limit);
         }
 
+        private int decodeRequestServerKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestServerKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        generator.writeKey(parser.getStringView());
+                        copier.reset();
+                        requestThen = decodeRequestServerKey;
+                        requestDecoder = decodeRequestMember;
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        generator.writeEnd();
+                        requestDecoder = decodeRequestDone;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestServerCallKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestServerCallKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        final JsonStringView key = parser.getStringView();
+
+                        if (MEMBER_ARGUMENTS.contentEquals(key) && (seenMask & SEEN_CALLED) == 0)
+                        {
+                            requestDecoder = decodeRequestServerArguments;
+                        }
+                        else if (MEMBER_CANONICAL_ID.contentEquals(key))
+                        {
+                            signatureBuilder.setLength(0);
+                            requestThen = decodeRequestServerCallKey;
+                            requestDecoder = decodeRequestCallId;
+                        }
+                        else
+                        {
+                            closeServerCall();
+                            selectMember(memberKeys.selectPrefixed(key), key, decodeRequestServerCallKey);
+                        }
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        closeServerCall();
+                        generator.writeEnd();
+                        requestDecoder = decodeRequestDone;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private void closeServerCall()
+        {
+            if ((seenMask & SEEN_CALLED) == 0)
+            {
+                if ((seenMask & SEEN_WIRE_ID) != 0)
+                {
+                    if (LlmGeminiSignatureFromCanonical.plain(signatureBuilder.toString()))
+                    {
+                        generator.writeKey(MEMBER_ID).write(signatureBuilder);
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+
+                generator.writeEnd();
+                seenMask |= SEEN_CALLED;
+            }
+        }
+
+        private int decodeRequestServerArguments(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                if (requestDecoder == decodeRequestServerArguments && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                    {
+                        requestDecoder = decodeRequestServerArgumentsKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestServerArgumentsKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestServerArgumentsKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        generator.writeKey(parser.getStringView());
+                        copier.reset();
+                        requestThen = decodeRequestServerArgumentsKey;
+                        requestDecoder = decodeRequestMember;
+                    }
+                    else if (event == JsonEvent.END_OBJECT)
+                    {
+                        requestDecoder = decodeRequestServerCallKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
         private int decodeRequestDone(
             DirectBufferEx buffer,
             int offset,
@@ -6526,7 +6698,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     closeTextBlock();
                     openRegion(REGION_TOOLS);
-                    beginSectionStreaming(serverToolPipeline(), sectionOutput);
                 }
                 else
                 {
@@ -6561,16 +6732,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
         }
 
-        private void beginSectionStreaming(
-            LlmSectionPipeline pipeline,
-            LlmSectionPipeline.Output output)
-        {
-            sectionPipeline = pipeline;
-            sectionTarget = output;
-            sectionPipeline.begin(sectionAttributes);
-            sectionStreaming = true;
-        }
-
         private void beginContentBlock(
             int kind,
             int message)
@@ -6596,13 +6757,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
             else if (kind == KIND_SERVER_TOOL_CALL)
             {
-                beginSectionStreaming(serverToolCallPipeline(), sectionOutput);
+                seenMask = 0;
+                callReserve = SERVER_CALL_CLOSE_RESERVE;
             }
-            else if (kind == KIND_SERVER_TOOL_RESULT)
-            {
-                beginSectionStreaming(serverToolPipeline(), sectionOutput);
-            }
-            else if (!media(kind))
+            else if (!media(kind) && kind != KIND_SERVER_TOOL_RESULT)
             {
                 beginTextBlock();
                 sectionOpen = !encodeFailed;
@@ -6807,37 +6965,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (sectionStreaming)
-            {
-                if (beginEncode(0))
-                {
-                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget))
-                    {
-                        encodeFailed = true;
-                    }
-
-                    endEncode();
-                }
-            }
-            else if (requestDecoder != null)
+            if (requestDecoder != null)
             {
                 decodeRequest(buffer, offset, length, fin);
-            }
-        }
-
-        private void putRaw(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (fits(length))
-            {
-                generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
-                rawOpen = true;
-            }
-            else
-            {
-                encodeFailed = true;
             }
         }
 
@@ -6921,7 +7051,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE + signed))
             {
-                sectionStreaming = false;
                 if (rawOpen)
                 {
                     generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
