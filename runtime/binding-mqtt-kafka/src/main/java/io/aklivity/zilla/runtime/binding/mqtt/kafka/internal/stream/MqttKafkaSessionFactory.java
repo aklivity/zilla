@@ -16,6 +16,13 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.NONE;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.DESCRIBE;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.INIT_PRODUCER;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.META;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.OFFSET_COMMIT;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.OFFSET_FETCH;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.SESSION;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.WILL_SIGNAL;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
@@ -94,6 +101,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessa
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ChallengeFW;
@@ -1744,16 +1752,55 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         @Override
         public void onPartitionsAborted(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW topic)
         {
+            onKafkaTopicFailed(traceId, META, topic);
             doMqttAbort(traceId, authorization);
         }
 
         @Override
         public void onPartitionsReset(
-            long traceId)
+            long traceId,
+            String16FW topic)
         {
+            onKafkaTopicFailed(traceId, META, topic);
             doMqttReset(traceId);
+        }
+
+        private void onKafkaTopicFailed(
+            long traceId,
+            MqttKafkaStreamKind stream,
+            String16FW topic)
+        {
+            onKafkaFailed(traceId, stream, topic.asString(), null);
+        }
+
+        private void onKafkaGroupFailed(
+            long traceId,
+            MqttKafkaStreamKind stream)
+        {
+            onKafkaFailed(traceId, stream, null, String.format("%s-%s", groupIdPrefix, clientId.asString()));
+        }
+
+        private void onKafkaFailed(
+            long traceId,
+            MqttKafkaStreamKind stream)
+        {
+            onKafkaFailed(traceId, stream, null, null);
+        }
+
+        private void onKafkaFailed(
+            long traceId,
+            MqttKafkaStreamKind stream,
+            String topic,
+            String group)
+        {
+            if (!StreamState.closed(state))
+            {
+                events.onKafkaStreamFailed(traceId, resolvedId, stream, StreamState.replyOpening(state),
+                    clientId != null ? clientId.asString() : null, topic, group);
+            }
         }
 
         private void doFetchSessionOffsets(
@@ -3251,6 +3298,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         protected long initialId;
         protected long replyId;
         protected final MqttSessionProxy delegate;
+        protected final MqttKafkaStreamKind kind;
 
         protected int state;
 
@@ -3266,11 +3314,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private KafkaSessionStream(
             long originId,
             long routedId,
-            MqttSessionProxy delegate)
+            MqttSessionProxy delegate,
+            MqttKafkaStreamKind kind)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.delegate = delegate;
+            this.kind = kind;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -3373,6 +3423,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
+                delegate.onKafkaTopicFailed(traceId, kind, delegate.sessionsTopic);
                 delegate.doMqttAbort(traceId, authorization);
             }
             else
@@ -3410,6 +3461,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaTopicFailed(traceId, kind, delegate.sessionsTopic);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -3422,6 +3474,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaTopicFailed(traceId, kind, delegate.sessionsTopic);
             delegate.doMqttReset(traceId);
         }
 
@@ -3719,7 +3772,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long routedId,
             MqttSessionProxy delegate)
         {
-            super(originId, routedId, delegate);
+            super(originId, routedId, delegate, SESSION);
         }
 
         @Override
@@ -3978,7 +4031,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long routedId,
             MqttSessionProxy delegate)
         {
-            super(originId, routedId, delegate);
+            super(originId, routedId, delegate, WILL_SIGNAL);
         }
 
         @Override
@@ -4055,10 +4108,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         void onPartitionsAborted(
             long traceId,
-            long authorization);
+            long authorization,
+            String16FW topic);
 
         void onPartitionsReset(
-            long traceId);
+            long traceId,
+            String16FW topic);
 
         void onGroupCoordinatorFound(
             KafkaFindCoordinatorStream findCoordinator,
@@ -4180,7 +4235,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
-                delegate.onPartitionsAborted(traceId, authorization);
+                delegate.onPartitionsAborted(traceId, authorization, topic);
             }
 
             final OctetsFW extension = data.extension();
@@ -4211,7 +4266,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!StreamState.initialClosed(state))
             {
-                delegate.onPartitionsAborted(end.traceId(), end.authorization());
+                delegate.onPartitionsAborted(end.traceId(), end.authorization(), topic);
             }
         }
 
@@ -4231,7 +4286,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.onPartitionsAborted(traceId, authorization);
+            delegate.onPartitionsAborted(traceId, authorization, topic);
         }
 
         private void onKafkaReset(
@@ -4243,7 +4298,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
-            delegate.onPartitionsReset(traceId);
+            delegate.onPartitionsReset(traceId, topic);
         }
 
         private void doKafkaBegin(
@@ -4416,6 +4471,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
+                delegate.onKafkaTopicFailed(traceId, DESCRIBE, topic);
                 delegate.doMqttAbort(traceId, authorization);
             }
 
@@ -4463,6 +4519,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaTopicFailed(traceId, DESCRIBE, topic);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -4475,6 +4532,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaTopicFailed(traceId, DESCRIBE, topic);
             delegate.doMqttReset(traceId);
         }
 
@@ -4663,6 +4721,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (replySeq > replyAck + replyMax)
             {
                 doKafkaReset(traceId);
+                delegate.onKafkaGroupFailed(traceId, OFFSET_FETCH);
                 delegate.doMqttAbort(traceId, authorization);
             }
 
@@ -4729,6 +4788,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaGroupFailed(traceId, OFFSET_FETCH);
             delegate.doMqttReset(traceId);
             delegate.doMqttAbort(traceId, authorization);
         }
@@ -4742,6 +4802,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaGroupFailed(traceId, OFFSET_FETCH);
             delegate.doMqttReset(traceId);
         }
 
@@ -5448,14 +5509,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         @Override
         public void onPartitionsAborted(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW topic)
         {
             cleanup(traceId, authorization);
         }
 
         @Override
         public void onPartitionsReset(
-            long traceId)
+            long traceId,
+            String16FW topic)
         {
             cleanup(traceId, 0L);
         }
@@ -5661,6 +5724,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaFailed(traceId, INIT_PRODUCER);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -5673,6 +5737,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaFailed(traceId, INIT_PRODUCER);
             delegate.doMqttReset(traceId);
         }
 
@@ -5871,6 +5936,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaGroupFailed(traceId, OFFSET_COMMIT);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -5883,6 +5949,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaGroupFailed(traceId, OFFSET_COMMIT);
             delegate.doMqttReset(traceId);
         }
 

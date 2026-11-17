@@ -123,7 +123,21 @@ scope mqtt_kafka
         enum MqttKafkaEventType (uint8)
         {
             NON_COMPACT_SESSIONS_TOPIC (1),
-            NON_COMPACT_RETAINED_TOPIC (2)
+            NON_COMPACT_RETAINED_TOPIC (2),
+            KAFKA_STREAM_FAILED (3)
+        }
+
+        enum MqttKafkaStreamKind (uint8)
+        {
+            SESSION (1),
+            WILL_SIGNAL (2),
+            META (3),
+            DESCRIBE (4),
+            OFFSET_FETCH (5),
+            OFFSET_COMMIT (6),
+            INIT_PRODUCER (7),
+            PRODUCE (8),
+            FETCH (9)
         }
 
         struct MqttKafkaNonCompactSessionsTopicEx extends core::stream::Extension
@@ -136,10 +150,20 @@ scope mqtt_kafka
             string16 topic;
         }
 
+        struct MqttKafkaKafkaStreamFailedEx extends core::stream::Extension
+        {
+            MqttKafkaStreamKind stream;
+            uint8 connected;
+            string16 clientId;
+            string16 topic;
+            string16 group;
+        }
+
         union MqttKafkaEventEx switch (MqttKafkaEventType)
         {
             case NON_COMPACT_SESSIONS_TOPIC: MqttKafkaNonCompactSessionsTopicEx nonCompactSessionsTopic;
             case NON_COMPACT_RETAINED_TOPIC: MqttKafkaNonCompactRetainedTopicEx nonCompactRetainedTopic;
+            case KAFKA_STREAM_FAILED: MqttKafkaKafkaStreamFailedEx kafkaStreamFailed;
         }
     }
 }

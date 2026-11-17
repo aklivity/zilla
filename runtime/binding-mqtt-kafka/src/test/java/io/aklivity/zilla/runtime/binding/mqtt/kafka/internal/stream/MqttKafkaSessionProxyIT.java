@@ -192,6 +192,18 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.log.event.stream.failed.session.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.server.sent.reset/client",
+        "${kafka}/session.server.sent.reset/server"})
+    public void shouldEmitStreamFailedEventWhenSessionStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
@@ -591,6 +603,37 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.qos2.end.before.session.established/client",
         "${kafka}/session.qos2.end.before.session.established/server"})
     public void shouldEndQos2SessionBeforeSessionStreamEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.log.event.stream.failed.meta.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/session.qos2.meta.reset/client",
+        "${kafka}/session.qos2.meta.reset/server"})
+    public void shouldEmitStreamFailedEventWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.log.event.stream.failed.init.producer.yaml")
+    @Specification({
+        "${mqtt}/session.qos2.init.producer.reset/client",
+        "${kafka}/session.qos2.init.producer.reset/server"})
+    public void shouldEmitStreamFailedEventWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.log.event.stream.failed.offset.fetch.yaml")
+    @Specification({
+        "${mqtt}/session.qos2.offset.fetch.reset/client",
+        "${kafka}/session.qos2.offset.fetch.reset/server"})
+    public void shouldEmitStreamFailedEventWhenOffsetFetchStreamReset() throws Exception
     {
         k3po.finish();
     }

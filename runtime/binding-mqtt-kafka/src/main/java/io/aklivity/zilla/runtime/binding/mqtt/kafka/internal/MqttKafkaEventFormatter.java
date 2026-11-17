@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaKafkaStreamFailedExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaNonCompactRetainedTopicExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaNonCompactSessionsTopicExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
@@ -63,8 +65,54 @@ public final class MqttKafkaEventFormatter implements EventFormatterSpi
             );
             break;
         }
+        case KAFKA_STREAM_FAILED:
+        {
+            MqttKafkaKafkaStreamFailedExFW ex = extension.kafkaStreamFailed();
+            result = String.format(
+                    "The Kafka %s stream%s%s failed %s MQTT client (%s) was connected, the MQTT stream was closed.",
+                    streamName(ex.stream().get()),
+                    qualifier("topic", ex.topic()),
+                    qualifier("group", ex.group()),
+                    ex.connected() != 0 ? "after" : "before",
+                    asString(ex.clientId())
+            );
+            break;
+        }
         }
         return result;
+    }
+
+    private static String streamName(
+        MqttKafkaStreamKind kind)
+    {
+        String name;
+        switch (kind)
+        {
+        case INIT_PRODUCER:
+            name = "init producer id";
+            break;
+        case OFFSET_FETCH:
+            name = "offset fetch";
+            break;
+        case OFFSET_COMMIT:
+            name = "offset commit";
+            break;
+        case WILL_SIGNAL:
+            name = "will signal";
+            break;
+        default:
+            name = kind.name().toLowerCase();
+            break;
+        }
+        return name;
+    }
+
+    private static String qualifier(
+        String label,
+        String16FW value)
+    {
+        String s = asString(value);
+        return s.isEmpty() ? "" : String.format(" for %s (%s)", label, s);
     }
 
     private static String asString(

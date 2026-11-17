@@ -512,6 +512,17 @@ public class MqttKafkaPublishProxyIT
     }
 
     @Test
+    @Configuration("proxy.log.event.stream.failed.produce.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.server.sent.abort/client",
+        "${kafka}/publish.server.sent.abort/server"})
+    public void shouldEmitStreamFailedEventWhenProduceStreamAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({

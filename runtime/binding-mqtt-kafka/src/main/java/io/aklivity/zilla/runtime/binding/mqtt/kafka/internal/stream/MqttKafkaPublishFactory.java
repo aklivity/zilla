@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.NONE;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.OFFSET_COMMIT;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.PRODUCE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
@@ -42,6 +44,7 @@ import org.agrona.collections.LongArrayList;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
@@ -62,6 +65,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOf
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.DataFW;
@@ -171,6 +175,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final MqttKafkaHeaderHelper helper;
     private final int kafkaTypeId;
+    private final MqttKafkaEventContext events;
     private final int mqttTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final String16FW binaryFormat;
@@ -188,6 +193,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
+        this.events = new MqttKafkaEventContext(context);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -292,6 +298,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
         private Array32FW<String16FW> topicNameHeaders;
         private OctetsFW clientIdOctets;
+        private String clientIdString;
         private String16FW clientId;
         private String16FW clientIdOffsets;
         private String16FW sessionsTopic;
@@ -414,6 +421,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.qos = mqttPublishBeginEx.qos();
 
             final String16FW clientId = mqttPublishBeginEx.clientId();
+            this.clientIdString = clientId.asString();
             final MutableDirectBufferEx clientIdBuffer = new UnsafeBufferEx(new byte[clientId.sizeof() + 2]);
             this.clientIdOctets = new OctetsFW.Builder().wrap(clientIdBuffer, 0, clientIdBuffer.capacity())
                 .set(clientId.value(), 0, mqttPublishBeginEx.clientId().length()).build();
@@ -912,6 +920,19 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void onKafkaFailed(
+            long traceId,
+            long bindingId,
+            MqttKafkaStreamKind stream,
+            String topic)
+        {
+            if (!StreamState.closed(state))
+            {
+                events.onKafkaStreamFailed(traceId, bindingId, stream, true,
+                    clientIdString, topic, null);
+            }
+        }
+
         private void doMqttAbort(
             long traceId,
             long authorization)
@@ -1387,6 +1408,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaFailed(traceId, routedId, PRODUCE, topicString);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -1430,6 +1452,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                         .build();
                 }
 
+                delegate.onKafkaFailed(traceId, routedId, PRODUCE, topicString);
                 delegate.doMqttReset(traceId, mqttResetEx);
             }
         }
@@ -1756,6 +1779,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaFailed(traceId, routedId, PRODUCE, topicString);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -1799,6 +1823,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                         .build();
                 }
 
+                delegate.onKafkaFailed(traceId, routedId, PRODUCE, topicString);
                 delegate.doMqttReset(traceId, mqttResetEx);
             }
         }
@@ -2169,6 +2194,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            delegate.onKafkaFailed(traceId, routedId, OFFSET_COMMIT, null);
             delegate.doMqttAbort(traceId, authorization);
         }
 
@@ -2181,6 +2207,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             assert acknowledge <= sequence;
 
+            delegate.onKafkaFailed(traceId, routedId, OFFSET_COMMIT, null);
             delegate.doMqttReset(traceId, EMPTY_OCTETS);
         }
 

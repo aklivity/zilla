@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPu
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.SEND_RETAINED;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind.FETCH;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
@@ -55,6 +56,7 @@ import org.agrona.collections.Object2IntHashMap;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaEventContext;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
@@ -77,6 +79,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeFrameFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeMessageFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.DataFW;
@@ -194,6 +197,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private final LongUnaryOperator supplyReplyId;
     private final Supplier<Long> supplyTraceId;
     private final int mqttTypeId;
+    private final MqttKafkaEventContext events;
     private final int kafkaTypeId;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final MqttKafkaHeaderHelper helper;
@@ -228,6 +232,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
+        this.events = new MqttKafkaEventContext(context);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -814,6 +819,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         {
             doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, budgetId, reserved, emptyRO);
+        }
+
+        private void onKafkaFailed(
+            long traceId,
+            long bindingId,
+            MqttKafkaStreamKind stream,
+            String topic)
+        {
+            if (!StreamState.closed(state))
+            {
+                events.onKafkaStreamFailed(traceId, bindingId, stream, true,
+                    clientId != null ? clientId.asString() : null, topic, null);
+            }
         }
 
         private void doMqttAbort(
@@ -1633,6 +1651,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             assert replyAck <= replySeq;
 
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topic.asString());
             mqtt.doMqttAbort(traceId, authorization);
         }
 
@@ -1650,6 +1669,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             assert mqtt.initialAck <= mqtt.initialSeq;
 
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topic.asString());
             mqtt.doMqttReset(traceId);
         }
 
@@ -2333,6 +2353,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             assert replyAck <= replySeq;
 
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topic.asString());
             mqtt.doMqttAbort(traceId, authorization);
         }
 
@@ -2350,6 +2371,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             assert mqtt.initialAck <= mqtt.initialSeq;
 
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topic.asString());
             mqtt.doMqttReset(traceId);
         }
 
@@ -3011,6 +3033,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 traceId, authorization, budgetId, reserved, extension);
         }
 
+        private void onKafkaFailed(
+            long traceId,
+            long bindingId,
+            MqttKafkaStreamKind stream,
+            String topic)
+        {
+            if (!StreamState.closed(state))
+            {
+                events.onKafkaStreamFailed(traceId, bindingId, stream, true,
+                    clientHighWaterMarks.clientId, topic, null);
+            }
+        }
+
         private void doMqttAbort(
             long traceId,
             long authorization)
@@ -3545,6 +3580,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             assert replyAck <= replySeq;
 
             releasePacketIds();
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topicName);
             mqtt.doMqttAbort(traceId, authorization);
         }
 
@@ -3578,6 +3614,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             }
 
             releasePacketIds();
+            mqtt.onKafkaFailed(traceId, routedId, FETCH, topicName);
             mqtt.doMqttReset(traceId, mqttResetEx);
         }
 

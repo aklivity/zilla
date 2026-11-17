@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.KAFKA_STREAM_FAILED;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.NON_COMPACT_RETAINED_TOPIC;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventType.NON_COMPACT_SESSIONS_TOPIC;
 
@@ -23,6 +24,7 @@ import java.time.Clock;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaEventExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.event.MqttKafkaStreamKind;
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -39,6 +41,7 @@ public class MqttKafkaEventContext
     private final int mqttTypeId;
     private final int nonCompactSessionsTopicEventId;
     private final int nonCompactRetainedTopicEventId;
+    private final int kafkaStreamFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -48,6 +51,7 @@ public class MqttKafkaEventContext
         this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.TYPE);
         this.nonCompactSessionsTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.sessions.topic");
         this.nonCompactRetainedTopicEventId = context.supplyEventId("binding.mqtt.kafka.non.compact.retained.topic");
+        this.kafkaStreamFailedEventId = context.supplyEventId("binding.mqtt.kafka.stream.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -88,6 +92,36 @@ public class MqttKafkaEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(nonCompactRetainedTopicEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(mqttTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void onKafkaStreamFailed(
+        long traceId,
+        long bindingId,
+        MqttKafkaStreamKind stream,
+        boolean connected,
+        String clientId,
+        String topic,
+        String group)
+    {
+        MqttKafkaEventExFW extension = mqttKafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .kafkaStreamFailed(e -> e
+                .typeId(KAFKA_STREAM_FAILED.value())
+                .stream(k -> k.set(stream))
+                .connected(connected ? 1 : 0)
+                .clientId(clientId != null ? clientId : "")
+                .topic(topic != null ? topic : "")
+                .group(group != null ? group : ""))
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(kafkaStreamFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

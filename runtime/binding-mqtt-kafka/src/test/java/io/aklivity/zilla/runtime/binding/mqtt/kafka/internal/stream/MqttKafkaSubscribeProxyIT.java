@@ -88,6 +88,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.log.event.stream.failed.fetch.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.server.sent.abort/client",
+        "${kafka}/subscribe.server.sent.abort/server"})
+    public void shouldEmitStreamFailedEventWhenFetchStreamAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
