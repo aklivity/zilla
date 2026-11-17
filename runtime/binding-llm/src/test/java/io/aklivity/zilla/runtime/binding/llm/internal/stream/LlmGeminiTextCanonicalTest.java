@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRejects;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRoundTrips;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 
@@ -26,7 +25,6 @@ public class LlmGeminiTextCanonicalTest
     private static final String TEXT = "Hello, how are you today? ".repeat(400);
 
     private final LlmGeminiTextToCanonical toCanonical = new LlmGeminiTextToCanonical();
-    private final LlmGeminiTextFromCanonical fromCanonical = new LlmGeminiTextFromCanonical(true);
 
     @Test
     public void shouldConvertText()
@@ -104,44 +102,5 @@ public class LlmGeminiTextCanonicalTest
     public void shouldRejectNonStringText()
     {
         assertRejects(toCanonical, json("{'text':1}"));
-    }
-
-    @Test
-    public void shouldRestoreText()
-    {
-        assertTransforms(fromCanonical,
-            json("{'text':'Hello'}"),
-            json("{'text':'Hello'}"));
-    }
-
-    @Test
-    public void shouldRestoreOwnPrefixedMember()
-    {
-        assertTransforms(fromCanonical,
-            json("{'text':'Hello','gemini:thoughtSignature':'sig-1'}"),
-            json("{'text':'Hello','thoughtSignature':'sig-1'}"));
-    }
-
-    @Test
-    public void shouldRestoreObjectMemberUnchanged()
-    {
-        assertTransforms(fromCanonical,
-            json("{'text':'Hello','gemini:videoMetadata':{'startOffset':'1s'}}"),
-            json("{'text':'Hello','videoMetadata':{'startOffset':'1s'}}"));
-    }
-
-    @Test
-    public void shouldDropOtherDialectPrefixedMember()
-    {
-        assertTransforms(fromCanonical,
-            json("{'text':'Hello','anthropic:signature':'sig-1','openai:refusal':null}"),
-            json("{'text':'Hello'}"));
-    }
-
-    @Test
-    public void shouldRoundTripText()
-    {
-        assertRoundTrips(toCanonical, fromCanonical,
-            json("{'text':'Hello','thoughtSignature':'sig-1'}"));
     }
 }
