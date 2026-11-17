@@ -834,4 +834,37 @@ public class MqttKafkaSubscribeProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level/client",
+        "${kafka}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/client",
+        "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retain.parent.level/client",
+        "${kafka}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
 }

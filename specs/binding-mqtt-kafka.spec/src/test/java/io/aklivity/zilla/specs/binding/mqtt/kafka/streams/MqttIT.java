@@ -1318,4 +1318,31 @@ public class MqttIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level/client",
+        "${mqtt}/subscribe.receive.message.parent.level/server"})
+    public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/client",
+        "${mqtt}/subscribe.receive.message.parent.level.overlapping/server"})
+    public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retain.parent.level/client",
+        "${mqtt}/subscribe.retain.parent.level/server"})
+    public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
 }

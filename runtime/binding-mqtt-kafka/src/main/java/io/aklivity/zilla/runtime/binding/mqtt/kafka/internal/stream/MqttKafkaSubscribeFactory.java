@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.LongFunction;
@@ -106,6 +107,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
     private static final String MQTT_MULTI_LEVEL_WILDCARD = "#";
+    private static final String MQTT_PARENT_LEVEL_WILDCARD_SUFFIX = "/#";
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
     private static final int SEND_RETAIN_FLAG = 1 << SEND_RETAINED.ordinal();
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
@@ -1130,6 +1132,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         protected final IntArrayList subscriptionIds = new IntArrayList();
         protected final IntArrayList subscriptionFlags = new IntArrayList();
 
+        protected final void addSubscription(
+            String pattern,
+            int subscriptionId,
+            int flags)
+        {
+            forEachAlternative(pattern, alternative ->
+            {
+                subscriptionIds.add(subscriptionId);
+                subscriptionFlags.add(flags);
+            });
+        }
+
         protected final int buildSubscriptionIds(
             long filters)
         {
@@ -1633,8 +1647,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     if (matchesTopicFilter(f.pattern().asString()))
                     {
                         int subscriptionId = (int) f.subscriptionId();
-                        subscriptionIds.add(subscriptionId);
-                        subscriptionFlags.add(f.flags());
+                        addSubscription(f.pattern().asString(), subscriptionId, f.flags());
                         filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
@@ -1718,58 +1731,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                         filters.forEach(filter ->
                         {
-                            if (matchesTopicFilter(filter.pattern().asString()))
+                            final String pattern = filter.pattern().asString();
+                            if (matchesTopicFilter(pattern))
                             {
-                                subscriptionIds.add((int) filter.subscriptionId());
-                                subscriptionFlags.add(filter.flags());
+                                addSubscription(pattern, (int) filter.subscriptionId(), filter.flags());
                                 if ((filter.flags() & SEND_RETAIN_FLAG) != 0)
                                 {
                                     mqtt.retainAvailable = true;
                                 }
-                                f.filtersItem(fi ->
-                                {
-                                    fi.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
-
-                                    final boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
-                                    if (noLocal)
-                                    {
-                                        final DirectBufferEx valueBuffer = mqtt.clientId.value();
-                                        fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                            h.nameLen(helper.kafkaLocalHeaderName.sizeof())
-                                                .name(helper.kafkaLocalHeaderName)
-                                                .valueLen(valueBuffer.capacity())
-                                                .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                    }
-
-                                    final int maxQos = filter.qos();
-                                    if (maxQos != qos || maxQos == MqttQoS.EXACTLY_ONCE.value())
-                                    {
-                                        for (int level = 0; level <= MqttQoS.EXACTLY_ONCE.value(); level++)
-                                        {
-                                            if (level != qos)
-                                            {
-                                                final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                                fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                                    h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                                        .name(helper.kafkaQosHeaderName)
-                                                        .valueLen(valueBuffer.capacity())
-                                                        .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (int level = 0; level < maxQos; level++)
-                                        {
-                                            final DirectBufferEx valueBuffer = qosNames.get(level).value();
-                                            fi.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                                h.nameLen(helper.kafkaQosHeaderName.sizeof())
-                                                    .name(helper.kafkaQosHeaderName)
-                                                    .valueLen(valueBuffer.capacity())
-                                                    .value(valueBuffer, 0, valueBuffer.capacity())))));
-                                        }
-                                    }
-                                });
+                                forEachAlternative(pattern, alternative ->
+                                    f.filtersItem(fi -> buildFilterConditions(fi, alternative, filter, mqtt.clientId, qos)));
                             }
                         });
                     }))
@@ -2371,8 +2342,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             subscriptionFlags.clear();
             newRetainedFilters.forEach(f ->
             {
-                subscriptionIds.add(f.id);
-                subscriptionFlags.add(f.flags);
+                addSubscription(f.filter.asString(), f.id, f.flags);
                 filterBuilder.item(fb -> fb
                     .subscriptionId(f.id).qos(f.qos).flags(f.flags).pattern(f.filter));
             });
@@ -2460,8 +2430,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             subscriptionFlags.clear();
             retainedFiltersList.forEach(f ->
             {
-                subscriptionIds.add(f.id);
-                subscriptionFlags.add(f.flags);
+                addSubscription(f.filter.asString(), f.id, f.flags);
                 filterBuilder.item(fb -> fb
                     .subscriptionId(f.id).qos(f.qos).flags(f.flags).pattern(f.filter));
             });
@@ -2475,7 +2444,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         f.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                         retainedFilters.forEach(filter ->
-                            f.filtersItem(fi -> buildFilterConditions(fi, filter, mqtt.clientId, qos)));
+                            forEachAlternative(filter.pattern().asString(), alternative ->
+                                f.filtersItem(fi -> buildFilterConditions(fi, alternative, filter, mqtt.clientId, qos))));
                     }))
                     .build();
 
@@ -2716,11 +2686,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
     private void buildFilterConditions(
         KafkaFilterFW.Builder f,
+        String pattern,
         MqttTopicFilterFW filter,
         String16FW clientId,
         int qos)
     {
-        f.conditionsItem(ci -> buildHeaders(ci, filter.pattern().asString()));
+        f.conditionsItem(ci -> buildHeaders(ci, pattern));
         boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
         if (noLocal)
         {
@@ -2795,7 +2766,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         p.partitionId(offsetType.value())
                             .partitionOffset(offsetType.value()));
                     filters.forEach(filter ->
-                        m.filtersItem(f -> buildFilterConditions(f, filter, clientId, qos)));
+                        forEachAlternative(filter.pattern().asString(), alternative ->
+                            m.filtersItem(f -> buildFilterConditions(f, alternative, filter, clientId, qos))));
                     m.evaluation(b -> b.set(KafkaEvaluation.EAGER));
                 })
                 .build();
@@ -2863,6 +2835,27 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         return receiver;
+    }
+
+    private static void forEachAlternative(
+        String pattern,
+        Consumer<String> alternative)
+    {
+        final String parentLevel = parentLevelPattern(pattern);
+        if (parentLevel != null)
+        {
+            alternative.accept(parentLevel);
+        }
+        alternative.accept(pattern);
+    }
+
+    private static String parentLevelPattern(
+        String pattern)
+    {
+        final int parentLength = pattern.length() - MQTT_PARENT_LEVEL_WILDCARD_SUFFIX.length();
+        return parentLength > 0 && pattern.endsWith(MQTT_PARENT_LEVEL_WILDCARD_SUFFIX)
+            ? pattern.substring(0, parentLength)
+            : null;
     }
 
     private void buildHeaders(
