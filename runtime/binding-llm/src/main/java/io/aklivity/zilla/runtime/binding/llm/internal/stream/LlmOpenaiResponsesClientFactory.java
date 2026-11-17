@@ -161,6 +161,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int CONTROL_HEADROOM = 16;
     private static final int CAPTURED_MAX = 4096;
     private static final int CONTROL_OPTIONS_OPENED = 1 << 0;
+    private static final int REGION_BODY_HELD = 1 << 0;
+    private static final int REGION_INPUT_OPENED = 1 << 1;
+    private static final int REGION_INPUT_CLOSED = 1 << 2;
+    private static final int REGION_TOOLS_OPENED = 1 << 3;
+    private static final int REGION_TOOLS_CLOSED = 1 << 4;
     private static final int FORMAT_OFF = 0;
     private static final int FORMAT_UNSET = 1;
     private static final int FORMAT_SCHEMA = 2;
@@ -1180,7 +1185,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 final String section = requestSection.name().toLowerCase().replace('_', '-');
 
-                message = http.inputClosed
+                message = http.inputClosed()
                     ? MESSAGE_SECTION_CONVERT_AFTER_INPUT.formatted(section, dialect, NAME)
                     : MESSAGE_SECTION_CONVERT.formatted(section, dialect, NAME);
             }
@@ -6227,15 +6232,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private final LlmRequestHold hold;
         private boolean rawOpen;
         private boolean encodeFailed;
-        private boolean sectionsStarted;
+        private int regions = REGION_BODY_HELD;
 
         private int messageIndex = NO_MESSAGE;
         private int instructionsMessage = NO_MESSAGE;
         private String messageToolId;
-        private boolean inputOpened;
-        private boolean inputClosed;
-        private boolean toolsOpened;
-        private boolean toolsClosed;
         private String pendingItemType;
         private String pendingItemId;
         private boolean translated;
@@ -7266,12 +7267,14 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             else if (LlmSharedMembers.REASONING_EFFORT.contentEquals(member) ||
                 LlmSharedMembers.THINKING_BUDGET_TOKENS.contentEquals(member))
             {
-                controlMember = member.toString();
+                controlMember = LlmSharedMembers.REASONING_EFFORT.contentEquals(member)
+                    ? LlmSharedMembers.REASONING_EFFORT
+                    : LlmSharedMembers.THINKING_BUDGET_TOKENS;
                 requestDecoder = decodeRequestControlScalar;
             }
             else if (LlmSharedMembers.STOP.contentEquals(member))
             {
-                rejectControl(true, LlmSharedMembers.STOP);
+                rejectControl(LlmSharedMembers.STOP);
             }
             else if (LlmSharedMembers.TOOL_CHOICE.contentEquals(member))
             {
@@ -7305,14 +7308,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         }
 
         private void rejectControl(
-            boolean rejected,
             String member)
         {
-            if (rejected)
-            {
-                rejectedRequestMember = member;
-                encodeFailed = true;
-            }
+            rejectedRequestMember = member;
+            encodeFailed = true;
         }
 
         private int decodeRequestControlContainer(
@@ -7408,12 +7407,20 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     if (LlmSharedMembers.REASONING_EFFORT.equals(controlMember))
                     {
                         controlEffort = whole ? LlmReasoning.effortOf(event, text) : LlmEffort.INVALID;
-                        rejectControl(controlEffort == LlmEffort.INVALID, LlmSharedMembers.REASONING_EFFORT);
+
+                        if (controlEffort == LlmEffort.INVALID)
+                        {
+                            rejectControl(LlmSharedMembers.REASONING_EFFORT);
+                        }
                     }
                     else
                     {
                         controlBudget = whole ? LlmReasoning.budgetOf(event, text) : LlmEffort.INVALID;
-                        rejectControl(controlBudget == LlmEffort.INVALID, LlmSharedMembers.THINKING_BUDGET_TOKENS);
+
+                        if (controlBudget == LlmEffort.INVALID)
+                        {
+                            rejectControl(LlmSharedMembers.THINKING_BUDGET_TOKENS);
+                        }
                     }
 
                     if (deferred)
@@ -7535,7 +7542,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                     if (!accepted)
                     {
-                        rejectControl(true, LlmSharedMembers.TOOL_CHOICE);
+                        rejectControl(LlmSharedMembers.TOOL_CHOICE);
                     }
                     else if (requestSkipDepth == 0 && event != JsonEvent.KEY_NAME && !deferred)
                     {
@@ -7584,7 +7591,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
             else
             {
-                rejectControl(true, LlmSharedMembers.TOOL_CHOICE);
+                rejectControl(LlmSharedMembers.TOOL_CHOICE);
             }
         }
 
@@ -7619,7 +7626,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     }
                     else
                     {
-                        rejectControl(true, LlmSharedMembers.RESPONSE_FORMAT);
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
                     }
                 }
             }
@@ -7685,7 +7692,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    rejectControl(true, LlmSharedMembers.RESPONSE_FORMAT);
+                    rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
                 }
             }
             else
@@ -7698,7 +7705,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (controlFormat == FORMAT_UNSET)
             {
-                rejectControl(true, LlmSharedMembers.RESPONSE_FORMAT);
+                rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
             }
             else
             {
@@ -7794,12 +7801,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                         }
                         else
                         {
-                            rejectControl(true, LlmSharedMembers.RESPONSE_FORMAT);
+                            rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
                         }
                     }
                     else
                     {
-                        rejectControl(true, LlmSharedMembers.RESPONSE_FORMAT);
+                        rejectControl(LlmSharedMembers.RESPONSE_FORMAT);
                     }
                 }
             }
@@ -9176,7 +9183,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 sectionKind = KIND_DROPPED;
             }
-            else if (kind == 0 || !regional && !instructions && inputClosed)
+            else if (kind == 0 || !regional && !instructions && inputClosed())
             {
                 encodeFailed = true;
             }
@@ -9251,7 +9258,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private void startSections()
         {
-            sectionsStarted = true;
+            regions &= ~REGION_BODY_HELD;
         }
 
         private void beginTranslated(
@@ -9329,22 +9336,22 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             closeMessage();
 
-            if (inputOpened && !inputClosed)
+            if (inputOpened() && !inputClosed())
             {
                 generator.writeEnd();
-                inputClosed = true;
+                regions |= REGION_INPUT_CLOSED;
             }
 
-            if (toolsClosed)
+            if (toolsClosed())
             {
                 encodeFailed = true;
             }
             else
             {
-                if (!toolsOpened)
+                if (!toolsOpened())
                 {
                     generator.writeStartArray(MEMBER_TOOLS);
-                    toolsOpened = true;
+                    regions |= REGION_TOOLS_OPENED;
                 }
 
                 sectionOpen = false;
@@ -9498,16 +9505,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private void openInput()
         {
-            if (toolsOpened && !toolsClosed)
+            if (toolsOpened() && !toolsClosed())
             {
                 generator.writeEnd();
-                toolsClosed = true;
+                regions |= REGION_TOOLS_CLOSED;
             }
 
-            if (!inputOpened)
+            if (!inputOpened())
             {
                 generator.writeStartArray(MEMBER_INPUT);
-                inputOpened = true;
+                regions |= REGION_INPUT_OPENED;
             }
         }
 
@@ -9696,22 +9703,23 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 hold.clear(LlmRequestHold.DEFER);
 
+                regions &= ~REGION_BODY_HELD;
                 state = StreamState.closingInitial(state);
             }
         }
 
         private void closeRegions()
         {
-            if (toolsOpened && !toolsClosed)
+            if (toolsOpened() && !toolsClosed())
             {
                 generator.writeEnd();
-                toolsClosed = true;
+                regions |= REGION_TOOLS_CLOSED;
             }
 
-            if (inputOpened && !inputClosed)
+            if (inputOpened() && !inputClosed())
             {
                 generator.writeEnd();
-                inputClosed = true;
+                regions |= REGION_INPUT_CLOSED;
             }
         }
 
@@ -9957,7 +9965,27 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private boolean bodyHeld()
         {
-            return !sectionsStarted && !StreamState.initialClosing(state);
+            return (regions & REGION_BODY_HELD) != 0;
+        }
+
+        private boolean inputOpened()
+        {
+            return (regions & REGION_INPUT_OPENED) != 0;
+        }
+
+        private boolean inputClosed()
+        {
+            return (regions & REGION_INPUT_CLOSED) != 0;
+        }
+
+        private boolean toolsOpened()
+        {
+            return (regions & REGION_TOOLS_OPENED) != 0;
+        }
+
+        private boolean toolsClosed()
+        {
+            return (regions & REGION_TOOLS_CLOSED) != 0;
         }
 
         private boolean fits(
