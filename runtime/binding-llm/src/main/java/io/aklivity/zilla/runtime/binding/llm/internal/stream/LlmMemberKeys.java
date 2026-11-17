@@ -65,7 +65,7 @@ final class LlmMemberKeys
         {
             target.wrap(key, 0, length);
 
-            if (LlmCacheBreakpoint.MEMBER.contentEquals(key))
+            if (LlmSharedMembers.BREAKPOINT.contentEquals(key))
             {
                 action = DROP;
             }

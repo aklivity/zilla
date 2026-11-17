@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 import org.junit.Test;
 
-public class LlmCacheBreakpointDropTest
+public class LlmBreakpointDropTest
 {
     private static final String BREAKPOINT = "'prompt_cache_breakpoint':{'mode':'explicit','ttl':'1h'}";
 
