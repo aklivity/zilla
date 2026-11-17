@@ -9668,4 +9668,67 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.user.window/client",
+        "${app}/openai.request.user.window/server"})
+    public void shouldForwardOpenaiRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier.straddle/client",
+        "${app}/openai.request.service.tier.straddle/server"})
+    public void shouldForwardOpenaiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.stop.straddle/client",
+        "${app}/openai.request.stop.straddle/server"})
+    public void shouldForwardOpenaiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.stop.window/client",
+        "${app}/openai.request.stop.window/server"})
+    public void shouldForwardOpenaiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.budget.straddle/client",
+        "${app}/openai.request.reasoning.budget.straddle/server"})
+    public void shouldForwardOpenaiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.effort.window/client",
+        "${app}/openai.request.reasoning.effort.window/server"})
+    public void shouldForwardOpenaiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.budget.window/client",
+        "${app}/openai.request.reasoning.budget.window/server"})
+    public void shouldForwardOpenaiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

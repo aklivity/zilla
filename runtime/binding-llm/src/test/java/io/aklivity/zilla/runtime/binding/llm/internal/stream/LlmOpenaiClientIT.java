@@ -3068,4 +3068,74 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.user.window/client",
+        "${net}/openai.request.user.window/server"})
+    public void shouldEncodeOpenaiRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.service.tier.straddle/client",
+        "${net}/openai.request.service.tier.straddle/server"})
+    public void shouldEncodeOpenaiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.stop.straddle/client",
+        "${net}/openai.request.stop.straddle/server"})
+    public void shouldEncodeOpenaiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.stop.window/client",
+        "${net}/openai.request.stop.window/server"})
+    public void shouldEncodeOpenaiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.budget.straddle/client",
+        "${net}/openai.request.reasoning.budget.straddle/server"})
+    public void shouldEncodeOpenaiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.effort.window/client",
+        "${net}/openai.request.reasoning.effort.window/server"})
+    public void shouldEncodeOpenaiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.budget.window/client",
+        "${net}/openai.request.reasoning.budget.window/server"})
+    public void shouldEncodeOpenaiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }
