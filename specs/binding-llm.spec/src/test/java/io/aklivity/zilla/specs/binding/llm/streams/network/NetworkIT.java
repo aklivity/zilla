@@ -10584,4 +10584,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.response.text.100k/client",
+        "${net}/gemini.transform.response.text.100k/server"})
+    public void shouldGeminiTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.response.tool.call.10k/client",
+        "${net}/gemini.transform.response.tool.call.10k/server"})
+    public void shouldGeminiTransformResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.response.tool.call.100k/client",
+        "${net}/gemini.transform.response.tool.call.100k/server"})
+    public void shouldGeminiTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

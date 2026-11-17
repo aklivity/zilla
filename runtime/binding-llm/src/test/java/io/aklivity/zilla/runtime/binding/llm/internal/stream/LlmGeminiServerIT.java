@@ -1873,4 +1873,61 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\""})
+    @Specification({
+        "${net}/gemini.transform.response.text.100k/client",
+        "${app}/transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kFromGeminiWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\""})
+    @Specification({
+        "${net}/gemini.transform.response.tool.call.10k/client",
+        "${app}/transform.response.tool.call.10k/server"})
+    public void shouldTransformResponseToolCall10kFromGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\""})
+    @Specification({
+        "${net}/gemini.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\""})
+    @Specification({
+        "${net}/gemini.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromGeminiWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\""})
+    @Specification({
+        "${net}/gemini.transform.response.text.100k/client",
+        "${app}/transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kFromGemini() throws Exception
+    {
+        k3po.finish();
+    }
 }
