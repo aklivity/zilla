@@ -156,10 +156,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int OBJECT_OPENING = "{\"\":\"".length();
-    private static final int ENCODE_SLACK = 320;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_TOKENS = 64;
     private static final int ENCODE_THINKING = 96;
+    private static final int ENCODE_CLOSING = ENCODE_STRUCTURE + ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_THINKING;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final int NONE = -1;
@@ -1000,7 +1000,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void flushAppWindow(
             long traceId)
         {
-            final int room = encodeMax - http.encodeSlotOffset - ENCODE_SLACK - http.signatureReserve() - http.heldReserve();
+            final int room = encodeMax - http.encodeSlotOffset - ENCODE_CLOSING - http.signatureReserve() - http.heldReserve();
             final int credit = Math.max(0, room / ESCAPE_EXPANSION);
             final long target = initialSeq + credit;
 
