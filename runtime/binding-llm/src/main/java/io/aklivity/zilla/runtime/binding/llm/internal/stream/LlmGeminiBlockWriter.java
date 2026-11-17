@@ -52,6 +52,9 @@ final class LlmGeminiBlockWriter
     static final int MODE_CONTROL = 6;
     static final int MODE_VALUE = 7;
 
+    static final int CAPTURE_TOOL_CONFIG = 1;
+    static final int CAPTURE_SERVICE_TIER = 2;
+
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
     private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
@@ -81,6 +84,24 @@ final class LlmGeminiBlockWriter
     private static final String MEMBER_ID = "id";
     private static final String MEMBER_ARGS = "args";
     private static final String MEMBER_ARGUMENTS = "arguments";
+    private static final int CAPTURE_MAX = 768;
+    private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
+    private static final String MEMBER_TOOL_CONFIG_NATIVE = "gemini:toolConfig";
+    private static final String MEMBER_TOOL_CONFIG_NATIVE_SNAKE = "gemini:tool_config";
+    private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_FUNCTION_CALLING_CONFIG = "functionCallingConfig";
+    private static final String MEMBER_FUNCTION_CALLING_CONFIG_SNAKE = "function_calling_config";
+    private static final String MEMBER_MODE = "mode";
+    private static final String MEMBER_ALLOWED_FUNCTION_NAMES = "allowedFunctionNames";
+    private static final String MEMBER_ALLOWED_FUNCTION_NAMES_SNAKE = "allowed_function_names";
+    private static final String[] CALLING_CONFIG_MEMBERS =
+    {
+        MEMBER_MODE, MEMBER_ALLOWED_FUNCTION_NAMES, MEMBER_ALLOWED_FUNCTION_NAMES_SNAKE
+    };
+    private static final String MODE_AUTO = "AUTO";
+    private static final String MODE_ANY = "ANY";
+    private static final String MODE_NONE = "NONE";
     private static final int HEADROOM = 16;
     private static final String[] TYPES = {"STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL"};
 
@@ -104,6 +125,10 @@ final class LlmGeminiBlockWriter
     private String mediaUrl;
     private boolean formatted;
     private String mediaType;
+    private final LlmCapturedValue captured = new LlmCapturedValue();
+    private final LlmToolChoice choice = new LlmToolChoice();
+    private int captureKind;
+    private String captureKey;
     private boolean separating;
     private byte separator;
     private boolean reference;
@@ -199,6 +224,45 @@ final class LlmGeminiBlockWriter
         CharSequence name)
     {
         writePrefixedKey(name);
+    }
+
+    void beginCapture(
+        MutableDirectBufferEx buffer,
+        int origin,
+        char separator,
+        int kind,
+        CharSequence key)
+    {
+        beginMember(buffer, origin, separator);
+
+        this.captured.clear();
+        this.captureKind = kind;
+        this.captureKey = key.toString();
+    }
+
+    int capture(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        final boolean text = event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING ||
+            event == JsonEvent.VALUE_NUMBER;
+
+        if (!(text && parser.deferredBytes()) &&
+            captured.add(event, text ? parser.getStringView().toString() : null, CAPTURE_MAX))
+        {
+            depth += step(event);
+            outcome = MORE;
+
+            if (depth == 0)
+            {
+                convert();
+                outcome = VALUE;
+            }
+        }
+
+        return outcome;
     }
 
     void endMember()
@@ -735,6 +799,220 @@ final class LlmGeminiBlockWriter
         }
 
         return lower;
+    }
+
+    private void convert()
+    {
+        if (captureKind == CAPTURE_SERVICE_TIER)
+        {
+            final String tier = LlmServiceTiers.canonicalGemini(captured.string(0));
+
+            if (tier != null)
+            {
+                generator.write(MEMBER_SHARED_SERVICE_TIER, tier);
+            }
+            else
+            {
+                writePrefixedKey(captureKey);
+                writeCaptured(0);
+            }
+        }
+        else
+        {
+            convertToolConfig();
+        }
+    }
+
+    private void convertToolConfig()
+    {
+        final String residueKey = MEMBER_TOOL_CONFIG_SNAKE.equals(captureKey)
+            ? MEMBER_TOOL_CONFIG_NATIVE_SNAKE
+            : MEMBER_TOOL_CONFIG_NATIVE;
+
+        if (captured.isObject(0))
+        {
+            int config = captured.member(0, MEMBER_FUNCTION_CALLING_CONFIG);
+
+            if (config == LlmCapturedValue.ABSENT)
+            {
+                config = captured.member(0, MEMBER_FUNCTION_CALLING_CONFIG_SNAKE);
+            }
+
+            final boolean lifted = config != LlmCapturedValue.ABSENT && parseCallingConfig(config);
+
+            if (lifted)
+            {
+                generator.writeKey(MEMBER_SHARED_TOOL_CHOICE);
+                choice.emitCanonical(generator);
+            }
+
+            writeResidue(residueKey, lifted ? config : LlmCapturedValue.ABSENT);
+        }
+        else
+        {
+            generator.writeKey(residueKey);
+            writeCaptured(0);
+        }
+    }
+
+    private void writeResidue(
+        String residueKey,
+        int liftedAt)
+    {
+        boolean residue = false;
+        int index = 1;
+
+        while (captured.event(index) == JsonEvent.KEY_NAME)
+        {
+            if (index + 1 != liftedAt)
+            {
+                if (!residue)
+                {
+                    residue = true;
+                    generator.writeStartObject(residueKey);
+                }
+
+                generator.writeKey(captured.text(index));
+                writeCaptured(index + 1);
+            }
+
+            index = captured.end(index + 1);
+        }
+
+        if (residue)
+        {
+            generator.writeEnd();
+        }
+        else if (liftedAt == LlmCapturedValue.ABSENT)
+        {
+            generator.writeStartObject(residueKey).writeEnd();
+        }
+    }
+
+    private void writeCaptured(
+        int index)
+    {
+        final int end = captured.end(index);
+
+        for (int at = index; at < end; at++)
+        {
+            final String text = captured.text(at);
+
+            switch (captured.event(at))
+            {
+            case START_OBJECT:
+                generator.writeStartObject();
+                break;
+            case START_ARRAY:
+                generator.writeStartArray();
+                break;
+            case END_OBJECT, END_ARRAY:
+                generator.writeEnd();
+                break;
+            case KEY_NAME:
+                generator.writeKey(text);
+                break;
+            case VALUE_NUMBER:
+                generator.writeNumber(text, Completion.COMPLETE);
+                break;
+            case VALUE_TRUE:
+                generator.write(true);
+                break;
+            case VALUE_FALSE:
+                generator.write(false);
+                break;
+            case VALUE_NULL:
+                generator.writeNull();
+                break;
+            default:
+                generator.write(text);
+                break;
+            }
+        }
+    }
+
+    private boolean parseCallingConfig(
+        int config)
+    {
+        choice.clear();
+
+        if (captured.onlyMembers(config, CALLING_CONFIG_MEMBERS))
+        {
+            int names = captured.member(config, MEMBER_ALLOWED_FUNCTION_NAMES);
+
+            if (names == LlmCapturedValue.ABSENT)
+            {
+                names = captured.member(config, MEMBER_ALLOWED_FUNCTION_NAMES_SNAKE);
+            }
+
+            if (names == LlmCapturedValue.ABSENT || readNames(names))
+            {
+                chooseMode(captured.string(captured.member(config, MEMBER_MODE)));
+            }
+        }
+
+        return choice.kind() != LlmToolChoice.UNRECOGNIZED;
+    }
+
+    private boolean readNames(
+        int names)
+    {
+        boolean valid = captured.isArray(names);
+        int index = names + 1;
+
+        while (valid && captured.event(index) != JsonEvent.END_ARRAY)
+        {
+            final String entry = captured.string(index);
+
+            valid = entry != null;
+
+            if (valid)
+            {
+                choice.names().add(entry);
+            }
+
+            index++;
+        }
+
+        return valid;
+    }
+
+    private void chooseMode(
+        String mode)
+    {
+        final int count = choice.names().size();
+
+        if (MODE_AUTO.equals(mode))
+        {
+            if (count == 0)
+            {
+                choice.mode(LlmToolChoice.MODE_AUTO);
+            }
+            else
+            {
+                choice.allowed(LlmToolChoice.MODE_AUTO);
+            }
+        }
+        else if (MODE_ANY.equals(mode))
+        {
+            if (count == 0)
+            {
+                choice.mode(LlmToolChoice.MODE_REQUIRED);
+            }
+            else if (count == 1)
+            {
+                choice.function(choice.names().get(0));
+                choice.names().clear();
+            }
+            else
+            {
+                choice.allowed(LlmToolChoice.MODE_REQUIRED);
+            }
+        }
+        else if (MODE_NONE.equals(mode) && count == 0)
+        {
+            choice.mode(LlmToolChoice.MODE_NONE);
+        }
     }
 
     private void writePrefixedKey(

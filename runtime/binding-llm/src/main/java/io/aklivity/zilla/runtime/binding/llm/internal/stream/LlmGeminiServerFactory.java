@@ -327,6 +327,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeBlockData = this::decodeBlockData;
     private final LlmGeminiServerDecoder decodeBlockControl = this::decodeBlockControl;
     private final LlmGeminiServerDecoder decodeBlockValue = this::decodeBlockValue;
+    private final LlmGeminiServerDecoder decodeBlockCapture = this::decodeBlockCapture;
     private final LlmGeminiServerDecoder decodeBlockTokens = this::decodeBlockTokens;
     private final LlmGeminiServerDecoder decodeBlockSchema = this::decodeBlockSchema;
     private final LlmGeminiServerDecoder decodeBlockResponse = this::decodeBlockResponse;
@@ -342,6 +343,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiBlockHandler blockData = this::onBlockData;
     private final LlmGeminiBlockHandler blockControl = this::onBlockControl;
     private final LlmGeminiBlockHandler blockValue = this::onBlockMember;
+    private final LlmGeminiBlockHandler blockCapture = this::onBlockCapture;
     private final LlmGeminiBlockHandler blockTokens = this::onBlockTokens;
     private final LlmGeminiBlockHandler blockSchema = this::onBlockSchema;
     private final LlmGeminiBlockHandler blockResponse = this::onBlockResponse;
@@ -2651,6 +2653,35 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return outcome;
     }
 
+    private int decodeBlockCapture(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockCapture, blockCapture);
+    }
+
+    private int onBlockCapture(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.capture(event, parser);
+
+        if (outcome == LlmGeminiBlockWriter.VALUE)
+        {
+            server.endControl();
+        }
+
+        return outcome == LlmGeminiBlockWriter.VALUE ? LlmGeminiBlockWriter.MORE : outcome;
+    }
+
     private int decodeBlockValue(
         LlmGeminiServer server,
         long traceId,
@@ -4485,13 +4516,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (isConverted(key))
             {
-                controlConverted(key);
-                onDecodeControlValue(decodeControlValue);
+                controlCapture(key);
             }
             else
             {
                 controlMember(key);
             }
+        }
+
+        private void controlCapture(
+            CharSequence key)
+        {
+            writing = blockWriter();
+            writing.beginCapture(pieceBuffer, 0, controlOpen(),
+                isToolConfig(key) ? LlmGeminiBlockWriter.CAPTURE_TOOL_CONFIG : LlmGeminiBlockWriter.CAPTURE_SERVICE_TIER,
+                key);
+            decoder = decodeBlockCapture;
         }
 
         private void controlMember(
@@ -4525,20 +4565,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             blockWriter.endMember();
             writing = null;
             decoder = captureThen;
-        }
-
-        private void controlConverted(
-            CharSequence key)
-        {
-            final DirectBufferEx separator = Flags.hasInit(blockFlags) ? CONTROL_BEGIN : CONTROL_CONTINUE;
-
-            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
-
-            blockPipeline = toolConfigPipeline();
-            blockPipeline.begin(blockAttributes);
-            memberOutput.begin();
-
-            onDecodeControlKey(key, false, '{');
         }
 
         private LlmSectionPipeline toolConfigPipeline()
@@ -4767,8 +4793,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (isConverted(key))
             {
-                controlConverted(key);
-                onDecodeControlValue(decodeControlValue);
+                controlCapture(key);
             }
             else
             {
