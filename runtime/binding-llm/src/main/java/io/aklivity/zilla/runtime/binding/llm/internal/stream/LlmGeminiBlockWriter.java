@@ -32,9 +32,20 @@ final class LlmGeminiBlockWriter
     static final int ACTION_DROP = 0;
     static final int ACTION_COPY = 1;
     static final int ACTION_FUNCTION = 2;
+    static final int ACTION_ESCAPE = 3;
+    static final int ACTION_DESCEND = 4;
+    static final int ACTION_TEXT = 5;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
+    private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
+    private static final String MEMBER_RESPONSE = "response";
+    private static final String MEMBER_OUTPUT = "output";
+    private static final String MEMBER_ERROR = "error";
+    private static final String MEMBER_TEXT = "text";
+    private static final int REQUIRE_NONE = 0;
+    private static final int REQUIRE_OBJECT = 1;
+    private static final int REQUIRE_STRING = 2;
     private static final String MEMBER_NAME = "name";
     private static final String MEMBER_ID = "id";
     private static final String MEMBER_ARGS = "args";
@@ -50,7 +61,9 @@ final class LlmGeminiBlockWriter
     private int depth;
     private boolean functioned;
     private boolean argumented;
-    private boolean objectRequired;
+    private int required;
+    private boolean result;
+    private boolean shaped;
 
     LlmGeminiBlockWriter(
         LlmOutputSink sink,
@@ -64,12 +77,23 @@ final class LlmGeminiBlockWriter
         MutableDirectBufferEx buffer,
         int origin)
     {
+        begin(buffer, origin, false, false);
+    }
+
+    void begin(
+        MutableDirectBufferEx buffer,
+        int origin,
+        boolean result,
+        boolean shaped)
+    {
+        this.result = result;
+        this.shaped = shaped;
         this.buffer = buffer;
         this.origin = origin;
         this.depth = 0;
         this.functioned = false;
         this.argumented = false;
-        this.objectRequired = false;
+        this.required = REQUIRE_NONE;
 
         generator.reset();
         generator.wrap(buffer, origin, buffer.capacity());
@@ -110,7 +134,7 @@ final class LlmGeminiBlockWriter
     {
         int action = ACTION_COPY;
 
-        if (MEMBER_FUNCTION_CALL.contentEquals(name))
+        if ((result ? MEMBER_FUNCTION_RESPONSE : MEMBER_FUNCTION_CALL).contentEquals(name))
         {
             functioned = true;
             action = ACTION_FUNCTION;
@@ -128,11 +152,15 @@ final class LlmGeminiBlockWriter
     {
         int action = ACTION_DROP;
 
-        if (MEMBER_ARGS.contentEquals(name))
+        if (result)
+        {
+            action = resultAction(name);
+        }
+        else if (MEMBER_ARGS.contentEquals(name))
         {
             generator.writeKey(MEMBER_ARGUMENTS);
             argumented = true;
-            objectRequired = true;
+            required = REQUIRE_OBJECT;
             action = ACTION_COPY;
         }
         else if (!MEMBER_NAME.contentEquals(name) && !MEMBER_ID.contentEquals(name))
@@ -144,9 +172,70 @@ final class LlmGeminiBlockWriter
         return action;
     }
 
+    int resultAction(
+        CharSequence name)
+    {
+        int action = ACTION_DROP;
+
+        if (MEMBER_RESPONSE.contentEquals(name))
+        {
+            if (shaped)
+            {
+                action = ACTION_DESCEND;
+            }
+            else
+            {
+                generator.writeKey(MEMBER_TEXT);
+                generator.writeStartEscaped();
+                required = REQUIRE_OBJECT;
+                action = ACTION_ESCAPE;
+            }
+        }
+        else if (!MEMBER_NAME.contentEquals(name) && !MEMBER_ID.contentEquals(name))
+        {
+            writePrefixedKey(name);
+            action = ACTION_COPY;
+        }
+
+        return action;
+    }
+
+    int responseAction(
+        CharSequence name)
+    {
+        int action = ACTION_COPY;
+
+        if (MEMBER_OUTPUT.contentEquals(name) || MEMBER_ERROR.contentEquals(name))
+        {
+            generator.writeKey(MEMBER_TEXT);
+            required = REQUIRE_STRING;
+            action = ACTION_TEXT;
+        }
+        else
+        {
+            writePrefixedKey(name);
+        }
+
+        return action;
+    }
+
+    int escape(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = copyValue(event, parser);
+
+        if (outcome == VALUE)
+        {
+            generator.writeEndEscaped();
+        }
+
+        return outcome;
+    }
+
     void closeFunction()
     {
-        if (!argumented)
+        if (!argumented && !result)
         {
             generator.writeStartObject(MEMBER_ARGUMENTS).writeEnd();
             argumented = true;
@@ -168,9 +257,10 @@ final class LlmGeminiBlockWriter
     {
         int outcome = REJECT;
 
-        if (!objectRequired || event == JsonEvent.START_OBJECT)
+        if (required == REQUIRE_NONE || required == REQUIRE_OBJECT && event == JsonEvent.START_OBJECT ||
+            required == REQUIRE_STRING && event == JsonEvent.VALUE_STRING)
         {
-            objectRequired = false;
+            required = REQUIRE_NONE;
             copy(event, parser);
             outcome = depth == 0 && !deferred(event, parser) ? VALUE : MORE;
         }

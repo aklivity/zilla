@@ -322,11 +322,17 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeBlockFunction = this::decodeBlockFunction;
     private final LlmGeminiServerDecoder decodeBlockFunctionKey = this::decodeBlockFunctionKey;
     private final LlmGeminiServerDecoder decodeBlockDrop = this::decodeBlockDrop;
+    private final LlmGeminiServerDecoder decodeBlockEscape = this::decodeBlockEscape;
+    private final LlmGeminiServerDecoder decodeBlockResponse = this::decodeBlockResponse;
+    private final LlmGeminiServerDecoder decodeBlockResponseKey = this::decodeBlockResponseKey;
     private final LlmGeminiServerDecoder decodeBlockCopy = this::decodeBlockCopy;
     private final LlmGeminiBlockHandler blockKey = this::onBlockKey;
     private final LlmGeminiBlockHandler blockFunction = this::onBlockFunction;
     private final LlmGeminiBlockHandler blockFunctionKey = this::onBlockFunctionKey;
     private final LlmGeminiBlockHandler blockDrop = this::onBlockDrop;
+    private final LlmGeminiBlockHandler blockEscape = this::onBlockEscape;
+    private final LlmGeminiBlockHandler blockResponse = this::onBlockResponse;
+    private final LlmGeminiBlockHandler blockResponseKey = this::onBlockResponseKey;
     private final LlmGeminiBlockHandler blockCopy = this::onBlockCopy;
     private final LlmGeminiServerDecoder decodePartTextValue = this::decodePartTextValue;
     private final LlmGeminiServerDecoder decodePartTextPiece = this::decodePartTextPiece;
@@ -2537,6 +2543,104 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return decodeBlock(server, traceId, decodeBlockCopy, blockCopy);
     }
 
+    private int decodeBlockEscape(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockEscape, blockEscape);
+    }
+
+    private int decodeBlockResponse(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockResponse, blockResponse);
+    }
+
+    private int decodeBlockResponseKey(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeBlock(server, traceId, decodeBlockResponseKey, blockResponseKey);
+    }
+
+    private int onBlockEscape(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        final int outcome = server.blockWriter.escape(event, parser);
+
+        return outcome == LlmGeminiBlockWriter.VALUE
+            ? onBlockValue(server, outcome)
+            : outcome;
+    }
+
+    private int onBlockResponse(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmGeminiBlockWriter.MORE;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            server.decoder = decodeBlockResponseKey;
+        }
+        else
+        {
+            outcome = LlmGeminiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
+    private int onBlockResponseKey(
+        LlmGeminiServer server,
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = LlmGeminiBlockWriter.MORE;
+
+        if (event == JsonEvent.KEY_NAME)
+        {
+            server.blockWriter.responseAction(parser.getStringView());
+            server.decodeBlockNext = decodeBlockResponseKey;
+            server.decoder = decodeBlockCopy;
+        }
+        else if (event == JsonEvent.END_OBJECT)
+        {
+            server.decoder = decodeBlockFunctionKey;
+        }
+        else
+        {
+            outcome = LlmGeminiBlockWriter.REJECT;
+        }
+
+        return outcome;
+    }
+
     private int onBlockKey(
         LlmGeminiServer server,
         JsonEvent event,
@@ -2597,15 +2701,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         if (event == JsonEvent.KEY_NAME)
         {
-            if (server.blockWriter.functionAction(parser.getStringView()) == LlmGeminiBlockWriter.ACTION_COPY)
+            server.decodeBlockNext = decodeBlockFunctionKey;
+
+            switch (server.blockWriter.functionAction(parser.getStringView()))
             {
-                server.decodeBlockNext = decodeBlockFunctionKey;
+            case LlmGeminiBlockWriter.ACTION_COPY:
                 server.decoder = decodeBlockCopy;
-            }
-            else
-            {
-                server.decodeBlockNext = decodeBlockFunctionKey;
+                break;
+            case LlmGeminiBlockWriter.ACTION_ESCAPE:
+                server.decoder = decodeBlockEscape;
+                break;
+            case LlmGeminiBlockWriter.ACTION_DESCEND:
+                server.decoder = decodeBlockResponse;
+                break;
+            default:
                 server.decoder = decodeBlockDrop;
+                break;
             }
         }
         else if (event == JsonEvent.END_OBJECT)
@@ -2677,7 +2788,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (server.probe.type() == LlmSectionType.TOOL_CALL)
             {
-                server.beginCall();
+                server.beginCall(LlmSectionType.TOOL_CALL);
+            }
+            else if (server.probe.type() == LlmSectionType.TOOL_RESULT)
+            {
+                server.beginCall(LlmSectionType.TOOL_RESULT);
             }
             else
             {
@@ -3650,6 +3765,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int skipDepth;
         private LlmSectionType partSection;
         private LlmGeminiBlockWriter blockWriter;
+        private int resultShape;
         private LlmGeminiServerDecoder decodeBlockNext;
         private String partKey;
         private int partMembers;
@@ -3683,8 +3799,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
-        private LlmSectionPipeline toolResultPipeline;
-        private LlmGeminiToolResultToCanonical toolResultTransform;
         private final String[] callNames = new String[CALLS_MAX];
         private final String[] callIds = new String[CALLS_MAX];
         private final boolean[] callUsed = new boolean[CALLS_MAX];
@@ -4037,7 +4151,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 if (probe.type() == LlmSectionType.TOOL_RESULT)
                 {
-                    toolResultTransform().shape(probe.settle());
+                    resultShape = probe.settle();
                 }
 
                 probe.restart();
@@ -4050,12 +4164,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             return ready;
         }
 
-        private void beginCall()
+        private void beginCall(
+            LlmSectionType type)
         {
-            onDecodeBlock(LlmSectionType.TOOL_CALL, textMessage(this));
+            onDecodeBlock(type, textMessage(this));
 
             probing = true;
-            blockWriter().begin(pieceBuffer, 0);
+            blockWriter().begin(pieceBuffer, 0, type == LlmSectionType.TOOL_RESULT, resultShape != LlmGeminiAttributeProbe.SHAPE_OTHER);
             decoder = decodeBlockKey;
         }
 
@@ -4600,8 +4715,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 pipeline = assistantTextPipeline;
                 break;
             case TOOL_RESULT:
-                toolResultTransform();
-                pipeline = toolResultPipeline;
                 break;
             case TOOL_CALL:
                 break;
@@ -4720,17 +4833,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
 
             return mediaPipelines[index];
-        }
-
-        private LlmGeminiToolResultToCanonical toolResultTransform()
-        {
-            if (toolResultTransform == null)
-            {
-                toolResultTransform = new LlmGeminiToolResultToCanonical();
-                toolResultPipeline = new LlmSectionPipeline(toolResultTransform, transformBuffer);
-            }
-
-            return toolResultTransform;
         }
 
         private void recordToolCall(
