@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.BAD_AUTHENTICATION_METHOD;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_IDENTIFIER_NOT_FOUND;
@@ -1954,7 +1955,9 @@ public final class MqttClientFactory implements MqttStreamFactory
                 }
                 decodeProgress = subackPayload.limit();
 
-                state.add(unackedSubscriptions.get(i++).withReasonCode(subackPayload.reasonCode()));
+                final int subackReasonCode = subackPayload.reasonCode();
+                state.add(unackedSubscriptions.get(i++)
+                    .withReasonCode(subackReasonCode <= GRANTED_QOS_2 ? SUCCESS : subackReasonCode));
             }
             final MqttSessionStateFW sessionState = sessionState(state);
             sessionStream.doSessionData(traceId, authorization, sessionState.sizeof(), EMPTY_OCTETS, sessionState);
@@ -3699,18 +3702,15 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 client.doEncodeAck(traceId, authorization, PUBACK_FIXED_HEADER, packetId, reasonCode);
             }
+            else if (isError(reasonCode))
+            {
+                client.doEncodeAck(traceId, authorization, PUBREC_FIXED_HEADER, packetId, reasonCode);
+                client.releaseQos2(packetId);
+            }
             else if (mqttSubscribeFlushEx.state() == QOS2_INCOMPLETE_OFFSET_STATE)
             {
                 client.doEncodeAck(traceId, authorization, PUBREC_FIXED_HEADER, packetId, reasonCode);
-
-                if (isError(reasonCode))
-                {
-                    client.releaseQos2(packetId);
-                }
-                else
-                {
-                    client.qos2PubrecReasonCodes.put(packetId, reasonCode);
-                }
+                client.qos2PubrecReasonCodes.put(packetId, reasonCode);
             }
             else
             {
