@@ -7,6 +7,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     ports:
       - 7183:7183
     healthcheck:
@@ -49,6 +51,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
 
   kafka-init:
     image: apache/kafka:4.1.1
@@ -66,6 +70,8 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     command:
       - |
+        echo "Enabling kafka share groups";
+        /opt/kafka/bin/kafka-features.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} upgrade --feature share.version=1
         echo "Creating kafka topic";
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-messages
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic mqtt-devices --config cleanup.policy=compact
