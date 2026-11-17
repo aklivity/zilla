@@ -257,10 +257,13 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int ROOT_CONTROL = -1;
     private static final int ASSISTANT_MESSAGE = 0;
     private static final int ESCAPE_EXPANSION = 6;
-    private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_OUTPUT_TOKENS = 48;
     private static final int ENCODE_CONTAINER = 64;
+    private static final int ENCODE_REASONING_EFFORT = 48;
+    private static final int ENCODE_CLOSING =
+        ENCODE_STRUCTURE + ENCODE_REASONING_EFFORT + ENCODE_MAX_OUTPUT_TOKENS + ENCODE_CONTAINER;
+    private static final int ITEM_CAPACITY = 256;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final String MEMBER_MODEL = "model";
@@ -394,7 +397,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
-        this.holdLimit = (encodeMax - ENCODE_SLACK) / (2 * ESCAPE_EXPANSION);
+        this.holdLimit = (encodeMax - ENCODE_CLOSING) / (2 * ESCAPE_EXPANSION);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.typeMemberRW = new UnsafeBufferEx(new byte[TYPE_MEMBER_MAX]);
         this.textBytes = new byte[1024];
@@ -403,7 +406,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
         this.controlBytes = new byte[CONTROL_HEADER];
         this.controlBuffer = new UnsafeBufferEx(controlBytes);
-        this.itemBytes = new byte[ENCODE_SLACK];
+        this.itemBytes = new byte[ITEM_CAPACITY];
         this.itemBuffer = new UnsafeBufferEx(itemBytes);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -468,6 +471,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         }
 
         return newStream;
+    }
+
+    @FunctionalInterface
+    private interface LlmOpenaiResponsesRequestDecoder
+    {
+        int decode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last);
     }
 
     @FunctionalInterface
@@ -1137,7 +1150,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private void flushAppWindow(
             long traceId)
         {
-            final int room = (encodeMax - http.encodeSlotOffset - ENCODE_SLACK) / ESCAPE_EXPANSION;
+            final int room = (encodeMax - http.encodeSlotOffset - ENCODE_CLOSING) / ESCAPE_EXPANSION;
             final int credit = Math.max(0, room - http.holdLength - http.containerReserve());
             final long target = initialSeq + credit;
 
@@ -6231,8 +6244,18 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private int effort = LlmEffort.ABSENT;
         private int budget = LlmEffort.ABSENT;
         private int controlMessage;
-        private LlmTextPipeline encodeText;
-        private LlmTextPipeline sectionText;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextRoot = this::decodeRequestTextRoot;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextObject = this::decodeRequestTextObject;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextKey = this::decodeRequestTextKey;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextValue = this::decodeRequestTextValue;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextContinue = this::decodeRequestTextContinue;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextSkip = this::decodeRequestTextSkip;
+        private final LlmOpenaiResponsesRequestDecoder decodeRequestTextDone = this::decodeRequestTextDone;
+        private LlmOpenaiResponsesRequestDecoder requestDecoder;
+        private JsonParserEx requestParser;
+        private int requestSkipDepth;
+        private int requestSlot = NO_SLOT;
+        private int requestSlotLimit;
         private LlmTextPipeline reasoningText;
         private final LlmSectionPipeline.Output reasoningMembersOutput =
             (buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length);
@@ -6508,6 +6531,310 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             return controlPipeline;
         }
 
+        private JsonParserEx requestParser()
+        {
+            if (requestParser == null)
+            {
+                requestParser = JsonEx.createParser();
+            }
+
+            return requestParser;
+        }
+
+        private void decodeRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            DirectBufferEx input = buffer;
+            int from = offset;
+            int limit = offset + length;
+
+            if (requestSlotLimit > 0)
+            {
+                final MutableDirectBufferEx slotBuffer = stagePool.buffer(requestSlot);
+
+                if (requestSlotLimit + length > decodeMax)
+                {
+                    encodeFailed = true;
+                }
+                else
+                {
+                    slotBuffer.putBytes(requestSlotLimit, buffer, offset, length);
+                    input = slotBuffer;
+                    from = 0;
+                    limit = requestSlotLimit + length;
+                }
+            }
+
+            if (!encodeFailed)
+            {
+                int progress = from;
+                int previous;
+                LlmOpenaiResponsesRequestDecoder previousDecoder;
+
+                do
+                {
+                    previous = progress;
+                    previousDecoder = requestDecoder;
+                    progress = requestDecoder.decode(input, progress, limit, last);
+                }
+                while ((progress != previous && progress < limit || requestDecoder != previousDecoder) && !encodeFailed);
+
+                if (progress < limit && !last && requestDecoder != decodeRequestTextDone && !encodeFailed)
+                {
+                    retainRequest(input, progress, limit);
+                }
+                else
+                {
+                    requestSlotLimit = 0;
+                }
+            }
+        }
+
+        private void retainRequest(
+            DirectBufferEx input,
+            int progress,
+            int limit)
+        {
+            if (requestSlot == NO_SLOT)
+            {
+                requestSlot = stagePool.acquire(initialId);
+            }
+
+            if (requestSlot == NO_SLOT)
+            {
+                encodeFailed = true;
+            }
+            else
+            {
+                final int tail = limit - progress;
+
+                stagePool.buffer(requestSlot).putBytes(0, input, progress, tail);
+                requestSlotLimit = tail;
+            }
+        }
+
+        private JsonParserEx wrapRequest(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return requestParser().wrap(buffer, offset, limit, last);
+        }
+
+        private int positionRequest(
+            int limit)
+        {
+            return limit - requestParser.remaining();
+        }
+
+        private int decodeRequestTextRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextRoot && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_DOCUMENT)
+                    {
+                        requestDecoder = decodeRequestTextObject;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextObject(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextObject && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.START_OBJECT)
+                    {
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextKey(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextKey && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.KEY_NAME)
+                    {
+                        requestSkipDepth = 0;
+                        requestDecoder = MEMBER_TEXT.contentEquals(parser.getStringView())
+                            ? decodeRequestTextValue
+                            : decodeRequestTextSkip;
+                    }
+                    else
+                    {
+                        requestDecoder = decodeRequestTextDone;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextValue);
+        }
+
+        private int decodeRequestTextContinue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return decodeRequestTextPiece(buffer, offset, limit, last, decodeRequestTextContinue);
+        }
+
+        private int decodeRequestTextPiece(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last,
+            LlmOpenaiResponsesRequestDecoder state)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == state && parser.hasNextEvent())
+                {
+                    if (parser.nextEvent() == JsonEvent.VALUE_STRING)
+                    {
+                        final boolean deferred = parser.deferredBytes();
+                        final JsonStringView chars = parser.getStringView();
+                        final int length = chars.length();
+
+                        onSectionText(chars, 0, length);
+
+                        if (deferred)
+                        {
+                            parser.consumed(length);
+                            requestDecoder = decodeRequestTextContinue;
+                        }
+                        else
+                        {
+                            requestDecoder = decodeRequestTextKey;
+                        }
+                    }
+                    else
+                    {
+                        encodeFailed = true;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextSkip(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            final JsonParserEx parser = wrapRequest(buffer, offset, limit, last);
+
+            try
+            {
+                while (requestDecoder == decodeRequestTextSkip && parser.hasNextEvent())
+                {
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+                    {
+                        requestSkipDepth++;
+                    }
+                    else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+                    {
+                        requestSkipDepth--;
+                    }
+
+                    if (requestSkipDepth == 0 && event != JsonEvent.KEY_NAME)
+                    {
+                        requestDecoder = decodeRequestTextKey;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                encodeFailed = true;
+            }
+
+            return positionRequest(limit);
+        }
+
+        private int decodeRequestTextDone(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            return limit;
+        }
+
         private void onSectionText(
             CharSequence chars,
             int from,
@@ -6678,8 +7005,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (!encodeFailed && text(kind))
             {
-                encodeText = sectionText();
-                encodeText.begin();
+                requestDecoder = decodeRequestTextRoot;
+                requestParser().reset();
             }
         }
 
@@ -7059,12 +7386,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     endEncode();
                 }
             }
-            else if (encodeText != null)
+            else if (requestDecoder != null)
             {
-                if (!encodeText.feed(buffer, offset, length, fin))
-                {
-                    encodeFailed = true;
-                }
+                decodeRequest(buffer, offset, length, fin);
             }
             else if (translated && sectionKind == KIND_ASSISTANT_REASONING)
             {
@@ -7095,16 +7419,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
-        private LlmTextPipeline sectionText()
-        {
-            if (sectionText == null)
-            {
-                sectionText = new LlmTextPipeline(this::onSectionText);
-            }
-
-            return sectionText;
-        }
-
         private LlmTextPipeline reasoningText()
         {
             if (reasoningText == null)
@@ -7117,7 +7431,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private boolean streaming()
         {
-            return sectionStreaming || encodeText != null || translated && sectionKind == KIND_ASSISTANT_REASONING;
+            return sectionStreaming || requestDecoder != null || translated && sectionKind == KIND_ASSISTANT_REASONING;
         }
 
         private void stageText(
@@ -7164,7 +7478,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 onControlEnd();
             }
 
-            encodeText = null;
+            requestDecoder = null;
+            releaseRequestSlot();
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
             {
@@ -7239,7 +7554,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 closePendingItem();
 
-                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_OUTPUT_TOKENS + ENCODE_CONTAINER + collector.held()))
+                if (beginEncode(ENCODE_CLOSING + collector.held()))
                 {
                     closeMessage();
                     closeRegions();
@@ -7498,6 +7813,17 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             releaseHold();
             contentState = CONTENT_ARRAY;
+        }
+
+        private void releaseRequestSlot()
+        {
+            if (requestSlot != NO_SLOT)
+            {
+                stagePool.release(requestSlot);
+                requestSlot = NO_SLOT;
+            }
+
+            requestSlotLimit = 0;
         }
 
         private void releaseHold()
@@ -8433,6 +8759,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             releaseEncodeSlot();
             releaseHold();
+            releaseRequestSlot();
             cleanupContainerSlot();
         }
 
