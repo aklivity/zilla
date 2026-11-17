@@ -212,4 +212,114 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.name.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTopicNameIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.content.type.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishContentTypeIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.response.topic.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyKeyIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.ill.formed.utf8/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.topic.name.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishTopicNameNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.content.type.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishContentTypeNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.response.topic.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishResponseTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.key.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyKeyNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.publish.user.property.value.null.character/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldServerSentPublishUserPropertyValueNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

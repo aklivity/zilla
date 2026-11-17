@@ -238,4 +238,26 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-1.5.4-1]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.ill.formed.utf8/server",
+        "${app}/server.sent.abort.before.begin/client"})
+    public void shouldServerSentConnackAssignedClientIdIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-1.5.4-2]
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.connack.assigned.client.id.null.character/server",
+        "${app}/server.sent.abort.before.begin/client"})
+    public void shouldServerSentConnackAssignedClientIdNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

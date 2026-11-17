@@ -66,9 +66,6 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -345,7 +342,6 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBufferEx passwordBuffer;
     private final MutableDirectBufferEx willPropertyBuffer;
 
-    private final ByteBuffer charsetBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final MessageConsumer droppedHandler;
@@ -363,7 +359,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final long connackTimeoutMillis;
     private final short topicAliasMaximumLimit;
     private final int encodeBudgetMax;
-    private final CharsetDecoder utf8Decoder;
+    private final MqttUtf8Validator utf8Validator;
 
     private final EngineContext context;
 
@@ -379,7 +375,6 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.charsetBuffer = ByteBuffer.wrap(new byte[writeBuffer.capacity()]);
         this.connectPayloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.passwordBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.willPropertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -400,7 +395,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
-        this.utf8Decoder = StandardCharsets.UTF_8.newDecoder();
+        this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
         this.clients = new Long2ObjectHashMap<>();
     }
 
@@ -1098,21 +1093,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private boolean invalidUtf8(
         OctetsFW payload)
     {
-        boolean invalid = false;
-        byte[] payloadBytes = charsetBuffer.array();
-        final int payloadSize = payload.sizeof();
-        payload.value().getBytes(0, payloadBytes, 0, payloadSize);
-        try
-        {
-            charsetBuffer.position(0).limit(payloadSize);
-            utf8Decoder.decode(charsetBuffer);
-        }
-        catch (CharacterCodingException ex)
-        {
-            invalid = true;
-            utf8Decoder.reset();
-        }
-        return invalid;
+        return !utf8Validator.isWellFormed(payload.buffer(), payload.offset(), payload.sizeof());
     }
 
     private int decodePingResp(
@@ -1753,6 +1734,11 @@ public final class MqttClientFactory implements MqttStreamFactory
                         break decode;
                     }
                     this.decodablePropertyMask |= CONNACK_ASSIGNED_CLIENT_IDENTIFIER_MASK;
+                    if (!utf8Validator.isValidString(mqttProperty.assignedClientId()))
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
                     clientId = mqttProperty.assignedClientId().asString();
                     break;
                 case KIND_WILDCARD_SUBSCRIPTION_AVAILABLE:
@@ -4214,6 +4200,10 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 reasonCode = PROTOCOL_ERROR;
             }
+            else if (!utf8Validator.isValidString(topicName))
+            {
+                reasonCode = MALFORMED_PACKET;
+            }
             else
             {
                 flags = calculatePublishFlags(typeAndFlags);
@@ -4247,6 +4237,11 @@ public final class MqttClientFactory implements MqttStreamFactory
                             break;
                         case KIND_CONTENT_TYPE:
                             final String16FW mContentType = mqttProperty.contentType();
+                            if (!utf8Validator.isValidString(mContentType))
+                            {
+                                reasonCode = MALFORMED_PACKET;
+                                break decode;
+                            }
                             if (mContentType.value() != null)
                             {
                                 final int offset = mContentType.offset();
@@ -4292,6 +4287,11 @@ public final class MqttClientFactory implements MqttStreamFactory
                             break;
                         case KIND_RESPONSE_TOPIC:
                             final String16FW mResponseTopic = mqttProperty.responseTopic();
+                            if (!utf8Validator.isValidString(mResponseTopic))
+                            {
+                                reasonCode = MALFORMED_PACKET;
+                                break decode;
+                            }
                             if (mResponseTopic.value() != null)
                             {
                                 final int offset = mResponseTopic.offset();
@@ -4305,6 +4305,12 @@ public final class MqttClientFactory implements MqttStreamFactory
                             break;
                         case KIND_USER_PROPERTY:
                             final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
+                            if (!utf8Validator.isValidString(userProperty.key()) ||
+                                !utf8Validator.isValidString(userProperty.value()))
+                            {
+                                reasonCode = MALFORMED_PACKET;
+                                break decode;
+                            }
                             userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
                             break;
                         default:
