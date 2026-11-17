@@ -276,6 +276,16 @@ public class PublishIT
     }
 
     @Test
+    @Configuration("server.route.non.default.yaml")
+    @Specification({
+        "${net}/publish.qos1.unroutable/client",
+        "${app}/publish.unroutable/server"})
+    public void shouldRejectQos1Unroutable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.qos1.dup.after.puback/client",

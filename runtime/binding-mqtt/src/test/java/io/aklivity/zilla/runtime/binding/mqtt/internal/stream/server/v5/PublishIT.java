@@ -437,6 +437,66 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.reject.retain.not.supported/client",
+        "${app}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectPublishQos1RetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.reject.retain.not.supported/client",
+        "${app}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectPublishQos2RetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset.mid.payload/client",
+        "${app}/publish.qos1.reset.mid.payload/server"})
+    public void shouldAcknowledgeQos1PublishResetMidPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset.in.flight/client",
+        "${app}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.reset/client",
+        "${app}/publish.qos2.reset/server"})
+    public void shouldAcknowledgeQos2PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception

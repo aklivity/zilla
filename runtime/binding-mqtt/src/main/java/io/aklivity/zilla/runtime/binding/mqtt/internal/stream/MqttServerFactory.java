@@ -44,6 +44,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isConnackReasonCode;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
@@ -1366,8 +1367,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
                     if (publisher == null)
                     {
-                        server.onDecodePublishUnroutable(traceId, authorization, mqttPublishHelper.qos,
-                            mqttPublishHelper.packetId);
+                        server.decodeablePublishPayloadBytes =
+                            publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
+                        server.onDecodePublish(traceId, authorization, mqttPublishHelper.qos, mqttPublishHelper.retained,
+                            mqttPublishHelper.packetId, UNSPECIFIED_ERROR);
+                        progress = publishLimit;
                         break decode;
                     }
                 }
@@ -1486,14 +1490,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
                     if (publisher == null)
                     {
-                        if (server.onDecodePublishUnroutable(traceId, authorization, mqttPublishHelper.qos,
-                            mqttPublishHelper.packetId))
-                        {
-                            server.decodeablePublishPayloadBytes =
-                                publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
-                            server.decoder = decodeRejectedPublishPayload;
-                            progress = publishLimit;
-                        }
+                        server.decodeablePublishPayloadBytes =
+                            publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
+                        server.onDecodePublish(traceId, authorization, mqttPublishHelper.qos, mqttPublishHelper.retained,
+                            mqttPublishHelper.packetId, UNSPECIFIED_ERROR);
+                        progress = publishLimit;
                         break decode;
                     }
                 }
@@ -1657,35 +1658,40 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (reasonCode == SUCCESS && canPublish && (sizeClaimed != 0 || payload.sizeof() == 0))
                 {
+                    boolean accepted = true;
+
                     if (server.publishPayloadDeferred == 0)
                     {
-                        server.onDecodePublish(traceId, authorization, server.decodedQos, server.decodedRetained,
-                            server.decodedPacketId);
+                        accepted = server.onDecodePublish(traceId, authorization, server.decodedQos,
+                            server.decodedRetained, server.decodedPacketId, SUCCESS);
                     }
 
-                    server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
-                        server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
-                        server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
-                        server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
-
-                    if (server.publishPayloadModeling)
+                    if (accepted)
                     {
-                        server.publishPayloadModelProgress += sizeClaimed;
+                        server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
+                            server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
+                            server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
+                            server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
 
-                        if (server.decodeablePublishPayloadBytes == 0)
+                        if (server.publishPayloadModeling)
                         {
-                            progress = offset + server.publishPayloadConsumable;
-                            server.publishPayloadModeling = false;
-                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                            server.publishPayloadModelProgress += sizeClaimed;
+
+                            if (server.decodeablePublishPayloadBytes == 0)
+                            {
+                                progress = offset + server.publishPayloadConsumable;
+                                server.publishPayloadModeling = false;
+                                server.decoder = decodePacketTypeByVersion.get(server.version);
+                            }
                         }
-                    }
-                    else
-                    {
-                        progress = payload.offset() + sizeClaimed;
-
-                        if (server.decodeablePublishPayloadBytes == 0)
+                        else
                         {
-                            server.decoder = decodePacketTypeByVersion.get(server.version);
+                            progress = payload.offset() + sizeClaimed;
+
+                            if (server.decodeablePublishPayloadBytes == 0)
+                            {
+                                server.decoder = decodePacketTypeByVersion.get(server.version);
+                            }
                         }
                     }
                 }
@@ -3816,69 +3822,66 @@ public final class MqttServerFactory implements MqttStreamFactory
             return stream;
         }
 
-        private boolean onDecodePublishUnroutable(
-            long traceId,
-            long authorization,
-            int qos,
-            int packetId)
-        {
-            final boolean acknowledged = version == MQTT_PROTOCOL_VERSION_5 && qos > 0;
-
-            if (acknowledged)
-            {
-                switch (qos)
-                {
-                case 1:
-                    doEncodePubackV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
-                    break;
-                case 2:
-                    doEncodePubrecV5(traceId, authorization, packetId, UNSPECIFIED_ERROR);
-                    break;
-                }
-            }
-            else
-            {
-                onDecodeError(traceId, authorization, IMPLEMENTATION_SPECIFIC_ERROR);
-                decoder = decodeIgnoreAll;
-            }
-
-            return acknowledged;
-        }
-
-        private void onDecodePublish(
+        private boolean onDecodePublish(
             long traceId,
             long authorization,
             int qos,
             boolean retained,
-            int packetId)
+            int packetId,
+            int reasonCode)
         {
-            int reasonCode = SUCCESS;
+            int publishReasonCode = reasonCode;
 
-            if (retained && !retainAvailable(capabilities))
+            if (publishReasonCode == SUCCESS && retained && !retainAvailable(capabilities))
             {
-                reasonCode = RETAIN_NOT_SUPPORTED;
+                publishReasonCode = RETAIN_NOT_SUPPORTED;
             }
 
-            if (reasonCode != SUCCESS)
+            if (publishReasonCode == SUCCESS)
             {
-                onDecodeError(traceId, authorization, reasonCode);
+                if (unreleasedPacketIds.contains(packetId))
+                {
+                    switch (version)
+                    {
+                    case 4:
+                        doEncodePubrecV4(traceId, authorization, packetId);
+                        break;
+                    case 5:
+                        doEncodePubrecV5(traceId, authorization, packetId, SUCCESS);
+                        break;
+                    }
+                }
+
+                doSignalKeepAliveTimeout(traceId);
+            }
+            else if (acknowledgesFailedPublish(qos, publishReasonCode))
+            {
+                switch (qos)
+                {
+                case 1:
+                    doEncodePubackV5(traceId, authorization, packetId, publishReasonCode);
+                    break;
+                case 2:
+                    doEncodePubrecV5(traceId, authorization, packetId, publishReasonCode);
+                    break;
+                }
+
+                decoder = decodeRejectedPublishPayload;
+            }
+            else
+            {
+                onDecodeError(traceId, authorization, publishReasonCode);
                 decoder = decodeIgnoreAll;
             }
 
-            if (unreleasedPacketIds.contains(packetId))
-            {
-                switch (version)
-                {
-                case 4:
-                    doEncodePubrecV4(traceId, authorization, packetId);
-                    break;
-                case 5:
-                    doEncodePubrecV5(traceId, authorization, packetId, SUCCESS);
-                    break;
-                }
-            }
+            return publishReasonCode == SUCCESS;
+        }
 
-            doSignalKeepAliveTimeout(traceId);
+        private boolean acknowledgesFailedPublish(
+            int qos,
+            int reasonCode)
+        {
+            return version == MQTT_PROTOCOL_VERSION_5 && qos > 0 && acknowledgesPublish(reasonCode);
         }
 
         private void onDecodePublishPayload(
@@ -6938,11 +6941,41 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long authorization,
                 byte reasonCode)
             {
-                onDecodeError(traceId, authorization, reasonCode);
-                decoder = decodeIgnoreAll;
+                if (acknowledgesFailedPublish(qos, reasonCode))
+                {
+                    final int failureReasonCode = Byte.toUnsignedInt(reasonCode);
 
-                decodeNetwork(traceId);
-                cleanupAbort(traceId);
+                    for (int index = 0; index < pendingAckReasonCodes.size(); index++)
+                    {
+                        pendingAckReasonCodes.setInt(index, failureReasonCode);
+                    }
+
+                    acknowledgePublishPackets(Long.MAX_VALUE, traceId, authorization);
+
+                    if (decodePublisherKey == topicKey && decoder == decodePublishPayload)
+                    {
+                        if (publishPayloadModeling)
+                        {
+                            decodeablePublishPayloadBytes = publishPayloadConsumable;
+                            publishPayloadModeling = false;
+                        }
+
+                        publishPayloadDeferred = 0;
+
+                        onDecodePublish(traceId, authorization, qos, decodedRetained, decodedPacketId, failureReasonCode);
+                    }
+
+                    cleanupAbort(traceId);
+                    decodeNetwork(traceId);
+                }
+                else
+                {
+                    onDecodeError(traceId, authorization, reasonCode);
+                    decoder = decodeIgnoreAll;
+
+                    decodeNetwork(traceId);
+                    cleanupAbort(traceId);
+                }
             }
 
             private void onPublishSignal(

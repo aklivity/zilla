@@ -73,6 +73,30 @@ public final class MqttReasonCodes
 
     public static final byte RETAIN_NOT_SUPPORTED = (byte) 0x9A;
 
+    public static boolean acknowledgesPublish(
+        int reasonCode)
+    {
+        boolean acknowledges;
+
+        switch ((byte) reasonCode)
+        {
+        case UNSPECIFIED_ERROR:
+        case IMPLEMENTATION_SPECIFIC_ERROR:
+        case NOT_AUTHORIZED:
+        case TOPIC_NAME_INVALID:
+        case PACKET_IDENTIFIER_IN_USE:
+        case QUOTA_EXCEEDED:
+        case PAYLOAD_FORMAT_INVALID:
+            acknowledges = true;
+            break;
+        default:
+            acknowledges = false;
+            break;
+        }
+
+        return acknowledges;
+    }
+
     public static boolean isConnackReasonCode(
         int reasonCode)
     {

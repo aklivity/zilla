@@ -427,6 +427,51 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos2.reject.retain.not.supported/client",
+        "${app}/publish.qos2.reject.retain.not.supported/server"})
+    public void shouldRejectQos2RetainedRetainNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset.mid.payload/client",
+        "${app}/publish.qos1.reset.mid.payload/server"})
+    public void shouldAcknowledgeQos1PublishResetMidPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset.in.flight/client",
+        "${app}/publish.qos1.reset.in.flight/server"})
+    public void shouldAcknowledgeQos1PublishesInFlightReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.reset/client",
+        "${app}/publish.qos2.reset/server"})
+    public void shouldAcknowledgeQos2PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.reset/client",
+        "${app}/publish.qos1.reset/server"})
+    public void shouldAcknowledgeQos1PublishReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos1.message.rejected/client",
         "${app}/publish.qos1.message.rejected/server"})
     public void shouldPublishQos1MessageRejected() throws Exception
