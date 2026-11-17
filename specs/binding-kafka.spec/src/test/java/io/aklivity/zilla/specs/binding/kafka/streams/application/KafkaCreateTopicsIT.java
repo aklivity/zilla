@@ -102,6 +102,15 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${app}/create.topics.v7.reconnect.backoff.reset/client",
+        "${app}/create.topics.v7.reconnect.backoff.reset/server"})
+    public void shouldResetReconnectBackoffAfterConnectionOpened() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/create.topics.v7.broker.unknown.refreshed/client",
         "${app}/create.topics.v7.broker.unknown.refreshed/server"})
     public void shouldRejectCreateTopicsV3ToUnknownBrokerRefreshed() throws Exception

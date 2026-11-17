@@ -1870,6 +1870,11 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             final boolean notYetAttached = nextCorrelationId == 0;
 
+            if (!StreamState.initialOpened(state))
+            {
+                this.reconnectAttempt = 0;
+            }
+
             state = StreamState.openInitial(state);
 
             if (initialBudgetId != NO_BUDGET_ID && initialDebIndex == NO_DEBITOR_INDEX)

@@ -93,6 +93,15 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
+        "${net}/create.topics.v7.reconnect.backoff.reset/client",
+        "${net}/create.topics.v7.reconnect.backoff.reset/server"})
+    public void shouldResetReconnectBackoffAfterConnectionOpened() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/create.topics.v7.broker/client",
         "${net}/create.topics.v7.broker/server"})
     public void shouldCreateTopicsV3ToBrokerByAffinity() throws Exception
