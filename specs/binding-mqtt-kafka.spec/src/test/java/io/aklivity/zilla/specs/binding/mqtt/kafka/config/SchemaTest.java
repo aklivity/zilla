@@ -102,4 +102,42 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithStore()
+    {
+        JsonObject config = schema.validate("proxy.store.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenSubscribeShare()
+    {
+        JsonObject config = schema.validate("proxy.when.subscribe.share.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenSubscribeShareWildcard()
+    {
+        JsonObject config = schema.validate("proxy.when.subscribe.share.wildcard.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWhenSubscribeShareMismatch()
+    {
+        JsonObject config = schema.validate("proxy.when.subscribe.share.mismatch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWhenSubscribeShareInvalid()
+    {
+        schema.validate("proxy.when.subscribe.share.invalid.yaml");
+    }
 }

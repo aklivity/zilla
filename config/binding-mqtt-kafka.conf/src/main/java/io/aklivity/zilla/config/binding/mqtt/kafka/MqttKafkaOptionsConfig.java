@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class MqttKafkaOptionsConfig extends OptionsConfig
 {
+    public final String store;
     public final MqttKafkaTopicsConfig topics;
     public final List<String> clients;
     public final MqttKafkaPublishConfig publish;
@@ -37,11 +38,13 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
     }
 
     MqttKafkaOptionsConfig(
+        String store,
         MqttKafkaTopicsConfig topics,
         List<String> clients,
         MqttKafkaPublishConfig publish)
     {
         super(null, null);
+        this.store = store;
         this.topics = topics;
         this.clients = clients;
         this.publish = publish;

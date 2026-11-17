@@ -101,7 +101,7 @@ public class MqttKafkaBindingConfig
         Array32FW<MqttTopicFilterFW> filters)
     {
         return routes.stream()
-            .filter(r -> filters.anyMatch(f -> subscribes(r, authorization, f.pattern().asString())))
+            .filter(r -> filters.anyMatch(f -> subscribes(r, authorization, f.pattern().asString(), f.shareName().asString())))
             .collect(Collectors.toList());
     }
 
@@ -109,15 +109,24 @@ public class MqttKafkaBindingConfig
         long authorization,
         String topic)
     {
-        return routes.stream().anyMatch(r -> subscribes(r, authorization, topic)) ? SUCCESS : UNSPECIFIED_ERROR;
+        return resolveSubscribeReasonCode(authorization, topic, null);
+    }
+
+    public int resolveSubscribeReasonCode(
+        long authorization,
+        String topic,
+        String share)
+    {
+        return routes.stream().anyMatch(r -> subscribes(r, authorization, topic, share)) ? SUCCESS : UNSPECIFIED_ERROR;
     }
 
     private boolean subscribes(
         MqttKafkaRouteConfig route,
         long authorization,
-        String topic)
+        String topic,
+        String share)
     {
-        return route.authorized(authorization) && route.matches(topic, MqttKafkaConditionKind.SUBSCRIBE);
+        return route.authorized(authorization) && route.matches(topic, share, MqttKafkaConditionKind.SUBSCRIBE);
     }
 
     public MqttQoS publishQosMax()

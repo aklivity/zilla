@@ -14,38 +14,72 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 
 public class MqttKafkaConditionMatcher
 {
-    private final Matcher matcher;
+    private final List<TopicMatcher> matchers;
     public final MqttKafkaConditionKind kind;
     private Consumer<MqttKafkaConditionMatcher> observer;
+    private TopicMatcher matched;
 
     public MqttKafkaConditionMatcher(
         MqttKafkaConditionConfig condition)
     {
-        this.matcher = asTopicMatcher(condition.topics);
-        this.kind = condition.kind;
+        this.matchers = new ArrayList<>(condition.subscribes.size() + condition.publishes.size());
+        condition.subscribes.forEach(s -> matchers.add(new TopicMatcher(s.topic, s.share)));
+        condition.publishes.forEach(p -> matchers.add(new TopicMatcher(p, null)));
+        this.kind = condition.kind();
     }
 
     public boolean matches(
         String topic)
     {
-        return this.matcher == null ||
-            this.matcher.reset(topic).matches() && observeMatched();
+        boolean match = false;
+        for (TopicMatcher candidate : matchers)
+        {
+            match = candidate.matchesTopic(topic);
+            if (match)
+            {
+                matched = candidate;
+                break;
+            }
+        }
+
+        return match && observeMatched();
+    }
+
+    public boolean matches(
+        String topic,
+        String share)
+    {
+        boolean match = false;
+        for (TopicMatcher candidate : matchers)
+        {
+            match = candidate.matchesShare(share) && candidate.matchesTopic(topic);
+            if (match)
+            {
+                matched = candidate;
+                break;
+            }
+        }
+
+        return match && observeMatched();
     }
 
     public String parameter(
         String name)
     {
-        return matcher.group(name);
+        return matched.matchesTopic.group(name);
     }
 
     public void observe(
@@ -62,6 +96,36 @@ public class MqttKafkaConditionMatcher
         }
 
         return true;
+    }
+
+    private static final class TopicMatcher
+    {
+        private final Matcher matchesTopic;
+        private final Matcher matchesShare;
+
+        private TopicMatcher(
+            String topic,
+            String share)
+        {
+            this.matchesTopic = asTopicMatcher(List.of(topic));
+            this.matchesShare = share != null
+                ? Pattern.compile(Arrays.stream(share.split("\\*", -1))
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining(".*"))).matcher("")
+                : null;
+        }
+
+        private boolean matchesTopic(
+            String topic)
+        {
+            return matchesTopic.reset(topic).matches();
+        }
+
+        private boolean matchesShare(
+            String share)
+        {
+            return matchesShare == null || share != null && matchesShare.reset(share).matches();
+        }
     }
 
     private static Matcher asTopicMatcher(

@@ -84,4 +84,14 @@ public class MqttKafkaRouteConfig
             .filter(m -> m.kind == kind)
             .anyMatch(m -> m.matches(topic));
     }
+
+    public boolean matches(
+        String topic,
+        String share,
+        MqttKafkaConditionKind kind)
+    {
+        return when.isEmpty() || when.stream()
+            .filter(m -> m.kind == kind)
+            .anyMatch(m -> m.matches(topic, share));
+    }
 }

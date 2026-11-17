@@ -88,6 +88,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFl
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -171,6 +172,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
+    private static final int SHARED_SUBSCRIBE_QOS_MAX = 1;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
 
@@ -290,6 +292,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Map<String16FW, KafkaGroupOffsetsReset> groupOffsetsResets;
     private final InstanceId instanceId;
     private final boolean willAvailable;
+    private final boolean sharedSubscriptionAvailable;
     private final int reconnectDelay;
     private final Int2ObjectHashMap<String16FW> qosLevels;
     private final Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata;
@@ -341,6 +344,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionIds = new Long2ObjectHashMap<>();
         this.coreIndex = context.index();
         this.willAvailable = config.willAvailable();
+        this.sharedSubscriptionAvailable = config.sharedSubscriptionAvailable();
         this.willDeliverIds = new Object2ObjectHashMap<>();
         this.sessionExpiryIds = new Object2LongHashMap<>(-1);
         this.groupOffsetsResets = new Object2ObjectHashMap<>();
@@ -428,6 +432,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             binding.willProxy.doKafkaEnd(supplyTraceId.get(), 0);
             binding.willProxy = null;
         }
+    }
+
+    private int capabilities(
+        MqttKafkaBindingConfig binding)
+    {
+        return sharedSubscriptionAvailable && binding.options.store != null
+            ? binding.capabilities | SHARED_SUBSCRIPTIONS_AVAILABLE_MASK
+            : binding.capabilities;
+    }
+
+    private int grantedQos(
+        MqttTopicFilterFW filter)
+    {
+        return filter.shareName().asString() != null ? Math.min(filter.qos(), SHARED_SUBSCRIBE_QOS_MAX) : filter.qos();
     }
 
     private final class MqttSessionProxy implements GroupOffsetsResetDelegate
@@ -1281,9 +1299,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 resolvedState.sessionStateV3(s -> sessionState.sessionStateV3().subscriptions().forEach(filter ->
                     s.subscriptionsItem(f -> f
                         .subscriptionId(filter.subscriptionId())
-                        .qos(filter.qos())
+                        .qos(grantedQos(filter))
                         .flags(filter.flags())
-                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
+                        .reasonCode(resolveSubscribeReasonCode(binding, authorization,
+                            filter.pattern().asString(), filter.shareName().asString()))
                         .pattern(filter.pattern())
                         .shareName(filter.shareName()))));
                 break;
@@ -1297,8 +1316,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             String topic)
         {
+            return resolveSubscribeReasonCode(binding, authorization, topic, null);
+        }
+
+        private int resolveSubscribeReasonCode(
+            MqttKafkaBindingConfig binding,
+            long authorization,
+            String topic,
+            String share)
+        {
             return binding != null
-                ? binding.resolveSubscribeReasonCode(authorization, topic)
+                ? binding.resolveSubscribeReasonCode(authorization, topic, share)
                 : MqttKafkaBindingConfig.UNSPECIFIED_ERROR;
         }
 
@@ -1457,7 +1485,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry(sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
-                        .capabilities(binding.capabilities)
+                        .capabilities(capabilities(binding))
                         .clientId(clientId))
                     .build();
 
@@ -1748,7 +1776,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry(sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(publishQosMax)
-                        .capabilities(binding.capabilities)
+                        .capabilities(capabilities(binding))
                         .clientId(clientId);
 
                     metadata.offsets.values().forEach(o ->
@@ -3256,7 +3284,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .expiry(delegate.sessionExpiry)
                         .subscribeQosMax(MQTT_KAFKA_MAX_QOS)
                         .publishQosMax(delegate.publishQosMax)
-                        .capabilities(delegate.binding.capabilities)
+                        .capabilities(capabilities(delegate.binding))
                         .clientId(delegate.clientId))
                     .build();
 
