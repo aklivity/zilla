@@ -3699,7 +3699,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmGeminiRequestDecoder requestThen;
         private final LlmEventCopier copier = new LlmEventCopier();
         private final LlmMemberKeys memberKeys;
-        private final StringBuilder judgeHeld = new StringBuilder();
         private String requestJudged;
         private int requestVerdict;
         private String requestPassKey;
@@ -4467,16 +4466,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     else if (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER || event == JsonEvent.KEY_NAME)
                     {
                         final JsonStringView chars = parser.getStringView();
-                        final boolean deferred = parser.deferredBytes();
 
-                        judgeHeld.append(chars);
-                        parser.consumed(chars.length());
+                        requestVerdict = LlmLegality.advance(requestJudged, requestVerdict, requestSkipDepth, event, chars);
 
-                        if (!deferred)
+                        if (parser.deferredBytes())
                         {
-                            requestVerdict =
-                                LlmLegality.advance(requestJudged, requestVerdict, requestSkipDepth, event, judgeHeld);
-                            judgeHeld.setLength(0);
+                            parser.consumed(chars.length());
                         }
                     }
                     else
