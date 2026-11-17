@@ -348,4 +348,31 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.wildcard/client",
+        "${net}/publish.reject.topic.name.wildcard/server"})
+    public void shouldRejectPublishTopicNameWithWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.empty/client",
+        "${net}/publish.reject.topic.name.empty/server"})
+    public void shouldRejectPublishTopicNameEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.reject.topic.name.null.character/client",
+        "${net}/publish.reject.topic.name.null.character/server"})
+    public void shouldRejectPublishTopicNameWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }

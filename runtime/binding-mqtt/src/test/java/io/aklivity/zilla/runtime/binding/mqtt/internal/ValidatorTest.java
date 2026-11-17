@@ -221,4 +221,52 @@ public class ValidatorTest
     {
         assertFalse(validator.isTopicFilterValid("+topic/name/#"));
     }
+
+    @Test
+    public void shouldNotValidateEmptyTopicFilter()
+    {
+        assertFalse(validator.isTopicFilterValid(""));
+    }
+
+    @Test
+    public void shouldNotValidateTopicFilterWithNullCharacter()
+    {
+        assertFalse(validator.isTopicFilterValid("sensor\u0000one"));
+    }
+
+    @Test
+    public void shouldValidateTopicName()
+    {
+        assertTrue(validator.isTopicNameValid("sensor/one"));
+    }
+
+    @Test
+    public void shouldValidateTopicNameConsistingOnlyOfSeparator()
+    {
+        assertTrue(validator.isTopicNameValid("/"));
+    }
+
+    @Test
+    public void shouldNotValidateEmptyTopicName()
+    {
+        assertFalse(validator.isTopicNameValid(""));
+    }
+
+    @Test
+    public void shouldNotValidateTopicNameWithSingleLevelWildcard()
+    {
+        assertFalse(validator.isTopicNameValid("sensor/+"));
+    }
+
+    @Test
+    public void shouldNotValidateTopicNameWithMultiLevelWildcard()
+    {
+        assertFalse(validator.isTopicNameValid("sensor/#"));
+    }
+
+    @Test
+    public void shouldNotValidateTopicNameWithNullCharacter()
+    {
+        assertFalse(validator.isTopicNameValid("sensor\u0000one"));
+    }
 }

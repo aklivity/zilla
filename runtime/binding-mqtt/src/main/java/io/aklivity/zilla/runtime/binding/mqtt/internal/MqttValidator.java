@@ -20,9 +20,12 @@ import java.util.regex.Pattern;
 
 public final class MqttValidator
 {
-    private static final Pattern TOPIC_FILTER_REGEX = Pattern.compile("[/]?(([^/#+]*|\\+)/)*(#|\\+|[^/#+]*)");
+    private static final Pattern TOPIC_FILTER_REGEX =
+        Pattern.compile("(?!$)[/]?(([^/#+\\u0000]*|\\+)/)*(#|\\+|[^/#+\\u0000]*)");
+    private static final Pattern TOPIC_NAME_REGEX = Pattern.compile("[^#+\\u0000]+");
 
     private final Matcher topicFilterMatcher = TOPIC_FILTER_REGEX.matcher("");
+    private final Matcher topicNameMatcher = TOPIC_NAME_REGEX.matcher("");
 
     public MqttValidator()
     {
@@ -32,5 +35,11 @@ public final class MqttValidator
         String topicFilter)
     {
         return topicFilterMatcher.reset(topicFilter).matches();
+    }
+
+    public boolean isTopicNameValid(
+        String topicName)
+    {
+        return topicNameMatcher.reset(topicName).matches();
     }
 }

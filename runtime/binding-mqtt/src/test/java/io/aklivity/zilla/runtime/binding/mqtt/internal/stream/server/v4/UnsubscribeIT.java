@@ -160,4 +160,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.reject.topic.filter.empty/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -857,4 +857,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.empty/client",
+        "${net}/subscribe.reject.topic.filter.empty/server"})
+    public void shouldRejectTopicFilterEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.null.character/client",
+        "${net}/subscribe.reject.topic.filter.null.character/server"})
+    public void shouldRejectTopicFilterWithNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }
