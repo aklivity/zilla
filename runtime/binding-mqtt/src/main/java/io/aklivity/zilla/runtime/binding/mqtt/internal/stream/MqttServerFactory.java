@@ -5256,7 +5256,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final Subscription subscription = subscriptions.get(index);
                 final boolean wildcardFirst = MqttValidator.wildcardFirst(subscription.filter);
 
-                if (subscription.filterId() == filterId && !(wildcardFirst && systemTopic(topicName)))
+                if (subscription.filterId == filterId && !(wildcardFirst && systemTopic(topicName)))
                 {
                     deliverable = subscription;
                 }
@@ -6284,6 +6284,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final class Subscription
         {
             private int id = 0;
+            private int filterId;
             private String filter;
             private int qos;
             private int flags;
@@ -6311,16 +6312,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 return shared() ? MqttValidator.sharePattern(filter) : filter;
             }
 
-            private int filterId()
-            {
-                return filterIds.computeIfAbsent(filter, f -> --filterIdSequence);
-            }
-
             private Subscription withTopicFilter(
                 String shareName,
                 String pattern)
             {
                 this.filter = MqttValidator.topicFilter(shareName, pattern);
+                this.filterId = filterIds.computeIfAbsent(filter, f -> --filterIdSequence);
                 return this;
             }
 
@@ -6364,7 +6361,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 MqttTopicFilterFW.Builder builder)
             {
                 return builder
-                    .subscriptionId(filterId())
+                    .subscriptionId(filterId)
                     .qos(qos)
                     .flags(flags)
                     .pattern(pattern())
