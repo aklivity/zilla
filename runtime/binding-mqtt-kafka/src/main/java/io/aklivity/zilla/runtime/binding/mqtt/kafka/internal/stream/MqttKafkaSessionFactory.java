@@ -1237,7 +1237,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (store != null && flags == COMPLETE)
             {
                 final List<MqttKafkaMembership> subscribed = new ArrayList<>();
-                final MqttSessionStateFW sessionState = payload.sizeof() > 0 ? mqttSessionStateRO : null;
+                final MqttSessionStateFW sessionState = payload.sizeof() > 0
+                    ? mqttSessionStateRO.tryWrap(payload.buffer(), payload.offset(), payload.limit()) : null;
 
                 if (sessionState != null && sessionState.kind() == MqttSessionStateVersion.V3)
                 {
