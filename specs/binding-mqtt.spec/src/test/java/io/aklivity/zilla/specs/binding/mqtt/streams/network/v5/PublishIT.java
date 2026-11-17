@@ -967,4 +967,24 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    // 4.3.2, 3.4.2.1
+    @Test
+    @Specification({
+        "${net}/publish.qos1.acks.reordered.with.reason.codes/client",
+        "${net}/publish.qos1.acks.reordered.with.reason.codes/server"})
+    public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Specification({
+        "${net}/server.sent.puback.unknown.packet.id/client",
+        "${net}/server.sent.puback.unknown.packet.id/server"})
+    public void shouldRejectServerSentPubackUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
 }
