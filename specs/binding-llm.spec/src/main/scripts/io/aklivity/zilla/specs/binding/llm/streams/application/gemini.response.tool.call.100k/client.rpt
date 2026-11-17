@@ -39,8 +39,6 @@ write advise zilla:flush
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("gemini")
-                           .model("gemini-3.6-flash")
-                           .id("resp_01")
                            .build()}
 
 read zilla:data.ext ${llm:matchDataEx()
