@@ -411,6 +411,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeAwaitOwnership = this::decodeAwaitOwnership;
     private final MqttServerDecoder decodePublishV4 = this::decodePublishV4;
     private final MqttServerDecoder decodePublishV5 = this::decodePublishV5;
+    private final MqttServerDecoder decodePublishWindow = this::decodePublishWindow;
     private final MqttServerDecoder decodePublishPayload = this::decodePublishPayload;
     private final MqttServerDecoder decodeRejectedPublishPayload = this::decodeRejectedPublishPayload;
     private final MqttServerDecoder decodeSubscribeV4 = this::decodeSubscribeV4;
@@ -1400,7 +1401,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
                 if (decodeablePublishPayloadBytes == 0 && !StreamState.initialOpened(publisher.state))
                 {
-                    // special case, when payload is empty -> wait for window
+                    server.decodeablePublishPacketBytes = publishLimit - offset;
+                    server.decoder = decodePublishWindow;
                     break decode;
                 }
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
@@ -1546,7 +1548,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
                 if (decodeablePublishPayloadBytes == 0 && !StreamState.initialOpened(publisher.state))
                 {
-                    // special case, when payload is empty -> wait for window
+                    server.decodeablePublishPacketBytes = publishLimit - offset;
+                    server.decoder = decodePublishWindow;
                     break decode;
                 }
                 server.decodeablePublishPayloadBytes = decodeablePublishPayloadBytes;
@@ -1566,6 +1569,25 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return progress;
+    }
+
+    private int decodePublishWindow(
+        MqttServer server,
+        final long traceId,
+        final long authorization,
+        final long budgetId,
+        final DirectBufferEx buffer,
+        final int offset,
+        final int limit)
+    {
+        final MqttServer.MqttPublishStream publisher = server.publishes.get(server.decodePublisherKey);
+
+        if (publisher == null || StreamState.initialOpened(publisher.state))
+        {
+            server.decoder = decodePacketTypeByVersion.get(server.version);
+        }
+
+        return offset;
     }
 
     private int decodePublishPayload(
@@ -2704,6 +2726,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private MqttServerDecoder decoder;
         private long decodePublisherKey;
+        private int decodeablePublishPacketBytes;
         private int decodeablePacketBytes;
         private int publishPayloadDeferred;
         public int decodeablePublishPayloadBytes;
@@ -6994,7 +7017,13 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     acknowledgePublishPackets(traceId, authorization);
 
-                    if (decodePublisherKey == topicKey && decoder == decodePublishPayload)
+                    if (decodePublisherKey == topicKey && decoder == decodePublishWindow)
+                    {
+                        decodeablePublishPayloadBytes = decodeablePublishPacketBytes;
+
+                        onDecodePublish(traceId, authorization, qos, decodedRetained, decodedPacketId, failureReasonCode);
+                    }
+                    else if (decodePublisherKey == topicKey && decoder == decodePublishPayload)
                     {
                         if (publishPayloadModeling)
                         {
