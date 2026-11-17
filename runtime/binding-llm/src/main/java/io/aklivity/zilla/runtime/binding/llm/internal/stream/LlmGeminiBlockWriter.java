@@ -136,7 +136,10 @@ final class LlmGeminiBlockWriter
     private static final String MODE_AUTO = "AUTO";
     private static final String MODE_ANY = "ANY";
     private static final String MODE_NONE = "NONE";
-    static final int HEADROOM = 16;
+    private static final int HEADROOM = 16;
+    private static final int END = 1;
+    private static final int SEPARATOR = 1;
+    private static final int ESCAPE_GROWTH = 6;
     private static final String[] TYPES = {"STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL"};
 
     private final LlmOutputSink sink;
@@ -799,6 +802,22 @@ final class LlmGeminiBlockWriter
     int pending()
     {
         return generator.length();
+    }
+
+    int closing()
+    {
+        final int extra = switch (mode)
+        {
+        case MODE_SERVER_CALL -> END + (heldId != null ? member(MEMBER_WIRE_ID.length(), heldId.length() * ESCAPE_GROWTH) : 0);
+        case MODE_MEDIA -> END + (formatted && LlmGeminiMediaFormat.formatOf(mediaType) != null
+            ? member("format".length(), LlmGeminiMediaFormat.formatOf(mediaType).length() * ESCAPE_GROWTH)
+            : 0);
+        case MODE_CALL -> argumented ? 0 : member(MEMBER_ARGUMENTS.length(), 0) - 1 + END;
+        case MODE_DEFINITION -> END;
+        default -> 0;
+        };
+
+        return SEPARATOR + extra + 2 * END;
     }
 
     boolean functioned()
@@ -1521,6 +1540,13 @@ final class LlmGeminiBlockWriter
         {
             choice.mode(LlmToolChoice.MODE_NONE);
         }
+    }
+
+    private static int member(
+        int keyLength,
+        int valueLength)
+    {
+        return SEPARATOR + keyLength + 2 + 1 + valueLength + 2;
     }
 
     private void writePrefixedKey(

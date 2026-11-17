@@ -193,7 +193,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final int MIN_MEMBER_INPUT = "\"k\":0,".length();
     private static final int MEMBER_KEY_EXPANSION = LlmGeminiBlockWriter.longestKey().length() - "k".length();
     private static final int CONTROL_GROWTH = 1 + (MEMBER_KEY_EXPANSION + MIN_MEMBER_INPUT - 1) / MIN_MEMBER_INPUT;
-    private static final int FRAMING_RESERVE = LlmGeminiBlockWriter.HEADROOM;
+    private static final int PIECE_FRAMING = "{\"".length() + "\":\"".length() + "\"}".length();
     private static final int TEXT_ESCAPE_EXPANSION = 6;
     private static final int CONTROL_OPEN_CAPACITY = 8;
     private static final int LEVEL_CONTENT_MEMBER = 0;
@@ -4156,14 +4156,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            return (int) Math.min(limit - offset, Math.max(available() - FRAMING_RESERVE, 0) / CONTROL_GROWTH);
+            return (int) Math.min(limit - offset, Math.max(available() - framing(), 0) / CONTROL_GROWTH);
+        }
+
+        private int framing()
+        {
+            final int keyLength = Math.max(partKey != null ? partKey.length() : 0,
+                Math.max(controlKey.length(), configKey.length()));
+
+            return writing != null ? blockWriter.closing() : PIECE_FRAMING + keyLength;
         }
 
         private int windowMax()
         {
             final int credit = stream != null ? Math.min(initialMax, stream.initialMax) : initialMax;
 
-            return Math.max(credit - FRAMING_RESERVE, 0) / CONTROL_GROWTH - MIN_WINDOW;
+            return Math.max(credit - PIECE_FRAMING, 0) / CONTROL_GROWTH - MIN_WINDOW;
         }
 
         private int available()
