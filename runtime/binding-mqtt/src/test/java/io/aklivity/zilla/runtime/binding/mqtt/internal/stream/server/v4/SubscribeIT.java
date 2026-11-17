@@ -276,7 +276,7 @@ public class SubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.redeliver.message.qos2/client",
-        "${app}/subscribe.redeliver.message.qos2/server"})
+        "${app}/subscribe.redeliver.message.qos2.v4/server"})
     public void shouldRedeliverMessageQoS2() throws Exception
     {
         k3po.finish();

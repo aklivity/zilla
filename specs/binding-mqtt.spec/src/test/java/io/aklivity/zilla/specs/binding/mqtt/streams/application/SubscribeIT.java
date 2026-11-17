@@ -1449,4 +1449,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos2.v4/client",
+        "${app}/subscribe.redeliver.message.qos2.v4/server"})
+    public void shouldRedeliverMessageQoS2V4() throws Exception
+    {
+        k3po.finish();
+    }
 }

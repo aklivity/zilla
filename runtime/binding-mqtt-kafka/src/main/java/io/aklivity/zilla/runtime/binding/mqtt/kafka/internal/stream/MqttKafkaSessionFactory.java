@@ -1002,7 +1002,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             cancelAwaitedReset();
-            if (sessionExpiryMillis == 0)
+            if (sessionExpiryMillis() == 0)
             {
                 discardTickets();
             }
@@ -1114,7 +1114,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             cancelAwaitedReset();
-            if (sessionExpiryMillis == 0)
+            if (sessionExpiryMillis() == 0)
             {
                 discardTickets();
             }

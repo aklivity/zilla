@@ -2711,7 +2711,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             {
                 if (clientHighWaterMarks.tickets.ready())
                 {
-                    shared.recoverable.addAll(clientPacketIds.tickets.recover(shareName, pattern));
+                    shared.recoverable.addAll(clientHighWaterMarks.tickets.recover(shareName, pattern));
                     shared.doKafkaBegin(traceId, authorization, affinity, shareName, pattern);
                 }
                 else
@@ -3202,9 +3202,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             MqttKafkaTicket ticket,
             Runnable completion)
         {
-            mqtt.clientPacketIds.tickets.abandon(ticket.packetId, () ->
+            mqtt.clientHighWaterMarks.tickets.abandon(ticket.packetId, () ->
             {
-                mqtt.clientPacketIds.inflight.release(ticket.packetId);
+                mqtt.clientHighWaterMarks.inflight.release(ticket.packetId);
                 completion.run();
             });
         }
@@ -3748,9 +3748,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private void abandonTickets()
         {
-            final MqttKafkaClientTickets tickets = mqtt.clientPacketIds.tickets;
+            final MqttKafkaClientTickets tickets = mqtt.clientHighWaterMarks.tickets;
 
-            gates.forEach(g -> tickets.abandon(g.packetId, () -> mqtt.clientPacketIds.inflight.release(g.packetId)));
+            gates.forEach(g -> tickets.abandon(g.packetId, () -> mqtt.clientHighWaterMarks.inflight.release(g.packetId)));
         }
 
         private void releaseHeld()
