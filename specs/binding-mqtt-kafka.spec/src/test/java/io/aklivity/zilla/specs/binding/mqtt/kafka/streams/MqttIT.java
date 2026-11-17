@@ -652,6 +652,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.reconnect.during.expire.reset.group.offsets/client",
+        "${mqtt}/session.reconnect.during.expire.reset.group.offsets/server"})
+    public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("OFFSET_DELETE_RECEIVED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.close.expire.session.offsets.immediately/client",
         "${mqtt}/session.close.expire.session.offsets.immediately/server"})
     public void shouldExpireSessionAndOffsetsImmediately() throws Exception
