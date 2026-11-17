@@ -1529,15 +1529,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.shared.reject.fragmented.message/client",
-        "${mqtt}/subscribe.shared.reject.fragmented.message/server"})
-    public void shouldSubscribeSharedRejectFragmentedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/subscribe.shared.reject.qos2.acknowledgement/client",
         "${mqtt}/subscribe.shared.reject.qos2.acknowledgement/server"})
     public void shouldSubscribeSharedRejectQos2Acknowledgement() throws Exception

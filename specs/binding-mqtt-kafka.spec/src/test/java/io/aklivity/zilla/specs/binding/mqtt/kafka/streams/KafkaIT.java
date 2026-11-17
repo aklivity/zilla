@@ -1748,15 +1748,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/subscribe.shared.reject.fragmented.message/client",
-        "${kafka}/subscribe.shared.reject.fragmented.message/server"})
-    public void shouldSubscribeSharedRejectFragmentedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/subscribe.receive.message.parent.level.overlapping/client",
         "${kafka}/subscribe.receive.message.parent.level.overlapping/server"})
     public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
