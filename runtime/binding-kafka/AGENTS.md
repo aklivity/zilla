@@ -70,3 +70,54 @@ trailers-sized portion as the envelope's scratch space during the drive;
 contiguously over those same bytes and folds whatever remains into the
 entry's own trailing `paddingLen`/`padding` fields. The produce path doesn't
 need this reordering since it already knows its headers at `Start`.
+
+## Share group staging (cache server)
+
+`KafkaCacheServerShareFactory` holds one share group member per binding and
+share group id, and fans the acquired records out to the `SHARE` streams
+attached to the group in process. The `cache_client` side
+(`KafkaCacheClientShareFactory`) is a one-stream-per-stream pass-through
+mirroring `KafkaCacheGroupFactory`.
+
+Records streamed by the member stream are staged in an ephemeral
+`KafkaCachePartition` created by `KafkaCacheTopic.newShareStaging`, written with
+the same `writeEntryStart` / `writeEntryContinue` / `writeEntryFinish` calls as
+the populate path, so a record is staged progressively, independent of the
+decode slot size, and is complete once the headers arrive on the FIN frame.
+
+- Staged entries are not contiguous Kafka offsets, so the log offset of an
+  entry is a local append sequence; the Kafka partition and offset, timestamp,
+  delivery count, lock expiry and owning stream are kept beside the entry in
+  `KafkaShareRecords` (one `KafkaShareRecord` per staged entry)
+- The staging directory is derived from the worker, group id and topic and is
+  deleted when the fan-out is created: the broker locks of a previous run have
+  expired, so nothing staged is worth keeping
+- A segment is removed when the last record staged in it completes (acked,
+  released, filtered, expired or discarded); the head segment is only rolled
+  and removed once it is no longer the head, and `deleteAll` frees the rest
+  when the last stream leaves
+- A record becomes deliverable only after the acquired flush of its partition
+  names its offset; records outside the acquired ranges are discarded, records
+  not matching the group filters are ACCEPTed to the member stream
+- The window granted to the member stream stops acknowledging staged bytes
+  while the acquired records held (staged and awaiting delivery, plus delivered
+  and awaiting acknowledgement) reach `cache.server.share.staging.max.bytes`;
+  records of a response whose acquired flush is still to come are not counted,
+  so a response always completes and releases the records waiting on it. The
+  bound is a high-water mark that gates acknowledgement, not a hard cap: the
+  records of one response are staged before they are counted, so staged bytes
+  can exceed the bound by up to one response. It needs no particular relation to
+  `client.share.fetch.max.bytes`, since the held records are always deliverable
+  and their acknowledgements reopen the window without waiting for the next
+  fetch
+- The client factory reports the lock timeout of an acquired flush as the broker
+  lock timeout minus the time elapsed since the ShareFetch that produced the
+  response was sent, floored at zero, so a response held back in the network
+  buffer does not overstate the lock that remains
+- Lock expiry is tracked from the arrival of the acquired flush plus its lock
+  timeout; a record is not delivered when less than
+  `cache.server.share.lock.margin.percent` of the lock timeout remains, and an
+  expired record, delivered or not, is released to the member stream. The
+  broker answers a release for a lapsed or reacquired record with an invalid
+  record state error that does not affect the member, and the client factory
+  has already cleared the offset from its in-flight set

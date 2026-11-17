@@ -48,6 +48,10 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_MAX_BYTES;
     public static final IntPropertyDef KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
@@ -72,6 +76,9 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+    public static final IntPropertyDef KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
     public static final IntPropertyDef KAFKA_CLIENT_GROUP_MIN_SESSION_TIMEOUT_DEFAULT;
@@ -100,6 +107,10 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_FETCH_MAX_WAIT_MILLIS = config.property("client.fetch.max.wait.millis", 1 * 60 * 1000);
         KAFKA_CLIENT_FETCH_MAX_BYTES = config.property("client.fetch.max.bytes", 50 * 1024 * 1024);
         KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES = config.property("client.fetch.partition.max.bytes", 50 * 1024 * 1024);
+        KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS = config.property("client.share.fetch.max.wait.millis", 500);
+        KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES = config.property("client.share.fetch.min.bytes", 1);
+        KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES = config.property("client.share.fetch.max.bytes", 50 * 1024 * 1024);
+        KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS = config.property("client.share.fetch.max.records", 500);
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
@@ -136,6 +147,10 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX = config.property("cache.server.trailers.size.max", 256);
+        KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES = config.property("cache.server.share.staging.max.bytes", 64 * 1024 * 1024);
+        KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES =
+            config.property("cache.server.share.staging.segment.bytes", 32 * 1024 * 1024);
+        KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT = config.property("cache.server.share.lock.margin.percent", 10);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
         KAFKA_CLIENT_API_VERSIONS = config.property("client.api.versions", true);
         KAFKA_CLIENT_RECONNECT_DELAY = config.property("client.reconnect", 5);
@@ -188,6 +203,26 @@ public class KafkaConfiguration extends Configuration
     public int clientFetchPartitionMaxBytes()
     {
         return KAFKA_CLIENT_FETCH_PARTITION_MAX_BYTES.get(this);
+    }
+
+    public int clientShareFetchMaxWaitMillis()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS.getAsInt(this);
+    }
+
+    public int clientShareFetchMinBytes()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES.getAsInt(this);
+    }
+
+    public int clientShareFetchMaxBytes()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MAX_BYTES.getAsInt(this);
+    }
+
+    public int clientShareFetchMaxRecords()
+    {
+        return KAFKA_CLIENT_SHARE_FETCH_MAX_RECORDS.getAsInt(this);
     }
 
     public int clientProduceMaxRequestMillis()
@@ -327,6 +362,21 @@ public class KafkaConfiguration extends Configuration
     public int cacheServerTrailersSizeMax()
     {
         return KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX.getAsInt(this);
+    }
+
+    public int cacheServerShareStagingMaxBytes()
+    {
+        return KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES.getAsInt(this);
+    }
+
+    public int cacheServerShareStagingSegmentBytes()
+    {
+        return KAFKA_CACHE_SERVER_SHARE_STAGING_SEGMENT_BYTES.getAsInt(this);
+    }
+
+    public int cacheServerShareLockMarginPercent()
+    {
+        return KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT.getAsInt(this);
     }
 
     public String clientId()
