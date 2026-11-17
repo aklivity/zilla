@@ -361,7 +361,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeConfigOpen = this::decodeConfigOpen;
     private final LlmGeminiServerDecoder decodeConfigClosed = this::decodeConfigClosed;
     private final LlmGeminiServerDecoder decodeConfigMime = this::decodeConfigMime;
-    private final LlmGeminiServerDecoder decodeConfigSchema = this::decodeConfigSchema;
     private final LlmGeminiServerDecoder decodeConfigConverted = this::decodeConfigConverted;
     private final LlmGeminiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmGeminiServerDecoder decodeEnd = this::decodeEnd;
@@ -3246,9 +3245,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 break decode;
             }
 
-            server.capture(LlmSectionType.SERVER_TOOL_DEFINITION, -1, decodeTools);
-            server.probing = true;
-            server.decoder = decodeTool;
+            server.beginBlock(LlmSectionType.SERVER_TOOL_DEFINITION, -1, LlmGeminiBlockWriter.MODE_SERVER_RESULT,
+                decodeTools);
         }
 
         return server.position();
@@ -3605,33 +3603,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeConfigSchema(
-        LlmGeminiServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        final JsonParserEx parser = server.parser;
-
-        while (server.decoder == decodeConfigSchema && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = onCaptureEvent(server, event);
-
-            if (server.captureDepth == 0 && !deferred)
-            {
-                server.endConfigSchema(traceId, authorization);
-            }
-        }
-
-        return server.position();
-    }
-
     private int decodeConfigConverted(
         LlmGeminiServer server,
         long traceId,
@@ -3934,6 +3905,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int resultShape;
         private LlmGeminiServerDecoder decodeBlockNext;
         private LlmGeminiServerDecoder blockThen;
+        private DirectBufferEx valueClose;
         private String partKey;
         private int partMembers;
         private final LlmEventCopier partCopier = new LlmEventCopier();
@@ -4557,6 +4529,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             blockWriter.flush(false);
             writing = null;
+
+            if (valueClose != null)
+            {
+                onDecodeBlockData(decodeTraceId, decodeAuthorization, valueClose, 0, valueClose.capacity(), false);
+                valueClose = null;
+                format = FORMAT_LIFTED;
+            }
+
             decoder = blockThen;
         }
 
@@ -4642,7 +4622,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeSharedKey(SHARED_RESPONSE_FORMAT, controlOpen());
                 onDecodeBlockData(decodeTraceId, decodeAuthorization, RESPONSE_FORMAT_SCHEMA_OPEN, 0,
                     RESPONSE_FORMAT_SCHEMA_OPEN.capacity(), false);
-                decoder = decodeConfigSchema;
+                beginValue(decodeConfigClosed, decodeBlockValue);
+                valueClose = RESPONSE_FORMAT_SCHEMA_CLOSE;
             }
             else
             {
@@ -4719,19 +4700,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
 
             blockPipeline = null;
-            captureOpen = false;
-            decoder = decodeConfigClosed;
-        }
-
-        private void endConfigSchema(
-            long traceId,
-            long authorization)
-        {
-            flushCapture(traceId, authorization, false);
-            onDecodeBlockData(traceId, authorization, RESPONSE_FORMAT_SCHEMA_CLOSE, 0,
-                RESPONSE_FORMAT_SCHEMA_CLOSE.capacity(), false);
-
-            format = FORMAT_LIFTED;
             captureOpen = false;
             decoder = decodeConfigClosed;
         }
