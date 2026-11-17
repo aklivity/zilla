@@ -4170,7 +4170,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             onDecodeBlock(type, textMessage(this));
 
             probing = true;
-            blockWriter().begin(pieceBuffer, 0, type == LlmSectionType.TOOL_RESULT, resultShape != LlmGeminiAttributeProbe.SHAPE_OTHER);
+            blockWriter().begin(pieceBuffer, 0, type == LlmSectionType.TOOL_RESULT,
+                resultShape != LlmGeminiAttributeProbe.SHAPE_OTHER);
             decoder = decodeBlockKey;
         }
 
