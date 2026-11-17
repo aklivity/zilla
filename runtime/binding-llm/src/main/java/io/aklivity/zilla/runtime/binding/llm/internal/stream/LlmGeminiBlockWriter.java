@@ -41,12 +41,14 @@ final class LlmGeminiBlockWriter
     static final int ACTION_ID = 6;
     static final int ACTION_SCHEMA = 7;
     static final int ACTION_OPTIONAL = 8;
+    static final int ACTION_DATA = 9;
 
     static final int MODE_CALL = 0;
     static final int MODE_RESULT = 1;
     static final int MODE_SERVER_CALL = 2;
     static final int MODE_SERVER_RESULT = 3;
     static final int MODE_DEFINITION = 4;
+    static final int MODE_MEDIA = 5;
 
     private static final String PREFIX = LlmGeminiDialectFactorySpi.NAME + ":";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
@@ -93,6 +95,14 @@ final class LlmGeminiBlockWriter
     private int mode;
     private boolean named;
     private int optionalMode;
+    private int dataState;
+    private String mediaCanonical;
+    private String mediaContainer;
+    private String mediaData;
+    private String mediaUrl;
+    private boolean formatted;
+    private String mediaType;
+    private boolean reference;
     private int pending;
     private int rawDepth;
     private final BitSet names = new BitSet();
@@ -132,6 +142,7 @@ final class LlmGeminiBlockWriter
         this.required = REQUIRE_NONE;
         this.named = false;
         this.optionalMode = OPTIONAL_UNDECIDED;
+        this.dataState = 0;
         this.pending = PENDING_NONE;
         this.rawDepth = 0;
         this.names.clear();
@@ -146,6 +157,28 @@ final class LlmGeminiBlockWriter
             generator.write(MEMBER_TYPE, MEMBER_FUNCTION);
             generator.writeStartObject(MEMBER_FUNCTION);
         }
+        else if (mode == MODE_MEDIA)
+        {
+            generator.write(MEMBER_TYPE, mediaCanonical);
+        }
+    }
+
+    void media(
+        String canonicalType,
+        String container,
+        String dataMember,
+        String urlMember,
+        boolean formatted,
+        String mediaType,
+        boolean reference)
+    {
+        this.mediaCanonical = canonicalType;
+        this.mediaContainer = container;
+        this.mediaData = dataMember;
+        this.mediaUrl = urlMember;
+        this.formatted = formatted;
+        this.mediaType = mediaType;
+        this.reference = reference;
     }
 
     int pending()
@@ -210,6 +243,11 @@ final class LlmGeminiBlockWriter
             generator.writeKey(MEMBER_ARGUMENTS);
             generator.writeStartObject();
         }
+        else if (mode == MODE_MEDIA)
+        {
+            generator.writeKey(mediaContainer);
+            generator.writeStartObject();
+        }
     }
 
     void holdId(
@@ -220,7 +258,7 @@ final class LlmGeminiBlockWriter
 
     boolean complete()
     {
-        return mode == MODE_SERVER_RESULT || mode == MODE_DEFINITION && named || functioned;
+        return mode == MODE_SERVER_RESULT || mode == MODE_MEDIA || mode == MODE_DEFINITION && named || functioned;
     }
 
     int functionAction(
@@ -231,6 +269,10 @@ final class LlmGeminiBlockWriter
         if (mode == MODE_SERVER_CALL)
         {
             action = serverCallAction(name);
+        }
+        else if (mode == MODE_MEDIA)
+        {
+            action = mediaAction(name);
         }
         else if (mode == MODE_RESULT)
         {
@@ -326,6 +368,60 @@ final class LlmGeminiBlockWriter
         return outcome;
     }
 
+    int mediaAction(
+        CharSequence name)
+    {
+        int action = ACTION_COPY;
+
+        if ("mimeType".contentEquals(name) || "mime_type".contentEquals(name))
+        {
+            action = ACTION_DROP;
+        }
+        else if ("data".contentEquals(name))
+        {
+            dataState = 0;
+            action = ACTION_DATA;
+        }
+        else if ("fileUri".contentEquals(name) || "file_uri".contentEquals(name))
+        {
+            generator.writeKey(reference ? "file_id" : mediaUrl);
+            required = REQUIRE_STRING;
+        }
+        else
+        {
+            writePrefixedKey(name);
+        }
+
+        return action;
+    }
+
+    int dataValue(
+        JsonEvent event,
+        JsonParserEx parser)
+    {
+        int outcome = REJECT;
+
+        if (dataState != 0 || event == JsonEvent.VALUE_STRING && (formatted || mediaType != null))
+        {
+            if (dataState == 0)
+            {
+                generator.writeKey(mediaData);
+
+                if (!formatted)
+                {
+                    generator.write("data:" + mediaType + ";base64,", Completion.INCOMPLETE);
+                }
+
+                dataState = 1;
+            }
+
+            copy(event, parser);
+            outcome = deferred(event, parser) ? MORE : VALUE;
+        }
+
+        return outcome;
+    }
+
     int serverCallAction(
         CharSequence name)
     {
@@ -412,6 +508,17 @@ final class LlmGeminiBlockWriter
                 generator.write(MEMBER_WIRE_ID, heldId);
             }
         }
+        else if (mode == MODE_MEDIA)
+        {
+            final String format = formatted ? LlmGeminiMediaFormat.formatOf(mediaType) : null;
+
+            if (format != null)
+            {
+                generator.write("format", format);
+            }
+
+            generator.writeEnd();
+        }
         else if (mode == MODE_CALL && !argumented)
         {
             generator.writeStartObject(MEMBER_ARGUMENTS).writeEnd();
@@ -426,6 +533,8 @@ final class LlmGeminiBlockWriter
         {
         case MODE_CALL -> MEMBER_FUNCTION_CALL.contentEquals(name);
         case MODE_RESULT -> MEMBER_FUNCTION_RESPONSE.contentEquals(name);
+        case MODE_MEDIA -> "inlineData".contentEquals(name) || "inline_data".contentEquals(name) ||
+            "fileData".contentEquals(name) || "file_data".contentEquals(name);
         default -> MEMBER_EXECUTABLE_CODE.contentEquals(name) || MEMBER_EXECUTABLE_CODE_SNAKE.contentEquals(name);
         };
     }
