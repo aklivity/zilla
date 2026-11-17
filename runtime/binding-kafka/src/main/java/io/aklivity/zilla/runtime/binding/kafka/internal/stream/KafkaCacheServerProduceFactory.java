@@ -541,7 +541,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
         private long ackPartitionOffset = -1L;
         private long ackTimestamp = -1L;
-        private long flushedAckPartitionOffset = -1L;
 
         private KafkaCacheServerProduceFan(
             long originId,
@@ -1126,6 +1125,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
         private int messageOffset;
+        private long flushedAckPartitionOffset = -1L;
 
         private boolean isProgressing = true;
 
@@ -1571,7 +1571,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 (fan.ackPartitionOffset < 0 || fan.initialAck != fan.initialSeq);
             final boolean alreadyFlushed = error == NO_ERROR &&
                 fan.ackPartitionOffset >= 0 &&
-                fan.ackPartitionOffset == fan.flushedAckPartitionOffset;
+                fan.ackPartitionOffset == flushedAckPartitionOffset;
 
             if (!unacknowledged && !alreadyFlushed)
             {
@@ -1593,7 +1593,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 if (fan.ackPartitionOffset >= 0)
                 {
-                    fan.flushedAckPartitionOffset = fan.ackPartitionOffset;
+                    flushedAckPartitionOffset = fan.ackPartitionOffset;
                 }
             }
         }

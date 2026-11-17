@@ -959,18 +959,14 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            // messages and retained advertise credit differently - messages holds its ack at zero
-            // and grows its max, retained advances its ack against a fixed max - so minimizing ack
-            // and max independently would combine the ack of one with the max of the other and cap
-            // the stream for its whole lifetime; compare the budgets each one actually offers
-            final int messagesBudget = messages.initialMax - (int)(messages.initialSeq - messages.initialAck);
-            final int retainedBudget = retained.initialMax - (int)(retained.initialSeq - retained.initialAck);
-            final int newInitialBudget = retainAvailable ?
-                Math.min(messagesBudget, retainedBudget) : messagesBudget;
-            final int newInitialMax = retainAvailable ?
-                Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
-            final long newInitialAck =
-                Math.max(initialAck, initialSeq - Math.max(newInitialMax - newInitialBudget, 0));
+            final int messagesNoAck = (int)(messages.initialSeq - messages.initialAck);
+            final int retainedNoAck = (int)(retained.initialSeq - retained.initialAck);
+            final int newInitialNoAck = retainAvailable ? Math.max(messagesNoAck, retainedNoAck) : messagesNoAck;
+            final int messagesBudget = messages.initialMax - messagesNoAck;
+            final int retainedBudget = retained.initialMax - retainedNoAck;
+            final int newInitialBudget = retainAvailable ? Math.min(messagesBudget, retainedBudget) : messagesBudget;
+            final int newInitialMax = newInitialBudget + newInitialNoAck;
+            final long newInitialAck = Math.max(initialAck, initialSeq - newInitialNoAck);
 
             if (StreamState.initialOpened(messages.state) &&
                 (!retainAvailable || StreamState.initialOpened(retained.state)) &&
@@ -1491,7 +1487,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialSeq;
-            initialMax = delegate.initialMax;
+            initialMax = delegate.initialMax - (int)(delegate.initialSeq - delegate.initialAck);
 
             if (!StreamState.initialOpening(state))
             {
@@ -1864,7 +1860,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             initialSeq = 0;
             initialAck = 0;
-            initialMax = delegate.initialMax;
+            initialMax = delegate.initialMax - (int)(delegate.initialSeq - delegate.initialAck);
 
             if (!StreamState.initialOpening(state))
             {

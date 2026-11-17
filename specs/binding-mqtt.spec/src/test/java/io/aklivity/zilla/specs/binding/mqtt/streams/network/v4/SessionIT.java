@@ -76,6 +76,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.server.sent.reset.before.connack/client",
+        "${net}/session.server.sent.reset.before.connack/server"})
+    public void shouldRejectConnectWhenServerSentResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.subscribe/client",
         "${net}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

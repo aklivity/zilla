@@ -835,6 +835,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.qos2.meta.reset/client",
+        "${mqtt}/session.qos2.meta.reset/server"})
+    public void shouldResetMqttSessionWhenMetaStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.init.producer.reset/client",
+        "${mqtt}/session.qos2.init.producer.reset/server"})
+    public void shouldResetMqttSessionWhenInitProducerStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.qos2.offset.fetch.reset/client",
+        "${mqtt}/session.qos2.offset.fetch.reset/server"})
+    public void shouldResetMqttSessionWhenOffsetFetchStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
         "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
     public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
@@ -1214,6 +1241,15 @@ public class MqttIT
     public void shouldPublishQos1ServerSentResetInFlight() throws Exception
     {
         k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
+        "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
+    public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
         k3po.finish();
     }
 

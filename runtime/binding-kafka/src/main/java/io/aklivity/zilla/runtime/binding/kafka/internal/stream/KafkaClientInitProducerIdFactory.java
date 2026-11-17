@@ -19,6 +19,9 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -124,6 +127,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
+    private final int reconnectDelay;
 
     public KafkaClientInitProducerIdFactory(
         KafkaConfiguration config,
@@ -146,6 +150,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
+        this.reconnectDelay = config.clientReconnectDelay();
     }
 
     @Override
@@ -513,6 +518,10 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 client.onDecodeInitProducerrIdResponse(
                     traceId, initProducerIdResponse.producerId(), initProducerIdResponse.producerEpoch());
             }
+            else if (KafkaError.of(errorCode).isRetriable())
+            {
+                client.onRetriableError(traceId);
+            }
             else
             {
                 client.errorCode = errorCode;
@@ -853,6 +862,9 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
         private int nextResponseId;
 
+        private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
+
         private BudgetDebitor initialDeb;
         private KafkaInitProducerIdClientDecoder decoder;
         private LongLongConsumer encoder;
@@ -1079,6 +1091,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
             if (signalId == SIGNAL_NEXT_REQUEST)
             {
+                reconnectAt = NO_CANCEL_ID;
                 doEncodeRequestIfNecessary(traceId, initialBudgetId);
             }
         }
@@ -1464,6 +1477,29 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 
+        private void onRetriableError(
+            long traceId)
+        {
+            nextResponseId++;
+
+            encoder = encodeInitProducerIdRequest;
+
+            cancelReconnect();
+
+            reconnectAt = signaler.signalAt(
+                currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+        }
+
+        private void cancelReconnect()
+        {
+            if (reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(reconnectAt);
+                reconnectAt = NO_CANCEL_ID;
+            }
+        }
+
         private void onDecodeInitProducerrIdResponse(
             long traceId,
             long newProducerId,
@@ -1479,6 +1515,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         private void cleanupNetwork(
             long traceId)
         {
+            cancelReconnect();
             doNetworkResetIfNecessary(traceId);
             doNetworkAbortIfNecessary(traceId);
 
