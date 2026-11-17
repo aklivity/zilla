@@ -55,7 +55,7 @@ write ${mqtt:session()
 write flush
 
 read ${mqtt:session()
-             .subscriptionWithReasonCode("sensor/one", 1, 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+             .subscription("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
              .build()}
 read notify RECEIVED_SESSION_STATE
 
@@ -86,7 +86,7 @@ write ${mqtt:session()
 write flush
 
 read ${mqtt:session()
-             .subscriptionWithReasonCode("sensor/one", 2, 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+             .subscription("sensor/one", 2, "AT_LEAST_ONCE", "SEND_RETAINED")
              .build()}
 
 connect await RECEIVED_SESSION_STATE
