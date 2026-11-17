@@ -475,6 +475,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.will.message.topic.trailing.empty.level/client",
+        "${kafka}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.abort.deliver.will.non.expiring/client",
         "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
     public void shouldSendWillMessageOnAbortNonExpiring() throws Exception

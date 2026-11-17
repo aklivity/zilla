@@ -2869,7 +2869,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         KafkaConditionFW.Builder conditionBuilder,
         String pattern)
     {
-        String[] headers = pattern.split("/");
+        String[] headers = pattern.split("/", -1);
         conditionBuilder.headers(hb ->
         {
             hb.nameLen(helper.kafkaFilterHeaderName.sizeof());

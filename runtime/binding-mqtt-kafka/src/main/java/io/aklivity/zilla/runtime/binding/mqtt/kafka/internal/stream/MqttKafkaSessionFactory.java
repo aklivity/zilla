@@ -2933,7 +2933,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .value(topicNameBuffer, 0, topicNameBuffer.capacity())
                 .build();
 
-            String[] topicHeaders = topicName.split("/");
+            String[] topicHeaders = topicName.split("/", -1);
             for (String header : topicHeaders)
             {
                 String16FW topicHeader = new String16FW(header);

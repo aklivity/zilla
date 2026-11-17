@@ -418,7 +418,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.clientIdOctets = new OctetsFW.Builder().wrap(clientIdBuffer, 0, clientIdBuffer.capacity())
                 .set(clientId.value(), 0, mqttPublishBeginEx.clientId().length()).build();
 
-            String[] topicHeaders = topicName.split("/");
+            String[] topicHeaders = topicName.split("/", -1);
             final OctetsFW[] topicNameHeaders = new OctetsFW[topicHeaders.length];
 
             final int topicNameHeadersBufferSize = topicName.length() - (topicNameHeaders.length - 1) +

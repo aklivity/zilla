@@ -128,6 +128,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.topic.trailing.empty.level/client",
+        "${kafka}/publish.topic.trailing.empty.level/server"})
+    public void shouldSendTopicWithTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.one.message.changed.topic.name/client",
         "${kafka}/publish.one.message.changed.topic.name/server"})
     public void shouldSendOneMessageWithChangedTopicName() throws Exception
@@ -551,6 +560,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/client",
+        "${kafka}/subscribe.topic.filter.trailing.empty.level/server"})
+    public void shouldFilterTrailingEmptyLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
     public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
@@ -862,6 +880,15 @@ public class KafkaIT
         "${kafka}/session.will.message.abort.deliver.will/client",
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.topic.trailing.empty.level/client",
+        "${kafka}/session.will.message.topic.trailing.empty.level/server"})
+    public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
     {
         k3po.finish();
     }
