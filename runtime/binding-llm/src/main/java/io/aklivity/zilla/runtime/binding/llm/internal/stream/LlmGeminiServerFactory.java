@@ -193,7 +193,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final int MIN_MEMBER_INPUT = "\"k\":0,".length();
     private static final int MEMBER_KEY_EXPANSION = LlmGeminiBlockWriter.longestKey().length() - "k".length();
     private static final int CONTROL_GROWTH = 1 + (MEMBER_KEY_EXPANSION + MIN_MEMBER_INPUT - 1) / MIN_MEMBER_INPUT;
-    private static final int FRAMING_RESERVE = 16;
+    private static final int FRAMING_RESERVE = LlmGeminiBlockWriter.HEADROOM;
     private static final int TEXT_ESCAPE_EXPANSION = 6;
     private static final int CONTROL_OPEN_CAPACITY = 8;
     private static final int LEVEL_CONTENT_MEMBER = 0;

@@ -136,7 +136,7 @@ final class LlmGeminiBlockWriter
     private static final String MODE_AUTO = "AUTO";
     private static final String MODE_ANY = "ANY";
     private static final String MODE_NONE = "NONE";
-    private static final int HEADROOM = 16;
+    static final int HEADROOM = 16;
     private static final String[] TYPES = {"STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL"};
 
     private final LlmOutputSink sink;
