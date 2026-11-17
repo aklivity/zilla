@@ -73,7 +73,9 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
+import io.aklivity.zilla.runtime.common.json.view.JsonStringBody;
 import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
+import io.aklivity.zilla.runtime.common.lang.SegmentTransferTarget;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -315,6 +317,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeDeclarationStart = this::decodeDeclarationStart;
     private final LlmGeminiServerDecoder decodeSkipStart = this::decodeSkipStart;
     private final LlmGeminiServerDecoder decodePartCaptureStart = this::decodePartCaptureStart;
+    private final LlmGeminiServerDecoder decodePartTextKey = this::decodePartTextKey;
+    private final LlmGeminiServerDecoder decodePartTextValue = this::decodePartTextValue;
+    private final LlmGeminiServerDecoder decodePartTextPiece = this::decodePartTextPiece;
+    private final LlmGeminiServerDecoder decodePartTextCopy = this::decodePartTextCopy;
+    private final LlmGeminiServerDecoder decodePartTextSkip = this::decodePartTextSkip;
     private final LlmGeminiServerDecoder decodePartProbeStart = this::decodePartProbeStart;
     private final LlmGeminiServerDecoder decodeControlValue = this::decodeControlValue;
     private final LlmGeminiServerDecoder decodeControlSeparator = this::decodeControlSeparator;
@@ -332,8 +339,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmGeminiServerDecoder decodeIgnore = this::decodeIgnore;
 
-    private byte[] pieceBytes;
-    private UnsafeBufferEx pieceBuffer;
+    private final UnsafeBufferEx pieceBuffer;
+    private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final JsonStringBody body = new JsonStringBody();
 
     public LlmGeminiServerFactory(
         EngineContext context)
@@ -352,8 +360,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.bindings = new Long2ObjectHashMap<>();
-        this.pieceBytes = new byte[1024];
-        this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
+        this.pieceBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -2161,11 +2168,263 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 break decode;
             }
 
-            server.capture(server.partSection, textMessage(server), decodeParts);
-            server.decoder = decodePart;
+            server.onDecodeBlock(server.partSection, textMessage(server));
+            server.partMembers = 0;
+            server.decoder = decodePartTextKey;
         }
 
         return server.position();
+    }
+
+    private int decodePartTextKey(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodePartTextKey && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (event == JsonEvent.KEY_NAME)
+            {
+                final JsonStringView key = parser.getStringView();
+
+                if (matches(key, "thought"))
+                {
+                    server.skipDepth = 0;
+                    server.decoder = decodePartTextSkip;
+                }
+                else
+                {
+                    server.partKey = matches(key, "text") ? "text" : VENDOR_PREFIX + key;
+                    server.decoder = decodePartTextValue;
+                }
+            }
+            else if (event == JsonEvent.END_OBJECT)
+            {
+                final boolean init = Flags.hasInit(server.blockFlags);
+
+                server.onDecodeData(traceId, authorization, init ? OBJECT_EMPTY : CONTROL_CLOSE, 0, init ? 2 : 1, true);
+                server.decoder = decodeParts;
+            }
+            else
+            {
+                server.onDecodeParseError(traceId);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodePartTextSkip(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodePartTextSkip && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (event == JsonEvent.VALUE_STRING && parser.deferredBytes())
+            {
+                parser.consumed(parser.getStringView().length());
+            }
+            else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+            {
+                server.skipDepth++;
+            }
+            else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+            {
+                server.skipDepth--;
+            }
+
+            if (server.skipDepth == 0 && event != JsonEvent.KEY_NAME && !(event == JsonEvent.VALUE_STRING &&
+                parser.deferredBytes()))
+            {
+                server.decoder = decodePartTextKey;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodePartTextValue(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while ((server.decoder == decodePartTextValue || server.decoder == decodePartTextPiece) && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                final boolean opened = server.decoder == decodePartTextPiece;
+                final boolean fin = !parser.deferredBytes();
+                final JsonStringView chars = parser.getStringView();
+                final int length = chars.length();
+                final int taken = !fin && length > 1 && Character.isHighSurrogate(chars.charAt(length - 1)) ? length - 1 : length;
+                final int piece = encodePartPiece(server, chars, taken, fin, opened);
+
+                if (piece < 0)
+                {
+                    server.onDecodeParseError(traceId);
+                }
+                else
+                {
+                    server.onDecodeData(traceId, authorization, pieceBuffer, 0, piece, false);
+
+                    if (fin)
+                    {
+                        server.partMembers++;
+                        server.decoder = decodePartTextKey;
+                    }
+                    else
+                    {
+                        parser.consumed(taken);
+                        server.decoder = decodePartTextPiece;
+                    }
+                }
+            }
+            else if (matches(server.partKey, "text"))
+            {
+                server.onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+            }
+            else
+            {
+                server.partCopier.reset();
+                server.decoder = decodePartTextCopy;
+                server.generator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
+                server.generator.reset();
+                server.generator.writeStartObject().writeKey(server.partKey);
+                pieceBuffer.putByte(0, (byte) (server.partMembers == 0 && Flags.hasInit(server.blockFlags) ? '{' : ','));
+
+                decodePartTextCopyEvent(server, traceId, authorization, event);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodePartTextPiece(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodePartTextValue(server, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+    }
+
+    private int decodePartTextCopy(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodePartTextCopy && parser.hasNextEvent())
+        {
+            decodePartTextCopyEvent(server, traceId, authorization, parser.nextEvent());
+        }
+
+        return server.position();
+    }
+
+    private void decodePartTextCopyEvent(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        JsonEvent event)
+    {
+        final JsonParserEx parser = server.parser;
+        final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+        final int taken = deferred ? LlmEventCopier.NO_TAKEN : server.partCopier.copy(server.generator, event, parser);
+
+        if (deferred || taken != LlmEventCopier.NO_TAKEN || server.generator.remaining() < ARGS_HEADROOM)
+        {
+            server.onDecodeParseError(traceId);
+        }
+        else if (server.partCopier.depth() == 0)
+        {
+            server.onDecodeData(traceId, authorization, pieceBuffer, 0, server.generator.length(), false);
+            server.partMembers++;
+            server.decoder = decodePartTextKey;
+        }
+    }
+
+    private int encodePartPiece(
+        LlmGeminiServer server,
+        JsonStringView chars,
+        int taken,
+        boolean fin,
+        boolean opened)
+    {
+        final int width = body.length(chars, 0, taken);
+
+        int length = -1;
+
+        if (!opened)
+        {
+            server.generator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
+            server.generator.reset();
+            server.generator.writeStartObject().writeKey(server.partKey);
+
+            final int prefix = server.generator.length();
+
+            if (prefix + 1 + width + 1 <= pieceBuffer.capacity())
+            {
+                pieceBuffer.putByte(0, (byte) (server.partMembers == 0 && Flags.hasInit(server.blockFlags) ? '{' : ','));
+                pieceBuffer.putByte(prefix, (byte) '"');
+                length = prefix + 1 + body.transfer(chars, 0, taken,
+                    pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment() + prefix + 1));
+            }
+        }
+        else if (width + 1 <= pieceBuffer.capacity())
+        {
+            length = body.transfer(chars, 0, taken, pieceTarget.wrap(pieceBuffer.segment(), pieceBuffer.wrapAdjustment()));
+        }
+
+        if (length >= 0 && fin)
+        {
+            pieceBuffer.putByte(length++, (byte) '"');
+        }
+
+        return length;
     }
 
     private int decodePartProbeStart(
@@ -3043,16 +3302,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private void reservePiece(
-        int capacity)
-    {
-        if (pieceBytes.length < capacity)
-        {
-            pieceBytes = new byte[capacity];
-            pieceBuffer = new UnsafeBufferEx(pieceBytes);
-        }
-    }
-
     private static boolean isWhitespace(
         byte value)
     {
@@ -3168,6 +3417,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmGeminiServerDecoder skipThen;
         private int skipDepth;
         private LlmSectionType partSection;
+        private String partKey;
+        private int partMembers;
+        private final LlmEventCopier partCopier = new LlmEventCopier();
         private String serverCallId;
 
         private boolean streamOptions;
@@ -3192,7 +3444,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int blockMessage;
         private int blockFlags;
 
-        private LlmSectionPipeline textPipeline;
+        private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline assistantTextPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
@@ -4013,9 +4265,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void onDecodeControlPiece(
             char open)
         {
-            reservePiece(controlKey.length() * TEXT_ESCAPE_EXPANSION + CONTROL_OPEN_CAPACITY);
-
-            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+            generator.wrap(pieceBuffer, 0, pieceBuffer.capacity());
             generator.reset();
             generator.writeStartObject().writeKey(controlKey);
 
@@ -4031,12 +4281,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             switch (type)
             {
-            case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_REASONING:
-                if (textPipeline == null)
+            case SYSTEM_INSTRUCTION, USER_TEXT:
+                break;
+            case ASSISTANT_REASONING:
+                if (reasoningPipeline == null)
                 {
-                    textPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(), transformBuffer);
+                    reasoningPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(), transformBuffer);
                 }
-                pipeline = textPipeline;
+                pipeline = reasoningPipeline;
                 break;
             case ASSISTANT_TEXT:
                 if (assistantTextPipeline == null)
