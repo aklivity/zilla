@@ -612,6 +612,7 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${app}/subscribe.receive.message.subscription.id.112/client",
@@ -1427,6 +1428,33 @@ public class SubscribeIT
         "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/client",
         "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/server"})
     public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos1/client",
+        "${app}/subscribe.redeliver.message.qos1/server"})
+    public void shouldRedeliverMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos2/client",
+        "${app}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos2.v4/client",
+        "${app}/subscribe.redeliver.message.qos2.v4/server"})
+    public void shouldRedeliverMessageQoS2V4() throws Exception
     {
         k3po.finish();
     }

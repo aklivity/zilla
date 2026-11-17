@@ -16,12 +16,15 @@
 package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 
@@ -31,17 +34,20 @@ public final class TestStoreContext implements StoreContext
     private final LongFunction<ConcurrentMap<String, TestEntry>> supplyEntries;
     private final LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners;
     private final LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks;
+    private final BiFunction<Long, List<Assertion>, Queue<Assertion>> supplyAssertions;
 
     public TestStoreContext(
         EngineContext context,
         LongFunction<ConcurrentMap<String, TestEntry>> supplyEntries,
         LongFunction<ConcurrentMap<String, List<TestWatcher>>> supplyListeners,
-        LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks)
+        LongFunction<ConcurrentMap<String, TestLockEntry>> supplyLocks,
+        BiFunction<Long, List<Assertion>, Queue<Assertion>> supplyAssertions)
     {
         this.dispatcher = context::dispatch;
         this.supplyEntries = supplyEntries;
         this.supplyListeners = supplyListeners;
         this.supplyLocks = supplyLocks;
+        this.supplyAssertions = supplyAssertions;
     }
 
     @Override
@@ -49,18 +55,26 @@ public final class TestStoreContext implements StoreContext
         StoreConfig store)
     {
         final ConcurrentMap<String, TestEntry> entries = supplyEntries.apply(store.id);
-        if (store.options instanceof TestStoreOptionsConfig options && options.entries != null)
+        final TestStoreOptionsConfig options = store.options instanceof TestStoreOptionsConfig test ? test : null;
+        if (options != null && options.entries != null)
         {
             options.entries.forEach((key, value) -> entries.putIfAbsent(key, new TestEntry(value, Long.MAX_VALUE)));
         }
+        final Queue<Assertion> assertions = options != null ? supplyAssertions.apply(store.id, options.assertions) : null;
         final ConcurrentMap<String, List<TestWatcher>> listeners = supplyListeners.apply(store.id);
         final ConcurrentMap<String, TestLockEntry> locks = supplyLocks.apply(store.id);
-        return new TestStoreHandler(store, dispatcher, entries, listeners, locks);
+        return new TestStoreHandler(store, dispatcher, entries, listeners, locks, assertions);
     }
 
     @Override
     public void detach(
         StoreConfig store)
     {
+        final Queue<Assertion> assertions = supplyAssertions.apply(store.id, null);
+
+        if (assertions != null && !assertions.isEmpty())
+        {
+            throw new AssertionError(String.format("missing %d expected store operations", assertions.size()));
+        }
     }
 }

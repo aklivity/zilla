@@ -565,7 +565,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -707,6 +706,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Maximum QoS 3 is a Protocol Error
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -718,6 +718,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5]
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -729,6 +730,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5]
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -740,6 +742,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Retain Handling 3 is a Protocol Error
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -751,6 +754,7 @@ public class SubscribeIT
     }
 
     // 2.2.2.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1]
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -762,6 +766,7 @@ public class SubscribeIT
     }
 
     // 2.2.1 [MQTT-2.2.1-3], 4.13.1 Protocol Error
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -773,6 +778,7 @@ public class SubscribeIT
     }
 
     // 3.8.2.1.2 Subscription Identifier more than once is a Protocol Error
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -784,6 +790,7 @@ public class SubscribeIT
     }
 
     // 3.8.3 SUBSCRIBE with no Payload is a Protocol Error
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -904,6 +911,7 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -935,6 +943,7 @@ public class SubscribeIT
     }
 
     // [MQTT-3.8.3-5] reject discards the whole SUBSCRIBE, earlier filters not subscribed
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -946,6 +955,7 @@ public class SubscribeIT
     }
 
     // 1.2 Malformed Packet, 4.13.1 [MQTT-4.13.1-1], 3.8.3 filter that does not fit in the packet
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -957,6 +967,7 @@ public class SubscribeIT
     }
 
     // 3.8.3.1 Maximum QoS 3 is a Protocol Error, earlier filters not subscribed
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -998,6 +1009,7 @@ public class SubscribeIT
     }
 
     // [MQTT-1.5.4-1]
+
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -1425,6 +1437,26 @@ public class SubscribeIT
         "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
         "${app}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
     public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.redeliver.message.qos1/client",
+        "${app}/subscribe.redeliver.message.qos1/server"})
+    public void shouldRedeliverMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.redeliver.message.qos2/client",
+        "${app}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
     {
         k3po.finish();
     }

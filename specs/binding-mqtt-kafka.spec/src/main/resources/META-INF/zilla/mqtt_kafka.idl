@@ -38,6 +38,38 @@ scope mqtt_kafka
         case V2: MqttSubscribeOffsetMetadataV2 subscribeMetadataV2;
     }
 
+    enum MqttSharedTicketsVersion (uint8)
+    {
+        V1 (1)
+    }
+
+    enum MqttSharedTicketState (uint8)
+    {
+        PUBLISH_SENT (1),
+        PUBREL_PENDING (2)
+    }
+
+    struct MqttSharedTicket
+    {
+         uint16 packetId;
+         MqttSharedTicketState state;
+         string16 shareName;
+         string16 filter;
+         string16 topic;
+         int32 partitionId;
+         int64 partitionOffset;
+    }
+
+    struct MqttSharedTicketsV1
+    {
+         MqttSharedTicket[] tickets;
+    }
+
+    union MqttSharedTickets switch (MqttSharedTicketsVersion)
+    {
+        case V1: MqttSharedTicketsV1 ticketsV1;
+    }
+
     struct MqttPublishOffsetMetadata
     {
          uint8 version = 1;

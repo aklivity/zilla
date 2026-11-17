@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -132,6 +133,7 @@ import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 {
@@ -172,7 +174,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SUBSCRIPTION_IDS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SUBSCRIPTION_IDS.value();
     private static final int SHARED_SUBSCRIPTIONS_AVAILABLE_MASK = 1 << MqttServerCapabilities.SHARED_SUBSCRIPTIONS.value();
     private static final byte MQTT_KAFKA_MAX_QOS = 2;
-    private static final int SHARED_SUBSCRIBE_QOS_MAX = 1;
+    private static final int SHARED_SUBSCRIBE_QOS_MAX = 2;
     private static final int MQTT_KAFKA_CAPABILITIES = RETAIN_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK |
         SUBSCRIPTION_IDS_AVAILABLE_MASK;
 
@@ -304,6 +306,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
     private final MqttKafkaEventContext events;
+    private final BiConsumer<String, StoreHandler> discardClientTickets;
 
     private final String replicaId;
 
@@ -316,7 +319,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         EngineContext context,
         InstanceId instanceId,
         LongFunction<MqttKafkaBindingConfig> supplyBinding,
-        Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata)
+        Long2ObjectHashMap<MqttKafkaPublishMetadata> clientMetadata,
+        BiConsumer<String, StoreHandler> discardClientTickets)
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
@@ -363,6 +367,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.events = new MqttKafkaEventContext(context);
+        this.discardClientTickets = discardClientTickets;
     }
 
     @Override
@@ -465,6 +470,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final List<KafkaTopicPartition> fetchedPartitions;
         private final List<KafkaTopicPartition> initializablePartitions;
         private final Long2LongHashMap leaderEpochs;
+        private final StoreHandler store;
 
         private IntArrayQueue unackedPacketIds;
         private String lifetimeId;
@@ -548,6 +554,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.fetchedPartitions = new ArrayList<>();
             this.initializablePartitions = new ArrayList<>();
             this.binding = supplyBinding.apply(bindingId);
+            this.store = binding.store;
+            final String16FW messagesTopic = binding.messagesTopic();
             this.retainedTopic = binding.retainedTopic();
             this.publishQosMax = publishQosMax.value();
             if (publishQosMax == MqttQoS.EXACTLY_ONCE)
@@ -659,6 +667,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             willPadding += expirySignalSize;
 
             this.affinity = affinity;
+
+            if (isSetCleanStart(sessionFlags))
+            {
+                discardTickets();
+            }
+
             if (publishQosMax == 2)
             {
                 doMqttWindow(authorization, traceId, 0, 0, 0);
@@ -988,6 +1002,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             cancelAwaitedReset();
+            if (sessionExpiryMillis() == 0)
+            {
+                discardTickets();
+            }
 
             if (isSetWillFlag(sessionFlags))
             {
@@ -1096,6 +1114,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             cancelAwaitedReset();
+            if (sessionExpiryMillis() == 0)
+            {
+                discardTickets();
+            }
 
             if (isSetWillFlag(sessionFlags))
             {
@@ -1196,6 +1218,14 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void onMqttSignal(
             SignalFW signal)
         {
+        }
+
+        private void discardTickets()
+        {
+            if (store != null)
+            {
+                discardClientTickets.accept(clientId.asString(), store);
+            }
         }
 
         private void onMqttWindow(
@@ -2189,6 +2219,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             final String16FW clientId = expiryClientIds.get(signal.contextId());
             final String16FW clientIdOffsets = new String16FW(clientId.asString() + OFFSETS_KEY_POSTFIX);
+            final StoreHandler store = supplyBinding.apply(originId).store;
+
+            if (store != null)
+            {
+                discardClientTickets.accept(clientId.asString(), store);
+            }
 
             doKafkaTombstone(clientId, clientId);
             doKafkaTombstone(clientIdOffsets, clientId);

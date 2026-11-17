@@ -14,18 +14,23 @@
  */
 package io.aklivity.zilla.config.engine.test.internal.store.config;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 
 public final class TestStoreOptionsConfigBuilder<T> extends ConfigBuilder<T, TestStoreOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
     private Map<String, String> entries;
+    private List<Assertion> assertions;
 
     TestStoreOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -52,9 +57,30 @@ public final class TestStoreOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestStoreOptionsConfigBuilder<T> assertion(
+        String op,
+        String key,
+        String value,
+        Duration ttl)
+    {
+        if (assertions == null)
+        {
+            assertions = new ArrayList<>();
+        }
+        assertions.add(new Assertion(op, key, value, ttl));
+        return this;
+    }
+
+    public TestStoreOptionsConfigBuilder<T> assertions(
+        List<Assertion> assertions)
+    {
+        this.assertions = assertions;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestStoreOptionsConfig(entries));
+        return mapper.apply(new TestStoreOptionsConfig(entries, assertions));
     }
 }
