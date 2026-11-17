@@ -6237,7 +6237,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private String pendingItemType;
         private String pendingItemId;
         private LlmSectionPipeline serverToolPipeline;
-        private LlmSectionPipeline reasoningPipeline;
         private LlmOpenaiResponsesServerToolFromCanonical serverToolTransform;
         private final CallOutput callOutput = new CallOutput();
         private final ContinuationOutput continuationOutput = new ContinuationOutput();
@@ -6301,9 +6300,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private int requestSkipDepth;
         private int requestSlot = NO_SLOT;
         private int requestSlotLimit;
-        private LlmTextPipeline reasoningText;
-        private final LlmSectionPipeline.Output reasoningMembersOutput =
-            (buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length);
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::containerBuffer);
         private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
@@ -6429,17 +6425,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             case KIND_SERVER_TOOL_CALL, KIND_SERVER_TOOL_RESULT -> serverToolPipeline();
             default -> null;
             };
-        }
-
-        private LlmSectionPipeline reasoningPipeline()
-        {
-            if (reasoningPipeline == null)
-            {
-                reasoningPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesReasoningFromCanonical(NAME),
-                    transformBuffer);
-            }
-
-            return reasoningPipeline;
         }
 
         private LlmSectionPipeline serverToolPipeline()
@@ -6684,11 +6669,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                     if (event == JsonEvent.KEY_NAME)
                     {
-                        requestSkipDepth = 0;
-                        requestThen = decodeRequestTextKey;
-                        requestDecoder = MEMBER_TEXT.contentEquals(parser.getStringView())
-                            ? decodeRequestTextValue
-                            : decodeRequestSkip;
+                        selectTextMember(parser.getStringView());
                     }
                     else
                     {
@@ -7825,12 +7806,66 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
+        private void selectTextMember(
+            CharSequence key)
+        {
+            requestSkipDepth = 0;
+            requestThen = decodeRequestTextKey;
+
+            if (MEMBER_TEXT.contentEquals(key))
+            {
+                requestDecoder = decodeRequestTextValue;
+            }
+            else if (sectionKind == KIND_ASSISTANT_REASONING)
+            {
+                selectReasoningMember(key);
+            }
+            else
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+        }
+
+        private void selectReasoningMember(
+            CharSequence key)
+        {
+            final int action = memberKeys.selectPrefixed(key);
+
+            if (action == LlmMemberKeys.COPY)
+            {
+                if (reasoningState == REASONING_SUMMARY)
+                {
+                    closeSummaryPart();
+                    generator.writeEnd();
+                    reasoningState = REASONING_MEMBERS;
+                }
+
+                generator.writeKey(memberKeys.target());
+                copier.reset();
+                requestDecoder = decodeRequestMember;
+            }
+            else if (action == LlmMemberKeys.JUDGE)
+            {
+                requestJudged = key.toString();
+                requestVerdict = LlmLegality.UNDECIDED;
+                requestDecoder = decodeRequestJudge;
+            }
+            else
+            {
+                requestDecoder = decodeRequestSkip;
+            }
+        }
+
         private void onSectionText(
             CharSequence chars,
             int from,
             int to)
         {
-            if (text(sectionKind) && contentState == CONTENT_HELD && !sectionArrayPart)
+            if (sectionKind == KIND_ASSISTANT_REASONING)
+            {
+                onReasoningText(chars, from, to);
+            }
+            else if (text(sectionKind) && contentState == CONTENT_HELD && !sectionArrayPart)
             {
                 stageText(chars, from, to);
             }
@@ -7859,25 +7894,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             else
             {
                 encodeFailed = true;
-            }
-        }
-
-        private void putReasoningMembers(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (length > 0)
-            {
-                if (reasoningState == REASONING_SUMMARY)
-                {
-                    closeSummaryPart();
-                    generator.writeEnd();
-                    putRaw(ITEM_SEPARATOR, 0, ITEM_SEPARATOR.capacity());
-                    reasoningState = REASONING_MEMBERS;
-                }
-
-                putRaw(buffer, offset, length);
             }
         }
 
@@ -8035,8 +8051,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 beginSectionStreaming(pipelineFor(kind), controlMessage == NONE ? controlOutput : discardOutput);
                 break;
             case KIND_ASSISTANT_REASONING:
-                reasoningText().begin();
-                reasoningPipeline().begin(sectionAttributes);
+                requestDecoder = decodeRequestTextRoot;
+                requestParser().reset();
                 break;
             case KIND_TOOL_CALL:
                 requestDecoder = decodeRequestCallRoot;
@@ -8409,10 +8425,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 decodeRequest(buffer, offset, length, fin);
             }
-            else if (translated && sectionKind == KIND_ASSISTANT_REASONING)
-            {
-                feedReasoning(buffer, offset, length, fin);
-            }
             else if (!translated && sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(0))
             {
                 putRaw(buffer, offset, length);
@@ -8420,37 +8432,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
-        private void feedReasoning(
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean fin)
-        {
-            if (beginEncode(ENCODE_STRUCTURE))
-            {
-                if (!reasoningText().feed(buffer, offset, length, fin) ||
-                    !reasoningPipeline.feedEdges(buffer, offset, length, fin, reasoningMembersOutput))
-                {
-                    encodeFailed = true;
-                }
-
-                endEncode();
-            }
-        }
-
-        private LlmTextPipeline reasoningText()
-        {
-            if (reasoningText == null)
-            {
-                reasoningText = new LlmTextPipeline(this::onReasoningText, true);
-            }
-
-            return reasoningText;
-        }
-
         private boolean streaming()
         {
-            return sectionStreaming || requestDecoder != null || translated && sectionKind == KIND_ASSISTANT_REASONING;
+            return sectionStreaming || requestDecoder != null;
         }
 
         private void stageText(
