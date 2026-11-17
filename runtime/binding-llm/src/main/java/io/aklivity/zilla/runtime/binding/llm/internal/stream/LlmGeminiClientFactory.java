@@ -205,7 +205,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_EXECUTABLE_CODE = "executableCode";
     private static final String MEMBER_CODE_EXECUTION_RESULT = "codeExecutionResult";
     private static final String SERVER_TOOL_NAME = "code_execution";
-    private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"executableCode\":".getBytes(UTF_8));
+    private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"arguments\":{".getBytes(UTF_8));
     private static final int SERVER_CALL_GROWTH = ",\"gemini:id\":\"\"".length() - ",\"id\":\"\"".length();
     private static final DirectBufferEx RESULT_PREFIX = new UnsafeBufferEx("{\"codeExecutionResult\":".getBytes(UTF_8));
     private static final int SECTION_OPENING = Math.max(Math.max(ARGUMENTS_PREFIX.capacity(), SERVER_CALL_PREFIX.capacity()),
@@ -570,6 +570,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodeCapture = this::decodeCapture;
         private final LlmGeminiResponseDecoder decodeSignature = this::decodeSignature;
         private final LlmGeminiResponseDecoder decodeServerCallStart = this::decodeServerCallStart;
+        private final LlmGeminiResponseDecoder decodeServerCall = this::decodeServerCall;
+        private final LlmGeminiResponseDecoder decodeServerCallValue = this::decodeServerCallValue;
         private final LlmGeminiResponseDecoder decodeServerResultStart = this::decodeServerResultStart;
         private final LlmGeminiResponseDecoder decodePartHold = this::decodePartHold;
         private final LlmGeminiResponseDecoder decodeBlockText = this::decodeBlockText;
@@ -665,11 +667,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String sectionToolName;
         private String sectionSignature;
         private String serverCallId;
-        private LlmSectionPipeline serverCallPipeline;
-        private LlmSectionPipeline capturePipeline;
-        private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
-        private final LlmSectionPipeline.Output captureOutput = (buffer, offset, length, last) ->
-            writeSection(buffer, offset, length, false);
         private final StringBuilder signatureBuilder = new StringBuilder();
         private LlmGeminiResponseDecoder captureThen;
         private int captureDepth;
@@ -1908,20 +1905,78 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private void beginServerCall()
         {
-            if (serverCallPipeline == null)
+            callId = null;
+            callArguments = 0;
+            sectionStarted = true;
+            writeSection(SERVER_CALL_PREFIX, 0, SERVER_CALL_PREFIX.capacity(), false);
+
+            decoder = decodeServerCall;
+        }
+
+        private int decodeServerCall(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeServerCall && hasNextEvent())
             {
-                serverCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(), transformBuffer);
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    writeSection(pieceBuffer, 0, encodeServerCallEnd(callId), false);
+                    decoder = decodePart;
+                }
+                else if (MEMBER_ID.contentEquals(parser.getStringView()))
+                {
+                    valueThen = decodeServerCall;
+                    decoder = decodeCallId;
+                }
+                else
+                {
+                    writeSection(pieceBuffer, 0, encodeMemberKey(parser.getStringView(), callArguments > 0), false);
+                    decoder = decodeServerCallValue;
+                }
             }
 
-            serverCallPipeline.begin(captureAttributes);
-            serverCallPipeline.feed(SERVER_CALL_PREFIX, 0, SERVER_CALL_PREFIX.capacity(), false, captureOutput);
-            sectionStarted = true;
+            return position();
+        }
 
-            capturePipeline = serverCallPipeline;
-            captureThen = decodePart;
-            captureDepth = 1;
-            captureFrom = position() - 1;
-            decoder = decodeCapture;
+        private int decodeServerCallValue(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                int valueFrom = offset;
+
+                while (valueFrom < limit && (buffer.getByte(valueFrom) == ':' || isWhitespace(buffer.getByte(valueFrom))))
+                {
+                    valueFrom++;
+                }
+
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                captureFrom = valueFrom;
+                captureDepth = nesting(event);
+                captureThen = decodeServerCall;
+                decoder = decodeCapture;
+
+                if (deferred)
+                {
+                    parser.consumed(parser.getStringView().length());
+                    flushCapture(buffer);
+                }
+                else if (captureDepth == 0)
+                {
+                    flushCapture(buffer);
+                    decoder = captureThen;
+                }
+            }
+
+            return position();
         }
 
         private void beginSectionObject(
@@ -2177,22 +2232,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final int end = position();
 
-            if (end > captureFrom && capturePipeline != null)
-            {
-                capturePipeline.feed(buffer, captureFrom, end - captureFrom, false, captureOutput);
-            }
-            else if (end > captureFrom)
+            if (end > captureFrom)
             {
                 writeSection(buffer, captureFrom, end - captureFrom, false);
                 callArguments = end - captureFrom;
             }
 
             captureFrom = end;
-
-            if (captureDepth == 0)
-            {
-                capturePipeline = null;
-            }
         }
 
         private int decodeBlockText(
@@ -3306,11 +3352,52 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int encodeWireId(
             String wireId)
         {
-            final int capacity = wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING;
+            reservePiece(wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING);
 
-            reservePiece(capacity);
+            return putWireId(wireId, 0);
+        }
+
+        private int encodeServerCallEnd(
+            String wireId)
+        {
+            reservePiece(1 + (wireId != null ? wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING : 0));
+
+            pieceBytes[0] = '}';
+
+            return wireId != null ? putWireId(wireId, 1) : 1;
+        }
+
+        private int encodeMemberKey(
+            CharSequence key,
+            boolean separated)
+        {
+            reservePiece(key.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING);
 
             int position = 0;
+
+            if (separated)
+            {
+                pieceBytes[position++] = ',';
+            }
+
+            pieceBytes[position++] = '"';
+
+            for (int index = 0; index < key.length(); index++)
+            {
+                position = putEscaped(key.charAt(index), position);
+            }
+
+            pieceBytes[position++] = '"';
+            pieceBytes[position++] = ':';
+
+            return position;
+        }
+
+        private int putWireId(
+            String wireId,
+            int offset)
+        {
+            int position = offset;
 
             for (int i = 0; i < MEMBER_WIRE_ID.length(); i++)
             {
