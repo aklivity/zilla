@@ -114,9 +114,9 @@ public class PrometheusMetricsPrinterTest
                 "\n" +
                 "# HELP histogram1 description for histogram1\n" +
                 "# TYPE histogram1 histogram\n" +
-                "histogram1_bucket{le=\"1\",namespace=\"ns1\",binding=\"binding1\"} 7\n" +
-                "histogram1_bucket{le=\"10\",namespace=\"ns1\",binding=\"binding1\"} 49\n" +
-                "histogram1_bucket{le=\"100\",namespace=\"ns1\",binding=\"binding1\"} 58\n" +
+                "histogram1_bucket{le=\"2.097152\",namespace=\"ns1\",binding=\"binding1\"} 7\n" +
+                "histogram1_bucket{le=\"4.194304\",namespace=\"ns1\",binding=\"binding1\"} 49\n" +
+                "histogram1_bucket{le=\"8.388608\",namespace=\"ns1\",binding=\"binding1\"} 58\n" +
                 "histogram1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 59\n" +
                 "histogram1_sum{namespace=\"ns1\",binding=\"binding1\"} 2327\n" +
                 "histogram1_count{namespace=\"ns1\",binding=\"binding1\"} 59\n\n\n";
@@ -138,8 +138,8 @@ public class PrometheusMetricsPrinterTest
         when(histogramRecord.binding()).thenReturn("binding1");
         when(histogramRecord.metric()).thenReturn("histogram1");
         when(histogramRecord.buckets()).thenReturn(4);
-        when(histogramRecord.bucketLimits()).thenReturn(new long[]{1, 10, 100, 1000});
-        when(histogramRecord.millisecondBucketValues()).thenReturn(new long[]{7, 42, 9, 1});
+        when(histogramRecord.millisecondBucketLimits()).thenReturn(new double[]{2.097152, 4.194304, 8.388608, 16.777216});
+        when(histogramRecord.bucketValues()).thenReturn(new long[]{7, 42, 9, 1});
         when(histogramRecord.millisecondStats()).thenReturn(new long[]{1L, 1000L, 2327L, 59L, 39L}); // min, max, sum, cnt, avg
 
         List<MetricRecord> metricRecords = List.of(counterRecord, gaugeRecord, histogramRecord);

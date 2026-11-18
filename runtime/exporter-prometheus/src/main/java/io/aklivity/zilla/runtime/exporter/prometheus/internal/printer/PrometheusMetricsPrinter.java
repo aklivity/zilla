@@ -110,8 +110,9 @@ public class PrometheusMetricsPrinter
         long cumulativeValue = 0;
         for (int i = 0; i < record.buckets(); i++)
         {
-            String limit = i == record.buckets() - 1 ? "+Inf" : String.valueOf(record.bucketLimits()[i]);
-            cumulativeValue += milliseconds ? record.millisecondBucketValues()[i] : record.bucketValues()[i];
+            String limit = i == record.buckets() - 1 ? "+Inf"
+                : milliseconds ? String.valueOf(record.millisecondBucketLimits()[i]) : String.valueOf(record.bucketLimits()[i]);
+            cumulativeValue += record.bucketValues()[i];
             sb.append(String.format("%s_bucket{le=\"%s\",%s} %d\n",
                 extName, limit, labels, cumulativeValue));
         }
