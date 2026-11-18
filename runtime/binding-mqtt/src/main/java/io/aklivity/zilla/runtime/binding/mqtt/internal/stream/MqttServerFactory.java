@@ -2796,7 +2796,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private String ownerToken;
         private long renewAt = NO_CANCEL_ID;
         private long stealAt = NO_CANCEL_ID;
-        private long acquireAt = NO_CANCEL_ID;
         private long pendingOwnershipAuth;
         private boolean owns;
         private boolean claimed;
@@ -3438,8 +3437,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
 
                     pendingOwnershipAuth = authorization;
-                    acquireAt = signaler.signalAt(currentTimeMillis(),
-                        originId, routedId, replyId, traceId, SIGNAL_ACQUIRE_SESSION_OWNERSHIP, 0);
+                    signaler.signalNow(originId, routedId, replyId, traceId, SIGNAL_ACQUIRE_SESSION_OWNERSHIP, 0);
                 }
                 else
                 {
@@ -3504,9 +3502,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onAcquireOwnership(
             long traceId)
         {
-            acquireAt = NO_CANCEL_ID;
-
-            if (!StreamState.initialClosed(state) && !StreamState.replyClosed(state))
+            if (decoder == decodeAwaitOwnership && !StreamState.initialClosed(state) && !StreamState.replyClosed(state))
             {
                 doAcquireOwnership(traceId, pendingOwnershipAuth);
             }
@@ -3725,12 +3721,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doReleaseOwnership(
             long traceId)
         {
-            if (acquireAt != NO_CANCEL_ID)
-            {
-                signaler.cancel(acquireAt);
-                acquireAt = NO_CANCEL_ID;
-            }
-
             if (renewAt != NO_CANCEL_ID)
             {
                 signaler.cancel(renewAt);
