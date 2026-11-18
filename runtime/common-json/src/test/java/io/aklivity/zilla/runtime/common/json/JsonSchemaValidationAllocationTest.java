@@ -193,7 +193,6 @@ class JsonSchemaValidationAllocationTest
     }
 
     @Test
-    @Disabled("this keyword is evaluated on frames by a later change")
     void shouldNotAllocatePerPropertyForPropertyNames()
     {
         final JsonSchema schema = JsonSchema.of(

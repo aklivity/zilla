@@ -712,7 +712,7 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentAny(dependentSchemas);
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
-            propertyNames == null && unevaluatedProperties == null &&
+            unevaluatedProperties == null &&
             unevaluatedItems == null;
         this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null ||
             dependentRequired != null || dependentSchemas != null;
@@ -3349,7 +3349,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private int checkOpen(
         Trace trace,
         Event event,
-        JsonSource parser)
+        JsonSource parser,
+        Matcher matcher)
     {
         boolean invalid = false;
         boolean stringOk = false;
@@ -3386,7 +3387,7 @@ public final class JsonSchemaImpl implements JsonSchema
         case VALUE_STRING:
             if (needsContent)
             {
-                invalid |= checkStringReport(trace, parser);
+                invalid |= checkStringReport(trace, parser, matcher);
                 if (constString != null || enumStrings != null)
                 {
                     CharSequence value = parser.getStringView();
@@ -3483,7 +3484,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private boolean checkStringReport(
         Trace trace,
-        JsonSource parser)
+        JsonSource parser,
+        Matcher matcher)
     {
         boolean invalid = false;
         CharSequence value = parser.getStringView();
@@ -3512,7 +3514,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
             }
         }
-        else if (pattern != null && !pattern.matcher(value).find())
+        else if (pattern != null && !(matcher != null ? matcher.reset(value) : pattern.matcher(value)).find())
         {
             invalid = true;
             if (trace.active())
@@ -4283,7 +4285,8 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            final int open = schema.checkOpen(traceOf(frame), event, parser);
+            final Matcher matcher = schema.pattern != null ? matcher(schema.pattern) : null;
+            final int open = schema.checkOpen(traceOf(frame), event, parser, matcher);
             int state = frames[(frame * STRIDE) + FLAGS];
             state |= (open & OPEN_INVALID) != 0 ? INVALID : 0;
             state |= (open & OPEN_STRING_OK) != 0 ? STRING_OK : 0;
@@ -4412,6 +4415,10 @@ public final class JsonSchemaImpl implements JsonSchema
                     break;
                 }
             }
+            if (schema.propertyNames != null)
+            {
+                checkPropertyName(frame, schema, key, parser);
+            }
             if (schema.patternKeys.length > 0)
             {
                 handlePatternKey(frame, schema, key);
@@ -4419,6 +4426,29 @@ public final class JsonSchemaImpl implements JsonSchema
             else
             {
                 handleDeclaredKey(frame, schema, key);
+            }
+        }
+
+        // the key is read as a string by the schema of propertyNames, on a frame that is removed as soon as it has
+        // its verdict
+        private void checkPropertyName(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key,
+            JsonSource parser)
+        {
+            final int name = top;
+            push(schema.propertyNames, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+            feedFrame(name, Event.VALUE_STRING, parser);
+            final boolean valid = passed(name);
+            pop(name);
+            if (!valid)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
+                }
             }
         }
 
@@ -5107,7 +5137,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            final int open = checkOpen(trace, event, parser);
+            final int open = checkOpen(trace, event, parser, null);
             directInvalid = (open & OPEN_INVALID) != 0;
             scalarStringOk = (open & OPEN_STRING_OK) != 0;
             switch (event)
