@@ -456,7 +456,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final EngineContext context;
 
-    private final int maximumPacketSize = Integer.MAX_VALUE;
+    private final int maximumPacketSize;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -569,6 +569,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
         this.keepAliveMinimum = config.keepAliveMinimum();
         this.keepAliveMaximum = config.keepAliveMaximum();
+        this.maximumPacketSize = config.maximumPacketSize();
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.noLocal = config.noLocal();
         this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
@@ -5990,6 +5991,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     mqttProperty = mqttPropertyRW
                         .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
                         .serverKeepAlive(this.keepAlive)
+                        .build();
+                    propertiesSize = mqttProperty.limit();
+                }
+
+                if (maximumPacketSize != Integer.MAX_VALUE)
+                {
+                    mqttProperty = mqttPropertyRW
+                        .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                        .maximumPacketSize(maximumPacketSize)
                         .build();
                     propertiesSize = mqttProperty.limit();
                 }

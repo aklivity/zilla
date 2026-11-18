@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_PACKET_SIZE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -940,6 +941,17 @@ public class PublishIT
         "${net}/publish.reject.response.topic.ill.formed.utf8/client",
         "${app}/session.connect/server"})
     public void shouldRejectPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = MAXIMUM_PACKET_SIZE_NAME, value = "64")
+    @Specification({
+        "${net}/publish.reject.maximum.packet.size/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishExceedingMaximumPacketSize() throws Exception
     {
         k3po.finish();
     }

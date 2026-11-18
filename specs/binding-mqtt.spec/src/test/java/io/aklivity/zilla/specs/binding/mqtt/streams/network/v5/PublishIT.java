@@ -986,6 +986,16 @@ public class PublishIT
         k3po.finish();
     }
 
+    // MQTT 5.0, 3.1.2.11.4 Maximum Packet Size, 3.2.2.3.6 Packet too large
+    @Test
+    @Specification({
+        "${net}/publish.reject.maximum.packet.size/client",
+        "${net}/publish.reject.maximum.packet.size/server"})
+    public void shouldRejectPublishExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.3.1-4]
     @Test
     @Specification({
