@@ -41,6 +41,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNACCEPTABLE_PROTOCOL_VERSION_V4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
@@ -967,7 +968,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 if (reasonCode != SUCCESS)
                 {
-                    server.onDecodeError(traceId, authorization, reasonCode, MQTT_PROTOCOL_VERSION_5);
+                    if (mqttConnect.protocolVersion() == MQTT_PROTOCOL_VERSION_4)
+                    {
+                        server.onDecodeError(traceId, authorization, UNACCEPTABLE_PROTOCOL_VERSION_V4, MQTT_PROTOCOL_VERSION_4);
+                    }
+                    else
+                    {
+                        server.onDecodeError(traceId, authorization, reasonCode, MQTT_PROTOCOL_VERSION_5);
+                    }
                     server.decoder = decodeIgnoreAll;
                     break decode;
                 }

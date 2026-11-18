@@ -400,4 +400,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.1.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.unsupported.protocol.version/client",
+        "${net}/connect.unsupported.protocol.version/server"})
+    public void shouldRejectUnsupportedProtocolVersion() throws Exception
+    {
+        k3po.finish();
+    }
 }

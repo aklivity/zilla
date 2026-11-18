@@ -429,4 +429,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.protocol.version.yaml")
+    @Specification({
+        "${net}/connect.unsupported.protocol.version/client"})
+    public void shouldRejectUnsupportedProtocolVersion() throws Exception
+    {
+        k3po.finish();
+    }
 }
