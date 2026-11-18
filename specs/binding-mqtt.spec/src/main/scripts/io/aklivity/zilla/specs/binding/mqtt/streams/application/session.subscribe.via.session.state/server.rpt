@@ -55,7 +55,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one")
+                                .filter("sensor/one", -1)
                                 .build()
                              .build()}
 

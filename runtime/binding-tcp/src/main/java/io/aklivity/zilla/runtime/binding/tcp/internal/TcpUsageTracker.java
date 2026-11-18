@@ -41,6 +41,11 @@ public final class TcpUsageTracker
         return capacity - usage;
     }
 
+    public int used()
+    {
+        return usage;
+    }
+
     public void claim()
     {
         int newUsage = ++usage;
