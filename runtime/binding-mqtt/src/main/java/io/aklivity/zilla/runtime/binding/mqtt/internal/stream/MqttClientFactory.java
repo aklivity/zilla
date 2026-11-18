@@ -107,9 +107,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterV1FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.BinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttAckHeaderFW;
@@ -188,6 +190,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final int NO_FLAGS = 0b0000_0000;
     private static final int NO_REASON_CODE = -1;
+    private static final int FAILURE_REASON_CODE_MIN = 0x80;
     private static final int RETAIN_MASK = 0b0000_0001;
     private static final int PUBLISH_QOS1_MASK = 0b0000_0010;
     private static final int PUBLISH_QOS2_MASK = 0b0000_0100;
@@ -313,6 +316,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttSubscribeV5FW.Builder mqttSubscribeV5RW = new MqttSubscribeV5FW.Builder();
     private final MqttUnsubscribeV5FW.Builder mqttUnsubscribeV5RW = new MqttUnsubscribeV5FW.Builder();
     private final MqttPublishV5FW.Builder mqttPublishV5RW = new MqttPublishV5FW.Builder();
+    private final MqttPublishQosV5FW.Builder mqttPublishQosV5RW = new MqttPublishQosV5FW.Builder();
     private final MqttAckV5FW.Builder mqttAckV5RW = new MqttAckV5FW.Builder();
     private final MqttPingReqFW.Builder mqttPingReqRW = new MqttPingReqFW.Builder();
     private final MqttDisconnectV5FW.Builder mqttDisconnectV5RW = new MqttDisconnectV5FW.Builder();
@@ -320,6 +324,8 @@ public final class MqttClientFactory implements MqttStreamFactory
         new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
     private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
+    private final Array32FW.Builder<Varint32FW.Builder, Varint32FW> filterIdsRW =
+        new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW());
     private final BinaryFW.Builder passwordRW = new BinaryFW.Builder();
 
     private final MqttClientDecoder decodeInitialType = this::decodeInitialType;
@@ -327,6 +333,12 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttClientDecoder decodeConnack = this::decodeConnack;
     private final MqttClientDecoder decodeSuback = this::decodeSuback;
     private final MqttClientDecoder decodeUnsuback = this::decodeUnsuback;
+    private final MqttClientDecoder decodePuback = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBACK_FIXED_HEADER, MqttClient::onDecodePuback);
+    private final MqttClientDecoder decodePubrec = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBREC_FIXED_HEADER, MqttClient::onDecodePubrec);
+    private final MqttClientDecoder decodePubcomp = (client, traceId, authorization, budgetId, buffer, offset, limit) ->
+        decodeAck(client, traceId, authorization, buffer, offset, limit, PUBCOMP_FIXED_HEADER, MqttClient::onDecodePubcomp);
     private final MqttClientDecoder decodePublish = this::decodePublish;
     private final MqttClientDecoder decodePublishPayload = this::decodePublishPayload;
     private final MqttClientDecoder decodePubrel = this::decodePubrel;
@@ -346,9 +358,10 @@ public final class MqttClientFactory implements MqttStreamFactory
         decodersByPacketType.put(MqttPacketType.SUBACK, decodeSuback);
         decodersByPacketType.put(MqttPacketType.UNSUBACK, decodeUnsuback);
         decodersByPacketType.put(MqttPacketType.PUBLISH, decodePublish);
-        // decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
+        decodersByPacketType.put(MqttPacketType.PUBACK, decodePuback);
+        decodersByPacketType.put(MqttPacketType.PUBREC, decodePubrec);
         decodersByPacketType.put(MqttPacketType.PUBREL, decodePubrel);
-        // decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
+        decodersByPacketType.put(MqttPacketType.PUBCOMP, decodePubcomp);
         decodersByPacketType.put(MqttPacketType.PINGRESP, decodePingresp);
         decodersByPacketType.put(MqttPacketType.DISCONNECT, decodeDisconnect);
         // decodersByPacketType.put(MqttPacketType.AUTH, decodeAuth);
@@ -363,6 +376,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MutableDirectBufferEx propertyBuffer;
     private final MutableDirectBufferEx userPropertiesBuffer;
     private final MutableDirectBufferEx subscriptionIdsBuffer;
+    private final MutableDirectBufferEx filterIdsBuffer;
     private final MutableDirectBufferEx connectPayloadBuffer;
     private final MutableDirectBufferEx passwordBuffer;
     private final MutableDirectBufferEx willPropertyBuffer;
@@ -399,6 +413,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.filterIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.connectPayloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.passwordBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -1061,6 +1076,59 @@ public final class MqttClientFactory implements MqttStreamFactory
         return progress;
     }
 
+    private int decodeAck(
+        MqttClient client,
+        final long traceId,
+        final long authorization,
+        final DirectBufferEx buffer,
+        final int offset,
+        final int limit,
+        final int fixedHeader,
+        final MqttAckHandler handler)
+    {
+        final int length = limit - offset;
+
+        int progress = offset;
+
+        if (length >= client.decodeablePacketBytes)
+        {
+            int reasonCode = SUCCESS;
+
+            final int packetLimit = offset + client.decodeablePacketBytes;
+            final MqttAckHeaderFW ack = mqttAckHeaderRO.tryWrap(buffer, offset, packetLimit);
+            decode:
+            {
+                if (ack == null)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
+                else if ((ack.typeAndFlags() & 0b1111_1111) != fixedHeader)
+                {
+                    reasonCode = MALFORMED_PACKET;
+                    break decode;
+                }
+
+                final int ackReasonCode = ack.remainingLength() > 2
+                    ? buffer.getByte(ack.limit()) & 0xff
+                    : SUCCESS;
+
+                reasonCode = handler.onDecode(client, traceId, authorization, ack.packetId(), ackReasonCode);
+                client.decodeablePacketBytes = 0;
+                client.decoder = decodePacketType;
+                progress = packetLimit;
+            }
+
+            if (reasonCode != SUCCESS)
+            {
+                client.onDecodeError(traceId, authorization, reasonCode);
+                client.decoder = decodeIgnoreAll;
+            }
+        }
+
+        return progress;
+    }
+
     private int decodePubrel(
         MqttClient client,
         final long traceId,
@@ -1186,7 +1254,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
         if (subscriptions.stream().anyMatch(Subscription::shared))
         {
-            mqttSessionStateRW.sessionStateV3(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilter)));
+            mqttSessionStateRW.sessionStateV3(s -> subscriptions.forEach(sub -> s.subscriptionsItem(sub::asTopicFilterV2)));
         }
         else
         {
@@ -1304,6 +1372,16 @@ public final class MqttClientFactory implements MqttStreamFactory
     }
 
     @FunctionalInterface
+    private interface MqttAckHandler
+    {
+        int onDecode(
+            MqttClient client,
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode);
+    }
+
     private interface MqttClientDecoder
     {
         int decode(
@@ -1318,7 +1396,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private final class MqttClient
     {
-        private final AtomicInteger packetIdCounter;
+        private final MqttPacketIds<Object> packetIds;
+        private final Int2ObjectHashMap<PendingPublish> pendingPubcomps;
         private final long originId;
         private final long routedId;
         private final long replyId;
@@ -1418,7 +1497,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             this.qos2PubrecReasonCodes = new Int2IntHashMap(NO_REASON_CODE);
             this.topicAliases = new Int2ObjectHashMap<>();
             this.maximumPacketSize = maximumPacketSize;
-            this.packetIdCounter = new AtomicInteger();
+            this.packetIds = new MqttPacketIds<>();
+            this.pendingPubcomps = new Int2ObjectHashMap<>();
             this.guard = guard;
             this.credentials = credentials;
             this.authField = authField;
@@ -1936,6 +2016,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             MqttSubackV5FW suback)
         {
             final int packetId = suback.packetId();
+            packetIds.release(packetId);
             final OctetsFW decodePayload = suback.payload();
 
             final DirectBufferEx decodeBuffer = decodePayload.buffer();
@@ -1978,6 +2059,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             MqttUnsubackV5FW unsuback)
         {
             final int packetId = unsuback.packetId();
+            packetIds.release(packetId);
             final OctetsFW decodePayload = unsuback.payload();
 
             final DirectBufferEx decodeBuffer = decodePayload.buffer();
@@ -2022,6 +2104,13 @@ public final class MqttClientFactory implements MqttStreamFactory
             OctetsFW payload,
             MqttSubscribeStream stream)
         {
+            filterIdsRW.wrap(filterIdsBuffer, 0, filterIdsBuffer.capacity());
+            final Array32FW<Varuint32FW> subscriptionIds = subscriptionIdsRW.build();
+            stream.subscriptions.stream()
+                .filter(sub -> topicMatches(sub.pattern(), mqttPublishHeaderRO.topic) &&
+                    (subscriptionIds.isEmpty() || subscriptionIds.matchFirst(i -> i.value() == sub.id) != null))
+                .forEach(sub -> filterIdsRW.item(i -> i.set(sub.filterId)));
+
             final MqttDataExFW.Builder builder = mqttPublishDataExRW.wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                 .typeId(mqttTypeId)
                 .subscribe(s ->
@@ -2030,7 +2119,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     s.packetId(mqttPublishHeaderRO.packetId);
                     s.qos(mqttPublishHeaderRO.qos);
                     s.flags(mqttPublishHeaderRO.flags);
-                    s.subscriptionIds(subscriptionIdsRW.build());
+                    s.subscriptionIds(filterIdsRW.build());
                     s.expiryInterval(mqttPublishHeaderRO.expiryInterval);
                     s.contentType(mqttPublishHeaderRO.contentType);
                     s.format(f -> f.set(mqttPublishHeaderRO.payloadFormat));
@@ -2045,6 +2134,76 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 stream.doSubscribeData(traceId, authorization, reserved, payload, dataEx);
             }
+        }
+
+        private int onDecodePuback(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            int error = SUCCESS;
+
+            if (packetIds.get(packetId) instanceof PendingPublish pending &&
+                pending.qos == MqttQoS.AT_LEAST_ONCE.value())
+            {
+                packetIds.release(packetId);
+                pending.stream.onPublishAcknowledged(traceId, authorization, pending, reasonCode);
+            }
+            else
+            {
+                error = PROTOCOL_ERROR;
+            }
+
+            return error;
+        }
+
+        private int onDecodePubrec(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            int error = SUCCESS;
+
+            if (packetIds.get(packetId) instanceof PendingPublish pending &&
+                pending.qos == MqttQoS.EXACTLY_ONCE.value() &&
+                !pendingPubcomps.containsKey(packetId))
+            {
+                if (reasonCode < FAILURE_REASON_CODE_MIN)
+                {
+                    pendingPubcomps.put(packetId, pending);
+                    doEncodeAck(traceId, authorization, PUBREL_FIXED_HEADER, packetId, SUCCESS);
+                }
+                else
+                {
+                    packetIds.release(packetId);
+                }
+
+                pending.stream.onPublishAcknowledged(traceId, authorization, pending, reasonCode);
+            }
+            else
+            {
+                error = PROTOCOL_ERROR;
+            }
+
+            return error;
+        }
+
+        private int onDecodePubcomp(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            final PendingPublish pending = pendingPubcomps.remove(packetId);
+
+            if (pending != null)
+            {
+                packetIds.release(packetId);
+            }
+
+            return pending != null ? SUCCESS : PROTOCOL_ERROR;
         }
 
         private void onDecodePublishRetransmit(
@@ -2101,9 +2260,32 @@ public final class MqttClientFactory implements MqttStreamFactory
             if (subscriber == null && !subscribesShared(topic, subscriptionId))
             {
                 subscriber = subscribeStreams.get(qos);
+
+                if (subscriber != null &&
+                    !subscriber.subscribes(topic, subscriptionId) &&
+                    subscribesPending(topic, subscriptionId))
+                {
+                    subscriber = null;
+                }
             }
 
             return subscriber;
+        }
+
+        private boolean subscribesPending(
+            String topic,
+            int subscriptionId)
+        {
+            boolean subscribes = false;
+
+            for (Subscription subscription : sessionStream.subscriptions)
+            {
+                subscribes |= !subscription.shared() &&
+                    topicMatches(subscription.pattern(), topic) &&
+                    (subscriptionId == 0 || subscription.id == subscriptionId);
+            }
+
+            return subscribes;
         }
 
         private boolean subscribesShared(
@@ -2368,7 +2550,9 @@ public final class MqttClientFactory implements MqttStreamFactory
             OctetsFW payload,
             OctetsFW extension,
             String topic,
-            int topicLength)
+            int topicLength,
+            MqttPublishStream stream,
+            long sequence)
         {
             if (hasInit(flags))
             {
@@ -2444,19 +2628,44 @@ public final class MqttClientFactory implements MqttStreamFactory
                 });
 
                 final int propertiesSize0 = propertiesSize.get();
-                final MqttPublishV5FW publish =
-                    mqttPublishV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                        .typeAndFlags(publishNetworkTypeAndFlags)
-                        .remainingLength(3 + topicLength + propertiesSize.get() + payloadSize + deferred)
-                        .topicName(topic)
-                        .properties(p -> p.length(propertiesSize0)
-                            .value(propertyBuffer, 0, propertiesSize0))
-                        .build();
+                final PendingPublish pending = qos == MqttQoS.AT_MOST_ONCE.value()
+                    ? null
+                    : new PendingPublish(stream, mqttPublishDataEx.packetId(), sequence, qos);
+                final int packetId = pending == null ? MqttPacketIds.NO_PACKET_ID : packetIds.allocate(pending);
 
-                int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
-                limit += payload.sizeof();
-                doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
+                if (pending != null && packetId == MqttPacketIds.NO_PACKET_ID)
+                {
+                    stream.cleanupAbort(traceId, authorization);
+                }
+                else
+                {
+                    final Flyweight publish = pending == null
+                        ? mqttPublishV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                            .typeAndFlags(publishNetworkTypeAndFlags)
+                            .remainingLength(3 + topicLength + propertiesSize0 + payloadSize + deferred)
+                            .topicName(topic)
+                            .properties(p -> p.length(propertiesSize0)
+                                .value(propertyBuffer, 0, propertiesSize0))
+                            .build()
+                        : mqttPublishQosV5RW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                            .typeAndFlags(publishNetworkTypeAndFlags)
+                            .remainingLength(5 + topicLength + propertiesSize0 + payloadSize + deferred)
+                            .topicName(topic)
+                            .packetId(packetId)
+                            .properties(p -> p.length(propertiesSize0)
+                                .value(propertyBuffer, 0, propertiesSize0))
+                            .build();
+
+                    if (pending != null)
+                    {
+                        stream.pendingPublishes.add(pending);
+                    }
+
+                    int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    limit += payload.sizeof();
+                    doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
+                }
             }
             else
             {
@@ -3055,6 +3264,16 @@ public final class MqttClientFactory implements MqttStreamFactory
             return flags;
         }
 
+        private int resolveSubscriptionId(
+            String filter)
+        {
+            return sessionStream.subscriptions.stream()
+                .filter(s -> s.filter.equals(filter))
+                .mapToInt(s -> s.id)
+                .findFirst()
+                .orElse(0);
+        }
+
         private boolean existStreamForId(
             int subscriptionId)
         {
@@ -3077,12 +3296,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
         private int nextPacketId()
         {
-            final int packetId = packetIdCounter.incrementAndGet();
-            if (packetId == Integer.MAX_VALUE)
-            {
-                packetIdCounter.set(0);
-            }
-            return packetId;
+            return packetIds.allocate(sessionStream);
         }
     }
 
@@ -3673,7 +3887,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 {
                     Subscription subscription =
                         new Subscription().withTopicFilter(filter.shareName().asString(), filter.pattern().asString());
-                    subscription.id = (int) filter.subscriptionId();
+                    subscription.filterId = filter.subscriptionId();
+                    subscription.id = client.resolveSubscriptionId(subscription.filter);
                     subscription.flags = filter.flags();
                     subscription.qos = filter.qos();
                     subscriptions.add(subscription);
@@ -3725,7 +3940,8 @@ public final class MqttClientFactory implements MqttStreamFactory
                 {
                     Subscription subscription =
                         new Subscription().withTopicFilter(f.shareName().asString(), f.pattern().asString());
-                    subscription.id = (int) f.subscriptionId();
+                    subscription.filterId = f.subscriptionId();
+                    subscription.id = client.resolveSubscriptionId(subscription.filter);
                     subscription.flags = f.flags();
                     subscription.qos = f.qos();
                     newSubscribeState.add(subscription);
@@ -4024,6 +4240,8 @@ public final class MqttClientFactory implements MqttStreamFactory
 
         private int state;
 
+        private final List<PendingPublish> pendingPublishes = new ArrayList<>();
+
         private long publishExpiresId = NO_CANCEL_ID;
         private long publishExpiresAt;
         private String topic;
@@ -4156,7 +4374,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             {
                 if (payload != null && payload.sizeof() <= maximumPacketSize)
                 {
-                    client.doEncodePublish(traceId, authorization, flags, payload, extension, topic, topicLength);
+                    client.doEncodePublish(traceId, authorization, flags, payload, extension, topic, topicLength, this, sequence);
                 }
                 else
                 {
@@ -4324,7 +4542,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             int minInitialNoAck,
             int minInitialMax)
         {
-            final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
+            final long pendingSequence = pendingPublishes.isEmpty() ? initialSeq : pendingPublishes.get(0).sequence;
+            final long newInitialAck = Math.max(Math.min(initialSeq - minInitialNoAck, pendingSequence), initialAck);
 
             if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
@@ -4338,6 +4557,39 @@ public final class MqttClientFactory implements MqttStreamFactory
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, client.encodeBudgetId, PUBLISH_FRAMING);
             }
+        }
+
+        private void onPublishAcknowledged(
+            long traceId,
+            long authorization,
+            PendingPublish pending,
+            int reasonCode)
+        {
+            pendingPublishes.remove(pending);
+
+            if (reasonCode >= FAILURE_REASON_CODE_MIN && !StreamState.replyClosed(state))
+            {
+                doPublishFlush(traceId, authorization, pending.applicationPacketId, reasonCode);
+            }
+
+            doPublishWindow(traceId, authorization, client.encodeSlotOffset, encodeBudgetMax);
+        }
+
+        private void doPublishFlush(
+            long traceId,
+            long authorization,
+            int packetId,
+            int reasonCode)
+        {
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, budgetId, 0,
+                ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                    .typeId(mqttTypeId)
+                    .publish(publishBuilder -> publishBuilder
+                        .packetId(packetId)
+                        .reasonCode(reasonCode))
+                    .build()
+                    .sizeof()));
         }
 
         private void doPublishReset(
@@ -4466,6 +4718,26 @@ public final class MqttClientFactory implements MqttStreamFactory
         }
 
         return reasonCode;
+    }
+
+    private final class PendingPublish
+    {
+        private final MqttPublishStream stream;
+        private final int applicationPacketId;
+        private final long sequence;
+        private final int qos;
+
+        private PendingPublish(
+            MqttPublishStream stream,
+            int applicationPacketId,
+            long sequence,
+            int qos)
+        {
+            this.qos = qos;
+            this.stream = stream;
+            this.applicationPacketId = applicationPacketId;
+            this.sequence = sequence;
+        }
     }
 
     private final class MqttPublishHeader
@@ -4685,6 +4957,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final class Subscription
     {
         private int id = 0;
+        private int filterId = 0;
         private String filter;
         private int qos;
         private int flags;
@@ -4731,6 +5004,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             final Subscription subscription = new Subscription();
             subscription.id = id;
+            subscription.filterId = filterId;
             subscription.filter = filter;
             subscription.qos = qos;
             subscription.flags = flags;
@@ -4738,8 +5012,8 @@ public final class MqttClientFactory implements MqttStreamFactory
             return subscription;
         }
 
-        private MqttTopicFilterFW.Builder asTopicFilter(
-            MqttTopicFilterFW.Builder builder)
+        private MqttTopicFilterV2FW.Builder asTopicFilterV2(
+            MqttTopicFilterV2FW.Builder builder)
         {
             return builder
                 .subscriptionId(id)

@@ -3099,7 +3099,7 @@ add_field("mqtt_ext_session_flags_will", ProtoField.uint8("zilla.mqtt_ext.sessio
 --     filters
 add_field("mqtt_ext_filters_array_length", ProtoField.int8("zilla.mqtt_ext.filters_array_length", "Length", base.DEC))
 add_field("mqtt_ext_filters_array_size", ProtoField.int8("zilla.mqtt_ext.filters_array_size", "Size", base.DEC))
-add_field("mqtt_ext_filter_subscription_id", ProtoField.uint32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.HEX))
+add_field("mqtt_ext_filter_subscription_id", ProtoField.int32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.DEC))
 add_field("mqtt_ext_filter_qos", ProtoField.uint8("zilla.mqtt_ext.filter_qos", "QoS", base.DEC, mqtt_ext_qos_types))
 add_field("mqtt_ext_filter_reason_code", ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC))
 add_field("mqtt_ext_filter_pattern_length", ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC))
@@ -3129,7 +3129,7 @@ add_field("mqtt_ext_subscription_ids_array_length", ProtoField.int8("zilla.mqtt_
         base.DEC))
 add_field("mqtt_ext_subscription_ids_array_size", ProtoField.int8("zilla.mqtt_ext.subscription_ids_array_size", "Size",
         base.DEC))
-add_field("mqtt_ext_subscription_id_varuint", ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varuint", "Subscription ID (varuint32)",
+add_field("mqtt_ext_subscription_id_varint", ProtoField.bytes("zilla.mqtt_ext.subsciption_id_varint", "Subscription ID (varint32)",
         base.NONE))
 add_field("mqtt_ext_subscription_id", ProtoField.int32("zilla.mqtt_ext.subsciption_id", "Subscription ID", base.DEC))
 --     reset
@@ -3500,9 +3500,9 @@ function dissect_and_add_mqtt_subscription_ids(buffer, offset, tree)
     local item_offset = offset + length
     for i = 1, array_size do
         -- subscription_id
-        local subscription_id, slice_subscription_id_varuint, subscription_id_length = decode_varuint32(buffer, item_offset)
+        local subscription_id, slice_subscription_id_varint, subscription_id_length = decode_varint32(buffer, item_offset)
         add_varint_as_subtree(buffer(item_offset, subscription_id_length), tree, "Subscription ID: %d",
-            slice_subscription_id_varuint, subscription_id, fields.mqtt_ext_subscription_id_varuint, fields.mqtt_ext_subscription_id)
+            slice_subscription_id_varint, subscription_id, fields.mqtt_ext_subscription_id_varint, fields.mqtt_ext_subscription_id)
         -- next
         item_offset = item_offset + subscription_id_length
     end

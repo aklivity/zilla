@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.tcp.internal;
 
-import static io.aklivity.zilla.config.binding.tcp.TcpOptionsConfigBuilder.BACKLOG_DEFAULT;
 import static io.aklivity.zilla.config.binding.tcp.TcpOptionsConfigBuilder.KEEPALIVE_DEFAULT;
 import static io.aklivity.zilla.config.binding.tcp.TcpOptionsConfigBuilder.NODELAY_DEFAULT;
 
@@ -41,7 +40,6 @@ public final class TcpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 {
     private static final String HOST_NAME = "host";
     private static final String PORT_NAME = "port";
-    private static final String BACKLOG_NAME = "backlog";
 
     @Override
     public JsonObject adaptToJson(
@@ -69,11 +67,6 @@ public final class TcpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
                 object.add(PORT_NAME, ports);
             }
-        }
-
-        if (tcpOptions.backlog != BACKLOG_DEFAULT)
-        {
-            object.add(BACKLOG_NAME, tcpOptions.backlog);
         }
 
         assert tcpOptions.nodelay == NODELAY_DEFAULT;
@@ -107,11 +100,6 @@ public final class TcpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         MutableInteger index = new MutableInteger();
         portsSet.forEach(i -> ports[index.value++] = i);
         tcpOptions.ports(ports);
-
-        if (object.containsKey(BACKLOG_NAME))
-        {
-            tcpOptions.backlog(object.getJsonNumber(BACKLOG_NAME).intValue());
-        }
 
         return tcpOptions.build();
     }

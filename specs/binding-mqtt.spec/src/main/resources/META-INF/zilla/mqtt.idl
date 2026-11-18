@@ -68,6 +68,16 @@ scope mqtt
 
     struct MqttTopicFilter
     {
+        int32 subscriptionId = 0;
+        uint8 qos = 0;
+        uint8 flags = 0;
+        uint8 reasonCode = 0;
+        string16 pattern;
+        string16 shareName = null;
+    }
+
+    struct MqttTopicFilterV2
+    {
         uint32 subscriptionId = 0;
         uint8 qos = 0;
         uint8 flags = 0;
@@ -104,7 +114,7 @@ scope mqtt
 
     struct MqttSessionStateV3
     {
-        MqttTopicFilter[] subscriptions;
+        MqttTopicFilterV2[] subscriptions;
     }
 
     union MqttSessionState switch (MqttSessionStateVersion)
@@ -228,7 +238,7 @@ scope mqtt
             uint16 packetId = 0;
             uint8 qos = 0;
             uint8 flags = 0;
-            varuint32[] subscriptionIds;
+            varint32[] subscriptionIds;
             int32 expiryInterval = -1;
             string16 contentType = null;
             MqttPayloadFormat format = NONE;

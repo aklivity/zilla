@@ -69,7 +69,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
+                                 .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
                                  .build()
                              .build()}
 
@@ -86,7 +86,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_LEAST_ONCE")
-                                 .filter("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
+                                 .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
                                  .build()
                              .build()}
 
@@ -99,7 +99,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                  .packetId(1)
                                  .qos("AT_LEAST_ONCE")
                                  .flags("RETAIN")
-                                 .subscriptionId(1)
+                                 .subscriptionId(-1)
                                  .format("TEXT")
                                  .build()
                             .build()}
