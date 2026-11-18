@@ -51,6 +51,7 @@ Make sure you have the `latest` version of Zilla by running the `docker pull ghc
 | [http.kafka.sync](http.kafka.sync)                           | Correlates HTTP requests and responses over separate Kafka topics                         |
 | [http.proxy](http.proxy)                                     | Proxy request sent to the HTTP server from an HTTP client                                 |
 | [inspect.schema](inspect.schema)                             | Prints the fully-merged `zilla.yaml` JSON Schema without starting an engine               |
+| [mcp.grpc.proxy](mcp.grpc.proxy)                             | Exposes the unary methods of a gRPC service as MCP tools, generated from its `.proto`     |
 | [mcp.http.proxy](mcp.http.proxy)                             | Exposes a REST API as MCP tools and resources, hand-authored over `mcp-http`              |
 | [mcp.kafka.connect.proxy](mcp.kafka.connect.proxy)           | Manages Kafka Connect connectors through MCP tools                                        |
 | [mcp.kafka.proxy](mcp.kafka.proxy)                           | Exposes Kafka topics, ACLs, brokers and a schema registry through MCP tools               |

@@ -1,0 +1,11 @@
+{
+  "name": "mcp-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless MCP client that lists tools, calls a tool or reads a resource through the Zilla mcp proxy with a JWT minted for the requested scopes",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "jose": "6.1.0"
+  }
+}
