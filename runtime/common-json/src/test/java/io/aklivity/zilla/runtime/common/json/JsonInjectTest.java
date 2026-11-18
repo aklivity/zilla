@@ -66,6 +66,29 @@ class JsonInjectTest
             inject("a", "x", "9", "{\"a\": 1, \"b\": 2}"));
     }
 
+    @Test
+    void shouldInjectMemberBeforeSurvivorOfDroppedFirstField()
+    {
+        // dropping a container's first member trims the survivor's now-dangling separator from the run, so the
+        // injected member displaces the survivor to non-first and the generator synthesizes the separator
+        assertEquals("{\"x\":9, \"b\": 2} ",
+            inject("a", "b", "x", "9", "{\"a\": 1, \"b\": 2}"));
+    }
+
+    @Test
+    void shouldInjectMemberBeforeSurvivorOfDroppedFirstFieldOfManyFields()
+    {
+        assertEquals("{\"x\":9, \"b\": 2, \"c\": 3} ",
+            inject("a", "b", "x", "9", "{\"a\": 1, \"b\": 2, \"c\": 3}"));
+    }
+
+    @Test
+    void shouldInjectMemberBeforeSurvivorOfDroppedFirstContainerField()
+    {
+        assertEquals("{\"x\":9, \"b\": 2} ",
+            inject("a", "b", "x", "9", "{\"a\": {\"n\": [1, 2]}, \"b\": 2}"));
+    }
+
     private static String inject(
         String beforeKey,
         String injectKey,
@@ -82,11 +105,32 @@ class JsonInjectTest
         String injectValue,
         String json)
     {
+        return inject(null, beforeKey, injectKey, injectKind, injectValue, json);
+    }
+
+    private static String inject(
+        String dropKey,
+        String beforeKey,
+        String injectKey,
+        String injectValue,
+        String json)
+    {
+        return inject(dropKey, beforeKey, injectKey, JsonEvent.VALUE_NUMBER, injectValue, json);
+    }
+
+    private static String inject(
+        String dropKey,
+        String beforeKey,
+        String injectKey,
+        JsonEvent injectKind,
+        String injectValue,
+        String json)
+    {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[1024]);
         generator.wrap(output, 0, output.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new Inject(beforeKey, injectKey, injectKind, injectValue))
+            .transform(new Inject(dropKey, beforeKey, injectKey, injectKind, injectValue))
             .into(JsonEx.createSink(generator));
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
@@ -106,6 +150,7 @@ class JsonInjectTest
     // the original separator.
     private static final class Inject implements JsonTransform
     {
+        private final String dropKey;
         private final String beforeKey;
         private final CharSequence injectKey;
         private final JsonEvent injectKind;
@@ -158,11 +203,13 @@ class JsonInjectTest
         };
 
         private Inject(
+            String dropKey,
             String beforeKey,
             String injectKey,
             JsonEvent injectKind,
             String injectValue)
         {
+            this.dropKey = dropKey;
             this.beforeKey = beforeKey;
             this.injectKey = injectKey;
             this.injectKind = injectKind;
@@ -194,6 +241,12 @@ class JsonInjectTest
                     : downstream;
                 break;
             case KEY_NAME:
+                if (depth == 1 && dropKey != null && contentEquals(dropKey, source.getStringView()))
+                {
+                    source.skipValue();
+                    status = Status.ADVANCED;
+                    break;
+                }
                 if (depth == 1 && contentEquals(beforeKey, source.getStringView()))
                 {
                     // inject the canonical member, then forward the original key verbatim; the generator's state

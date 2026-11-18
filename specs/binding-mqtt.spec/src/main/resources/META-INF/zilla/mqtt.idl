@@ -127,13 +127,17 @@ scope mqtt
     enum MqttSessionSignalType (uint8)
     {
         WILL (0),
-        EXPIRY (1)
+        EXPIRY (1),
+        WILL_LONG (2),
+        EXPIRY_LONG (3)
     }
 
     union MqttSessionSignal switch (uint8)
     {
         case 0: mqtt::MqttWillSignal will;
         case 1: mqtt::MqttExpirySignal expiry;
+        case 2: mqtt::MqttWillSignalLong willLong;
+        case 3: mqtt::MqttExpirySignalLong expiryLong;
     }
 
     struct MqttWillSignal
@@ -151,6 +155,24 @@ scope mqtt
         string16 instanceId;
         string16 clientId;
         int32 delay = 0;
+        int64 expireAt = -1;
+    }
+
+    struct MqttWillSignalLong
+    {
+        string16 instanceId;
+        string16 clientId;
+        int64 delay = 0;
+        int64 deliverAt = -1;
+        string16 lifetimeId = null;
+        string16 willId = null;
+    }
+
+    struct MqttExpirySignalLong
+    {
+        string16 instanceId;
+        string16 clientId;
+        int64 delay = 0;
         int64 expireAt = -1;
     }
 
