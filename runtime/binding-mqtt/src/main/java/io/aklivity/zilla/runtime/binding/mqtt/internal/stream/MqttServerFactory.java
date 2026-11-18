@@ -522,7 +522,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final short keepAliveMaximum;
     private final short topicAliasMaximumLimit;
     private final boolean noLocal;
-    private final int sessionExpiryGracePeriod;
     private final Supplier<String16FW> supplyClientId;
     private final MqttValidator validator;
     private final MqttUtf8Validator utf8Validator;
@@ -574,7 +573,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.maximumPacketSize = config.maximumPacketSize();
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.noLocal = config.noLocal();
-        this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.validator = new MqttValidator();
         this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
