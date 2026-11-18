@@ -246,6 +246,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
     private static final int PINGREQ_FIXED_HEADER = 0b1100_0000;
     private static final long NO_DISCONNECT_SESSION_EXPIRY = -1L;
+    private static final int RECEIVE_MAXIMUM_DEFAULT = 65535;
     private static final int PUBACK_FIXED_HEADER = 0b0100_0000;
     private static final int PUBREC_FIXED_HEADER = 0b0101_0000;
     private static final int PUBREL_FIXED_HEADER = 0b0110_0010;
@@ -2829,6 +2830,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private MqttQoS publishQosMax = publishQosMaxDefault;
         private int subscribeQosMax = subscribeQosMaxDefault;
         private int clientMaximumPacketSize = Integer.MAX_VALUE;
+        private int receiveMaximum = RECEIVE_MAXIMUM_DEFAULT;
         private int packetSizeMax;
         private int capabilities = RETAIN_AVAILABLE_MASK | SUBSCRIPTION_IDS_AVAILABLE_MASK | WILDCARD_AVAILABLE_MASK;
         private boolean serverDefinedKeepAlive = false;
@@ -2850,6 +2852,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
         private final Deque<MqttPublishStream> unAckedReceivedPublishes;
+        private final Deque<MqttSubscribeStream> heldSubscribes;
 
         private IntArrayList unreleasedPacketIds;
 
@@ -2903,6 +2906,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribePacketIds = new Object2IntHashMap<>(-1);
             this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
             this.unAckedReceivedPublishes = new ArrayDeque<>();
+            this.heldSubscribes = new ArrayDeque<>();
             this.unsubscribePacketFilters = new Int2ObjectHashMap<>();
             this.qos1Subscribes = new Int2ObjectHashMap<>();
             this.qos2Subscribes = new Int2ObjectHashMap<>();
@@ -3250,6 +3254,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
+                    this.receiveMaximum = receiveMaximum;
                     this.decodablePropertyMask |= CONNECT_RECEIVE_MAXIMUM_MASK;
                     break;
                 case KIND_MAXIMUM_PACKET_SIZE:
@@ -4090,6 +4095,21 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
+        private boolean receiveAvailable()
+        {
+            return version == MQTT_PROTOCOL_VERSION_4 ||
+                qos1Subscribes.size() + qos2Subscribes.size() < receiveMaximum;
+        }
+
+        private void releaseHeldSubscribes(
+            long traceId)
+        {
+            while (receiveAvailable() && !heldSubscribes.isEmpty())
+            {
+                heldSubscribes.poll().releaseHeld(traceId);
+            }
+        }
+
         private void onDecodePuback(
             long traceId,
             long authorization,
@@ -4105,6 +4125,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 stream.onSubscribeAcknowledge(traceId, MqttQoS.AT_LEAST_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE,
                     reasonCode, true);
+                releaseHeldSubscribes(traceId);
             }
 
             doSignalKeepAliveTimeout(traceId);
@@ -4126,6 +4147,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 stream.onSubscribeAcknowledge(traceId, MqttQoS.EXACTLY_ONCE.ordinal(), packetId,
                     rejected ? QOS2_COMPLETE_OFFSET_STATE : QOS2_INCOMPLETE_OFFSET_STATE, reasonCode, rejected);
+
+                if (rejected)
+                {
+                    releaseHeldSubscribes(traceId);
+                }
             }
             else if (!rejected)
             {
@@ -4185,6 +4211,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 stream.onSubscribeAcknowledge(traceId, MqttQoS.EXACTLY_ONCE.ordinal(), packetId, QOS2_COMPLETE_OFFSET_STATE,
                     reasonCode, true);
+                releaseHeldSubscribes(traceId);
             }
 
             doSignalKeepAliveTimeout(traceId);
@@ -7824,8 +7851,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             private final MqttSubscribeDecoder decodeSubscribeFragment = this::decodeSubscribeFragment;
             private final MqttSubscribeDecoder decodeSubscribeIgnore = this::decodeSubscribeIgnore;
             private final MqttSubscribeDecoder decodeSubscribeDrop = this::decodeSubscribeDrop;
+            private final MqttSubscribeDecoder decodeSubscribeHold = this::decodeSubscribeHold;
             private final Predicate<Varuint32FW> subscribedId = this::subscribedId;
             private MqttSubscribeDecoder subscribeDecoder;
+            private int heldSlot = NO_SLOT;
+            private int heldSlotOffset;
 
             MqttSubscribeStream(
                 long originId,
@@ -7881,8 +7911,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 drainingSubscribes.remove(this);
+                heldSubscribes.remove(this);
+                cleanupHeldSlot();
                 qos1Subscribes.values().removeIf(stream -> stream == this);
                 qos2Subscribes.values().removeIf(stream -> stream == this);
+                releaseHeldSubscribes(0L);
             }
 
             private void removeNonShared()
@@ -8102,6 +8135,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private boolean delivering()
             {
                 return subscribeDecoder == decodeSubscribeFragment ||
+                    subscribeDecoder == decodeSubscribeHold ||
                     qos1Subscribes.containsValue(this) ||
                     qos2Subscribes.containsValue(this);
             }
@@ -8276,38 +8310,47 @@ public final class MqttServerFactory implements MqttStreamFactory
                         deliveryQos = Math.min(subscribeDataEx.subscribe().qos(), qos);
                     }
 
-                    final int deferred = subscribeDataEx.subscribe().deferred();
-                    final int frameLength = encodeSubscribePublish(traceId, authorization, payload, subscribeDataEx);
-
-                    packetId = subscribeDataEx.subscribe().packetId();
-
-                    if (frameLength + deferred <= clientMaximumPacketSize)
+                    if (deliveryQos > 0 && !receiveAvailable())
                     {
-                        doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD,
-                            DataFW.FIELD_OFFSET_PAYLOAD + frameLength);
-
-                        if (hasFin(flags))
-                        {
-                            doSubscribeDelivered(traceId);
-                        }
-                        else
-                        {
-                            subscribeDecoder = decodeSubscribeFragment;
-                            doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
-                        }
+                        holdSubscribeMessage(data);
                     }
                     else
                     {
-                        droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+                        final int deferred = subscribeDataEx.subscribe().deferred();
+                        final int frameLength = encodeSubscribePublish(traceId, authorization, payload, subscribeDataEx);
 
-                        if (hasFin(flags))
+                        packetId = subscribeDataEx.subscribe().packetId();
+
+                        if (frameLength + deferred <= clientMaximumPacketSize)
                         {
-                            doSubscribeDropped(traceId);
+                            doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD,
+                                DataFW.FIELD_OFFSET_PAYLOAD + frameLength);
+
+                            doSubscribeAwaitAcknowledge();
+
+                            if (hasFin(flags))
+                            {
+                                doSubscribeDelivered(traceId);
+                            }
+                            else
+                            {
+                                subscribeDecoder = decodeSubscribeFragment;
+                                doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                            }
                         }
                         else
                         {
-                            subscribeDecoder = decodeSubscribeDrop;
-                            doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                            droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+
+                            if (hasFin(flags))
+                            {
+                                doSubscribeDropped(traceId);
+                            }
+                            else
+                            {
+                                subscribeDecoder = decodeSubscribeDrop;
+                                doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
+                            }
                         }
                     }
                 }
@@ -8454,13 +8497,78 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
                 }
-                else if (deliveryQos == 1)
+            }
+
+            private void doSubscribeAwaitAcknowledge()
+            {
+                if (deliveryQos == 1)
                 {
                     qos1Subscribes.put(packetId, this);
                 }
                 else if (deliveryQos == 2)
                 {
                     qos2Subscribes.put(packetId, this);
+                }
+            }
+
+            private void holdSubscribeMessage(
+                DataFW data)
+            {
+                subscribeDecoder = decodeSubscribeHold;
+                heldSubscribes.add(this);
+                decodeSubscribeHold(data);
+            }
+
+            private void decodeSubscribeHold(
+                DataFW data)
+            {
+                if (heldSlot == NO_SLOT)
+                {
+                    heldSlot = bufferPool.acquire(replyId);
+                }
+
+                if (heldSlot == NO_SLOT)
+                {
+                    doSubscribeReset(data.traceId());
+                    doNetworkAbort(data.traceId(), data.authorization());
+                }
+                else
+                {
+                    final MutableDirectBufferEx heldBuffer = bufferPool.buffer(heldSlot);
+                    heldBuffer.putBytes(heldSlotOffset, data.buffer(), data.offset(), data.sizeof());
+                    heldSlotOffset += data.sizeof();
+                }
+            }
+
+            private void releaseHeld(
+                long traceId)
+            {
+                final int slot = heldSlot;
+                final int limit = heldSlotOffset;
+
+                heldSlot = NO_SLOT;
+                heldSlotOffset = 0;
+                subscribeDecoder = decodeSubscribeMessage;
+
+                final MutableDirectBufferEx heldBuffer = bufferPool.buffer(slot);
+                for (int progress = 0; progress < limit; )
+                {
+                    final DataFW data = dataRO.wrap(heldBuffer, progress, limit);
+                    progress = data.limit();
+                    subscribeDecoder.decode(data);
+                }
+
+                bufferPool.release(slot);
+                completeSubscribeClosing(traceId);
+            }
+
+            private void cleanupHeldSlot()
+            {
+                if (heldSlot != NO_SLOT)
+                {
+                    bufferPool.release(heldSlot);
+                    heldSlot = NO_SLOT;
+                    heldSlotOffset = 0;
                 }
             }
 

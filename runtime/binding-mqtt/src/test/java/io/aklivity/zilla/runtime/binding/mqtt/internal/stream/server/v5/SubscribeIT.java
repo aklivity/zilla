@@ -1073,6 +1073,36 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.shared.receive.maximum.two/client",
+        "${app}/subscribe.shared.receive.maximum.two/server"})
+    public void shouldSubscribeSharedReceiveMaximumTwo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.receive.maximum.qos2/client",
+        "${app}/subscribe.shared.receive.maximum.qos2/server"})
+    public void shouldSubscribeSharedReceiveMaximumQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.receive.maximum/client",
+        "${app}/subscribe.shared.receive.maximum/server"})
+    public void shouldSubscribeSharedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.shared.distinct.share.names/client",
         "${app}/subscribe.shared.distinct.share.names/server"})
     public void shouldSubscribeSharedDistinctShareNames() throws Exception
