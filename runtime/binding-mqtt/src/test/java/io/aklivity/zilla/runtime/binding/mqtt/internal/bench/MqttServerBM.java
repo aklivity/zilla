@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.bench;
 
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
 
@@ -29,6 +32,7 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -56,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.Client;
 import io.aklivity.zilla.runtime.engine.test.Responder;
 import io.aklivity.zilla.runtime.engine.test.Responder.Response;
 import io.aklivity.zilla.runtime.engine.test.Responder.Trigger;
+import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 
 /**
  * Drives an mqtt server, speaking MQTT on its network side, through the real engine, in front of a mock
@@ -65,7 +70,12 @@ import io.aklivity.zilla.runtime.engine.test.Responder.Trigger;
  * {@code inflight} handshakes are outstanding, so {@code inflight} handshakes are in flight at steady state
  * and the {@code inflight} parameter ramps the concurrency.
  * <p>
- * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake.
+ * Each {@code leave} operation opens one connection, completes its handshake and leaves the connection open,
+ * so the connected session stays live.
+ * <p>
+ * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
+ * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
+ * depend on {@code version} or {@code inflight}, so run it with {@code -p version=5 -p inflight=256}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -79,16 +89,34 @@ public class MqttServerBM
     private static final int CLIENT_ID_DIGITS = 8;
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
+    private static final int CONNECTED = 5_000;
 
     @Benchmark
     public void handshake(
-        Fixture fixture)
+        Cycling fixture)
     {
         fixture.handshake();
     }
 
+    @Benchmark
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(MILLISECONDS)
+    @Warmup(iterations = 1)
+    @Measurement(iterations = 3)
+    @OperationsPerInvocation(CONNECTED)
+    public void leave(
+        Retaining fixture)
+    {
+        for (int connection = 0; connection < CONNECTED; connection++)
+        {
+            fixture.handshake();
+        }
+
+        fixture.drain();
+    }
+
     @State(Scope.Benchmark)
-    public static class Fixture
+    public abstract static class Fixture
     {
         @Param({"1", "16", "256", "4096"})
         public int inflight;
@@ -126,7 +154,6 @@ public class MqttServerBM
             bench.newServer("app0", responder);
         }
 
-        @TearDown(Level.Iteration)
         public void drain()
         {
             await(drained);
@@ -137,12 +164,20 @@ public class MqttServerBM
         {
             final int sessions = responder.counter().begins();
 
+            disconnect();
             bench.close();
 
             if (sessions == 0 || failed)
             {
                 throw new IllegalStateException("sessions did not reach the application: " + sessions);
             }
+        }
+
+        abstract void release(
+            Handshake handshake);
+
+        void disconnect()
+        {
         }
 
         void handshake()
@@ -163,7 +198,7 @@ public class MqttServerBM
         {
             for (Handshake handshake = completed.poll(); handshake != null; handshake = completed.poll())
             {
-                handshake.finish();
+                release(handshake);
                 pending--;
             }
 
@@ -192,7 +227,7 @@ public class MqttServerBM
             }
         }
 
-        private final class Handshake implements MessageConsumer
+        final class Handshake implements MessageConsumer
         {
             private final DataFW dataRO = new DataFW();
             private final MessageConsumer awaitWindow = this::onAwaitWindow;
@@ -212,9 +247,18 @@ public class MqttServerBM
             void finish()
             {
                 client.abort();
+                detach();
+            }
+
+            Client detach()
+            {
+                final Client detached = client;
+
                 stage = MessageConsumer.NOOP;
                 client = null;
                 idle.offer(this);
+
+                return detached;
             }
 
             @Override
@@ -264,6 +308,42 @@ public class MqttServerBM
                     }
                 }
             }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Cycling extends Fixture
+    {
+        @TearDown(Level.Iteration)
+        public void settle()
+        {
+            drain();
+        }
+
+        @Override
+        void release(
+            Handshake handshake)
+        {
+            handshake.finish();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Retaining extends Fixture
+    {
+        private final List<Client> connected = new ArrayList<>(CONNECTED * 4);
+
+        @Override
+        void disconnect()
+        {
+            connected.forEach(Client::abort);
+        }
+
+        @Override
+        void release(
+            Handshake handshake)
+        {
+            connected.add(handshake.detach());
         }
     }
 
@@ -326,6 +406,7 @@ public class MqttServerBM
         final Options opt = new OptionsBuilder()
             .include(MqttServerBM.class.getSimpleName())
             .addProfiler("gc")
+            .addProfiler(RetainedHeapProfiler.class)
             .forks(1)
             .build();
 
