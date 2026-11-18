@@ -220,6 +220,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final boolean combined;
     // true when the verdict of this schema is more than whether a check of its own value failed
     private final boolean combines;
+    // true when a const or enum is compared as the canonical form of the value, rather than as a string
+    private final boolean canon;
     private final JsonNode raw;
 
     private List<String> retainedPaths;
@@ -678,10 +680,10 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentAny(dependentSchemas);
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
-            simpleObject && contains == null && !uniqueItems && unevaluatedItems == null &&
-            !((constantCanon != null || enumCanons != null) && constString == null && enumStrings == null);
+            simpleObject && contains == null && !uniqueItems && unevaluatedItems == null;
         this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null;
-        this.combines = combined || constString != null || enumStrings != null;
+        this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
+        this.combines = combined || constString != null || enumStrings != null || canon;
         this.raw = schema;
     }
 
@@ -790,6 +792,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.framed = false;
         this.combined = false;
         this.combines = false;
+        this.canon = false;
         this.raw = null;
     }
 
@@ -854,6 +857,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.framed = true;
         this.combined = false;
         this.combines = false;
+        this.canon = false;
         this.raw = null;
     }
 
@@ -3582,6 +3586,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private Eval[] delegates;
         // allocated when a frame first holds an object with required keys
         private long[] requiredBits;
+        // the canonical form of the value of a frame whose const or enum compares it, built as the events arrive
+        private UniqueCanon[] canons;
         private int top;
         private int bitsTop;
         private boolean done;
@@ -3692,6 +3698,10 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
+                if (schema.canon)
+                {
+                    canons[frame].feed(event, parser);
+                }
                 if (frames[(frame << SHIFT) + DIRECT] != NONE)
                 {
                     routeDirect(frame, event, parser);
@@ -3810,6 +3820,26 @@ public final class JsonSchemaImpl implements JsonSchema
                 valid = (frames[(frame << SHIFT) + FLAGS] & STRING_OK) != 0;
                 if (!valid)
                 {
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+            else if (valid && schema.canon)
+            {
+                final String canon = canons[frame].result;
+                if (schema.constantCanon != null && !schema.constantCanon.equals(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
+                }
+                else if (schema.enumCanons != null && !schema.enumCanons.contains(canon))
+                {
+                    valid = false;
                     if (trace.active())
                     {
                         trace.report("enum", "value not in enum", parser);
@@ -4164,6 +4194,22 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     delegates = Arrays.copyOf(delegates, capacity);
                 }
+                if (canons != null)
+                {
+                    canons = Arrays.copyOf(canons, capacity);
+                }
+            }
+            if (schema.canon)
+            {
+                if (canons == null)
+                {
+                    canons = new UniqueCanon[schemas.length];
+                }
+                if (canons[top] == null)
+                {
+                    canons[top] = new UniqueCanon();
+                }
+                canons[top].reset();
             }
             schemas[top] = schema;
             if (!schema.framed)
