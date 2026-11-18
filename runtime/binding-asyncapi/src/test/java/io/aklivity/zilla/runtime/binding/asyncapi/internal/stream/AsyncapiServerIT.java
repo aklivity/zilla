@@ -172,4 +172,15 @@ public class AsyncapiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.mqtt.yaml")
+    @Specification({
+        "${composite}/mqtt/session.affinity/client",
+        "${asyncapi}/mqtt/session.affinity/server"
+    })
+    public void shouldCarryAffinityOnSession() throws Exception
+    {
+        k3po.finish();
+    }
 }
