@@ -88,6 +88,7 @@ public class MqttReasonCodesTest
     public void shouldMapConnackReasonCodesToReturnCodesForV4()
     {
         assertEquals(0x01, connackReasonCodeV4(0x84));
+        assertEquals(0x02, connackReasonCodeV4(0x85));
         assertEquals(0x04, connackReasonCodeV4(0x86));
         assertEquals(0x05, connackReasonCodeV4(0x87));
         assertEquals(0x03, connackReasonCodeV4(0x88));
