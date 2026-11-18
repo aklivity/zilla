@@ -3256,6 +3256,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 reasonCode = payload.reasonCode;
 
+                if (reasonCode == SUCCESS && !willFlagSet && decodableRemainingBytes > connectPayloadLimit - offset)
+                {
+                    reasonCode = MALFORMED_PACKET;
+                }
+
                 if (reasonCode != SUCCESS)
                 {
                     break decode;

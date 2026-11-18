@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -350,7 +349,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -369,7 +367,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -771,6 +768,15 @@ public class ConnectionIT
         "${net}/connect.shared.subscriptions.not.supported/client",
         "${app}/session.connect.shared.subscriptions.not.supported/server"})
     public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client"})
+    public void shouldRejectConnectWillTopicNoWillFlag() throws Exception
     {
         k3po.finish();
     }
