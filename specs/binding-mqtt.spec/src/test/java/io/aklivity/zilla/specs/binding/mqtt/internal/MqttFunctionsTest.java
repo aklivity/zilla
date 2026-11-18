@@ -1911,6 +1911,21 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeWillMessageMaximumDelay()
+    {
+        final byte[] array = MqttFunctions.will()
+                .topic("will.client")
+                .delay(4294967295L)
+                .payloadSize(10)
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(4294967295L, willMessage.delay());
+    }
+
+    @Test
     public void shouldEncodeWillMessageBytesPayload()
     {
         final byte[] array = MqttFunctions.will()
