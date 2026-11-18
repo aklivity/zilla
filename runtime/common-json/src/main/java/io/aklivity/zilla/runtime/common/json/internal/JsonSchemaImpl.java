@@ -237,7 +237,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final boolean combines;
     // true when a const or enum is compared as the canonical form of the value, rather than as a string
     private final boolean canon;
-    // true when the verdict of this schema for a scalar is decided by its checks of that scalar alone
+    // true when the verdict of this schema for a scalar is decided by its checks of that scalar alone, which
+    // includes its const and enum
     private final boolean leaf;
     private final JsonNode raw;
 
@@ -720,7 +721,7 @@ public final class JsonSchemaImpl implements JsonSchema
             dependentRequired != null || dependentSchemas != null;
         this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
         this.combines = combined || constString != null || enumStrings != null || canon;
-        this.leaf = framed && !combines;
+        this.leaf = framed && !combined;
         this.raw = schema;
     }
 
@@ -3747,6 +3748,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private UniqueCanon[] canons;
         // for a frame at a key whose value is checked as a scalar against a leaf schema, if it is one, without a frame
         private JsonSchemaImpl[] leaves;
+        // the canonical form of a scalar that a const or enum of a leaf schema compares
+        private UniqueCanon scalars;
         // the matcher of each pattern of patternProperties, reset to each key rather than made for it
         private Map<Pattern, Matcher> matchers;
         // for an array frame under uniqueItems, the canonical form of the element being read and of those read
@@ -3910,6 +3913,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     feedOwn(frame, schema, event, parser);
                 }
+                else if (direct < NONE && (frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0)
+                {
+                    uniques[frame].feed(event, parser);
+                }
                 if (frames[(frame * STRIDE) + CONTAINS] != NONE)
                 {
                     feedContains(frame, event, parser);
@@ -3928,7 +3935,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 final int skipping = frames[(frame * STRIDE) + DIRECT];
                 if (skipping < NONE && skipping != LEAF)
                 {
-                    endSkip(frame, event);
+                    endSkip(frame, event, parser);
                 }
             }
         }
@@ -3979,11 +3986,73 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            final Matcher matcher = leaf.pattern != null ? matcher(leaf.pattern) : null;
-            if ((leaf.checkOpen(traceOf(frame), event, parser, matcher) & OPEN_INVALID) != 0)
+            if (!leafValid(traceOf(frame), leaf, event, parser))
             {
                 frames[(frame * STRIDE) + FLAGS] |= INVALID;
             }
+        }
+
+        // the verdict of a leaf schema for a scalar: its own checks of the scalar, then its const or enum, with
+        // the diagnostics a frame would report
+        private boolean leafValid(
+            Trace trace,
+            JsonSchemaImpl leaf,
+            Event event,
+            JsonSource parser)
+        {
+            final Matcher matcher = leaf.pattern != null ? matcher(leaf.pattern) : null;
+            final int open = leaf.checkOpen(trace, event, parser, matcher);
+            boolean valid = (open & OPEN_INVALID) == 0;
+            if (valid && leaf.constString != null)
+            {
+                valid = (open & OPEN_STRING_OK) != 0;
+                if (!valid && trace.active())
+                {
+                    trace.report("const", "value does not equal const", parser);
+                }
+            }
+            else if (valid && leaf.enumStrings != null)
+            {
+                valid = (open & OPEN_STRING_OK) != 0;
+                if (!valid && trace.active())
+                {
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
+            else if (valid && leaf.canon)
+            {
+                final String canon = canonOf(event, parser);
+                if (leaf.constantCanon != null && !leaf.constantCanon.equals(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
+                }
+                else if (leaf.enumCanons != null && !leaf.enumCanons.contains(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+            return valid;
+        }
+
+        private String canonOf(
+            Event event,
+            JsonSource parser)
+        {
+            if (scalars == null)
+            {
+                scalars = new UniqueCanon();
+            }
+            scalars.reset();
+            scalars.feed(event, parser);
+            return scalars.result;
         }
 
         private boolean scalar(
@@ -3997,7 +4066,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // it is at, and the value is over with the scalar, or with the end of the container, that brings it back
         private void endSkip(
             int frame,
-            Event event)
+            Event event,
+            JsonSource parser)
         {
             final boolean scalar = event != Event.KEY_NAME && event != Event.START_OBJECT && event != Event.START_ARRAY &&
                 event != Event.END_OBJECT && event != Event.END_ARRAY;
@@ -4006,6 +4076,18 @@ public final class JsonSchemaImpl implements JsonSchema
             if (closed)
             {
                 frames[(frame * STRIDE) + DIRECT] = NONE;
+                if ((frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0)
+                {
+                    frames[(frame * STRIDE) + FLAGS] &= ~UNIQUE_ELEMENT;
+                    if (!uniqueSets[frame].add(uniques[frame].result))
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                        if (traceOf(frame).active())
+                        {
+                            traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                        }
+                    }
+                }
             }
         }
 
@@ -4755,9 +4837,15 @@ public final class JsonSchemaImpl implements JsonSchema
                         checkUnique(frame, event, parser);
                     }
                 }
-                else if (element == ANY && !schema.uniqueItems)
+                else if (element == ANY)
                 {
                     frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+                    if (schema.uniqueItems)
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= UNIQUE_ELEMENT;
+                        uniques[frame].reset();
+                        uniques[frame].feed(event, parser);
+                    }
                 }
                 else
                 {
@@ -4775,8 +4863,7 @@ public final class JsonSchemaImpl implements JsonSchema
                     final JsonSchemaImpl containing = schema.contains.ref != null ? schema.contains.target() : schema.contains;
                     if (scalar && containing.leaf)
                     {
-                        final Matcher matcher = containing.pattern != null ? matcher(containing.pattern) : null;
-                        if ((containing.checkOpen(Trace.NONE, event, parser, matcher) & OPEN_INVALID) == 0)
+                        if (leafValid(Trace.NONE, containing, event, parser))
                         {
                             frames[(frame * STRIDE) + MATCHED]++;
                         }
