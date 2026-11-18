@@ -86,7 +86,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("EXACTLY_ONCE")
-                                 .sharedFilter("consumer1", "sensor/one", 1, "EXACTLY_ONCE")
+                                 .sharedFilter("consumer1", "sensor/one", -1, "EXACTLY_ONCE")
                                  .build()
                              .build()}
 
@@ -96,6 +96,6 @@ write await RECEIVED_NEW_SESSION_STATE
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .sharedFilter("consumer1", "sensor/one", 2, "AT_LEAST_ONCE")
+                                     .sharedFilter("consumer1", "sensor/one", -1, "AT_LEAST_ONCE")
                                      .build()
                                  .build()}

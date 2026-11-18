@@ -48,11 +48,12 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
@@ -1093,7 +1094,7 @@ public final class MqttFunctions
     public static final class MqttSessionStateBuilder
     {
         private final MqttSessionStateFW.Builder sessionStateRW = new MqttSessionStateFW.Builder();
-        private final List<Consumer<MqttTopicFilterFW.Builder>> filters;
+        private final List<Consumer<MqttTopicFilterV2FW.Builder>> filters;
         private final List<Consumer<MqttTopicFilterV1FW.Builder>> filtersV1;
 
         private boolean shared;
@@ -2082,7 +2083,7 @@ public final class MqttFunctions
             private MqttPayloadFormatFW format;
             private String16FW responseTopic;
             private Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW;
-            private Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW;
+            private Array32FW.Builder<Varint32FW.Builder, Varint32FW> subscriptionIdsRW;
             private Integer deferred;
 
             private MqttSubscribeDataExMatcherBuilder()
@@ -2133,7 +2134,7 @@ public final class MqttFunctions
                 if (subscriptionIdsRW == null)
                 {
                     this.subscriptionIdsRW =
-                        new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW())
+                        new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW())
                             .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
                 }
                 subscriptionIdsRW.item(p -> p.set(subscriptionId));

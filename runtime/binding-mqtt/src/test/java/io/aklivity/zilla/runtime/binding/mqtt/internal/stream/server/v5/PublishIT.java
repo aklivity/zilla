@@ -498,6 +498,26 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.qos1.empty.reset.before.window/client",
+        "${app}/publish.qos1.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos1EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.qos2.empty.reset.before.window/client",
+        "${app}/publish.qos2.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos2EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception

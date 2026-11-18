@@ -337,6 +337,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.receive.message.dollar.topic/client",
+        "${net}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.topic.guarded.identity.param/client",
         "${net}/subscribe.topic.guarded.identity.param/server"})
     public void shouldFilterGuardedIdentityParam() throws Exception
