@@ -145,6 +145,9 @@ public final class MqttReasonCodes
         case 0x84:
             connackReasonCode = UNACCEPTABLE_PROTOCOL_VERSION_V4;
             break;
+        case 0x85:
+            connackReasonCode = IDENTIFIER_REJECTED;
+            break;
         case 0x86:
             connackReasonCode = BAD_USER_NAME_OR_PASSWORD_V4;
             break;
