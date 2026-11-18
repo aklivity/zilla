@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -69,8 +68,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
     private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
-    private final boolean[] inArray = new boolean[MAX_DEPTH];
-    private final boolean[] hasMembers = new boolean[MAX_DEPTH];
+    // bit n is set when the container open at level n is an array / holds a member or element
+    private long arrays;
+    private long members;
     private final boolean escaped;
     private final int baseDepth;
 
@@ -193,8 +193,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         mark.colonPending = colonPending;
         mark.pending = pending;
 
-        System.arraycopy(inArray, 0, mark.inArray, 0, depth);
-        System.arraycopy(hasMembers, 0, mark.hasMembers, 0, depth);
+        mark.arrays = arrays;
+        mark.members = members;
 
         if (scopeCount > 0)
         {
@@ -222,8 +222,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         colonPending = mark.colonPending;
         pending = mark.pending;
 
-        System.arraycopy(mark.inArray, 0, inArray, 0, depth);
-        System.arraycopy(mark.hasMembers, 0, hasMembers, 0, depth);
+        arrays = mark.arrays;
+        members = mark.members;
 
         if (scopeCount > 0)
         {
@@ -326,15 +326,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         if (pending != Pending.KEY)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
-            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
+            if (remaining() < (hasMembers(depth - 1) ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
             {
                 return this;
             }
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
             putByte.accept('"');
             pending = Pending.KEY;
         }
@@ -372,7 +372,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         if (written)
         {
             depth--;
-            putByte.accept(inArray[depth] ? ']' : '}');
+            putByte.accept(isArray(depth) ? ']' : '}');
         }
         return written;
     }
@@ -920,11 +920,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.SEGMENT)
         {
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
             pending = Pending.SEGMENT;
         }
         int written = writeSegment.accept(source, index, length);
@@ -940,30 +940,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         JsonVerbatim verbatim)
     {
         assert scopeCount == 0 : "verbatim bytes cannot be spliced into an escaped scope";
-        final Iterator<JsonStep> steps = verbatim.getSteps();
         final DirectBufferEx segment = verbatim.getSegment();
-        // synthesize the leading separator only when the block begins a member/element that was first in the
-        // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
-        // leading comma) yet the container already holds a member in the output — an injected value took the
-        // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the bytes;
-        // interior separators of a coalesced block likewise ride in the bytes. Source occupancy, not the bytes.
-        final JsonStep first = steps.hasNext() ? steps.next() : null;
-        if (first != null && needsSeparator(first))
+        final JsonStep leading = verbatim.getLeading();
+        // the run's structure applies once, with its first chunk: every chunk repeats it, and nothing else reaches
+        // the generator before the run is drained, so it is applied ahead of the bytes still to be copied
+        if (verbatim.getOffset() == 0 && leading != null)
         {
-            putByte.accept(',');
+            // synthesize the leading separator only when the run begins a member/element that was first in the
+            // source (its leading token is a member/element start rather than a SEPARATOR, so its bytes carry no
+            // leading comma) yet the container already holds a member in the output — an injected value took the
+            // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the
+            // bytes; interior separators of the run likewise ride in the bytes. Source occupancy, not the bytes.
+            if (needsSeparator(leading))
+            {
+                putByte.accept(',');
+            }
+            apply(verbatim);
         }
         copy(segment, 0, segment.capacity());
-        // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
-        // stays coherent for an injected value that follows — state only, the bytes carried the structure
-        if (first != null)
-        {
-            advance(first);
-            while (steps.hasNext())
-            {
-                advance(steps.next());
-            }
-        }
-        else if (colonPending)
+        if (leading == null && colonPending)
         {
             // a run of bytes between tokens (drained at the end of a window) may carry the colon of a verbatim key
             colonPending = !colon(segment);
@@ -999,61 +994,53 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         JsonStep step)
     {
         boolean result = false;
-        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers[depth - 1])
+        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers(depth - 1))
         {
-            result = inArray[depth - 1] ? isValueStart(step) : step == JsonStep.KEY_NAME;
+            result = isArray(depth - 1) ? isValueStart(step) : step == JsonStep.KEY_NAME;
         }
         return result;
     }
 
-    // Tracks the structural effect of a verbatim block without emitting (the bytes carried the structure): the
-    // state-only analog of preValue()/writeKey()/push()/writeEnd(). A SEPARATOR rides in the bytes and moves no
-    // state.
-    private void advance(
-        JsonStep step)
+    // Tracks the structural effect of a verbatim run without emitting (the bytes carried the structure): the
+    // state-only analog of preValue()/writeKey()/push()/writeEnd() for everything the run did. A SEPARATOR rides in
+    // the bytes and moves no state.
+    private void apply(
+        JsonVerbatim verbatim)
     {
-        switch (step)
+        depth -= verbatim.getClosed();
+        if (depth > 0)
         {
-        case START_OBJECT:
-            markValueStart();
-            push(false);
-            break;
-        case START_ARRAY:
-            markValueStart();
-            push(true);
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            depth--;
-            break;
-        case KEY_NAME:
-            hasMembers[depth - 1] = true;
-            pending = Pending.AFTER_KEY;
-            colonPending = true;
-            break;
-        case VALUE:
-            markValueStart();
-            break;
-        case START_DOCUMENT:
-        case END_DOCUMENT:
-            break;
-        default:
-            break;
+            final boolean element = verbatim.isBareValue() && pending != Pending.AFTER_KEY && isArray(depth - 1);
+            if (verbatim.isOccupied() || element)
+            {
+                members |= 1L << depth - 1;
+            }
         }
-    }
 
-    // The state-only effect of preValue() for a verbatim value: clear an after-key expectation, or mark the
-    // current array occupied; no separator is emitted (the bytes carry it, or needsSeparator synthesized it).
-    private void markValueStart()
-    {
-        colonPending = false;
-        if (pending == Pending.AFTER_KEY)
+        final int opened = verbatim.getOpened();
+        if (opened > 0)
         {
+            if (depth + opened > MAX_DEPTH)
+            {
+                throw new IllegalStateException("depth exceeds " + MAX_DEPTH);
+            }
+            final long below = (1L << depth) - 1L;
+            arrays = arrays & below | verbatim.getOpenedArrays() << depth;
+            members = members & below | verbatim.getOpenedOccupied() << depth;
+            depth += opened;
             pending = Pending.NONE;
         }
-        else if (depth > 0 && inArray[depth - 1])
+
+        final JsonStep last = verbatim.getLast();
+        if (last == JsonStep.KEY_NAME)
         {
-            hasMembers[depth - 1] = true;
+            pending = Pending.AFTER_KEY;
+            colonPending = !verbatim.isColonRead();
+        }
+        else if (last == JsonStep.VALUE)
+        {
+            colonPending = false;
+            pending = pending == Pending.AFTER_KEY ? Pending.NONE : pending;
         }
     }
 
@@ -1076,10 +1063,27 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void push(
         boolean array)
     {
-        inArray[depth] = array;
-        hasMembers[depth] = false;
+        if (depth == MAX_DEPTH)
+        {
+            throw new IllegalStateException("depth exceeds " + MAX_DEPTH);
+        }
+        final long bit = 1L << depth;
+        arrays = array ? arrays | bit : arrays & ~bit;
+        members &= ~bit;
         depth++;
         pending = Pending.NONE;
+    }
+
+    private boolean isArray(
+        int level)
+    {
+        return (arrays >>> level & 1L) != 0L;
+    }
+
+    private boolean hasMembers(
+        int level)
+    {
+        return (members >>> level & 1L) != 0L;
     }
 
     private void preValue()
@@ -1088,19 +1092,19 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             pending = Pending.NONE;
         }
-        else if (depth > 0 && inArray[depth - 1])
+        else if (depth > 0 && isArray(depth - 1))
         {
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
         }
     }
 
     private boolean needsComma()
     {
-        return pending != Pending.AFTER_KEY && depth > 0 && inArray[depth - 1] && hasMembers[depth - 1];
+        return pending != Pending.AFTER_KEY && depth > 0 && isArray(depth - 1) && hasMembers(depth - 1);
     }
 
     // Bounded counterpart used by write(CharSequence, Completion): emits whole code points while each one's
@@ -1578,7 +1582,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private boolean valuePosition()
     {
         return pending == Pending.AFTER_KEY ||
-            pending == Pending.NONE && (depth == 0 || inArray[depth - 1] || inScope());
+            pending == Pending.NONE && (depth == 0 || isArray(depth - 1) || inScope());
     }
 
     private boolean inScope()
@@ -1791,8 +1795,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // the state a mark holds, kept apart so a generator that never marks carries only the reference
     private static final class Mark
     {
-        final boolean[] inArray = new boolean[MAX_DEPTH];
-        final boolean[] hasMembers = new boolean[MAX_DEPTH];
+        long arrays;
+        long members;
         int[] scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
         int generation;
         int progress;
