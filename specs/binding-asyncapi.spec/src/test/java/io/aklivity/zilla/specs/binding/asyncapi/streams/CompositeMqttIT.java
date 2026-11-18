@@ -47,4 +47,14 @@ public class CompositeMqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.affinity/client",
+        "${mqtt}/session.affinity/server"
+    })
+    public void shouldCarryAffinityOnSession() throws Exception
+    {
+        k3po.finish();
+    }
 }
