@@ -347,6 +347,13 @@ public final class JsonSchemaImpl implements JsonSchema
 
         final Verdict verdict = eval.feed(event, source);
 
+        // a key that no schema applied to the value under it named can still be where the value fails, when the
+        // value is larger than the window and a keyword reads its content, so the key is kept until then
+        if (event == Event.KEY_NAME && trace.unnamed() && eval.needsContentNow())
+        {
+            trace.key(source.getStringView().toString());
+        }
+
         trace.leave(event);
 
         return verdict;
@@ -2502,6 +2509,12 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean active()
         {
             return reporter != null;
+        }
+
+        // whether the object being read has not been given the name of the key it is at
+        private boolean unnamed()
+        {
+            return active() && depth > 0 && names[depth - 1] == null;
         }
 
         // supplies the name of the key the object being read is at

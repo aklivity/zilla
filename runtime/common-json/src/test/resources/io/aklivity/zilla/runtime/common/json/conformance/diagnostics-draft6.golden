@@ -631,7 +631,7 @@ uniqueItems#0.8 windowed valid
 uniqueItems#0.9 whole invalid | 1,29 /1 uniqueItems: duplicate array element
 uniqueItems#0.9 windowed invalid | 1,29 /1 uniqueItems: duplicate array element
 uniqueItems#0.10 whole invalid | 1,53 /1 uniqueItems: duplicate array element
-uniqueItems#0.10 windowed error NullPointerException
+uniqueItems#0.10 windowed invalid | 1,22 /0/bar content: value exceeds the input window and a keyword reads its content
 uniqueItems#0.11 whole valid
 uniqueItems#0.11 windowed valid
 uniqueItems#0.12 whole invalid | 1,59 /1 uniqueItems: duplicate array element
