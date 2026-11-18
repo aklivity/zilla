@@ -25,7 +25,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.RETAIN_AVAILABLE;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_EXPIRY_GRACE_PERIOD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_LEASE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_RENEW;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
@@ -51,7 +50,6 @@ public class MqttConfigurationTest
     public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";
     public static final String SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME = "zilla.binding.mqtt.subscription.identifiers.available";
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
-    public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.instance.id";
     public static final String SESSION_LEASE_NAME = "zilla.binding.mqtt.session.lease";
@@ -71,7 +69,6 @@ public class MqttConfigurationTest
         assertEquals(WILDCARD_SUBSCRIPTION.name(), WILDCARD_SUBSCRIPTION_AVAILABLE_NAME);
         assertEquals(SUBSCRIPTION_IDENTIFIERS.name(), SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME);
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
-        assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);

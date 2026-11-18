@@ -44,7 +44,6 @@ public class MqttConfiguration extends Configuration
     public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION;
     public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS;
     public static final BooleanPropertyDef NO_LOCAL;
-    public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<MqttQoS> PUBLISH_QOS_MAX;
     public static final PropertyDef<StringSupplier> INSTANCE_ID;
@@ -66,7 +65,6 @@ public class MqttConfiguration extends Configuration
         WILDCARD_SUBSCRIPTION = config.property("wildcard.subscription.available", true);
         SUBSCRIPTION_IDENTIFIERS = config.property("subscription.identifiers.available", true);
         NO_LOCAL = config.property("no.local", true);
-        SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");
         PUBLISH_QOS_MAX = config.property(MqttQoS.class, "publish.qos.max",
             MqttConfiguration::decodePublishQosMax, MqttQoS.EXACTLY_ONCE);
@@ -138,11 +136,6 @@ public class MqttConfiguration extends Configuration
     public boolean noLocal()
     {
         return NO_LOCAL.get(this);
-    }
-
-    public int sessionExpiryGracePeriod()
-    {
-        return SESSION_EXPIRY_GRACE_PERIOD.get(this);
     }
 
     public String clientId()

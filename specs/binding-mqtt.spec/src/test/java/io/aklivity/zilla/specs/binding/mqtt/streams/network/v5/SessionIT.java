@@ -440,4 +440,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.empty.state/client",
+        "${net}/session.connect.non.clean.start.store.empty.state/server"})
+    public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
 }
