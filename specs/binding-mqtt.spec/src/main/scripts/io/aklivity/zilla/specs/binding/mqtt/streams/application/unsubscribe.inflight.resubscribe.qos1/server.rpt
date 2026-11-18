@@ -98,7 +98,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_MOST_ONCE")
-                                 .filter("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                 .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
 
@@ -113,7 +113,7 @@ read advised zilla:flush ${mqtt:flushEx()
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 2, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED")
                                      .build()
                                  .build()}
 
@@ -124,7 +124,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .subscribe()
                                  .clientId("client")
                                  .qos("AT_LEAST_ONCE")
-                                 .filter("sensor/one", 1, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                 .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED")
                                  .build()
                              .build()}
 
@@ -136,7 +136,7 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .topic("sensor/one")
                                  .packetId(1)
                                  .qos("AT_LEAST_ONCE")
-                                 .subscriptionId(1)
+                                 .subscriptionId(-1)
                                  .format("TEXT")
                                  .build()
                              .build()}
@@ -151,7 +151,7 @@ read advised zilla:flush ${mqtt:flushEx()
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                     .filter("sensor/one", 2, "AT_LEAST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/one", -1, "AT_LEAST_ONCE", "SEND_RETAINED")
                                      .build()
                                  .build()}
 
@@ -161,7 +161,7 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .topic("sensor/one")
                                  .packetId(2)
                                  .qos("AT_LEAST_ONCE")
-                                 .subscriptionId(2)
+                                 .subscriptionId(-1)
                                  .format("TEXT")
                                  .build()
                              .build()}

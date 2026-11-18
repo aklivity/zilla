@@ -15,7 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.net.StandardSocketOptions.TCP_NODELAY;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -24,15 +29,27 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -48,11 +65,15 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.ThreadParams;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
+import io.aklivity.zilla.runtime.engine.Engine;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineBench;
 import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
 
@@ -91,6 +112,11 @@ public class TcpServerBM
     private static final int CHURN = 16;
     private static final int IDLE = 1_000;
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
+    private static final int RAMP = 2_000;
+    private static final int RAMP_BATCH = 256;
+    private static final int RAMP_PAYLOAD = 64;
+    private static final int RAMP_WORKER_CAPACITY = 131_072;
+    private static final long RAMP_TIMEOUT_NANOS = SECONDS.toNanos(60L);
 
     @Benchmark
     @OperationsPerInvocation(MESSAGES)
@@ -583,6 +609,371 @@ public class TcpServerBM
             {
                 channels.add(SocketChannel.open(address));
                 channels.add(server.accept());
+            }
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(MILLISECONDS)
+    @Warmup(iterations = 3)
+    @Measurement(iterations = 5)
+    @OperationsPerInvocation(RAMP)
+    public void ramp(
+        Ramping engine,
+        Rampers clients) throws IOException
+    {
+        clients.ramp(engine, RAMP);
+    }
+
+    @State(Scope.Benchmark)
+    public static class Ramping
+    {
+        private static final Path DIRECTORY = Path.of("target/zilla-bench-ramp");
+
+        @Param({"1", "2", "4"})
+        public int workers;
+
+        @Param({"2147483647"})
+        public int backlog;
+
+        private final ThreadMXBean threads = ManagementFactory.getThreadMXBean();
+        private final Map<String, Long> cpuBefore = new TreeMap<>();
+        private final AtomicInteger entered = new AtomicInteger();
+        private final AtomicInteger exited = new AtomicInteger();
+
+        private Engine engine;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            deleteDirectory(DIRECTORY);
+            Files.createDirectories(DIRECTORY);
+
+            final Path config = DIRECTORY.resolve("zilla.yaml");
+            Files.writeString(config, """
+                ---
+                name: test
+                bindings:
+                  net0:
+                    type: tcp
+                    kind: server
+                    options:
+                      host: 0.0.0.0
+                      port: %d
+                    exit: echo0
+                  echo0:
+                    type: echo
+                    kind: server
+                """.formatted(PORT));
+
+            final Properties properties = new Properties();
+            properties.setProperty(ENGINE_DIRECTORY.name(), DIRECTORY.resolve("engine").toString());
+            properties.setProperty(ENGINE_CONFIG_URL.name(), config.toUri().toURL().toString());
+            properties.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
+            properties.setProperty(TcpConfiguration.TCP_BACKLOG.name(), Integer.toString(backlog));
+            properties.setProperty(ENGINE_WORKER_CAPACITY.name(), Integer.toString(RAMP_WORKER_CAPACITY));
+            properties.setProperty(ENGINE_STREAMS_BUFFER_CAPACITY.name(), Integer.toString(STREAMS_BUFFER_CAPACITY));
+
+            engine = Engine.builder()
+                .config(new EngineConfiguration(properties))
+                .errorHandler(Throwable::printStackTrace)
+                .build();
+            engine.start();
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            engine.close();
+        }
+
+        @Setup(Level.Iteration)
+        public void reset()
+        {
+            entered.set(0);
+            exited.set(0);
+        }
+
+        void enter()
+        {
+            if (entered.getAndIncrement() == 0)
+            {
+                cpuBefore.clear();
+                cpuBefore.putAll(engineThreadCpuMillis());
+            }
+        }
+
+        void exit(
+            int clients)
+        {
+            if (exited.incrementAndGet() == clients)
+            {
+                final Map<String, Long> cpuAfter = engineThreadCpuMillis();
+                final StringBuilder report = new StringBuilder("ramp workers=").append(workers)
+                    .append(" backlog=").append(backlog)
+                    .append(" cpu(ms)");
+                cpuAfter.forEach((name, millis) ->
+                    report.append(' ').append(name.substring("engine/".length()))
+                          .append('=').append(millis - cpuBefore.getOrDefault(name, 0L)));
+                System.out.println(report);
+                System.out.println(usageReport());
+            }
+        }
+
+        private String usageReport()
+        {
+            final long[] usage = workerUsage();
+            final long total = Arrays.stream(usage).sum();
+            final double mean = (double) total / usage.length;
+            final long max = Arrays.stream(usage).max().orElse(0L);
+
+            return "ramp usage workers=%d connections=%s total=%d max/mean=%.3f"
+                .formatted(workers, Arrays.toString(usage), total, mean > 0 ? max / mean : 0.0);
+        }
+
+        private long[] workerUsage()
+        {
+            long[] usage;
+
+            try
+            {
+                final Field workersField = Engine.class.getDeclaredField("workers");
+                workersField.setAccessible(true);
+                final List<?> workerList = (List<?>) workersField.get(engine);
+                final int metricId = engine.supplyLabelId("engine.workers.usage");
+
+                usage = new long[workerList.size()];
+                for (int index = 0; index < usage.length; index++)
+                {
+                    final Object worker = workerList.get(index);
+                    final Method supplyGauge = worker.getClass().getMethod("supplyGauge", long.class, int.class, int.class);
+                    usage[index] = ((LongSupplier) supplyGauge.invoke(worker, NO_NAMESPACED_ID, metricId, 0)).getAsLong();
+                }
+            }
+            catch (ReflectiveOperationException ex)
+            {
+                throw new IllegalStateException(ex);
+            }
+
+            return usage;
+        }
+
+        private Map<String, Long> engineThreadCpuMillis()
+        {
+            final Map<String, Long> cpuMillis = new TreeMap<>();
+            Thread.getAllStackTraces().keySet().stream()
+                .filter(thread -> thread.getName().startsWith("engine/"))
+                .forEach(thread -> cpuMillis.put(thread.getName(),
+                    threads.getThreadCpuTime(thread.threadId()) / 1_000_000L));
+            return cpuMillis;
+        }
+
+        private static void deleteDirectory(
+            Path directory) throws IOException
+        {
+            if (Files.exists(directory))
+            {
+                try (var paths = Files.walk(directory))
+                {
+                    paths.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+                }
+            }
+        }
+    }
+
+    @State(Scope.Thread)
+    public static class Rampers
+    {
+        private static final int CONNECTING = 0;
+        private static final int ECHOING = 1;
+        private static final int ECHOED = 2;
+
+        private final SocketChannel[] batch = new SocketChannel[RAMP_BATCH];
+        private final int[] stages = new int[RAMP_BATCH];
+        private final int[] echoed = new int[RAMP_BATCH];
+        private final long[] starts = new long[RAMP_BATCH];
+        private final long[] latencies = new long[RAMP];
+        private final List<SocketChannel> held = new ArrayList<>();
+        private final ByteBuffer request = allocateDirect(RAMP_PAYLOAD).order(nativeOrder());
+        private final ByteBuffer reply = allocateDirect(RAMP_PAYLOAD).order(nativeOrder());
+
+        private InetSocketAddress destination;
+        private int clients;
+        private int established;
+        private int failed;
+        private long elapsedNanos;
+
+        @Setup(Level.Trial)
+        public void init(
+            ThreadParams threadParams)
+        {
+            destination = new InetSocketAddress("127.0.0." + (1 + threadParams.getThreadIndex()), PORT);
+            clients = threadParams.getThreadCount();
+            final byte[] message = new byte[RAMP_PAYLOAD];
+            new Random(0L).nextBytes(message);
+            request.put(message);
+        }
+
+        @Setup(Level.Iteration)
+        public void reset() throws IOException, InterruptedException
+        {
+            for (SocketChannel channel : held)
+            {
+                channel.close();
+            }
+
+            held.clear();
+            Thread.sleep(500L);
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws IOException
+        {
+            for (SocketChannel channel : held)
+            {
+                channel.close();
+            }
+        }
+
+        @TearDown(Level.Iteration)
+        public void report()
+        {
+            final long[] sorted = Arrays.copyOf(latencies, established);
+            Arrays.sort(sorted);
+
+            final long p50 = established > 0 ? sorted[established / 2] / 1_000L : 0L;
+            final long p99 = established > 0 ? sorted[Math.min(established - 1, established * 99 / 100)] / 1_000L : 0L;
+            final long max = established > 0 ? sorted[established - 1] / 1_000L : 0L;
+
+            System.out.printf("ramp client=%s established=%d failed=%d elapsed=%dms latency(us) p50=%d p99=%d max=%d%n",
+                destination.getHostString(), established, failed, elapsedNanos / 1_000_000L, p50, p99, max);
+        }
+
+        void ramp(
+            Ramping engine,
+            int count) throws IOException
+        {
+            engine.enter();
+
+            final long begin = System.nanoTime();
+            final long deadline = begin + RAMP_TIMEOUT_NANOS;
+
+            established = 0;
+            failed = 0;
+
+            for (int opened = 0; opened < count; opened += RAMP_BATCH)
+            {
+                rampBatch(Math.min(RAMP_BATCH, count - opened), deadline);
+            }
+
+            elapsedNanos = System.nanoTime() - begin;
+
+            engine.exit(clients);
+        }
+
+        private void rampBatch(
+            int size,
+            long deadline) throws IOException
+        {
+            for (int index = 0; index < size; index++)
+            {
+                final SocketChannel channel = SocketChannel.open();
+                channel.configureBlocking(false);
+                channel.setOption(TCP_NODELAY, true);
+
+                batch[index] = channel;
+                stages[index] = CONNECTING;
+                echoed[index] = 0;
+                starts[index] = System.nanoTime();
+
+                channel.connect(destination);
+            }
+
+            int pending = size;
+            while (pending > 0)
+            {
+                int work = 0;
+
+                for (int index = 0; index < size; index++)
+                {
+                    if (stages[index] != ECHOED)
+                    {
+                        work += advance(index);
+                        pending -= stages[index] == ECHOED ? 1 : 0;
+                    }
+                }
+
+                if (work == 0)
+                {
+                    if (System.nanoTime() > deadline)
+                    {
+                        throw new IllegalStateException("ramp timed out");
+                    }
+
+                    Thread.onSpinWait();
+                }
+            }
+        }
+
+        private int advance(
+            int index)
+        {
+            int work = 0;
+            final SocketChannel channel = batch[index];
+
+            try
+            {
+                if (stages[index] == CONNECTING && channel.finishConnect())
+                {
+                    request.clear();
+                    channel.write(request);
+                    stages[index] = ECHOING;
+                    work = 1;
+                }
+
+                if (stages[index] == ECHOING)
+                {
+                    reply.clear();
+                    final int bytesRead = channel.read(reply);
+
+                    if (bytesRead < 0)
+                    {
+                        throw new IOException("closed by engine");
+                    }
+
+                    echoed[index] += bytesRead;
+                    work += bytesRead > 0 ? 1 : 0;
+
+                    if (echoed[index] >= RAMP_PAYLOAD)
+                    {
+                        latencies[established++] = System.nanoTime() - starts[index];
+                        held.add(channel);
+                        stages[index] = ECHOED;
+                    }
+                }
+            }
+            catch (IOException ex)
+            {
+                failed++;
+                stages[index] = ECHOED;
+                work = 1;
+                closeQuietly(channel);
+            }
+
+            return work;
+        }
+
+        private static void closeQuietly(
+            SocketChannel channel)
+        {
+            try
+            {
+                channel.close();
+            }
+            catch (IOException ex)
+            {
+                // ignore
             }
         }
     }

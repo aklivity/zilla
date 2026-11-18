@@ -22,7 +22,6 @@ public final class TcpOptionsConfig extends OptionsConfig
 {
     public final String host;
     public final int[] ports;
-    public final int backlog;
     public final boolean nodelay;
     public final boolean keepalive;
 
@@ -40,14 +39,12 @@ public final class TcpOptionsConfig extends OptionsConfig
     TcpOptionsConfig(
         String host,
         int[] ports,
-        int backlog,
         boolean nodelay,
         boolean keepalive)
     {
         super(null, null);
         this.host = host;
         this.ports = ports;
-        this.backlog = backlog;
         this.nodelay = nodelay;
         this.keepalive = keepalive;
     }
