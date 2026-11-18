@@ -10773,4 +10773,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.call.close.pending/client",
+        "${net}/gemini.request.tool.call.close.pending/server"})
+    public void shouldGeminiRequestToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.server.tool.call.close.pending/client",
+        "${net}/gemini.request.server.tool.call.close.pending/server"})
+    public void shouldGeminiRequestServerToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
 }

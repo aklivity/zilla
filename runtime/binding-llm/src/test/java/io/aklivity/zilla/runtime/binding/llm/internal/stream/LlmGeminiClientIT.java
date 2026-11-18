@@ -2957,4 +2957,26 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/gemini.request.tool.call.close.pending/client",
+        "${net}/gemini.request.tool.call.close.pending/server"})
+    public void shouldEncodeGeminiRequestToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/gemini.request.server.tool.call.close.pending/client",
+        "${net}/gemini.request.server.tool.call.close.pending/server"})
+    public void shouldEncodeGeminiRequestServerToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
 }

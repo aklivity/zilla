@@ -10279,4 +10279,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.close.pending/client",
+        "${app}/gemini.request.tool.call.close.pending/server"})
+    public void shouldForwardGeminiRequestToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.server.tool.call.close.pending/client",
+        "${app}/gemini.request.server.tool.call.close.pending/server"})
+    public void shouldForwardGeminiRequestServerToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
 }
