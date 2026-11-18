@@ -908,4 +908,24 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.3.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client",
+        "${net}/connect.reject.will.topic.wildcard/server"})
+    public void shouldRejectWillTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.2-14]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.response.topic.wildcard/client",
+        "${net}/connect.reject.will.response.topic.wildcard/server"})
+    public void shouldRejectWillResponseTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
 }
