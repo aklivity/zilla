@@ -531,4 +531,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithReasonCodeOnlyWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only.error/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithReasonCodeOnlyError() throws Exception
+    {
+        k3po.finish();
+    }
 }

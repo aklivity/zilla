@@ -448,4 +448,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.remaining.length/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectWithRemainingLength() throws Exception
+    {
+        k3po.finish();
+    }
 }

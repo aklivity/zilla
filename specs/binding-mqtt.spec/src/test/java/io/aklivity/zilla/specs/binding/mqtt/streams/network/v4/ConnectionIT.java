@@ -420,4 +420,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.1]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.remaining.length/client",
+        "${net}/disconnect.reject.remaining.length/server"})
+    public void shouldRejectDisconnectWithRemainingLength() throws Exception
+    {
+        k3po.finish();
+    }
 }

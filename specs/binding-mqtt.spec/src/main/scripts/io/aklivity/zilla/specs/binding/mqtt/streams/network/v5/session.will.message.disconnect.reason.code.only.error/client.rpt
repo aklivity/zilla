@@ -42,3 +42,4 @@ write [0xe0 0x01]                                      # DISCONNECT, no property
       [0x80]                                           # unspecified error
 
 write close
+read closed
