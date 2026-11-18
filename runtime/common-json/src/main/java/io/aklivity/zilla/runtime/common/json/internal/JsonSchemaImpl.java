@@ -4690,6 +4690,24 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
+        // a scalar element is its own canonical form, so it is added to the set of those read as soon as it is read
+        private void checkUnique(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            uniques[frame].reset();
+            uniques[frame].feed(event, parser);
+            if (!uniqueSets[frame].add(uniques[frame].result))
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                }
+            }
+        }
+
         private boolean handleArray(
             int frame,
             JsonSchemaImpl schema,
@@ -4724,14 +4742,22 @@ public final class JsonSchemaImpl implements JsonSchema
             else
             {
                 final JsonSchemaImpl element = schema.elementSchema(frames[(frame * STRIDE) + COUNT]++);
-                if (element == ANY && !schema.uniqueItems)
+                final JsonSchemaImpl target = element.ref != null ? element.target() : element;
+                final boolean scalar = scalar(event);
+                if (scalar && target.leaf)
+                {
+                    if (target != ANY)
+                    {
+                        checkLeaf(frame, target, event, parser);
+                    }
+                    if (schema.uniqueItems)
+                    {
+                        checkUnique(frame, event, parser);
+                    }
+                }
+                else if (element == ANY && !schema.uniqueItems)
                 {
                     frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
-                }
-                else if (scalar(event) && !schema.uniqueItems && schema.contains == null &&
-                    (element.ref != null ? element.target() : element).leaf)
-                {
-                    checkLeaf(frame, element.ref != null ? element.target() : element, event, parser);
                 }
                 else
                 {
@@ -4746,8 +4772,20 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 if (schema.contains != null)
                 {
-                    frames[(frame * STRIDE) + CONTAINS] = top;
-                    push(schema.contains, true);
+                    final JsonSchemaImpl containing = schema.contains.ref != null ? schema.contains.target() : schema.contains;
+                    if (scalar && containing.leaf)
+                    {
+                        final Matcher matcher = containing.pattern != null ? matcher(containing.pattern) : null;
+                        if ((containing.checkOpen(Trace.NONE, event, parser, matcher) & OPEN_INVALID) == 0)
+                        {
+                            frames[(frame * STRIDE) + MATCHED]++;
+                        }
+                    }
+                    else
+                    {
+                        frames[(frame * STRIDE) + CONTAINS] = top;
+                        push(schema.contains, true);
+                    }
                 }
             }
             return opened;
