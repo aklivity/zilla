@@ -49,4 +49,3 @@ write zilla:data.ext ${mqtt:dataEx()
                               .build()
                            .build()}
 write ${mqtt:session().build()}
-write flush
