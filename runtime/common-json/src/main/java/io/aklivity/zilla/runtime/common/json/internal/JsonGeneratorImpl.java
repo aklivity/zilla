@@ -68,8 +68,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // a defensible initial target so a freshly constructed generator never NPEs on direct use before wrap
     private static final MutableDirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
-    private final boolean[] inArray = new boolean[MAX_DEPTH];
-    private final boolean[] hasMembers = new boolean[MAX_DEPTH];
+    // bit n is set when the container open at level n is an array / holds a member or element
+    private long arrays;
+    private long members;
     private final boolean escaped;
     private final int baseDepth;
 
@@ -192,8 +193,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         mark.colonPending = colonPending;
         mark.pending = pending;
 
-        System.arraycopy(inArray, 0, mark.inArray, 0, depth);
-        System.arraycopy(hasMembers, 0, mark.hasMembers, 0, depth);
+        mark.arrays = arrays;
+        mark.members = members;
 
         if (scopeCount > 0)
         {
@@ -221,8 +222,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         colonPending = mark.colonPending;
         pending = mark.pending;
 
-        System.arraycopy(mark.inArray, 0, inArray, 0, depth);
-        System.arraycopy(mark.hasMembers, 0, hasMembers, 0, depth);
+        arrays = mark.arrays;
+        members = mark.members;
 
         if (scopeCount > 0)
         {
@@ -325,15 +326,15 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         if (pending != Pending.KEY)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
-            if (remaining() < (hasMembers[depth - 1] ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
+            if (remaining() < (hasMembers(depth - 1) ? 1 : 0) + quoteWidth + (closesEmpty ? quoteWidth + 1 : 0))
             {
                 return this;
             }
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
             putByte.accept('"');
             pending = Pending.KEY;
         }
@@ -371,7 +372,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         if (written)
         {
             depth--;
-            putByte.accept(inArray[depth] ? ']' : '}');
+            putByte.accept(isArray(depth) ? ']' : '}');
         }
         return written;
     }
@@ -919,11 +920,11 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         if (pending != Pending.SEGMENT)
         {
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
             pending = Pending.SEGMENT;
         }
         int written = writeSegment.accept(source, index, length);
@@ -993,9 +994,9 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         JsonStep step)
     {
         boolean result = false;
-        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers[depth - 1])
+        if (step != JsonStep.SEPARATOR && depth > 0 && hasMembers(depth - 1))
         {
-            result = inArray[depth - 1] ? isValueStart(step) : step == JsonStep.KEY_NAME;
+            result = isArray(depth - 1) ? isValueStart(step) : step == JsonStep.KEY_NAME;
         }
         return result;
     }
@@ -1009,15 +1010,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         depth -= verbatim.getClosed();
         if (depth > 0)
         {
-            final boolean element = verbatim.isBareValue() && pending != Pending.AFTER_KEY && inArray[depth - 1];
-            hasMembers[depth - 1] |= verbatim.isOccupied() || element;
+            final boolean element = verbatim.isBareValue() && pending != Pending.AFTER_KEY && isArray(depth - 1);
+            if (verbatim.isOccupied() || element)
+            {
+                members |= 1L << depth - 1;
+            }
         }
 
         final int opened = verbatim.getOpened();
-        for (int level = 0; level < opened; level++)
+        if (opened > 0)
         {
-            push((verbatim.getOpenedArrays() >>> level & 1L) != 0L);
-            hasMembers[depth - 1] = (verbatim.getOpenedOccupied() >>> level & 1L) != 0L;
+            if (depth + opened > MAX_DEPTH)
+            {
+                throw new IllegalStateException("depth exceeds " + MAX_DEPTH);
+            }
+            final long below = (1L << depth) - 1L;
+            arrays = arrays & below | verbatim.getOpenedArrays() << depth;
+            members = members & below | verbatim.getOpenedOccupied() << depth;
+            depth += opened;
+            pending = Pending.NONE;
         }
 
         final JsonStep last = verbatim.getLast();
@@ -1052,10 +1063,27 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private void push(
         boolean array)
     {
-        inArray[depth] = array;
-        hasMembers[depth] = false;
+        if (depth == MAX_DEPTH)
+        {
+            throw new IllegalStateException("depth exceeds " + MAX_DEPTH);
+        }
+        final long bit = 1L << depth;
+        arrays = array ? arrays | bit : arrays & ~bit;
+        members &= ~bit;
         depth++;
         pending = Pending.NONE;
+    }
+
+    private boolean isArray(
+        int level)
+    {
+        return (arrays >>> level & 1L) != 0L;
+    }
+
+    private boolean hasMembers(
+        int level)
+    {
+        return (members >>> level & 1L) != 0L;
     }
 
     private void preValue()
@@ -1064,19 +1092,19 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         {
             pending = Pending.NONE;
         }
-        else if (depth > 0 && inArray[depth - 1])
+        else if (depth > 0 && isArray(depth - 1))
         {
-            if (hasMembers[depth - 1])
+            if (hasMembers(depth - 1))
             {
                 putByte.accept(',');
             }
-            hasMembers[depth - 1] = true;
+            members |= 1L << depth - 1;
         }
     }
 
     private boolean needsComma()
     {
-        return pending != Pending.AFTER_KEY && depth > 0 && inArray[depth - 1] && hasMembers[depth - 1];
+        return pending != Pending.AFTER_KEY && depth > 0 && isArray(depth - 1) && hasMembers(depth - 1);
     }
 
     // Bounded counterpart used by write(CharSequence, Completion): emits whole code points while each one's
@@ -1554,7 +1582,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private boolean valuePosition()
     {
         return pending == Pending.AFTER_KEY ||
-            pending == Pending.NONE && (depth == 0 || inArray[depth - 1] || inScope());
+            pending == Pending.NONE && (depth == 0 || isArray(depth - 1) || inScope());
     }
 
     private boolean inScope()
@@ -1767,8 +1795,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // the state a mark holds, kept apart so a generator that never marks carries only the reference
     private static final class Mark
     {
-        final boolean[] inArray = new boolean[MAX_DEPTH];
-        final boolean[] hasMembers = new boolean[MAX_DEPTH];
+        long arrays;
+        long members;
         int[] scopeFrames = new int[INITIAL_ESCAPE_LEVELS];
         int generation;
         int progress;
