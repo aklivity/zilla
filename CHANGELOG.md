@@ -51,6 +51,12 @@
 - mqtt: a MQTT 3.1.1 packet larger than the decode window is never decoded and the connection stalls until keep-alive expires [\#3330](https://github.com/aklivity/zilla/issues/3330) ([jfallows](https://github.com/jfallows))
 - mqtt: a server DISCONNECT carries only one of Reason String and Server Reference, and no User Properties [\#3331](https://github.com/aklivity/zilla/issues/3331) ([jfallows](https://github.com/jfallows))
 - mqtt: a CONNECT whose Will Topic or Will Response Topic contains wildcard characters is accepted [\#3334](https://github.com/aklivity/zilla/issues/3334) ([jfallows](https://github.com/jfallows))
+- mqtt-kafka: a second session expiry signal for the same client leaves the first expiry timer running [\#3369](https://github.com/aklivity/zilla/issues/3369) ([jfallows](https://github.com/jfallows))
+- mqtt: session expiry and will delay signals carry a 32-bit millisecond delay, capping them at about 24.8 days [\#3370](https://github.com/aklivity/zilla/issues/3370) ([jfallows](https://github.com/jfallows))
+- mqtt: Session Present is 0 for a non-clean session whose state is only messages in flight [\#3371](https://github.com/aklivity/zilla/issues/3371) ([jfallows](https://github.com/jfallows))
+- mqtt: the session.expiry.grace.period property is read but never used [\#3372](https://github.com/aklivity/zilla/issues/3372) ([jfallows](https://github.com/jfallows))
+- MQTT will delay interval above 2147483647 seconds is read as negative and the stored will record clamps it [\#3384](https://github.com/aklivity/zilla/issues/3384) ([jfallows](https://github.com/jfallows))
+- flyweight: union uint32 member accessor sign-extends values of 2^31 and above [\#3387](https://github.com/aklivity/zilla/issues/3387) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -125,6 +131,17 @@
 - fix\(engine,exporter-otlp,exporter-prometheus\): export millisecond histograms with exact bucket bounds [\#3365](https://github.com/aklivity/zilla/pull/3365) ([akrambek](https://github.com/akrambek))
 - fix\(metrics-http\): record http.duration for requests rejected by the next binding [\#3366](https://github.com/aklivity/zilla/pull/3366) ([akrambek](https://github.com/akrambek))
 - fix\(binding-asyncapi,binding-mqtt\): carry stream affinity through composites and copy client publish payload by size [\#3368](https://github.com/aklivity/zilla/pull/3368) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): cancel the earlier expiry timer when a later expiry signal replaces it [\#3373](https://github.com/aklivity/zilla/pull/3373) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt\): store an empty session state when a connect finds none [\#3374](https://github.com/aklivity/zilla/pull/3374) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt\): remove the unused session.expiry.grace.period property [\#3375](https://github.com/aklivity/zilla/pull/3375) ([jfallows](https://github.com/jfallows))
+- test\(engine\): size EngineBenchTest engine with worker.capacity 64 [\#3377](https://github.com/aklivity/zilla/pull/3377) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): carry session expiry and will delays beyond 24.8 days [\#3381](https://github.com/aklivity/zilla/pull/3381) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): read a metric per worker from the engine extension context [\#3382](https://github.com/aklivity/zilla/pull/3382) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): count listening channels registered and cancelled per worker [\#3383](https://github.com/aklivity/zilla/pull/3383) ([jfallows](https://github.com/jfallows))
+- perf\(engine\): use a finer timer wheel resolution [\#3385](https://github.com/aklivity/zilla/pull/3385) ([jfallows](https://github.com/jfallows))
+- fix\(flyweight\): mask unsigned 32-bit union members as long [\#3389](https://github.com/aklivity/zilla/pull/3389) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt\): carry the will delay interval as unsigned 32-bit seconds [\#3391](https://github.com/aklivity/zilla/pull/3391) ([jfallows](https://github.com/jfallows))
+- fix\(common-json\): restart the verbatim run after trimming a dropped first member's separator [\#3392](https://github.com/aklivity/zilla/pull/3392) ([jfallows](https://github.com/jfallows))
 
 ## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
 
