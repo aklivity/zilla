@@ -93,6 +93,7 @@ public final class JsonSchemaImpl implements JsonSchema
 {
     private static final String[] NO_KEYS = new String[0];
     private static final int[] NO_INDEXES = new int[0];
+    private static final Pattern[] NO_PATTERNS = new Pattern[0];
     private static final int[][] NO_INDEX_SETS = new int[0][];
     private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
 
@@ -191,6 +192,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final int minProperties;
     private final int maxProperties;
     private final Map<Pattern, JsonSchemaImpl> patternProperties;
+    private final Pattern[] patternKeys;
+    private final JsonSchemaImpl[] patternSchemas;
     private final JsonSchemaImpl propertyNames;
     private final Map<String, Set<String>> dependentRequired;
     private final Map<String, JsonSchemaImpl> dependentSchemas;
@@ -351,7 +354,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // value is larger than the window and a keyword reads its content, so the key is kept until then
         if (event == Event.KEY_NAME && trace.unnamed() && eval.needsContentNow())
         {
-            trace.key(source.getStringView().toString());
+            trace.keyOf(source.getStringView());
         }
 
         trace.leave(event);
@@ -672,6 +675,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"), context);
+        this.patternKeys = patternProperties != null ? patternProperties.keySet().toArray(NO_PATTERNS) : NO_PATTERNS;
+        this.patternSchemas = patternProperties != null ? patternProperties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
         this.dependentRequired = parseDependentRequired(schema);
         this.dependentSchemas = parseDependentSchemas(schema, context);
@@ -707,7 +712,7 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentAny(dependentSchemas);
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
-            patternProperties == null && propertyNames == null && unevaluatedProperties == null &&
+            propertyNames == null && unevaluatedProperties == null &&
             unevaluatedItems == null;
         this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null ||
             dependentRequired != null || dependentSchemas != null;
@@ -855,6 +860,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
+        this.patternKeys = NO_PATTERNS;
+        this.patternSchemas = NO_SCHEMAS;
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
@@ -929,6 +936,8 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
+        this.patternKeys = NO_PATTERNS;
+        this.patternSchemas = NO_SCHEMAS;
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
@@ -2488,6 +2497,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean[] arrays;
         private int[] counts;
         private String[] names;
+        // the key at a depth when it is the document's own text, copied into a buffer that is reused, so that a
+        // String is made of it only when a diagnostic is built
+        private StringBuilder[] copies;
+        private boolean[] copied;
         private int depth;
         private int pathDepth;
 
@@ -2498,6 +2511,8 @@ public final class JsonSchemaImpl implements JsonSchema
             this.arrays = reporter != null ? new boolean[FRAMES] : null;
             this.counts = reporter != null ? new int[FRAMES] : null;
             this.names = reporter != null ? new String[FRAMES] : null;
+            this.copies = reporter != null ? new StringBuilder[FRAMES] : null;
+            this.copied = reporter != null ? new boolean[FRAMES] : null;
         }
 
         private void reset()
@@ -2514,7 +2529,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // whether the object being read has not been given the name of the key it is at
         private boolean unnamed()
         {
-            return active() && depth > 0 && names[depth - 1] == null;
+            return active() && depth > 0 && names[depth - 1] == null && !copied[depth - 1];
         }
 
         // supplies the name of the key the object being read is at
@@ -2524,6 +2539,27 @@ public final class JsonSchemaImpl implements JsonSchema
             if (active())
             {
                 names[depth - 1] = name;
+                copied[depth - 1] = false;
+            }
+        }
+
+        // supplies the key the object being read is at as the document's own text, which is kept until a diagnostic
+        // is built
+        private void keyOf(
+            CharSequence name)
+        {
+            if (active())
+            {
+                StringBuilder copy = copies[depth - 1];
+                if (copy == null)
+                {
+                    copy = new StringBuilder();
+                    copies[depth - 1] = copy;
+                }
+                copy.setLength(0);
+                copy.append(name);
+                names[depth - 1] = null;
+                copied[depth - 1] = true;
             }
         }
 
@@ -2537,6 +2573,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                 case KEY_NAME:
                     names[depth - 1] = null;
+                    copied[depth - 1] = false;
                     pathDepth = depth - 1;
                     break;
                 case END_OBJECT:
@@ -2581,10 +2618,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 arrays = Arrays.copyOf(arrays, depth * 2);
                 counts = Arrays.copyOf(counts, depth * 2);
                 names = Arrays.copyOf(names, depth * 2);
+                copies = Arrays.copyOf(copies, depth * 2);
+                copied = Arrays.copyOf(copied, depth * 2);
             }
             arrays[depth] = array;
             counts[depth] = 0;
             names[depth] = null;
+            copied[depth] = false;
             depth++;
         }
 
@@ -2600,7 +2640,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 else
                 {
-                    pointer.append(escapePointer(names[frame]));
+                    pointer.append(escapePointer(copied[frame] ? copies[frame].toString() : names[frame]));
                 }
             }
             return pointer.toString();
@@ -3680,7 +3720,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private static final int BITS_MARK = 7;
         private static final int CONTAINS = 8;
         private static final int MATCHED = 9;
-        private static final int STRIDE = 10;
+        private static final int DIRECT_COUNT = 10;
+        private static final int STRIDE = 11;
         private static final int INITIAL_FRAMES = 4;
         private static final int INITIAL_WORDS = 4;
 
@@ -3696,6 +3737,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private long[] requiredBits;
         // the canonical form of the value of a frame whose const or enum compares it, built as the events arrive
         private UniqueCanon[] canons;
+        // the matcher of each pattern of patternProperties, reset to each key rather than made for it
+        private Map<Pattern, Matcher> matchers;
         // for an array frame under uniqueItems, the canonical form of the element being read and of those read
         private UniqueCanon[] uniques;
         private CanonSet[] uniqueSets;
@@ -3775,7 +3818,7 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else if (direct >= 0)
             {
-                needs = needsContentNow(direct) || containsNeedsContentNow(frame);
+                needs = directsNeedContentNow(frame) || containsNeedsContentNow(frame);
             }
             else if (direct < NONE)
             {
@@ -3789,6 +3832,19 @@ public final class JsonSchemaImpl implements JsonSchema
             else
             {
                 needs = true;
+            }
+            return needs;
+        }
+
+        private boolean directsNeedContentNow(
+            int frame)
+        {
+            final int direct = frames[(frame * STRIDE) + DIRECT];
+            final int count = frames[(frame * STRIDE) + DIRECT_COUNT];
+            boolean needs = false;
+            for (int i = 0; i < count; i++)
+            {
+                needs |= needsContentNow(direct + i);
             }
             return needs;
         }
@@ -3921,19 +3977,27 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSource parser)
         {
             final int direct = frames[(frame * STRIDE) + DIRECT];
+            final int count = frames[(frame * STRIDE) + DIRECT_COUNT];
             final boolean unique = (frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0;
             if (unique)
             {
                 uniques[frame].feed(event, parser);
             }
-            feedFrame(direct, event, parser);
+            for (int i = 0; i < count; i++)
+            {
+                feedFrame(direct + i, event, parser);
+            }
             if ((frames[(direct * STRIDE) + FLAGS] & DONE) != 0)
             {
-                if (failed(direct))
+                for (int i = 0; i < count; i++)
                 {
-                    frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    if (failed(direct + i))
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    }
                 }
                 frames[(frame * STRIDE) + DIRECT] = NONE;
+                frames[(frame * STRIDE) + DIRECT_COUNT] = 1;
                 if (unique)
                 {
                     frames[(frame * STRIDE) + FLAGS] &= ~UNIQUE_ELEMENT;
@@ -4348,6 +4412,22 @@ public final class JsonSchemaImpl implements JsonSchema
                     break;
                 }
             }
+            if (schema.patternKeys.length > 0)
+            {
+                handlePatternKey(frame, schema, key);
+            }
+            else
+            {
+                handleDeclaredKey(frame, schema, key);
+            }
+        }
+
+        private void handleDeclaredKey(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key)
+        {
+            final Trace trace = traceOf(frame);
             JsonSchemaImpl applicable = null;
             final String[] propertyKeys = schema.propertyKeys;
             for (int i = 0; i < propertyKeys.length; i++)
@@ -4368,7 +4448,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     // routed to a subschema that can fail without the schema naming the key: only here does
                     // the location need the document's own key text
-                    trace.key(key.toString());
+                    trace.keyOf(key);
                 }
             }
             if (applicable == ANY)
@@ -4380,6 +4460,72 @@ public final class JsonSchemaImpl implements JsonSchema
                 frames[(frame * STRIDE) + DIRECT] = top;
                 push(applicable, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
             }
+        }
+
+        // a key is validated by the schema of the property it names, by the schema of every pattern it matches, and
+        // by the additional schema only when neither applies
+        private void handlePatternKey(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key)
+        {
+            final boolean silent = (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0;
+            final Trace trace = traceOf(frame);
+            if (trace.active())
+            {
+                trace.keyOf(key);
+            }
+            final int first = top;
+            final String[] propertyKeys = schema.propertyKeys;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    push(schema.propertySchemas[i], silent);
+                    break;
+                }
+            }
+            for (int i = 0; i < schema.patternKeys.length; i++)
+            {
+                if (matcher(schema.patternKeys[i]).reset(key).find())
+                {
+                    push(schema.patternSchemas[i], silent);
+                }
+            }
+            if (top == first)
+            {
+                final JsonSchemaImpl additional = schema.additionalSchema != null ? schema.additionalSchema
+                    : schema.additionalAllowed ? ANY : JsonSchemaImpl.NONE;
+                if (additional == ANY)
+                {
+                    frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+                }
+                else
+                {
+                    push(additional, silent);
+                }
+            }
+            if (top > first)
+            {
+                frames[(frame * STRIDE) + DIRECT] = first;
+                frames[(frame * STRIDE) + DIRECT_COUNT] = top - first;
+            }
+        }
+
+        private Matcher matcher(
+            Pattern pattern)
+        {
+            if (matchers == null)
+            {
+                matchers = new IdentityHashMap<>();
+            }
+            Matcher matcher = matchers.get(pattern);
+            if (matcher == null)
+            {
+                matcher = pattern.matcher("");
+                matchers.put(pattern, matcher);
+            }
+            return matcher;
         }
 
         private void checkRequired(
@@ -4561,6 +4707,7 @@ public final class JsonSchemaImpl implements JsonSchema
             frames[(top * STRIDE) + COMBINATOR_COUNT] = 0;
             frames[(top * STRIDE) + CONTAINS] = NONE;
             frames[(top * STRIDE) + MATCHED] = 0;
+            frames[(top * STRIDE) + DIRECT_COUNT] = 1;
             frames[(top * STRIDE) + BITS_MARK] = bitsTop;
             top++;
         }
@@ -5112,7 +5259,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     // routed to a subschema that can fail without the schema naming the key: only here does
                     // the location need the document's own key text
-                    trace.key(key.toString());
+                    trace.keyOf(key);
                 }
             }
             directChild = propEvalFor(schema);
