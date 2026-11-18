@@ -150,4 +150,15 @@ public class EngineContextIT
         assertThat(engine.context().counter("test", "net0", "test.counter", -1), nullValue());
         assertThat(engine.context().counter("test", "net0", "test.counter", 3), nullValue());
     }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldReadListenerCountersPerWorkerWithoutListeners()
+    {
+        for (int worker = 0; worker < engine.context().workers(); worker++)
+        {
+            assertThat(engine.context().counter(null, null, "engine.workers.listeners.bound", worker).getAsLong(), equalTo(0L));
+            assertThat(engine.context().counter(null, null, "engine.workers.listeners.unbound", worker).getAsLong(), equalTo(0L));
+        }
+    }
 }
