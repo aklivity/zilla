@@ -708,7 +708,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
             patternProperties == null && propertyNames == null && unevaluatedProperties == null &&
-            contains == null && !uniqueItems && unevaluatedItems == null;
+            contains == null && unevaluatedItems == null;
         this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null ||
             dependentRequired != null || dependentSchemas != null;
         this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
@@ -3666,6 +3666,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private static final int STRING_OK = 16;
         private static final int DONE = 32;
         private static final int SILENT = 64;
+        private static final int UNIQUE_ELEMENT = 512;
         private static final int PASSED = 128;
         private static final int FAILED = 256;
         private static final int NONE = -1;
@@ -3693,6 +3694,9 @@ public final class JsonSchemaImpl implements JsonSchema
         private long[] requiredBits;
         // the canonical form of the value of a frame whose const or enum compares it, built as the events arrive
         private UniqueCanon[] canons;
+        // for an array frame under uniqueItems, the canonical form of the element being read and of those read
+        private UniqueCanon[] uniques;
+        private CanonSet[] uniqueSets;
         private int top;
         private int bitsTop;
         private boolean done;
@@ -3857,6 +3861,11 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSource parser)
         {
             final int direct = frames[(frame << SHIFT) + DIRECT];
+            final boolean unique = (frames[(frame << SHIFT) + FLAGS] & UNIQUE_ELEMENT) != 0;
+            if (unique)
+            {
+                uniques[frame].feed(event, parser);
+            }
             feedFrame(direct, event, parser);
             if ((frames[(direct << SHIFT) + FLAGS] & DONE) != 0)
             {
@@ -3865,6 +3874,18 @@ public final class JsonSchemaImpl implements JsonSchema
                     frames[(frame << SHIFT) + FLAGS] |= INVALID;
                 }
                 frames[(frame << SHIFT) + DIRECT] = NONE;
+                if (unique)
+                {
+                    frames[(frame << SHIFT) + FLAGS] &= ~UNIQUE_ELEMENT;
+                    if (!uniqueSets[frame].add(uniques[frame].result))
+                    {
+                        frames[(frame << SHIFT) + FLAGS] |= INVALID;
+                        if (traceOf(frame).active())
+                        {
+                            traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                        }
+                    }
+                }
             }
         }
 
@@ -4061,6 +4082,22 @@ public final class JsonSchemaImpl implements JsonSchema
             return valid;
         }
 
+        private void openUnique(
+            int frame)
+        {
+            if (uniques == null)
+            {
+                uniques = new UniqueCanon[schemas.length];
+                uniqueSets = new CanonSet[schemas.length];
+            }
+            if (uniques[frame] == null)
+            {
+                uniques[frame] = new UniqueCanon();
+                uniqueSets[frame] = new CanonSet();
+            }
+            uniqueSets[frame].clear();
+        }
+
         private boolean combineDependencies(
             int frame,
             JsonSchemaImpl schema,
@@ -4146,6 +4183,10 @@ public final class JsonSchemaImpl implements JsonSchema
             else if (event == Event.START_ARRAY)
             {
                 state |= ARRAY;
+                if (schema.uniqueItems)
+                {
+                    openUnique(frame);
+                }
             }
             frames[(frame << SHIFT) + FLAGS] = state;
             if (schema.combined)
@@ -4342,6 +4383,11 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 frames[(frame << SHIFT) + DIRECT] = top;
                 push(schema.elementSchema(frames[(frame << SHIFT) + COUNT]++), (frames[(frame << SHIFT) + FLAGS] & SILENT) != 0);
+                if (schema.uniqueItems)
+                {
+                    frames[(frame << SHIFT) + FLAGS] |= UNIQUE_ELEMENT;
+                    uniques[frame].reset();
+                }
                 opened = true;
             }
             return opened;
@@ -4364,6 +4410,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (canons != null)
                 {
                     canons = Arrays.copyOf(canons, capacity);
+                }
+                if (uniques != null)
+                {
+                    uniques = Arrays.copyOf(uniques, capacity);
+                    uniqueSets = Arrays.copyOf(uniqueSets, capacity);
                 }
             }
             if (schema.canon)
