@@ -533,4 +533,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.2-7]
+    @Test
+    @Specification({
+        "${app}/session.keep.alive.timeout.before.connack/client",
+        "${app}/session.keep.alive.timeout.before.connack/server"})
+    public void shouldAbortSessionAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
