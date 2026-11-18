@@ -1480,4 +1480,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectSubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1409,4 +1409,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.truncated.body/client",
+        "${net}/subscribe.reject.truncated.body/server"})
+    public void shouldRejectSubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }
