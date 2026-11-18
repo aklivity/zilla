@@ -64,6 +64,16 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.4], MQTT 5.0 3.1.4 [MQTT-3.1.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.route.not.authorized/client",
+        "${net}/connect.route.not.authorized/server"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/connect.username.authentication.failed/client",
