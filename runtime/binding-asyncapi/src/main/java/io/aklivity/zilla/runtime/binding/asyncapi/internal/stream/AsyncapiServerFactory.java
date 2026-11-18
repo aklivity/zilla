@@ -870,7 +870,7 @@ public final class AsyncapiServerFactory implements AsyncapiStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.receiver = newStream(this::onAsyncapiMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L, asyncapiBeginEx);
+                    traceId, authorization, delegate.affinity, asyncapiBeginEx);
                 state = StreamState.openingInitial(state);
             }
         }
