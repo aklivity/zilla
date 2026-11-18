@@ -167,14 +167,40 @@ class JsonParserSaveRestoreTest
     }
 
     @Test
-    void shouldNotSaveOrRestoreAValidatingParser()
+    void shouldSaveAndRestoreAValidatingParser()
     {
         final JsonSchema schema = JsonSchema.of("{\"type\":\"object\"}");
-        final JsonParserEx validating = (JsonParserEx) schema.newParser(true, JsonEx.createParser());
+        final byte[] bytes = "{\"a\":[1,2]} ".getBytes(UTF_8);
+        final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
         final UnsafeBufferEx record = new UnsafeBufferEx(new byte[RECORD_CAPACITY]);
+        final List<JsonEvent> restored = new ArrayList<>();
 
-        assertThrows(UnsupportedOperationException.class, () -> validating.save(record, 0));
-        assertThrows(UnsupportedOperationException.class, () -> validating.restore(record, 0));
+        final JsonParserEx first = schema.newParser(true, JsonEx.createParser());
+        first.wrap(input, 0, 5, false);
+        while (first.hasNextEvent())
+        {
+            restored.add(first.nextEvent());
+        }
+        final int progress = 5 - first.remaining();
+        assertTrue(first.save(record, 0) > 0);
+
+        final JsonParserEx second = schema.newParser(true, JsonEx.createParser());
+        second.restore(record, 0);
+        second.wrap(input, progress, bytes.length, true);
+        while (second.hasNextEvent())
+        {
+            restored.add(second.nextEvent());
+        }
+
+        final List<JsonEvent> unsplit = new ArrayList<>();
+        final JsonParserEx whole = schema.newParser(true, JsonEx.createParser());
+        whole.wrap(input, 0, bytes.length, true);
+        while (whole.hasNextEvent())
+        {
+            unsplit.add(whole.nextEvent());
+        }
+
+        assertEquals(unsplit, restored);
     }
 
     @Test

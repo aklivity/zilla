@@ -146,6 +146,16 @@ public final class JsonSchemaImpl implements JsonSchema
 
         // rearms for the next value
         void reset();
+
+        // writes the state of the evaluation at a boundary between events and returns the bytes written
+        int save(
+            MutableDirectBufferEx buffer,
+            int offset);
+
+        // replaces the state of the evaluation with the record save wrote, and returns the bytes it read
+        int restore(
+            DirectBufferEx buffer,
+            int offset);
     }
 
     private final boolean deny;
@@ -241,6 +251,9 @@ public final class JsonSchemaImpl implements JsonSchema
     // includes its const and enum
     private final boolean leaf;
     private final JsonNode raw;
+
+    // the numbers by which the records of validating parsers built from this schema name its subschemas
+    private volatile Nodes nodes;
 
     private List<String> retainedPaths;
     private List<String> rejectedPaths;
@@ -353,9 +366,10 @@ public final class JsonSchemaImpl implements JsonSchema
 
         final Verdict verdict = eval.feed(event, source);
 
-        // a key that no schema applied to the value under it named can still be where the value fails, when the
-        // value is larger than the window and a keyword reads its content, so the key is kept until then
-        if (event == Event.KEY_NAME && trace.unnamed() && eval.needsContentNow())
+        // a key that no schema applied to the value under it named can still be on the path to where a value fails,
+        // when the value is larger than the window and a keyword reads its content, so the key is kept as text until
+        // the value is over
+        if (event == Event.KEY_NAME && trace.unnamed())
         {
             trace.keyOf(source.getStringView());
         }
@@ -979,7 +993,25 @@ public final class JsonSchemaImpl implements JsonSchema
         Trace trace)
     {
         final JsonSchemaImpl schema = ref != null ? target() : this;
-        return schema.framed ? new FrameEval(schema, trace) : schema.eval(trace, DynScope.ROOT);
+        return schema.framed ? new FrameEval(this, schema, trace) : schema.eval(trace, DynScope.ROOT);
+    }
+
+    private Nodes nodes()
+    {
+        Nodes result = nodes;
+        if (result == null)
+        {
+            synchronized (this)
+            {
+                result = nodes;
+                if (result == null)
+                {
+                    result = new Nodes();
+                    nodes = result;
+                }
+            }
+        }
+        return result;
     }
 
     private Eval eval(
@@ -2059,6 +2091,68 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // the keyword that keeps this schema off the frame stack, for the message of a refusal to save
+    private String unframedKeyword()
+    {
+        final String keyword;
+        if (unevaluatedProperties != null)
+        {
+            keyword = "unevaluatedProperties";
+        }
+        else if (unevaluatedItems != null)
+        {
+            keyword = "unevaluatedItems";
+        }
+        else if (refApplicator != null)
+        {
+            keyword = "$ref";
+        }
+        else if (dynamicRef != null)
+        {
+            keyword = "$dynamicRef";
+        }
+        else if (recursiveRef)
+        {
+            keyword = "$recursiveRef";
+        }
+        else
+        {
+            keyword = "a keyword of draft 2019-09 or later";
+        }
+        return keyword;
+    }
+
+    // Numbers the subschemas that frames of validating parsers refer to, in the order a record first names them, so a
+    // record written by one parser names them for any other parser built from the same schema
+    private static final class Nodes
+    {
+        private final Map<JsonSchemaImpl, Integer> ids = new IdentityHashMap<>();
+        private final List<JsonSchemaImpl> nodes = new ArrayList<>();
+
+        private synchronized int idOf(
+            JsonSchemaImpl node)
+        {
+            Integer id = ids.get(node);
+            if (id == null)
+            {
+                id = nodes.size();
+                ids.put(node, id);
+                nodes.add(node);
+            }
+            return id;
+        }
+
+        private synchronized JsonSchemaImpl nodeOf(
+            int id)
+        {
+            if (id < 0 || id >= nodes.size())
+            {
+                throw new IllegalArgumentException("record names a schema that was not saved from this one: " + id);
+            }
+            return nodes.get(id);
+        }
+    }
+
     private static final class DynScope
     {
         private static final DynScope ROOT = new DynScope(null, null);
@@ -2521,6 +2615,81 @@ public final class JsonSchemaImpl implements JsonSchema
             this.copied = reporter != null ? new boolean[FRAMES] : null;
         }
 
+        // the path to the value being read: for each container it is in, whether it is an array, how many values it has
+        // had, and the key the value is under, as the document's own text
+        private int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            buffer.putInt(progress, depth);
+            progress += Integer.BYTES;
+            buffer.putInt(progress, pathDepth);
+            progress += Integer.BYTES;
+            for (int level = 0; level < depth; level++)
+            {
+                final CharSequence name = copied[level] ? copies[level] : names[level];
+                buffer.putInt(progress, (arrays[level] ? 1 : 0) | (name != null ? 2 : 0));
+                progress += Integer.BYTES;
+                buffer.putInt(progress, counts[level]);
+                progress += Integer.BYTES;
+                if (name != null)
+                {
+                    final int length = MutableDirectBufferEx.utf8Length(name, 0, name.length());
+                    buffer.putInt(progress, length);
+                    progress += Integer.BYTES;
+                    progress += buffer.putStringWithoutLengthUtf8(progress, name, 0, name.length());
+                }
+            }
+            return progress - offset;
+        }
+
+        private int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            final int levels = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            pathDepth = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            while (levels > arrays.length)
+            {
+                arrays = Arrays.copyOf(arrays, arrays.length * 2);
+                counts = Arrays.copyOf(counts, counts.length * 2);
+                names = Arrays.copyOf(names, names.length * 2);
+                copies = Arrays.copyOf(copies, copies.length * 2);
+                copied = Arrays.copyOf(copied, copied.length * 2);
+            }
+            depth = levels;
+            for (int level = 0; level < levels; level++)
+            {
+                final int flags = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                arrays[level] = (flags & 1) != 0;
+                counts[level] = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                names[level] = null;
+                copied[level] = false;
+                if ((flags & 2) != 0)
+                {
+                    final int length = buffer.getInt(progress);
+                    progress += Integer.BYTES;
+                    StringBuilder copy = copies[level];
+                    if (copy == null)
+                    {
+                        copy = new StringBuilder();
+                        copies[level] = copy;
+                    }
+                    copy.setLength(0);
+                    copy.append(buffer.getStringWithoutLengthUtf8(progress, length));
+                    copied[level] = true;
+                    progress += length;
+                }
+            }
+            return progress - offset;
+        }
+
         private void reset()
         {
             depth = 0;
@@ -2786,12 +2955,40 @@ public final class JsonSchemaImpl implements JsonSchema
         // rearms for the next document in the same session: rewinds this pass's own validation state exactly
         // as reset() does, but delegates to the underlying parser's nextDocument() so its stream position
         // and scratch state carry over rather than rewinding to the start of input
+        // The record is a mode word (the verdict, whether the parser throws and whether it reports diagnostics), the
+        // record of the parser that is wrapped, which a restore cannot measure and so is preceded by its length, the
+        // record of the evaluation, and, for a parser that reports diagnostics, the path to the value being read
+        // and, for one that throws, the diagnostics reported so far, which a validation exception carries. A parser
+        // restores only a record of a parser built from the same schema that reports diagnostics in the same way.
         @Override
         public int save(
             MutableDirectBufferEx buffer,
             int offset)
         {
-            throw new UnsupportedOperationException();
+            if (delegateEx == null)
+            {
+                throw new UnsupportedOperationException("the parser that is wrapped cannot save its state");
+            }
+
+            int progress = offset;
+            buffer.putInt(progress, verdict.ordinal() | (throwing ? 1 << 2 : 0) | (trace.active() ? 1 << 3 : 0));
+            progress += Integer.BYTES;
+            final int delegateAt = progress;
+            progress += Integer.BYTES;
+            final int delegateLength = delegateEx.save(buffer, progress);
+            buffer.putInt(delegateAt, delegateLength);
+            progress += delegateLength;
+            progress += eval.save(buffer, progress);
+            if (trace.active())
+            {
+                progress += trace.save(buffer, progress);
+            }
+            if (throwing)
+            {
+                progress += saveDiagnostics(buffer, progress);
+            }
+
+            return progress - offset;
         }
 
         @Override
@@ -2799,7 +2996,90 @@ public final class JsonSchemaImpl implements JsonSchema
             DirectBufferEx buffer,
             int offset)
         {
-            throw new UnsupportedOperationException();
+            if (delegateEx == null)
+            {
+                throw new UnsupportedOperationException("the parser that is wrapped cannot restore its state");
+            }
+
+            int progress = offset;
+            final int mode = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            if ((mode & 1 << 2) != 0 != throwing || (mode & 1 << 3) != 0 != trace.active())
+            {
+                throw new IllegalStateException("the record was written by a parser that reports diagnostics differently");
+            }
+            final int delegateLength = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            delegateEx.restore(buffer, progress);
+            progress += delegateLength;
+            progress += eval.restore(buffer, progress);
+            if (trace.active())
+            {
+                progress += trace.restore(buffer, progress);
+            }
+            diagnostics.clear();
+            if (throwing)
+            {
+                restoreDiagnostics(buffer, progress);
+            }
+            verdict = Verdict.values()[mode & 3];
+        }
+
+        private int saveDiagnostics(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            buffer.putInt(progress, diagnostics.size());
+            progress += Integer.BYTES;
+            for (int index = 0; index < diagnostics.size(); index++)
+            {
+                final JsonSchemaDiagnostic diagnostic = diagnostics.get(index);
+                buffer.putLong(progress, diagnostic.line());
+                progress += Long.BYTES;
+                buffer.putLong(progress, diagnostic.column());
+                progress += Long.BYTES;
+                progress += saveText(buffer, progress, diagnostic.pointer());
+                progress += saveText(buffer, progress, diagnostic.keyword());
+                progress += saveText(buffer, progress, diagnostic.message());
+            }
+            return progress - offset;
+        }
+
+        private void restoreDiagnostics(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            final int count = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            for (int index = 0; index < count; index++)
+            {
+                final long line = buffer.getLong(progress);
+                progress += Long.BYTES;
+                final long column = buffer.getLong(progress);
+                progress += Long.BYTES;
+                final int pointerLength = buffer.getInt(progress);
+                final String pointer = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, pointerLength);
+                progress += Integer.BYTES + pointerLength;
+                final int keywordLength = buffer.getInt(progress);
+                final String keyword = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, keywordLength);
+                progress += Integer.BYTES + keywordLength;
+                final int messageLength = buffer.getInt(progress);
+                final String message = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, messageLength);
+                progress += Integer.BYTES + messageLength;
+                diagnostics.add(new JsonSchemaDiagnostic(line, column, pointer, keyword, message));
+            }
+        }
+
+        private int saveText(
+            MutableDirectBufferEx buffer,
+            int offset,
+            String text)
+        {
+            final int length = MutableDirectBufferEx.utf8Length(text, 0, text.length());
+            buffer.putInt(offset, length);
+            return Integer.BYTES + buffer.putStringWithoutLengthUtf8(offset + Integer.BYTES, text, 0, text.length());
         }
 
         @Override
@@ -3734,6 +4014,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private static final int INITIAL_FRAMES = 4;
         private static final int INITIAL_WORDS = 4;
 
+        private final JsonSchemaImpl owner;
         private final JsonSchemaImpl root;
         private final Trace trace;
 
@@ -3762,9 +4043,11 @@ public final class JsonSchemaImpl implements JsonSchema
         private DynScope scope;
 
         private FrameEval(
+            JsonSchemaImpl owner,
             JsonSchemaImpl root,
             Trace trace)
         {
+            this.owner = owner;
             this.root = root;
             this.trace = trace;
         }
@@ -3794,6 +4077,139 @@ public final class JsonSchemaImpl implements JsonSchema
                 verdict = done ? result : Verdict.PENDING;
             }
             return verdict;
+        }
+
+        // The frames, and the bits of the required keys they have seen, written as numbers, each frame naming its
+        // schema by its number among the subschemas of the schema the parser was built from. What cannot be written
+        // is state that is not numbers: an evaluator outside the frame stack, the canonical form of a value that a
+        // const or enum is comparing as it is read, and the elements an array under uniqueItems has read so far.
+        @Override
+        public int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            refuseUnsavable();
+
+            final Nodes registry = owner.nodes();
+            int progress = offset;
+            buffer.putInt(progress, top);
+            progress += Integer.BYTES;
+            buffer.putInt(progress, bitsTop);
+            progress += Integer.BYTES;
+            for (int frame = 0; frame < top; frame++)
+            {
+                buffer.putInt(progress, registry.idOf(schemas[frame]));
+                progress += Integer.BYTES;
+                final boolean pending = frames[(frame * STRIDE) + DIRECT] == LEAF;
+                buffer.putInt(progress, pending ? registry.idOf(leaves[frame]) : NONE);
+                progress += Integer.BYTES;
+                for (int field = 0; field < STRIDE; field++)
+                {
+                    buffer.putInt(progress, frames[(frame * STRIDE) + field]);
+                    progress += Integer.BYTES;
+                }
+            }
+            for (int word = 0; word < bitsTop; word++)
+            {
+                buffer.putLong(progress, requiredBits[word]);
+                progress += Long.BYTES;
+            }
+
+            return progress - offset;
+        }
+
+        @Override
+        public int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            final Nodes registry = owner.nodes();
+            int progress = offset;
+            final int count = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            final int bits = buffer.getInt(progress);
+            progress += Integer.BYTES;
+
+            ensureFrames(count);
+            if (delegates != null)
+            {
+                Arrays.fill(delegates, 0, Math.max(top, count), null);
+            }
+            for (int frame = 0; frame < count; frame++)
+            {
+                schemas[frame] = registry.nodeOf(buffer.getInt(progress));
+                progress += Integer.BYTES;
+                final int pending = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                if (pending != NONE)
+                {
+                    if (leaves == null)
+                    {
+                        leaves = new JsonSchemaImpl[schemas.length];
+                    }
+                    leaves[frame] = registry.nodeOf(pending);
+                }
+                for (int field = 0; field < STRIDE; field++)
+                {
+                    frames[(frame * STRIDE) + field] = buffer.getInt(progress);
+                    progress += Integer.BYTES;
+                }
+                if (schemas[frame].canon && (frames[(frame * STRIDE) + FLAGS] & STARTED) == 0)
+                {
+                    if (canons == null)
+                    {
+                        canons = new UniqueCanon[schemas.length];
+                    }
+                    if (canons[frame] == null)
+                    {
+                        canons[frame] = new UniqueCanon();
+                    }
+                    canons[frame].reset();
+                }
+            }
+            if (bits > 0 && (requiredBits == null || bits > requiredBits.length))
+            {
+                requiredBits = new long[Math.max(bits, INITIAL_WORDS)];
+            }
+            for (int word = 0; word < bits; word++)
+            {
+                requiredBits[word] = buffer.getLong(progress);
+                progress += Long.BYTES;
+            }
+
+            top = count;
+            bitsTop = bits;
+            done = count > 0 && (frames[FLAGS] & DONE) != 0;
+            result = done ? verdictOf(0) : null;
+
+            return progress - offset;
+        }
+
+        private void refuseUnsavable()
+        {
+            for (int frame = 0; frame < top; frame++)
+            {
+                final int flags = frames[(frame * STRIDE) + FLAGS];
+                if ((flags & DONE) == 0)
+                {
+                    final JsonSchemaImpl schema = schemas[frame];
+                    if (delegateOf(frame) != null)
+                    {
+                        throw new IllegalStateException("an evaluator outside the frame stack (" + schema.unframedKeyword() +
+                            ") is open and its state cannot be saved");
+                    }
+                    if ((flags & STARTED) != 0 && schema.canon)
+                    {
+                        throw new IllegalStateException("the canonical form of an open value, compared by " +
+                            (schema.constantCanon != null ? "const" : "enum") + ", cannot be saved");
+                    }
+                    if ((flags & ARRAY) != 0 && schema.uniqueItems)
+                    {
+                        throw new IllegalStateException("the elements read so far of an open array under uniqueItems " +
+                            "cannot be saved");
+                    }
+                }
+            }
         }
 
         @Override
@@ -4885,26 +5301,7 @@ public final class JsonSchemaImpl implements JsonSchema
             final JsonSchemaImpl schema = applicable.ref != null ? applicable.target() : applicable;
             if (top == schemas.length)
             {
-                final int capacity = top << 1;
-                schemas = Arrays.copyOf(schemas, capacity);
-                frames = Arrays.copyOf(frames, capacity * STRIDE);
-                if (delegates != null)
-                {
-                    delegates = Arrays.copyOf(delegates, capacity);
-                }
-                if (canons != null)
-                {
-                    canons = Arrays.copyOf(canons, capacity);
-                }
-                if (leaves != null)
-                {
-                    leaves = Arrays.copyOf(leaves, capacity);
-                }
-                if (uniques != null)
-                {
-                    uniques = Arrays.copyOf(uniques, capacity);
-                    uniqueSets = Arrays.copyOf(uniqueSets, capacity);
-                }
+                ensureFrames(top + 1);
             }
             if (schema.canon)
             {
@@ -4942,6 +5339,34 @@ public final class JsonSchemaImpl implements JsonSchema
             frames[(top * STRIDE) + DIRECT_COUNT] = 1;
             frames[(top * STRIDE) + BITS_MARK] = bitsTop;
             top++;
+        }
+
+        private void ensureFrames(
+            int needed)
+        {
+            if (needed > schemas.length)
+            {
+                final int capacity = Math.max(needed, schemas.length << 1);
+                schemas = Arrays.copyOf(schemas, capacity);
+                frames = Arrays.copyOf(frames, capacity * STRIDE);
+                if (delegates != null)
+                {
+                    delegates = Arrays.copyOf(delegates, capacity);
+                }
+                if (canons != null)
+                {
+                    canons = Arrays.copyOf(canons, capacity);
+                }
+                if (leaves != null)
+                {
+                    leaves = Arrays.copyOf(leaves, capacity);
+                }
+                if (uniques != null)
+                {
+                    uniques = Arrays.copyOf(uniques, capacity);
+                    uniqueSets = Arrays.copyOf(uniqueSets, capacity);
+                }
+            }
         }
 
         private void pop(
@@ -5075,6 +5500,22 @@ public final class JsonSchemaImpl implements JsonSchema
 
         // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
         // (directChild, refEval, dynEval) dropped, the itemEval/containsEval/propEvals caches left intact
+        @Override
+        public int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException("evaluation of this schema is not on the frame stack and cannot be saved");
+        }
+
+        @Override
+        public int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException("evaluation of this schema is not on the frame stack and cannot be restored");
+        }
+
         @Override
         public void reset()
         {

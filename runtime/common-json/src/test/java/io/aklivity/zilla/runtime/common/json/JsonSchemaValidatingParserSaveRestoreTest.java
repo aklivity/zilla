@@ -23,7 +23,6 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -58,7 +57,6 @@ class JsonSchemaValidatingParserSaveRestoreTest
     private static final int RECORD_CAPACITY = 4096;
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldValidateInterleavedStreamsOnOneParserLikeSeparateParsers()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -80,19 +78,17 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldReportFailureOnlyOnTheStreamThatFailed()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
 
-        final List<List<String>> traces = interleaved(schema, new String[] {FIRST, INVALID}, 8);
+        final List<List<String>> traces = interleaved(schema, new String[] {FIRST, INVALID}, 256);
 
         assertTrue(traces.get(0).stream().noneMatch(event -> event.startsWith("INVALID")), "valid " + traces.get(0));
         assertEquals(1, traces.get(1).stream().filter(event -> event.startsWith("INVALID")).count(), "invalid " + traces.get(1));
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldRestoreIntoAnotherParserBuiltFromTheSameSchema()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -105,7 +101,6 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldRejectARecordOfAParserWithDifferentDiagnostics()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -122,7 +117,6 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldNotSaveWhileAnOpenFrameHoldsStateThatCannotBeSaved()
     {
         assertSaveRefused("{\"uniqueItems\":true}", "[1,2", IllegalStateException.class, "uniqueItems");
@@ -135,7 +129,6 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldNotSaveAParserWhoseSchemaIsNotEvaluatedOnFrames()
     {
         assertSaveRefused("{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\"}", "{\"a\":",
@@ -143,7 +136,6 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldSaveWithoutAllocating()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -160,7 +152,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
             parser.wrap(new UnsafeBufferEx(bytes), 0, 40, false);
             pull(parser, new ArrayList<>());
 
-            for (int round = 0; round < 2_000; round++)
+            for (int round = 0; round < 50_000; round++)
             {
                 parser.save(record, RECORD_OFFSET);
             }
@@ -214,7 +206,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
         Class<? extends RuntimeException> expected,
         String mentions)
     {
-        final JsonSchema schema = JsonSchema.of(schemaText, JsonSchema.Draft.DRAFT_07);
+        final JsonSchema schema = JsonSchema.of(schemaText);
         final JsonParserEx parser = schema.newParser(false, JsonEx.createParser());
         final byte[] bytes = window.getBytes(UTF_8);
         parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, false);

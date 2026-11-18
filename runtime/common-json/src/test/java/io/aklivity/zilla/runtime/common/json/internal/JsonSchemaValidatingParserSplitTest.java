@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -47,21 +46,18 @@ class JsonSchemaValidatingParserSplitTest
     private static final int RECORD_CAPACITY = 4096;
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldMatchUnsplitValidationAtEverySplitOfDraft4()
     {
         verify(Draft.DRAFT_04, "draft4", DRAFT4_FILES);
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldMatchUnsplitValidationAtEverySplitOfDraft6()
     {
         verify(Draft.DRAFT_06, "draft6", DRAFT6_FILES);
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldMatchUnsplitValidationAtEverySplitOfDraft7()
     {
         verify(Draft.DRAFT_07, "draft7", DRAFT7_FILES);
