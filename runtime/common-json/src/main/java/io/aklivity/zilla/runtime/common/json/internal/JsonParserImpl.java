@@ -1338,121 +1338,157 @@ public final class JsonParserImpl implements JsonParserEx
     // from the bytes themselves, and advances the carried scan state to where the block ends. A comma yields its
     // separator step with the token it precedes, so a block ends on a token and carries a trailing comma over.
     // Returns the stream offset the block ends at: the frontier when the whole run fits the budget, otherwise
-    // the end of the last token that does.
+    // the end of the last token that does. Only the first token can continue one the last block ended inside;
+    // every later token starts between tokens.
     private long scanBlock(
         long budget,
         long frontier)
     {
         final DirectBufferEx buffer = ownedInput.buffer();
         final boolean whole = frontier <= budget;
+        final int start = bufferOffset(verbatimCursor);
+        final int end = bufferOffset(frontier);
+        final int limit = whole ? end : bufferOffset(budget);
         int state = scanState;
         boolean pending = separatorPending;
-        long position = verbatimCursor;
-        long accepted = position;
+        int position = start;
+        int accepted = start;
         int acceptedState = state;
         boolean acceptedPending = pending;
         boolean rejected = false;
 
-        while (position < frontier && !rejected)
+        if (state != SCAN_NORMAL && position < end)
         {
-            final byte b = buffer.getByte(bufferOffset(position));
-            final boolean continuing = state == SCAN_STRING || state == SCAN_ESCAPE || state == SCAN_BARE && !isDelimiter(b);
-            if (!continuing && (isWhitespace(b) || b == ':' || b == ','))
+            final int tokenEnd = state == SCAN_BARE
+                ? scanBare(buffer, position, end)
+                : scanString(buffer, position, end, state == SCAN_ESCAPE);
+            final int tail = state == SCAN_BARE ? tokenEnd == end ? SCAN_BARE : SCAN_NORMAL : scanTail;
+            if (tokenEnd > limit)
             {
-                pending |= b == ',';
-                state = SCAN_NORMAL;
-                position++;
+                rejected = true;
             }
             else
             {
-                final JsonStep step;
-                final long end;
-                final int tail;
-                if (continuing)
-                {
-                    step = null;
-                    end = state == SCAN_BARE
-                        ? scanBare(buffer, position, frontier)
-                        : scanString(buffer, position, frontier, state == SCAN_ESCAPE);
-                    tail = state == SCAN_BARE ? end == frontier ? SCAN_BARE : SCAN_NORMAL : scanTail;
-                }
-                else if (b == '"')
-                {
-                    end = scanString(buffer, position + 1, frontier, false);
-                    tail = scanTail;
-                    step = tail == SCAN_NORMAL && keyAhead(buffer, end, frontier) ? JsonStep.KEY_NAME : JsonStep.VALUE;
-                }
-                else if (b == '{' || b == '[' || b == '}' || b == ']')
-                {
-                    end = position + 1;
-                    tail = SCAN_NORMAL;
-                    step = b == '{' ? JsonStep.START_OBJECT : b == '[' ? JsonStep.START_ARRAY
-                        : b == '}' ? JsonStep.END_OBJECT : JsonStep.END_ARRAY;
-                }
-                else
-                {
-                    end = scanBare(buffer, position, frontier);
-                    tail = end == frontier ? SCAN_BARE : SCAN_NORMAL;
-                    step = JsonStep.VALUE;
-                }
+                position = tokenEnd;
+                state = tail;
+                accepted = tokenEnd;
+                acceptedState = tail;
+            }
+        }
 
-                if (!whole && end > budget)
+        while (position < end && !rejected)
+        {
+            final byte b = buffer.getByte(position);
+            final JsonStep step;
+            final int tokenEnd;
+            int tail = SCAN_NORMAL;
+            switch (b)
+            {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
+            case ':':
+                position++;
+                state = SCAN_NORMAL;
+                continue;
+            case ',':
+                pending = true;
+                position++;
+                state = SCAN_NORMAL;
+                continue;
+            case '"':
+                tokenEnd = scanString(buffer, position + 1, end, false);
+                tail = scanTail;
+                step = tail == SCAN_NORMAL && keyAhead(buffer, tokenEnd, end) ? JsonStep.KEY_NAME : JsonStep.VALUE;
+                break;
+            case '{':
+                tokenEnd = position + 1;
+                step = JsonStep.START_OBJECT;
+                break;
+            case '[':
+                tokenEnd = position + 1;
+                step = JsonStep.START_ARRAY;
+                break;
+            case '}':
+                tokenEnd = position + 1;
+                step = JsonStep.END_OBJECT;
+                break;
+            case ']':
+                tokenEnd = position + 1;
+                step = JsonStep.END_ARRAY;
+                break;
+            default:
+                tokenEnd = scanBare(buffer, position, end);
+                tail = tokenEnd == end ? SCAN_BARE : SCAN_NORMAL;
+                step = JsonStep.VALUE;
+                break;
+            }
+
+            if (tokenEnd > limit)
+            {
+                rejected = true;
+            }
+            else
+            {
+                if (pending)
                 {
-                    rejected = true;
+                    addStep(JsonStep.SEPARATOR);
+                    pending = false;
                 }
-                else
-                {
-                    if (step != null)
-                    {
-                        if (pending)
-                        {
-                            addStep(JsonStep.SEPARATOR);
-                            pending = false;
-                        }
-                        addStep(step);
-                    }
-                    position = end;
-                    state = tail;
-                    accepted = end;
-                    acceptedState = state;
-                    acceptedPending = pending;
-                }
+                addStep(step);
+                position = tokenEnd;
+                state = tail;
+                accepted = tokenEnd;
+                acceptedState = tail;
+                acceptedPending = false;
             }
         }
 
         scanState = whole ? state : acceptedState;
         separatorPending = whole ? pending : acceptedPending;
-        return whole ? frontier : accepted;
+        return whole ? frontier : verbatimCursor + (accepted - start);
     }
 
-    // the end of the string whose content starts at from, or the frontier when it is still open there
-    private long scanString(
+    // the end of the string whose content starts at from, or end when it is still open there
+    private int scanString(
         DirectBufferEx buffer,
-        long from,
-        long frontier,
+        int from,
+        int end,
         boolean escaped)
     {
-        long position = from;
+        int position = from;
         boolean escape = escaped;
-        boolean closed = false;
-        while (position < frontier && !closed)
+        int tail = escape ? SCAN_ESCAPE : SCAN_STRING;
+        while (position < end)
         {
-            final byte b = buffer.getByte(bufferOffset(position));
-            closed = !escape && b == '"';
-            escape = !escape && b == '\\';
-            position++;
+            final byte b = buffer.getByte(position++);
+            if (escape)
+            {
+                escape = false;
+            }
+            else if (b == '"')
+            {
+                tail = SCAN_NORMAL;
+                break;
+            }
+            else
+            {
+                escape = b == '\\';
+            }
+            tail = escape ? SCAN_ESCAPE : SCAN_STRING;
         }
-        scanTail = closed ? SCAN_NORMAL : escape ? SCAN_ESCAPE : SCAN_STRING;
+        scanTail = tail;
         return position;
     }
 
-    private long scanBare(
+    private int scanBare(
         DirectBufferEx buffer,
-        long from,
-        long frontier)
+        int from,
+        int end)
     {
-        long position = from;
-        while (position < frontier && !isDelimiter(buffer.getByte(bufferOffset(position))))
+        int position = from;
+        while (position < end && !isDelimiter(buffer.getByte(position)))
         {
             position++;
         }
@@ -1460,18 +1496,18 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     // a closed string is a key when a colon follows it; a string that is the last token read has no byte after it
-    // yet, so it is a key when the last event delivered was
+    // yet, so it is a key when the last event delivered was one
     private boolean keyAhead(
         DirectBufferEx buffer,
-        long from,
-        long frontier)
+        int from,
+        int end)
     {
-        long position = from;
-        while (position < frontier && isWhitespace(buffer.getByte(bufferOffset(position))))
+        int position = from;
+        while (position < end && isWhitespace(buffer.getByte(position)))
         {
             position++;
         }
-        return position < frontier ? buffer.getByte(bufferOffset(position)) == ':' : lastEvent == JsonEvent.KEY_NAME;
+        return position < end ? buffer.getByte(position) == ':' : lastEvent == JsonEvent.KEY_NAME;
     }
 
     private static boolean isDelimiter(
