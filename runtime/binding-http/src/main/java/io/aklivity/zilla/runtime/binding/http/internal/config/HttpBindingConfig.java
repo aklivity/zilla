@@ -88,6 +88,7 @@ public final class HttpBindingConfig
     public final Function<String, String> injectQuery;
     public final List<HttpRequestType> requests;
     public final Map<String8FW, String16FW> overrides;
+    public final HttpRejections rejections;
     private final HttpAccessControlResolver accessResolver;
 
     public HttpBindingConfig(
@@ -115,6 +116,7 @@ public final class HttpBindingConfig
         this.injectCookie = authorization != null ? asInjectCookie(authorization.credentials) : DEFAULT_INJECT;
         this.injectQuery = authorization != null ? asInjectQuery(authorization.credentials) : DEFAULT_INJECT;
         this.requests = createRequestTypes(context::supplyModel, modelBuffer);
+        this.rejections = new HttpRejections(context, binding);
     }
 
     public HttpRouteConfig resolve(
