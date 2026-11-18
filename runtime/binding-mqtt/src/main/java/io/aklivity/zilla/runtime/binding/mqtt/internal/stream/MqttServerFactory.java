@@ -1017,7 +1017,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, PACKET_TOO_LARGE);
                 server.decoder = decodeIgnoreAll;
             }
-            else if (limit - packet.limit() >= length)
+            else if (limit - packet.limit() >= length || server.decodeBudget() == 0)
             {
                 server.decodeablePacketBytes = packet.sizeof() + length;
                 server.decoder = decoder;
