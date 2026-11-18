@@ -1129,6 +1129,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.complete.after.acknowledge/client",
+        "${kafka}/publish.qos2.complete.after.acknowledge/server"})
+    public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStart() throws Exception

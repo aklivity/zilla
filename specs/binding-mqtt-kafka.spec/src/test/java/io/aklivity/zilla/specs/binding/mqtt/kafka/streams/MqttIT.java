@@ -932,6 +932,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.complete.after.acknowledge/client",
+        "${mqtt}/publish.qos2.complete.after.acknowledge/server"})
+    public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${mqtt}/session.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStart() throws Exception
