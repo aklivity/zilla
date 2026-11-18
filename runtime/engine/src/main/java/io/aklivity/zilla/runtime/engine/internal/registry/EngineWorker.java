@@ -194,6 +194,8 @@ public class EngineWorker implements EngineContext, Agent
     private static final int NODE_SHIFT_SIZE = 48;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
+    private static final int TIMER_WHEEL_TICK_MILLIS = 64;
+    private static final int TIMER_WHEEL_TICKS = 8192;
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
@@ -411,7 +413,7 @@ public class EngineWorker implements EngineContext, Agent
         this.targetsByIndex = new Int2ObjectHashMap<>();
         this.writersByIndex = new Int2ObjectHashMap<>();
 
-        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
+        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), TIMER_WHEEL_TICK_MILLIS, TIMER_WHEEL_TICKS);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
         this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
