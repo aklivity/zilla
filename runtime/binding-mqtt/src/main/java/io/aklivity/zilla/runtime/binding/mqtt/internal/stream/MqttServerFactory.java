@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.IM
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.KEEP_ALIVE_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.MALFORMED_PACKET;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NORMAL_DISCONNECT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_CONNACK;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_SUBSCRIPTION_EXISTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_IDENTIFIER_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_TOO_LARGE;
@@ -41,11 +42,11 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNACCEPTABLE_PROTOCOL_VERSION_V4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.connackReasonCodeV4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isConnackReasonCode;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.DUP;
@@ -303,7 +304,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final String16FW NULL_STRING = new String16FW((String) null);
     public static final int QOS2_INCOMPLETE_OFFSET_STATE = MqttOffsetStateFlags.INCOMPLETE.value();
     public static final int QOS2_COMPLETE_OFFSET_STATE = MqttOffsetStateFlags.COMPLETE.value();
-    public static final int MAX_CONNACK_REASONCODE_V4 = 5;
 
 
     private final BeginFW beginRO = new BeginFW();
@@ -968,14 +968,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 if (reasonCode != SUCCESS)
                 {
-                    if (mqttConnect.protocolVersion() == MQTT_PROTOCOL_VERSION_4)
-                    {
-                        server.onDecodeError(traceId, authorization, UNACCEPTABLE_PROTOCOL_VERSION_V4, MQTT_PROTOCOL_VERSION_4);
-                    }
-                    else
-                    {
-                        server.onDecodeError(traceId, authorization, reasonCode, MQTT_PROTOCOL_VERSION_5);
-                    }
+                    final int connackVersion = mqttConnect.protocolVersion() == MQTT_PROTOCOL_VERSION_4
+                        ? MQTT_PROTOCOL_VERSION_4
+                        : MQTT_PROTOCOL_VERSION_5;
+                    server.onDecodeError(traceId, authorization, reasonCode, connackVersion);
                     server.decoder = decodeIgnoreAll;
                     break decode;
                 }
@@ -3790,8 +3786,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doCancelConnectTimeout();
 
-                if (reasonCode != BAD_USER_NAME_OR_PASSWORD &&
-                    (version != MQTT_PROTOCOL_VERSION_4 || (reasonCode & 0xff) <= MAX_CONNACK_REASONCODE_V4))
+                if (reasonCode != BAD_USER_NAME_OR_PASSWORD)
                 {
                     doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null, null, version);
                 }
@@ -5106,16 +5101,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 state = StreamState.closingInitial(state);
             }
 
-            if (version != MQTT_PROTOCOL_VERSION_4 || (reasonCode & 0xff)  <= MAX_CONNACK_REASONCODE_V4)
+            if (connected || reasonCode == SESSION_TAKEN_OVER)
             {
-                if (connected || reasonCode == SESSION_TAKEN_OVER)
+                if (version != MQTT_PROTOCOL_VERSION_4)
                 {
                     doEncodeDisconnect(traceId, authorization, reasonCode, null, null);
                 }
-                else
-                {
-                    doEncodeConnack(traceId, authorization, reasonCode, false, false, null, null, version);
-                }
+            }
+            else
+            {
+                doEncodeConnack(traceId, authorization, reasonCode, false, false, null, null, version);
             }
 
             doNetworkEnd(traceId, authorization);
@@ -5634,24 +5629,30 @@ public final class MqttServerFactory implements MqttStreamFactory
             String16FW reason,
             int version)
         {
-            if (reasonCode == SUCCESS)
-            {
-                events.onClientConnected(traceId, routedId, guard, authorization, clientId.asString());
-            }
+            final int connackReasonCode = connackReasonCode(reasonCode, version);
 
-            switch (version)
+            if (connackReasonCode != NO_CONNACK)
             {
-            case 4:
-                doEncodeConnackV4(traceId, authorization, reasonCode, sessionPresent);
-                break;
-            case 5:
-                doEncodeConnackV5(traceId, authorization, reasonCode, assignedClientId, sessionPresent, serverReference, reason);
-                break;
-            default:
-                doEncodeConnackV5(traceId, authorization, reasonCode, assignedClientId, sessionPresent, serverReference, reason);
-                break;
-            }
+                if (connackReasonCode == SUCCESS)
+                {
+                    events.onClientConnected(traceId, routedId, guard, authorization, clientId.asString());
+                }
 
+                switch (version)
+                {
+                case 4:
+                    doEncodeConnackV4(traceId, authorization, connackReasonCode, sessionPresent);
+                    break;
+                case 5:
+                    doEncodeConnackV5(traceId, authorization, connackReasonCode, assignedClientId, sessionPresent,
+                        serverReference, reason);
+                    break;
+                default:
+                    doEncodeConnackV5(traceId, authorization, connackReasonCode, assignedClientId, sessionPresent,
+                        serverReference, reason);
+                    break;
+                }
+            }
         }
 
         private void doEncodeConnackV4(
@@ -6516,11 +6517,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     doCancelConnectTimeout();
 
-                    int connackReasonCode = isConnackReasonCode(reasonCode) ? reasonCode : IMPLEMENTATION_SPECIFIC_ERROR;
+                    int connackReasonCode = connackReasonCode(reasonCode, version);
 
-                    if (version == MQTT_PROTOCOL_VERSION_4 && (connackReasonCode & 0xff) > MAX_CONNACK_REASONCODE_V4)
+                    if (connackReasonCode == NO_CONNACK)
                     {
-                        connackReasonCode = SERVER_UNAVAILABLE_V4;
+                        connackReasonCode = version == MQTT_PROTOCOL_VERSION_4
+                            ? SERVER_UNAVAILABLE_V4
+                            : IMPLEMENTATION_SPECIFIC_ERROR;
                     }
 
                     doEncodeConnack(traceId, authorization, connackReasonCode, assignedClientId,
@@ -8632,6 +8635,15 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return reasonCode;
+    }
+
+    private static int connackReasonCode(
+        int reasonCode,
+        int version)
+    {
+        return version == MQTT_PROTOCOL_VERSION_4
+            ? connackReasonCodeV4(reasonCode)
+            : isConnackReasonCode(reasonCode) ? reasonCode : NO_CONNACK;
     }
 
     private static int decodeConnectProtocol(

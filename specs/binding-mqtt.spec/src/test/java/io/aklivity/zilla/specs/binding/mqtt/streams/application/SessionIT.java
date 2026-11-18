@@ -523,4 +523,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.2-5]
+    @Test
+    @Specification({
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/client",
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/server"})
+    public void shouldRejectWillQosExceedsPublishQosMax() throws Exception
+    {
+        k3po.finish();
+    }
 }
