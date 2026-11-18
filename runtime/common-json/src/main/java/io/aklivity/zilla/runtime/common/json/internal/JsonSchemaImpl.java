@@ -674,9 +674,7 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentAny(dependentSchemas);
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
-            simpleObject && allOf == null && anyOf == null && oneOf == null &&
-            notSchema == null && ifSchema == null && thenSchema == null && elseSchema == null &&
-            contains == null && !uniqueItems && unevaluatedItems == null &&
+            simpleObject && contains == null && !uniqueItems && unevaluatedItems == null &&
             !((constantCanon != null || enumCanons != null) && constString == null && enumStrings == null);
         this.raw = schema;
     }
@@ -3199,7 +3197,10 @@ public final class JsonSchemaImpl implements JsonSchema
         if (deny)
         {
             invalid = true;
-            trace.report("false", "subschema disallows all instances", parser);
+            if (trace.active())
+            {
+                trace.report("false", "subschema disallows all instances", parser);
+            }
         }
         switch (event)
         {
@@ -3207,14 +3208,20 @@ public final class JsonSchemaImpl implements JsonSchema
             if (types != null && !types.contains(JsonType.OBJECT))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was object", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was object", parser);
+                }
             }
             break;
         case START_ARRAY:
             if (types != null && !types.contains(JsonType.ARRAY))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was array", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was array", parser);
+                }
             }
             break;
         case VALUE_STRING:
@@ -3232,7 +3239,10 @@ public final class JsonSchemaImpl implements JsonSchema
             else if (types != null && !types.contains(JsonType.STRING))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was string", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was string", parser);
+                }
             }
             break;
         case VALUE_NUMBER:
@@ -3243,7 +3253,10 @@ public final class JsonSchemaImpl implements JsonSchema
             else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was number", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was number", parser);
+                }
             }
             break;
         case VALUE_TRUE:
@@ -3251,19 +3264,28 @@ public final class JsonSchemaImpl implements JsonSchema
             if (types != null && !types.contains(JsonType.BOOLEAN))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was boolean", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was boolean", parser);
+                }
             }
             break;
         case VALUE_NULL:
             if (types != null && !types.contains(JsonType.NULL))
             {
                 invalid = true;
-                trace.report("type", "expected " + typesText() + " but was null", parser);
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was null", parser);
+                }
             }
             break;
         default:
             invalid = true;
-            trace.report("type", "unexpected event " + event, parser);
+            if (trace.active())
+            {
+                trace.report("type", "unexpected event " + event, parser);
+            }
             break;
         }
         return (invalid ? OPEN_INVALID : 0) | (stringOk ? OPEN_STRING_OK : 0);
@@ -3310,22 +3332,34 @@ public final class JsonSchemaImpl implements JsonSchema
         if (types != null && !types.contains(JsonType.STRING))
         {
             invalid = true;
-            trace.report("type", "expected " + typesText() + " but was string", parser);
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was string", parser);
+            }
         }
         else if (minLength >= 0 && length < minLength)
         {
             invalid = true;
-            trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
+            if (trace.active())
+            {
+                trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
+            }
         }
         else if (maxLength >= 0 && length > maxLength)
         {
             invalid = true;
-            trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
+            if (trace.active())
+            {
+                trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
+            }
         }
         else if (pattern != null && !pattern.matcher(value).find())
         {
             invalid = true;
-            trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
+            if (trace.active())
+            {
+                trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
+            }
         }
         return invalid;
     }
@@ -3360,32 +3394,50 @@ public final class JsonSchemaImpl implements JsonSchema
         if (!typeOk)
         {
             invalid = true;
-            trace.report("type", "expected " + typesText() + " but was number", parser);
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
         }
         else if (minimum != null && value < minimum.longValue())
         {
             invalid = true;
-            trace.report("minimum", value + " < minimum " + minimum, parser);
+            if (trace.active())
+            {
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
         }
         else if (maximum != null && value > maximum.longValue())
         {
             invalid = true;
-            trace.report("maximum", value + " > maximum " + maximum, parser);
+            if (trace.active())
+            {
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
         }
         else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
         {
             invalid = true;
-            trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            if (trace.active())
+            {
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
         }
         else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
         {
             invalid = true;
-            trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            if (trace.active())
+            {
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
         }
         else if (multipleOf != null && value % multipleOf.longValue() != 0)
         {
             invalid = true;
-            trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            if (trace.active())
+            {
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
         }
         return invalid;
     }
@@ -3410,32 +3462,50 @@ public final class JsonSchemaImpl implements JsonSchema
         if (!typeOk)
         {
             invalid = true;
-            trace.report("type", "expected " + typesText() + " but was number", parser);
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
         }
         else if (minimum != null && value.compareTo(minimum) < 0)
         {
             invalid = true;
-            trace.report("minimum", value + " < minimum " + minimum, parser);
+            if (trace.active())
+            {
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
         }
         else if (maximum != null && value.compareTo(maximum) > 0)
         {
             invalid = true;
-            trace.report("maximum", value + " > maximum " + maximum, parser);
+            if (trace.active())
+            {
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
         }
         else if (exclusiveMinimum != null && value.compareTo(exclusiveMinimum) <= 0)
         {
             invalid = true;
-            trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            if (trace.active())
+            {
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
         }
         else if (exclusiveMaximum != null && value.compareTo(exclusiveMaximum) >= 0)
         {
             invalid = true;
-            trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            if (trace.active())
+            {
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
         }
         else if (multipleOf != null && (multipleOf.signum() == 0 || value.remainder(multipleOf).signum() != 0))
         {
             invalid = true;
-            trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            if (trace.active())
+            {
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
         }
         return invalid;
     }
@@ -3462,9 +3532,11 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     // Evaluates a value against a schema whose keywords keep their state as numbers, on a stack of frames held
-    // in parallel arrays: one frame per applied schema and nested value, the deepest receiving each event. Reuse
-    // across values and across the elements and members of a value allocates nothing once the arrays have grown
-    // to the depth of the values. A schema outside the keywords supported here, below a frame, is evaluated by an
+    // in parallel arrays: one frame per applied schema and nested value. A frame routes an event to the frame of
+    // the member or element it is in, if any, and to the frames of its combinator subschemas, which read the
+    // same value and finish in the same event; the frame itself finishes when its value does. Reuse across
+    // values and across the elements and members of a value allocates nothing once the arrays have grown to
+    // the depth of the values. A schema outside the keywords supported here, below a frame, is evaluated by an
     // Eval held by its frame.
     private static final class FrameEval implements Evaluator
     {
@@ -3473,7 +3545,9 @@ public final class JsonSchemaImpl implements JsonSchema
         private static final int STARTED = 4;
         private static final int INVALID = 8;
         private static final int STRING_OK = 16;
-        private static final int NO_BITS = -1;
+        private static final int DONE = 32;
+        private static final int SILENT = 64;
+        private static final int NONE = -1;
         private static final int INITIAL_FRAMES = 8;
         private static final int INITIAL_WORDS = 8;
 
@@ -3482,16 +3556,20 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private JsonSchemaImpl[] schemas = new JsonSchemaImpl[INITIAL_FRAMES];
         private Eval[] delegates = new Eval[INITIAL_FRAMES];
+        private Verdict[] verdicts = new Verdict[INITIAL_FRAMES];
         private int[] flags = new int[INITIAL_FRAMES];
         private int[] depths = new int[INITIAL_FRAMES];
         private int[] counts = new int[INITIAL_FRAMES];
+        private int[] directs = new int[INITIAL_FRAMES];
+        private int[] combinatorFirsts = new int[INITIAL_FRAMES];
+        private int[] combinatorCounts = new int[INITIAL_FRAMES];
         private int[] requiredBases = new int[INITIAL_FRAMES];
+        private int[] bitsMarks = new int[INITIAL_FRAMES];
         private long[] requiredBits = new long[INITIAL_WORDS];
         private int top;
         private int bitsTop;
         private boolean done;
         private Verdict result;
-        private Verdict delegated;
         private DynScope scope;
 
         private FrameEval(
@@ -3512,9 +3590,19 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 if (top == 0)
                 {
-                    push(root);
+                    push(root, false);
                 }
-                verdict = unwind(route(event, parser), event, parser);
+                feedFrame(0, event, parser);
+                while (top > 1 && (flags[top - 1] & DONE) != 0)
+                {
+                    pop(top - 1);
+                }
+                if ((flags[0] & DONE) != 0)
+                {
+                    done = true;
+                    result = verdicts[0];
+                }
+                verdict = done ? result : Verdict.PENDING;
             }
             return verdict;
         }
@@ -3522,33 +3610,7 @@ public final class JsonSchemaImpl implements JsonSchema
         @Override
         public boolean needsContentNow()
         {
-            boolean needs;
-            if (top == 0)
-            {
-                needs = root.needsContent;
-            }
-            else
-            {
-                final int frame = top - 1;
-                final JsonSchemaImpl schema = schemas[frame];
-                if (delegates[frame] != null)
-                {
-                    needs = delegates[frame].needsContentNow();
-                }
-                else if ((flags[frame] & STARTED) == 0)
-                {
-                    needs = schema.needsContent;
-                }
-                else if ((flags[frame] & ARRAY) != 0)
-                {
-                    needs = schema.elementSchema(counts[frame]).needsContent;
-                }
-                else
-                {
-                    needs = true;
-                }
-            }
-            return needs;
+            return top == 0 ? root.needsContent : needsContentNow(0);
         }
 
         @Override
@@ -3559,79 +3621,145 @@ public final class JsonSchemaImpl implements JsonSchema
             bitsTop = 0;
             done = false;
             result = null;
-            delegated = null;
         }
 
-        // the deepest frame handles the event, and an array element's frame, opened by the event that is also its
-        // first, handles it too; returns the deepest frame that received it
-        private int route(
-            Event event,
-            JsonSource parser)
+        private boolean needsContentNow(
+            int frame)
         {
-            int frame = top - 1;
-            while (handle(frame, event, parser))
+            final JsonSchemaImpl schema = schemas[frame];
+            final boolean needs;
+            if (delegates[frame] != null)
             {
-                frame++;
+                needs = delegates[frame].needsContentNow();
             }
-            return frame;
+            else if ((flags[frame] & STARTED) == 0)
+            {
+                needs = schema.needsContent;
+            }
+            else if (directs[frame] != NONE)
+            {
+                needs = needsContentNow(directs[frame]);
+            }
+            else if ((flags[frame] & ARRAY) != 0)
+            {
+                needs = schema.elementSchema(counts[frame]).needsContent;
+            }
+            else
+            {
+                needs = true;
+            }
+            return needs;
         }
 
-        // completes the frames the event finished, deepest first: a finished frame is popped after passing
-        // its verdict to the frame that applied it, and the root's verdict is the verdict of the value
-        private Verdict unwind(
-            int last,
-            Event event,
-            JsonSource parser)
+        private Trace traceOf(
+            int frame)
         {
-            Verdict verdict = Verdict.PENDING;
-            for (int frame = last; frame >= 0; frame--)
-            {
-                final Verdict completed = progress(frame, event, parser);
-                if (completed != Verdict.PENDING)
-                {
-                    if (frame == 0)
-                    {
-                        done = true;
-                        result = completed;
-                        verdict = completed;
-                    }
-                    else
-                    {
-                        if (completed == Verdict.INVALID)
-                        {
-                            flags[frame - 1] |= INVALID;
-                        }
-                        pop(frame);
-                    }
-                }
-            }
-            return verdict;
+            return (flags[frame] & SILENT) != 0 ? Trace.NONE : trace;
         }
 
-        private Verdict progress(
+        private void feedFrame(
             int frame,
             Event event,
             JsonSource parser)
         {
-            Verdict completed;
+            final JsonSchemaImpl schema = schemas[frame];
             if (delegates[frame] != null)
             {
-                completed = frame == top - 1 ? delegated : Verdict.PENDING;
+                final Verdict verdict = delegates[frame].feed(event, parser);
+                if (verdict != Verdict.PENDING)
+                {
+                    finish(frame, verdict);
+                }
             }
             else
             {
-                flags[frame] |= STARTED;
-                if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+                if (directs[frame] != NONE)
                 {
-                    depths[frame]++;
+                    routeDirect(frame, event, parser);
                 }
-                else if (event == Event.END_OBJECT || event == Event.END_ARRAY)
+                else if (schema != ANY)
                 {
-                    depths[frame]--;
+                    feedOwn(frame, schema, event, parser);
                 }
-                completed = depths[frame] == 0 ? combine(frame, parser) : Verdict.PENDING;
+
+                final int end = combinatorFirsts[frame] + combinatorCounts[frame];
+                for (int combinator = combinatorFirsts[frame]; combinator < end; combinator++)
+                {
+                    if ((flags[combinator] & DONE) == 0)
+                    {
+                        feedFrame(combinator, event, parser);
+                    }
+                }
+
+                advance(frame, event, parser);
             }
-            return completed;
+        }
+
+        private void feedOwn(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            if ((flags[frame] & STARTED) == 0)
+            {
+                open(frame, schema, event, parser);
+            }
+            else if ((flags[frame] & OBJECT) != 0)
+            {
+                handleObject(frame, schema, event, parser);
+            }
+            else if ((flags[frame] & ARRAY) != 0 && handleArray(frame, schema, event, parser))
+            {
+                routeDirect(frame, event, parser);
+            }
+        }
+
+        // hands the event to the frame of the member or element, and takes its verdict into this frame once it
+        // has finished
+        private void routeDirect(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final int direct = directs[frame];
+            feedFrame(direct, event, parser);
+            if ((flags[direct] & DONE) != 0)
+            {
+                if (verdicts[direct] == Verdict.INVALID)
+                {
+                    flags[frame] |= INVALID;
+                }
+                directs[frame] = NONE;
+            }
+        }
+
+        private void advance(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            flags[frame] |= STARTED;
+            if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+            {
+                depths[frame]++;
+            }
+            else if (event == Event.END_OBJECT || event == Event.END_ARRAY)
+            {
+                depths[frame]--;
+            }
+            if (depths[frame] == 0)
+            {
+                finish(frame, combine(frame, parser));
+            }
+        }
+
+        private void finish(
+            int frame,
+            Verdict verdict)
+        {
+            verdicts[frame] = verdict;
+            flags[frame] |= DONE;
         }
 
         private Verdict combine(
@@ -3639,13 +3767,17 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSource parser)
         {
             final JsonSchemaImpl schema = schemas[frame];
+            final Trace trace = traceOf(frame);
             boolean valid = (flags[frame] & INVALID) == 0;
             if (valid && schema.constString != null)
             {
                 valid = (flags[frame] & STRING_OK) != 0;
                 if (!valid)
                 {
-                    trace.report("const", "value does not equal const", parser);
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
                 }
             }
             else if (valid && schema.enumStrings != null)
@@ -3653,40 +3785,100 @@ public final class JsonSchemaImpl implements JsonSchema
                 valid = (flags[frame] & STRING_OK) != 0;
                 if (!valid)
                 {
-                    trace.report("enum", "value not in enum", parser);
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+
+            int combinator = combinatorFirsts[frame];
+            if (valid && schema.allOf != null)
+            {
+                for (int i = 0; i < schema.allOf.size(); i++)
+                {
+                    if (verdicts[combinator + i] != Verdict.VALID)
+                    {
+                        valid = false;
+                    }
+                }
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("allOf", "instance failed at least one allOf subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.allOf != null ? schema.allOf.size() : 0;
+            if (valid && schema.anyOf != null)
+            {
+                boolean any = false;
+                for (int i = 0; i < schema.anyOf.size(); i++)
+                {
+                    any |= verdicts[combinator + i] == Verdict.VALID;
+                }
+                valid = any;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("anyOf", "instance failed every anyOf subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.anyOf != null ? schema.anyOf.size() : 0;
+            if (valid && schema.oneOf != null)
+            {
+                int matched = 0;
+                for (int i = 0; i < schema.oneOf.size(); i++)
+                {
+                    if (verdicts[combinator + i] == Verdict.VALID)
+                    {
+                        matched++;
+                    }
+                }
+                valid = matched == 1;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("oneOf", matched == 0
+                            ? "instance failed every oneOf subschema"
+                            : "instance matched " + matched + " oneOf subschemas (must be exactly 1)", parser);
+                    }
+                }
+            }
+            combinator += schema.oneOf != null ? schema.oneOf.size() : 0;
+            if (valid && schema.notSchema != null)
+            {
+                valid = verdicts[combinator] != Verdict.VALID;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("not", "instance must not match not-subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.notSchema != null ? 1 : 0;
+            if (valid && schema.ifSchema != null)
+            {
+                final int thenAt = combinator + 1;
+                final int elseAt = thenAt + (schema.thenSchema != null ? 1 : 0);
+                final boolean matched = verdicts[combinator] == Verdict.VALID;
+                valid = matched
+                    ? schema.thenSchema == null || verdicts[thenAt] == Verdict.VALID
+                    : schema.elseSchema == null || verdicts[elseAt] == Verdict.VALID;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report(matched ? "then" : "else", "if/then/else branch failed", parser);
+                    }
                 }
             }
             return valid ? Verdict.VALID : Verdict.INVALID;
-        }
-
-        // returns whether the event opened a frame for an array element, which receives the event as well
-        private boolean handle(
-            int frame,
-            Event event,
-            JsonSource parser)
-        {
-            boolean opened = false;
-            final JsonSchemaImpl schema = schemas[frame];
-            if (delegates[frame] != null)
-            {
-                delegated = delegates[frame].feed(event, parser);
-            }
-            else if (schema != ANY)
-            {
-                if ((flags[frame] & STARTED) == 0)
-                {
-                    open(frame, schema, event, parser);
-                }
-                else if ((flags[frame] & OBJECT) != 0)
-                {
-                    handleObject(frame, schema, event, parser);
-                }
-                else if ((flags[frame] & ARRAY) != 0)
-                {
-                    opened = handleArray(frame, schema, event, parser);
-                }
-            }
-            return opened;
         }
 
         private void open(
@@ -3695,7 +3887,7 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            final int open = schema.checkOpen(trace, event, parser);
+            final int open = schema.checkOpen(traceOf(frame), event, parser);
             int state = flags[frame];
             state |= (open & OPEN_INVALID) != 0 ? INVALID : 0;
             state |= (open & OPEN_STRING_OK) != 0 ? STRING_OK : 0;
@@ -3716,6 +3908,47 @@ public final class JsonSchemaImpl implements JsonSchema
                 state |= ARRAY;
             }
             flags[frame] = state;
+            pushCombinators(frame, schema);
+        }
+
+        // allOf subschemas report as the schema does; the others select among candidates, where a subschema that
+        // does not match is expected, and so are silent
+        private void pushCombinators(
+            int frame,
+            JsonSchemaImpl schema)
+        {
+            final boolean silent = (flags[frame] & SILENT) != 0;
+            combinatorFirsts[frame] = top;
+            pushAll(schema.allOf, silent);
+            pushAll(schema.anyOf, true);
+            pushAll(schema.oneOf, true);
+            pushOne(schema.notSchema);
+            pushOne(schema.ifSchema);
+            pushOne(schema.thenSchema);
+            pushOne(schema.elseSchema);
+            combinatorCounts[frame] = top - combinatorFirsts[frame];
+        }
+
+        private void pushAll(
+            List<JsonSchemaImpl> subschemas,
+            boolean silent)
+        {
+            if (subschemas != null)
+            {
+                for (int i = 0; i < subschemas.size(); i++)
+                {
+                    push(subschemas.get(i), silent);
+                }
+            }
+        }
+
+        private void pushOne(
+            JsonSchemaImpl subschema)
+        {
+            if (subschema != null)
+            {
+                push(subschema, true);
+            }
         }
 
         private void handleObject(
@@ -3731,12 +3964,18 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (schema.minProperties >= 0 && count < schema.minProperties)
                 {
                     flags[frame] |= INVALID;
-                    trace.report("minProperties", count + " < minProperties " + schema.minProperties, parser);
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("minProperties", count + " < minProperties " + schema.minProperties, parser);
+                    }
                 }
                 if (schema.maxProperties >= 0 && count > schema.maxProperties)
                 {
                     flags[frame] |= INVALID;
-                    trace.report("maxProperties", count + " > maxProperties " + schema.maxProperties, parser);
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("maxProperties", count + " > maxProperties " + schema.maxProperties, parser);
+                    }
                 }
             }
             else
@@ -3752,6 +3991,7 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSchemaImpl schema,
             JsonSource parser)
         {
+            final Trace trace = traceOf(frame);
             final CharSequence key = parser.getStringView();
             counts[frame]++;
             final String[] requiredKeys = schema.requiredKeys;
@@ -3778,7 +4018,7 @@ public final class JsonSchemaImpl implements JsonSchema
             if (applicable == null)
             {
                 applicable = schema.additionalSchema != null ? schema.additionalSchema
-                    : schema.additionalAllowed ? ANY : NONE;
+                    : schema.additionalAllowed ? ANY : JsonSchemaImpl.NONE;
                 if (applicable != ANY && trace.active())
                 {
                     // routed to a subschema that can fail without the schema naming the key: only here does
@@ -3786,7 +4026,8 @@ public final class JsonSchemaImpl implements JsonSchema
                     trace.key(key.toString());
                 }
             }
-            push(applicable);
+            directs[frame] = top;
+            push(applicable, (flags[frame] & SILENT) != 0);
         }
 
         private void checkRequired(
@@ -3807,7 +4048,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 flags[frame] |= INVALID;
                 // the message text is built only on this rare failure path
-                if (trace.active())
+                if (traceOf(frame).active())
                 {
                     final Set<String> names = new LinkedHashSet<>();
                     for (int i = 0; i < requiredKeys.length; i++)
@@ -3817,11 +4058,15 @@ public final class JsonSchemaImpl implements JsonSchema
                             names.add(requiredKeys[i]);
                         }
                     }
-                    trace.report("required", "missing required " + names, parser);
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("required", "missing required " + names, parser);
+                    }
                 }
             }
         }
 
+        // returns whether the event opened a frame for an array element, which receives the event as well
         private boolean handleArray(
             int frame,
             JsonSchemaImpl schema,
@@ -3835,24 +4080,32 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (schema.minItems >= 0 && count < schema.minItems)
                 {
                     flags[frame] |= INVALID;
-                    trace.report("minItems", count + " < minItems " + schema.minItems, parser);
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("minItems", count + " < minItems " + schema.minItems, parser);
+                    }
                 }
                 if (schema.maxItems >= 0 && count > schema.maxItems)
                 {
                     flags[frame] |= INVALID;
-                    trace.report("maxItems", count + " > maxItems " + schema.maxItems, parser);
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("maxItems", count + " > maxItems " + schema.maxItems, parser);
+                    }
                 }
             }
             else
             {
-                push(schema.elementSchema(counts[frame]++));
+                directs[frame] = top;
+                push(schema.elementSchema(counts[frame]++), (flags[frame] & SILENT) != 0);
                 opened = true;
             }
             return opened;
         }
 
         private void push(
-            JsonSchemaImpl applicable)
+            JsonSchemaImpl applicable,
+            boolean silent)
         {
             final JsonSchemaImpl schema = applicable.ref != null ? applicable.target() : applicable;
             if (top == schemas.length)
@@ -3860,27 +4113,33 @@ public final class JsonSchemaImpl implements JsonSchema
                 final int capacity = top << 1;
                 schemas = Arrays.copyOf(schemas, capacity);
                 delegates = Arrays.copyOf(delegates, capacity);
+                verdicts = Arrays.copyOf(verdicts, capacity);
                 flags = Arrays.copyOf(flags, capacity);
                 depths = Arrays.copyOf(depths, capacity);
                 counts = Arrays.copyOf(counts, capacity);
+                directs = Arrays.copyOf(directs, capacity);
+                combinatorFirsts = Arrays.copyOf(combinatorFirsts, capacity);
+                combinatorCounts = Arrays.copyOf(combinatorCounts, capacity);
                 requiredBases = Arrays.copyOf(requiredBases, capacity);
+                bitsMarks = Arrays.copyOf(bitsMarks, capacity);
             }
             schemas[top] = schema;
-            delegates[top] = schema.framed ? null : schema.eval(trace, delegateScope());
-            flags[top] = 0;
+            delegates[top] = schema.framed ? null : schema.eval(silent ? Trace.NONE : trace, delegateScope());
+            verdicts[top] = null;
+            flags[top] = silent ? SILENT : 0;
             depths[top] = 0;
             counts[top] = 0;
-            requiredBases[top] = NO_BITS;
+            directs[top] = NONE;
+            combinatorFirsts[top] = 0;
+            combinatorCounts[top] = 0;
+            bitsMarks[top] = bitsTop;
             top++;
         }
 
         private void pop(
             int frame)
         {
-            if (requiredBases[frame] != NO_BITS)
-            {
-                bitsTop = requiredBases[frame];
-            }
+            bitsTop = bitsMarks[frame];
             delegates[frame] = null;
             top = frame;
         }

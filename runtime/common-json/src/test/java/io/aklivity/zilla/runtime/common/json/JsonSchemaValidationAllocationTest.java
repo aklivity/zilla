@@ -75,6 +75,105 @@ class JsonSchemaValidationAllocationTest
         assertTrue(perItem <= MAX_BYTES_PER_PROPERTY, "validation allocates " + perItem + " B per array item");
     }
 
+    @Test
+    void shouldNotAllocatePerPropertyForAnyOfSchemas()
+    {
+        assertNoAllocationPerProperty("{\"anyOf\":[{\"type\":\"integer\"},{\"type\":\"string\",\"minLength\":1}]}", "\"v\"");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForOneOfSchemas()
+    {
+        assertNoAllocationPerProperty("{\"oneOf\":[{\"type\":\"string\",\"maxLength\":3},{\"type\":\"string\",\"minLength\":4}]}",
+            "\"v\"");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForAllOfSchemas()
+    {
+        assertNoAllocationPerProperty("{\"allOf\":[{\"type\":\"string\"},{\"minLength\":1},{\"maxLength\":9}]}", "\"v\"");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForNotSchemas()
+    {
+        assertNoAllocationPerProperty("{\"not\":{\"type\":\"integer\"}}", "\"v\"");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForConditionalSchemas()
+    {
+        assertNoAllocationPerProperty(
+            "{\"if\":{\"type\":\"string\"},\"then\":{\"minLength\":1},\"else\":{\"type\":\"integer\"}}", "\"v\"");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForNestedObjectsInCombinators()
+    {
+        assertNoAllocationPerProperty(
+            "{\"oneOf\":[{\"type\":\"object\",\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"string\"}}}," +
+                "{\"type\":\"object\",\"required\":[\"name\"],\"properties\":{\"name\":{\"type\":\"string\"}}}]}",
+            "{\"id\":\"v\"}");
+    }
+
+    @Test
+    void shouldNotAllocatePerArrayItemOfOneOfObjects()
+    {
+        final JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"array\",\"items\":{\"oneOf\":[" +
+                "{\"type\":\"object\",\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"string\"}}}," +
+                "{\"type\":\"object\",\"required\":[\"name\"],\"properties\":{\"name\":{\"type\":\"string\"}}}]}}",
+            Draft.DRAFT_07);
+
+        final long few = allocated(schema, oneOfItems(FEW).getBytes(UTF_8));
+        final long many = allocated(schema, oneOfItems(MANY).getBytes(UTF_8));
+
+        final long perItem = (many - few) / (MANY - FEW);
+        assertTrue(perItem <= MAX_BYTES_PER_PROPERTY, "validation allocates " + perItem + " B per oneOf array item");
+    }
+
+    private static void assertNoAllocationPerProperty(
+        String propertySchema,
+        String propertyValue)
+    {
+        final StringBuilder schema = new StringBuilder("{\"type\":\"object\",\"properties\":{");
+        for (int index = 0; index < DECLARED; index++)
+        {
+            schema.append(index == 0 ? "" : ",").append("\"k").append(index).append("\":").append(propertySchema);
+        }
+        final JsonSchema compiled = JsonSchema.of(schema.append("}}").toString(), Draft.DRAFT_07);
+
+        final long few = allocated(compiled, objectOf(FEW, propertyValue).getBytes(UTF_8));
+        final long many = allocated(compiled, objectOf(MANY, propertyValue).getBytes(UTF_8));
+
+        final long perProperty = (many - few) / (MANY - FEW);
+        assertTrue(perProperty <= MAX_BYTES_PER_PROPERTY,
+            "validation allocates " + perProperty + " B per property of " + propertySchema);
+    }
+
+    private static String objectOf(
+        int properties,
+        String value)
+    {
+        final StringBuilder instance = new StringBuilder("{");
+        for (int index = 0; index < properties; index++)
+        {
+            instance.append(index == 0 ? "" : ",").append("\"k").append(index).append("\":").append(value);
+        }
+        return instance.append("} ").toString();
+    }
+
+    private static String oneOfItems(
+        int count)
+    {
+        final StringBuilder instance = new StringBuilder("[");
+        for (int index = 0; index < count; index++)
+        {
+            instance.append(index == 0 ? "" : ",").append(index % 2 == 0 ? "{\"id\":\"v\"}" : "{\"name\":\"v\"}");
+        }
+        return instance.append("] ").toString();
+    }
+
     private static void assertNoPerPropertyAllocation(
         Draft draft,
         boolean referenced)
