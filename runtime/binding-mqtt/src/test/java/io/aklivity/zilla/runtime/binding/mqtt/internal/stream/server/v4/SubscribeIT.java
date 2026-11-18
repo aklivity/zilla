@@ -335,6 +335,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.receive.message.dollar.topic/client",
+        "${app}/subscribe.receive.message.dollar.topic.v4/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.replay.retained.message.qos1/client",
         "${app}/subscribe.replay.retained.message.qos1.v4/server"})
     public void shouldReplayRetainedQos1() throws Exception

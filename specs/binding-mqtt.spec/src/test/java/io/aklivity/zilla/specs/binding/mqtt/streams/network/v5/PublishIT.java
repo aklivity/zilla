@@ -246,6 +246,24 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/publish.qos1.empty.reset.before.window/client",
+        "${net}/publish.qos1.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos1EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.empty.reset.before.window/client",
+        "${net}/publish.qos2.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos2EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({
@@ -978,6 +996,16 @@ public class PublishIT
         k3po.finish();
     }
 
+    // 4.3.2, 3.4.2.1
+    @Test
+    @Specification({
+        "${net}/publish.qos1.acks.reordered.with.reason.codes/client",
+        "${net}/publish.qos1.acks.reordered.with.reason.codes/server"})
+    public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.3.1-2]
     @Test
     @Specification({
@@ -988,12 +1016,82 @@ public class PublishIT
         k3po.finish();
     }
 
+    // 4.13.1
+    @Test
+    @Specification({
+        "${net}/server.sent.puback.unknown.packet.id/client",
+        "${net}/server.sent.puback.unknown.packet.id/server"})
+    public void shouldRejectServerSentPubackUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
         "${net}/publish.reject.packet.id.zero/client",
         "${net}/publish.reject.packet.id.zero/server"})
     public void shouldRejectPublishPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3
+    @Test
+    @Specification({
+        "${net}/publish.qos2.exchange.complete/client",
+        "${net}/publish.qos2.exchange.complete/server"})
+    public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3, 4.4.0-2
+    @Test
+    @Specification({
+        "${net}/publish.qos2.pubrec.failure.reason.code/client",
+        "${net}/publish.qos2.pubrec.failure.reason.code/server"})
+    public void shouldPublishQos2PubrecFailureReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.7.2.1
+    @Test
+    @Specification({
+        "${net}/publish.qos2.pubcomp.packet.id.not.found/client",
+        "${net}/publish.qos2.pubcomp.packet.id.not.found/server"})
+    public void shouldPublishQos2PubcompPacketIdNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3
+    @Test
+    @Specification({
+        "${net}/publish.qos2.acks.reordered/client",
+        "${net}/publish.qos2.acks.reordered/server"})
+    public void shouldPublishQos2AcksReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Specification({
+        "${net}/server.sent.pubrec.unknown.packet.id/client",
+        "${net}/server.sent.pubrec.unknown.packet.id/server"})
+    public void shouldRejectServerSentPubrecUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Specification({
+        "${net}/server.sent.pubcomp.unknown.packet.id/client",
+        "${net}/server.sent.pubcomp.unknown.packet.id/server"})
+    public void shouldRejectServerSentPubcompUnknownPacketId() throws Exception
     {
         k3po.finish();
     }
