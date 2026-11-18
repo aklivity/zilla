@@ -898,4 +898,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${net}/connect.reject.packet.type.zero/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

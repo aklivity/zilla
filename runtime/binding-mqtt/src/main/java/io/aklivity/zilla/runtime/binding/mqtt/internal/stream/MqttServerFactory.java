@@ -242,6 +242,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
     private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
+    private static final int PINGREQ_FIXED_HEADER = 0b1100_0000;
     private static final int PUBACK_FIXED_HEADER = 0b0100_0000;
     private static final int PUBREC_FIXED_HEADER = 0b0101_0000;
     private static final int PUBREL_FIXED_HEADER = 0b0110_0010;
@@ -1339,6 +1340,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int typeAndFlags = publishHeader.typeAndFlags();
             final int qos = calculatePublishApplicationQos(typeAndFlags);
 
+            reasonCode = decodePublishFlags(typeAndFlags);
+            if (reasonCode != SUCCESS)
+            {
+                break decode;
+            }
+
             String16FW topicName;
             int publishLimit;
             int packetId = 0;
@@ -1363,6 +1370,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 topicName = publish.topicName();
                 packetId = publish.packetId();
+                if (packetId == 0)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
                 publishLimit = publish.limit();
             }
             else
@@ -1458,6 +1470,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int typeAndFlags = publishHeader.typeAndFlags();
             final int qos = calculatePublishApplicationQos(typeAndFlags);
 
+            reasonCode = decodePublishFlags(typeAndFlags);
+            if (reasonCode != SUCCESS)
+            {
+                break decode;
+            }
+
             String16FW topicName;
             MqttPropertiesFW properties;
             int publishLimit;
@@ -1484,6 +1502,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 topicName = publish.topicName();
                 properties = publish.properties();
                 packetId = publish.packetId();
+                if (packetId == 0)
+                {
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
+                }
                 publishLimit = publish.limit();
             }
             else
@@ -1755,6 +1778,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         return offset + length;
+    }
+
+    private static int decodePublishFlags(
+        int typeAndFlags)
+    {
+        final boolean bothQosBits = (typeAndFlags & PUBLISH_QOS1_MASK) != 0 && (typeAndFlags & PUBLISH_QOS2_MASK) != 0;
+        final boolean dupWithoutQos = (typeAndFlags & PUBLISH_DUP_MASK) != 0 &&
+            (typeAndFlags & (PUBLISH_QOS1_MASK | PUBLISH_QOS2_MASK)) == 0;
+
+        return bothQosBits || dupWithoutQos ? MALFORMED_PACKET : SUCCESS;
     }
 
     private int calculatePublishApplicationQos(
@@ -2493,6 +2526,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
                 server.decoder = decodeIgnoreAll;
             }
+            else if ((ping.typeAndFlags() & 0b1111_1111) != PINGREQ_FIXED_HEADER || ping.remainingLength() != 0)
+            {
+                server.onDecodeError(traceId, authorization, MALFORMED_PACKET);
+                server.decoder = decodeIgnoreAll;
+            }
             else if (server.connected)
             {
                 server.onDecodePingReq(traceId, authorization, ping);
@@ -2664,7 +2702,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         int offset,
         int limit)
     {
-        server.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
+        final MqttPacketHeaderFW packet = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
+        final boolean reservedType = packet != null && (packet.typeAndFlags() >> 4) == 0;
+
+        server.onDecodeError(traceId, authorization, reservedType ? MALFORMED_PACKET : PROTOCOL_ERROR);
         server.decoder = decodeIgnoreAll;
         return limit;
     }

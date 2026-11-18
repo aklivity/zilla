@@ -861,4 +861,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
 }
