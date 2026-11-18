@@ -577,4 +577,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.acks.reordered.with.reason.codes/client",
+        "${app}/publish.qos1.acks.reordered.with.reason.codes/server"})
+    public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
 }
