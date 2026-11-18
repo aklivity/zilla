@@ -3017,7 +3017,10 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 progress += trace.restore(buffer, progress);
             }
-            diagnostics.clear();
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
             if (throwing)
             {
                 restoreDiagnostics(buffer, progress);

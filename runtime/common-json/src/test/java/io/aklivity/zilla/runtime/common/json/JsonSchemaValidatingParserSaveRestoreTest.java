@@ -101,6 +101,20 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
+    void shouldRestoreIntoAParserThatNeitherThrowsNorReportsDiagnostics()
+    {
+        final JsonSchema schema = JsonSchema.of(SCHEMA);
+        final byte[] bytes = FIRST.getBytes(UTF_8);
+
+        for (int split = 1; split < bytes.length; split++)
+        {
+            final List<String> unsplit = silentTwoWindows(schema, bytes, split, false);
+            final List<String> restored = silentTwoWindows(schema, bytes, split, true);
+            assertEquals(unsplit, restored, "split " + split);
+        }
+    }
+
+    @Test
     void shouldRejectARecordOfAParserWithDifferentDiagnostics()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -196,6 +210,32 @@ class JsonSchemaValidatingParserSaveRestoreTest
             parser.wrap(input, progress, bytes.length, true);
             pull(parser, trace);
         }
+
+        return trace;
+    }
+
+    private static List<String> silentTwoWindows(
+        JsonSchema schema,
+        byte[] bytes,
+        int split,
+        boolean save)
+    {
+        final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+        final UnsafeBufferEx record = new UnsafeBufferEx(new byte[RECORD_CAPACITY]);
+        final List<String> trace = new ArrayList<>();
+
+        JsonParserEx parser = schema.newParser(false, JsonEx.createParser());
+        parser.wrap(input, 0, split, false);
+        pull(parser, trace);
+        final int progress = split - parser.remaining();
+        if (save)
+        {
+            parser.save(record, RECORD_OFFSET);
+            parser = schema.newParser(false, JsonEx.createParser());
+            parser.restore(record, RECORD_OFFSET);
+        }
+        parser.wrap(input, progress, bytes.length, true);
+        pull(parser, trace);
 
         return trace;
     }
