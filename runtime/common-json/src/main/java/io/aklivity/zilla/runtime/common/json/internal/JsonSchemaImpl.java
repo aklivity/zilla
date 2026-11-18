@@ -237,6 +237,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final boolean combines;
     // true when a const or enum is compared as the canonical form of the value, rather than as a string
     private final boolean canon;
+    // true when the verdict of this schema for a scalar is decided by its checks of that scalar alone
+    private final boolean leaf;
     private final JsonNode raw;
 
     private List<String> retainedPaths;
@@ -718,6 +720,7 @@ public final class JsonSchemaImpl implements JsonSchema
             dependentRequired != null || dependentSchemas != null;
         this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
         this.combines = combined || constString != null || enumStrings != null || canon;
+        this.leaf = framed && !combines;
         this.raw = schema;
     }
 
@@ -891,6 +894,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.combined = false;
         this.combines = false;
         this.canon = false;
+        this.leaf = false;
         this.raw = null;
     }
 
@@ -966,6 +970,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.combined = false;
         this.combines = false;
         this.canon = false;
+        this.leaf = true;
         this.raw = null;
     }
 
@@ -3712,6 +3717,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private static final int PASSED = 128;
         private static final int FAILED = 256;
         private static final int NONE = -1;
+        private static final int LEAF = Integer.MIN_VALUE;
         private static final int FLAGS = 0;
         private static final int DEPTH = 1;
         private static final int COUNT = 2;
@@ -3739,6 +3745,8 @@ public final class JsonSchemaImpl implements JsonSchema
         private long[] requiredBits;
         // the canonical form of the value of a frame whose const or enum compares it, built as the events arrive
         private UniqueCanon[] canons;
+        // for a frame at a key whose value is checked as a scalar against a leaf schema, if it is one, without a frame
+        private JsonSchemaImpl[] leaves;
         // the matcher of each pattern of patternProperties, reset to each key rather than made for it
         private Map<Pattern, Matcher> matchers;
         // for an array frame under uniqueItems, the canonical form of the element being read and of those read
@@ -3818,6 +3826,10 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 needs = schema.needsContent;
             }
+            else if (direct == LEAF)
+            {
+                needs = leaves[frame].needsContent || containsNeedsContentNow(frame);
+            }
             else if (direct >= 0)
             {
                 needs = directsNeedContentNow(frame) || containsNeedsContentNow(frame);
@@ -3890,6 +3902,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     routeDirect(frame, event, parser);
                 }
+                else if (direct == LEAF)
+                {
+                    feedLeaf(frame, event, parser);
+                }
                 else if (direct == NONE && schema != ANY)
                 {
                     feedOwn(frame, schema, event, parser);
@@ -3909,7 +3925,8 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
 
                 advance(frame, event, parser);
-                if (frames[(frame * STRIDE) + DIRECT] < NONE)
+                final int skipping = frames[(frame * STRIDE) + DIRECT];
+                if (skipping < NONE && skipping != LEAF)
                 {
                     endSkip(frame, event);
                 }
@@ -3933,6 +3950,47 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 frames[(frame * STRIDE) + CONTAINS] = NONE;
             }
+        }
+
+        // the value of a key is checked against a leaf schema as a scalar without a frame for it, and given a frame
+        // if it turns out to be a container
+        private void feedLeaf(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final JsonSchemaImpl leaf = leaves[frame];
+            if (scalar(event))
+            {
+                checkLeaf(frame, leaf, event, parser);
+                frames[(frame * STRIDE) + DIRECT] = NONE;
+            }
+            else
+            {
+                frames[(frame * STRIDE) + DIRECT] = top;
+                push(leaf, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+                routeDirect(frame, event, parser);
+            }
+        }
+
+        private void checkLeaf(
+            int frame,
+            JsonSchemaImpl leaf,
+            Event event,
+            JsonSource parser)
+        {
+            final Matcher matcher = leaf.pattern != null ? matcher(leaf.pattern) : null;
+            if ((leaf.checkOpen(traceOf(frame), event, parser, matcher) & OPEN_INVALID) != 0)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+            }
+        }
+
+        private boolean scalar(
+            Event event)
+        {
+            return event != Event.START_OBJECT && event != Event.START_ARRAY && event != Event.END_OBJECT &&
+                event != Event.END_ARRAY && event != Event.KEY_NAME;
         }
 
         // a member or element whose schema accepts any value has no frame: the frame it is in only notes the depth
@@ -4481,9 +4539,19 @@ public final class JsonSchemaImpl implements JsonSchema
                     trace.keyOf(key);
                 }
             }
+            final JsonSchemaImpl target = applicable.ref != null ? applicable.target() : applicable;
             if (applicable == ANY)
             {
                 frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+            }
+            else if (target.leaf)
+            {
+                frames[(frame * STRIDE) + DIRECT] = LEAF;
+                if (leaves == null)
+                {
+                    leaves = new JsonSchemaImpl[schemas.length];
+                }
+                leaves[frame] = target;
             }
             else
             {
@@ -4660,6 +4728,11 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
                 }
+                else if (scalar(event) && !schema.uniqueItems && schema.contains == null &&
+                    (element.ref != null ? element.target() : element).leaf)
+                {
+                    checkLeaf(frame, element.ref != null ? element.target() : element, event, parser);
+                }
                 else
                 {
                     frames[(frame * STRIDE) + DIRECT] = top;
@@ -4697,6 +4770,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 if (canons != null)
                 {
                     canons = Arrays.copyOf(canons, capacity);
+                }
+                if (leaves != null)
+                {
+                    leaves = Arrays.copyOf(leaves, capacity);
                 }
                 if (uniques != null)
                 {
