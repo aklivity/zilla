@@ -1585,15 +1585,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodedPayloadFormat = mqttPublishHelper.payloadFormat;
                 server.decodedResponseTopic = new String16FW(mqttPublishHelper.responseTopic.asString());
 
-                if (mqttPublishHelper.correlationData != null)
-                {
-                    server.decodedCorrelationData = copyOf(mqttPublishHelper.correlationData);
-                }
-
-                if (mqttPublishHelper.userProperties != null)
-                {
-                    server.decodedUserProperties = copyOf(mqttPublishHelper.userProperties);
-                }
+                server.decodedCorrelationData = mqttPublishHelper.correlationData != null
+                    ? copyOf(mqttPublishHelper.correlationData)
+                    : null;
+                server.decodedUserProperties = mqttPublishHelper.userProperties != null
+                    ? copyOf(mqttPublishHelper.userProperties)
+                    : null;
 
                 final int decodeablePublishPayloadBytes =
                     publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
