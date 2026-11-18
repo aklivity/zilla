@@ -943,4 +943,34 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.qos.both.bits/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishWithBothQosBitsSet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.dup.qos0/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishDupWithQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

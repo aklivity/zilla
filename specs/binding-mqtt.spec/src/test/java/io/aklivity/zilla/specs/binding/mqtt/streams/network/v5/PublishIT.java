@@ -986,6 +986,16 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-3.3.1-4]
+    @Test
+    @Specification({
+        "${net}/publish.reject.qos.both.bits/client",
+        "${net}/publish.reject.qos.both.bits/server"})
+    public void shouldRejectPublishWithBothQosBitsSet() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 4.3.2, 3.4.2.1
     @Test
     @Specification({
@@ -996,12 +1006,32 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-3.3.1-2]
+    @Test
+    @Specification({
+        "${net}/publish.reject.dup.qos0/client",
+        "${net}/publish.reject.dup.qos0/server"})
+    public void shouldRejectPublishDupWithQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 4.13.1
     @Test
     @Specification({
         "${net}/server.sent.puback.unknown.packet.id/client",
         "${net}/server.sent.puback.unknown.packet.id/server"})
     public void shouldRejectServerSentPubackUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.reject.packet.id.zero/client",
+        "${net}/publish.reject.packet.id.zero/server"})
+    public void shouldRejectPublishPacketIdZero() throws Exception
     {
         k3po.finish();
     }
