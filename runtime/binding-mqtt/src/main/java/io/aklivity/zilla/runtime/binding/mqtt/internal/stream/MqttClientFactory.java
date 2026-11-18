@@ -2659,7 +2659,7 @@ public final class MqttClientFactory implements MqttStreamFactory
                     }
 
                     int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
-                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.limit());
+                    writeBuffer.putBytes(limit, payload.buffer(), payload.offset(), payload.sizeof());
                     limit += payload.sizeof();
                     doNetworkData(traceId, authorization, 0L, writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, limit);
                 }
