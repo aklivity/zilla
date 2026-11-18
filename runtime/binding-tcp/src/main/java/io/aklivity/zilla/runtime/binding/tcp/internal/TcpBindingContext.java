@@ -18,11 +18,13 @@ package io.aklivity.zilla.runtime.binding.tcp.internal;
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
-import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.IntUnaryOperator;
+
+import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
@@ -39,36 +41,55 @@ final class TcpBindingContext implements BindingContext
     private final Consumer<Runnable> dispatch;
 
     private final TcpUsageTracker usage;
+    private final Int2ObjectHashMap<TcpBindingContext> peers;
+    private final TcpSpillover spillover;
+    private final IntUnaryOperator peerLoad = this::peerLoad;
 
     TcpBindingContext(
         TcpConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        Int2ObjectHashMap<TcpBindingContext> peers)
     {
         this.usage = new TcpUsageTracker(config, context);
+        this.peers = peers;
+        this.spillover = new TcpSpillover(context.index(), config.rebalanceTolerance());
         Map<KindConfig, TcpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new TcpServerFactory(config, context, usage));
+        factories.put(SERVER, new TcpServerFactory(config, context, usage, this::spill));
         factories.put(CLIENT, new TcpClientFactory(config, context, usage));
 
         this.dispatch = context::dispatch;
         this.factories = factories;
     }
 
-    public boolean accepted(
+    private boolean spill(
         long bindingId,
-        SocketChannel channel,
-        InetSocketAddress local)
+        SocketChannel channel)
     {
-        boolean accepted = false;
-        if (usage.available() > 0)
-        {
-            usage.claim();
-            accepted = true;
+        final int index = spillover.select(peers.size(), usage.used(), usage.available() == 0, peerLoad);
+        final TcpBindingContext peer = index != TcpSpillover.NO_PEER ? peers.get(index) : null;
 
-            TcpAcceptedTask task = new TcpAcceptedTask(bindingId, channel, local);
-            dispatch.accept(task);
+        if (peer != null)
+        {
+            peer.dispatch.accept(() -> peer.spilled(bindingId, channel));
         }
 
-        return accepted;
+        return peer != null;
+    }
+
+    private int peerLoad(
+        int index)
+    {
+        final TcpBindingContext peer = peers.get(index);
+
+        return peer != null && peer.usage.available() > 0 ? peer.usage.used() : TcpSpillover.FULL;
+    }
+
+    private void spilled(
+        long bindingId,
+        SocketChannel channel)
+    {
+        final TcpServerFactory serverFactory = (TcpServerFactory) factories.get(SERVER);
+        serverFactory.onSpilled(bindingId, channel);
     }
 
     @Override
@@ -92,30 +113,6 @@ final class TcpBindingContext implements BindingContext
         if (tcpFactory != null)
         {
             tcpFactory.detach(binding.id);
-        }
-    }
-
-    private final class TcpAcceptedTask implements Runnable
-    {
-        private final long bindingId;
-        private final SocketChannel channel;
-        private final InetSocketAddress local;
-
-        TcpAcceptedTask(
-            long bindingId,
-            SocketChannel channel,
-            InetSocketAddress local)
-        {
-            this.bindingId = bindingId;
-            this.channel = channel;
-            this.local = local;
-        }
-
-        @Override
-        public void run()
-        {
-            TcpServerFactory serverFactory = (TcpServerFactory) factories.get(SERVER);
-            serverFactory.onAccepted(bindingId, channel, local);
         }
     }
 }

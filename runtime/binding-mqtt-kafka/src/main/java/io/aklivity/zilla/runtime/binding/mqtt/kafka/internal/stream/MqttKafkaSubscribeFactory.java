@@ -76,7 +76,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribe
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Varuint32FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeFrameFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.codec.MqttSubscribeMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
@@ -181,8 +181,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filtersRW =
         new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
 
-    private final Array32FW.Builder<Varuint32FW.Builder, Varuint32FW> subscriptionIdsRW =
-        new Array32FW.Builder<>(new Varuint32FW.Builder(), new Varuint32FW());
+    private final Array32FW.Builder<Varint32FW.Builder, Varint32FW> subscriptionIdsRW =
+        new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW());
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
