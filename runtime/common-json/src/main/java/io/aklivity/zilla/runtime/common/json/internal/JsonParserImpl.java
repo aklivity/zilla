@@ -67,10 +67,12 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  * <li>{@code verbatim}, {@code verbatimCursor}, {@code trimLeadingSeparator}, {@code tokenEnd},
  * {@code tokenEndLine}, {@code tokenEndColumn}: the verbatim read of the source and how much of it has been
  * handed out; the positions are saved only while {@code verbatim} is set</li>
+ * <li>{@code scanState}, {@code separatorPending}: where the scan of the verbatim run stands at
+ * the cursor, so the next block continues a token or a comma the last block ended on</li>
  * </ul>
  * Open across a window but not saved, so {@code save} refuses while any is open: {@code segmentState},
  * {@code segmentStartOffset}, {@code segmentDepth} (a segment scan), {@code skipping}, {@code skipDepth},
- * {@code skipOccupied} (a member being dropped), and an undrained verbatim step log.
+ * {@code skipOccupied} (a member being dropped), and a verbatim run with a token not yet pulled.
  * <p>
  * Window-local:
  * <ul>
@@ -82,8 +84,10 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  * <li>{@code currentEvent}, {@code continuation}, {@code stringViewOffset}, {@code stringCache},
  * {@code stringViewRO}, {@code emptyView}, {@code encodedView}, {@code escapedView}: the event just delivered
  * and the string read for it</li>
- * <li>{@code stepKinds}, {@code stepEnds}, {@code stepCount}, {@code stepHead}, {@code cursor}, {@code block}: the
- * step log of the verbatim run, which only a verbatim reader drains</li>
+ * <li>{@code blockKinds}, {@code blockCount}, {@code scanTail}, {@code cursor}, {@code block}: the steps of the
+ * block last pulled, derived when a verbatim reader pulls it</li>
+ * <li>{@code startDocumentPending}, {@code startDocumentAt}, {@code endDocumentPending}, {@code endDocumentAt}:
+ * the framing steps not yet handed out, which {@code save} refuses to leave behind</li>
  * <li>{@code mark}: the capture {@code rewind} returns to, valid only within the window it was taken in</li>
  * </ul>
  */
@@ -92,6 +96,11 @@ public final class JsonParserImpl implements JsonParserEx
     // a non-negative integer lexeme of at most this many digits is within long range; getInt()/getLong()
     // reject anything longer as too large for a primitive, directing the caller to getBigDecimal()
     private static final int LONG_DIGITS = 19;
+
+    private static final int SCAN_NORMAL = 0;
+    private static final int SCAN_STRING = 1;
+    private static final int SCAN_ESCAPE = 2;
+    private static final int SCAN_BARE = 3;
 
     private static final DocState[] DOC_STATES = DocState.values();
     private static final JsonEvent[] JSON_EVENTS = JsonEvent.values();
@@ -154,13 +163,20 @@ public final class JsonParserImpl implements JsonParserEx
     private final JsonStringView.Encoded encodedView = new JsonStringView.Encoded();
     private final JsonStringView.Escaped escapedView = new JsonStringView.Escaped();
     private String stringCache;
-    // structural step log of the current verbatim run: each delivered body event's step kind plus the stream
-    // offset at the end of its token, so getVerbatim() can bound a block on a token boundary. stepHead is the
-    // first step not yet handed out by a block; the log compacts once a prior run has been fully drained
-    private JsonStep[] stepKinds = new JsonStep[16];
-    private long[] stepEnds = new long[16];
-    private int stepCount;
-    private int stepHead;
+    // the structural transcript of the block getVerbatim() last handed out, derived from the block's own bytes
+    // when it is pulled, so nothing is recorded per delivered event
+    private JsonStep[] blockKinds = new JsonStep[16];
+    private int blockCount;
+    // where the scan of the verbatim run stands at verbatimCursor: inside a string or a bare token that the
+    // last block ended within, and whether a comma was consumed whose separator step belongs to the next token
+    private int scanState;
+    private int scanTail;
+    private boolean separatorPending;
+    // the zero-width framing steps of the run, handed out with the block that reaches the offset they stand at
+    private boolean startDocumentPending;
+    private long startDocumentAt;
+    private boolean endDocumentPending;
+    private long endDocumentAt;
     // true after a key or scalar fragment whose token is still open: the step it recorded stands for the whole
     // token, so the continuing fragments record none and only extend that step's byte range
     private boolean fragmentOpen;
@@ -212,8 +228,12 @@ public final class JsonParserImpl implements JsonParserEx
         String stringCache;
         long verbatimCursor;
         boolean trimLeadingSeparator;
-        int stepCount;
-        int stepHead;
+        int scanState;
+        boolean separatorPending;
+        boolean startDocumentPending;
+        long startDocumentAt;
+        boolean endDocumentPending;
+        long endDocumentAt;
         boolean continuation;
         boolean verbatim;
         int skipDepth;
@@ -294,7 +314,6 @@ public final class JsonParserImpl implements JsonParserEx
         syncedOffset = offset;
         syncedLength = limit - offset;
         frameBaseStreamOffset = tokenizer.streamOffset();
-        releaseSteps();
         tokenizer.wrap(buffer, offset, limit, terminal);
         tokenizer.window(limit - offset);
         return this;
@@ -342,8 +361,9 @@ public final class JsonParserImpl implements JsonParserEx
         stringViewOffset = 0;
         verbatimCursor = 0;
         trimLeadingSeparator = false;
-        stepCount = 0;
-        stepHead = 0;
+        resetFraming();
+        scanState = SCAN_NORMAL;
+        separatorPending = false;
         fragmentOpen = false;
         continuation = false;
         verbatim = false;
@@ -362,7 +382,7 @@ public final class JsonParserImpl implements JsonParserEx
         MutableDirectBufferEx buffer,
         int offset)
     {
-        if (skipping || segmentState != SegmentState.NONE || verbatim && stepCount != stepHead)
+        if (skipping || segmentState != SegmentState.NONE || verbatim && undrained())
         {
             throw new IllegalStateException("save requires a clean boundary outside a skip or segment");
         }
@@ -373,6 +393,8 @@ public final class JsonParserImpl implements JsonParserEx
         mode = JsonParseState.verbatim(mode, verbatim);
         mode = JsonParseState.trimLeadingSeparator(mode, trimLeadingSeparator);
         mode = JsonParseState.fragmentOpen(mode, fragmentOpen);
+        mode = JsonParseState.scanState(mode, scanState);
+        mode = JsonParseState.separatorPending(mode, separatorPending);
 
         int progress = offset;
         buffer.putInt(progress, mode);
@@ -411,6 +433,8 @@ public final class JsonParserImpl implements JsonParserEx
         verbatim = JsonParseState.verbatim(mode);
         trimLeadingSeparator = JsonParseState.trimLeadingSeparator(mode);
         fragmentOpen = JsonParseState.fragmentOpen(mode);
+        scanState = JsonParseState.scanState(mode);
+        separatorPending = JsonParseState.separatorPending(mode);
 
         if (verbatim)
         {
@@ -442,8 +466,7 @@ public final class JsonParserImpl implements JsonParserEx
         segmentDepth = 0;
         stringViewOffset = 0;
         stringCache = null;
-        stepCount = 0;
-        stepHead = 0;
+        resetFraming();
         continuation = false;
         skipping = false;
         skipDepth = 0;
@@ -482,8 +505,12 @@ public final class JsonParserImpl implements JsonParserEx
         mark.stringCache = stringCache;
         mark.verbatimCursor = verbatimCursor;
         mark.trimLeadingSeparator = trimLeadingSeparator;
-        mark.stepCount = stepCount;
-        mark.stepHead = stepHead;
+        mark.scanState = scanState;
+        mark.separatorPending = separatorPending;
+        mark.startDocumentPending = startDocumentPending;
+        mark.startDocumentAt = startDocumentAt;
+        mark.endDocumentPending = endDocumentPending;
+        mark.endDocumentAt = endDocumentAt;
         mark.continuation = continuation;
         mark.verbatim = verbatim;
         mark.skipDepth = skipDepth;
@@ -511,8 +538,12 @@ public final class JsonParserImpl implements JsonParserEx
         stringCache = mark.stringCache;
         verbatimCursor = mark.verbatimCursor;
         trimLeadingSeparator = mark.trimLeadingSeparator;
-        stepCount = mark.stepCount;
-        stepHead = mark.stepHead;
+        scanState = mark.scanState;
+        separatorPending = mark.separatorPending;
+        startDocumentPending = mark.startDocumentPending;
+        startDocumentAt = mark.startDocumentAt;
+        endDocumentPending = mark.endDocumentPending;
+        endDocumentAt = mark.endDocumentAt;
         fragmentOpen = false;
         continuation = mark.continuation;
         verbatim = mark.verbatim;
@@ -635,7 +666,6 @@ public final class JsonParserImpl implements JsonParserEx
             syncedOffset = offset;
             syncedLength = length;
             frameBaseStreamOffset = tokenizer.streamOffset();
-            releaseSteps();
             tokenizer.wrap(buffer, offset, offset + length, terminal);
         }
     }
@@ -762,14 +792,6 @@ public final class JsonParserImpl implements JsonParserEx
                 // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
                 // and skipValue()'s internal next() never reaches here
                 continuation = fragmentOpen;
-                if (continuation)
-                {
-                    extendStep();
-                }
-                else
-                {
-                    appendStep(event);
-                }
                 tokenEnd = tokenizer.streamOffset();
                 tokenEndLine = tokenizer.line();
                 tokenEndColumn = tokenizer.column();
@@ -777,14 +799,16 @@ public final class JsonParserImpl implements JsonParserEx
             }
             else if (mode == Mode.SEGMENTED && event == JsonEvent.START_DOCUMENT)
             {
-                appendFraming(toStep(event));
+                startDocumentPending = true;
+                startDocumentAt = tokenizer.streamOffset();
             }
             else if (event == JsonEvent.END_DOCUMENT)
             {
                 // align the verbatim cursor to the top-level close so the END_DOCUMENT block is exactly the
                 // trailing [documentEnd, frontier) range whether the body rode as VERBATIM or as a SEGMENT run
                 verbatimCursor = Math.max(verbatimCursor, tokenizer.documentEndOffset());
-                appendFraming(toStep(event));
+                endDocumentPending = true;
+                endDocumentAt = tokenizer.streamOffset();
             }
         }
         return event;
@@ -1153,51 +1177,46 @@ public final class JsonParserImpl implements JsonParserEx
         {
             return DRAINED;
         }
-        // drop any steps already behind the cursor — a skipValue() jumps the cursor past the dropped member's
-        // own steps
-        while (stepHead < stepCount && stepEnds[stepHead] <= verbatimCursor)
+        // a framing step at or behind the cursor stands for bytes already handed out, so it is dropped
+        final long cursorStart = verbatimCursor;
+        if (startDocumentPending && startDocumentAt <= cursorStart)
         {
-            stepHead++;
+            startDocumentPending = false;
+        }
+        if (endDocumentPending && endDocumentAt <= cursorStart)
+        {
+            endDocumentPending = false;
         }
         // a prior skipValue() of a container's first member leaves the new-first survivor with a dangling
-        // leading separator; trim it (and any leading whitespace) off the front of this run, and drop the
-        // SEPARATOR step the trimmed comma stood for so the block's structure matches its trimmed bytes
+        // leading separator; trim it (and any leading whitespace) off the front of this run, so the block's
+        // structure, derived from its trimmed bytes, matches them
         if (trimLeadingSeparator)
         {
             trimLeadingSeparator = !trimLeadingSeparator();
-            if (!trimLeadingSeparator && stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
-            {
-                stepHead++;
-            }
         }
         // the run not yet pulled is [verbatimCursor, parse-frontier); when it fits the byte limit drain all of
         // it — to the frontier, so trailing bytes consumed in end-of-window lookahead (a separator or whitespace
         // past the last token) are not stranded into a replaced window — otherwise bound to the highest token
         // boundary at or before the limit, so a partial block's bytes and structure still agree on a token
         final long frontier = tokenizer.streamOffset();
-        final long budget = verbatimCursor + limit;
-        final int from = stepHead;
-        final long byteEnd;
-        int last;
-        if (frontier <= budget)
+        final long budget = cursorStart + limit;
+        blockCount = 0;
+        if (startDocumentPending && startDocumentAt <= budget)
         {
-            byteEnd = frontier;
-            last = stepCount - 1;
+            addStep(JsonStep.START_DOCUMENT);
+            startDocumentPending = false;
         }
-        else
+        long byteEnd = scanBlock(budget, frontier);
+        if (endDocumentPending && endDocumentAt <= budget)
         {
-            last = from - 1;
-            for (int index = from; index < stepCount && stepEnds[index] <= budget; index++)
-            {
-                last = index;
-            }
-            byteEnd = last >= from ? stepEnds[last] : verbatimCursor;
+            addStep(JsonStep.END_DOCUMENT);
+            endDocumentPending = false;
+            byteEnd = Math.max(byteEnd, endDocumentAt);
         }
         final int length = (int) (byteEnd - verbatimCursor);
         verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
-        block.wrap(from, last);
+        block.wrap(0, blockCount - 1);
         verbatimCursor = byteEnd;
-        stepHead = last + 1;
         return block;
     }
 
@@ -1244,6 +1263,7 @@ public final class JsonParserImpl implements JsonParserEx
         }
 
         verbatimCursor = tokenizer.streamOffset();
+        resetScan();
         if (!skipping)
         {
             tokenEnd = verbatimCursor;
@@ -1287,90 +1307,177 @@ public final class JsonParserImpl implements JsonParserEx
         return b == ' ' || b == '\t' || b == '\n' || b == '\r';
     }
 
-    // Records a delivered body event as one or more steps of the current verbatim run, each tagged with the
-    // stream offset at the end of its token so getVerbatim() can bound a block on a token boundary. A separated
-    // member/element is preceded by a SEPARATOR step (the comma carried in the source bytes). The log compacts
-    // once a prior run has been fully drained by getVerbatim() (stepHead caught up to stepCount).
-    private void appendStep(
-        JsonEvent kind)
+    private boolean undrained()
     {
-        if (stepHead == stepCount)
-        {
-            stepCount = 0;
-            stepHead = 0;
-        }
-        final long end = tokenizer.streamOffset();
-        // a separated member/element carries its comma in the source bytes; the tokenizer reports it one-shot
-        // per token, so emit exactly one SEPARATOR step ahead of that token — no container tracking needed
-        if (tokenizer.separatorBefore())
-        {
-            append(JsonStep.SEPARATOR, end);
-        }
-        append(toStep(kind), end);
+        return verbatimCursor < tokenEnd || startDocumentPending || endDocumentPending;
     }
 
-    // a step ending at or before the window base lies in bytes the window no longer holds, so getVerbatim() can
-    // never hand it out; releasing it keeps the log to the steps of the window for a reader that never drains it
-    private void releaseSteps()
+    private void resetFraming()
     {
-        while (stepHead < stepCount && stepEnds[stepHead] <= frameBaseStreamOffset)
-        {
-            stepHead++;
-        }
+        startDocumentPending = false;
+        endDocumentPending = false;
     }
 
-    // A continuing fragment of a token whose step is already recorded adds no step -- a second step for the same
-    // token would be applied as a second member or element -- but the bytes it carries extend that step's token
-    // while it is still unpulled, keeping a bounded block's bytes and steps agreed on a token boundary.
-    private void extendStep()
+    private void resetScan()
     {
-        if (stepHead < stepCount)
-        {
-            stepEnds[stepCount - 1] = tokenizer.streamOffset();
-        }
+        scanState = SCAN_NORMAL;
+        separatorPending = false;
     }
 
-    // records a framing step (no separator, no occupancy) at the current frontier; for END_DOCUMENT this makes
-    // its byte range the document's trailing bytes, for START_DOCUMENT a zero-width step getVerbatim() bounds
-    private void appendFraming(
+    private void addStep(
         JsonStep step)
     {
-        if (stepHead == stepCount)
+        if (blockCount == blockKinds.length)
         {
-            stepCount = 0;
-            stepHead = 0;
+            blockKinds = Arrays.copyOf(blockKinds, blockCount * 2);
         }
-        append(step, tokenizer.streamOffset());
+        blockKinds[blockCount++] = step;
     }
 
-    private void append(
-        JsonStep step,
-        long end)
+    // Appends the structural steps of the tokens of [verbatimCursor, frontier) that end within the budget, read
+    // from the bytes themselves, and advances the carried scan state to where the block ends. A comma yields its
+    // separator step with the token it precedes, so a block ends on a token and carries a trailing comma over.
+    // Returns the stream offset the block ends at: the frontier when the whole run fits the budget, otherwise
+    // the end of the last token that does.
+    private long scanBlock(
+        long budget,
+        long frontier)
     {
-        if (stepCount == stepKinds.length)
+        final DirectBufferEx buffer = ownedInput.buffer();
+        final boolean whole = frontier <= budget;
+        int state = scanState;
+        boolean pending = separatorPending;
+        long position = verbatimCursor;
+        long accepted = position;
+        int acceptedState = state;
+        boolean acceptedPending = pending;
+        boolean rejected = false;
+
+        while (position < frontier && !rejected)
         {
-            stepKinds = Arrays.copyOf(stepKinds, stepCount * 2);
-            stepEnds = Arrays.copyOf(stepEnds, stepCount * 2);
+            final byte b = buffer.getByte(bufferOffset(position));
+            final boolean continuing = state == SCAN_STRING || state == SCAN_ESCAPE || state == SCAN_BARE && !isDelimiter(b);
+            if (!continuing && (isWhitespace(b) || b == ':' || b == ','))
+            {
+                pending |= b == ',';
+                state = SCAN_NORMAL;
+                position++;
+            }
+            else
+            {
+                final JsonStep step;
+                final long end;
+                final int tail;
+                if (continuing)
+                {
+                    step = null;
+                    end = state == SCAN_BARE
+                        ? scanBare(buffer, position, frontier)
+                        : scanString(buffer, position, frontier, state == SCAN_ESCAPE);
+                    tail = state == SCAN_BARE ? end == frontier ? SCAN_BARE : SCAN_NORMAL : scanTail;
+                }
+                else if (b == '"')
+                {
+                    end = scanString(buffer, position + 1, frontier, false);
+                    tail = scanTail;
+                    step = tail == SCAN_NORMAL && keyAhead(buffer, end, frontier) ? JsonStep.KEY_NAME : JsonStep.VALUE;
+                }
+                else if (b == '{' || b == '[' || b == '}' || b == ']')
+                {
+                    end = position + 1;
+                    tail = SCAN_NORMAL;
+                    step = b == '{' ? JsonStep.START_OBJECT : b == '[' ? JsonStep.START_ARRAY
+                        : b == '}' ? JsonStep.END_OBJECT : JsonStep.END_ARRAY;
+                }
+                else
+                {
+                    end = scanBare(buffer, position, frontier);
+                    tail = end == frontier ? SCAN_BARE : SCAN_NORMAL;
+                    step = JsonStep.VALUE;
+                }
+
+                if (!whole && end > budget)
+                {
+                    rejected = true;
+                }
+                else
+                {
+                    if (step != null)
+                    {
+                        if (pending)
+                        {
+                            addStep(JsonStep.SEPARATOR);
+                            pending = false;
+                        }
+                        addStep(step);
+                    }
+                    position = end;
+                    state = tail;
+                    accepted = end;
+                    acceptedState = state;
+                    acceptedPending = pending;
+                }
+            }
         }
-        stepKinds[stepCount] = step;
-        stepEnds[stepCount] = end;
-        stepCount++;
+
+        scanState = whole ? state : acceptedState;
+        separatorPending = whole ? pending : acceptedPending;
+        return whole ? frontier : accepted;
     }
 
-    private static JsonStep toStep(
-        JsonEvent kind)
+    // the end of the string whose content starts at from, or the frontier when it is still open there
+    private long scanString(
+        DirectBufferEx buffer,
+        long from,
+        long frontier,
+        boolean escaped)
     {
-        return switch (kind)
+        long position = from;
+        boolean escape = escaped;
+        boolean closed = false;
+        while (position < frontier && !closed)
         {
-        case START_DOCUMENT -> JsonStep.START_DOCUMENT;
-        case END_DOCUMENT -> JsonStep.END_DOCUMENT;
-        case START_OBJECT -> JsonStep.START_OBJECT;
-        case END_OBJECT -> JsonStep.END_OBJECT;
-        case START_ARRAY -> JsonStep.START_ARRAY;
-        case END_ARRAY -> JsonStep.END_ARRAY;
-        case KEY_NAME -> JsonStep.KEY_NAME;
-        default -> JsonStep.VALUE;
-        };
+            final byte b = buffer.getByte(bufferOffset(position));
+            closed = !escape && b == '"';
+            escape = !escape && b == '\\';
+            position++;
+        }
+        scanTail = closed ? SCAN_NORMAL : escape ? SCAN_ESCAPE : SCAN_STRING;
+        return position;
+    }
+
+    private long scanBare(
+        DirectBufferEx buffer,
+        long from,
+        long frontier)
+    {
+        long position = from;
+        while (position < frontier && !isDelimiter(buffer.getByte(bufferOffset(position))))
+        {
+            position++;
+        }
+        return position;
+    }
+
+    // a closed string is a key when a colon follows it; a string that is the last token read has no byte after it
+    // yet, so it is a key when the last event delivered was
+    private boolean keyAhead(
+        DirectBufferEx buffer,
+        long from,
+        long frontier)
+    {
+        long position = from;
+        while (position < frontier && isWhitespace(buffer.getByte(bufferOffset(position))))
+        {
+            position++;
+        }
+        return position < frontier ? buffer.getByte(bufferOffset(position)) == ':' : lastEvent == JsonEvent.KEY_NAME;
+    }
+
+    private static boolean isDelimiter(
+        byte b)
+    {
+        return isWhitespace(b) || b == ',' || b == ':' || b == ']' || b == '}';
     }
 
     // the string the scope replaced is not a run to splice: what a byte-preserving downstream has not yet taken is
@@ -1378,7 +1485,8 @@ public final class JsonParserImpl implements JsonParserEx
     private void closeScope()
     {
         verbatimCursor = tokenizer.streamOffset();
-        stepHead = stepCount;
+        resetFraming();
+        resetScan();
 
         tokenEnd = tokenizer.streamOffset();
         tokenEndLine = tokenizer.line();
@@ -1712,7 +1820,7 @@ public final class JsonParserImpl implements JsonParserEx
         @Override
         public JsonStep next()
         {
-            return stepKinds[index++];
+            return blockKinds[index++];
         }
     }
 

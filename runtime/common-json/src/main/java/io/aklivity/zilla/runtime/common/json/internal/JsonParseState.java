@@ -36,7 +36,8 @@ package io.aklivity.zilla.runtime.common.json.internal;
  * </ul>
  * The parser record is a {@code mode} word of its own followed by the tokenizer record: bits 0 and 1 the document
  * state, 2 to 7 the last event delivered (0 for none, else its ordinal plus one), 8 arm next value, 9 verbatim,
- * 10 trim leading separator, 11 fragment open.
+ * 10 trim leading separator, 11 fragment open, 12 to 13 the verbatim scan state (0 between tokens, 1 inside a string,
+ * 2 after a backslash in a string, 3 inside a bare token), 14 separator pending.
  */
 final class JsonParseState
 {
@@ -316,6 +317,8 @@ final class JsonParseState
     private static final int VERBATIM = 1 << 9;
     private static final int TRIM_LEADING_SEPARATOR = 1 << 10;
     private static final int FRAGMENT_OPEN = 1 << 11;
+    private static final int SCAN_STATE_SHIFT = 12;
+    private static final int SEPARATOR_PENDING = 1 << 14;
     private static final int TWO_BITS = 0x3;
     private static final int SIX_BITS = 0x3f;
 
@@ -395,6 +398,32 @@ final class JsonParseState
         boolean on)
     {
         return flag(mode, FRAGMENT_OPEN, on);
+    }
+
+    static int scanState(
+        int mode)
+    {
+        return mode >>> SCAN_STATE_SHIFT & TWO_BITS;
+    }
+
+    static int scanState(
+        int mode,
+        int scanState)
+    {
+        return mode & ~(TWO_BITS << SCAN_STATE_SHIFT) | scanState << SCAN_STATE_SHIFT;
+    }
+
+    static boolean separatorPending(
+        int mode)
+    {
+        return (mode & SEPARATOR_PENDING) != 0;
+    }
+
+    static int separatorPending(
+        int mode,
+        boolean on)
+    {
+        return flag(mode, SEPARATOR_PENDING, on);
     }
 
     private static int flag(
