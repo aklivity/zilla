@@ -41,6 +41,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_IDS_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED;
@@ -8871,6 +8872,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                         reasonCode = MALFORMED_PACKET;
                         break decode;
                     }
+
+                    if (!validator.isTopicNameValid(willTopic.asString()))
+                    {
+                        reasonCode = TOPIC_NAME_INVALID;
+                        break decode;
+                    }
                 }
 
                 if (isSetUsername(flags))
@@ -8954,6 +8961,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         if (mResponseTopic.value() != null)
                         {
+                            final String responseTopicName = mResponseTopic.asString();
+                            if (!validator.isTopicNameValid(responseTopicName))
+                            {
+                                reasonCode = (byte) topicReasonCode(responseTopicName);
+                                break decode;
+                            }
+
                             final int offset = mResponseTopic.offset();
                             final int limit = mResponseTopic.limit();
 

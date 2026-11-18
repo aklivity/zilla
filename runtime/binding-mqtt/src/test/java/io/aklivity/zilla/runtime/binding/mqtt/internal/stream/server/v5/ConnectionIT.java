@@ -871,4 +871,22 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client"})
+    public void shouldRejectWillTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.response.topic.wildcard/client"})
+    public void shouldRejectWillResponseTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
 }
