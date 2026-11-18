@@ -1065,4 +1065,13 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/publish.many.messages/client",
+        "${net}/publish.many.messages/server"})
+    public void shouldPublishManyMessages() throws Exception
+    {
+        k3po.finish();
+    }
 }
