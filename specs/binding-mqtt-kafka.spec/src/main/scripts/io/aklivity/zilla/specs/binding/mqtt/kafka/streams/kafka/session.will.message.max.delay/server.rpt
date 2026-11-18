@@ -285,5 +285,7 @@ read ${mqtt:sessionSignal()
                .build()
            .build()}
 
+write notify RECEIVED_WILL_DELIVER_AT_SIGNAL
+
 read aborted
 write abort
