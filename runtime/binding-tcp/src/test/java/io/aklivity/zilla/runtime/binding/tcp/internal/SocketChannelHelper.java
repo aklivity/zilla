@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.binding.tcp.internal;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.PrimitiveIterator;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 
@@ -108,6 +110,32 @@ public final class SocketChannelHelper
         }
     }
 
+    public static class BindHelper extends Helper
+    {
+        private static final List<Integer> BACKLOGS = new CopyOnWriteArrayList<>();
+
+        protected BindHelper(org.jboss.byteman.rule.Rule rule)
+        {
+            super(rule);
+        }
+
+        public void record(
+            int backlog)
+        {
+            BACKLOGS.add(backlog);
+        }
+
+        public static List<Integer> backlogs()
+        {
+            return List.copyOf(BACKLOGS);
+        }
+
+        private static void reset()
+        {
+            BACKLOGS.clear();
+        }
+    }
+
     public static class CountDownHelper extends Helper
     {
         private static CountDownLatch latch;
@@ -156,6 +184,7 @@ public final class SocketChannelHelper
         OnDataHelper.reset();
         HandleWriteHelper.reset();
         DoConnectHelper.reset();
+        BindHelper.reset();
     }
 
     private static int write(
