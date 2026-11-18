@@ -270,4 +270,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/disconnect.update.session.expiry/server",
+        "${app}/session.disconnect.update.session.expiry/client"})
+    public void shouldDisconnectWithUpdatedSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
 }

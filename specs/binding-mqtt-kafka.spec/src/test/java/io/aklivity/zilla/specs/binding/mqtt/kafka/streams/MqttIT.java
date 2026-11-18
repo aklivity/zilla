@@ -1841,4 +1841,13 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.end.expiry.zero/client",
+        "${mqtt}/session.close.end.expiry.zero/server"})
+    public void shouldCloseSessionWithEndExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

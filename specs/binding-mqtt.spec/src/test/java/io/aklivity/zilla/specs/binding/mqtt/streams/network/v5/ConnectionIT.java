@@ -928,4 +928,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${net}/disconnect.update.session.expiry/client",
+        "${net}/disconnect.update.session.expiry/server"})
+    public void shouldDisconnectWithUpdatedSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
 }

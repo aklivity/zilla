@@ -2051,4 +2051,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.close.end.expiry.zero/client",
+        "${kafka}/session.close.end.expiry.zero/server"})
+    public void shouldCloseSessionWithEndExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

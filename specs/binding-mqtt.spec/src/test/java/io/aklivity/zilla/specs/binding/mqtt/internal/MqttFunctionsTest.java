@@ -38,6 +38,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateVersi
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
@@ -2002,5 +2003,51 @@ public class MqttFunctionsTest
         assertEquals("zilla-1", signal.expiry().instanceId().asString());
         assertEquals(20, signal.expiry().delay());
         assertEquals(-1, signal.expiry().expireAt());
+    }
+
+    @Test
+    public void shouldEncodeMqttEndEx()
+    {
+        final byte[] array = MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttEndExFW endEx = new MqttEndExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, endEx.typeId());
+        assertEquals(30, endEx.expiry());
+    }
+
+    @Test
+    public void shouldMatchMqttEndEx() throws Exception
+    {
+        final BytesMatcher matcher = MqttFunctions.matchEndEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchMqttEndExWithOtherExpiry()
+    {
+        final BytesMatcher matcher = MqttFunctions.matchEndEx()
+            .typeId(0x01)
+            .expiry(0)
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 }
