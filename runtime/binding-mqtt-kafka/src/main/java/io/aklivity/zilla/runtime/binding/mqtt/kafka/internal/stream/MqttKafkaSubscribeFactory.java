@@ -1473,10 +1473,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             {
                                 b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
                             }
-                            if (helper.replyTo != null)
+                            if (helper.replyKey != null)
                             {
                                 b.responseTopic(
-                                    helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
+                                    helper.replyKey.buffer(), helper.replyKey.offset(), helper.replyKey.sizeof());
                             }
                             if (helper.correlation != null)
                             {
@@ -2203,10 +2203,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             {
                                 b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
                             }
-                            if (helper.replyTo != null)
+                            if (helper.replyKey != null)
                             {
                                 b.responseTopic(
-                                    helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
+                                    helper.replyKey.buffer(), helper.replyKey.offset(), helper.replyKey.sizeof());
                             }
                             if (helper.correlation != null)
                             {
@@ -4414,9 +4414,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 {
                     b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
                 }
-                if (helper.replyTo != null)
+                if (helper.replyKey != null)
                 {
-                    b.responseTopic(helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
+                    b.responseTopic(helper.replyKey.buffer(), helper.replyKey.offset(), helper.replyKey.sizeof());
                 }
                 if (helper.correlation != null)
                 {
