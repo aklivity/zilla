@@ -841,4 +841,24 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectInvalidFixedHeaderFlagsNoReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.followed.by.pingreq/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectFollowedByPingreq() throws Exception
+    {
+        k3po.finish();
+    }
 }

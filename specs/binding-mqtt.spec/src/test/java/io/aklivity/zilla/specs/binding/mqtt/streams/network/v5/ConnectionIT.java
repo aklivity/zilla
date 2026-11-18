@@ -878,4 +878,24 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/client",
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/server"})
+    public void shouldRejectDisconnectInvalidFixedHeaderFlagsNoReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/disconnect.followed.by.pingreq/client",
+        "${net}/disconnect.followed.by.pingreq/server"})
+    public void shouldDisconnectFollowedByPingreq() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -392,4 +392,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only/client",
+        "${net}/session.will.message.disconnect.reason.code.only/server"})
+    public void shouldDisconnectWithReasonCodeOnlyWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only.error/client",
+        "${net}/session.will.message.disconnect.reason.code.only.error/server"})
+    public void shouldDisconnectWithReasonCodeOnlyError() throws Exception
+    {
+        k3po.finish();
+    }
 }

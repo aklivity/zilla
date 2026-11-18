@@ -2554,7 +2554,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = PROTOCOL_ERROR;
             }
-            else if ((disconnectV4.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
+            else if ((disconnectV4.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER ||
+                disconnectV4.remainingLength() != 0)
             {
                 reasonCode = MALFORMED_PACKET;
             }
@@ -2588,36 +2589,51 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         int progress = offset;
 
-        decode:
         if (length > 0)
         {
-            int reasonCode = NORMAL_DISCONNECT;
+            int reasonCode = SUCCESS;
 
-            if (limit - offset == 2)
-            {
-                server.onDecodeDisconnectV5(traceId, authorization, null);
-                progress = limit;
-                server.decoder = decodePacketTypeByVersion.get(server.version);
-                break decode;
-            }
-
-            final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
-            if (disconnectV5 == null)
+            final MqttPacketHeaderFW header = mqttPacketHeaderRO.tryWrap(buffer, offset, limit);
+            if (header == null)
             {
                 reasonCode = PROTOCOL_ERROR;
             }
-            else if ((disconnectV5.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
+            else if ((header.typeAndFlags() & 0b1111_1111) != DISCONNECT_FIXED_HEADER)
             {
                 reasonCode = MALFORMED_PACKET;
             }
-
-            if (reasonCode == 0)
-            {
-                server.onDecodeDisconnectV5(traceId, authorization, disconnectV5);
-                server.decoder = decodePacketTypeByVersion.get(server.version);
-                progress = disconnectV5.limit();
-            }
             else
+            {
+                switch (header.remainingLength())
+                {
+                case 0:
+                    server.onDecodeDisconnectV5(traceId, authorization, NORMAL_DISCONNECT, null);
+                    progress = header.limit();
+                    server.decoder = decodePacketTypeByVersion.get(server.version);
+                    break;
+                case 1:
+                    server.onDecodeDisconnectV5(traceId, authorization, buffer.getByte(header.limit()) & 0xff, null);
+                    progress = header.limit() + 1;
+                    server.decoder = decodePacketTypeByVersion.get(server.version);
+                    break;
+                default:
+                    final MqttDisconnectV5FW disconnectV5 = mqttDisconnectV5RO.tryWrap(buffer, offset, limit);
+                    if (disconnectV5 == null)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                    }
+                    else
+                    {
+                        server.onDecodeDisconnectV5(traceId, authorization, disconnectV5.reasonCode(),
+                            disconnectV5.properties());
+                        progress = disconnectV5.limit();
+                        server.decoder = decodePacketTypeByVersion.get(server.version);
+                    }
+                    break;
+                }
+            }
+
+            if (reasonCode != SUCCESS)
             {
                 server.onDecodeError(traceId, authorization, reasonCode);
                 server.decoder = decodeIgnoreAll;
@@ -5044,11 +5060,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onDecodeDisconnectV5(
             long traceId,
             long authorization,
-            MqttDisconnectV5FW disconnect)
+            int disconnectReasonCode,
+            MqttPropertiesFW properties)
         {
-            byte reasonCode = disconnect != null ? decodeDisconnectProperties(disconnect.properties()) : SUCCESS;
+            byte reasonCode = properties != null ? decodeDisconnectProperties(properties) : SUCCESS;
 
-            if (reasonCode == SUCCESS && disconnect != null && !isDisconnectReasonCode(disconnect.reasonCode()))
+            if (reasonCode == SUCCESS && !isDisconnectReasonCode(disconnectReasonCode))
             {
                 reasonCode = PROTOCOL_ERROR;
             }
@@ -5060,7 +5077,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                if (disconnect != null && disconnect.reasonCode() != NORMAL_DISCONNECT)
+                if (disconnectReasonCode != NORMAL_DISCONNECT)
                 {
                     session.doSessionAbort(traceId);
                 }
