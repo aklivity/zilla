@@ -216,6 +216,10 @@ public final class JsonSchemaImpl implements JsonSchema
     // true when this schema is evaluated on the frame stack: none of its keywords needs state that cannot be
     // kept as numbers per frame, so the value is tracked without an evaluator per applied schema
     private final boolean framed;
+    // true when this schema applies allOf, anyOf, oneOf, not or if to the value it is applied to
+    private final boolean combined;
+    // true when the verdict of this schema is more than whether a check of its own value failed
+    private final boolean combines;
     private final JsonNode raw;
 
     private List<String> retainedPaths;
@@ -676,6 +680,8 @@ public final class JsonSchemaImpl implements JsonSchema
             !(context != null && is2019Plus(context.draft())) &&
             simpleObject && contains == null && !uniqueItems && unevaluatedItems == null &&
             !((constantCanon != null || enumCanons != null) && constString == null && enumStrings == null);
+        this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null;
+        this.combines = combined || constString != null || enumStrings != null;
         this.raw = schema;
     }
 
@@ -782,6 +788,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // resolve (and risk cycling through) the target schema just to precompute this flag
         this.needsContent = true;
         this.framed = false;
+        this.combined = false;
+        this.combines = false;
         this.raw = null;
     }
 
@@ -844,6 +852,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // ANY has no keywords at all; NONE (deny) rejects unconditionally regardless of content
         this.needsContent = false;
         this.framed = true;
+        this.combined = false;
+        this.combines = false;
         this.raw = null;
     }
 
@@ -3759,8 +3769,15 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             if (frames[(frame << SHIFT) + DEPTH] == 0)
             {
-                finish(frame, combine(frame, parser));
+                finish(frame, combines(frame) ? combine(frame, parser)
+                    : (frames[(frame << SHIFT) + FLAGS] & INVALID) == 0 ? Verdict.VALID : Verdict.INVALID);
             }
+        }
+
+        private boolean combines(
+            int frame)
+        {
+            return schemas[frame].combines;
         }
 
         private void finish(
@@ -3800,6 +3817,20 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
 
+            if (valid && schema.combined)
+            {
+                valid = combineCombinators(frame, schema, parser);
+            }
+            return valid ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        private boolean combineCombinators(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final Trace trace = traceOf(frame);
+            boolean valid = true;
             int combinator = frames[(frame << SHIFT) + COMBINATOR_FIRST];
             if (valid && schema.allOf != null)
             {
@@ -3886,7 +3917,7 @@ public final class JsonSchemaImpl implements JsonSchema
                     }
                 }
             }
-            return valid ? Verdict.VALID : Verdict.INVALID;
+            return valid;
         }
 
         private void open(
@@ -3921,7 +3952,10 @@ public final class JsonSchemaImpl implements JsonSchema
                 state |= ARRAY;
             }
             frames[(frame << SHIFT) + FLAGS] = state;
-            pushCombinators(frame, schema);
+            if (schema.combined)
+            {
+                pushCombinators(frame, schema);
+            }
         }
 
         // allOf subschemas report as the schema does; the others select among candidates, where a subschema that
