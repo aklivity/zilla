@@ -528,6 +528,15 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.dollar.topic/client",
+        "${net}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Specification({
         "${net}/subscribe.topic.guarded.identity.param/client",
         "${net}/subscribe.topic.guarded.identity.param/server"})
@@ -1136,6 +1145,24 @@ public class SubscribeIT
         "${net}/subscribe.shared.receive.message.qos1/client",
         "${net}/subscribe.shared.receive.message.qos1/server"})
     public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.dollar.topic/client",
+        "${net}/subscribe.shared.receive.message.dollar.topic/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.message.dollar.topic.filter/client",
+        "${net}/subscribe.shared.receive.message.dollar.topic.filter/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopicFilter() throws Exception
     {
         k3po.finish();
     }
