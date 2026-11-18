@@ -2024,7 +2024,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         }
                         else if (type.equals(EXPIRY_SIGNAL_NAME_OCTETS) && sessionExpiryIds.containsKey(clientId))
                         {
-                            signaler.cancel(sessionExpiryIds.get(clientId));
+                            signaler.cancel(sessionExpiryIds.removeKey(clientId));
                         }
 
                         break reactToSignal;
@@ -2103,7 +2103,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             final long signalId =
                                 signaler.signalAt(expireAt, originId, routedId, initialId, traceId,
                                     SIGNAL_EXPIRE_SESSION, contextId);
-                            sessionExpiryIds.put(expiryClientId, signalId);
+                            final long previousSignalId = sessionExpiryIds.put(expiryClientId, signalId);
+                            if (previousSignalId != sessionExpiryIds.missingValue())
+                            {
+                                signaler.cancel(previousSignalId);
+                            }
                             break;
                         }
 
@@ -2258,7 +2262,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private void onKafkaSessionExpirySignal(
             SignalFW signal)
         {
-            final String16FW clientId = expiryClientIds.get(signal.contextId());
+            final String16FW clientId = expiryClientIds.remove(signal.contextId());
+            sessionExpiryIds.removeKey(clientId);
             final String16FW clientIdOffsets = new String16FW(clientId.asString() + OFFSETS_KEY_POSTFIX);
             final StoreHandler store = supplyBinding.apply(originId).store;
 
