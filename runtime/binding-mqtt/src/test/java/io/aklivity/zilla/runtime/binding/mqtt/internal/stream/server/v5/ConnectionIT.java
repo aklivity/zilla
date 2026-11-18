@@ -183,7 +183,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.protocol.version.yaml")
+    @Configuration("server.protocol.version.v4.yaml")
     @Specification({
         "${net}/connect.unsupported.protocol.version/client"})
     public void shouldRejectUnsupportedProtocolVersion() throws Exception
