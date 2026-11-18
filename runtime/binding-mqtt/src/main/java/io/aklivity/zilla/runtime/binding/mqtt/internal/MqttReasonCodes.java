@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 public final class MqttReasonCodes
 {
+    public static final int NO_CONNACK = -1;
+
     public static final byte SUCCESS = 0x00;
 
     public static final byte NORMAL_DISCONNECT = 0x00;
@@ -39,6 +41,8 @@ public final class MqttReasonCodes
     public static final byte UNACCEPTABLE_PROTOCOL_VERSION_V4 = (byte) 0x01;
     public static final byte IDENTIFIER_REJECTED = (byte) 0x02;
     public static final byte SERVER_UNAVAILABLE_V4 = (byte) 0x03;
+    public static final byte BAD_USER_NAME_OR_PASSWORD_V4 = (byte) 0x04;
+    public static final byte NOT_AUTHORIZED_V4 = (byte) 0x05;
     public static final byte SUBACK_FAILURE_CODE_V4 = (byte) 0x80;
     public static final byte PACKET_TOO_LARGE = (byte) 0x95;
     public static final byte WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = (byte) 0xa2;
@@ -120,6 +124,44 @@ public final class MqttReasonCodes
     private MqttReasonCodes()
     {
         // Utility
+    }
+
+    public static int connackReasonCodeV4(
+        int reasonCode)
+    {
+        final int code = reasonCode & 0xff;
+
+        final int connackReasonCode;
+        switch (code)
+        {
+        case 0x00:
+        case 0x01:
+        case 0x02:
+        case 0x03:
+        case 0x04:
+        case 0x05:
+            connackReasonCode = code;
+            break;
+        case 0x84:
+            connackReasonCode = UNACCEPTABLE_PROTOCOL_VERSION_V4;
+            break;
+        case 0x86:
+            connackReasonCode = BAD_USER_NAME_OR_PASSWORD_V4;
+            break;
+        case 0x87:
+            connackReasonCode = NOT_AUTHORIZED_V4;
+            break;
+        case 0x88:
+        case 0x89:
+        case 0x9d:
+            connackReasonCode = SERVER_UNAVAILABLE_V4;
+            break;
+        default:
+            connackReasonCode = NO_CONNACK;
+            break;
+        }
+
+        return connackReasonCode;
     }
 
     public static boolean isError(
