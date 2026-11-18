@@ -1325,6 +1325,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.messages.qos2.sparse.offsets/client",
+        "${kafka}/subscribe.receive.messages.qos2.sparse.offsets/server"})
+    public void shouldReceiveMessagesQoS2SparseOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.qos2.version1.offset.metadata/client",
         "${kafka}/subscribe.qos2.version1.offset.metadata/server"})
     public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception

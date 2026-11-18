@@ -36,7 +36,9 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -546,15 +548,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final KafkaProxy proxy = messagesId != -1 ? messages.get(messagesId) : retained;
 
-            if (highWaterMark.offset >= offset.offset)
+            if (!highWaterMark.awaitingAcknowledge(offset.offset))
             {
-                highWaterMark.increase();
+                commitOffset(traceId, authorization, budgetId, reserved, proxy, offsetCommit);
+            }
+            else if (highWaterMark.nextAcknowledge(offset.offset))
+            {
+                highWaterMark.acknowledge(offset.offset);
                 commitOffset(traceId, authorization, budgetId, reserved, proxy, offsetCommit);
                 commitDeferredOffsets(traceId, authorization, budgetId, reserved, highWaterMark);
-            }
-            else if (qos == MqttQoS.EXACTLY_ONCE.value() && state != MqttOffsetStateFlags.INCOMPLETE)
-            {
-                commitOffset(traceId, authorization, budgetId, reserved, proxy, offsetCommit);
             }
             else
             {
@@ -890,15 +892,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             int reserved,
             OffsetHighWaterMark highWaterMark)
         {
-            long offset = highWaterMark.offset;
-            DeferredOffsetCommit deferredOffsetCommit = highWaterMark.deferredOffsetCommits.get(offset);
+            DeferredOffsetCommit deferredOffsetCommit = highWaterMark.nextDeferred();
 
             while (deferredOffsetCommit != null)
             {
                 deferredOffsetCommit.commit(traceId, authorization, budgetId, reserved);
-                highWaterMark.deferredOffsetCommits.remove(offset);
-                offset = highWaterMark.increase();
-                deferredOffsetCommit = highWaterMark.deferredOffsetCommits.get(highWaterMark.offset);
+                highWaterMark.acknowledge(deferredOffsetCommit.partitionOffset.offset);
+                deferredOffsetCommit = highWaterMark.nextDeferred();
             }
         }
 
@@ -1351,7 +1351,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark(p.stableOffset() + 1));
+                        new OffsetHighWaterMark());
                 });
             }
 
@@ -1436,16 +1436,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         break sendData;
                     }
 
-                    // If the qos it was created for is 0, set the high watermark, as we won't receive ack
-                    if (mqtt.qos == MqttQoS.AT_MOST_ONCE.value())
+                    if (acknowledged)
                     {
-                        final long topicPartitionKey = topicPartitionKey(topicKey, partition.partitionId());
-                        //If we don't have the high watermark yet, it means that no stream > 0 was opened yet
-                        final Long2ObjectHashMap<OffsetHighWaterMark> marks = mqtt.clientHighWaterMarks.marks;
-                        if (marks.containsKey(topicPartitionKey))
-                        {
-                            marks.get(topicPartitionKey).increase();
-                        }
+                        final OffsetHighWaterMark highWaterMark = mqtt.clientHighWaterMarks.marks.get(
+                            topicPartitionKey(topicKey, partition.partitionId()));
+                        highWaterMark.awaitAcknowledge(partition.partitionOffset());
                     }
 
                     mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2081,7 +2076,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             new PartitionOffset(topicKey, p.partitionId(), p.partitionOffset())));
                     }
                     mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark(p.stableOffset() + 1));
+                        new OffsetHighWaterMark());
                 });
             }
 
@@ -2169,6 +2164,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         doKafkaReset(traceId);
                         mqtt.doMqttAbort(traceId, authorization);
                         break sendData;
+                    }
+
+                    if (acknowledged)
+                    {
+                        final OffsetHighWaterMark highWaterMark = mqtt.clientHighWaterMarks.marks.get(
+                            topicPartitionKey(topicKey, partition.partitionId()));
+                        highWaterMark.awaitAcknowledge(partition.partitionOffset());
                     }
 
                     mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -5238,18 +5240,42 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private static final class OffsetHighWaterMark
     {
         final Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
-        private long offset;
+        private final NavigableSet<Long> unacknowledged;
 
-        OffsetHighWaterMark(
-            long offset)
+        OffsetHighWaterMark()
         {
-            this.offset = offset;
             this.deferredOffsetCommits = new Long2ObjectHashMap<>();
+            this.unacknowledged = new TreeSet<>();
         }
 
-        public long increase()
+        public void awaitAcknowledge(
+            long offset)
         {
-            return ++offset;
+            unacknowledged.add(offset);
+        }
+
+        public boolean awaitingAcknowledge(
+            long offset)
+        {
+            return unacknowledged.contains(offset);
+        }
+
+        public boolean nextAcknowledge(
+            long offset)
+        {
+            return unacknowledged.first() == offset;
+        }
+
+        public void acknowledge(
+            long offset)
+        {
+            unacknowledged.remove(offset);
+            deferredOffsetCommits.remove(offset);
+        }
+
+        public DeferredOffsetCommit nextDeferred()
+        {
+            return unacknowledged.isEmpty() ? null : deferredOffsetCommits.get(unacknowledged.first());
         }
 
         public void deferOffsetCommit(
