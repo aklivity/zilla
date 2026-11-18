@@ -372,4 +372,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.1.2-8]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.with.error/client",
+        "${net}/session.will.message.disconnect.with.error/server"})
+    public void shouldDisconnectWithErrorPublishWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2-1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.invalid.reason.code/client",
+        "${net}/session.will.message.disconnect.invalid.reason.code/server"})
+    public void shouldRejectDisconnectInvalidReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
 }

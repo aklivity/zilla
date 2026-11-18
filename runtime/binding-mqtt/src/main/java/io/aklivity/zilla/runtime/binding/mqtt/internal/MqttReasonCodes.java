@@ -69,6 +69,9 @@ public final class MqttReasonCodes
     public static final byte USE_ANOTHER_SERVER = (byte) 0x9c;
     public static final byte SERVER_MOVED = (byte) 0x9d;
     public static final byte QUOTA_EXCEEDED = (byte) 0x97;
+    public static final byte MESSAGE_RATE_TOO_HIGH = (byte) 0x96;
+    public static final byte ADMINISTRATIVE_ACTION = (byte) 0x98;
+    public static final byte MAXIMUM_CONNECT_TIME = (byte) 0xa0;
     public static final byte CONNECTION_RATE_EXCEEDED = (byte) 0x9f;
 
     public static final byte PACKET_IDENTIFIER_IN_USE = (byte) 0x91;
@@ -165,6 +168,29 @@ public final class MqttReasonCodes
         }
 
         return connackReasonCode;
+    }
+
+    public static boolean isDisconnectReasonCode(
+        int reasonCode)
+    {
+        final int code = reasonCode & 0xff;
+
+        return code == NORMAL_DISCONNECT ||
+            code == DISCONNECT_WITH_WILL_MESSAGE ||
+            code >= (UNSPECIFIED_ERROR & 0xff) && code <= (IMPLEMENTATION_SPECIFIC_ERROR & 0xff) ||
+            code == (NOT_AUTHORIZED & 0xff) ||
+            code == (SERVER_BUSY & 0xff) ||
+            code == (SERVER_SHUTTING_DOWN & 0xff) ||
+            code == (KEEP_ALIVE_TIMEOUT & 0xff) ||
+            code == (SESSION_TAKEN_OVER & 0xff) ||
+            code == (TOPIC_FILTER_INVALID & 0xff) ||
+            code == (TOPIC_NAME_INVALID & 0xff) ||
+            code >= (RECEIVE_MAXIMUM_EXCEEDED & 0xff) && code <= (PACKET_TOO_LARGE & 0xff) ||
+            code >= (MESSAGE_RATE_TOO_HIGH & 0xff) && code <= (QUOTA_EXCEEDED & 0xff) ||
+            code == (ADMINISTRATIVE_ACTION & 0xff) ||
+            code == (PAYLOAD_FORMAT_INVALID & 0xff) ||
+            code >= (RETAIN_NOT_SUPPORTED & 0xff) && code <= (CONNECTION_RATE_EXCEEDED & 0xff) ||
+            code >= (MAXIMUM_CONNECT_TIME & 0xff) && code <= (WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED & 0xff);
     }
 
     public static boolean isError(

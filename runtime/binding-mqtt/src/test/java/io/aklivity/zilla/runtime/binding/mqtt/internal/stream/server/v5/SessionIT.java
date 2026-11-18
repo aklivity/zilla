@@ -511,4 +511,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.with.error/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithErrorPublishWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.invalid.reason.code/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldRejectDisconnectInvalidReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
 }
