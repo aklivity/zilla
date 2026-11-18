@@ -387,6 +387,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final String16FW clientIdRO = new String16FW();
     private final UnsafeBufferEx clientIdBuffer = new UnsafeBufferEx(new byte[0]);
+    private final OctetsFW decodedCorrelationDataRO = new OctetsFW();
+    private final UnsafeBufferEx decodedCorrelationDataBuffer = new UnsafeBufferEx(new byte[0]);
+    private final Array32FW<MqttUserPropertyFW> decodedUserPropertiesRO = new Array32FW<>(new MqttUserPropertyFW());
+    private final UnsafeBufferEx decodedUserPropertiesBuffer = new UnsafeBufferEx(new byte[0]);
     private final MqttPropertyFW mqttPropertyRO = new MqttPropertyFW();
     private final MqttPropertyFW.Builder mqttPropertyRW = new MqttPropertyFW.Builder();
 
@@ -1583,21 +1587,12 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (mqttPublishHelper.correlationData != null)
                 {
-                    final int correlationDataSize = mqttPublishHelper.correlationData.sizeof();
-                    MutableDirectBufferEx correlationDataBuffer = new UnsafeBufferEx(new byte[correlationDataSize]);
-                    server.correlationDataRW.wrap(correlationDataBuffer, 0, correlationDataSize)
-                        .set(mqttPublishHelper.correlationData);
-                    server.decodedCorrelationData = server.correlationDataRW.build();
+                    server.decodedCorrelationData = copyOf(mqttPublishHelper.correlationData);
                 }
 
                 if (mqttPublishHelper.userProperties != null)
                 {
-                    final int userPropertiesSize = mqttPublishHelper.userProperties.sizeof();
-                    MutableDirectBufferEx userPropertiesBuffer = new UnsafeBufferEx(new byte[userPropertiesSize]);
-                    server.userPropertiesRW.wrap(userPropertiesBuffer, 0, userPropertiesSize);
-                    mqttPublishHelper.userProperties
-                        .forEach(u -> server.userPropertiesRW.item(c -> c.key(u.key()).value(u.value())));
-                    server.decodedUserProperties = server.userPropertiesRW.build();
+                    server.decodedUserProperties = copyOf(mqttPublishHelper.userProperties);
                 }
 
                 final int decodeablePublishPayloadBytes =
@@ -1762,8 +1757,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
                             server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
-                            server.decodedPayloadFormat, server.decodedResponseTopic, server.decodedCorrelationData,
-                            server.decodedUserProperties, payload, payload.offset(), payload.offset() + sizeClaimed);
+                            server.decodedPayloadFormat, server.decodedResponseTopic, server.correlationData(),
+                            server.userProperties(), payload, payload.offset(), payload.offset() + sizeClaimed);
 
                         if (server.publishPayloadModeling)
                         {
@@ -2813,9 +2808,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int pendingConnectPayloadLimit;
         private boolean pendingConnectWillFlagSet;
 
-        private final OctetsFW.Builder correlationDataRW = new OctetsFW.Builder();
-        private final Array32FW.Builder<MqttUserPropertyFW.Builder, MqttUserPropertyFW> userPropertiesRW =
-            new Array32FW.Builder<>(new MqttUserPropertyFW.Builder(), new MqttUserPropertyFW());
         private MqttSessionStream session;
 
         private String clientId;
@@ -2899,8 +2891,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private String16FW decodedContentType = NULL_STRING;
         private MqttPayloadFormat decodedPayloadFormat = DEFAULT_FORMAT;
         private String16FW decodedResponseTopic = NULL_STRING;
-        private OctetsFW decodedCorrelationData = null;
-        private Array32FW<MqttUserPropertyFW> decodedUserProperties = null;
+        private byte[] decodedCorrelationData = null;
+        private byte[] decodedUserProperties = null;
 
         private MqttServer(
             MessageConsumer network,
@@ -3685,6 +3677,32 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doSurrenderOwnership(traceId);
             }
+        }
+
+        private OctetsFW correlationData()
+        {
+            OctetsFW correlationData = null;
+
+            if (decodedCorrelationData != null)
+            {
+                decodedCorrelationDataBuffer.wrap(decodedCorrelationData);
+                correlationData = decodedCorrelationDataRO.wrap(decodedCorrelationDataBuffer, 0, decodedCorrelationData.length);
+            }
+
+            return correlationData;
+        }
+
+        private Array32FW<MqttUserPropertyFW> userProperties()
+        {
+            Array32FW<MqttUserPropertyFW> userProperties = null;
+
+            if (decodedUserProperties != null)
+            {
+                decodedUserPropertiesBuffer.wrap(decodedUserProperties);
+                userProperties = decodedUserPropertiesRO.wrap(decodedUserPropertiesBuffer, 0, decodedUserProperties.length);
+            }
+
+            return userProperties;
         }
 
         private String16FW clientId()
@@ -9554,6 +9572,16 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             return flags;
         }
+    }
+
+    private static byte[] copyOf(
+        Flyweight value)
+    {
+        final byte[] copy = new byte[value.sizeof()];
+
+        value.buffer().getBytes(value.offset(), copy);
+
+        return copy;
     }
 
     private byte[] encodeClientId(
