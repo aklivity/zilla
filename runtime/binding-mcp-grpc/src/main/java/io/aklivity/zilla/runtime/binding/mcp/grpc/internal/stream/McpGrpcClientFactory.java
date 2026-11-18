@@ -415,7 +415,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.replyOpened(state))
             {
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, emptyRO);
                 state = McpGrpcState.openedReply(state);
             }
@@ -429,7 +429,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             int offset,
             int length)
         {
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                 traceId, authorization, flags, 0L, reserved, buffer, offset, length);
             replySeq += reserved;
         }
@@ -439,7 +439,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
                 state = McpGrpcState.closedReply(state);
             }
             cleanupEncodeSlot();
@@ -452,7 +452,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             doMcpBegin(traceId);
             if (!McpGrpcState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
                 state = McpGrpcState.closedReply(state);
             }
             cleanupEncodeSlot();
@@ -465,7 +465,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             initialMax = initialWindowMax();
             initialAck = initialSeq;
             state = McpGrpcState.openedInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0L, 0);
         }
 
@@ -483,7 +483,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
                 state = McpGrpcState.closedInitial(state);
             }
         }
@@ -501,7 +501,7 @@ public final class McpGrpcClientFactory implements BindingHandler
                         .code(code)
                         .message(message))
                     .build();
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, resetEx);
                 state = McpGrpcState.closedInitial(state);
             }
@@ -824,7 +824,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             grpcState = McpGrpcState.openingInitial(grpcState);
 
             grpc = newStream(this::onGrpcMessage, routedId, grpcRoutedId, grpcInitialId,
-                grpcInitialSeq, grpcInitialAck, grpcInitialMax, traceId, authorization, affinity, grpcBeginEx);
+                grpcInitialSeq, grpcInitialAck, grpcState, grpcInitialMax, traceId, authorization, affinity, grpcBeginEx);
         }
 
         private void onGrpcMessage(
@@ -1162,7 +1162,7 @@ public final class McpGrpcClientFactory implements BindingHandler
                 {
                     grpcReplyAck = newReplyAck;
                     grpcReplyMax = newReplyMax;
-                    doWindow(grpc, routedId, grpcRoutedId, grpcReplyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
+                    doWindow(grpc, routedId, grpcRoutedId, grpcReplyId, grpcReplySeq, grpcReplyAck, grpcState, grpcReplyMax,
                         traceId, authorization, 0L, 0);
                 }
             }
@@ -1184,7 +1184,7 @@ public final class McpGrpcClientFactory implements BindingHandler
                     .build()
                 : emptyRO;
 
-            doData(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+            doData(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcState, grpcInitialMax,
                 traceId, authorization, flags, 0L, reserved, buffer, offset, length, extension);
             grpcInitialSeq += reserved;
         }
@@ -1194,7 +1194,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.initialClosed(grpcState))
             {
-                doEnd(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+                doEnd(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcState, grpcInitialMax,
                     traceId, authorization);
                 grpcState = McpGrpcState.closedInitial(grpcState);
             }
@@ -1205,7 +1205,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (grpc != null && !McpGrpcState.initialClosed(grpcState))
             {
-                doAbort(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+                doAbort(grpc, routedId, grpcRoutedId, grpcInitialId, grpcInitialSeq, grpcInitialAck, grpcState, grpcInitialMax,
                     traceId, authorization);
                 grpcState = McpGrpcState.closedInitial(grpcState);
             }
@@ -1217,7 +1217,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (grpc != null && !McpGrpcState.replyClosed(grpcState))
             {
-                doReset(grpc, routedId, grpcRoutedId, grpcReplyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
+                doReset(grpc, routedId, grpcRoutedId, grpcReplyId, grpcReplySeq, grpcReplyAck, grpcState, grpcReplyMax,
                     traceId, authorization);
                 grpcState = McpGrpcState.closedReply(grpcState);
             }
@@ -1387,7 +1387,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             initialMax = WINDOW_MAX;
             initialAck = initialSeq;
             state = McpGrpcState.openedInitial(state);
-            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0L, 0);
         }
 
@@ -1402,7 +1402,7 @@ public final class McpGrpcClientFactory implements BindingHandler
                         .sessionId(sessionId)
                         .capabilities(capabilities))
                     .build();
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, affinity, lifecycleEx);
                 state = McpGrpcState.openedReply(state);
             }
@@ -1413,7 +1413,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.replyClosed(state))
             {
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
                 state = McpGrpcState.closedReply(state);
             }
         }
@@ -1423,7 +1423,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.replyClosed(state))
             {
-                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doAbort(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
                 state = McpGrpcState.closedReply(state);
             }
         }
@@ -1433,7 +1433,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             if (!McpGrpcState.initialClosed(state))
             {
-                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doReset(sender, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
                 state = McpGrpcState.closedInitial(state);
             }
         }
@@ -1463,6 +1463,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1475,6 +1476,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1496,6 +1498,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1508,6 +1511,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1525,6 +1529,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1541,6 +1546,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1560,6 +1566,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1570,6 +1577,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1585,6 +1593,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1595,6 +1604,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1610,6 +1620,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1622,6 +1633,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1639,6 +1651,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization)
@@ -1649,6 +1662,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1664,6 +1678,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1681,6 +1696,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -1701,6 +1717,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1712,6 +1729,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
