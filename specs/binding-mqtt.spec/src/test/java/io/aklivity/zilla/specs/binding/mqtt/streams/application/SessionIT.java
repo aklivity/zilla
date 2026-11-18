@@ -523,4 +523,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.2-5]
+    @Test
+    @Specification({
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/client",
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/server"})
+    public void shouldRejectWillQosExceedsPublishQosMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-7]
+    @Test
+    @Specification({
+        "${app}/session.keep.alive.timeout.before.connack/client",
+        "${app}/session.keep.alive.timeout.before.connack/server"})
+    public void shouldAbortSessionAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

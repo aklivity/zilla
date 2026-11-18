@@ -818,4 +818,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.2-7]
+    @Test
+    @Specification({
+        "${net}/connect.keep.alive.timeout.before.connack/client",
+        "${net}/connect.keep.alive.timeout.before.connack/server"})
+    public void shouldCloseWithoutConnackAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

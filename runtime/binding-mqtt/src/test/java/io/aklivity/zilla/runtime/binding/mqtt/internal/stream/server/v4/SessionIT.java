@@ -260,4 +260,23 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.redirect.yaml")
+    @Specification({
+        "${net}/session.redirect/client"})
+    public void shouldRejectConnectRedirectedWithServerUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.reject.will.qos.exceeds.publish.qos.max/client",
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/server"})
+    public void shouldRejectWillQosExceedsPublishQosMax() throws Exception
+    {
+        k3po.finish();
+    }
 }
