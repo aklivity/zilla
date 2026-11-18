@@ -800,7 +800,29 @@ public final class KafkaClientApiFactory implements BindingHandler
         private void onAppEnd(
             EndFW end)
         {
+            final long traceId = end.traceId();
+
             state = StreamState.closeInitial(state);
+
+            if (requestBytesSent < requestLength)
+            {
+                cleanupIncompleteRequest(traceId);
+            }
+        }
+
+        private void cleanupIncompleteRequest(
+            long traceId)
+        {
+            if (client.pending.peek() == this && client.requestInFlight)
+            {
+                client.cleanupNet(traceId);
+            }
+            else
+            {
+                client.refresh.cancel(this);
+                client.pending.remove(this);
+                cleanupApp(traceId, EMPTY_OCTETS);
+            }
         }
 
         private void onAppAbort(

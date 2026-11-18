@@ -64,11 +64,11 @@ public interface JsonSource
     DirectBufferEx getSegment();
 
     /**
-     * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} block: the original source
-     * bytes parsed since the last call, bounded to the whole-token prefix that fits {@code limit}, advancing the
-     * verbatim cursor by exactly that. The returned block's {@link JsonVerbatim#getSegment()} is the contiguous
-     * bytes and {@link JsonVerbatim#getSteps()} their structural transcript, always agreeing on a token
-     * boundary. An empty block (no steps, zero-length segment) signals the run is fully drained. Valid on
+     * Bounded pull of the coalesced <em>verbatim</em> run as a {@link JsonVerbatim} chunk: the next original source
+     * bytes parsed since the run was last drained, up to {@code limit} and cut wherever it falls, advancing the
+     * verbatim cursor by exactly that. The returned chunk's {@link JsonVerbatim#getSegment()} is the contiguous
+     * bytes and the remaining accessors describe the whole run, repeated on every chunk of it. An empty chunk
+     * (zero-length segment, no leading token) signals the run is fully drained. Valid on
      * a {@link JsonEvent#isVerbatim()} or {@link JsonEvent} {@code STRUCTURED} event when the consumer has opted
      * in via {@link JsonController#verbatim()}; lets a stage that inspects structure (e.g. a validator) reproduce
      * the input byte-for-byte without the canonical re-serialization a structured replay imposes. The splice is
