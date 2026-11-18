@@ -257,6 +257,16 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
+    @Test
+    @Specification({
+        "${net}/connect.server.defined.keep.alive.default.minimum/client",
+        "${net}/connect.server.defined.keep.alive.default.minimum/server"})
+    public void shouldConnectAndUseServerDefinedKeepAliveDefaultMinimum() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/connect.timeout.before.connect/client",
