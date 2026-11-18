@@ -973,4 +973,24 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/puback.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPubackTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

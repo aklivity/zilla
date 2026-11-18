@@ -1036,12 +1036,32 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.truncated.body/client",
+        "${net}/publish.reject.truncated.body/server"})
+    public void shouldRejectPublishTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 4.3.3
     @Test
     @Specification({
         "${net}/publish.qos2.exchange.complete/client",
         "${net}/publish.qos2.exchange.complete/server"})
     public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/puback.reject.truncated.body/client",
+        "${net}/puback.reject.truncated.body/server"})
+    public void shouldRejectPubackTruncatedBody() throws Exception
     {
         k3po.finish();
     }
