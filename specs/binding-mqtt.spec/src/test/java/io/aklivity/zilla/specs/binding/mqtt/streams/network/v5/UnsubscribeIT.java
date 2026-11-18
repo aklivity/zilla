@@ -423,4 +423,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.truncated.body/client",
+        "${net}/unsubscribe.reject.truncated.body/server"})
+    public void shouldRejectUnsubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -90,4 +90,14 @@ public class CacheConsumerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.when.topic.yaml")
+    @Specification({
+        "${app}/acknowledge.message.offsets.coalesced/client",
+        "${app}/commit.acknowledge.message.offsets.coalesced/server"})
+    public void shouldCommitAcknowledgeMessageOffsetsCoalesced() throws Exception
+    {
+        k3po.finish();
+    }
 }

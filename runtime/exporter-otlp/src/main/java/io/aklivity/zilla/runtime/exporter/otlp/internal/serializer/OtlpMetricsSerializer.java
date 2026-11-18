@@ -227,14 +227,21 @@ public class OtlpMetricsSerializer
     {
         record.update();
         // Histogram buckets are inclusive of their upper boundary, except the last bucket where the boundary is at infinity.
+        String unit = descriptor.unit(record.metric());
+        boolean milliseconds = MILLISECONDS.equals(unit);
         JsonArrayBuilder explicitBounds = Json.createArrayBuilder();
-        Arrays.stream(record.bucketLimits()).limit(record.buckets() - 1).forEach(explicitBounds::add);
+        if (milliseconds)
+        {
+            Arrays.stream(record.millisecondBucketLimits()).limit(record.buckets() - 1).forEach(explicitBounds::add);
+        }
+        else
+        {
+            Arrays.stream(record.bucketLimits()).limit(record.buckets() - 1).forEach(explicitBounds::add);
+        }
         // The number of elements in bucket_counts must be by one greater than the number of elements in explicit_bounds.
         JsonArrayBuilder bucketCounts = Json.createArrayBuilder();
-        String unit = descriptor.unit(record.metric());
-        long[] bucketValues = MILLISECONDS.equals(unit) ? record.millisecondBucketValues() : record.bucketValues();
-        Arrays.stream(bucketValues).forEach(bucketCounts::add);
-        long[] stats = MILLISECONDS.equals(unit) ? record.millisecondStats() : record.stats();
+        Arrays.stream(record.bucketValues()).forEach(bucketCounts::add);
+        long[] stats = milliseconds ? record.millisecondStats() : record.stats();
         JsonObject dataPoint = Json.createObjectBuilder()
             .add("timeUnixNano", now())
             .add("attributes", attributes(record))

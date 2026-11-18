@@ -425,4 +425,14 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectUnsubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

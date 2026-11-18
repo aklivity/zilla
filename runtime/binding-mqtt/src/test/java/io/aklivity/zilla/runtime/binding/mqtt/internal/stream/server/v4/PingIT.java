@@ -78,4 +78,34 @@ public class PingIT
         k3po.notifyBarrier("WAIT_1_SECOND2");
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ping.before.connack/client",
+        "${app}/session.ping.before.connack/server"})
+    public void shouldPingBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ping.reject.invalid.fixed.header.flags/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPingreqInvalidFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/ping.reject.remaining.length/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPingreqWithBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -56,6 +56,16 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.4], MQTT 5.0 3.1.4 [MQTT-3.1.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.route.not.authorized/client",
+        "${net}/connect.route.not.authorized/server"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/connect.username.authentication.failed/client",
@@ -243,6 +253,16 @@ public class ConnectionIT
         "${net}/connect.server.defined.keep.alive/client",
         "${net}/connect.server.defined.keep.alive/server"})
     public void shouldConnectAndUseServerDefinedKeepAlive() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
+    @Test
+    @Specification({
+        "${net}/connect.server.defined.keep.alive.default.minimum/client",
+        "${net}/connect.server.defined.keep.alive.default.minimum/server"})
+    public void shouldConnectAndUseServerDefinedKeepAliveDefaultMinimum() throws Exception
     {
         k3po.finish();
     }
@@ -805,6 +825,136 @@ public class ConnectionIT
         "${net}/connect.shared.subscriptions.not.supported/client",
         "${net}/connect.shared.subscriptions.not.supported/server"})
     public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client",
+        "${net}/connect.reject.will.topic.no.will.flag/server"})
+    public void shouldRejectWillTopicWhenMissingWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.0-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${net}/connect.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-7]
+    @Test
+    @Specification({
+        "${net}/connect.keep.alive.timeout.before.connack/client",
+        "${net}/connect.keep.alive.timeout.before.connack/server"})
+    public void shouldCloseWithoutConnackAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.3]
+    @Test
+    @Specification({
+        "${net}/disconnect.reason.string/client",
+        "${net}/disconnect.reason.string/server"})
+    public void shouldDisconnectWithReasonString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.4]
+    @Test
+    @Specification({
+        "${net}/disconnect.user.property/client",
+        "${net}/disconnect.user.property/server"})
+    public void shouldDisconnectWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${net}/disconnect.session.expiry/client",
+        "${net}/disconnect.session.expiry/server"})
+    public void shouldDisconnectWithSessionExpiryAfterConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.5]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.server.reference/client",
+        "${net}/disconnect.reject.server.reference/server"})
+    public void shouldRejectDisconnectWithServerReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/client",
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/server"})
+    public void shouldRejectDisconnectInvalidFixedHeaderFlagsNoReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/disconnect.followed.by.pingreq/client",
+        "${net}/disconnect.followed.by.pingreq/server"})
+    public void shouldDisconnectFollowedByPingreq() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${net}/connect.reject.packet.type.zero/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client",
+        "${net}/connect.reject.will.topic.wildcard/server"})
+    public void shouldRejectWillTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.2-14]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.response.topic.wildcard/client",
+        "${net}/connect.reject.will.response.topic.wildcard/server"})
+    public void shouldRejectWillResponseTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${net}/disconnect.update.session.expiry/client",
+        "${net}/disconnect.update.session.expiry/server"})
+    public void shouldDisconnectWithUpdatedSessionExpiry() throws Exception
     {
         k3po.finish();
     }

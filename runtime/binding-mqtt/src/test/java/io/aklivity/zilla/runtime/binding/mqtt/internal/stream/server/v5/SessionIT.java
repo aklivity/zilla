@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.KEEP_ALIVE_MINIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
@@ -48,6 +49,7 @@ public class SessionIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
+        .configure(KEEP_ALIVE_MINIMUM, (short) 10)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
@@ -355,6 +357,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.server.redirect.after.connack.with.reason.and.user.property/client",
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/server"})
+    public void shouldRedirectAfterConnackWithReasonAndUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.server.redirect.after.connack/client",
         "${app}/session.server.redirect.after.connack/server"})
     public void shouldRedirectAfterConnack() throws Exception
@@ -378,6 +390,16 @@ public class SessionIT
         "${net}/session.server.sent.reset.before.connack/client",
         "${app}/session.server.sent.reset.before.connack/server"})
     public void shouldRejectConnectWhenServerSentResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.sent.reset.buffered.disconnect/client",
+        "${app}/session.server.sent.reset.buffered.disconnect/server"})
+    public void shouldDisconnectWhenServerSentResetWithBufferedDisconnect() throws Exception
     {
         k3po.finish();
     }
@@ -500,4 +522,65 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.client.takeover.before.connack/client",
+        "${app}/session.client.takeover.before.connack/server"})
+    public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.with.error/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithErrorPublishWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.invalid.reason.code/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldRejectDisconnectInvalidReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithReasonCodeOnlyWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only.error/client",
+        "${app}/session.will.message.abort/server"})
+    public void shouldDisconnectWithReasonCodeOnlyError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.redirect.with.reason.after.connack/client",
+        "${app}/session.server.redirect.with.reason.after.connack/server"})
+    public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpResetExFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
 final class HttpAttributeHelper
 {
@@ -40,11 +42,14 @@ final class HttpAttributeHelper
         "path", ":path",
         "status", ":status"
     );
+    private static final String8FW STATUS = new String8FW(":status");
+    private static final String NOT_FOUND = "404";
 
     private final List<HttpAttributeBinding> requestBindings;
     private final List<HttpAttributeBinding> responseBindings;
     private final ToIntFunction<String> supplyLabelId;
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpResetExFW httpResetExRO = new HttpResetExFW();
 
     HttpAttributeHelper(
         List<AttributeConfig> attributes,
@@ -95,6 +100,28 @@ final class HttpAttributeHelper
         BeginFW begin)
     {
         return extractAttributes(begin, responseBindings);
+    }
+
+    Map<String, String> extractRejectedAttributes(
+        ResetFW reset)
+    {
+        Map<String, String> result = new Object2ObjectHashMap<>();
+        HttpResetExFW httpResetEx = reset.extension().get(httpResetExRO::tryWrap);
+        for (HttpAttributeBinding binding : responseBindings)
+        {
+            HttpHeaderFW header = httpResetEx != null
+                ? httpResetEx.headers().matchFirst(h -> binding.headerName.equals(h.name()))
+                : null;
+            if (header != null && header.value() != null && header.value().length() != -1)
+            {
+                result.put(binding.attributeName, header.value().asString());
+            }
+            else if (STATUS.equals(binding.headerName))
+            {
+                result.put(binding.attributeName, NOT_FOUND);
+            }
+        }
+        return result;
     }
 
     int computeAttributesId(

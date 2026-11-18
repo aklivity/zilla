@@ -915,6 +915,36 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.maximum.two/client",
+        "${net}/subscribe.shared.receive.maximum.two/server"})
+    public void shouldSubscribeSharedReceiveMaximumTwo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.maximum.qos2/client",
+        "${net}/subscribe.shared.receive.maximum.qos2/server"})
+    public void shouldSubscribeSharedReceiveMaximumQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.receive.maximum/client",
+        "${net}/subscribe.shared.receive.maximum/server"})
+    public void shouldSubscribeSharedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/subscribe.shared.distinct.share.names/client",
@@ -1433,6 +1463,16 @@ public class SubscribeIT
         "${net}/subscribe.redeliver.message.qos2/client",
         "${net}/subscribe.redeliver.message.qos2/server"})
     public void shouldRedeliverMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.truncated.body/client",
+        "${net}/subscribe.reject.truncated.body/server"})
+    public void shouldRejectSubscribeTruncatedBody() throws Exception
     {
         k3po.finish();
     }

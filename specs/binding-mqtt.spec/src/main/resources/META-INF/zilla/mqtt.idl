@@ -278,6 +278,12 @@ scope mqtt
             string16 serverRef = null;
             uint8 reasonCode = 0;
             string16 reason = null;
+            MqttUserProperty[] properties;
+        }
+
+        struct MqttEndEx extends core::stream::Extension
+        {
+            int32 expiry;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension

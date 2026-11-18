@@ -56,6 +56,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
@@ -126,6 +127,18 @@ public final class MqttFunctions
     public static MqttResetExBuilder resetEx()
     {
         return new MqttResetExBuilder();
+    }
+
+    @Function
+    public static MqttEndExBuilder endEx()
+    {
+        return new MqttEndExBuilder();
+    }
+
+    @Function
+    public static MqttEndExMatcherBuilder matchEndEx()
+    {
+        return new MqttEndExMatcherBuilder();
     }
 
     @Function
@@ -965,12 +978,116 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttResetExBuilder userProperty(
+            String name,
+            String value)
+        {
+            resetExRW.propertiesItem(p -> p.key(name).value(value));
+            return this;
+        }
+
         public byte[] build()
         {
             final MqttResetExFW resetEx = resetExRW.build();
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetEx.offset(), array);
             return array;
+        }
+    }
+
+    public static final class MqttEndExBuilder
+    {
+        private final MqttEndExFW.Builder endExRW;
+
+        private MqttEndExBuilder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            this.endExRW = new MqttEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttEndExBuilder typeId(
+            int typeId)
+        {
+            endExRW.typeId(typeId);
+            return this;
+        }
+
+        public MqttEndExBuilder expiry(
+            int expiry)
+        {
+            endExRW.expiry(expiry);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            endEx.buffer().getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class MqttEndExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final MqttEndExFW endExRo = new MqttEndExFW();
+
+        private Integer typeId;
+        private Integer expiry;
+
+        public MqttEndExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public MqttEndExMatcherBuilder expiry(
+            int expiry)
+        {
+            this.expiry = expiry;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || expiry != null ? this::match : buf -> null;
+        }
+
+        private MqttEndExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final MqttEndExFW endEx = endExRo.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (endEx != null &&
+                matchTypeId(endEx) &&
+                matchExpiry(endEx))
+            {
+                byteBuf.position(byteBuf.position() + endEx.sizeof());
+                return endEx;
+            }
+
+            throw new Exception(endEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final MqttEndExFW endEx)
+        {
+            return typeId == null || typeId == endEx.typeId();
+        }
+
+        private boolean matchExpiry(
+            final MqttEndExFW endEx)
+        {
+            return expiry == null || expiry == endEx.expiry();
         }
     }
 

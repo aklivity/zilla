@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_PACKET_SIZE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -23,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -390,36 +390,6 @@ public class PublishIT
         "${net}/publish.reject.qos2.not.supported/client",
         "${app}/publish.reject.qos.not.supported/server"})
     public void shouldRejectPublishQos2NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos0.with.packet.id/client"})
-    public void shouldRejectPublishQos0WithPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos1.without.packet.id/client"})
-    public void shouldRejectPublishQos1WithoutPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos2.without.packet.id/client"})
-    public void shouldRejectPublishQos2WithoutPacketId() throws Exception
     {
         k3po.finish();
     }
@@ -940,6 +910,67 @@ public class PublishIT
         "${net}/publish.reject.response.topic.ill.formed.utf8/client",
         "${app}/session.connect/server"})
     public void shouldRejectPublishResponseTopicIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = MAXIMUM_PACKET_SIZE_NAME, value = "64")
+    @Specification({
+        "${net}/publish.reject.maximum.packet.size/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.qos.both.bits/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishWithBothQosBitsSet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.dup.qos0/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishDupWithQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.packet.id.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/publish.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPublishTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/puback.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPubackTruncatedBody() throws Exception
     {
         k3po.finish();
     }

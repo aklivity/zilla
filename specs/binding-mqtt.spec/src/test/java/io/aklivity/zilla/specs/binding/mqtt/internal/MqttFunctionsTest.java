@@ -38,6 +38,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateVersi
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttResetExFW;
 
@@ -1659,6 +1660,30 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttResetExWithUserProperties()
+    {
+        final byte[] array = MqttFunctions.resetEx()
+            .typeId(0)
+            .serverRef("mqtt-1.example.com:1883")
+            .reasonCode(0x9c)
+            .reason("test")
+            .userProperty("name", "value")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals("mqtt-1.example.com:1883", mqttResetEx.serverRef().asString());
+        assertEquals("test", mqttResetEx.reason().asString());
+        assertEquals(0x9c, mqttResetEx.reasonCode());
+        mqttResetEx.properties().forEach(p ->
+        {
+            assertEquals("name", p.key().asString());
+            assertEquals("value", p.value().asString());
+        });
+        assertEquals(1, mqttResetEx.properties().fieldCount());
+    }
+
+    @Test
     public void shouldEncodeMqttSessionStateVersion()
     {
         final byte[] array = MqttFunctions.session()
@@ -2002,5 +2027,51 @@ public class MqttFunctionsTest
         assertEquals("zilla-1", signal.expiry().instanceId().asString());
         assertEquals(20, signal.expiry().delay());
         assertEquals(-1, signal.expiry().expireAt());
+    }
+
+    @Test
+    public void shouldEncodeMqttEndEx()
+    {
+        final byte[] array = MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttEndExFW endEx = new MqttEndExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, endEx.typeId());
+        assertEquals(30, endEx.expiry());
+    }
+
+    @Test
+    public void shouldMatchMqttEndEx() throws Exception
+    {
+        final BytesMatcher matcher = MqttFunctions.matchEndEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchMqttEndExWithOtherExpiry()
+    {
+        final BytesMatcher matcher = MqttFunctions.matchEndEx()
+            .typeId(0x01)
+            .expiry(0)
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(MqttFunctions.endEx()
+            .typeId(0x01)
+            .expiry(30)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 }

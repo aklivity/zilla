@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 public final class MqttReasonCodes
 {
+    public static final int NO_CONNACK = -1;
+
     public static final byte SUCCESS = 0x00;
 
     public static final byte NORMAL_DISCONNECT = 0x00;
@@ -36,8 +38,11 @@ public final class MqttReasonCodes
     public static final byte UNSPECIFIED_ERROR = (byte) 0x80;
     public static final byte MALFORMED_PACKET = (byte) 0x81;
     public static final byte PROTOCOL_ERROR = (byte) 0x82;
+    public static final byte UNACCEPTABLE_PROTOCOL_VERSION_V4 = (byte) 0x01;
     public static final byte IDENTIFIER_REJECTED = (byte) 0x02;
     public static final byte SERVER_UNAVAILABLE_V4 = (byte) 0x03;
+    public static final byte BAD_USER_NAME_OR_PASSWORD_V4 = (byte) 0x04;
+    public static final byte NOT_AUTHORIZED_V4 = (byte) 0x05;
     public static final byte SUBACK_FAILURE_CODE_V4 = (byte) 0x80;
     public static final byte PACKET_TOO_LARGE = (byte) 0x95;
     public static final byte WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = (byte) 0xa2;
@@ -64,6 +69,9 @@ public final class MqttReasonCodes
     public static final byte USE_ANOTHER_SERVER = (byte) 0x9c;
     public static final byte SERVER_MOVED = (byte) 0x9d;
     public static final byte QUOTA_EXCEEDED = (byte) 0x97;
+    public static final byte MESSAGE_RATE_TOO_HIGH = (byte) 0x96;
+    public static final byte ADMINISTRATIVE_ACTION = (byte) 0x98;
+    public static final byte MAXIMUM_CONNECT_TIME = (byte) 0xa0;
     public static final byte CONNECTION_RATE_EXCEEDED = (byte) 0x9f;
 
     public static final byte PACKET_IDENTIFIER_IN_USE = (byte) 0x91;
@@ -119,6 +127,70 @@ public final class MqttReasonCodes
     private MqttReasonCodes()
     {
         // Utility
+    }
+
+    public static int connackReasonCodeV4(
+        int reasonCode)
+    {
+        final int code = reasonCode & 0xff;
+
+        final int connackReasonCode;
+        switch (code)
+        {
+        case 0x00:
+        case 0x01:
+        case 0x02:
+        case 0x03:
+        case 0x04:
+        case 0x05:
+            connackReasonCode = code;
+            break;
+        case 0x84:
+            connackReasonCode = UNACCEPTABLE_PROTOCOL_VERSION_V4;
+            break;
+        case 0x85:
+            connackReasonCode = IDENTIFIER_REJECTED;
+            break;
+        case 0x86:
+            connackReasonCode = BAD_USER_NAME_OR_PASSWORD_V4;
+            break;
+        case 0x87:
+            connackReasonCode = NOT_AUTHORIZED_V4;
+            break;
+        case 0x88:
+        case 0x89:
+        case 0x9d:
+            connackReasonCode = SERVER_UNAVAILABLE_V4;
+            break;
+        default:
+            connackReasonCode = NO_CONNACK;
+            break;
+        }
+
+        return connackReasonCode;
+    }
+
+    public static boolean isDisconnectReasonCode(
+        int reasonCode)
+    {
+        final int code = reasonCode & 0xff;
+
+        return code == NORMAL_DISCONNECT ||
+            code == DISCONNECT_WITH_WILL_MESSAGE ||
+            code >= (UNSPECIFIED_ERROR & 0xff) && code <= (IMPLEMENTATION_SPECIFIC_ERROR & 0xff) ||
+            code == (NOT_AUTHORIZED & 0xff) ||
+            code == (SERVER_BUSY & 0xff) ||
+            code == (SERVER_SHUTTING_DOWN & 0xff) ||
+            code == (KEEP_ALIVE_TIMEOUT & 0xff) ||
+            code == (SESSION_TAKEN_OVER & 0xff) ||
+            code == (TOPIC_FILTER_INVALID & 0xff) ||
+            code == (TOPIC_NAME_INVALID & 0xff) ||
+            code >= (RECEIVE_MAXIMUM_EXCEEDED & 0xff) && code <= (PACKET_TOO_LARGE & 0xff) ||
+            code >= (MESSAGE_RATE_TOO_HIGH & 0xff) && code <= (QUOTA_EXCEEDED & 0xff) ||
+            code == (ADMINISTRATIVE_ACTION & 0xff) ||
+            code == (PAYLOAD_FORMAT_INVALID & 0xff) ||
+            code >= (RETAIN_NOT_SUPPORTED & 0xff) && code <= (CONNECTION_RATE_EXCEEDED & 0xff) ||
+            code >= (MAXIMUM_CONNECT_TIME & 0xff) && code <= (WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED & 0xff);
     }
 
     public static boolean isError(

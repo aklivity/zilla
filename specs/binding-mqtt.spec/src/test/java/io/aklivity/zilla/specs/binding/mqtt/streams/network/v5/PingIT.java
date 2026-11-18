@@ -72,4 +72,34 @@ public class PingIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${net}/ping.before.connack/client",
+        "${net}/ping.before.connack/server"})
+    public void shouldPingBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/ping.reject.invalid.fixed.header.flags/client",
+        "${net}/ping.reject.invalid.fixed.header.flags/server"})
+    public void shouldRejectPingreqInvalidFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.1.3-1]
+    @Test
+    @Specification({
+        "${net}/ping.reject.remaining.length/client",
+        "${net}/ping.reject.remaining.length/server"})
+    public void shouldRejectPingreqWithBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

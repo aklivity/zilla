@@ -103,16 +103,6 @@ public class PublishIT
         k3po.finish();
     }
 
-    // [MQTT-2.2.1-2]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos0.with.packet.id/client",
-        "${net}/publish.reject.qos0.with.packet.id/server"})
-    public void shouldRejectQos0WithPackedId() throws Exception
-    {
-        k3po.finish();
-    }
-
     // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
     @Test
     @Specification({
@@ -129,26 +119,6 @@ public class PublishIT
         "${net}/publish.reject.qos2.not.supported/client",
         "${net}/publish.reject.qos2.not.supported/server"})
     public void shouldRejectQos2NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // [MQTT-2.2.1-3]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos1.without.packet.id/client",
-        "${net}/publish.reject.qos1.without.packet.id/server"})
-    public void shouldRejectQos1WithoutPackedId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // [MQTT-2.2.1-3]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos2.without.packet.id/client",
-        "${net}/publish.reject.qos2.without.packet.id/server"})
-    public void shouldRejectQos2WithoutPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -986,12 +956,42 @@ public class PublishIT
         k3po.finish();
     }
 
+    // MQTT 5.0, 3.1.2.11.4 Maximum Packet Size, 3.2.2.3.6 Packet too large
+    @Test
+    @Specification({
+        "${net}/publish.reject.maximum.packet.size/client",
+        "${net}/publish.reject.maximum.packet.size/server"})
+    public void shouldRejectPublishExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.1-4]
+    @Test
+    @Specification({
+        "${net}/publish.reject.qos.both.bits/client",
+        "${net}/publish.reject.qos.both.bits/server"})
+    public void shouldRejectPublishWithBothQosBitsSet() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 4.3.2, 3.4.2.1
     @Test
     @Specification({
         "${net}/publish.qos1.acks.reordered.with.reason.codes/client",
         "${net}/publish.qos1.acks.reordered.with.reason.codes/server"})
     public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.1-2]
+    @Test
+    @Specification({
+        "${net}/publish.reject.dup.qos0/client",
+        "${net}/publish.reject.dup.qos0/server"})
+    public void shouldRejectPublishDupWithQos0() throws Exception
     {
         k3po.finish();
     }
@@ -1006,12 +1006,42 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.reject.packet.id.zero/client",
+        "${net}/publish.reject.packet.id.zero/server"})
+    public void shouldRejectPublishPacketIdZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/publish.reject.truncated.body/client",
+        "${net}/publish.reject.truncated.body/server"})
+    public void shouldRejectPublishTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 4.3.3
     @Test
     @Specification({
         "${net}/publish.qos2.exchange.complete/client",
         "${net}/publish.qos2.exchange.complete/server"})
     public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-4.13.1-1]
+    @Test
+    @Specification({
+        "${net}/puback.reject.truncated.body/client",
+        "${net}/puback.reject.truncated.body/server"})
+    public void shouldRejectPubackTruncatedBody() throws Exception
     {
         k3po.finish();
     }
@@ -1062,6 +1092,15 @@ public class PublishIT
         "${net}/server.sent.pubcomp.unknown.packet.id/client",
         "${net}/server.sent.pubcomp.unknown.packet.id/server"})
     public void shouldRejectServerSentPubcompUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.many.messages/client",
+        "${net}/publish.many.messages/server"})
+    public void shouldPublishManyMessages() throws Exception
     {
         k3po.finish();
     }

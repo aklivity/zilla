@@ -37,6 +37,7 @@ public class MqttConfiguration extends Configuration
     public static final LongPropertyDef PUBLISH_TIMEOUT;
     public static final ShortPropertyDef KEEP_ALIVE_MINIMUM;
     public static final ShortPropertyDef KEEP_ALIVE_MAXIMUM;
+    public static final IntPropertyDef MAXIMUM_PACKET_SIZE;
     public static final BytePropertyDef MAXIMUM_QOS;
     public static final BooleanPropertyDef RETAIN_AVAILABLE;
     public static final ShortPropertyDef TOPIC_ALIAS_MAXIMUM;
@@ -56,9 +57,9 @@ public class MqttConfiguration extends Configuration
         PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.MINUTES.toSeconds(2));
         CONNECT_TIMEOUT = config.property("connect.timeout", TimeUnit.SECONDS.toSeconds(3));
         CONNACK_TIMEOUT = config.property("connack.timeout", TimeUnit.SECONDS.toSeconds(3));
-        //TODO: better default values?
-        KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 10);
+        KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 60);
         KEEP_ALIVE_MAXIMUM = config.property("keep.alive.maximum", (short) 1000);
+        MAXIMUM_PACKET_SIZE = config.property("maximum.packet.size", Integer.MAX_VALUE);
         MAXIMUM_QOS = config.property("maximum.qos", (byte) 2);
         RETAIN_AVAILABLE = config.property("retain.available", true);
         TOPIC_ALIAS_MAXIMUM = config.property("topic.alias.maximum", (short) 0);
@@ -117,6 +118,11 @@ public class MqttConfiguration extends Configuration
     public short keepAliveMaximum()
     {
         return KEEP_ALIVE_MAXIMUM.get(this);
+    }
+
+    public int maximumPacketSize()
+    {
+        return MAXIMUM_PACKET_SIZE.get(this);
     }
 
     public byte maximumQos()

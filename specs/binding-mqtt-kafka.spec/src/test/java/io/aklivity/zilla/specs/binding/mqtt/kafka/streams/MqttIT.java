@@ -1063,6 +1063,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.receive.messages.qos2.sparse.offsets/client",
+        "${mqtt}/subscribe.receive.messages.qos2.sparse.offsets/server"})
+    public void shouldReceiveMessagesQoS2SparseOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.qos2.version1.offset.metadata/client",
         "${mqtt}/subscribe.qos2.version1.offset.metadata/server"})
     public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception
@@ -1838,6 +1847,15 @@ public class MqttIT
         "${mqtt}/subscribe.shared.join.new.life/client",
         "${mqtt}/subscribe.shared.join.new.life/server"})
     public void shouldSubscribeSharedJoinNewLife() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.end.expiry.zero/client",
+        "${mqtt}/session.close.end.expiry.zero/server"})
+    public void shouldCloseSessionWithEndExpiryZero() throws Exception
     {
         k3po.finish();
     }
