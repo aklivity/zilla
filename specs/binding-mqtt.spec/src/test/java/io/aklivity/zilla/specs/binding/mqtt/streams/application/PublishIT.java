@@ -48,6 +48,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.messages.no.carry.over.properties/client",
+        "${app}/publish.messages.no.carry.over.properties/server"})
+    public void shouldPublishMessagesNoCarryOverProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.subscribe.batched/client",
         "${app}/publish.subscribe.batched/server"})
     public void shouldSendOneMessageSubscribeBatched() throws Exception
