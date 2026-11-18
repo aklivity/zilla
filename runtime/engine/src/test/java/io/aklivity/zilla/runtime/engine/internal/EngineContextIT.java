@@ -121,4 +121,33 @@ public class EngineContextIT
         assertThat(engine.context().gauge("test", "net0", "test.gauge", -1), nullValue());
         assertThat(engine.context().gauge("test", "net0", "test.gauge", 3), nullValue());
     }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchCounterValuePerWorker()
+    {
+        // GIVEN
+        engine.counterWriter("test", "net0", "test.counter", 0).accept(42L);
+        engine.counterWriter("test", "net0", "test.counter", 1).accept(21L);
+        engine.counterWriter("test", "net0", "test.counter", 2).accept(14L);
+
+        // WHEN
+        LongSupplier worker0 = engine.context().counter("test", "net0", "test.counter", 0);
+        LongSupplier worker1 = engine.context().counter("test", "net0", "test.counter", 1);
+        LongSupplier worker2 = engine.context().counter("test", "net0", "test.counter", 2);
+
+        // THEN
+        assertThat(worker0.getAsLong(), equalTo(42L));
+        assertThat(worker1.getAsLong(), equalTo(21L));
+        assertThat(worker2.getAsLong(), equalTo(14L));
+        assertThat(engine.context().counter("test", "net0", "test.counter").getAsLong(), equalTo(77L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldNotFetchCounterValueForUnknownWorker()
+    {
+        assertThat(engine.context().counter("test", "net0", "test.counter", -1), nullValue());
+        assertThat(engine.context().counter("test", "net0", "test.counter", 3), nullValue());
+    }
 }

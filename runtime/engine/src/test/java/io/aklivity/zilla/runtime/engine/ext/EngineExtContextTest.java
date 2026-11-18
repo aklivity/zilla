@@ -71,4 +71,10 @@ public class EngineExtContextTest
     {
         assertThat(context.gauge("test", "net0", "test.gauge", 0), nullValue());
     }
+
+    @Test
+    public void shouldDefaultToNoCounterPerWorker()
+    {
+        assertThat(context.counter("test", "net0", "test.counter", 0), nullValue());
+    }
 }

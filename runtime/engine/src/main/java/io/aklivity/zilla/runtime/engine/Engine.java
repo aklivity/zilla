@@ -573,6 +573,17 @@ public final class Engine implements Collector, AutoCloseable
         return result;
     }
 
+    public LongSupplier counter(
+        long bindingId,
+        int metricId,
+        int attributesId,
+        int worker)
+    {
+        return worker >= 0 && worker < workers.size()
+            ? workers.get(worker).supplyCounter(bindingId, metricId, attributesId)
+            : null;
+    }
+
     public int workerCount()
     {
         return workers.size();
@@ -786,6 +797,20 @@ public final class Engine implements Collector, AutoCloseable
         public int workers()
         {
             return Engine.this.workerCount();
+        }
+
+        @Override
+        public LongSupplier counter(
+            String namespace,
+            String binding,
+            String metric,
+            int worker)
+        {
+            int namespaceId = namespace != null ? supplyLabelId.applyAsInt(namespace) : NO_NAMESPACE_ID;
+            int localId = binding != null ? supplyLabelId.applyAsInt(binding) : NO_LOCAL_ID;
+            int metricId = supplyLabelId.applyAsInt(metric);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            return Engine.this.counter(bindingId, metricId, 0, worker);
         }
 
         @Override
