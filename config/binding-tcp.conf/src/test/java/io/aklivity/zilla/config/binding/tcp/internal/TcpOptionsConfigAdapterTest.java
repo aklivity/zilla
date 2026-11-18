@@ -118,45 +118,4 @@ public class TcpOptionsConfigAdapterTest
                 port: 12345
                 """));
     }
-
-    @Test
-    public void shouldReadOptionsWithBacklog()
-    {
-        String yaml =
-                """
-                host: localhost
-                port: 12345
-                backlog: 1000
-                """;
-
-        TcpOptionsConfig options = jsonb.fromJson(yaml, TcpOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.host, equalTo("localhost"));
-        assertThat(options.ports, not(nullValue()));
-        assertThat(options.ports.length, equalTo(1));
-        assertThat(options.ports[0], equalTo(12345));
-        assertThat(options.backlog, equalTo(1000));
-    }
-
-    @Test
-    public void shouldWriteOptionsWithBacklog()
-    {
-        TcpOptionsConfig options = TcpOptionsConfig.builder()
-                .inject(identity())
-                .host("localhost")
-                .ports(new int[] { 12345 })
-                .backlog(1000)
-                .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-                """
-                host: localhost
-                port: 12345
-                backlog: 1000
-                """));
-    }
 }

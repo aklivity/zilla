@@ -453,6 +453,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.receive.message.dollar.topic/client",
+        "${app}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.topic.guarded.identity.param/client",
         "${app}/subscribe.topic.guarded.identity.param/server"})
     public void shouldFilterGuardedIdentityParam() throws Exception
@@ -654,6 +663,15 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/client",
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/server"})
     public void shouldSubscribeReceiveMessageOverlappingWildcardMixedQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.dollar.topic.v4/client",
+        "${app}/subscribe.receive.message.dollar.topic.v4/server"})
+    public void shouldReceiveMessageDollarTopicV4() throws Exception
     {
         k3po.finish();
     }
@@ -1194,6 +1212,24 @@ public class SubscribeIT
         "${app}/subscribe.shared.receive.message.qos1/client",
         "${app}/subscribe.shared.receive.message.qos1/server"})
     public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.dollar.topic/client",
+        "${app}/subscribe.shared.receive.message.dollar.topic/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.dollar.topic.filter/client",
+        "${app}/subscribe.shared.receive.message.dollar.topic.filter/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopicFilter() throws Exception
     {
         k3po.finish();
     }
