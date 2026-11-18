@@ -30,6 +30,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UN
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.connackReasonCodeV4;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isConnackReasonCode;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isDisconnectReasonCode;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -116,5 +117,28 @@ public class MqttReasonCodesTest
         assertTrue(isConnackReasonCode(0x9d));
         assertFalse(isConnackReasonCode(0x8d));
         assertFalse(isConnackReasonCode(0x8e));
+    }
+
+    @Test
+    public void shouldRecognizeDisconnectReasonCodes()
+    {
+        assertTrue(isDisconnectReasonCode(SUCCESS));
+        assertTrue(isDisconnectReasonCode(0x04));
+        assertTrue(isDisconnectReasonCode(0x80));
+        assertTrue(isDisconnectReasonCode(0x81));
+        assertTrue(isDisconnectReasonCode(0x8e));
+        assertTrue(isDisconnectReasonCode(0x96));
+        assertTrue(isDisconnectReasonCode(0xa2));
+    }
+
+    @Test
+    public void shouldNotRecognizeOtherDisconnectReasonCodes()
+    {
+        assertFalse(isDisconnectReasonCode(0x01));
+        assertFalse(isDisconnectReasonCode(0x10));
+        assertFalse(isDisconnectReasonCode(0x84));
+        assertFalse(isDisconnectReasonCode(0x86));
+        assertFalse(isDisconnectReasonCode(0xa3));
+        assertFalse(isDisconnectReasonCode(0xff));
     }
 }
