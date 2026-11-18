@@ -543,6 +543,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         return complete;
     }
 
+    @Override
+    public void suspend()
+    {
+        flushed = true;
+    }
+
     // Closes one scope level atomically: any still-open repeated/map field, then defaults, then (unless this
     // level is a map entry, which owns no brace of its own) the level's own closing brace — decrementing
     // depth only once every one of those has actually happened. A step that cannot fit leaves depth (and

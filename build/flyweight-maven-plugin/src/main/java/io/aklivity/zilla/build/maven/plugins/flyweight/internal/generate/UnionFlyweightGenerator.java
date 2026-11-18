@@ -478,7 +478,7 @@ public final class UnionFlyweightGenerator extends ClassSpecGenerator
                     }
                     else if (type == TypeName.INT)
                     {
-                        codeBlock.add(", $T.BIG_ENDIAN) & 0xFFFF_FFFF)", ByteOrder.class);
+                        codeBlock.add(", $T.BIG_ENDIAN) & 0xFFFF_FFFFL)", ByteOrder.class);
                     }
                     else
                     {
