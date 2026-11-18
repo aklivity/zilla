@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,26 +29,33 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler
 {
+    private static final String INCREMENT = "increment";
+    private static final String REPLACE = "replace";
+
     private final ConcurrentMap<String, TestEntry> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
     private final Consumer<Runnable> dispatcher;
+    private final Queue<Assertion> assertions;
 
     public TestStoreHandler(
         StoreConfig store,
         Consumer<Runnable> dispatcher,
         ConcurrentMap<String, TestEntry> entries,
         ConcurrentMap<String, List<TestWatcher>> listeners,
-        ConcurrentMap<String, TestLockEntry> locks)
+        ConcurrentMap<String, TestLockEntry> locks,
+        Queue<Assertion> assertions)
     {
         this.entries = Objects.requireNonNull(entries);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.listeners = Objects.requireNonNull(listeners);
         this.locks = Objects.requireNonNull(locks);
+        this.assertions = assertions;
     }
 
     @Override
@@ -66,6 +74,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
+        assertOperation(new Assertion("put", key, value, ttl));
         // put and putIfAbsent never expire so bindings configured with short leases keep their records
         entries.put(key, new TestEntry(value, Long.MAX_VALUE));
         notifyListeners(key, value);
@@ -79,6 +88,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
+        assertOperation(new Assertion("putIfAbsent", key, value, ttl));
         final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
@@ -99,6 +109,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
+        assertOperation(new Assertion("delete", key, null, null));
         final TestEntry removed = entries.remove(key);
         if (removed != null)
         {
@@ -112,6 +123,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         Consumer<String> completion)
     {
+        assertOperation(new Assertion("getAndDelete", key, null, null));
         final TestEntry prior = entries.remove(key);
         if (prior != null)
         {
@@ -139,6 +151,7 @@ public final class TestStoreHandler implements StoreHandler
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
+        assertOperation(new Assertion("increment", key, null, Long.toString(counter), null, delta, ttl));
         notifyListeners(key, Long.toString(counter));
         final long result = counter;
         defer(() -> completion.accept(key, result));
@@ -162,6 +175,7 @@ public final class TestStoreHandler implements StoreHandler
         List<String> keys,
         LongConsumer completion)
     {
+        assertOperation(new Assertion("delete", null, keys, null, null, 0L, null));
         long removed = 0L;
         for (String key : keys)
         {
@@ -187,6 +201,7 @@ public final class TestStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<Boolean> completion)
     {
+        assertOperation(new Assertion("replace", key, null, value, expected, 0L, ttl));
         boolean replaced;
         boolean contended;
         do
@@ -292,6 +307,61 @@ public final class TestStoreHandler implements StoreHandler
                 current.remove(watcher);
             }
         };
+    }
+
+    private void assertOperation(
+        Assertion actual)
+    {
+        if (assertions != null)
+        {
+            final Assertion expected = assertions.poll();
+
+            if (expected == null)
+            {
+                throw new AssertionError(String.format("unexpected store operation %s %s", actual.op, target(actual)));
+            }
+
+            if (!matches(expected, actual))
+            {
+                throw new AssertionError(String.format(
+                    "expected store operation %s, was %s", describe(expected), describe(actual)));
+            }
+        }
+    }
+
+    private static boolean matches(
+        Assertion expected,
+        Assertion actual)
+    {
+        return expected.op.equals(actual.op) &&
+            Objects.equals(expected.key, actual.key) &&
+            Objects.equals(expected.keys, actual.keys) &&
+            (INCREMENT.equals(expected.op) && expected.value == null || Objects.equals(expected.value, actual.value)) &&
+            Objects.equals(expected.expected, actual.expected) &&
+            expected.delta == actual.delta &&
+            Objects.equals(expected.ttl, actual.ttl);
+    }
+
+    private static String describe(
+        Assertion assertion)
+    {
+        final String target = target(assertion);
+
+        return switch (assertion.op)
+        {
+        case INCREMENT -> String.format("%s %s delta=%d value=%s ttl=%s",
+            assertion.op, target, assertion.delta, assertion.value, assertion.ttl);
+        case REPLACE -> String.format("%s %s expected=%s value=%s ttl=%s",
+            assertion.op, target, assertion.expected, assertion.value, assertion.ttl);
+        default -> String.format("%s %s value=%s ttl=%s",
+            assertion.op, target, assertion.value, assertion.ttl);
+        };
+    }
+
+    private static String target(
+        Assertion assertion)
+    {
+        return assertion.keys != null ? assertion.keys.toString() : assertion.key;
     }
 
     private void notifyListeners(

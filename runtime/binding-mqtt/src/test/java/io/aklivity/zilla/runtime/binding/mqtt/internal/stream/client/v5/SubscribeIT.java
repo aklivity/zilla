@@ -334,6 +334,16 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1/server",
+        "${app}/subscribe.receive.message.qos1/client"})
+    public void shouldSubscribeReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 1.2 Malformed Packet, 4.13.1
     @Test
     @Configuration("client.yaml")
@@ -345,6 +355,16 @@ public class SubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2/server",
+        "${app}/subscribe.receive.message.qos2/client"})
+    public void shouldSubscribeReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
     // 2.1.3 Malformed Packet, 4.13.1
     @Test
     @Configuration("client.yaml")
@@ -352,6 +372,136 @@ public class SubscribeIT
         "${net}/server.sent.suback.invalid.fixed.header.flags/server",
         "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentSubackInvalidFixedHeaderFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos1.ack.with.reasoncode/server",
+        "${app}/subscribe.receive.message.qos1.ack.with.reasoncode/client"})
+    public void shouldSubscribeReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.ack.with.reasoncode/server",
+        "${app}/subscribe.receive.message.qos2.ack.with.reasoncode/client"})
+    public void shouldSubscribeReceiveMessageQos2AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.duplicate.before.ack/server",
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/client"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.duplicate.after.ack/server",
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/client"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.subscription.upstream/server",
+        "${app}/subscribe.shared.subscription/client"})
+    public void shouldSubscribeSharedSubscriptionUpstream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos1/server",
+        "${app}/subscribe.shared.receive.message.qos1/client"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos2/server",
+        "${app}/subscribe.shared.receive.message.qos2/client"})
+    public void shouldSubscribeSharedReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/server",
+        "${app}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/client"})
+    public void shouldSubscribeSharedReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.and.non.shared/server",
+        "${app}/subscribe.shared.and.non.shared/client"})
+    public void shouldSubscribeSharedAndNonShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.resubscribe.change.qos/server",
+        "${app}/subscribe.shared.resubscribe.change.qos/client"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/subscribe.shared.and.non.shared.receive.messages/server",
+        "${app}/subscribe.shared.and.non.shared.receive.messages/client"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
     {
         k3po.finish();
     }

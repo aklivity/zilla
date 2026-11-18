@@ -293,9 +293,27 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.server.sent.reset.buffered.disconnect/client",
+        "${app}/session.server.sent.reset.buffered.disconnect/server"})
+    public void shouldDisconnectWhenServerSentResetWithBufferedDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.server.sent.reset.after.connack/client",
         "${app}/session.server.sent.reset.after.connack/server"})
     public void shouldResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/client",
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/server"})
+    public void shouldRedirectAfterConnackWithReasonAndUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -511,6 +529,85 @@ public class SessionIT
         "${app}/session.abort.on.network.error/client",
         "${app}/session.abort.on.network.error/server"})
     public void shouldAbortOnNetworkError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.shared.subscriptions.not.supported/client",
+        "${app}/session.connect.shared.subscriptions.not.supported/server"})
+    public void shouldSessionConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-5]
+    @Test
+    @Specification({
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/client",
+        "${app}/session.will.reject.will.qos.exceeds.publish.qos.max/server"})
+    public void shouldRejectWillQosExceedsPublishQosMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.0-2]
+    @Test
+    @Specification({
+        "${app}/session.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${app}/session.ping.before.connack/client",
+        "${app}/session.ping.before.connack/server"})
+    public void shouldPingBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.before.connack/client",
+        "${app}/session.client.takeover.before.connack/server"})
+    public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-7]
+    @Test
+    @Specification({
+        "${app}/session.keep.alive.timeout.before.connack/client",
+        "${app}/session.keep.alive.timeout.before.connack/server"})
+    public void shouldAbortSessionAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2]
+    @Test
+    @Specification({
+        "${app}/session.server.redirect.with.reason.after.connack/client",
+        "${app}/session.server.redirect.with.reason.after.connack/server"})
+    public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${app}/session.disconnect.update.session.expiry/client",
+        "${app}/session.disconnect.update.session.expiry/server"})
+    public void shouldEndSessionWithUpdatedSessionExpiry() throws Exception
     {
         k3po.finish();
     }

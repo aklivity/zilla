@@ -30,6 +30,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_LOCAL_
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_NODE_INSTANCE_ID;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTER;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SERVICE_HOSTNAME;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -44,6 +45,7 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAM
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_SERVICE_HOSTNAME_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Properties;
 
@@ -93,5 +95,35 @@ public class EngineConfigurationTest
         assertEquals(ENGINE_ROUTER.name(), ENGINE_ROUTER_NAME);
         assertEquals(ENGINE_SERVICE_HOSTNAME.name(), ENGINE_SERVICE_HOSTNAME_NAME);
         assertEquals(ENGINE_NODE_INSTANCE_ID.name(), ENGINE_NODE_INSTANCE_ID_NAME);
+    }
+
+    @Test
+    public void shouldLimitDefaultWorkersToLongSize()
+    {
+        EngineConfiguration config = new EngineConfiguration(new Properties());
+
+        assertEquals(Math.min(Runtime.getRuntime().availableProcessors(), Long.SIZE), config.workers());
+    }
+
+    @Test
+    public void shouldAcceptWorkersUpToLongSize()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_WORKERS.name(), Integer.toString(Long.SIZE));
+
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        assertEquals(Long.SIZE, config.workers());
+    }
+
+    @Test
+    public void shouldRejectWorkersAboveLongSize()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_WORKERS.name(), Integer.toString(Long.SIZE + 1));
+
+        EngineConfiguration config = new EngineConfiguration(properties);
+
+        assertThrows(IllegalArgumentException.class, config::workers);
     }
 }

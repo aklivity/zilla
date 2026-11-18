@@ -31,4 +31,8 @@ read  [0x10 0x26]                       # CONNECT
       [0x00 0x00]                       # username
       [0x00 0x10] "Bearer INCORRECT"    # password
 
+write [0x20 0x02]                       # CONNACK
+      [0x00]                            # flags = none
+      [0x04]                            # return code = bad user name or password
+
 write close

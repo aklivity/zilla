@@ -453,6 +453,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.receive.message.dollar.topic/client",
+        "${app}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.topic.guarded.identity.param/client",
         "${app}/subscribe.topic.guarded.identity.param/server"})
     public void shouldFilterGuardedIdentityParam() throws Exception
@@ -612,6 +621,7 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${app}/subscribe.receive.message.subscription.id.112/client",
@@ -653,6 +663,15 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/client",
         "${app}/subscribe.receive.message.overlapping.wildcard.mixed.qos.v4/server"})
     public void shouldSubscribeReceiveMessageOverlappingWildcardMixedQosV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.dollar.topic.v4/client",
+        "${app}/subscribe.receive.message.dollar.topic.v4/server"})
+    public void shouldReceiveMessageDollarTopicV4() throws Exception
     {
         k3po.finish();
     }
@@ -1013,6 +1032,513 @@ public class SubscribeIT
         "${app}/subscribe.topic.multibyte.v4/client",
         "${app}/subscribe.topic.multibyte.v4/server"})
     public void shouldReceiveOneMessageWithMultibyteTopicV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.subscription/client",
+        "${app}/subscribe.shared.subscription/server"})
+    public void shouldSubscribeSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.maximum.two/client",
+        "${app}/subscribe.shared.receive.maximum.two/server"})
+    public void shouldSubscribeSharedReceiveMaximumTwo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.maximum.qos2/client",
+        "${app}/subscribe.shared.receive.maximum.qos2/server"})
+    public void shouldSubscribeSharedReceiveMaximumQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // MQTT 5.0, 3.3.4 [MQTT-3.3.4-9]
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.maximum/client",
+        "${app}/subscribe.shared.receive.maximum/server"})
+    public void shouldSubscribeSharedReceiveMaximum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.distinct.share.names/client",
+        "${app}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.distinct.filters/client",
+        "${app}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.and.non.shared/client",
+        "${app}/subscribe.shared.and.non.shared/server"})
+    public void shouldSubscribeSharedAndNonShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.resubscribe.change.qos/client",
+        "${app}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.resubscribe.identical/client",
+        "${app}/subscribe.resubscribe.identical/server"})
+    public void shouldSubscribeResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.resubscribe.identical/client",
+        "${app}/subscribe.shared.resubscribe.identical/server"})
+    public void shouldSubscribeSharedResubscribeIdentical() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.unroutable.shared.subscription/client",
+        "${app}/subscribe.unroutable.shared.subscription/server"})
+    public void shouldSubscribeUnroutableSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos2.granted.qos1/client",
+        "${app}/subscribe.shared.receive.message.qos2.granted.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2GrantedQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos2/client",
+        "${app}/subscribe.shared.receive.message.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${app}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.shared.subscription/client",
+        "${app}/subscribe.reconnect.shared.subscription/server"})
+    public void shouldSubscribeReconnectSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reconnect.legacy.session.state/client",
+        "${app}/subscribe.reconnect.legacy.session.state/server"})
+    public void shouldSubscribeReconnectLegacySessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos1.ack.with.reasoncode/client",
+        "${app}/subscribe.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.ack.with.reasoncode/client",
+        "${app}/subscribe.receive.message.qos2.ack.with.reasoncode/server"})
+    public void shouldSubscribeReceiveMessageQos2AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/client",
+        "${app}/subscribe.receive.message.qos2.duplicate.before.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateBeforeAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/client",
+        "${app}/subscribe.receive.message.qos2.duplicate.after.ack/server"})
+    public void shouldSubscribeReceiveMessageQos2DuplicateAfterAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/client",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.complete/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/client",
+        "${app}/subscribe.receive.message.qos2.reuse.packet.id.after.error/server"})
+    public void shouldSubscribeReceiveMessageQos2ReusePacketIdAfterError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos1/client",
+        "${app}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.dollar.topic/client",
+        "${app}/subscribe.shared.receive.message.dollar.topic/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.dollar.topic.filter/client",
+        "${app}/subscribe.shared.receive.message.dollar.topic.filter/server"})
+    public void shouldSubscribeSharedReceiveMessageDollarTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/client",
+        "${app}/subscribe.shared.receive.message.qos1.ack.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1AckWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.and.non.shared.receive.messages/client",
+        "${app}/subscribe.shared.and.non.shared.receive.messages/server"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.suback.after.stream.begin/client",
+        "${app}/subscribe.suback.after.stream.begin/server"})
+    public void shouldSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.qos1.suback.after.streams.begin/client",
+        "${app}/subscribe.qos1.suback.after.streams.begin/server"})
+    public void shouldSubackQos1AfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.suback.after.stream.begin/client",
+        "${app}/subscribe.shared.suback.after.stream.begin/server"})
+    public void shouldSubackSharedAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.filters.suback.after.streams.begin/client",
+        "${app}/subscribe.shared.filters.suback.after.streams.begin/server"})
+    public void shouldSubackSharedFiltersAfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.and.non.shared.suback.after.streams.begin/client",
+        "${app}/subscribe.shared.and.non.shared.suback.after.streams.begin/server"})
+    public void shouldSubackSharedAndNonSharedAfterStreamsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.reject.stream.reset.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.shared.reject.stream.reset.before.begin/server"})
+    public void shouldRejectSharedSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.filters.reject.one.stream.reset.before.begin/client",
+        "${app}/subscribe.shared.filters.reject.one.stream.reset.before.begin/server"})
+    public void shouldRejectOneOfSharedFiltersWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.suback.after.stream.begin.v4/client",
+        "${app}/subscribe.suback.after.stream.begin.v4/server"})
+    public void shouldSubackAfterStreamBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.reconnect.non.clean.start/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/client",
+        "${app}/subscribe.shared.filters.reject.one.reconnect.non.clean.start/server"})
+    public void shouldRestoreOnlyAcceptedSharedFilterOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/client",
+        "${app}/subscribe.reject.qos2.stream.reset.before.begin.deliver.qos1/server"})
+    public void shouldDeliverQos1WhenQos2StreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.shared.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSharedSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.filters.reject.one.stream.abort.before.begin/client",
+        "${app}/subscribe.shared.filters.reject.one.stream.abort.before.begin/server"})
+    public void shouldRejectOneOfSharedFiltersWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/client",
+        "${app}/subscribe.reject.reconnect.non.clean.start.v4/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnectV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.stream.reset.before.begin.v4/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.back.to.back.reject.stream.reset.before.begin.v4/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.other.stream.reset.before.begin.v4/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/client",
+        "${app}/subscribe.reject.stream.abort.before.begin.v4/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBeginV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/client",
+        "${app}/subscribe.restored.filter.reject.stream.abort.before.begin.v4/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilterV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos1/client",
+        "${app}/subscribe.redeliver.message.qos1/server"})
+    public void shouldRedeliverMessageQoS1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos2/client",
+        "${app}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.redeliver.message.qos2.v4/client",
+        "${app}/subscribe.redeliver.message.qos2.v4/server"})
+    public void shouldRedeliverMessageQoS2V4() throws Exception
     {
         k3po.finish();
     }

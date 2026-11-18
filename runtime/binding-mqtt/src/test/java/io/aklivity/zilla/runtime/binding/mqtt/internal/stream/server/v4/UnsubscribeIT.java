@@ -142,6 +142,26 @@ public class UnsubscribeIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.before.suback.after.stream.begin.v4/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin.v4/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.route.non.default.yaml")
     @Specification({
         "${net}/unsubscribe.topic.filters.mixed.subscribed.and.not/client",
@@ -189,6 +209,16 @@ public class UnsubscribeIT
         "${net}/unsubscribe.reject.topic.filter.null.character/client",
         "${app}/session.connect/server"})
     public void shouldRejectUnsubscribeTopicFilterNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.inflight.message.qos1/client",
+        "${app}/unsubscribe.inflight.message.qos1.v4/server"})
+    public void shouldUnsubscribeInflightMessageQos1() throws Exception
     {
         k3po.finish();
     }

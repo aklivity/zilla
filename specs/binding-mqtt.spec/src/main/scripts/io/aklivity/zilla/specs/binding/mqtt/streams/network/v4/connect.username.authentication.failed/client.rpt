@@ -29,4 +29,8 @@ write [0x10 0x24]                       # CONNECT
       [0x00 0x06] "client"              # client id
       [0x00 0x10] "Bearer INCORRECT"    # username
 
+read  [0x20 0x02]                       # CONNACK
+      [0x00]                            # flags = none
+      [0x04]                            # return code = bad user name or password
+
 read closed

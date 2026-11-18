@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.GRANTED_QOS_2;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.IMPLEMENTATION_SPECIFIC_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NOT_AUTHORIZED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_CONNACK;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_MATCHING_SUBSCRIBERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PACKET_IDENTIFIER_IN_USE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PAYLOAD_FORMAT_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.QUOTA_EXCEEDED;
@@ -25,6 +28,11 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SU
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSPECIFIED_ERROR;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.acknowledgesPublish;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.connackReasonCodeV4;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isConnackReasonCode;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isDisconnectReasonCode;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.isError;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -50,5 +58,87 @@ public class MqttReasonCodesTest
         assertFalse(acknowledgesPublish(SUCCESS));
         assertFalse(acknowledgesPublish(RETAIN_NOT_SUPPORTED));
         assertFalse(acknowledgesPublish(0x9b));
+    }
+
+    @Test
+    public void shouldNotRecognizeSuccessAsError()
+    {
+        assertFalse(isError(SUCCESS));
+        assertFalse(isError(GRANTED_QOS_2));
+        assertFalse(isError(NO_MATCHING_SUBSCRIBERS));
+    }
+
+    @Test
+    public void shouldRecognizeCodesFromUnspecifiedErrorAsError()
+    {
+        assertTrue(isError(UNSPECIFIED_ERROR));
+        assertTrue(isError(IMPLEMENTATION_SPECIFIC_ERROR));
+        assertTrue(isError(0xff));
+    }
+
+    @Test
+    public void shouldKeepConnackReturnCodesForV4()
+    {
+        for (int code = 0x00; code <= 0x05; code++)
+        {
+            assertEquals(code, connackReasonCodeV4(code));
+        }
+    }
+
+    @Test
+    public void shouldMapConnackReasonCodesToReturnCodesForV4()
+    {
+        assertEquals(0x01, connackReasonCodeV4(0x84));
+        assertEquals(0x02, connackReasonCodeV4(0x85));
+        assertEquals(0x04, connackReasonCodeV4(0x86));
+        assertEquals(0x05, connackReasonCodeV4(0x87));
+        assertEquals(0x03, connackReasonCodeV4(0x88));
+        assertEquals(0x03, connackReasonCodeV4(0x89));
+        assertEquals(0x03, connackReasonCodeV4(0x9d));
+    }
+
+    @Test
+    public void shouldNotMapOtherReasonCodesForV4()
+    {
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x06));
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x81));
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x82));
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x8d));
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x8e));
+        assertEquals(NO_CONNACK, connackReasonCodeV4(0x9b));
+    }
+
+    @Test
+    public void shouldRecognizeConnackReasonCodesForV5()
+    {
+        assertTrue(isConnackReasonCode(SUCCESS));
+        assertTrue(isConnackReasonCode(0x89));
+        assertTrue(isConnackReasonCode(0x9b));
+        assertTrue(isConnackReasonCode(0x9d));
+        assertFalse(isConnackReasonCode(0x8d));
+        assertFalse(isConnackReasonCode(0x8e));
+    }
+
+    @Test
+    public void shouldRecognizeDisconnectReasonCodes()
+    {
+        assertTrue(isDisconnectReasonCode(SUCCESS));
+        assertTrue(isDisconnectReasonCode(0x04));
+        assertTrue(isDisconnectReasonCode(0x80));
+        assertTrue(isDisconnectReasonCode(0x81));
+        assertTrue(isDisconnectReasonCode(0x8e));
+        assertTrue(isDisconnectReasonCode(0x96));
+        assertTrue(isDisconnectReasonCode(0xa2));
+    }
+
+    @Test
+    public void shouldNotRecognizeOtherDisconnectReasonCodes()
+    {
+        assertFalse(isDisconnectReasonCode(0x01));
+        assertFalse(isDisconnectReasonCode(0x10));
+        assertFalse(isDisconnectReasonCode(0x84));
+        assertFalse(isDisconnectReasonCode(0x86));
+        assertFalse(isDisconnectReasonCode(0xa3));
+        assertFalse(isDisconnectReasonCode(0xff));
     }
 }

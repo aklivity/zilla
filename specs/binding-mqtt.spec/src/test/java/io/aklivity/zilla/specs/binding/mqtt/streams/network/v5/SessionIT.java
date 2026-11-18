@@ -249,9 +249,27 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.server.sent.reset.buffered.disconnect/client",
+        "${net}/session.server.sent.reset.buffered.disconnect/server"})
+    public void shouldDisconnectWhenServerSentResetWithBufferedDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.server.sent.reset.after.connack/client",
         "${net}/session.server.sent.reset.after.connack/server"})
     public void shouldDisconnectWhenServerSentResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.server.redirect.after.connack.with.reason.and.user.property/client",
+        "${net}/session.server.redirect.after.connack.with.reason.and.user.property/server"})
+    public void shouldRedirectAfterConnackWithReasonAndUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -363,4 +381,63 @@ public class SessionIT
         k3po.finish();
     }
 
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${net}/session.client.takeover.before.connack/client",
+        "${net}/session.client.takeover.before.connack/server"})
+    public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-8]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.with.error/client",
+        "${net}/session.will.message.disconnect.with.error/server"})
+    public void shouldDisconnectWithErrorPublishWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2-1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.invalid.reason.code/client",
+        "${net}/session.will.message.disconnect.invalid.reason.code/server"})
+    public void shouldRejectDisconnectInvalidReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only/client",
+        "${net}/session.will.message.disconnect.reason.code.only/server"})
+    public void shouldDisconnectWithReasonCodeOnlyWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.1]
+    @Test
+    @Specification({
+        "${net}/session.will.message.disconnect.reason.code.only.error/client",
+        "${net}/session.will.message.disconnect.reason.code.only.error/server"})
+    public void shouldDisconnectWithReasonCodeOnlyError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2]
+    @Test
+    @Specification({
+        "${net}/session.server.redirect.with.reason.after.connack/client",
+        "${net}/session.server.redirect.with.reason.after.connack/server"})
+    public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

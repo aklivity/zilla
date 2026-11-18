@@ -38,7 +38,8 @@ scope mqtt
 
     enum MqttPublishFlags (uint8)
     {
-        RETAIN(0)
+        RETAIN(0),
+        DUP(1)
     }
 
     enum MqttPayloadFormat
@@ -67,6 +68,26 @@ scope mqtt
 
     struct MqttTopicFilter
     {
+        int32 subscriptionId = 0;
+        uint8 qos = 0;
+        uint8 flags = 0;
+        uint8 reasonCode = 0;
+        string16 pattern;
+        string16 shareName = null;
+    }
+
+    struct MqttTopicFilterV2
+    {
+        uint32 subscriptionId = 0;
+        uint8 qos = 0;
+        uint8 flags = 0;
+        uint8 reasonCode = 0;
+        string16 pattern;
+        string16 shareName = null;
+    }
+
+    struct MqttTopicFilterV1
+    {
         uint32 subscriptionId = 0;
         uint8 qos = 0;
         uint8 flags = 0;
@@ -74,10 +95,33 @@ scope mqtt
         string16 pattern;
     }
 
-    struct MqttSessionState
+    enum MqttSessionStateVersion (uint8)
     {
-        uint8 version = 2;
-        MqttTopicFilter[] subscriptions;
+        V1 (1),
+        V2 (2),
+        V3 (3)
+    }
+
+    struct MqttSessionStateV1
+    {
+        MqttTopicFilterV1[] subscriptions;
+    }
+
+    struct MqttSessionStateV2
+    {
+        MqttTopicFilterV1[] subscriptions;
+    }
+
+    struct MqttSessionStateV3
+    {
+        MqttTopicFilterV2[] subscriptions;
+    }
+
+    union MqttSessionState switch (MqttSessionStateVersion)
+    {
+        case V1: mqtt::MqttSessionStateV1 sessionStateV1;
+        case V2: mqtt::MqttSessionStateV2 sessionStateV2;
+        case V3: mqtt::MqttSessionStateV3 sessionStateV3;
     }
 
     enum MqttSessionSignalType (uint8)
@@ -194,7 +238,7 @@ scope mqtt
             uint16 packetId = 0;
             uint8 qos = 0;
             uint8 flags = 0;
-            varuint32[] subscriptionIds;
+            varint32[] subscriptionIds;
             int32 expiryInterval = -1;
             string16 contentType = null;
             MqttPayloadFormat format = NONE;
@@ -234,6 +278,12 @@ scope mqtt
             string16 serverRef = null;
             uint8 reasonCode = 0;
             string16 reason = null;
+            MqttUserProperty[] properties;
+        }
+
+        struct MqttEndEx extends core::stream::Extension
+        {
+            int32 expiry;
         }
 
         union MqttFlushEx switch (uint8) extends core::stream::Extension
@@ -259,6 +309,7 @@ scope mqtt
             uint8 qos = 0;
             uint16 packetId = 0;
             uint8 state = 0;
+            uint8 reasonCode = 0;
             MqttTopicFilter[] filters;
         }
 

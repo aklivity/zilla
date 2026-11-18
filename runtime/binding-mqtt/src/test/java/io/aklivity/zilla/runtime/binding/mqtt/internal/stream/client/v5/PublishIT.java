@@ -58,6 +58,56 @@ public class PublishIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${net}/publish.qos1.message.rejected/server",
+        "${app}/publish.qos1.message.rejected/client"})
+    public void shouldPublishQos1MessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.messages.one.ack/server",
+        "${app}/publish.qos1.two.messages.one.ack/client"})
+    public void shouldPublishQos1TwoMessagesOneAck() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos1.two.topics.interleaved.acks/server",
+        "${app}/publish.qos1.two.topics.interleaved.acks/client"})
+    public void shouldPublishQos1TwoTopicsInterleavedAcks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.pipelined.qos1.ack.out.of.order/server",
+        "${app}/publish.pipelined.qos1.ack.out.of.order/client"})
+    public void shouldPublishPipelinedQos1AckOutOfOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos1.message.rejected.in.flight.acknowledged/server",
+        "${app}/publish.qos1.message.rejected.in.flight.acknowledged/client"})
+    public void shouldPublishQos1MessageRejectedInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${net}/publish.empty.message/server",
         "${app}/publish.empty.message/client"})
     public void shouldSendEmptyMessage() throws Exception
@@ -319,6 +369,104 @@ public class PublishIT
         "${net}/server.sent.publish.user.property.value.null.character/server",
         "${app}/session.abort.on.network.error/client"})
     public void shouldServerSentPublishUserPropertyValueNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.2, 3.4.2.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos1.acks.reordered.with.reason.codes/server",
+        "${app}/publish.qos1.acks.reordered.with.reason.codes/client"})
+    public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.puback.unknown.packet.id/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldRejectServerSentPubackUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos2.exchange.complete/server",
+        "${app}/publish.qos2.exchange.complete/client"})
+    public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3, 4.4.0-2
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos2.pubrec.failure.reason.code/server",
+        "${app}/publish.qos2.pubrec.failure.reason.code/client"})
+    public void shouldPublishQos2PubrecFailureReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 3.7.2.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos2.pubcomp.packet.id.not.found/server",
+        "${app}/publish.qos2.pubcomp.packet.id.not.found/client"})
+    public void shouldPublishQos2PubcompPacketIdNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.3.3
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.qos2.acks.reordered/server",
+        "${app}/publish.qos2.acks.reordered/client"})
+    public void shouldPublishQos2AcksReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.pubrec.unknown.packet.id/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldRejectServerSentPubrecUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // 4.13.1
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/server.sent.pubcomp.unknown.packet.id/server",
+        "${app}/session.abort.on.network.error/client"})
+    public void shouldRejectServerSentPubcompUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.many.messages/server",
+        "${app}/publish.many.messages/client"})
+    public void shouldSendManyMessages() throws Exception
     {
         k3po.finish();
     }

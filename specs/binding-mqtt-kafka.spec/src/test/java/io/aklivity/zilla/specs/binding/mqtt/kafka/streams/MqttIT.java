@@ -598,6 +598,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.subscribe.shared.via.session.state/client",
+        "${mqtt}/session.subscribe.shared.via.session.state/server"})
+    public void shouldReceiveSharedSubscriptionViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.unsubscribe.after.subscribe/client",
         "${mqtt}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
@@ -709,6 +718,15 @@ public class MqttIT
     {
         k3po.start();
         k3po.notifyBarrier("SIGNAL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.expiry.zero/client",
+        "${mqtt}/session.close.expiry.zero/server"})
+    public void shouldSessionCloseExpiryZero() throws Exception
+    {
         k3po.finish();
     }
 
@@ -1018,6 +1036,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.receive.message.qos1.multiple.clients/client",
+        "${mqtt}/subscribe.receive.message.qos1.multiple.clients/server"})
+    public void shouldReceiveMessageQoS1FromMultipleClients() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/client",
         "${mqtt}/subscribe.receive.message.qos1.published.qos2/server"})
     public void shouldReceiveMessageQoS1PublishedAsQoS2() throws Exception
@@ -1030,6 +1057,15 @@ public class MqttIT
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${mqtt}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.messages.qos2.sparse.offsets/client",
+        "${mqtt}/subscribe.receive.messages.qos2.sparse.offsets/server"})
+    public void shouldReceiveMessagesQoS2SparseOffsets() throws Exception
     {
         k3po.finish();
     }
@@ -1182,9 +1218,27 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.capabilities.shared.available/client",
+        "${mqtt}/session.capabilities.shared.available/server"})
+    public void shouldSessionCapabilitiesSharedAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.clean.start.qos.max.1/client",
         "${mqtt}/session.clean.start.qos.max.1/server"})
     public void shouldResetGroupOffsetsOnCleanStartPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.disabled/client",
+        "${mqtt}/session.capabilities.shared.unavailable.disabled/server"})
+    public void shouldSessionCapabilitiesSharedUnavailableDisabled() throws Exception
     {
         k3po.finish();
     }
@@ -1200,9 +1254,27 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
+        "${mqtt}/session.capabilities.shared.unavailable.without.store/server"})
+    public void shouldSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.publish.qos.max.0/client",
         "${mqtt}/session.publish.qos.max.0/server"})
     public void shouldAdvertisePublishQosMax0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.reconnect.shared.subscription/client",
+        "${mqtt}/session.reconnect.shared.subscription/server"})
+    public void shouldSessionReconnectSharedSubscription() throws Exception
     {
         k3po.finish();
     }
@@ -1227,9 +1299,27 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.and.non.shared.receive.messages/client",
+        "${mqtt}/subscribe.shared.and.non.shared.receive.messages/server"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.flush.unknown.packet.id/client",
         "${mqtt}/session.flush.unknown.packet.id/server"})
     public void shouldAnswerSessionFlushWithUnknownPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.abort/client",
+        "${mqtt}/subscribe.shared.client.sent.abort/server"})
+    public void shouldSubscribeSharedClientSentAbort() throws Exception
     {
         k3po.finish();
     }
@@ -1259,6 +1349,15 @@ public class MqttIT
         "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/client",
         "${mqtt}/publish.qos1.retain.available.server.sent.reset.in.flight/server"})
     public void shouldPublishQos1RetainAvailableServerSentResetInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.reset/client",
+        "${mqtt}/subscribe.shared.client.sent.reset/server"})
+    public void shouldSubscribeSharedClientSentReset() throws Exception
     {
         k3po.finish();
     }
@@ -1304,9 +1403,27 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.distinct.filters/client",
+        "${mqtt}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.subscribe.unmatched.all/client",
         "${mqtt}/session.subscribe.unmatched.all/server"})
     public void shouldSessionSubscribeUnmatchedAll() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.distinct.share.names/client",
+        "${mqtt}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
     {
         k3po.finish();
     }
@@ -1319,6 +1436,7 @@ public class MqttIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${mqtt}/subscribe.one.message.subscription.id.127/client",
@@ -1328,12 +1446,20 @@ public class MqttIT
         k3po.finish();
     }
 
-
     @Test
     @Specification({
         "${mqtt}/subscribe.receive.message.parent.level/client",
         "${mqtt}/subscribe.receive.message.parent.level/server"})
     public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message/client",
+        "${mqtt}/subscribe.shared.expire.message/server"})
+    public void shouldSubscribeSharedExpireMessage() throws Exception
     {
         k3po.finish();
     }
@@ -1349,9 +1475,387 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0/client",
+        "${mqtt}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.retain.parent.level/client",
         "${mqtt}/subscribe.retain.parent.level/server"})
     public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1PublishedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.before.begin/client",
+        "${mqtt}/subscribe.shared.reject.before.begin/server"})
+    public void shouldSubscribeSharedRejectBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.share.mismatch/client",
+        "${mqtt}/subscribe.shared.reject.share.mismatch/server"})
+    public void shouldSubscribeSharedRejectShareMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unsupported.version/client",
+        "${mqtt}/subscribe.shared.reject.unsupported.version/server"})
+    public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.resubscribe.change.qos/client",
+        "${mqtt}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.server.sent.abort/client",
+        "${mqtt}/subscribe.shared.server.sent.abort/server"})
+    public void shouldSubscribeSharedServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message.fragmented/client",
+        "${mqtt}/subscribe.shared.expire.message.fragmented/server"})
+    public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncodeFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.shared.granted.qos2/client",
+        "${mqtt}/session.subscribe.shared.granted.qos2/server"})
+    public void shouldSessionSubscribeSharedGrantedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message.qos2/client",
+        "${mqtt}/subscribe.shared.expire.message.qos2/server"})
+    public void shouldSubscribeSharedExpireMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2/client",
+        "${mqtt}/subscribe.shared.receive.message.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.existing.tickets/client",
+        "${mqtt}/subscribe.shared.receive.message.qos2.existing.tickets/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2ExistingTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/client",
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/server"})
+    public void shouldSubscribeSharedRecoverQos2PubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightThenRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentOffsetMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/client",
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentBeyondEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/server"})
+    public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/client",
+        "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.reject.with.reasoncode/client",
+        "${mqtt}/subscribe.shared.receive.message.qos2.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.messages.qos2/client",
+        "${mqtt}/subscribe.shared.receive.messages.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessagesQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client",
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/server"})
+    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared/client",
+        "${mqtt}/session.unsubscribe.shared/server"})
+    public void shouldUnsubscribeSharedAndLeave() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
+        "${mqtt}/session.unsubscribe.shared.state.write.reset/server"})
+    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.resubscribe.shared/client",
+        "${mqtt}/session.resubscribe.shared/server"})
+    public void shouldResubscribeSharedAfterLeaving() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.restore.membership/client",
+        "${mqtt}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembership() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.join.new.life/client",
+        "${mqtt}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.close.end.expiry.zero/client",
+        "${mqtt}/session.close.end.expiry.zero/server"})
+    public void shouldCloseSessionWithEndExpiryZero() throws Exception
     {
         k3po.finish();
     }

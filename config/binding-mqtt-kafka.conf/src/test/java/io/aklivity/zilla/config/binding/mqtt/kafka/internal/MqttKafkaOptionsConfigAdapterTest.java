@@ -143,4 +143,65 @@ public class MqttKafkaOptionsConfigAdapterTest
               retained: retained
             """));
     }
+
+    @Test
+    public void shouldReadOptionsWithStore()
+    {
+        String text =
+            """
+            store: store0
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            """;
+
+        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.store, equalTo("store0"));
+        assertThat(options.topics.messages, equalTo("messages"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutStore()
+    {
+        String text =
+            """
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            """;
+
+        MqttKafkaOptionsConfig options = jsonb.fromJson(text, MqttKafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.store, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithStore()
+    {
+        MqttKafkaOptionsConfig options = MqttKafkaOptionsConfig.builder()
+            .store("store0")
+            .topics(MqttKafkaTopicsConfig.builder()
+                .sessions("sessions")
+                .messages("messages")
+                .retained("retained")
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            """
+            store: store0
+            topics:
+              sessions: sessions
+              messages: messages
+              retained: retained
+            """));
+    }
 }

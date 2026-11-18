@@ -5988,6 +5988,11 @@
                                                                     "type": "string",
                                                                     "pattern": "^(\\/?([\\w{}\\.-]*|\\+)(\\/((?![-_])[\\w{}\\.-]*|\\+))*(\\/#)?|#|\\/|\\$SYS(\\/((?![-_])[\\w{}\\.-]*|\\+))*(\\/#)?)$"
                                                                 },
+                                                                "share": {
+                                                                    "title": "Share",
+                                                                    "type": "string",
+                                                                    "pattern": "^[^/+#]+$"
+                                                                },
                                                                 "params": {
                                                                     "title": "Params",
                                                                     "type": "object",
@@ -6179,6 +6184,10 @@
                                         ],
                                         "additionalProperties": false
                                     },
+                                    "store": {
+                                        "title": "Store Reference",
+                                        "type": "string"
+                                    },
                                     "clients": {
                                         "title": "Clients",
                                         "type": "array",
@@ -6237,6 +6246,11 @@
                                                                             "title": "Topic",
                                                                             "type": "string",
                                                                             "pattern": "^(\\/?([\\w{}\\.-]*|\\+)(\\/((?![-_])[\\w{}\\.-]*|\\+))*(\\/#)?|#|\\/|\\$SYS(\\/((?![-_])[\\w{}\\.-]*|\\+))*(\\/#)?)$"
+                                                                        },
+                                                                        "share": {
+                                                                            "title": "Share",
+                                                                            "type": "string",
+                                                                            "pattern": "^[^/+#]+$"
                                                                         }
                                                                     },
                                                                     "additionalProperties": false

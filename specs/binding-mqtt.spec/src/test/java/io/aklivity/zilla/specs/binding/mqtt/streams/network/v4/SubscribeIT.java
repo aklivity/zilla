@@ -265,6 +265,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.redeliver.message.qos2/client",
+        "${net}/subscribe.redeliver.message.qos2/server"})
+    public void shouldRedeliverMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.messages.mixture.qos/client",
         "${net}/subscribe.receive.messages.mixture.qos/server"})
     public void shouldReceiveMessagesMixtureQos() throws Exception
@@ -322,6 +331,15 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/client",
         "${net}/subscribe.receive.message.overlapping.wildcard.mixed.qos/server"})
     public void shouldReceiveMessageOverlappingWildcardMixedQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message.dollar.topic/client",
+        "${net}/subscribe.receive.message.dollar.topic/server"})
+    public void shouldReceiveMessageDollarTopic() throws Exception
     {
         k3po.finish();
     }
@@ -525,6 +543,96 @@ public class SubscribeIT
         "${net}/subscribe.reject.topic.filter.ill.formed.utf8/client",
         "${net}/subscribe.reject.topic.filter.ill.formed.utf8/server"})
     public void shouldRejectSubscribeTopicFilterIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.subscription.non.successful/client",
+        "${net}/subscribe.shared.subscription.non.successful/server"})
+    public void shouldSubscribeSharedSubscriptionNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.and.exact.non.successful/client",
+        "${net}/subscribe.shared.and.exact.non.successful/server"})
+    public void shouldSubscribeSharedAndExactNonSuccessful() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.suback.after.stream.begin/client",
+        "${net}/subscribe.suback.after.stream.begin/server"})
+    public void shouldSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.reject.stream.reset.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.reconnect.non.clean.start/client",
+        "${net}/subscribe.reject.reconnect.non.clean.start/server"})
+    public void shouldNotRestoreRejectedSubscriptionOnReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.stream.reset.before.begin/server"})
+    public void shouldDisconnectWhenResetStreamCarriesRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/client",
+        "${net}/subscribe.back.to.back.reject.stream.reset.before.begin/server"})
+    public void shouldRejectBackToBackSubscribesWhenStreamResetBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.other.stream.reset.before.begin/server"})
+    public void shouldRejectOtherStreamWithoutDisconnectingRestoredFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.reject.stream.abort.before.begin/server"})
+    public void shouldRejectSubscribeWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/client",
+        "${net}/subscribe.restored.filter.reject.stream.abort.before.begin/server"})
+    public void shouldDisconnectWhenAbortedStreamCarriesRestoredFilter() throws Exception
     {
         k3po.finish();
     }

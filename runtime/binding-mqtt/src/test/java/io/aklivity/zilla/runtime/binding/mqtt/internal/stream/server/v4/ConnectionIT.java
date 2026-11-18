@@ -95,6 +95,15 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.credentials.username.route.not.authorized.yaml")
+    @Specification({
+        "${net}/connect.route.not.authorized/client"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.failed/client"})
@@ -399,6 +408,81 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.topic.null.character/client"})
     public void shouldRejectConnectWillTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.username.flag.missing/client"})
+    public void shouldRejectConnectWithUsernameNoUsernameFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client"})
+    public void shouldRejectConnectWithPasswordNoPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client"})
+    public void shouldRejectConnectWillTopicNoWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.protocol.version.yaml")
+    @Specification({
+        "${net}/connect.unsupported.protocol.version/client"})
+    public void shouldRejectUnsupportedProtocolVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.remaining.length/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectWithRemainingLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client"})
+    public void shouldRejectWillTopicWildcard() throws Exception
     {
         k3po.finish();
     }

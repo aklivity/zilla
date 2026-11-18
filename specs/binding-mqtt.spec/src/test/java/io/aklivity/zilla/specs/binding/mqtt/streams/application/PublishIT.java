@@ -490,6 +490,24 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.qos1.empty.reset.before.window/client",
+        "${app}/publish.qos1.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos1EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.empty.reset.before.window/client",
+        "${app}/publish.qos2.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos2EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.qos1.message.rejected/client",
         "${app}/publish.qos1.message.rejected/server"})
     public void shouldPublishQos1MessageRejected() throws Exception
@@ -556,6 +574,60 @@ public class PublishIT
         "${app}/publish.one.message.second.client/client",
         "${app}/publish.one.message.second.client/server"})
     public void shouldPublishOneMessageFromSecondClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos1.acks.reordered.with.reason.codes/client",
+        "${app}/publish.qos1.acks.reordered.with.reason.codes/server"})
+    public void shouldPublishQos1AcksReorderedWithReasonCodes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.exchange.complete/client",
+        "${app}/publish.qos2.exchange.complete/server"})
+    public void shouldPublishQos2ExchangeComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.pubrec.failure.reason.code/client",
+        "${app}/publish.qos2.pubrec.failure.reason.code/server"})
+    public void shouldPublishQos2PubrecFailureReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.pubcomp.packet.id.not.found/client",
+        "${app}/publish.qos2.pubcomp.packet.id.not.found/server"})
+    public void shouldPublishQos2PubcompPacketIdNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.qos2.acks.reordered/client",
+        "${app}/publish.qos2.acks.reordered/server"})
+    public void shouldPublishQos2AcksReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/publish.many.messages/client",
+        "${app}/publish.many.messages/server"})
+    public void shouldPublishManyMessages() throws Exception
     {
         k3po.finish();
     }

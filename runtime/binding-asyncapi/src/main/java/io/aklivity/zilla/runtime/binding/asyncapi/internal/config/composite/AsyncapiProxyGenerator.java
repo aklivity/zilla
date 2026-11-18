@@ -40,7 +40,8 @@ import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaBindingConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaBindingConfigBuilder;
-import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfigBuilder;
+import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaRouteConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaBindingConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaRouteConfigBuilder;
@@ -370,16 +371,23 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                     AsyncapiOperationView mqttOperation,
                     AsyncapiOperationView kafkaOperation)
                 {
-                    final MqttKafkaConditionKind kind = mqttOperation.action.equals("send")
-                            ? MqttKafkaConditionKind.PUBLISH
-                            : MqttKafkaConditionKind.SUBSCRIBE;
+                    final MqttKafkaRouteConfigBuilder<MqttKafkaBindingConfigBuilder<C>> route = binding.route()
+                        .exit(config.qname);
+                    final MqttKafkaConditionConfigBuilder<MqttKafkaRouteConfigBuilder<MqttKafkaBindingConfigBuilder<C>>> when =
+                        route.when();
 
-                    binding.route()
-                        .exit(config.qname)
-                        .when()
+                    if (mqttOperation.action.equals("send"))
+                    {
+                        when.publish(mqttOperation.channel.address);
+                    }
+                    else
+                    {
+                        when.subscribe()
                             .topic(mqttOperation.channel.address)
-                            .kind(kind)
-                            .build()
+                            .build();
+                    }
+
+                    when.build()
                         .with()
                             .compositeId(mqttOperation.compositeId)
                             .messages(kafkaOperation.channel.address.replaceAll("\\{([^{}]*)\\}", "\\${params.$1}"))

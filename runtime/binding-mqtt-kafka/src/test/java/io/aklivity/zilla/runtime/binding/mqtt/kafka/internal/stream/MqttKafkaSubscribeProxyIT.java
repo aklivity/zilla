@@ -641,9 +641,31 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.receive.messages.qos2.sparse.offsets/client",
+        "${kafka}/subscribe.receive.messages.qos2.sparse.offsets/server"})
+    public void shouldReceiveMessagesQoS2SparseOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.qos2.version1.offset.metadata/client",
         "${kafka}/subscribe.qos2.version1.offset.metadata/server"})
     public void shouldReceiveMessageQoS2WithVersion1OffsetMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos1.multiple.clients/client",
+        "${kafka}/subscribe.receive.message.qos1.multiple.clients/server"})
+    public void shouldReceiveMessageQoS1FromMultipleClients() throws Exception
     {
         k3po.finish();
     }
@@ -814,12 +836,34 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.and.non.shared.receive.messages/client",
+        "${kafka}/subscribe.shared.and.non.shared.receive.messages/server"})
+    public void shouldSubscribeSharedAndNonSharedReceiveMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.skip.removed.retained.message/client",
         "${kafka}/subscribe.retained.empty.value/server"})
     public void shouldSkipEmptyValueOnRetainedReplay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.abort/client",
+        "${kafka}/subscribe.shared.client.sent.abort/server"})
+    public void shouldSubscribeSharedClientSentAbort() throws Exception
     {
         k3po.finish();
     }
@@ -836,12 +880,34 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.client.sent.reset/client",
+        "${kafka}/subscribe.shared.client.sent.reset/server"})
+    public void shouldSubscribeSharedClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.receive.message.parent.level/client",
         "${kafka}/subscribe.receive.message.parent.level/server"})
     public void shouldReceiveMessageAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.distinct.filters.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.distinct.filters/client",
+        "${kafka}/subscribe.shared.distinct.filters/server"})
+    public void shouldSubscribeSharedDistinctFilters() throws Exception
     {
         k3po.finish();
     }
@@ -858,12 +924,493 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
+    @Configuration("proxy.store.shared.join.distinct.share.names.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.distinct.share.names/client",
+        "${kafka}/subscribe.shared.distinct.share.names/server"})
+    public void shouldSubscribeSharedDistinctShareNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.retain.parent.level/client",
         "${kafka}/subscribe.retain.parent.level/server"})
     public void shouldReceiveRetainedAtParentLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message/client",
+        "${kafka}/subscribe.shared.expire.message/server"})
+    public void shouldSubscribeSharedExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message.fragmented/client",
+        "${kafka}/subscribe.shared.expire.message.fragmented/server"})
+    public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos0.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.no.tickets.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.published.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1PublishedQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RejectWithReasoncodeFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
+        "${kafka}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectFilterMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.before.begin/client",
+        "${kafka}/subscribe.shared.reject.filter.mismatch/server"})
+    public void shouldSubscribeSharedRejectBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.expired.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.expire.message.qos2/client",
+        "${kafka}/subscribe.shared.expire.message.qos2/server"})
+    public void shouldSubscribeSharedExpireMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2/client",
+        "${kafka}/subscribe.shared.receive.message.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.existing.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.existing.tickets/client",
+        "${kafka}/subscribe.shared.receive.message.qos2.existing.tickets/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2ExistingTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.pubrel.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/client",
+        "${kafka}/subscribe.shared.recover.qos2.pubrel.pending/server"})
+    public void shouldSubscribeSharedRecoverQos2PubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/client",
+        "${kafka}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/client",
+        "${kafka}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightQos2DisconnectRecoverPubrelPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
+        "${kafka}/subscribe.shared.unsubscribe.release.qos1/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.release.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
+        "${kafka}/subscribe.shared.unsubscribe.release.qos2/server"})
+    public void shouldSubscribeSharedUnsubscribeReleaseQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
+        "${kafka}/subscribe.shared.unsubscribe.inflight.then.release/server"})
+    public void shouldSubscribeSharedUnsubscribeInflightThenRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.fragmented/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentOffsetMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.expired/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.missing/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/client",
+        "${kafka}/subscribe.shared.recover.qos2.publish.sent.beyond.end/server"})
+    public void shouldSubscribeSharedRecoverQos2PublishSentBeyondEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.recover.then.receive.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
+        "${kafka}/subscribe.shared.recover.qos2.then.receive.message/server"})
+    public void shouldSubscribeSharedRecoverQos2ThenReceiveMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/client",
+        "${kafka}/subscribe.shared.receive.message.qos2.fragmented/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.reject.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos2.reject.with.reasoncode/client",
+        "${kafka}/subscribe.shared.receive.message.qos2.reject.with.reasoncode/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2RejectWithReasoncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.messages.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.messages.qos2/client",
+        "${kafka}/subscribe.shared.receive.messages.qos2/server"})
+    public void shouldSubscribeSharedReceiveMessagesQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.qos2.unreadable.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
+    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unsupported.version/client",
+        "${kafka}/subscribe.shared.reject.unsupported.version/server"})
+    public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.resubscribe.change.qos/client",
+        "${kafka}/subscribe.shared.resubscribe.change.qos/server"})
+    public void shouldSubscribeSharedResubscribeChangeQos() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.server.sent.abort/client",
+        "${kafka}/subscribe.shared.server.sent.abort/server"})
+    public void shouldSubscribeSharedServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.share.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0WhenShareMatchesRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.share.wildcard.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos0/client",
+        "${kafka}/subscribe.shared.receive.message.qos0/server"})
+    public void shouldSubscribeSharedReceiveMessageQos0WhenShareMatchesWildcardRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.when.subscribe.share.mismatch.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.share.mismatch/client"})
+    public void shouldSubscribeSharedRejectShareMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.first.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedJoinFirstSubscriber() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.second.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1/client",
+        "${kafka}/subscribe.shared.receive.message.qos1/server"})
+    public void shouldSubscribeSharedJoinSecondSubscriber() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.restored.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.restore.membership/client",
+        "${kafka}/subscribe.shared.restore.membership/server"})
+    public void shouldSubscribeSharedRestoreMembershipWithoutJoining() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.unreadable.registry.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
+    public void shouldSubscribeSharedRejectUnreadableRegistry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.shared.join.new.life.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.shared.join.new.life/client",
+        "${kafka}/subscribe.shared.join.new.life/server"})
+    public void shouldSubscribeSharedJoinNewLife() throws Exception
     {
         k3po.finish();
     }

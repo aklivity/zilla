@@ -23,7 +23,6 @@ import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.ToIntFunction;
 
-import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
@@ -31,9 +30,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
@@ -90,15 +87,12 @@ public final class HttpDurationMetricContext implements MetricContext
 
     private final class HttpDurationWithAttributesHandler implements MessageConsumer
     {
-        private static final long INITIAL_VALUE = 0L;
-        private static final long EXCHANGE_CLOSED = 0b11L;
-
         private final IntFunction<LongConsumer> recorder;
         private final HttpAttributeHelper attributeHelper;
-        private final Long2LongHashMap exchanges;
-        private final Long2LongHashMap timestamps;
+        private final HttpExchanges exchanges;
         private final Long2ObjectHashMap<Map<String, String>> pendingAttributes;
         private final BeginFW beginRO = new BeginFW();
+        private final ResetFW resetRO = new ResetFW();
 
         private HttpDurationWithAttributesHandler(
             IntFunction<LongConsumer> recorder,
@@ -106,8 +100,7 @@ public final class HttpDurationMetricContext implements MetricContext
         {
             this.recorder = recorder;
             this.attributeHelper = attributeHelper;
-            this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
-            this.timestamps = new Long2LongHashMap(INITIAL_VALUE);
+            this.exchanges = new HttpExchanges();
             this.pendingAttributes = new Long2ObjectHashMap<>();
         }
 
@@ -119,77 +112,57 @@ public final class HttpDurationMetricContext implements MetricContext
             int length)
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long streamId = frame.streamId();
-            final long exchangeId = initialId(streamId);
-            long direction = HttpUtils.direction(streamId);
-            long timestamp = frame.timestamp();
-            switch (msgTypeId)
+            final long exchangeId = initialId(frame.streamId());
+            switch (exchanges.onFrame(msgTypeId, frame.streamId(), frame.timestamp()))
             {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                if (direction == 1L) // received (request)
+            case REQUEST:
+                pendingAttributes.put(exchangeId,
+                    attributeHelper.extractRequestAttributes(beginRO.wrap(buffer, index, index + length)));
+                break;
+            case RESPONSE:
+                Map<String, String> attributes = pendingAttributes.get(exchangeId);
+                if (attributes != null)
                 {
-                    if (timestamp != INITIAL_VALUE)
-                    {
-                        timestamps.put(exchangeId, timestamp);
-                    }
-                    Map<String, String> reqAttrs = attributeHelper.extractRequestAttributes(begin);
-                    pendingAttributes.put(exchangeId, reqAttrs);
-                }
-                else // sent (response)
-                {
-                    Map<String, String> attrs = pendingAttributes.getOrDefault(exchangeId,
-                        new org.agrona.collections.Object2ObjectHashMap<>());
-                    Map<String, String> respAttrs = attributeHelper.extractResponseAttributes(begin);
-                    attrs.putAll(respAttrs);
-                    pendingAttributes.put(exchangeId, attrs);
+                    attributes.putAll(attributeHelper.extractResponseAttributes(beginRO.wrap(buffer, index, index + length)));
                 }
                 break;
-            case ResetFW.TYPE_ID:
-            case AbortFW.TYPE_ID:
-                exchanges.remove(exchangeId);
-                timestamps.remove(exchangeId);
+            case COMPLETED:
+                record(pendingAttributes.remove(exchangeId));
+                break;
+            case REJECTED:
+                Map<String, String> rejected = pendingAttributes.remove(exchangeId);
+                if (rejected != null)
+                {
+                    rejected.putAll(attributeHelper.extractRejectedAttributes(resetRO.wrap(buffer, index, index + length)));
+                }
+                record(rejected);
+                break;
+            case DISCARDED:
                 pendingAttributes.remove(exchangeId);
                 break;
-            case EndFW.TYPE_ID:
-                final long mask = 1L << direction;
-                final long status = exchanges.get(exchangeId) | mask;
-                if (status == EXCHANGE_CLOSED)
-                {
-                    exchanges.remove(exchangeId);
-                    long start = timestamps.remove(exchangeId);
-                    Map<String, String> attrs = pendingAttributes.remove(exchangeId);
-                    if (start != INITIAL_VALUE)
-                    {
-                        int attrId = attrs != null ? attributeHelper.computeAttributesId(attrs) : 0;
-                        long dur = timestamp - start;
-                        recorder.apply(attrId).accept(dur);
-                    }
-                }
-                else if (timestamps.containsKey(exchangeId))
-                {
-                    exchanges.put(exchangeId, status);
-                }
+            default:
                 break;
             }
+        }
+
+        private void record(
+            Map<String, String> attributes)
+        {
+            int attributesId = attributes != null ? attributeHelper.computeAttributesId(attributes) : 0;
+            recorder.apply(attributesId).accept(exchanges.duration());
         }
     }
 
     private final class HttpDurationHandler implements MessageConsumer
     {
-        private static final long INITIAL_VALUE = 0L;
-        private static final long EXCHANGE_CLOSED = 0b11L;
-
         private final LongConsumer recorder;
-        private final Long2LongHashMap exchanges;
-        private final Long2LongHashMap timestamps;
+        private final HttpExchanges exchanges;
 
         private HttpDurationHandler(
             LongConsumer recorder)
         {
             this.recorder = recorder;
-            this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
-            this.timestamps = new Long2LongHashMap(INITIAL_VALUE);
+            this.exchanges = new HttpExchanges();
         }
 
         @Override
@@ -200,41 +173,10 @@ public final class HttpDurationMetricContext implements MetricContext
             int length)
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long streamId = frame.streamId();
-            final long exchangeId = initialId(streamId);
-            long direction = HttpUtils.direction(streamId);
-            long timestamp = frame.timestamp();
-            switch (msgTypeId)
+            final HttpExchanges.Event event = exchanges.onFrame(msgTypeId, frame.streamId(), frame.timestamp());
+            if (event == HttpExchanges.Event.COMPLETED || event == HttpExchanges.Event.REJECTED)
             {
-            case BeginFW.TYPE_ID:
-                if (direction == 1L && timestamp != INITIAL_VALUE) //received stream
-                {
-                    timestamps.put(exchangeId, timestamp);
-                }
-                break;
-            case ResetFW.TYPE_ID:
-            case AbortFW.TYPE_ID:
-                exchanges.remove(exchangeId);
-                timestamps.remove(exchangeId);
-                break;
-            case EndFW.TYPE_ID:
-                final long mask = 1L << direction;
-                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
-                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
-                {
-                    exchanges.remove(exchangeId);
-                    long start = timestamps.remove(exchangeId);
-                    if (start != INITIAL_VALUE)
-                    {
-                        long duration = timestamp - start;
-                        recorder.accept(duration);
-                    }
-                }
-                else if (timestamps.containsKey(exchangeId)) // prevent memory leak if already aborted
-                {
-                    exchanges.put(exchangeId, status);
-                }
-                break;
+                recorder.accept(exchanges.duration());
             }
         }
     }

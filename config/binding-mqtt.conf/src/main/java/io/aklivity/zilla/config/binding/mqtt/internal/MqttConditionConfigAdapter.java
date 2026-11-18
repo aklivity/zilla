@@ -34,6 +34,7 @@ public final class MqttConditionConfigAdapter extends ConfigAdapter<ConditionCon
     private static final String PUBLISH_NAME = "publish";
     private static final String CLIENT_ID_NAME = "client-id";
     private static final String TOPIC_NAME = "topic";
+    private static final String SHARE_NAME = "share";
     private static final String PARAMS_NAME = "params";
 
     private static final String CLIENT_ID_DEFAULT = "*";
@@ -70,6 +71,10 @@ public final class MqttConditionConfigAdapter extends ConfigAdapter<ConditionCon
             {
                 JsonObjectBuilder subscribeJson = Json.createObjectBuilder();
                 subscribeJson.add(TOPIC_NAME, sub.topic);
+                if (sub.share != null)
+                {
+                    subscribeJson.add(SHARE_NAME, sub.share);
+                }
                 if (sub.params != null)
                 {
                     JsonObjectBuilder params = Json.createObjectBuilder();
@@ -132,6 +137,11 @@ public final class MqttConditionConfigAdapter extends ConfigAdapter<ConditionCon
                 MqttSubscribeConfigBuilder<?> subscribe = mqttConfig
                     .subscribe()
                     .topic(subscribeJson.getString(TOPIC_NAME));
+
+                if (subscribeJson.containsKey(SHARE_NAME))
+                {
+                    subscribe.share(subscribeJson.getString(SHARE_NAME));
+                }
 
                 if (subscribeJson.containsKey(PARAMS_NAME))
                 {

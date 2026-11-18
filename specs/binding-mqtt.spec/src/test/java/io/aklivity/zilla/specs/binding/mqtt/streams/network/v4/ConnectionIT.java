@@ -64,6 +64,16 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.4], MQTT 5.0 3.1.4 [MQTT-3.1.4-2]
+    @Test
+    @Specification({
+        "${net}/connect.route.not.authorized/client",
+        "${net}/connect.route.not.authorized/server"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/connect.username.authentication.failed/client",
@@ -377,6 +387,76 @@ public class ConnectionIT
         "${net}/connect.reject.will.topic.null.character/client",
         "${net}/connect.reject.will.topic.null.character/server"})
     public void shouldRejectConnectWillTopicNullCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-20]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client",
+        "${net}/connect.reject.password.no.password.flag/server"})
+    public void shouldRejectPasswordWhenMissingPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client",
+        "${net}/connect.reject.will.topic.no.will.flag/server"})
+    public void shouldRejectWillTopicWhenMissingWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.unsupported.protocol.version/client",
+        "${net}/connect.unsupported.protocol.version/server"})
+    public void shouldRejectUnsupportedProtocolVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.0-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${net}/connect.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.1]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.remaining.length/client",
+        "${net}/disconnect.reject.remaining.length/server"})
+    public void shouldRejectDisconnectWithRemainingLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${net}/connect.reject.packet.type.zero/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.2-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client",
+        "${net}/connect.reject.will.topic.wildcard/server"})
+    public void shouldRejectWillTopicWildcard() throws Exception
     {
         k3po.finish();
     }

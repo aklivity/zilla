@@ -235,4 +235,204 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.subscription/client",
+        "${app}/unsubscribe.shared.subscription/server"})
+    public void shouldUnsubscribeSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.one.filter.before.suback.after.stream.begin/client",
+        "${app}/unsubscribe.one.filter.before.suback.after.stream.begin/server"})
+    public void shouldUnsubscribeOneFilterBeforeSubackAfterStreamBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.resubscribe.previous.stream.abort/client",
+        "${app}/unsubscribe.shared.resubscribe.previous.stream.abort/server"})
+    public void shouldUnsubscribeSharedResubscribePreviousStreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.before.suback.stream.abort.before.begin/client",
+        "${app}/unsubscribe.before.suback.stream.abort.before.begin/server"})
+    public void shouldUnsubscribeBeforeSubackWhenStreamAbortedBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.stream.reset/client",
+        "${app}/unsubscribe.stream.reset/server"})
+    public void shouldUnsubscribeStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.stream.abort/client",
+        "${app}/unsubscribe.stream.abort/server"})
+    public void shouldUnsubscribeStreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.subscription.qos1/client",
+        "${app}/unsubscribe.shared.subscription.qos1/server"})
+    public void shouldUnsubscribeSharedSubscriptionQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.subscription.qos2/client",
+        "${app}/unsubscribe.shared.subscription.qos2/server"})
+    public void shouldUnsubscribeSharedSubscriptionQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.qos1/client",
+        "${app}/unsubscribe.shared.inflight.qos1/server"})
+    public void shouldUnsubscribeSharedInflightQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.qos2/client",
+        "${app}/unsubscribe.shared.inflight.qos2/server"})
+    public void shouldUnsubscribeSharedInflightQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.message/client",
+        "${app}/unsubscribe.shared.inflight.message/server"})
+    public void shouldUnsubscribeSharedInflightMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.fragmented/client",
+        "${app}/unsubscribe.shared.inflight.fragmented/server"})
+    public void shouldUnsubscribeSharedInflightFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.disconnect/client",
+        "${app}/unsubscribe.shared.inflight.disconnect/server"})
+    public void shouldUnsubscribeSharedInflightDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.resubscribe/client",
+        "${app}/unsubscribe.shared.inflight.resubscribe/server"})
+    public void shouldUnsubscribeSharedInflightResubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.shared.inflight.stream.reset/client",
+        "${app}/unsubscribe.shared.inflight.stream.reset/server"})
+    public void shouldUnsubscribeSharedInflightStreamReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.inflight.message.qos1/client",
+        "${app}/unsubscribe.inflight.message.qos1/server"})
+    public void shouldUnsubscribeInflightMessageQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.one.filter.message.removed.filter/client",
+        "${app}/unsubscribe.one.filter.message.removed.filter/server"})
+    public void shouldUnsubscribeOneFilterMessageRemovedFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.inflight.resubscribe.qos1/client",
+        "${app}/unsubscribe.inflight.resubscribe.qos1/server"})
+    public void shouldUnsubscribeInflightResubscribeQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/unsubscribe.reject.truncated.body/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectUnsubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

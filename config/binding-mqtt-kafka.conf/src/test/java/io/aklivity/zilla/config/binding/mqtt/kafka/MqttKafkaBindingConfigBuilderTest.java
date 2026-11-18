@@ -15,11 +15,13 @@
 package io.aklivity.zilla.config.binding.mqtt.kafka;
 
 import static io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind.PUBLISH;
+import static io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind.SUBSCRIBE;
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.List;
 
@@ -44,8 +46,7 @@ public class MqttKafkaBindingConfigBuilderTest
                 .build()
             .route()
                 .when()
-                    .kind(PUBLISH)
-                    .topic("test")
+                    .publish("test")
                     .build()
                 .with()
                     .messages("test")
@@ -68,11 +69,44 @@ public class MqttKafkaBindingConfigBuilderTest
 
         ConditionConfig condition = route.when.get(0);
         assertThat(condition, instanceOf(MqttKafkaConditionConfig.class));
-        assertThat(((MqttKafkaConditionConfig) condition).kind, equalTo(PUBLISH));
-        assertThat(((MqttKafkaConditionConfig) condition).topics, equalTo(List.of("test")));
+        assertThat(((MqttKafkaConditionConfig) condition).kind(), equalTo(PUBLISH));
+        assertThat(((MqttKafkaConditionConfig) condition).publishes, equalTo(List.of("test")));
 
         assertThat(route.with, instanceOf(MqttKafkaWithConfig.class));
         WithConfig with = route.with;
         assertThat(((MqttKafkaWithConfig) with).messages, equalTo("test"));
+    }
+
+    @Test
+    public void shouldBuildBindingWithSubscribeTopicsAndShares()
+    {
+        MqttKafkaBindingConfig binding = MqttKafkaBindingConfig.builder()
+            .namespace("test")
+            .name("mqtt-kafka0")
+            .kind(PROXY)
+            .route()
+                .when()
+                    .subscribe()
+                        .topic("sensor/one")
+                        .share("consumers")
+                        .build()
+                    .subscribe()
+                        .topic("sensor/two")
+                        .build()
+                    .build()
+                .with()
+                    .messages("test")
+                    .build()
+                .build()
+            .build();
+
+        MqttKafkaConditionConfig condition = (MqttKafkaConditionConfig) binding.routes.get(0).when.get(0);
+        assertThat(condition.kind(), equalTo(SUBSCRIBE));
+        assertThat(condition.subscribes, hasSize(2));
+        assertThat(condition.subscribes.get(0).topic, equalTo("sensor/one"));
+        assertThat(condition.subscribes.get(0).share, equalTo("consumers"));
+        assertThat(condition.subscribes.get(1).topic, equalTo("sensor/two"));
+        assertThat(condition.subscribes.get(1).share, nullValue());
+        assertThat(condition.publishes, hasSize(0));
     }
 }

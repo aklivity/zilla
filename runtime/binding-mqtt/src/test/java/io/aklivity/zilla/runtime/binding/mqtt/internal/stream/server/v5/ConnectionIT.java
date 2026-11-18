@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -83,6 +82,15 @@ public class ConnectionIT
         "${net}/connect.username.authentication.successful/client",
         "${app}/session.connect.authorization/server"})
     public void shouldAuthenticateUsernameAndConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.credentials.username.route.not.authorized.yaml")
+    @Specification({
+        "${net}/connect.route.not.authorized/client"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -184,7 +192,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.protocol.version.yaml")
+    @Configuration("server.protocol.version.v4.yaml")
     @Specification({
         "${net}/connect.unsupported.protocol.version/client"})
     public void shouldRejectUnsupportedProtocolVersion() throws Exception
@@ -350,7 +358,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -369,7 +376,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -448,6 +454,16 @@ public class ConnectionIT
         "${net}/connect.max.packet.size.exceeded/client",
         "${app}/connect.max.packet.size.exceeded/server"})
     public void shouldRejectMaxPacketSizeExceeded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.server.defined.keep.alive.default.minimum/client",
+        "${app}/session.connect/server"})
+    public void shouldConnectWithServerDefinedKeepAliveDefaultMinimum() throws Exception
     {
         k3po.finish();
     }
@@ -751,6 +767,154 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.user.property.value.ill.formed.utf8/client"})
     public void shouldRejectConnectWillUserPropertyValueIllFormedUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.after.shared.subscription/client",
+        "${app}/disconnect.after.shared.subscription/server"})
+    public void shouldDisconnectAfterSharedSubscription() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.shared.subscriptions.not.supported/client",
+        "${app}/session.connect.shared.subscriptions.not.supported/server"})
+    public void shouldConnectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client"})
+    public void shouldRejectConnectWillTopicNoWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
+    @Specification({
+        "${net}/connect.keep.alive.timeout.before.connack/client",
+        "${app}/session.keep.alive.timeout.before.connack/server"})
+    public void shouldCloseWithoutConnackAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reason.string/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectWithReasonString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.user.property/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.session.expiry/client",
+        "${app}/session.connect.with.session.expiry/server"})
+    public void shouldDisconnectWithSessionExpiryAfterConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.server.reference/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectWithServerReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.invalid.fixed.header.flags.no.reason.code/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectInvalidFixedHeaderFlagsNoReasonCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.followed.by.pingreq/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectFollowedByPingreq() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.packet.type.zero/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectPacketTypeZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.wildcard/client"})
+    public void shouldRejectWillTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.response.topic.wildcard/client"})
+    public void shouldRejectWillResponseTopicWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.update.session.expiry/client",
+        "${app}/session.disconnect.update.session.expiry/server"})
+    public void shouldDisconnectWithUpdatedSessionExpiry() throws Exception
     {
         k3po.finish();
     }

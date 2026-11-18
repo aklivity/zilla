@@ -55,4 +55,99 @@ else
   EXIT=1
 fi
 
+# GIVEN shared subscribers
+COUNT=20
+SHARE_FILTER='$share/group/sensor/#'
+WORK=$(mktemp -d)
+echo \# Testing shared subscriptions
+echo SHARE_FILTER="$SHARE_FILTER"
+echo COUNT="$COUNT"
+echo
+
+# WHEN two subscribers share one subscription and messages are published
+for SUBSCRIBER in 1 2; do
+  docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+    timeout 40s mosquitto_sub -V 5 -q 1 -i "shared-$SUBSCRIBER-$$" -d \
+      -h zilla.examples.dev -p "$PORT" -t "$SHARE_FILTER" -t ready \
+    > "$WORK/subscriber-$SUBSCRIBER.log" 2>&1 &
+  eval "SUB_PID_$SUBSCRIBER=$!"
+
+  # mosquitto_sub only flushes its debug log when it prints a message,
+  # so publish to the plain topic until the subscription is acknowledged
+  for i in $(seq 1 30); do
+    docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+      mosquitto_pub -V 5 -h zilla.examples.dev -p "$PORT" -t ready --message ready
+    grep -q "received SUBACK" "$WORK/subscriber-$SUBSCRIBER.log" && break
+    sleep 1
+  done
+done
+
+for i in $(seq 1 "$COUNT"); do
+  docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+    mosquitto_pub -V 5 -q 1 -h zilla.examples.dev -p "$PORT" -t sensor/temperature --message "$i"
+done
+
+for i in $(seq 1 15); do
+  RECEIVED=$(cat "$WORK"/subscriber-1.log "$WORK"/subscriber-2.log | grep -cE '^[0-9]+$')
+  [ "$RECEIVED" -ge "$COUNT" ] && break
+  sleep 1
+done
+
+SHARE_GROUPS_CMD="docker compose -p zilla-mqtt-kafka-proxy exec -T kafka /opt/kafka/bin/kafka-share-groups.sh"
+SHARE_GROUPS_CMD="$SHARE_GROUPS_CMD --bootstrap-server kafka.examples.dev:29092"
+SHARE_GROUPS=$($SHARE_GROUPS_CMD --list | grep '\.share\.group\.')
+SHARE_GROUP=""
+SHARE_MEMBERS=""
+for CANDIDATE in $SHARE_GROUPS; do
+  CANDIDATE_MEMBERS=$($SHARE_GROUPS_CMD --describe --group "$CANDIDATE" --members)
+  if echo "$CANDIDATE_MEMBERS" | grep -qE '[A-Za-z0-9._-]+:[0-9]+$'; then
+    SHARE_GROUP="$CANDIDATE"
+    SHARE_MEMBERS="$CANDIDATE_MEMBERS"
+  fi
+done
+SHARE_OFFSETS=""
+[ -n "$SHARE_GROUP" ] && SHARE_OFFSETS=$($SHARE_GROUPS_CMD --describe --group "$SHARE_GROUP")
+
+docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli pkill mosquitto_sub
+wait "$SUB_PID_1"
+wait "$SUB_PID_2"
+
+# THEN each message is received exactly once across both subscribers
+for SUBSCRIBER in 1 2; do
+  grep -E '^[0-9]+$' "$WORK/subscriber-$SUBSCRIBER.log" > "$WORK/subscriber-$SUBSCRIBER.out"
+done
+cat "$WORK/subscriber-1.out" "$WORK/subscriber-2.out" | sort -n > "$WORK/received"
+seq 1 "$COUNT" > "$WORK/expected"
+echo SUBSCRIBER_1="$(wc -l < "$WORK/subscriber-1.out")"
+echo SUBSCRIBER_2="$(wc -l < "$WORK/subscriber-2.out")"
+echo RECEIVED="$(tr '\n' ' ' < "$WORK/received")"
+echo
+if cmp -s "$WORK/received" "$WORK/expected"; then
+  echo ✅
+else
+  echo ❌
+  cat "$WORK"/subscriber-1.log "$WORK"/subscriber-2.log
+  EXIT=1
+fi
+
+# THEN the shared subscription maps to a kafka share group with an assigned topic partition
+ASSIGNMENT=$(echo "$SHARE_MEMBERS" | grep -oE '[A-Za-z0-9._-]+:[0-9]+$' | head -1)
+ASSIGNED_TOPIC="${ASSIGNMENT%:*}"
+ASSIGNED_PARTITION="${ASSIGNMENT##*:}"
+echo SHARE_GROUPS="$SHARE_GROUPS"
+echo SHARE_GROUP="$SHARE_GROUP"
+echo "$SHARE_MEMBERS"
+echo "$SHARE_OFFSETS"
+echo ASSIGNMENT="$ASSIGNMENT"
+echo
+if [ -n "$SHARE_GROUPS" ] && [ -n "$ASSIGNMENT" ] &&
+   echo "$SHARE_OFFSETS" | grep -qE "^[^ ]+ +$ASSIGNED_TOPIC +$ASSIGNED_PARTITION +[0-9]+"; then
+  echo ✅
+else
+  echo ❌
+  EXIT=1
+fi
+
+rm -rf "$WORK"
+
 exit $EXIT

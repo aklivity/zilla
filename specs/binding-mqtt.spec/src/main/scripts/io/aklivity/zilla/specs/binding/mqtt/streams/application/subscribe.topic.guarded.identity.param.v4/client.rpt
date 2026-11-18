@@ -71,7 +71,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("sensor/test/data", 0, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .filter("sensor/test/data", -1, "AT_MOST_ONCE", "SEND_RETAINED")
                                 .build()
                               .build()}
 

@@ -1667,8 +1667,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            doOffsetCommit(traceId, authorization);
             onOffsetCommitResponse(traceId);
+            doOffsetCommit(traceId, authorization);
         }
 
         private void onOffsetCommitMessage(
@@ -1789,14 +1789,26 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
         {
             doOffsetCommitInitialBegin(traceId, 0);
 
-            commitRequests.add(new KafkaPartitionOffset(
+            KafkaPartitionOffset commit = new KafkaPartitionOffset(
                 delegate.topic,
                 partition.partitionId(),
                 partition.partitionOffset(),
                 delegate.fanout.generationId,
                 leaderEpoch,
                 partition.metadata().asString(),
-                correlationId));
+                correlationId);
+
+            for (KafkaPartitionOffset pending : commitRequests)
+            {
+                if (pending.partitionId == commit.partitionId)
+                {
+                    commitRequests.remove(pending);
+                    commit = commit.supersede(pending);
+                    break;
+                }
+            }
+
+            commitRequests.add(commit);
 
             doOffsetCommit(traceId, authorization);
         }
@@ -1807,19 +1819,31 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             if (!commitResponses.isEmpty())
             {
                 KafkaPartitionOffset commit = commitResponses.remove();
-                delegate.doConsumerReplyFlush(traceId,
-                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .consumer(c -> c
-                            .progress(p -> p
-                                .partitionId(commit.partitionId)
-                                .partitionOffset(commit.partitionOffset)
-                                .metadata(commit.metadata)
-                            )
-                            .correlationId(commit.correlationId))
-                        .build()
-                        .sizeof()));
+                for (long superseded : commit.superseded)
+                {
+                    doOffsetCommitReply(traceId, commit, superseded);
+                }
+                doOffsetCommitReply(traceId, commit, commit.correlationId);
             }
+        }
+
+        private void doOffsetCommitReply(
+            long traceId,
+            KafkaPartitionOffset commit,
+            long correlationId)
+        {
+            delegate.doConsumerReplyFlush(traceId,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                    .typeId(kafkaTypeId)
+                    .consumer(c -> c
+                        .progress(p -> p
+                            .partitionId(commit.partitionId)
+                            .partitionOffset(commit.partitionOffset)
+                            .metadata(commit.metadata)
+                        )
+                        .correlationId(correlationId))
+                    .build()
+                    .sizeof()));
         }
 
         private void doOffsetCommit(
@@ -1830,7 +1854,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             {
                 //TODO: find better way to handle flow control
                 final int recordSize = OFFSET_COMMIT_REQUEST_RECORD_MAX + initialPad;
-                while (!commitRequests.isEmpty() && initialWindow() > recordSize)
+                if (!commitRequests.isEmpty() && commitResponses.isEmpty() && initialWindow() > recordSize)
                 {
                     KafkaPartitionOffset commit = commitRequests.remove();
                     Consumer<OctetsFW.Builder> offsetCommitDataEx = ex -> ex
