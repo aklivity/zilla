@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -940,30 +939,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         JsonVerbatim verbatim)
     {
         assert scopeCount == 0 : "verbatim bytes cannot be spliced into an escaped scope";
-        final Iterator<JsonStep> steps = verbatim.getSteps();
         final DirectBufferEx segment = verbatim.getSegment();
-        // synthesize the leading separator only when the block begins a member/element that was first in the
-        // source (its leading step is a member/element start rather than a SEPARATOR, so its bytes carry no
-        // leading comma) yet the container already holds a member in the output — an injected value took the
-        // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the bytes;
-        // interior separators of a coalesced block likewise ride in the bytes. Source occupancy, not the bytes.
-        final JsonStep first = steps.hasNext() ? steps.next() : null;
-        if (first != null && needsSeparator(first))
+        final JsonStep leading = verbatim.getLeading();
+        // the run's structure applies once, with its first chunk: every chunk repeats it, and nothing else reaches
+        // the generator before the run is drained, so it is applied ahead of the bytes still to be copied
+        if (verbatim.getOffset() == 0 && leading != null)
         {
-            putByte.accept(',');
+            // synthesize the leading separator only when the run begins a member/element that was first in the
+            // source (its leading token is a member/element start rather than a SEPARATOR, so its bytes carry no
+            // leading comma) yet the container already holds a member in the output — an injected value took the
+            // first slot, displacing this former-first member. A leading SEPARATOR means the comma is in the
+            // bytes; interior separators of the run likewise ride in the bytes. Source occupancy, not the bytes.
+            if (needsSeparator(leading))
+            {
+                putByte.accept(',');
+            }
+            apply(verbatim);
         }
         copy(segment, 0, segment.capacity());
-        // apply every step's structural effect (open/close depth, member occupancy) so the generator's state
-        // stays coherent for an injected value that follows — state only, the bytes carried the structure
-        if (first != null)
-        {
-            advance(first);
-            while (steps.hasNext())
-            {
-                advance(steps.next());
-            }
-        }
-        else if (colonPending)
+        if (leading == null && colonPending)
         {
             // a run of bytes between tokens (drained at the end of a window) may carry the colon of a verbatim key
             colonPending = !colon(segment);
@@ -1006,54 +1000,36 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         return result;
     }
 
-    // Tracks the structural effect of a verbatim block without emitting (the bytes carried the structure): the
-    // state-only analog of preValue()/writeKey()/push()/writeEnd(). A SEPARATOR rides in the bytes and moves no
-    // state.
-    private void advance(
-        JsonStep step)
+    // Tracks the structural effect of a verbatim run without emitting (the bytes carried the structure): the
+    // state-only analog of preValue()/writeKey()/push()/writeEnd() for everything the run did. A SEPARATOR rides in
+    // the bytes and moves no state.
+    private void apply(
+        JsonVerbatim verbatim)
     {
-        switch (step)
+        depth -= verbatim.getClosed();
+        if (depth > 0)
         {
-        case START_OBJECT:
-            markValueStart();
-            push(false);
-            break;
-        case START_ARRAY:
-            markValueStart();
-            push(true);
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            depth--;
-            break;
-        case KEY_NAME:
-            hasMembers[depth - 1] = true;
-            pending = Pending.AFTER_KEY;
-            colonPending = true;
-            break;
-        case VALUE:
-            markValueStart();
-            break;
-        case START_DOCUMENT:
-        case END_DOCUMENT:
-            break;
-        default:
-            break;
+            final boolean element = verbatim.isBareValue() && pending != Pending.AFTER_KEY && inArray[depth - 1];
+            hasMembers[depth - 1] |= verbatim.isOccupied() || element;
         }
-    }
 
-    // The state-only effect of preValue() for a verbatim value: clear an after-key expectation, or mark the
-    // current array occupied; no separator is emitted (the bytes carry it, or needsSeparator synthesized it).
-    private void markValueStart()
-    {
-        colonPending = false;
-        if (pending == Pending.AFTER_KEY)
+        final int opened = verbatim.getOpened();
+        for (int level = 0; level < opened; level++)
         {
-            pending = Pending.NONE;
+            push((verbatim.getOpenedArrays() >>> level & 1L) != 0L);
+            hasMembers[depth - 1] = (verbatim.getOpenedOccupied() >>> level & 1L) != 0L;
         }
-        else if (depth > 0 && inArray[depth - 1])
+
+        final JsonStep last = verbatim.getLast();
+        if (last == JsonStep.KEY_NAME)
         {
-            hasMembers[depth - 1] = true;
+            pending = Pending.AFTER_KEY;
+            colonPending = !verbatim.isColonRead();
+        }
+        else if (last == JsonStep.VALUE)
+        {
+            colonPending = false;
+            pending = pending == Pending.AFTER_KEY ? Pending.NONE : pending;
         }
     }
 

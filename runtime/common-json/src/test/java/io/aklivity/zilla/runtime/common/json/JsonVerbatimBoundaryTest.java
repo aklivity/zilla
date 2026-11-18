@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -82,7 +81,7 @@ class JsonVerbatimBoundaryTest
             {
                 final Transcript actual = transcribe(bytes, limits(bytes.length, window), false);
                 assertEquals(expected.bytes.toString(), actual.bytes.toString(), "bytes, window " + window + " of " + document);
-                assertEquals(expected.steps, actual.steps, "steps, window " + window + " of " + document);
+                assertEquals(expected.runs, actual.runs, "runs, window " + window + " of " + document);
             }
         }
     }
@@ -99,7 +98,7 @@ class JsonVerbatimBoundaryTest
             {
                 final Transcript actual = transcribe(bytes, limits(bytes.length, window), true);
                 assertEquals(expected.bytes.toString(), actual.bytes.toString(), "bytes, window " + window + " of " + document);
-                assertEquals(expected.steps, actual.steps, "steps, window " + window + " of " + document);
+                assertEquals(expected.runs, actual.runs, "runs, window " + window + " of " + document);
             }
         }
     }
@@ -116,7 +115,7 @@ class JsonVerbatimBoundaryTest
             {
                 final Transcript actual = transcribeBounded(bytes, limit);
                 assertEquals(expected.bytes.toString(), actual.bytes.toString(), "bytes, limit " + limit + " of " + document);
-                assertEquals(expected.steps, actual.steps, "steps, limit " + limit + " of " + document);
+                assertEquals(expected.runs, actual.runs, "runs, limit " + limit + " of " + document);
             }
         }
     }
@@ -239,7 +238,8 @@ class JsonVerbatimBoundaryTest
     private static final class Transcript
     {
         private final StringBuilder bytes = new StringBuilder();
-        private final List<JsonStep> steps = new ArrayList<>();
+        private final List<String> runs = new ArrayList<>();
+        private String current;
 
         private void append(
             JsonVerbatim verbatim)
@@ -249,11 +249,32 @@ class JsonVerbatimBoundaryTest
             segment.getBytes(0, copy);
             bytes.append(new String(copy, UTF_8));
 
-            final Iterator<JsonStep> iterator = verbatim.getSteps();
-            while (iterator.hasNext())
+            final String described = describe(verbatim);
+            if (verbatim.getOffset() == 0)
             {
-                steps.add(iterator.next());
+                current = described;
+                if (verbatim.getLeading() != null)
+                {
+                    runs.add(described);
+                }
             }
+            else
+            {
+                assertEquals(current, described, "chunk at offset " + verbatim.getOffset() + " repeats its run");
+            }
+        }
+
+        private static String describe(
+            JsonVerbatim verbatim)
+        {
+            return "leading=" + verbatim.getLeading() +
+                " closed=" + verbatim.getClosed() +
+                " opened=" + verbatim.getOpened() +
+                " arrays=" + verbatim.getOpenedArrays() +
+                " occupied=" + verbatim.getOpenedOccupied() +
+                " occupies=" + verbatim.isOccupied() +
+                " bare=" + verbatim.isBareValue() +
+                " last=" + verbatim.getLast();
         }
     }
 }
