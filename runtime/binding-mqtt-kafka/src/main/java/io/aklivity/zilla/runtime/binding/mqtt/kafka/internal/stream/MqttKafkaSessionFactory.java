@@ -171,6 +171,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final int SIGNAL_CONNECT_WILL_STREAM = 2;
     private static final int SIGNAL_EXPIRE_SESSION = 3;
     private static final int SIZE_OF_UUID = 36;
+    private static final long MAXIMUM_WILL_DELAY = 0xFFFFFFFFL;
     private static final int SESSION_EXPIRY_NEVER = -1;
     private static final int RETAIN_AVAILABLE_MASK = 1 << MqttServerCapabilities.RETAIN.value();
     private static final int WILDCARD_AVAILABLE_MASK = 1 << MqttServerCapabilities.WILDCARD.value();
@@ -875,7 +876,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttWillMessageFW.Builder willMessageBuilder =
                 mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                     .topic(will.topic())
-                    .delay((int) Math.min(delay, Integer.MAX_VALUE))
+                    .delay(Math.min(delay, MAXIMUM_WILL_DELAY))
                     .qos(will.qos())
                     .flags(will.flags())
                     .expiryInterval(expiryInterval)
