@@ -132,6 +132,37 @@ class JsonSchemaValidationAllocationTest
         assertTrue(perItem <= MAX_BYTES_PER_PROPERTY, "validation allocates " + perItem + " B per oneOf array item");
     }
 
+    @Test
+    void shouldNotAllocatePerPropertyForDependentRequired()
+    {
+        assertNoAllocationPerPropertyUnder("\"dependencies\":{\"k0\":[\"k1\",\"k2\"],\"k3\":[\"k4\"]}");
+    }
+
+    @Test
+    void shouldNotAllocatePerPropertyForDependentSchemas()
+    {
+        assertNoAllocationPerPropertyUnder(
+            "\"dependencies\":{\"k0\":{\"required\":[\"k1\"]},\"k3\":{\"minProperties\":2}}");
+    }
+
+    private static void assertNoAllocationPerPropertyUnder(
+        String keywords)
+    {
+        final StringBuilder schema = new StringBuilder("{\"type\":\"object\"," + keywords + ",\"properties\":{");
+        for (int index = 0; index < DECLARED; index++)
+        {
+            schema.append(index == 0 ? "" : ",").append("\"k").append(index).append("\":{\"type\":\"string\"}");
+        }
+        final JsonSchema compiled = JsonSchema.of(schema.append("}}").toString(), Draft.DRAFT_07);
+
+        final long few = allocated(compiled, objectOf(FEW, "\"v\"").getBytes(UTF_8));
+        final long many = allocated(compiled, objectOf(MANY, "\"v\"").getBytes(UTF_8));
+
+        final long perProperty = (many - few) / (MANY - FEW);
+        assertTrue(perProperty <= MAX_BYTES_PER_PROPERTY,
+            "validation allocates " + perProperty + " B per property under " + keywords);
+    }
+
     private static void assertNoAllocationPerProperty(
         String propertySchema,
         String propertyValue)

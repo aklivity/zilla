@@ -92,6 +92,8 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
 public final class JsonSchemaImpl implements JsonSchema
 {
     private static final String[] NO_KEYS = new String[0];
+    private static final int[] NO_INDEXES = new int[0];
+    private static final int[][] NO_INDEX_SETS = new int[0][];
     private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
 
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
@@ -198,6 +200,16 @@ public final class JsonSchemaImpl implements JsonSchema
     private final String[] propertyKeys;
     private final JsonSchemaImpl[] propertySchemas;
     private final String[] requiredKeys;
+    // every key whose presence is tracked as the members of an object are read: the required keys first, then
+    // the keys that a dependency names or depends on
+    private final String[] trackedKeys;
+    private final String[] dependentRequiredKeys;
+    private final int[] dependentRequiredAt;
+    private final int[][] dependentRequiredBits;
+    private final List<Set<String>> dependentRequiredSets;
+    private final String[] dependentSchemaKeys;
+    private final int[] dependentSchemaAt;
+    private final List<JsonSchemaImpl> dependentSchemaList;
     private final List<JsonSchemaImpl> allOf;
     private final List<JsonSchemaImpl> anyOf;
     private final List<JsonSchemaImpl> oneOf;
@@ -659,6 +671,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.simpleObject = patternProperties == null && propertyNames == null &&
             unevaluatedProperties == null && dependentRequired == null && dependentSchemas == null;
         this.requiredKeys = required != null ? required.toArray(NO_KEYS) : NO_KEYS;
+        this.trackedKeys = trackedKeys(required, dependentRequired, dependentSchemas);
+        this.dependentRequiredKeys = dependentRequired != null ? dependentRequired.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.dependentRequiredAt = indexesOf(trackedKeys, dependentRequiredKeys);
+        this.dependentRequiredBits = requiredIndexes(trackedKeys, dependentRequired);
+        this.dependentRequiredSets = dependentRequired != null ? new ArrayList<>(dependentRequired.values()) : List.of();
+        this.dependentSchemaKeys = dependentSchemas != null ? dependentSchemas.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.dependentSchemaAt = indexesOf(trackedKeys, dependentSchemaKeys);
+        this.dependentSchemaList = dependentSchemas != null ? new ArrayList<>(dependentSchemas.values()) : List.of();
         this.propertyKeys = properties != null ? properties.keySet().toArray(NO_KEYS) : NO_KEYS;
         this.propertySchemas = properties != null ? properties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.allOf = parseSchemaArray(schema.get("allOf"), context);
@@ -680,11 +700,67 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentAny(dependentSchemas);
         this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
             !(context != null && is2019Plus(context.draft())) &&
-            simpleObject && contains == null && !uniqueItems && unevaluatedItems == null;
-        this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null;
+            patternProperties == null && propertyNames == null && unevaluatedProperties == null &&
+            contains == null && !uniqueItems && unevaluatedItems == null;
+        this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null ||
+            dependentRequired != null || dependentSchemas != null;
         this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
         this.combines = combined || constString != null || enumStrings != null || canon;
         this.raw = schema;
+    }
+
+    private static String[] trackedKeys(
+        Set<String> required,
+        Map<String, Set<String>> dependentRequired,
+        Map<String, JsonSchemaImpl> dependentSchemas)
+    {
+        final Set<String> keys = new LinkedHashSet<>();
+        if (required != null)
+        {
+            keys.addAll(required);
+        }
+        if (dependentRequired != null)
+        {
+            for (Map.Entry<String, Set<String>> entry : dependentRequired.entrySet())
+            {
+                keys.add(entry.getKey());
+                keys.addAll(entry.getValue());
+            }
+        }
+        if (dependentSchemas != null)
+        {
+            keys.addAll(dependentSchemas.keySet());
+        }
+        return keys.toArray(NO_KEYS);
+    }
+
+    private static int[] indexesOf(
+        String[] tracked,
+        String[] keys)
+    {
+        final int[] indexes = new int[keys.length];
+        for (int i = 0; i < keys.length; i++)
+        {
+            indexes[i] = Arrays.asList(tracked).indexOf(keys[i]);
+        }
+        return indexes;
+    }
+
+    private static int[][] requiredIndexes(
+        String[] tracked,
+        Map<String, Set<String>> dependentRequired)
+    {
+        int[][] indexes = NO_INDEX_SETS;
+        if (dependentRequired != null)
+        {
+            indexes = new int[dependentRequired.size()][];
+            int entry = 0;
+            for (Set<String> names : dependentRequired.values())
+            {
+                indexes[entry++] = indexesOf(tracked, names.toArray(NO_KEYS));
+            }
+        }
+        return indexes;
     }
 
     private static boolean needsContentOne(
@@ -777,6 +853,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.dependentSchemas = null;
         this.simpleObject = false;
         this.requiredKeys = NO_KEYS;
+        this.trackedKeys = NO_KEYS;
+        this.dependentRequiredKeys = NO_KEYS;
+        this.dependentRequiredAt = NO_INDEXES;
+        this.dependentRequiredBits = NO_INDEX_SETS;
+        this.dependentRequiredSets = List.of();
+        this.dependentSchemaKeys = NO_KEYS;
+        this.dependentSchemaAt = NO_INDEXES;
+        this.dependentSchemaList = List.of();
         this.propertyKeys = NO_KEYS;
         this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
@@ -843,6 +927,14 @@ public final class JsonSchemaImpl implements JsonSchema
         this.dependentSchemas = null;
         this.simpleObject = false;
         this.requiredKeys = NO_KEYS;
+        this.trackedKeys = NO_KEYS;
+        this.dependentRequiredKeys = NO_KEYS;
+        this.dependentRequiredAt = NO_INDEXES;
+        this.dependentRequiredBits = NO_INDEX_SETS;
+        this.dependentRequiredSets = List.of();
+        this.dependentSchemaKeys = NO_KEYS;
+        this.dependentSchemaAt = NO_INDEXES;
+        this.dependentSchemaList = List.of();
         this.propertyKeys = NO_KEYS;
         this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
@@ -3947,7 +4039,68 @@ public final class JsonSchemaImpl implements JsonSchema
                     }
                 }
             }
+            combinator += (schema.ifSchema != null ? 1 : 0) + (schema.thenSchema != null ? 1 : 0) +
+                (schema.elseSchema != null ? 1 : 0);
+            if (valid && (frames[(frame << SHIFT) + FLAGS] & OBJECT) != 0)
+            {
+                valid = combineDependencies(frame, schema, combinator, parser);
+            }
             return valid;
+        }
+
+        private boolean combineDependencies(
+            int frame,
+            JsonSchemaImpl schema,
+            int dependentAt,
+            JsonSource parser)
+        {
+            final Trace trace = traceOf(frame);
+            final int base = frames[(frame << SHIFT) + REQUIRED_BASE];
+            boolean valid = true;
+            for (int i = 0; valid && i < schema.dependentRequiredKeys.length; i++)
+            {
+                if (seen(base, schema.dependentRequiredAt[i]) && !seenAll(base, schema.dependentRequiredBits[i]))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("dependencies", "presence of '" + schema.dependentRequiredKeys[i] + "' requires " +
+                            schema.dependentRequiredSets.get(i), parser);
+                    }
+                }
+            }
+            for (int i = 0; valid && i < schema.dependentSchemaKeys.length; i++)
+            {
+                if (seen(base, schema.dependentSchemaAt[i]) && !passed(dependentAt + i))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("dependencies", "presence of '" + schema.dependentSchemaKeys[i] +
+                            "' requires dependent schema to match", parser);
+                    }
+                }
+            }
+            return valid;
+        }
+
+        private boolean seen(
+            int base,
+            int key)
+        {
+            return (requiredBits[base + (key >>> 6)] & 1L << (key & 63)) != 0L;
+        }
+
+        private boolean seenAll(
+            int base,
+            int[] keys)
+        {
+            boolean all = true;
+            for (int i = 0; i < keys.length; i++)
+            {
+                all &= seen(base, keys[i]);
+            }
+            return all;
         }
 
         private void open(
@@ -3963,7 +4116,7 @@ public final class JsonSchemaImpl implements JsonSchema
             if (event == Event.START_OBJECT)
             {
                 state |= OBJECT;
-                final int words = schema.requiredKeys.length + 63 >>> 6;
+                final int words = schema.trackedKeys.length + 63 >>> 6;
                 if (words > 0 && (requiredBits == null || bitsTop + words > requiredBits.length))
                 {
                     requiredBits = requiredBits == null
@@ -4003,6 +4156,7 @@ public final class JsonSchemaImpl implements JsonSchema
             pushOne(schema.ifSchema);
             pushOne(schema.thenSchema);
             pushOne(schema.elseSchema);
+            pushAll(schema.dependentSchemaList, true);
             frames[(frame << SHIFT) + COMBINATOR_COUNT] = top - frames[(frame << SHIFT) + COMBINATOR_FIRST];
         }
 
@@ -4071,10 +4225,10 @@ public final class JsonSchemaImpl implements JsonSchema
             final Trace trace = traceOf(frame);
             final CharSequence key = parser.getStringView();
             frames[(frame << SHIFT) + COUNT]++;
-            final String[] requiredKeys = schema.requiredKeys;
-            for (int i = 0; i < requiredKeys.length; i++)
+            final String[] trackedKeys = schema.trackedKeys;
+            for (int i = 0; i < trackedKeys.length; i++)
             {
-                if (charsEqual(requiredKeys[i], key))
+                if (charsEqual(trackedKeys[i], key))
                 {
                     requiredBits[frames[(frame << SHIFT) + REQUIRED_BASE] + (i >>> 6)] |= 1L << (i & 63);
                     break;
