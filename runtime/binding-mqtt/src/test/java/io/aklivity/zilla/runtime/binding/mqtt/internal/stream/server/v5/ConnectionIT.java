@@ -783,6 +783,16 @@ public class ConnectionIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
     @Specification({
         "${net}/connect.keep.alive.timeout.before.connack/client",
