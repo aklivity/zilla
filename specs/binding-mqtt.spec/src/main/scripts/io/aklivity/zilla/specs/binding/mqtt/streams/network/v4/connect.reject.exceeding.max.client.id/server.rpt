@@ -31,4 +31,8 @@ read  [0x10 0x8d 0x02]            # CONNECT
       [0x00 0x3c]                 # keep alive = 60s
       [0x01 0x01] ${clientId}     # client id
 
+write [0x20 0x02]                 # CONNACK
+      [0x00]                      # flags = none
+      [0x02]                      # return code = identifier rejected
+
 write close
