@@ -21,7 +21,7 @@ connect "zilla://streams/net0"
 
 connected
 
-write [0x10 0x1b]             # CONNECT
+write [0x10 0x1d]             # CONNECT
       [0x00 0x04] "MQTT"      # protocol name
       [0x05]                  # protocol version
       [0x02]                  # flags = clean start
