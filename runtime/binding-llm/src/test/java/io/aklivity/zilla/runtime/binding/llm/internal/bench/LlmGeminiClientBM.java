@@ -133,7 +133,7 @@ public class LlmGeminiClientBM
         @Param({"false", "true"})
         public boolean streaming;
 
-        @Param({"text", "toolCall"})
+        @Param({"text", "toolCall", "controls"})
         public String request;
 
         @Param({"text", "toolCall"})
@@ -185,7 +185,12 @@ public class LlmGeminiClientBM
                 add(exs, payloads, controlEx(llmTypeId), "{\"stream\":true}");
             }
 
-            if ("toolCall".equals(request))
+            if ("controls".equals(request))
+            {
+                add(exs, payloads, controlEx(llmTypeId), controls(textLength));
+                add(exs, payloads, userTextEx(llmTypeId), "{\"text\":\"Hello\"}");
+            }
+            else if ("toolCall".equals(request))
             {
                 add(exs, payloads, toolCallEx(llmTypeId), String.format("{\"arguments\":{\"query\":\"%s\"}}", text));
             }
@@ -466,6 +471,24 @@ public class LlmGeminiClientBM
                 .attribute("tool-name", "lookup")
                 .attribute("tool-call-id", "call_1")
                 .build();
+        }
+
+        private static String controls(
+            int length)
+        {
+            final StringBuilder properties = new StringBuilder();
+
+            for (int index = 0; properties.length() < length || index == 0; index++)
+            {
+                properties.append(index > 0 ? "," : "")
+                    .append(String.format("\"field%d\":{\"type\":\"string\",\"description\":\"The value of field %d\"}",
+                        index, index));
+            }
+
+            return "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:stop\":[\"END\"],\"x:seed\":42," +
+                "\"x:tool_choice\":\"auto\",\"x:reasoning_effort\":\"low\",\"x:service_tier\":\"default\"," +
+                "\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\"," +
+                "\"schema\":{\"type\":\"object\",\"properties\":{" + properties + "}},\"strict\":true}}}";
         }
 
         private static String base64(
