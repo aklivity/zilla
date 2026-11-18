@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
@@ -875,7 +876,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttWillMessageFW.Builder willMessageBuilder =
                 mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                     .topic(will.topic())
-                    .delay((int) Math.min(delay, Integer.MAX_VALUE))
+                    .delay(MILLISECONDS.toSeconds(delay))
                     .qos(will.qos())
                     .flags(will.flags())
                     .expiryInterval(expiryInterval)

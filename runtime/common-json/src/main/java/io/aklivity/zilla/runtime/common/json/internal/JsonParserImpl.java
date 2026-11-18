@@ -1148,6 +1148,7 @@ public final class JsonParserImpl implements JsonParserEx
         if (trimLeadingSeparator)
         {
             trimLeadingSeparator = !trimLeadingSeparator();
+            runStart = verbatimCursor;
             if (!trimLeadingSeparator)
             {
                 run.unseparate();

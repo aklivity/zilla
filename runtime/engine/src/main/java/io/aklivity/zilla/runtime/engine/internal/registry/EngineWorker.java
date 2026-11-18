@@ -152,6 +152,8 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayou
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersBoundMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersUnboundMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -194,6 +196,8 @@ public class EngineWorker implements EngineContext, Agent
     private static final int NODE_SHIFT_SIZE = 48;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
+    private static final int TIMER_WHEEL_TICK_MILLIS = 64;
+    private static final int TIMER_WHEEL_TICKS = 8192;
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
@@ -411,12 +415,10 @@ public class EngineWorker implements EngineContext, Agent
         this.targetsByIndex = new Int2ObjectHashMap<>();
         this.writersByIndex = new Int2ObjectHashMap<>();
 
-        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
+        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), TIMER_WHEEL_TICK_MILLIS, TIMER_WHEEL_TICKS);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
         this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
-
-        this.poller = new Poller();
 
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
@@ -477,6 +479,11 @@ public class EngineWorker implements EngineContext, Agent
         }
         this.metricGroupsByName = metricGroupsByName;
         this.usageMetric = supplyGauge(NO_NAMESPACED_ID, router.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+        final int listenersBoundMetricId = router.supplyLabelId(EngineWorkersListenersBoundMetric.NAME);
+        final int listenersUnboundMetricId = router.supplyLabelId(EngineWorkersListenersUnboundMetric.NAME);
+        this.poller = new Poller(
+            supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersBoundMetricId, 0, null),
+            supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersUnboundMetricId, 0, null));
     }
 
     public static int indexOfId(

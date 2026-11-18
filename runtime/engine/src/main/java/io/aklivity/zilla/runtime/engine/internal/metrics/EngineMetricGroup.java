@@ -30,7 +30,9 @@ public class EngineMetricGroup implements MetricGroup
     private final Map<String, Supplier<Metric>> engineMetrics = Map.of(
         EngineWorkersUsageMetric.NAME, EngineWorkersUsageMetric::new,
         EngineWorkersCapacityMetric.NAME, EngineWorkersCapacityMetric::new,
-        EngineWorkersCountMetric.NAME, EngineWorkersCountMetric::new
+        EngineWorkersCountMetric.NAME, EngineWorkersCountMetric::new,
+        EngineWorkersListenersBoundMetric.NAME, EngineWorkersListenersBoundMetric::new,
+        EngineWorkersListenersUnboundMetric.NAME, EngineWorkersListenersUnboundMetric::new
     );
 
     public EngineMetricGroup(
