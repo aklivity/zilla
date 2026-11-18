@@ -24,9 +24,7 @@ import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -1028,9 +1026,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .merged(commitOffsetMerged)
                 .build();
 
-            offsetCommit.unfinishedKafkas.add(kafka);
             partitions.computeIfAbsent(packetId, ArrayList::new).add(new KafkaTopicPartition(topic, partitionId));
             offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
+            offsetCommit.unfinishedKafkas.add(kafka);
+            offsetCommit.unfinishedSeqs.addLong(offsetCommit.initialSeq);
         }
 
         private void setHashKey(
@@ -1969,7 +1968,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final MqttPublishProxy delegate;
-        private final Queue<KafkaProxy> unfinishedKafkas;
+        private final List<KafkaProxy> unfinishedKafkas;
+        private final LongArrayList unfinishedSeqs;
 
         private int state;
 
@@ -1994,7 +1994,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             this.delegate = delegate;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.unfinishedKafkas = new LinkedList<>();
+            this.unfinishedKafkas = new ArrayList<>();
+            this.unfinishedSeqs = new LongArrayList();
         }
 
         private void doKafkaBegin(
@@ -2131,10 +2132,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     delegate.retained.doKafkaBegin(traceId, authorization, 0, MqttQoS.EXACTLY_ONCE.value());
                 }
             }
-            else
+
+            while (!unfinishedSeqs.isEmpty() && unfinishedSeqs.getLong(0) <= initialAck)
             {
-                final MqttKafkaPublishFactory.KafkaProxy kafka = unfinishedKafkas.remove();
-                kafka.sendKafkaFinData(traceId, authorization);
+                unfinishedSeqs.removeAt(0);
+                unfinishedKafkas.remove(0).sendKafkaFinData(traceId, authorization);
             }
         }
 

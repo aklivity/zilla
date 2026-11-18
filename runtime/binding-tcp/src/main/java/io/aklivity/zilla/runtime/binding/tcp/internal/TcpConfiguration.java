@@ -20,6 +20,8 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class TcpConfiguration extends Configuration
 {
     public static final IntPropertyDef TCP_WINDOW_THRESHOLD;
+    public static final IntPropertyDef TCP_BACKLOG;
+    public static final IntPropertyDef TCP_REBALANCE_TOLERANCE;
 
     private static final ConfigurationDef TCP_CONFIG;
 
@@ -27,6 +29,8 @@ public class TcpConfiguration extends Configuration
     {
         ConfigurationDef config = new ConfigurationDef("zilla.binding.tcp");
         TCP_WINDOW_THRESHOLD = config.property("window.threshold", 0);
+        TCP_BACKLOG = config.property("backlog", Integer.MAX_VALUE);
+        TCP_REBALANCE_TOLERANCE = config.property("rebalance.tolerance", 2);
         TCP_CONFIG = config;
     }
 
@@ -34,6 +38,18 @@ public class TcpConfiguration extends Configuration
         Configuration config)
     {
         super(TCP_CONFIG, config);
+    }
+
+    public int backlog()
+    {
+        return TCP_BACKLOG.getAsInt(this);
+    }
+
+    public int rebalanceTolerance()
+    {
+        int tolerance = TCP_REBALANCE_TOLERANCE.getAsInt(this);
+        assert tolerance >= 0 && tolerance <= 15;
+        return tolerance;
     }
 
     public int windowThreshold()

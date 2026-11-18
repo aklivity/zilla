@@ -19,16 +19,20 @@ import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding.WRITE_SP
 import static io.aklivity.zilla.runtime.binding.tcp.internal.util.IpUtil.proxyAddress;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.ByteOrder.nativeOrder;
+import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.CloseHelper.quietCloseAll;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -39,6 +43,7 @@ import org.agrona.CloseHelper;
 import org.agrona.LangUtil;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpEventContext;
@@ -66,6 +71,14 @@ import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public class TcpServerFactory implements TcpStreamFactory
 {
+    @FunctionalInterface
+    public interface Spill
+    {
+        boolean spill(
+            long bindingId,
+            SocketChannel network);
+    }
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -96,20 +109,26 @@ public class TcpServerFactory implements TcpStreamFactory
     private final MutableDirectBufferEx readBuffer;
     private final MutableDirectBufferEx writeBuffer;
     private final TcpUsageTracker usage;
+    private final Spill spill;
     private final ByteBuffer writeByteBuffer;
     private final int replyMax;
     private final int windowThreshold;
     private final int proxyTypeId;
     private final BindingHandler streamFactory;
+    private final TcpConfiguration config;
+    private final Long2ObjectHashMap<ServerSocketChannel[]> listenersById;
+    private final ToIntFunction<PollerKey> netAcceptable = this::handleNetAcceptable;
     private final ToIntFunction<PollerKey> netReadable = this::handleNetReadable;
     private final ToIntFunction<PollerKey> netWritable = this::handleNetWritable;
 
     public TcpServerFactory(
         TcpConfiguration config,
         EngineContext context,
-        TcpUsageTracker usage)
+        TcpUsageTracker usage,
+        Spill spill)
     {
         this.event = new TcpEventContext(context);
+        this.spill = spill;
         this.writeBuffer = context.writeBuffer();
         this.usage = usage;
         this.writeByteBuffer = ByteBuffer.allocateDirect(writeBuffer.capacity()).order(nativeOrder());
@@ -127,6 +146,8 @@ public class TcpServerFactory implements TcpStreamFactory
         this.replyMax = bufferPool.slotCapacity();
         this.windowThreshold = (bufferPool.slotCapacity() * config.windowThreshold()) / 100;
         this.bindings = new Long2ObjectHashMap<>();
+        this.config = config;
+        this.listenersById = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -157,6 +178,9 @@ public class TcpServerFactory implements TcpStreamFactory
         BindingConfig binding)
     {
         TcpBindingConfig tcpBinding = new TcpBindingConfig(binding, event);
+
+        doListen(tcpBinding);
+
         bindings.put(binding.id, tcpBinding);
     }
 
@@ -165,9 +189,15 @@ public class TcpServerFactory implements TcpStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+
+        final ServerSocketChannel[] listeners = listenersById.remove(bindingId);
+        if (listeners != null)
+        {
+            quietCloseAll(listeners);
+        }
     }
 
-    public void onAccepted(
+    private void onAccepted(
         long bindingId,
         SocketChannel network,
         InetSocketAddress local)
@@ -185,6 +215,160 @@ public class TcpServerFactory implements TcpStreamFactory
         else
         {
             closeNet(network);
+        }
+    }
+
+    private void doListen(
+        TcpBindingConfig binding)
+    {
+        final TcpOptionsConfig options = binding.options;
+        final int size = options.ports != null ? options.ports.length : 0;
+        final ServerSocketChannel[] listeners = new ServerSocketChannel[size];
+
+        try
+        {
+            for (int index = 0; index < size; index++)
+            {
+                listeners[index] = bindListener(options, options.ports[index]);
+            }
+        }
+        catch (IOException ex)
+        {
+            quietCloseAll(listeners);
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        for (ServerSocketChannel listener : listeners)
+        {
+            final PollerKey key = supplyPollerKey.apply(listener);
+            key.attach(binding);
+            key.handler(OP_ACCEPT, netAcceptable);
+            key.register(OP_ACCEPT);
+        }
+
+        listenersById.put(binding.id, listeners);
+    }
+
+    private ServerSocketChannel bindListener(
+        TcpOptionsConfig options,
+        int port) throws IOException
+    {
+        final ServerSocketChannel listener = ServerSocketChannel.open();
+
+        try
+        {
+            final InetAddress address = InetAddress.getByName(options.host);
+
+            listener.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+            listener.setOption(StandardSocketOptions.SO_REUSEPORT, true);
+            listener.bind(new InetSocketAddress(address, port), config.backlog());
+            listener.configureBlocking(false);
+        }
+        catch (IOException | RuntimeException ex)
+        {
+            quietClose(listener);
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return listener;
+    }
+
+    private int handleNetAcceptable(
+        PollerKey key)
+    {
+        final TcpBindingConfig binding = (TcpBindingConfig) key.attachment();
+        final ServerSocketChannel listener = (ServerSocketChannel) key.channel();
+
+        int work = 0;
+
+        try
+        {
+            final SocketChannel network = listener.accept();
+
+            if (network != null)
+            {
+                work = 1;
+                onNetAcceptable(binding, network);
+            }
+        }
+        catch (IOException ex)
+        {
+            //TODO: Report error
+        }
+
+        return work;
+    }
+
+    private void onNetAcceptable(
+        TcpBindingConfig binding,
+        SocketChannel network)
+    {
+        if (!spill.spill(binding.id, network))
+        {
+            if (usage.available() > 0)
+            {
+                onNetConfigure(binding, network);
+            }
+            else
+            {
+                quietClose(network);
+            }
+        }
+    }
+
+    public void onSpilled(
+        long bindingId,
+        SocketChannel network)
+    {
+        final TcpBindingConfig binding = bindings.get(bindingId);
+
+        if (binding != null && usage.available() > 0)
+        {
+            onNetConfigure(binding, network);
+        }
+        else
+        {
+            quietClose(network);
+        }
+    }
+
+    private void onNetConfigure(
+        TcpBindingConfig binding,
+        SocketChannel network)
+    {
+        InetSocketAddress local = null;
+
+        try
+        {
+            final TcpOptionsConfig options = binding.options;
+
+            network.configureBlocking(false);
+
+            if (options.nodelay)
+            {
+                network.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            }
+
+            if (options.keepalive)
+            {
+                network.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+            }
+
+            local = (InetSocketAddress) network.getLocalAddress();
+        }
+        catch (IOException ex)
+        {
+            local = null;
+        }
+
+        if (local != null)
+        {
+            usage.claim();
+            onAccepted(binding.id, network, local);
+        }
+        else
+        {
+            quietClose(network);
         }
     }
 
