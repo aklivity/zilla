@@ -309,7 +309,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int SEEN_WIRE_ID = 1 << 4;
     private static final int CALL_CLOSE_RESERVE = ("},\"args\":{},\"id\":\"\",\"" + MEMBER_THOUGHT_SIGNATURE + "\":\"" +
         LlmGeminiToolCallFromCanonical.SIGNATURE_PLACEHOLDER + "\"}").length();
-    private static final int SERVER_CALL_CLOSE_RESERVE = LlmToolTransform.HELD_MAX + "},\"id\":\"\"}".length();
+    private static final int SERVER_CALL_CLOSE_RESERVE = ",\"id\":\"\"}}".length();
     private static final int SIGNATURE_RESERVE = LlmToolTransform.HELD_MAX +
         ",\"thought\":true,\"thoughtSignature\":\"\"".length();
 
@@ -353,6 +353,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx containerBuffer;
     private final MutableDirectBufferEx recordHeader = new UnsafeBufferEx(new byte[RECORD_HEADER]);
     private final LlmGeminiOutputSchema outputSchema;
+    private final LlmEscapedWidth wireIdWidth = new LlmEscapedWidth(LlmToolTransform.HELD_MAX * ESCAPE_EXPANSION);
     private final Matcher contentTypeMatcher;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
@@ -4463,6 +4464,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                         }
                         else if (deferred)
                         {
+                            reserveWireId(state);
                             parser.consumed(length);
                         }
                         else
@@ -4473,6 +4475,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                             }
                             else
                             {
+                                reserveWireId(state);
                                 seenMask |= SEEN_WIRE_ID;
                             }
 
@@ -4491,6 +4494,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             return positionRequest(limit);
+        }
+
+        private void reserveWireId(
+            LlmGeminiRequestDecoder state)
+        {
+            if (state == decodeRequestCallId)
+            {
+                callReserve = (sectionKind == KIND_SERVER_TOOL_CALL ? SERVER_CALL_CLOSE_RESERVE : CALL_CLOSE_RESERVE) +
+                    wireIdWidth.of(signatureBuilder);
+            }
         }
 
         private int decodeRequestSkip(
@@ -6565,14 +6578,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if ((seenMask & SEEN_WIRE_ID) != 0)
                 {
-                    if (LlmGeminiSignatureFromCanonical.plain(signatureBuilder.toString()))
-                    {
-                        generator.writeKey(MEMBER_ID).write(signatureBuilder);
-                    }
-                    else
-                    {
-                        encodeFailed = true;
-                    }
+                    generator.writeKey(MEMBER_ID).write(signatureBuilder);
                 }
 
                 generator.writeEnd();
