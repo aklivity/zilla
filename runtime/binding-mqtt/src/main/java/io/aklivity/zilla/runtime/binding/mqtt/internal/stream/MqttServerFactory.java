@@ -138,6 +138,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.InstanceId;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttEventContext;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.config.MqttModel;
@@ -3358,6 +3359,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
 
                 long sessionAuth = authorization;
+                boolean credentialsRejected = false;
                 if (guard != null)
                 {
                     String authField = null;
@@ -3377,6 +3379,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         sessionAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                         guardSessionId = sessionAuth;
+                        credentialsRejected = sessionAuth == NOT_AUTHORIZED;
                     }
                 }
 
@@ -3387,7 +3390,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 if (resolved == null)
                 {
-                    reasonCode = BAD_USER_NAME_OR_PASSWORD;
+                    reasonCode = credentialsRejected ? BAD_USER_NAME_OR_PASSWORD : MqttReasonCodes.NOT_AUTHORIZED;
                     break decode;
                 }
 
@@ -3429,11 +3432,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doCancelConnectTimeout();
 
-                if (reasonCode != BAD_USER_NAME_OR_PASSWORD)
-                {
-                    onDecodeError(traceId, authorization, reasonCode);
-                    decoder = decodeIgnoreAll;
-                }
+                onDecodeError(traceId, authorization, reasonCode);
+                decoder = decodeIgnoreAll;
 
                 if (session != null)
                 {
@@ -3873,10 +3873,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 doCancelConnectTimeout();
 
-                if (reasonCode != BAD_USER_NAME_OR_PASSWORD)
-                {
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null, null, version);
-                }
+                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, false, null, null, version);
 
                 if (session != null)
                 {

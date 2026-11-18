@@ -87,6 +87,15 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.credentials.username.route.not.authorized.yaml")
+    @Specification({
+        "${net}/connect.route.not.authorized/client"})
+    public void shouldConnectRouteNotAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.credentials.username.yaml")
     @Specification({
         "${net}/connect.username.authentication.failed/client"})
