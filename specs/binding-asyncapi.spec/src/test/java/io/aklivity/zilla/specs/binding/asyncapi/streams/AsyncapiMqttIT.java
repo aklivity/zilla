@@ -58,4 +58,14 @@ public class AsyncapiMqttIT
         k3po.notifyBarrier("WILL_STREAM_STARTED");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${asyncapi}/mqtt/session.affinity/client",
+        "${asyncapi}/mqtt/session.affinity/server"
+    })
+    public void shouldCarryAffinityOnSession() throws Exception
+    {
+        k3po.finish();
+    }
 }
