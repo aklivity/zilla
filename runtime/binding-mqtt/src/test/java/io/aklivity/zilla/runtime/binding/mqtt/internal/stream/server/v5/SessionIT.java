@@ -355,6 +355,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.server.redirect.after.connack.with.reason.and.user.property/client",
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/server"})
+    public void shouldRedirectAfterConnackWithReasonAndUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.server.redirect.after.connack/client",
         "${app}/session.server.redirect.after.connack/server"})
     public void shouldRedirectAfterConnack() throws Exception
@@ -378,6 +388,16 @@ public class SessionIT
         "${net}/session.server.sent.reset.before.connack/client",
         "${app}/session.server.sent.reset.before.connack/server"})
     public void shouldRejectConnectWhenServerSentResetBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.sent.reset.buffered.disconnect/client",
+        "${app}/session.server.sent.reset.buffered.disconnect/server"})
+    public void shouldDisconnectWhenServerSentResetWithBufferedDisconnect() throws Exception
     {
         k3po.finish();
     }

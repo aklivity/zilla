@@ -978,6 +978,14 @@ public final class MqttFunctions
             return this;
         }
 
+        public MqttResetExBuilder userProperty(
+            String name,
+            String value)
+        {
+            resetExRW.propertiesItem(p -> p.key(name).value(value));
+            return this;
+        }
+
         public byte[] build()
         {
             final MqttResetExFW resetEx = resetExRW.build();
