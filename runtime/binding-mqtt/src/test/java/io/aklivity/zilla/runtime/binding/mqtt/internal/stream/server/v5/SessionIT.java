@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.KEEP_ALIVE_MINIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
@@ -48,6 +49,7 @@ public class SessionIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
+        .configure(KEEP_ALIVE_MINIMUM, (short) 10)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
