@@ -81,6 +81,14 @@ public final class MqttValidator
         return separator != -1 ? topicFilter.substring(separator + 1) : null;
     }
 
+    public static boolean wildcardFirst(
+        String topicFilter)
+    {
+        final int first = shareSeparator(topicFilter) + 1;
+
+        return first < topicFilter.length() && (topicFilter.charAt(first) == '+' || topicFilter.charAt(first) == '#');
+    }
+
     public static String topicFilter(
         String shareName,
         String pattern)

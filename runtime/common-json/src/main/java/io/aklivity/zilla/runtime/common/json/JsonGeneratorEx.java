@@ -220,17 +220,16 @@ public interface JsonGeneratorEx extends JsonGenerator
         Completion completion);
 
     /**
-     * Splices a {@link JsonVerbatim} block straight to the output: its {@link JsonVerbatim#getSegment()} bytes are
-     * copied 1:1 (they already carry their own braces, commas, colons, and whitespace) while the generator
-     * <em>applies</em> every step of {@link JsonVerbatim#getSteps()} (open/close depth, member occupancy) so
-     * its state stays coherent for any injected value that follows. It synthesizes a single leading separator when
-     * the block begins a member/element that was first in the source — its leading step is a member/element start
-     * rather than a {@link JsonStep#SEPARATOR}, so the bytes carry no leading comma — yet the container already
-     * holds a member in the output (an injected value took the first slot, displacing this former-first member).
-     * A leading {@link JsonStep#SEPARATOR} means the comma is in the bytes, so none is synthesized. Each block
-     * carries its own structure, so a run drained across several blocks applies each block's steps in turn. The
-     * copy is 1:1, so a caller pre-bounds the pull (via {@link JsonSource#getVerbatim(int)}) to {@link #remaining()}
-     * and the bytes always fit.
+     * Splices a {@link JsonVerbatim} chunk straight to the output: its {@link JsonVerbatim#getSegment()} bytes are
+     * copied 1:1 (they already carry their own braces, commas, colons, and whitespace). The generator applies the
+     * structure of the whole run (containers closed and opened, member occupancy) once, with the run's first
+     * chunk, so its state stays coherent for any injected value that follows; later chunks of the run only copy
+     * bytes. It synthesizes a single leading separator when the run begins a member/element that was first in the
+     * source — its leading token is a member/element start rather than a {@link JsonStep#SEPARATOR}, so the
+     * bytes carry no leading comma — yet the container already holds a member in the output (an injected value
+     * took the first slot, displacing this former-first member). A leading {@link JsonStep#SEPARATOR} means the
+     * comma is in the bytes, so none is synthesized. The copy is 1:1, so a caller pre-bounds the pull (via
+     * {@link JsonSource#getVerbatim(int)}) to {@link #remaining()} and the bytes always fit.
      */
     JsonGeneratorEx writeVerbatim(
         JsonVerbatim verbatim);

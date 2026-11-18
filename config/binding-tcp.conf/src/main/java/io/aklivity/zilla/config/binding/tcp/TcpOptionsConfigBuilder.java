@@ -21,7 +21,6 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TcpOptionsConfigBuilder<T> extends ConfigBuilder<T, TcpOptionsConfigBuilder<T>>
 {
-    public static final int BACKLOG_DEFAULT = 0;
     public static final boolean NODELAY_DEFAULT = true;
     public static final boolean KEEPALIVE_DEFAULT = false;
 
@@ -29,7 +28,6 @@ public final class TcpOptionsConfigBuilder<T> extends ConfigBuilder<T, TcpOption
 
     private String host;
     private int[] ports;
-    private int backlog = BACKLOG_DEFAULT;
     private boolean nodelay = NODELAY_DEFAULT;
     private boolean keepalive = KEEPALIVE_DEFAULT;
 
@@ -60,13 +58,6 @@ public final class TcpOptionsConfigBuilder<T> extends ConfigBuilder<T, TcpOption
         return this;
     }
 
-    public TcpOptionsConfigBuilder<T> backlog(
-        int backlog)
-    {
-        this.backlog = backlog;
-        return this;
-    }
-
     public TcpOptionsConfigBuilder<T> nodelay(
         boolean nodelay)
     {
@@ -84,6 +75,6 @@ public final class TcpOptionsConfigBuilder<T> extends ConfigBuilder<T, TcpOption
     @Override
     public T build()
     {
-        return mapper.apply(new TcpOptionsConfig(host, ports, backlog, nodelay, keepalive));
+        return mapper.apply(new TcpOptionsConfig(host, ports, nodelay, keepalive));
     }
 }
