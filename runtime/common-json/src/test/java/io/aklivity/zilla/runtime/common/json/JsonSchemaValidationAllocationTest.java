@@ -163,6 +163,63 @@ class JsonSchemaValidationAllocationTest
             "validation allocates " + perProperty + " B per property under " + keywords);
     }
 
+    @Test
+    void shouldNotAllocatePerElementForContains()
+    {
+        final JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"array\",\"contains\":{\"type\":\"string\",\"minLength\":2},\"minContains\":1,\"maxContains\":100000}",
+            Draft.DRAFT_07);
+
+        final long few = allocated(schema, strings(FEW).getBytes(UTF_8));
+        final long many = allocated(schema, strings(MANY).getBytes(UTF_8));
+
+        final long perElement = (many - few) / (MANY - FEW);
+        assertTrue(perElement <= MAX_BYTES_PER_PROPERTY, "validation allocates " + perElement + " B per element under contains");
+    }
+
+    @Test
+    @Disabled("this keyword is evaluated on frames by a later change")
+    void shouldNotAllocatePerPropertyForPatternProperties()
+    {
+        final JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"patternProperties\":{\"^k\":{\"type\":\"string\"},\"[0-9]$\":{\"minLength\":1}}}",
+            Draft.DRAFT_07);
+
+        final long few = allocated(schema, objectOf(FEW, "\"v\"").getBytes(UTF_8));
+        final long many = allocated(schema, objectOf(MANY, "\"v\"").getBytes(UTF_8));
+
+        final long perProperty = (many - few) / (MANY - FEW);
+        assertTrue(perProperty <= MAX_BYTES_PER_PROPERTY,
+            "validation allocates " + perProperty + " B per property under patternProperties");
+    }
+
+    @Test
+    @Disabled("this keyword is evaluated on frames by a later change")
+    void shouldNotAllocatePerPropertyForPropertyNames()
+    {
+        final JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"propertyNames\":{\"type\":\"string\",\"pattern\":\"^k[0-9]+$\"}}",
+            Draft.DRAFT_07);
+
+        final long few = allocated(schema, objectOf(FEW, "\"v\"").getBytes(UTF_8));
+        final long many = allocated(schema, objectOf(MANY, "\"v\"").getBytes(UTF_8));
+
+        final long perProperty = (many - few) / (MANY - FEW);
+        assertTrue(perProperty <= MAX_BYTES_PER_PROPERTY,
+            "validation allocates " + perProperty + " B per property under propertyNames");
+    }
+
+    private static String strings(
+        int count)
+    {
+        final StringBuilder instance = new StringBuilder("[");
+        for (int index = 0; index < count; index++)
+        {
+            instance.append(index == 0 ? "" : ",").append(index == count - 1 ? "\"vv\"" : "1");
+        }
+        return instance.append("] ").toString();
+    }
+
     private static void assertNoAllocationPerProperty(
         String propertySchema,
         String propertyValue)
