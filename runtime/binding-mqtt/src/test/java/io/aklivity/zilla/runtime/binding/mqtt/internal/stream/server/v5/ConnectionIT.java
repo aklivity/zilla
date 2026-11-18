@@ -790,4 +790,15 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
+    @Specification({
+        "${net}/connect.keep.alive.timeout.before.connack/client",
+        "${app}/session.keep.alive.timeout.before.connack/server"})
+    public void shouldCloseWithoutConnackAfterKeepAliveTimeoutBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
