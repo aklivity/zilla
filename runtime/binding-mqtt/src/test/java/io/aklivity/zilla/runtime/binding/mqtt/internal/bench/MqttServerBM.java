@@ -89,7 +89,7 @@ public class MqttServerBM
     private static final int CLIENT_ID_DIGITS = 8;
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
-    private static final int CONNECTED = 5_000;
+    private static final int CONNECTED = 20_000;
 
     @Benchmark
     public void handshake(
