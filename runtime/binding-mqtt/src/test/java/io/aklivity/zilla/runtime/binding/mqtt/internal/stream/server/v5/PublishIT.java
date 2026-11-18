@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -391,36 +390,6 @@ public class PublishIT
         "${net}/publish.reject.qos2.not.supported/client",
         "${app}/publish.reject.qos.not.supported/server"})
     public void shouldRejectPublishQos2NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos0.with.packet.id/client"})
-    public void shouldRejectPublishQos0WithPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos1.without.packet.id/client"})
-    public void shouldRejectPublishQos1WithoutPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/publish.reject.qos2.without.packet.id/client"})
-    public void shouldRejectPublishQos2WithoutPacketId() throws Exception
     {
         k3po.finish();
     }

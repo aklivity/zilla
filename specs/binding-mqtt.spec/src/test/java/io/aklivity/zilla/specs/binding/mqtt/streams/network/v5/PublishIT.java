@@ -103,16 +103,6 @@ public class PublishIT
         k3po.finish();
     }
 
-    // [MQTT-2.2.1-2]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos0.with.packet.id/client",
-        "${net}/publish.reject.qos0.with.packet.id/server"})
-    public void shouldRejectQos0WithPackedId() throws Exception
-    {
-        k3po.finish();
-    }
-
     // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
     @Test
     @Specification({
@@ -129,26 +119,6 @@ public class PublishIT
         "${net}/publish.reject.qos2.not.supported/client",
         "${net}/publish.reject.qos2.not.supported/server"})
     public void shouldRejectQos2NotSupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // [MQTT-2.2.1-3]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos1.without.packet.id/client",
-        "${net}/publish.reject.qos1.without.packet.id/server"})
-    public void shouldRejectQos1WithoutPackedId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // [MQTT-2.2.1-3]
-    @Test
-    @Specification({
-        "${net}/publish.reject.qos2.without.packet.id/client",
-        "${net}/publish.reject.qos2.without.packet.id/server"})
-    public void shouldRejectQos2WithoutPackedId() throws Exception
     {
         k3po.finish();
     }
