@@ -85,8 +85,8 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1)
-                                .filter("sensor/two", 1)
+                                .filter("sensor/one", -1)
+                                .filter("sensor/two", -2)
                                 .build()
                              .build()}
 
@@ -95,6 +95,6 @@ connected
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                    .filter("sensor/two", 1)
+                                    .filter("sensor/two", -2)
                                     .build()
                                  .build()}

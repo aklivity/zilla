@@ -189,4 +189,13 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.request.ended/client",
+        "${net}/create.topics.v7.request.ended/server"})
+    public void shouldCreateTopicsV3AfterRequestEndedWithoutBody() throws Exception
+    {
+        k3po.finish();
+    }
 }

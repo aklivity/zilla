@@ -89,7 +89,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSi
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -448,7 +448,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     }
 
     private int grantedQos(
-        MqttTopicFilterFW filter)
+        MqttTopicFilterV2FW filter)
     {
         return filter.shareName().asString() != null ? Math.min(filter.qos(), SHARED_SUBSCRIBE_QOS_MAX) : filter.qos();
     }
