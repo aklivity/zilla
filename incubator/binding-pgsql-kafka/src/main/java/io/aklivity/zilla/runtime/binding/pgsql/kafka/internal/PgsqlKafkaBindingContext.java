@@ -53,7 +53,7 @@ final class PgsqlKafkaBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         PgsqlKafkaStreamFactory factory = factories.get(binding.kind);
@@ -62,6 +62,8 @@ final class PgsqlKafkaBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

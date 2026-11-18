@@ -54,7 +54,7 @@ final class RisingwaveBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         RisingwaveStreamFactory factory = factories.get(binding.kind);
@@ -63,6 +63,8 @@ final class RisingwaveBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override
