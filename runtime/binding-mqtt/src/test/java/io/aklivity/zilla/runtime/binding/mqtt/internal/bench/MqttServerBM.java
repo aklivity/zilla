@@ -89,7 +89,7 @@ public class MqttServerBM
     private static final int CLIENT_ID_DIGITS = 8;
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
-    private static final int CONNECTED = 20_000;
+    private static final int CONNECTED = 2_000;
 
     @Benchmark
     public void handshake(
@@ -101,7 +101,7 @@ public class MqttServerBM
     @Benchmark
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(MILLISECONDS)
-    @Warmup(iterations = 1)
+    @Warmup(iterations = 2)
     @Measurement(iterations = 3)
     @OperationsPerInvocation(CONNECTED)
     public void leave(
@@ -152,6 +152,8 @@ public class MqttServerBM
 
             responder = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
             bench.newServer("app0", responder);
+
+            prepare();
         }
 
         public void drain()
@@ -175,6 +177,10 @@ public class MqttServerBM
 
         abstract void release(
             Handshake handshake);
+
+        void prepare()
+        {
+        }
 
         void disconnect()
         {
@@ -334,9 +340,31 @@ public class MqttServerBM
         private final List<Client> connected = new ArrayList<>(CONNECTED * 4);
 
         @Override
+        void prepare()
+        {
+            for (int connection = 0; connection < 4 * CONNECTED; connection++)
+            {
+                handshake();
+            }
+
+            drain();
+            abortAll();
+
+            handshake();
+            drain();
+            abortAll();
+        }
+
+        @Override
         void disconnect()
         {
+            abortAll();
+        }
+
+        private void abortAll()
+        {
             connected.forEach(Client::abort);
+            connected.clear();
         }
 
         @Override
