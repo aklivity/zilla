@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 public final class KafkaPartitionOffset
 {
+    private static final long[] NO_SUPERSEDED = new long[0];
+
     public final String topic;
     public final int partitionId;
     public final long partitionOffset;
@@ -24,6 +26,7 @@ public final class KafkaPartitionOffset
     public final int leaderEpoch;
     public final String metadata;
     public final long correlationId;
+    public final long[] superseded;
 
     public KafkaPartitionOffset(
         String topic,
@@ -45,6 +48,19 @@ public final class KafkaPartitionOffset
         String metadata,
         long correlationId)
     {
+        this(topic, partitionId, partitionOffset, generationId, leaderEpoch, metadata, correlationId, NO_SUPERSEDED);
+    }
+
+    private KafkaPartitionOffset(
+        String topic,
+        int partitionId,
+        long partitionOffset,
+        int generationId,
+        int leaderEpoch,
+        String metadata,
+        long correlationId,
+        long[] superseded)
+    {
         this.topic = topic;
         this.partitionId = partitionId;
         this.partitionOffset = partitionOffset;
@@ -52,5 +68,19 @@ public final class KafkaPartitionOffset
         this.leaderEpoch = leaderEpoch;
         this.metadata = metadata;
         this.correlationId = correlationId;
+        this.superseded = superseded;
+    }
+
+    public KafkaPartitionOffset supersede(
+        KafkaPartitionOffset earlier)
+    {
+        final int count = earlier.superseded.length;
+        final long[] merged = new long[count + 1 + superseded.length];
+        System.arraycopy(earlier.superseded, 0, merged, 0, count);
+        merged[count] = earlier.correlationId;
+        System.arraycopy(superseded, 0, merged, count + 1, superseded.length);
+
+        return new KafkaPartitionOffset(topic, partitionId, partitionOffset, generationId, leaderEpoch, metadata,
+            correlationId, merged);
     }
 }
