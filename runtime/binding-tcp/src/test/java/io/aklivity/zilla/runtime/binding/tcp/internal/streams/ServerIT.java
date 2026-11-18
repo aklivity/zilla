@@ -27,22 +27,33 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.function.LongSupplier;
 
+import org.jboss.byteman.contrib.bmunit.BMRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
 
 import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper;
+import io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper.BindHelper;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
+@RunWith(org.jboss.byteman.contrib.bmunit.BMUnitRunner.class)
+@BMRule(name = "bind",
+    targetClass = "^java.nio.channels.ServerSocketChannel",
+    targetMethod = "bind(java.net.SocketAddress,int)",
+    helper = "io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$BindHelper",
+    action = "record($2)")
 public class ServerIT
 {
     private final K3poRule k3po = new K3poRule()
@@ -59,7 +70,7 @@ public class ServerIT
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(SocketChannelHelper.RULE).around(engine).around(k3po).around(timeout);
 
     @Test
     @Configuration("server.yaml")
@@ -454,5 +465,20 @@ public class ServerIT
         client9.close();
 
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldBindWithOsMaximumBacklogByDefault() throws Exception
+    {
+        assertEquals(List.of(Integer.MAX_VALUE), BindHelper.backlogs());
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = "zilla.binding.tcp.backlog", value = "1024")
+    public void shouldBindWithConfiguredBacklog() throws Exception
+    {
+        assertEquals(List.of(1024), BindHelper.backlogs());
     }
 }
