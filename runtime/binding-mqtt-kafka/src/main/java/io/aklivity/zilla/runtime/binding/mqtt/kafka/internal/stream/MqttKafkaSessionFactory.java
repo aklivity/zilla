@@ -79,6 +79,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttExpirySignalFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttExpirySignalLongFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
@@ -92,6 +93,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalLongFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
@@ -520,7 +522,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private int willPadding;
         private int sessionPadding;
         private String willId;
-        private int delay;
+        private long delay;
         private int publishQosMax = -1;
         private int unfetchedKafkaTopics;
         private boolean offsetCommitSeeded;
@@ -621,9 +623,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             return isSessionExpiring() ? SECONDS.toMillis(Integer.toUnsignedLong(sessionExpiry)) : Long.MAX_VALUE;
         }
 
-        private int sessionExpiryDelay()
+        private long sessionExpiryDelay()
         {
-            return (int) Math.min(sessionExpiryMillis(), Integer.MAX_VALUE);
+            return sessionExpiryMillis();
         }
 
         private void onMqttBegin(
@@ -841,16 +843,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                                 .value(WILL_SIGNAL_NAME_OCTETS))))
                     .build();
 
-                final MqttSessionSignalFW willSignal =
-                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                        .will(w -> w
-                            .instanceId(instanceId.instanceId())
-                            .clientId(clientId)
-                            .delay(delay)
-                            .deliverAt(MqttTime.UNKNOWN.value())
-                            .lifetimeId(lifetimeId)
-                            .willId(willId))
-                        .build();
+                final MqttSessionSignalFW willSignal = willSignal(clientId, delay, MqttTime.UNKNOWN.value(), lifetimeId, willId);
 
                 sessionPadding += willSignal.sizeof();
                 session.doKafkaData(traceId, authorization, budgetId, willSignal.sizeof(), sessionPadding, COMPLETE,
@@ -877,12 +870,12 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             this.willId = supplyWillId.get();
 
             MqttWillMessageFW will = mqttWillRO.tryWrap(buffer, offset, limit);
-            this.delay = (int) Math.min(Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis()), Integer.MAX_VALUE);
+            this.delay = Math.min(SECONDS.toMillis(will.delay()), sessionExpiryMillis());
             final int expiryInterval = will.expiryInterval() == -1 ? -1 : will.expiryInterval();
             final MqttWillMessageFW.Builder willMessageBuilder =
                 mqttMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                     .topic(will.topic())
-                    .delay(delay)
+                    .delay((int) Math.min(delay, Integer.MAX_VALUE))
                     .qos(will.qos())
                     .flags(will.flags())
                     .expiryInterval(expiryInterval)
@@ -1070,13 +1063,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (isSessionExpiring())
             {
                 final MqttSessionSignalFW expirySignal =
-                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                        .expiry(w -> w
-                            .instanceId(instanceId.instanceId())
-                            .clientId(clientId)
-                            .delay(sessionExpiryDelay())
-                            .expireAt(supplyTime.getAsLong() + sessionExpiryMillis()))
-                        .build();
+                    expirySignal(clientId, sessionExpiryDelay(), supplyTime.getAsLong() + sessionExpiryMillis());
                 sessionPadding += expirySignal.sizeof();
                 session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
             }
@@ -1142,13 +1129,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (isSessionExpiring())
             {
                 final MqttSessionSignalFW expirySignal =
-                    mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                        .expiry(w -> w
-                            .instanceId(instanceId.instanceId())
-                            .clientId(clientId)
-                            .delay(sessionExpiryDelay())
-                            .expireAt(supplyTime.getAsLong() + sessionExpiryMillis()))
-                        .build();
+                    expirySignal(clientId, sessionExpiryDelay(), supplyTime.getAsLong() + sessionExpiryMillis());
                 sessionPadding += expirySignal.sizeof();
                 session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
             }
@@ -2061,54 +2042,36 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         final MqttSessionSignalFW sessionSignal =
                             mqttSessionSignalRO.wrap(buffer, offset, limit);
 
+                        boolean signaled = true;
+
                         switch (sessionSignal.kind())
                         {
                         case MqttSessionSignalFW.KIND_WILL:
                             final MqttWillSignalFW willSignal = sessionSignal.will();
-                            long deliverAt = willSignal.deliverAt();
-                            final String16FW willClientId = willSignal.clientId();
-
-                            if (deliverAt == MqttTime.UNKNOWN.value())
-                            {
-                                if (instanceId.instanceId().equals(willSignal.instanceId()))
-                                {
-                                    break reactToSignal;
-                                }
-                                deliverAt = supplyTime.getAsLong() + willSignal.delay();
-                            }
-
-                            KafkaFetchWillStream willFetcher =
-                                new KafkaFetchWillStream(originId, routedId, this, sessionsTopic, willClientId,
-                                    willSignal.willId().asString(), willSignal.lifetimeId().asString(), deliverAt);
-                            willFetcher.doKafkaBegin(traceId, authorization, 0, willSignal.lifetimeId());
-                            willFetchers.put(new String16FW(willClientId.asString()), willFetcher);
+                            signaled = onWillSignal(traceId, authorization, willSignal.instanceId(), willSignal.clientId(),
+                                willSignal.delay(), willSignal.deliverAt(), willSignal.lifetimeId(), willSignal.willId());
+                            break;
+                        case MqttSessionSignalFW.KIND_WILL_LONG:
+                            final MqttWillSignalLongFW willSignalLong = sessionSignal.willLong();
+                            signaled = onWillSignal(traceId, authorization, willSignalLong.instanceId(),
+                                willSignalLong.clientId(), willSignalLong.delay(), willSignalLong.deliverAt(),
+                                willSignalLong.lifetimeId(), willSignalLong.willId());
                             break;
                         case MqttSessionSignalFW.KIND_EXPIRY:
                             final MqttExpirySignalFW expirySignal = sessionSignal.expiry();
-                            long expireAt = expirySignal.expireAt();
-                            final String16FW expiryClientId = new String16FW(expirySignal.clientId().asString());
-
-                            if (expireAt == MqttTime.UNKNOWN.value())
-                            {
-                                if (instanceId.instanceId().equals(expirySignal.instanceId()))
-                                {
-                                    break reactToSignal;
-                                }
-                                expireAt = supplyTime.getAsLong() + expirySignal.delay();
-                            }
-
-                            final int contextId = nextContextId++;
-                            expiryClientIds.put(contextId, expiryClientId);
-
-                            final long signalId =
-                                signaler.signalAt(expireAt, originId, routedId, initialId, traceId,
-                                    SIGNAL_EXPIRE_SESSION, contextId);
-                            final long previousSignalId = sessionExpiryIds.put(expiryClientId, signalId);
-                            if (previousSignalId != sessionExpiryIds.missingValue())
-                            {
-                                signaler.cancel(previousSignalId);
-                            }
+                            signaled = onExpirySignal(traceId, expirySignal.instanceId(), expirySignal.clientId(),
+                                expirySignal.delay(), expirySignal.expireAt());
                             break;
+                        case MqttSessionSignalFW.KIND_EXPIRY_LONG:
+                            final MqttExpirySignalLongFW expirySignalLong = sessionSignal.expiryLong();
+                            signaled = onExpirySignal(traceId, expirySignalLong.instanceId(), expirySignalLong.clientId(),
+                                expirySignalLong.delay(), expirySignalLong.expireAt());
+                            break;
+                        }
+
+                        if (!signaled)
+                        {
+                            break reactToSignal;
                         }
 
                         if (decodeSlot != NO_SLOT)
@@ -2120,6 +2083,63 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     }
                 }
             }
+        }
+
+        private boolean onWillSignal(
+            long traceId,
+            long authorization,
+            String16FW signalInstanceId,
+            String16FW willClientId,
+            long delay,
+            long deliverAt,
+            String16FW lifetimeId,
+            String16FW willId)
+        {
+            final boolean local = deliverAt == MqttTime.UNKNOWN.value() && instanceId.instanceId().equals(signalInstanceId);
+
+            if (!local)
+            {
+                final long deliverAtResolved =
+                    deliverAt == MqttTime.UNKNOWN.value() ? supplyTime.getAsLong() + delay : deliverAt;
+
+                KafkaFetchWillStream willFetcher =
+                    new KafkaFetchWillStream(originId, routedId, this, sessionsTopic, willClientId,
+                        willId.asString(), lifetimeId.asString(), deliverAtResolved);
+                willFetcher.doKafkaBegin(traceId, authorization, 0, lifetimeId);
+                willFetchers.put(new String16FW(willClientId.asString()), willFetcher);
+            }
+
+            return !local;
+        }
+
+        private boolean onExpirySignal(
+            long traceId,
+            String16FW signalInstanceId,
+            String16FW signalClientId,
+            long delay,
+            long expireAt)
+        {
+            final boolean local = expireAt == MqttTime.UNKNOWN.value() && instanceId.instanceId().equals(signalInstanceId);
+
+            if (!local)
+            {
+                final long expireAtResolved = expireAt == MqttTime.UNKNOWN.value() ? supplyTime.getAsLong() + delay : expireAt;
+                final String16FW expiryClientId = new String16FW(signalClientId.asString());
+
+                final int contextId = nextContextId++;
+                expiryClientIds.put(contextId, expiryClientId);
+
+                final long signalId =
+                    signaler.signalAt(expireAtResolved, originId, routedId, initialId, traceId,
+                        SIGNAL_EXPIRE_SESSION, contextId);
+                final long previousSignalId = sessionExpiryIds.put(expiryClientId, signalId);
+                if (previousSignalId != sessionExpiryIds.missingValue())
+                {
+                    signaler.cancel(previousSignalId);
+                }
+            }
+
+            return !local;
         }
 
         private void onKafkaFlush(
@@ -3717,16 +3737,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                             .value(WILL_SIGNAL_NAME_OCTETS))))
                 .build();
 
-            final MqttSessionSignalFW willSignal =
-                mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                    .will(w -> w
-                        .instanceId(instanceId.instanceId())
-                        .clientId(delegate.clientId)
-                        .delay(delegate.delay)
-                        .deliverAt(supplyTime.getAsLong() + delegate.delay)
-                        .lifetimeId(delegate.lifetimeId)
-                        .willId(delegate.willId))
-                    .build();
+            final MqttSessionSignalFW willSignal = willSignal(delegate.clientId, delegate.delay,
+                supplyTime.getAsLong() + delegate.delay, delegate.lifetimeId, delegate.willId);
 
             doKafkaData(traceId, authorization, 0, willSignal.sizeof(), delegate.sessionPadding, COMPLETE,
                 willSignal, willSignalKafkaDataEx);
@@ -3907,13 +3919,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 if (delegate.isSessionExpiring())
                 {
                     final MqttSessionSignalFW expirySignal =
-                        mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity())
-                            .expiry(w -> w
-                                .instanceId(instanceId.instanceId())
-                                .clientId(delegate.clientId)
-                                .delay(delegate.sessionExpiryDelay())
-                                .expireAt(MqttTime.UNKNOWN.value()))
-                            .build();
+                        expirySignal(delegate.clientId, delegate.sessionExpiryDelay(), MqttTime.UNKNOWN.value());
                     delegate.sessionPadding += expirySignal.sizeof();
                     sendExpirySignal(authorization, traceId, expirySignal); // expire later
                 }
@@ -6846,4 +6852,53 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    private MqttSessionSignalFW willSignal(
+        String16FW clientId,
+        long delay,
+        long deliverAt,
+        String lifetimeId,
+        String willId)
+    {
+        final MqttSessionSignalFW.Builder signalRW =
+            mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity());
+
+        return (delay <= Integer.MAX_VALUE
+            ? signalRW.will(w -> w
+                .instanceId(instanceId.instanceId())
+                .clientId(clientId)
+                .delay((int) delay)
+                .deliverAt(deliverAt)
+                .lifetimeId(lifetimeId)
+                .willId(willId))
+            : signalRW.willLong(w -> w
+                .instanceId(instanceId.instanceId())
+                .clientId(clientId)
+                .delay(delay)
+                .deliverAt(deliverAt)
+                .lifetimeId(lifetimeId)
+                .willId(willId)))
+            .build();
+    }
+
+    private MqttSessionSignalFW expirySignal(
+        String16FW clientId,
+        long delay,
+        long expireAt)
+    {
+        final MqttSessionSignalFW.Builder signalRW =
+            mqttSessionSignalRW.wrap(sessionSignalBuffer, 0, sessionSignalBuffer.capacity());
+
+        return (delay <= Integer.MAX_VALUE
+            ? signalRW.expiry(w -> w
+                .instanceId(instanceId.instanceId())
+                .clientId(clientId)
+                .delay((int) delay)
+                .expireAt(expireAt))
+            : signalRW.expiryLong(w -> w
+                .instanceId(instanceId.instanceId())
+                .clientId(clientId)
+                .delay(delay)
+                .expireAt(expireAt)))
+            .build();
+    }
 }
