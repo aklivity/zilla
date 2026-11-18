@@ -179,7 +179,7 @@ scope mqtt
     struct MqttWillMessage
     {
         string16 topic = null;
-        int32 delay = 0;
+        uint32 delay = 0;
         uint8 qos = 0;
         uint8 flags = 0;
         int32 expiryInterval = -1;
