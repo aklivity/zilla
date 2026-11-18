@@ -1578,6 +1578,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .set(mqttPublishHelper.correlationData);
                     server.decodedCorrelationData = server.correlationDataRW.build();
                 }
+                else
+                {
+                    server.decodedCorrelationData = null;
+                }
 
                 if (mqttPublishHelper.userProperties != null)
                 {
@@ -1587,6 +1591,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     mqttPublishHelper.userProperties
                         .forEach(u -> server.userPropertiesRW.item(c -> c.key(u.key()).value(u.value())));
                     server.decodedUserProperties = server.userPropertiesRW.build();
+                }
+                else
+                {
+                    server.decodedUserProperties = null;
                 }
 
                 final int decodeablePublishPayloadBytes =
