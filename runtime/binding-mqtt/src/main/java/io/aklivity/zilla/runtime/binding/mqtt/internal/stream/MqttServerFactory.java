@@ -6963,6 +6963,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 sessionPresent = true;
                             }
                         }
+                        else if (sessionExpiry != 0)
+                        {
+                            final MqttSessionStateFW emptyState = sessionState(Stream.empty());
+                            final int emptyStateSize = emptyState.sizeof();
+
+                            if (hasSessionWindow(emptyStateSize))
+                            {
+                                final MqttDataExFW.Builder sessionDataExBuilder =
+                                    mqttSessionDataExRW
+                                        .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                                        .typeId(mqttTypeId)
+                                        .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
+                                doSessionData(traceId, emptyStateSize, sessionDataExBuilder.build(), emptyState);
+                            }
+                        }
                         doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent,
                             null, null, version);
                         connected = true;
