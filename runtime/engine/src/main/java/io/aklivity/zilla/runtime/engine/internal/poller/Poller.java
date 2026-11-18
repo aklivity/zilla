@@ -17,10 +17,16 @@ package io.aklivity.zilla.runtime.engine.internal.poller;
 
 import static org.agrona.CloseHelper.quietClose;
 
+import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -28,11 +34,28 @@ import org.agrona.nio.TransportPoller;
 
 public final class Poller extends TransportPoller
 {
+    private static final int LISTENER_SWEEP_MASK = 63;
+
     private final Consumer<SelectionKey> selectHandler;
+    private final LongConsumer listenerBound;
+    private final LongConsumer listenerUnbound;
+    private final List<SelectionKey> listeners;
+
+    private int listenerSweepCycles;
 
     public Poller()
     {
+        this(value -> {}, value -> {});
+    }
+
+    public Poller(
+        LongConsumer listenerBound,
+        LongConsumer listenerUnbound)
+    {
         this.selectHandler = this::handleSelect;
+        this.listenerBound = listenerBound;
+        this.listenerUnbound = listenerUnbound;
+        this.listeners = new ArrayList<>();
     }
 
     public int doWork()
@@ -47,6 +70,8 @@ public final class Poller extends TransportPoller
         {
             LangUtil.rethrowUnchecked(ex);
         }
+
+        sweepListeners();
 
         return workDone;
     }
@@ -64,6 +89,8 @@ public final class Poller extends TransportPoller
         {
             LangUtil.rethrowUnchecked(ex);
         }
+
+        sweepListeners();
 
         return workDone;
     }
@@ -93,6 +120,12 @@ public final class Poller extends TransportPoller
             {
                 key = channel.register(selector, 0, null);
                 key.attach(new PollerKeyImpl(key));
+
+                if (isListener(channel))
+                {
+                    listeners.add(key);
+                    listenerBound.accept(1L);
+                }
             }
 
             pollerKey = attachment(key);
@@ -115,6 +148,41 @@ public final class Poller extends TransportPoller
     {
         final PollerKeyImpl attachment = attachment(key);
         return attachment.handleSelect(key);
+    }
+
+    private void sweepListeners()
+    {
+        if (!listeners.isEmpty() && (++listenerSweepCycles & LISTENER_SWEEP_MASK) == 0)
+        {
+            for (int index = listeners.size() - 1; index >= 0; index--)
+            {
+                if (!listeners.get(index).isValid())
+                {
+                    listeners.remove(index);
+                    listenerUnbound.accept(1L);
+                }
+            }
+        }
+    }
+
+    private static boolean isListener(
+        SelectableChannel channel)
+    {
+        boolean listener = channel instanceof ServerSocketChannel;
+
+        if (channel instanceof DatagramChannel datagram)
+        {
+            try
+            {
+                listener = !datagram.isConnected() && datagram.getLocalAddress() != null;
+            }
+            catch (IOException ex)
+            {
+                listener = false;
+            }
+        }
+
+        return listener;
     }
 
     private static PollerKeyImpl attachment(

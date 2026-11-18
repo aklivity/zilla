@@ -152,6 +152,8 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayou
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCapacityMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersBoundMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersUnboundMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -416,8 +418,6 @@ public class EngineWorker implements EngineContext, Agent
         this.futuresById = new Long2ObjectHashMap<>();
         this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
 
-        this.poller = new Poller();
-
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
         final long initial = (((long) index) << SHIFT_SIZE) | ((selfNodeId & 0xffL) << NODE_SHIFT_SIZE);
@@ -477,6 +477,11 @@ public class EngineWorker implements EngineContext, Agent
         }
         this.metricGroupsByName = metricGroupsByName;
         this.usageMetric = supplyGauge(NO_NAMESPACED_ID, router.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+        final int listenersBoundMetricId = router.supplyLabelId(EngineWorkersListenersBoundMetric.NAME);
+        final int listenersUnboundMetricId = router.supplyLabelId(EngineWorkersListenersUnboundMetric.NAME);
+        this.poller = new Poller(
+            supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersBoundMetricId, 0, null),
+            supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersUnboundMetricId, 0, null));
     }
 
     public static int indexOfId(
