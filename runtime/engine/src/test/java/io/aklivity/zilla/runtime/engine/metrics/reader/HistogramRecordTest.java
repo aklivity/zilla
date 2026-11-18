@@ -104,20 +104,33 @@ public class HistogramRecordTest
         // WHEN
         histogram.update();
         int buckets = histogram.buckets();
-        long[] value = histogram.millisecondBucketValues();
+        double[] limits = histogram.millisecondBucketLimits();
+        long[] value = histogram.bucketValues();
         long[] stats = histogram.millisecondStats();
 
         // THEN
         assertThat(buckets, equalTo(63));
-        assertThat(value[0], equalTo(10L));
-        assertThat(value[18], equalTo(2L));
-        assertThat(value[38], equalTo(3L));
-        assertThat(value[41], equalTo(1L));
-        assertThat(stats[0], equalTo(1L)); // min
-        assertThat(stats[1], equalTo(4_398_046_511_103L)); // max
+        assertThat(limits[0], equalTo(0.000002));
+        assertThat(limits[24], equalTo(33.554432));
+        assertThat(value[25], equalTo(4L));
+        assertThat(value[60], equalTo(1L));
+        assertThat(stats[0], equalTo(0L)); // min
+        assertThat(stats[1], equalTo(2_305_843_009_213L)); // max
         assertThat(stats[2], equalTo(9_876_543L)); // sum
         assertThat(stats[3], equalTo(20L)); // cnt
         assertThat(stats[4], equalTo(493_827L)); // avg
+    }
+
+    @Test
+    public void shouldBoundMillisecondBucketsByNanosecondLimits()
+    {
+        HistogramRecord histogram = new HistogramRecord(
+            NamespacedId.id(77, 7), 8, 0, MetricsLayout.NO_KIND, READER_HISTOGRAM_MS, mock(LongFunction.class));
+
+        double[] limits = histogram.millisecondBucketLimits();
+
+        assertThat(limits[23], equalTo(16.777216));
+        assertThat(limits[24], equalTo(33.554432));
     }
 
     @Test
