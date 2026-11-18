@@ -37,8 +37,11 @@ write [0x20 0x03]              # CONNACK
       [0x00]                   # properties
 
 write await RECEIVED_SESSION_STATE
-write [0xe0 0x02]              # DISCONNECT
+write [0xe0 0x1b]              # DISCONNECT
       [0x81]                   # malformed packet
-      [0x00]                   # properties = none
+      [0x19]                   # properties
+      [0x1f 0x00 0x08] "too long"  # reason string
+      [0x26 0x00 0x04] "name"      # user property key
+      [0x00 0x05] "value"          # user property value
 
 read abort
