@@ -575,6 +575,13 @@ scope test
     {
         option byteorder network;
 
+        union UnionUnsigned switch (uint8)
+        {
+            case 1: uint8 unsigned8;
+            case 2: uint16 unsigned16;
+            case 3: uint32 unsigned32;
+        }
+
         union UnionString switch (uint8)
         {
             case 1: string8 string1;
