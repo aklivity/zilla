@@ -131,6 +131,20 @@ public final class JsonSchemaImpl implements JsonSchema
         VALID, INVALID, PENDING
     }
 
+    // evaluates the events of one value against a schema, one event at a time
+    private interface Evaluator
+    {
+        Verdict feed(
+            Event event,
+            JsonSource parser);
+
+        // whether the position about to receive the next scalar event needs the scalar's content
+        boolean needsContentNow();
+
+        // rearms for the next value
+        void reset();
+    }
+
     private final boolean deny;
     private final String ref;
     private JsonSchemaImpl resolved;
@@ -275,7 +289,7 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        return drive(eval(), Trace.NONE, new ParserSource().wrap(parser), parser);
+        return drive(evaluator(Trace.NONE), Trace.NONE, new ParserSource().wrap(parser), parser);
     }
 
     @Override
@@ -285,11 +299,11 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         final Trace trace = new Trace(reporter);
 
-        return drive(eval(trace), trace, new ParserSource().wrap(parser), parser);
+        return drive(evaluator(trace), trace, new ParserSource().wrap(parser), parser);
     }
 
     private static boolean drive(
-        Eval eval,
+        Evaluator eval,
         Trace trace,
         JsonSource source,
         JsonParser parser)
@@ -303,7 +317,7 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private static Verdict feed(
-        Eval eval,
+        Evaluator eval,
         Trace trace,
         Event event,
         JsonSource source)
@@ -824,9 +838,10 @@ public final class JsonSchemaImpl implements JsonSchema
         this.raw = null;
     }
 
-    private Eval eval()
+    private Evaluator evaluator(
+        Trace trace)
     {
-        return eval(Trace.NONE, DynScope.ROOT);
+        return eval(trace, DynScope.ROOT);
     }
 
     private Eval eval(
@@ -2492,7 +2507,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
         private final Trace trace;
-        private final Eval eval;
+        private final Evaluator eval;
         private final ParserSource source;
 
         private Verdict verdict;
@@ -2508,7 +2523,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
             this.trace = diagnostics != null ? new Trace(this::report) : Trace.NONE;
-            this.eval = diagnostics != null ? eval(trace) : eval();
+            this.eval = evaluator(diagnostics != null ? trace : Trace.NONE);
             this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
@@ -2818,7 +2833,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
         private final boolean lenient;
         private final Trace trace = new Trace(diagnostics::add);
-        private final Eval eval;
+        private final Evaluator eval;
         // captures a KEY_NAME's chars before forwarding to the sink (see transform()'s structural-event
         // branch below): reading getStringView() only after the forward can return an empty remainder if
         // the sink (or an intermediate stage) already rendered this same key, since that shared cursor
@@ -2837,7 +2852,7 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean lenient)
         {
             this.lenient = lenient;
-            this.eval = eval(trace);
+            this.eval = evaluator(trace);
         }
 
         // Redirects getStringView() to the pre-forward key capture, delegating every other accessor to
@@ -3156,7 +3171,264 @@ public final class JsonSchemaImpl implements JsonSchema
         };
     }
 
-    private final class Eval
+    private static final int OPEN_INVALID = 1;
+    private static final int OPEN_STRING_OK = 2;
+
+    // the checks of this schema that read only the first event of the value it is applied to: the false
+    // schema, the type, and the content keywords of a scalar. Reports each failure to the trace and returns
+    // whether the value is already invalid, and whether a string equals the const or is one of the enum
+    private int checkOpen(
+        Trace trace,
+        Event event,
+        JsonSource parser)
+    {
+        boolean invalid = false;
+        boolean stringOk = false;
+        if (deny)
+        {
+            invalid = true;
+            trace.report("false", "subschema disallows all instances", parser);
+        }
+        switch (event)
+        {
+        case START_OBJECT:
+            if (types != null && !types.contains(JsonType.OBJECT))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was object", parser);
+            }
+            break;
+        case START_ARRAY:
+            if (types != null && !types.contains(JsonType.ARRAY))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was array", parser);
+            }
+            break;
+        case VALUE_STRING:
+            if (needsContent)
+            {
+                invalid |= checkStringReport(trace, parser);
+                if (constString != null || enumStrings != null)
+                {
+                    CharSequence value = parser.getStringView();
+                    stringOk = constString != null
+                        ? charsEqual(constString, value)
+                        : containsString(enumStrings, value);
+                }
+            }
+            else if (types != null && !types.contains(JsonType.STRING))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was string", parser);
+            }
+            break;
+        case VALUE_NUMBER:
+            if (needsContent)
+            {
+                invalid |= checkNumberReport(trace, parser);
+            }
+            else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
+            break;
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+            if (types != null && !types.contains(JsonType.BOOLEAN))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was boolean", parser);
+            }
+            break;
+        case VALUE_NULL:
+            if (types != null && !types.contains(JsonType.NULL))
+            {
+                invalid = true;
+                trace.report("type", "expected " + typesText() + " but was null", parser);
+            }
+            break;
+        default:
+            invalid = true;
+            trace.report("type", "unexpected event " + event, parser);
+            break;
+        }
+        return (invalid ? OPEN_INVALID : 0) | (stringOk ? OPEN_STRING_OK : 0);
+    }
+
+
+    private String typesText()
+    {
+        String result;
+        if (types == null)
+        {
+            result = "any";
+        }
+        else if (types.size() == 1)
+        {
+            result = types.iterator().next().name().toLowerCase();
+        }
+        else
+        {
+            StringBuilder sb = new StringBuilder("one of [");
+            boolean first = true;
+            for (JsonType t : types)
+            {
+                if (!first)
+                {
+                    sb.append(',');
+                }
+                sb.append(t.name().toLowerCase());
+                first = false;
+            }
+            sb.append(']');
+            result = sb.toString();
+        }
+        return result;
+    }
+
+    private boolean checkStringReport(
+        Trace trace,
+        JsonSource parser)
+    {
+        boolean invalid = false;
+        CharSequence value = parser.getStringView();
+        int length = Character.codePointCount(value, 0, value.length());
+        if (types != null && !types.contains(JsonType.STRING))
+        {
+            invalid = true;
+            trace.report("type", "expected " + typesText() + " but was string", parser);
+        }
+        else if (minLength >= 0 && length < minLength)
+        {
+            invalid = true;
+            trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
+        }
+        else if (maxLength >= 0 && length > maxLength)
+        {
+            invalid = true;
+            trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
+        }
+        else if (pattern != null && !pattern.matcher(value).find())
+        {
+            invalid = true;
+            trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
+        }
+        return invalid;
+    }
+
+    private boolean checkNumberReport(
+        Trace trace,
+        JsonSource parser)
+    {
+        boolean invalid = false;
+        boolean lexicalIntegral = parser.isIntegralNumber();
+        boolean bounded = minimum != null || maximum != null ||
+            exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
+        if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
+        {
+            // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
+            invalid = checkIntegerBounds(trace, parser, parser.getLong());
+        }
+        else
+        {
+            invalid = checkDecimalReport(trace, parser, lexicalIntegral, bounded);
+        }
+        return invalid;
+    }
+
+    private boolean checkIntegerBounds(
+        Trace trace,
+        JsonSource parser,
+        long value)
+    {
+        boolean invalid = false;
+        boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
+        if (!typeOk)
+        {
+            invalid = true;
+            trace.report("type", "expected " + typesText() + " but was number", parser);
+        }
+        else if (minimum != null && value < minimum.longValue())
+        {
+            invalid = true;
+            trace.report("minimum", value + " < minimum " + minimum, parser);
+        }
+        else if (maximum != null && value > maximum.longValue())
+        {
+            invalid = true;
+            trace.report("maximum", value + " > maximum " + maximum, parser);
+        }
+        else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
+        {
+            invalid = true;
+            trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+        }
+        else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
+        {
+            invalid = true;
+            trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+        }
+        else if (multipleOf != null && value % multipleOf.longValue() != 0)
+        {
+            invalid = true;
+            trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+        }
+        return invalid;
+    }
+
+    private boolean checkDecimalReport(
+        Trace trace,
+        JsonSource parser,
+        boolean lexicalIntegral,
+        boolean bounded)
+    {
+        boolean invalid = false;
+        boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
+        // a BigDecimal is needed only for a bounds check, or to decide integrality of a
+        // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
+        BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
+        boolean integral = modernDraft && value != null
+            ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
+            : lexicalIntegral;
+        boolean typeOk = types == null ||
+            types.contains(JsonType.NUMBER) ||
+            integral && types.contains(JsonType.INTEGER);
+        if (!typeOk)
+        {
+            invalid = true;
+            trace.report("type", "expected " + typesText() + " but was number", parser);
+        }
+        else if (minimum != null && value.compareTo(minimum) < 0)
+        {
+            invalid = true;
+            trace.report("minimum", value + " < minimum " + minimum, parser);
+        }
+        else if (maximum != null && value.compareTo(maximum) > 0)
+        {
+            invalid = true;
+            trace.report("maximum", value + " > maximum " + maximum, parser);
+        }
+        else if (exclusiveMinimum != null && value.compareTo(exclusiveMinimum) <= 0)
+        {
+            invalid = true;
+            trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+        }
+        else if (exclusiveMaximum != null && value.compareTo(exclusiveMaximum) >= 0)
+        {
+            invalid = true;
+            trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+        }
+        else if (multipleOf != null && (multipleOf.signum() == 0 || value.remainder(multipleOf).signum() != 0))
+        {
+            invalid = true;
+            trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+        }
+        return invalid;
+    }
+
+    private final class Eval implements Evaluator
     {
         private final Trace trace;
         private final Eval[] allOfEvals;
@@ -3242,7 +3514,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
         // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
         // (directChild, refEval, dynEval) dropped, the itemEval/containsEval/propEvals caches left intact
-        private void reset()
+        @Override
+        public void reset()
         {
             reused = true;
             started = false;
@@ -3381,7 +3654,8 @@ public final class JsonSchemaImpl implements JsonSchema
             return result;
         }
 
-        private Verdict feed(
+        @Override
+        public Verdict feed(
             Event event,
             JsonSource parser)
         {
@@ -3443,7 +3717,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // replayed against that keyword once the container closes. A not-yet-routed array (the pending
         // event is the first for its next element) resolves the applicable item/contains schema for the
         // next index without mutating any routing state.
-        private boolean needsContentNow()
+        @Override
+        public boolean needsContentNow()
         {
             boolean result;
             if (!started)
@@ -3503,11 +3778,9 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            if (deny)
-            {
-                directInvalid = true;
-                trace.report("false", "subschema disallows all instances", parser);
-            }
+            final int open = checkOpen(trace, event, parser);
+            directInvalid = (open & OPEN_INVALID) != 0;
+            scalarStringOk = (open & OPEN_STRING_OK) != 0;
             switch (event)
             {
             case START_OBJECT:
@@ -3535,11 +3808,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     propValues = new LinkedHashMap<>();
                 }
-                if (types != null && !types.contains(JsonType.OBJECT))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was object", parser);
-                }
                 break;
             case START_ARRAY:
                 array = true;
@@ -3551,218 +3819,9 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     itemValues = new ArrayList<>();
                 }
-                if (types != null && !types.contains(JsonType.ARRAY))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was array", parser);
-                }
-                break;
-            case VALUE_STRING:
-                if (needsContent)
-                {
-                    checkStringReport(parser);
-                    if (constString != null || enumStrings != null)
-                    {
-                        CharSequence value = parser.getStringView();
-                        scalarStringOk = constString != null
-                            ? charsEqual(constString, value)
-                            : containsString(enumStrings, value);
-                    }
-                }
-                else if (types != null && !types.contains(JsonType.STRING))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was string", parser);
-                }
-                break;
-            case VALUE_NUMBER:
-                if (needsContent)
-                {
-                    checkNumberReport(parser);
-                }
-                else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was number", parser);
-                }
-                break;
-            case VALUE_TRUE:
-            case VALUE_FALSE:
-                if (types != null && !types.contains(JsonType.BOOLEAN))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was boolean", parser);
-                }
-                break;
-            case VALUE_NULL:
-                if (types != null && !types.contains(JsonType.NULL))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was null", parser);
-                }
                 break;
             default:
-                directInvalid = true;
-                trace.report("type", "unexpected event " + event, parser);
                 break;
-            }
-        }
-
-        private String typesText()
-        {
-            String result;
-            if (types == null)
-            {
-                result = "any";
-            }
-            else if (types.size() == 1)
-            {
-                result = types.iterator().next().name().toLowerCase();
-            }
-            else
-            {
-                StringBuilder sb = new StringBuilder("one of [");
-                boolean first = true;
-                for (JsonType t : types)
-                {
-                    if (!first)
-                    {
-                        sb.append(',');
-                    }
-                    sb.append(t.name().toLowerCase());
-                    first = false;
-                }
-                sb.append(']');
-                result = sb.toString();
-            }
-            return result;
-        }
-
-        private void checkStringReport(
-            JsonSource parser)
-        {
-            CharSequence value = parser.getStringView();
-            int length = Character.codePointCount(value, 0, value.length());
-            if (types != null && !types.contains(JsonType.STRING))
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was string", parser);
-            }
-            else if (minLength >= 0 && length < minLength)
-            {
-                directInvalid = true;
-                trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
-            }
-            else if (maxLength >= 0 && length > maxLength)
-            {
-                directInvalid = true;
-                trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
-            }
-            else if (pattern != null && !pattern.matcher(value).find())
-            {
-                directInvalid = true;
-                trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
-            }
-        }
-
-        private void checkNumberReport(
-            JsonSource parser)
-        {
-            boolean lexicalIntegral = parser.isIntegralNumber();
-            boolean bounded = minimum != null || maximum != null ||
-                exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
-            if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
-            {
-                // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
-                checkIntegerBounds(parser, parser.getLong());
-            }
-            else
-            {
-                checkDecimalReport(parser, lexicalIntegral, bounded);
-            }
-        }
-
-        private void checkIntegerBounds(
-            JsonSource parser,
-            long value)
-        {
-            boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
-            if (!typeOk)
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was number", parser);
-            }
-            else if (minimum != null && value < minimum.longValue())
-            {
-                directInvalid = true;
-                trace.report("minimum", value + " < minimum " + minimum, parser);
-            }
-            else if (maximum != null && value > maximum.longValue())
-            {
-                directInvalid = true;
-                trace.report("maximum", value + " > maximum " + maximum, parser);
-            }
-            else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
-            {
-                directInvalid = true;
-                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
-            }
-            else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
-            {
-                directInvalid = true;
-                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
-            }
-            else if (multipleOf != null && value % multipleOf.longValue() != 0)
-            {
-                directInvalid = true;
-                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
-            }
-        }
-
-        private void checkDecimalReport(
-            JsonSource parser,
-            boolean lexicalIntegral,
-            boolean bounded)
-        {
-            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
-            // a BigDecimal is needed only for a bounds check, or to decide integrality of a
-            // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
-            BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
-            boolean integral = modernDraft && value != null
-                ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
-                : lexicalIntegral;
-            boolean typeOk = types == null ||
-                types.contains(JsonType.NUMBER) ||
-                integral && types.contains(JsonType.INTEGER);
-            if (!typeOk)
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was number", parser);
-            }
-            else if (minimum != null && value.compareTo(minimum) < 0)
-            {
-                directInvalid = true;
-                trace.report("minimum", value + " < minimum " + minimum, parser);
-            }
-            else if (maximum != null && value.compareTo(maximum) > 0)
-            {
-                directInvalid = true;
-                trace.report("maximum", value + " > maximum " + maximum, parser);
-            }
-            else if (exclusiveMinimum != null && value.compareTo(exclusiveMinimum) <= 0)
-            {
-                directInvalid = true;
-                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
-            }
-            else if (exclusiveMaximum != null && value.compareTo(exclusiveMaximum) >= 0)
-            {
-                directInvalid = true;
-                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
-            }
-            else if (multipleOf != null && (multipleOf.signum() == 0 || value.remainder(multipleOf).signum() != 0))
-            {
-                directInvalid = true;
-                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
             }
         }
 
