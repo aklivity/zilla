@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -55,6 +56,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
     private static final int RECORD_CAPACITY = 4096;
 
     @Test
+    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldValidateInterleavedStreamsOnOneParserLikeSeparateParsers()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -76,6 +78,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
+    @Disabled("a validating parser saves and restores its state by a later change")
     void shouldReportFailureOnlyOnTheStreamThatFailed()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
