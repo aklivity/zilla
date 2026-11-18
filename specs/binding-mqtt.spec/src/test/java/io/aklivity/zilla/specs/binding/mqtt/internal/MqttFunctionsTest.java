@@ -1660,6 +1660,30 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttResetExWithUserProperties()
+    {
+        final byte[] array = MqttFunctions.resetEx()
+            .typeId(0)
+            .serverRef("mqtt-1.example.com:1883")
+            .reasonCode(0x9c)
+            .reason("test")
+            .userProperty("name", "value")
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttResetExFW mqttResetEx = new MqttResetExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals("mqtt-1.example.com:1883", mqttResetEx.serverRef().asString());
+        assertEquals("test", mqttResetEx.reason().asString());
+        assertEquals(0x9c, mqttResetEx.reasonCode());
+        mqttResetEx.properties().forEach(p ->
+        {
+            assertEquals("name", p.key().asString());
+            assertEquals("value", p.value().asString());
+        });
+        assertEquals(1, mqttResetEx.properties().fieldCount());
+    }
+
+    @Test
     public void shouldEncodeMqttSessionStateVersion()
     {
         final byte[] array = MqttFunctions.session()

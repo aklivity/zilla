@@ -5257,7 +5257,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (version != MQTT_PROTOCOL_VERSION_4)
                 {
-                    doEncodeDisconnect(traceId, authorization, reasonCode, null, null);
+                    doEncodeDisconnect(traceId, authorization, reasonCode, null, null, null);
                 }
             }
             else
@@ -5319,12 +5319,17 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                state = StreamState.closeReply(state);
+                if (encodeSlot != NO_SLOT)
+                {
+                    state = StreamState.closingReply(state);
+                }
+                else
+                {
+                    state = StreamState.closeReply(state);
 
-                cleanupEncodeSlot();
-
-                doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, state, encodeMax,
-                    traceId, authorization, EMPTY_OCTETS);
+                    doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, state, encodeMax,
+                        traceId, authorization, EMPTY_OCTETS);
+                }
             }
 
             deauthorizeGuardSession();
@@ -6060,7 +6065,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             long authorization,
             int reasonCode,
             String16FW serverReference,
-            String16FW reason)
+            String16FW reason,
+            Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> userProperties)
         {
             int propertiesSize = 0;
 
@@ -6081,6 +6087,19 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .serverReference(serverReference)
                     .build();
                 propertiesSize = mqttProperty.limit();
+            }
+
+            if (userProperties != null)
+            {
+                final AtomicInteger userPropertiesSize = new AtomicInteger(propertiesSize);
+                userProperties.forEach(p ->
+                {
+                    mqttPropertyRW.wrap(propertyBuffer, userPropertiesSize.get(), propertyBuffer.capacity())
+                        .userProperty(c -> c.key(p.key()).value(p.value()))
+                        .build();
+                    userPropertiesSize.set(mqttPropertyRW.limit());
+                });
+                propertiesSize = userPropertiesSize.get();
             }
 
             final int propertySize0 = propertiesSize;
@@ -6145,7 +6164,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (publishes.isEmpty() && subscribes.isEmpty() && sharedSubscribes.isEmpty() && decoder == decodeIgnoreAll)
+                if (StreamState.replyClosing(state) ||
+                    publishes.isEmpty() && subscribes.isEmpty() && sharedSubscribes.isEmpty() && decoder == decodeIgnoreAll)
                 {
                     doNetworkEnd(traceId, authorization);
                 }
@@ -6661,9 +6681,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 boolean serverRefExists = false;
                 String16FW serverRef = null;
                 String16FW reason = null;
+                Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> userProperties = null;
 
                 if (mqttResetEx != null)
                 {
+                    userProperties = mqttResetEx.properties();
                     serverRef = mqttResetEx.serverRef();
                     reasonCode = (byte) mqttResetEx.reasonCode();
                     reason = mqttResetEx.reason();
@@ -6693,7 +6715,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else if (version == MQTT_PROTOCOL_VERSION_5)
                 {
-                    doEncodeDisconnect(traceId, authorization, reasonCode, serverRefExists ? serverRef : null, reason);
+                    doEncodeDisconnect(traceId, authorization, reasonCode, serverRefExists ? serverRef : null, reason,
+                        userProperties);
                 }
 
                 doNetworkEnd(traceId, authorization);

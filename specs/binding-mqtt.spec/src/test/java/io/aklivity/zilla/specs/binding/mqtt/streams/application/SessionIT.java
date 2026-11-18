@@ -293,9 +293,27 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.server.sent.reset.buffered.disconnect/client",
+        "${app}/session.server.sent.reset.buffered.disconnect/server"})
+    public void shouldDisconnectWhenServerSentResetWithBufferedDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.server.sent.reset.after.connack/client",
         "${app}/session.server.sent.reset.after.connack/server"})
     public void shouldResetAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/client",
+        "${app}/session.server.redirect.after.connack.with.reason.and.user.property/server"})
+    public void shouldRedirectAfterConnackWithReasonAndUserProperty() throws Exception
     {
         k3po.finish();
     }
