@@ -380,4 +380,24 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.1.2-20]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client",
+        "${net}/connect.reject.password.no.password.flag/server"})
+    public void shouldRejectPasswordWhenMissingPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.4-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client",
+        "${net}/connect.reject.will.topic.no.will.flag/server"})
+    public void shouldRejectWillTopicWhenMissingWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
 }
