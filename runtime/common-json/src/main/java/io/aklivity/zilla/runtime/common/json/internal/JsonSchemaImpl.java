@@ -3762,6 +3762,7 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             final JsonSchemaImpl schema = schemas[frame];
             final boolean needs;
+            final int direct = frames[(frame << SHIFT) + DIRECT];
             if (delegateOf(frame) != null)
             {
                 needs = delegateOf(frame).needsContentNow();
@@ -3770,9 +3771,13 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 needs = schema.needsContent;
             }
-            else if (frames[(frame << SHIFT) + DIRECT] != NONE)
+            else if (direct >= 0)
             {
-                needs = needsContentNow(frames[(frame << SHIFT) + DIRECT]);
+                needs = needsContentNow(direct);
+            }
+            else if (direct < NONE)
+            {
+                needs = frames[(frame << SHIFT) + DEPTH] > -2 - direct;
             }
             else if ((frames[(frame << SHIFT) + FLAGS] & ARRAY) != 0)
             {
@@ -3797,9 +3802,10 @@ public final class JsonSchemaImpl implements JsonSchema
             JsonSource parser)
         {
             final JsonSchemaImpl schema = schemas[frame];
-            if (delegateOf(frame) != null)
+            final Eval delegate = delegates != null ? delegates[frame] : null;
+            if (delegate != null)
             {
-                final Verdict verdict = delegateOf(frame).feed(event, parser);
+                final Verdict verdict = delegate.feed(event, parser);
                 if (verdict != Verdict.PENDING)
                 {
                     finish(frame, verdict);
@@ -3811,11 +3817,12 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     canons[frame].feed(event, parser);
                 }
-                if (frames[(frame << SHIFT) + DIRECT] != NONE)
+                final int direct = frames[(frame << SHIFT) + DIRECT];
+                if (direct >= 0)
                 {
                     routeDirect(frame, event, parser);
                 }
-                else if (schema != ANY)
+                else if (direct == NONE && schema != ANY)
                 {
                     feedOwn(frame, schema, event, parser);
                 }
@@ -3830,6 +3837,26 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
 
                 advance(frame, event, parser);
+                if (frames[(frame << SHIFT) + DIRECT] < NONE)
+                {
+                    endSkip(frame, event);
+                }
+            }
+        }
+
+        // a member or element whose schema accepts any value has no frame: the frame it is in only notes the depth
+        // it is at, and the value is over with the scalar, or with the end of the container, that brings it back
+        private void endSkip(
+            int frame,
+            Event event)
+        {
+            final boolean scalar = event != Event.KEY_NAME && event != Event.START_OBJECT && event != Event.START_ARRAY &&
+                event != Event.END_OBJECT && event != Event.END_ARRAY;
+            final boolean closed = (scalar || event == Event.END_OBJECT || event == Event.END_ARRAY) &&
+                frames[(frame << SHIFT) + DEPTH] == -2 - frames[(frame << SHIFT) + DIRECT];
+            if (closed)
+            {
+                frames[(frame << SHIFT) + DIRECT] = NONE;
             }
         }
 
@@ -4311,8 +4338,15 @@ public final class JsonSchemaImpl implements JsonSchema
                     trace.key(key.toString());
                 }
             }
-            frames[(frame << SHIFT) + DIRECT] = top;
-            push(applicable, (frames[(frame << SHIFT) + FLAGS] & SILENT) != 0);
+            if (applicable == ANY)
+            {
+                frames[(frame << SHIFT) + DIRECT] = -2 - frames[(frame << SHIFT) + DEPTH];
+            }
+            else
+            {
+                frames[(frame << SHIFT) + DIRECT] = top;
+                push(applicable, (frames[(frame << SHIFT) + FLAGS] & SILENT) != 0);
+            }
         }
 
         private void checkRequired(
@@ -4381,14 +4415,22 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
-                frames[(frame << SHIFT) + DIRECT] = top;
-                push(schema.elementSchema(frames[(frame << SHIFT) + COUNT]++), (frames[(frame << SHIFT) + FLAGS] & SILENT) != 0);
-                if (schema.uniqueItems)
+                final JsonSchemaImpl element = schema.elementSchema(frames[(frame << SHIFT) + COUNT]++);
+                if (element == ANY && !schema.uniqueItems)
                 {
-                    frames[(frame << SHIFT) + FLAGS] |= UNIQUE_ELEMENT;
-                    uniques[frame].reset();
+                    frames[(frame << SHIFT) + DIRECT] = -2 - frames[(frame << SHIFT) + DEPTH];
                 }
-                opened = true;
+                else
+                {
+                    frames[(frame << SHIFT) + DIRECT] = top;
+                    push(element, (frames[(frame << SHIFT) + FLAGS] & SILENT) != 0);
+                    if (schema.uniqueItems)
+                    {
+                        frames[(frame << SHIFT) + FLAGS] |= UNIQUE_ELEMENT;
+                        uniques[frame].reset();
+                    }
+                    opened = true;
+                }
             }
             return opened;
         }
