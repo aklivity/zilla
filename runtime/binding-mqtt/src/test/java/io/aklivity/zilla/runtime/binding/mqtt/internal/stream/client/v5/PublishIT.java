@@ -460,4 +460,14 @@ public class PublishIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/publish.many.messages/server",
+        "${app}/publish.many.messages/client"})
+    public void shouldSendManyMessages() throws Exception
+    {
+        k3po.finish();
+    }
 }
