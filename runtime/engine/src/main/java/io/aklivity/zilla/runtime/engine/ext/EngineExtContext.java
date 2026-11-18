@@ -80,4 +80,39 @@ public interface EngineExtContext
         String namespace,
         String binding,
         String metric);
+
+    /**
+     * Returns the number of workers that record metric values.
+     * <p>
+     * Worker indexes accepted by {@link #gauge(String, String, String, int)} run from
+     * {@code 0} to one less than this value.
+     * </p>
+     *
+     * @return the number of workers, or {@code 0} if per-worker metric values are not available
+     */
+    default int workers()
+    {
+        return 0;
+    }
+
+    /**
+     * Returns a {@link java.util.function.LongSupplier} that reads the current value of
+     * a gauge metric for the named binding as recorded by a single worker, rather than
+     * summed across all workers.
+     *
+     * @param namespace  the namespace containing the binding
+     * @param binding    the binding name
+     * @param metric     the fully-qualified metric name
+     * @param worker     the worker index, from {@code 0} to {@link #workers()} - 1
+     * @return a supplier for the current gauge value of that worker, or {@code null}
+     *         if the worker index is out of range or per-worker metric values are not available
+     */
+    default LongSupplier gauge(
+        String namespace,
+        String binding,
+        String metric,
+        int worker)
+    {
+        return null;
+    }
 }
