@@ -14,40 +14,93 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import java.util.Iterator;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
- * A bounded block of a coalesced <em>verbatim</em> run, pulled via {@link JsonSource#getVerbatim(int)} — a
- * structured segment. {@link #getSegment()} is the entire contiguous run of original source bytes the block
- * represents; {@link #getSteps()} is the ordered structural transcript of those bytes. The bytes already carry
- * their own braces, colons, commas, and whitespace, so a recipient splices {@code getSegment()} 1:1 and walks
- * {@code getSteps()} only to keep its own generator/parser state (depth, member occupancy, leading separator)
- * coherent across the copy — the steps are not a way to re-walk the block's contents, and a recipient that
- * needs to inspect or transform structure takes structured events instead (it does not opt in via
- * {@link JsonController#verbatim()}).
+ * A chunk of a coalesced <em>verbatim</em> run, pulled via {@link JsonSource#getVerbatim(int)}. The run is the
+ * original source bytes parsed since the last pull drained it. {@link #getSegment()} is the next contiguous piece
+ * of those bytes, cut wherever the caller's limit falls, not on a token boundary. The remaining accessors
+ * describe the <em>whole</em> run, and every chunk of a run repeats the same description, so a recipient decides
+ * when to act on it: a recipient copying a run in pieces applies the structure once, typically when
+ * {@link #getOffset()} is zero, before it takes any other event. The bytes already carry their own braces,
+ * colons, commas, and whitespace, so a recipient splices the segment 1:1 and uses the description only to keep
+ * its own generator state (depth, member occupancy, leading separator) coherent across the copy. It is not a
+ * way to re-walk the run, and a recipient that needs to inspect or transform structure takes structured events
+ * instead (it does not opt in via {@link JsonController#verbatim()}).
  * <p>
- * The block is bounded to a whole-token prefix of the run that fits the caller's byte limit, so the bytes and
- * the structure always agree on a token boundary. An <em>empty</em> block — {@link #getSteps()} yields no steps
- * and {@link #getSegment()} is zero length — signals the run is fully drained (nothing remains to pull). The
- * instance is non-owning and reused across calls, so a caller must neither retain it past the current call nor
- * traverse {@link #getSteps()} beyond it.
+ * The description is relative to the container stack the recipient holds when the run starts. The run first
+ * closes {@link #getClosed()} containers that were open before it started, leaving the container the run is
+ * <em>in</em>: a member or element the run adds to that container is reported by {@link #isOccupied()} and
+ * {@link #isBareValue()}. It then leaves {@link #getOpened()} containers open above it, outermost first, whose
+ * kinds and occupancy are the bits of {@link #getOpenedArrays()} and {@link #getOpenedOccupied()}.
+ * <p>
+ * A chunk of a run that is not yet drained shares the run with the chunks that follow. An <em>empty</em> chunk,
+ * a zero-length segment with no {@link #getLeading() leading} step, signals that nothing remains to pull. The
+ * instance is non-owning and reused across calls, so a caller must not retain it past the current call.
  */
 public interface JsonVerbatim
 {
     /**
-     * A single forward pass over the ordered structural steps of this block's bytes — a reused, read-only
-     * iterator valid on-stack only (not a re-walkable collection). A recipient applies each step to advance its
-     * own depth and member occupancy as the bytes splice through, and consults the leading step (a
-     * {@link JsonStep#SEPARATOR}, or a member/element start without one) to decide whether a displaced
-     * former-first member needs a synthesized leading separator. Yields no steps when the run is drained.
-     */
-    Iterator<JsonStep> getSteps();
-
-    /**
-     * The entire contiguous block of original source bytes — a non-owning, on-stack view spliced 1:1, pre-bounded
-     * to the caller's free output space so it always fits. Zero length when the run is drained.
+     * The next contiguous piece of the run's original source bytes, a non-owning, on-stack view spliced 1:1 and
+     * pre-bounded to the caller's free output space so it always fits. Zero length when the run is drained.
      */
     DirectBufferEx getSegment();
+
+    /**
+     * The position of {@link #getSegment()} within its run, in bytes. Zero for the first chunk of a run.
+     */
+    int getOffset();
+
+    /**
+     * What the run begins with, or {@code null} when the run holds no token: bytes between tokens drained at
+     * the end of a window. {@link JsonStep#SEPARATOR} when a comma precedes the run's first token, so the bytes
+     * carry it; otherwise the kind of that token, so a recipient can tell whether the run begins a member or
+     * element that was first in the source and so carries no comma of its own.
+     */
+    JsonStep getLeading();
+
+    /**
+     * The number of containers open before the run that the run closes.
+     */
+    int getClosed();
+
+    /**
+     * The number of containers the run leaves open at its end, above the container it is in.
+     */
+    int getOpened();
+
+    /**
+     * Bit {@code n} is set when the {@code n}th container the run leaves open, outermost first, is an array.
+     */
+    long getOpenedArrays();
+
+    /**
+     * Bit {@code n} is set when the {@code n}th container the run leaves open, outermost first, holds a member
+     * or element.
+     */
+    long getOpenedOccupied();
+
+    /**
+     * Whether the run adds a member by naming a key in the container it is in.
+     */
+    boolean isOccupied();
+
+    /**
+     * Whether the run starts a value in the container it is in without naming a key first: an element when that
+     * container is an array, otherwise the value of a key named before the run.
+     */
+    boolean isBareValue();
+
+    /**
+     * The last member-level token of the run: {@link JsonStep#KEY_NAME} when the run ends after a key whose
+     * value is still to come, {@link JsonStep#VALUE} when a value was the last to start, or {@code null} when
+     * the run holds neither.
+     */
+    JsonStep getLast();
+
+    /**
+     * Whether the colon after the key the run ends on is among the run's bytes. Meaningful only when
+     * {@link #getLast()} is {@link JsonStep#KEY_NAME}.
+     */
+    boolean isColonRead();
 }

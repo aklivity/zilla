@@ -564,7 +564,7 @@ Zilla Frame
             Length: 34
             Size: 1
         Topic Filter: sensor/one
-            Subscription ID: 0x00000001
+            Subscription ID: 1
             QoS: AT_LEAST_ONCE (1)
             Flags: 0x01
                 .... ...1 = SEND_RETAINED: Set (1)
@@ -753,7 +753,7 @@ Zilla Frame
             Length: 5
             Size: 1
         Subscription ID: 1
-            Subscription ID (varuint32): 01
+            Subscription ID (varint32): 02
             Subscription ID: 1
         Expiry Interval: -1
         Content Type: 

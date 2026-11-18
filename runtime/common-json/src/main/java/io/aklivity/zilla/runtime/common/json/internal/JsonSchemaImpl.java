@@ -133,6 +133,7 @@ public final class JsonSchemaImpl implements JsonSchema
 
     private final boolean deny;
     private final String ref;
+    private JsonSchemaImpl resolved;
     private final String refApplicator;
     private final String dynamicRef;
     private final boolean recursiveRef;
@@ -838,21 +839,31 @@ public final class JsonSchemaImpl implements JsonSchema
         Trace trace,
         DynScope parentScope)
     {
-        JsonSchemaImpl schema = this;
-        Set<String> visited = null;
-        while (schema.ref != null)
-        {
-            if (visited == null)
-            {
-                visited = new HashSet<>();
-            }
-            if (!visited.add(schema.ref))
-            {
-                throw new IllegalStateException("cyclic $ref: " + schema.ref);
-            }
-            schema = schema.context.resolve(schema.ref);
-        }
+        JsonSchemaImpl schema = ref != null ? target() : this;
         return schema.evalDirect(trace, parentScope);
+    }
+
+    // the chain is walked once, on first use, rather than per evaluation; a cyclic chain never resolves, so it
+    // fails every time it is used. The cached node is built from final fields, so a racing first use that
+    // resolves the same node twice is harmless
+    private JsonSchemaImpl target()
+    {
+        JsonSchemaImpl result = resolved;
+        if (result == null)
+        {
+            final Set<String> visited = new HashSet<>();
+            result = this;
+            while (result.ref != null)
+            {
+                if (!visited.add(result.ref))
+                {
+                    throw new IllegalStateException("cyclic $ref: " + result.ref);
+                }
+                result = result.context.resolve(result.ref);
+            }
+            resolved = result;
+        }
+        return result;
     }
 
     private Eval evalDirect(
