@@ -48,13 +48,15 @@ final class McpOpenapiBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         if (binding.kind == KindConfig.CLIENT || binding.kind == KindConfig.PROXY)
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

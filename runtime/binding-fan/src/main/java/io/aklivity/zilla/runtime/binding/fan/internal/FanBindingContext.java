@@ -52,7 +52,7 @@ final class FanBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         FanStreamFactory factory = factories.get(binding.kind);
@@ -60,6 +60,8 @@ final class FanBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

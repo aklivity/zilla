@@ -48,9 +48,11 @@ final class TestBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         factory.detach(binding);
+
+        return CloseBehavior.IMMEDIATE;
     }
 }

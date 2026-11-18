@@ -69,7 +69,7 @@ final class FileSystemBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         FileSystemStreamFactory factory = factories.get(binding.kind);
@@ -92,6 +92,8 @@ final class FileSystemBindingContext implements BindingContext
                 Thread.currentThread().interrupt();
             }
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

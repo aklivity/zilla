@@ -61,7 +61,7 @@ final class AsyncapiBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         AsyncapiStreamFactory factory = factories.get(binding.kind);
@@ -70,6 +70,8 @@ final class AsyncapiBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

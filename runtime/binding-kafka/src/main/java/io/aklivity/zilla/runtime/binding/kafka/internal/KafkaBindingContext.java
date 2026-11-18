@@ -76,7 +76,7 @@ final class KafkaBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         final KafkaStreamFactory factory = factories.get(binding.kind);
@@ -85,6 +85,8 @@ final class KafkaBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

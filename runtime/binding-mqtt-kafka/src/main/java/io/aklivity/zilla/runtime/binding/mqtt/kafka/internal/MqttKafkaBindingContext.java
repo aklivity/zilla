@@ -54,7 +54,7 @@ public class MqttKafkaBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         final MqttKafkaStreamFactory factory = factories.get(binding.kind);
@@ -63,5 +63,7 @@ public class MqttKafkaBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 }

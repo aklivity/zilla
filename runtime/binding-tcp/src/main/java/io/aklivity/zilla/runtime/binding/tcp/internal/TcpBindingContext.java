@@ -106,7 +106,7 @@ final class TcpBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         TcpStreamFactory tcpFactory = factories.get(binding.kind);
@@ -114,5 +114,7 @@ final class TcpBindingContext implements BindingContext
         {
             tcpFactory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 }

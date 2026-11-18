@@ -59,7 +59,7 @@ final class SseBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         final SseStreamFactory factory = factories.get(binding.kind);
@@ -68,6 +68,8 @@ final class SseBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

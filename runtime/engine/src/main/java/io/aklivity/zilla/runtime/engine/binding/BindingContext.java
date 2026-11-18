@@ -60,9 +60,27 @@ public interface BindingContext
      * </p>
      *
      * @param binding  the binding configuration to detach
+     * @return how the streams of this binding are to be closed once it has detached
      */
-    default void detach(
+    default CloseBehavior detach(
         BindingConfig binding)
     {
+        return CloseBehavior.IMMEDIATE;
+    }
+
+    /**
+     * Describes how the streams of a binding are closed after the binding has been detached.
+     */
+    enum CloseBehavior
+    {
+        /**
+         * The streams are cleaned up together with the rest of the namespace.
+         */
+        IMMEDIATE,
+
+        /**
+         * The streams are first given the chance to close themselves.
+         */
+        GRACEFUL
     }
 }

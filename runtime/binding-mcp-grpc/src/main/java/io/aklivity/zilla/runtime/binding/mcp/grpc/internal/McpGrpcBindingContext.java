@@ -48,12 +48,14 @@ final class McpGrpcBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         if (binding.kind == KindConfig.CLIENT)
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 }

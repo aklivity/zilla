@@ -61,7 +61,7 @@ final class McpBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         final McpStreamFactory factory = factories.get(binding.kind);
@@ -70,6 +70,8 @@ final class McpBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

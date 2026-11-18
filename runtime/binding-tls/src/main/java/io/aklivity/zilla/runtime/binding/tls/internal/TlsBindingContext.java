@@ -60,7 +60,7 @@ final class TlsBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         TlsStreamFactory factory = factories.get(binding.kind);
@@ -68,5 +68,7 @@ final class TlsBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 }

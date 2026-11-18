@@ -59,7 +59,7 @@ final class HttpBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         HttpStreamFactory factory = factories.get(binding.kind);
@@ -68,6 +68,8 @@ final class HttpBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

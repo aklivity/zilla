@@ -58,7 +58,7 @@ final class GrpcBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         GrpcStreamFactory factory = factories.get(binding.kind);
@@ -67,6 +67,8 @@ final class GrpcBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

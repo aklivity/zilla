@@ -68,7 +68,7 @@ final class LlmBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         LlmStreamFactory factory = factories.get(binding.kind);
@@ -77,6 +77,8 @@ final class LlmBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

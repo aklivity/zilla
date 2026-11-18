@@ -55,7 +55,7 @@ final class McpKafkaBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         final McpKafkaProxyFactory factory = factories.get(binding.kind);
@@ -64,6 +64,8 @@ final class McpKafkaBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override

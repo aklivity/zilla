@@ -51,11 +51,13 @@ final class EchoBindingContext implements BindingContext
     }
 
     @Override
-    public void detach(
+    public CloseBehavior detach(
         BindingConfig binding)
     {
         router.detach(binding.id);
         serverFactory.detach(binding.id);
+
+        return CloseBehavior.IMMEDIATE;
     }
 
     @Override
