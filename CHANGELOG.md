@@ -17,6 +17,7 @@
 
 **Closed issues:**
 
+- binding-mcp-grpc: auto-generate MCP tools from gRPC service definitions [\#2280](https://github.com/aklivity/zilla/issues/2280) ([jfallows](https://github.com/jfallows))
 - mqtt-kafka: concurrent first connects after a fresh Kafka are disconnected with 0x8E \(session taken over\) [\#3101](https://github.com/aklivity/zilla/issues/3101) ([jfallows](https://github.com/jfallows))
 - mqtt-kafka: PUBACKs for pipelined QoS 1 PUBLISH packets are returned out of order [\#3102](https://github.com/aklivity/zilla/issues/3102) ([jfallows](https://github.com/jfallows))
 - mqtt-kafka: reusing a client id right after disconnect can briefly fail to connect [\#3103](https://github.com/aklivity/zilla/issues/3103) ([jfallows](https://github.com/jfallows))
@@ -60,6 +61,7 @@
 
 **Merged pull requests:**
 
+- feat\(binding-mcp-grpc\): add mcp-grpc client binding that exposes gRPC methods as MCP tools [\#2734](https://github.com/aklivity/zilla/pull/2734) ([jfallows](https://github.com/jfallows))
 - fix\(binding-kafka\): retry init producer id on retriable errors [\#3104](https://github.com/aklivity/zilla/pull/3104) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mqtt\): send PUBACK and PUBREC in publish receive order [\#3106](https://github.com/aklivity/zilla/pull/3106) ([jfallows](https://github.com/jfallows))
 - feat\(binding-kafka\): share group stream for Kafka share groups [\#3109](https://github.com/aklivity/zilla/pull/3109) ([jfallows](https://github.com/jfallows))
