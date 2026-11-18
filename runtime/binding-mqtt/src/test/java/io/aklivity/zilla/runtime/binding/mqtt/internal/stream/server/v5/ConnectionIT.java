@@ -801,4 +801,44 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reason.string/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectWithReasonString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.user.property/client",
+        "${app}/session.connect/server"})
+    public void shouldDisconnectWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.session.expiry/client",
+        "${app}/session.connect.with.session.expiry/server"})
+    public void shouldDisconnectWithSessionExpiryAfterConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/disconnect.reject.server.reference/client",
+        "${app}/session.connect/server"})
+    public void shouldRejectDisconnectWithServerReference() throws Exception
+    {
+        k3po.finish();
+    }
 }
