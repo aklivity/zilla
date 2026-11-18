@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -49,6 +50,7 @@ public class EngineBenchTest
         final MutableDirectBufferEx payload = new UnsafeBufferEx(new byte[PAYLOAD_LENGTH]);
 
         try (EngineBench bench = new EngineBench()
+            .configure(ENGINE_WORKER_CAPACITY, 64)
             .directory("target/zilla-bench-test")
             .external("app0")
             .start(CONFIGURATION))
@@ -86,6 +88,7 @@ public class EngineBenchTest
         final Reassembler reassembler = new Reassembler();
 
         try (EngineBench bench = new EngineBench()
+            .configure(ENGINE_WORKER_CAPACITY, 64)
             .directory("target/zilla-bench-test")
             .external("app0")
             .start(CONFIGURATION))
@@ -117,6 +120,7 @@ public class EngineBenchTest
         final MutableDirectBufferEx payload = new UnsafeBufferEx(bytes);
 
         try (EngineBench bench = new EngineBench()
+            .configure(ENGINE_WORKER_CAPACITY, 64)
             .directory("target/zilla-bench-test")
             .external("app0")
             .start(CONFIGURATION))
@@ -153,6 +157,7 @@ public class EngineBenchTest
         final MutableDirectBufferEx payload = new UnsafeBufferEx(new byte[300]);
 
         try (EngineBench bench = new EngineBench()
+            .configure(ENGINE_WORKER_CAPACITY, 64)
             .directory("target/zilla-bench-test")
             .external("app0")
             .start(CONFIGURATION))
