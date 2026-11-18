@@ -41,6 +41,15 @@ connected
 
 read zilla:data.empty
 
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .kind("STATE")
+                              .build()
+                           .build()}
+write ${mqtt:session().build()}
+write flush
+
 write zilla:end.ext ${mqtt:endEx()
                            .typeId(zilla:id("mqtt"))
                            .expiry(60)
