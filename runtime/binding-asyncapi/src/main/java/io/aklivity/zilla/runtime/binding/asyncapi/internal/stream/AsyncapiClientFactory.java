@@ -381,7 +381,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             final Flyweight resolved = binding.resolve(asyncapiBeginEx.extension(), server, serverPath);
             final OctetsFW resolvedExtension = octetsRO.wrap(resolved.buffer(), resolved.offset(), resolved.limit());
 
-            composite.doCompositeBegin(traceId, resolvedExtension);
+            composite.doCompositeBegin(traceId, affinity, resolvedExtension);
         }
 
         private void onAsyncapiData(
@@ -655,6 +655,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
         private void doCompositeBegin(
             long traceId,
+            long affinity,
             OctetsFW extension)
         {
             if (!StreamState.initialOpening(state))
@@ -665,7 +666,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.receiver = newStream(this::onCompositeMessage,
                     originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L, extension);
+                    traceId, authorization, affinity, extension);
                 state = StreamState.openingInitial(state);
             }
         }

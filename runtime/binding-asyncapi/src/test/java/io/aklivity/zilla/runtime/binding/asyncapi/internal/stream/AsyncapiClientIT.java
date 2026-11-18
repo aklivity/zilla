@@ -116,4 +116,17 @@ public class AsyncapiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.mqtt.yaml")
+    @Specification({
+        "${asyncapi}/mqtt/session.affinity/client",
+        "${composite}/mqtt/session.affinity/server"
+    })
+    @Configure(name = ASYNCAPI_COMPOSITE_ROUTE_ID_NAME, value = "0x0000000100000002")
+    @ScriptProperty("serverAddress \"zilla://streams/mqtt0\"")
+    public void shouldCarryAffinityOnSession() throws Exception
+    {
+        k3po.finish();
+    }
 }
