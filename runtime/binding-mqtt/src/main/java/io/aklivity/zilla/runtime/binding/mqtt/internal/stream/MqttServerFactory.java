@@ -417,6 +417,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeConnectWillMessage = this::decodeConnectWillMessage;
     private final MqttServerDecoder decodeConnectWillMessagePayload = this::decodeConnectWillMessagePayload;
     private final MqttServerDecoder decodeAwaitOwnership = this::decodeAwaitOwnership;
+    private final MqttServerDecoder decodeAwaitConnack = this::decodeAwaitConnack;
     private final MqttServerDecoder decodePublishV4 = this::decodePublishV4;
     private final MqttServerDecoder decodePublishV5 = this::decodePublishV5;
     private final MqttServerDecoder decodePublishPayload = this::decodePublishPayload;
@@ -1103,7 +1104,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                if (server.connected)
+                if (server.connected || server.clientId != null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
@@ -1199,7 +1200,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                if (server.connected)
+                if (server.connected || server.clientId != null)
                 {
                     reasonCode = PROTOCOL_ERROR;
                     break decode;
@@ -2489,11 +2490,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.onDecodeError(traceId, authorization, PROTOCOL_ERROR);
                 server.decoder = decodeIgnoreAll;
             }
-            else
+            else if (server.connected)
             {
                 server.onDecodePingReq(traceId, authorization, ping);
                 server.decoder = decodePacketTypeByVersion.get(server.version);
                 progress = ping.limit();
+            }
+            else
+            {
+                server.decoder = decodeAwaitConnack;
             }
         }
 
@@ -2608,6 +2613,18 @@ public final class MqttServerFactory implements MqttStreamFactory
     }
 
     private int decodeAwaitOwnership(
+        MqttServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private int decodeAwaitConnack(
         MqttServer server,
         long traceId,
         long authorization,
@@ -5101,7 +5118,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 state = StreamState.closingInitial(state);
             }
 
-            if (connected || reasonCode == SESSION_TAKEN_OVER)
+            if (connected)
             {
                 if (version != MQTT_PROTOCOL_VERSION_4)
                 {
@@ -6670,6 +6687,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent,
                             null, null, version);
                         connected = true;
+
+                        if (decoder == decodeAwaitConnack)
+                        {
+                            decoder = decodePacketTypeByVersion.get(version);
+                            decodeNetwork(traceId);
+                        }
                     }
                     else
                     {

@@ -533,4 +533,34 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.1.0-2]
+    @Test
+    @Specification({
+        "${app}/session.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${app}/session.ping.before.connack/client",
+        "${app}/session.ping.before.connack/server"})
+    public void shouldPingBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.before.connack/client",
+        "${app}/session.client.takeover.before.connack/server"})
+    public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

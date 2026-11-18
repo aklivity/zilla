@@ -780,4 +780,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${app}/session.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

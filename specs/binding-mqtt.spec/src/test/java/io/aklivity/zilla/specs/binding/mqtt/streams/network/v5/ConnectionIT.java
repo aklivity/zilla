@@ -818,4 +818,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.1.0-2]
+    @Test
+    @Specification({
+        "${net}/connect.reject.second.connect.before.connack/client",
+        "${net}/connect.reject.second.connect.before.connack/server"})
+    public void shouldRejectSecondConnectBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

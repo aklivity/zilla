@@ -72,4 +72,14 @@ public class PingIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${net}/ping.before.connack/client",
+        "${net}/ping.before.connack/server"})
+    public void shouldPingBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

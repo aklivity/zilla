@@ -219,4 +219,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.0-1]
+    @Test
+    @Specification({
+        "${net}/session.client.takeover.before.connack/client",
+        "${net}/session.client.takeover.before.connack/server"})
+    public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
