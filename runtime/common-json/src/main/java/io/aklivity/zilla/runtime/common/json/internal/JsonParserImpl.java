@@ -79,9 +79,9 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  * <li>{@code currentEvent}, {@code continuation}, {@code stringViewOffset}, {@code stringCache},
  * {@code stringViewRO}, {@code emptyView}, {@code encodedView}, {@code escapedView}: the event just delivered
  * and the string read for it</li>
- * <li>{@code run}, {@code runStart}, {@code chunkRun}, {@code chunkColonRead}, {@code block}: the structure of the
- * run of events a verbatim reader has not yet drained and the chunk last handed out, which {@code save} refuses
- * to leave behind</li>
+ * <li>{@code run}, {@code runStart}, {@code chunkColonRead}, {@code block}: the structure of the run of events a
+ * verbatim reader has not yet drained and the chunk last handed out, which {@code save} refuses to leave
+ * behind</li>
  * <li>{@code mark}: the capture {@code rewind} returns to, valid only within the window it was taken in</li>
  * </ul>
  */
@@ -153,10 +153,9 @@ public final class JsonParserImpl implements JsonParserEx
     private final JsonStringView.Escaped escapedView = new JsonStringView.Escaped();
     private String stringCache;
     // the structure of the events parsed since a verbatim reader drained the run, and the stream offset the run
-    // starts at, so each chunk of the run reports where it sits; chunkRun is what the chunk last handed out
-    // describes, since the run itself starts over once a chunk drains it
+    // starts at, so each chunk of the run reports where it sits; a drained run is kept until the next event or
+    // pull, so the chunk that drained it still describes it
     private final JsonVerbatimRun run = new JsonVerbatimRun();
-    private final JsonVerbatimRun chunkRun = new JsonVerbatimRun();
     private long runStart;
     private boolean chunkColonRead;
     // true after a key or scalar fragment whose token is still open: the run counted the token once, at its first
@@ -759,6 +758,10 @@ public final class JsonParserImpl implements JsonParserEx
                 continuation = fragmentOpen;
                 if (!continuation)
                 {
+                    if (run.drained())
+                    {
+                        startRun(verbatimCursor);
+                    }
                     run.accept(event, tokenizer.separatorBefore());
                 }
                 tokenEnd = tokenizer.streamOffset();
@@ -1154,18 +1157,20 @@ public final class JsonParserImpl implements JsonParserEx
         // limit, cut wherever the limit falls, and every chunk of the run repeats the structure of the whole run.
         // A chunk that reaches the frontier drains the run, so trailing bytes consumed in end-of-window lookahead
         // (a separator or whitespace past the last token) are not stranded into a replaced window
+        if (run.drained())
+        {
+            startRun(verbatimCursor);
+        }
         final long frontier = tokenizer.streamOffset();
         final long start = verbatimCursor;
         final long end = Math.min(frontier, start + limit);
-        chunkRun.copyFrom(run);
         chunkColonRead = run.last() == JsonStep.KEY_NAME && colonAfterKey(frontier);
         verbatimView.wrap(ownedInput.buffer(), bufferOffset(start), (int) (end - start));
         block.wrap((int) (start - runStart));
         verbatimCursor = end;
         if (end == frontier)
         {
-            run.reset();
-            runStart = end;
+            run.drain();
         }
         return block;
     }
@@ -1266,6 +1271,12 @@ public final class JsonParserImpl implements JsonParserEx
         long offset)
     {
         verbatimCursor = offset;
+        startRun(offset);
+    }
+
+    private void startRun(
+        long offset)
+    {
         run.reset();
         runStart = offset;
     }
@@ -1678,49 +1689,49 @@ public final class JsonParserImpl implements JsonParserEx
         @Override
         public JsonStep getLeading()
         {
-            return chunkRun.leading();
+            return run.leading();
         }
 
         @Override
         public int getClosed()
         {
-            return chunkRun.closed();
+            return run.closed();
         }
 
         @Override
         public int getOpened()
         {
-            return chunkRun.opened();
+            return run.opened();
         }
 
         @Override
         public long getOpenedArrays()
         {
-            return chunkRun.openedArrays();
+            return run.openedArrays();
         }
 
         @Override
         public long getOpenedOccupied()
         {
-            return chunkRun.openedOccupied();
+            return run.openedOccupied();
         }
 
         @Override
         public boolean isOccupied()
         {
-            return chunkRun.occupied();
+            return run.occupied();
         }
 
         @Override
         public boolean isBareValue()
         {
-            return chunkRun.bareValue();
+            return run.bareValue();
         }
 
         @Override
         public JsonStep getLast()
         {
-            return chunkRun.last();
+            return run.last();
         }
 
         @Override
