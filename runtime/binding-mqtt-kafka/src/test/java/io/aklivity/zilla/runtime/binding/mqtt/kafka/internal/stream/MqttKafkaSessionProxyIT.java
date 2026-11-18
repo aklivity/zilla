@@ -931,4 +931,14 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.expiry.signal.replaced/server"})
+    public void shouldReplaceSessionExpiryTimerForSameClient() throws Exception
+    {
+        k3po.finish();
+    }
 }

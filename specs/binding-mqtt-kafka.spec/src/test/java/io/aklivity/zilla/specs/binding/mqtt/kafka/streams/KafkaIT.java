@@ -2078,4 +2078,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/session.expiry.signal.replaced/client",
+        "${kafka}/session.expiry.signal.replaced/server"})
+    public void shouldReplaceSessionExpiryTimerForSameClient() throws Exception
+    {
+        k3po.finish();
+    }
 }
