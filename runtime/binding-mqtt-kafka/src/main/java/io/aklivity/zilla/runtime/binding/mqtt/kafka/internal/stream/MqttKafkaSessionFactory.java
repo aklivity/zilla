@@ -114,6 +114,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttServerCapabilities;
@@ -246,6 +247,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
 
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
+    private final MqttEndExFW mqttEndExRO = new MqttEndExFW();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
@@ -985,6 +987,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void applyEndSessionExpiry(
+            OctetsFW extension)
+        {
+            final MqttEndExFW mqttEndEx = extension.get(mqttEndExRO::tryWrap);
+            if (mqttEndEx != null)
+            {
+                sessionExpiry = mqttEndEx.expiry();
+            }
+        }
+
         private void onMqttEnd(
             EndFW end)
         {
@@ -1000,6 +1012,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
+
+            applyEndSessionExpiry(end.extension());
 
             cancelAwaitedReset();
             if (sessionExpiryMillis() == 0)
@@ -1112,6 +1126,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
+
+            applyEndSessionExpiry(abort.extension());
 
             cancelAwaitedReset();
             if (sessionExpiryMillis() == 0)

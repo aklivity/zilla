@@ -919,4 +919,16 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.end.expiry.zero/client",
+        "${kafka}/session.close.end.expiry.zero/server"})
+    public void shouldExpireSessionOnCloseWithEndExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

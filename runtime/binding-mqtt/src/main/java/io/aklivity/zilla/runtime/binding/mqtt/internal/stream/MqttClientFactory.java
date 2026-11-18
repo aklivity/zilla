@@ -146,6 +146,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
@@ -179,6 +180,7 @@ public final class MqttClientFactory implements MqttStreamFactory
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     private static final int MQTT_PROTOCOL_VERSION = 5;
+    private static final long NO_DISCONNECT_SESSION_EXPIRY = -1L;
     private static final int SUBSCRIBE_QOS_MAX = 2;
     private static final int TYPE_OFFSET = 0;
     private static final int CONNACK_FIXED_HEADER = 0b0010_0000;
@@ -270,6 +272,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttDataExFW mqttPublishDataExRO = new MqttDataExFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
+    private final MqttEndExFW mqttEndExRO = new MqttEndExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -2971,7 +2974,24 @@ public final class MqttClientFactory implements MqttStreamFactory
             long authorization,
             int reasonCode)
         {
+            doEncodeDisconnect(traceId, authorization, reasonCode, NO_DISCONNECT_SESSION_EXPIRY);
+        }
+
+        private void doEncodeDisconnect(
+            long traceId,
+            long authorization,
+            int reasonCode,
+            long sessionExpiry)
+        {
             int propertiesSize = 0;
+
+            if (sessionExpiry != NO_DISCONNECT_SESSION_EXPIRY)
+            {
+                final MqttPropertyFW mqttProperty = mqttPropertyRW.wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
+                    .sessionExpiry((int) sessionExpiry)
+                    .build();
+                propertiesSize = mqttProperty.limit();
+            }
 
             final int propertySize0 = propertiesSize;
             final MqttDisconnectV5FW disconnect =
@@ -3586,7 +3606,12 @@ public final class MqttClientFactory implements MqttStreamFactory
 
             assert initialAck <= initialSeq;
 
-            client.doEncodeDisconnect(traceId, authorization, SUCCESS);
+            final MqttEndExFW mqttEndEx = end.extension().get(mqttEndExRO::tryWrap);
+            final long disconnectSessionExpiry = mqttEndEx != null && client.sessionExpiry != 0
+                ? Integer.toUnsignedLong(mqttEndEx.expiry())
+                : NO_DISCONNECT_SESSION_EXPIRY;
+
+            client.doEncodeDisconnect(traceId, authorization, SUCCESS, disconnectSessionExpiry);
             client.doNetworkEnd(traceId, authorization);
 
             doSessionEnd(traceId, authorization);

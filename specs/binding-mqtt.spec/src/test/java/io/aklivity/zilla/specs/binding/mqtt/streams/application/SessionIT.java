@@ -583,4 +583,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${app}/session.disconnect.update.session.expiry/client",
+        "${app}/session.disconnect.update.session.expiry/server"})
+    public void shouldEndSessionWithUpdatedSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
 }

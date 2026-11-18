@@ -203,6 +203,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
@@ -244,6 +245,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
     private static final int DISCONNECT_FIXED_HEADER = 0b1110_0000;
     private static final int PINGREQ_FIXED_HEADER = 0b1100_0000;
+    private static final long NO_DISCONNECT_SESSION_EXPIRY = -1L;
     private static final int PUBACK_FIXED_HEADER = 0b0100_0000;
     private static final int PUBREC_FIXED_HEADER = 0b0101_0000;
     private static final int PUBREL_FIXED_HEADER = 0b0110_0010;
@@ -331,6 +333,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttDataExFW mqttSubscribeDataExRO = new MqttDataExFW();
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttResetExFW mqttResetExRO = new MqttResetExFW();
+    private final MqttEndExFW.Builder mqttEndExRW = new MqttEndExFW.Builder();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
 
     private final MqttBeginExFW.Builder mqttPublishBeginExRW = new MqttBeginExFW.Builder();
@@ -5119,19 +5122,57 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
+                final long disconnectExpiry = properties != null
+                    ? disconnectSessionExpiry(properties)
+                    : NO_DISCONNECT_SESSION_EXPIRY;
+                final Flyweight endEx = disconnectExpiry == NO_DISCONNECT_SESSION_EXPIRY
+                    ? EMPTY_OCTETS
+                    : mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                        .typeId(mqttTypeId)
+                        .expiry((int) disconnectExpiry)
+                        .build();
+
                 if (disconnectReasonCode != NORMAL_DISCONNECT)
                 {
-                    session.doSessionAbort(traceId);
+                    session.doSessionAbort(traceId, endEx);
                 }
                 else
                 {
-                    session.doSessionEnd(traceId, EMPTY_OCTETS);
+                    session.doSessionEnd(traceId, endEx);
                 }
             }
 
             state = StreamState.closingInitial(state);
             closeStreams(traceId, authorization);
             doNetworkEnd(traceId, authorization);
+        }
+
+        private long disconnectSessionExpiry(
+            MqttPropertiesFW properties)
+        {
+            long sessionExpiry = NO_DISCONNECT_SESSION_EXPIRY;
+
+            final OctetsFW propertiesValue = properties.value();
+            final DirectBufferEx decodeBuffer = propertiesValue.buffer();
+            final int decodeLimit = propertiesValue.limit();
+
+            for (int decodeProgress = propertiesValue.offset(); decodeProgress < decodeLimit; )
+            {
+                final MqttPropertyFW mqttProperty = mqttPropertyRO.tryWrap(decodeBuffer, decodeProgress, decodeLimit);
+                if (mqttProperty == null)
+                {
+                    break;
+                }
+
+                if (mqttProperty.kind() == KIND_SESSION_EXPIRY)
+                {
+                    sessionExpiry = mqttProperty.sessionExpiry();
+                }
+
+                decodeProgress = mqttProperty.limit();
+            }
+
+            return sessionExpiry;
         }
 
         private byte decodeDisconnectProperties(
@@ -7142,13 +7183,20 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSessionAbort(
                 long traceId)
             {
+                doSessionAbort(traceId, EMPTY_OCTETS);
+            }
+
+            private void doSessionAbort(
+                long traceId,
+                Flyweight extension)
+            {
                 if (!StreamState.initialClosed(state))
                 {
                     setInitialClosed();
 
                     doAbort(application, originId, routedId, initialId, initialSeq, initialAck,
                         StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
-                        traceId, sessionId, EMPTY_OCTETS);
+                        traceId, sessionId, extension);
                 }
             }
 

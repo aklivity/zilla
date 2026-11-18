@@ -280,6 +280,11 @@ scope mqtt
             string16 reason = null;
         }
 
+        struct MqttEndEx extends core::stream::Extension
+        {
+            int32 expiry;
+        }
+
         union MqttFlushEx switch (uint8) extends core::stream::Extension
         {
             case 0: mqtt::stream::MqttPublishFlushEx publish;
