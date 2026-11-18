@@ -246,6 +246,24 @@ public class PublishIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/publish.qos1.empty.reset.before.window/client",
+        "${net}/publish.qos1.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos1EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/publish.qos2.empty.reset.before.window/client",
+        "${net}/publish.qos2.empty.reset.before.window/server"})
+    public void shouldAcknowledgeQos2EmptyPublishResetBeforeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({
