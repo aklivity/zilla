@@ -6021,7 +6021,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .build();
                 propertiesSize = mqttProperty.limit();
             }
-            else if (serverReference != null)
+
+            if (serverReference != null)
             {
                 mqttProperty = mqttPropertyRW
                     .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())

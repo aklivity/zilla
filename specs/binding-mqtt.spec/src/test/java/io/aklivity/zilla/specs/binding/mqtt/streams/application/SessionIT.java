@@ -573,4 +573,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.2.2]
+    @Test
+    @Specification({
+        "${app}/session.server.redirect.with.reason.after.connack/client",
+        "${app}/session.server.redirect.with.reason.after.connack/server"})
+    public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }

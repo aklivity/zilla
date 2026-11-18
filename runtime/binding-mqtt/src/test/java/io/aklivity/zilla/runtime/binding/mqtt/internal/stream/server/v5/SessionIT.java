@@ -551,4 +551,14 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.server.redirect.with.reason.after.connack/client",
+        "${app}/session.server.redirect.with.reason.after.connack/server"})
+    public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
 }
