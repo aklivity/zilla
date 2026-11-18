@@ -61,10 +61,12 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPr
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_EXPIRY_INTERVAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_MAXIMUM_PACKET_SIZE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_PAYLOAD_FORMAT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_REASON_STRING;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_RECEIVE_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_REQUEST_PROBLEM_INFORMATION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_REQUEST_RESPONSE_INFORMATION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_RESPONSE_TOPIC;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_SERVER_REFERENCE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_SESSION_EXPIRY;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_SUBSCRIPTION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.codec.MqttPropertyFW.KIND_TOPIC_ALIAS;
@@ -271,6 +273,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private static final int CONNECT_TOPIC_ALIAS_MAXIMUM_MASK = 0b0000_0001;
     private static final int CONNECT_SESSION_EXPIRY_INTERVAL_MASK = 0b0000_0010;
+    private static final int DISCONNECT_REASON_STRING_MASK = 0b0000_0001;
     private static final int CONNECT_MAXIMUM_PACKET_SIZE_MASK = 0b0000_0100;
     private static final int CONNECT_RECEIVE_MAXIMUM_MASK = 0b0000_1000;
 
@@ -5048,6 +5051,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttPropertiesFW properties)
         {
             byte reasonCode = SUCCESS;
+            int decodedPropertyMask = 0;
 
             final OctetsFW propertiesValue = properties.value();
             final DirectBufferEx decodeBuffer = propertiesValue.buffer();
@@ -5067,18 +5071,43 @@ public final class MqttServerFactory implements MqttStreamFactory
                 switch (mqttProperty.kind())
                 {
                 case KIND_SESSION_EXPIRY:
-                    if (isSetSessionExpiryInterval(decodablePropertyMask))
+                    if (isSetSessionExpiryInterval(decodedPropertyMask))
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
-                    this.decodablePropertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
-                    if (mqttProperty.sessionExpiry() > 0 && this.sessionExpiry == 0)
+                    decodedPropertyMask |= CONNECT_SESSION_EXPIRY_INTERVAL_MASK;
+                    if (mqttProperty.sessionExpiry() > 0 && this.connectSessionExpiry == 0)
                     {
                         reasonCode = PROTOCOL_ERROR;
                         break decode;
                     }
                     break;
+                case KIND_REASON_STRING:
+                    if ((decodedPropertyMask & DISCONNECT_REASON_STRING_MASK) != 0)
+                    {
+                        reasonCode = PROTOCOL_ERROR;
+                        break decode;
+                    }
+                    decodedPropertyMask |= DISCONNECT_REASON_STRING_MASK;
+                    if (!utf8Validator.isValidString(mqttProperty.reasonString()))
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
+                    break;
+                case KIND_USER_PROPERTY:
+                    final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
+                    if (!utf8Validator.isValidString(userProperty.key()) ||
+                        !utf8Validator.isValidString(userProperty.value()))
+                    {
+                        reasonCode = MALFORMED_PACKET;
+                        break decode;
+                    }
+                    break;
+                case KIND_SERVER_REFERENCE:
+                    reasonCode = PROTOCOL_ERROR;
+                    break decode;
                 default:
                     reasonCode = MALFORMED_PACKET;
                     break decode;

@@ -838,4 +838,44 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    // [MQTT-3.14.2.2.3]
+    @Test
+    @Specification({
+        "${net}/disconnect.reason.string/client",
+        "${net}/disconnect.reason.string/server"})
+    public void shouldDisconnectWithReasonString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.4]
+    @Test
+    @Specification({
+        "${net}/disconnect.user.property/client",
+        "${net}/disconnect.user.property/server"})
+    public void shouldDisconnectWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.2]
+    @Test
+    @Specification({
+        "${net}/disconnect.session.expiry/client",
+        "${net}/disconnect.session.expiry/server"})
+    public void shouldDisconnectWithSessionExpiryAfterConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.14.2.2.5]
+    @Test
+    @Specification({
+        "${net}/disconnect.reject.server.reference/client",
+        "${net}/disconnect.reject.server.reference/server"})
+    public void shouldRejectDisconnectWithServerReference() throws Exception
+    {
+        k3po.finish();
+    }
 }
