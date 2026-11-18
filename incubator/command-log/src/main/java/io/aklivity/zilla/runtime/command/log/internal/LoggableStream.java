@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.ProxySecureInfoFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.String16FW;
 import io.aklivity.zilla.runtime.command.log.internal.types.StringFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.Varuint32FW;
+import io.aklivity.zilla.runtime.command.log.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpDataExFW;
@@ -1490,7 +1490,7 @@ public final class LoggableStream implements AutoCloseable
         final String topic = subscribe.topic().asString();
         final int packetId = subscribe.packetId();
         final int flags = subscribe.flags();
-        final Array32FW<Varuint32FW> subscriptionIds = subscribe.subscriptionIds();
+        final Array32FW<Varint32FW> subscriptionIds = subscribe.subscriptionIds();
         final int expiryInterval = subscribe.expiryInterval();
         final String contentType = subscribe.contentType().asString();
         final MqttPayloadFormat format = subscribe.format().get();
