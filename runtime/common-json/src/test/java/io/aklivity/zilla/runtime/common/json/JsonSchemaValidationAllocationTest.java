@@ -65,8 +65,8 @@ class JsonSchemaValidationAllocationTest
             "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"id\"]," +
                 "\"properties\":{\"id\":{\"type\":\"string\"}}}}", Draft.DRAFT_07);
 
-        final long few = allocated(schema, items(FEW));
-        final long many = allocated(schema, items(MANY));
+        final long few = allocated(schema, items(FEW).getBytes(UTF_8));
+        final long many = allocated(schema, items(MANY).getBytes(UTF_8));
 
         final long perItem = (many - few) / (MANY - FEW);
         assertTrue(perItem <= MAX_BYTES_PER_PROPERTY, "validation allocates " + perItem + " B per array item");
@@ -78,8 +78,8 @@ class JsonSchemaValidationAllocationTest
     {
         final JsonSchema schema = JsonSchema.of(objectSchema(draft, referenced), draft);
 
-        final long few = allocated(schema, objectInstance(FEW));
-        final long many = allocated(schema, objectInstance(MANY));
+        final long few = allocated(schema, objectInstance(FEW).getBytes(UTF_8));
+        final long many = allocated(schema, objectInstance(MANY).getBytes(UTF_8));
 
         final long perProperty = (many - few) / (MANY - FEW);
         assertTrue(perProperty <= MAX_BYTES_PER_PROPERTY,
@@ -89,7 +89,7 @@ class JsonSchemaValidationAllocationTest
 
     private static long allocated(
         JsonSchema schema,
-        String instance)
+        byte[] instance)
     {
         for (int round = 0; round < WARMUP_ROUNDS; round++)
         {
@@ -114,9 +114,8 @@ class JsonSchemaValidationAllocationTest
 
     private static void validate(
         JsonSchema schema,
-        String instance)
+        byte[] bytes)
     {
-        final byte[] bytes = instance.getBytes(UTF_8);
         final JsonParserEx parser = schema.newParser(true, JsonEx.createParser());
         parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
         while (parser.hasNextEvent())

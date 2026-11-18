@@ -91,6 +91,9 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  */
 public final class JsonSchemaImpl implements JsonSchema
 {
+    private static final String[] NO_KEYS = new String[0];
+    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
+
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
@@ -98,9 +101,6 @@ public final class JsonSchemaImpl implements JsonSchema
     // distinct from JsonProjectorImpl's array-only "-" wildcard, since an object key literally named "-"
     // is matched like any other key there
     private static final String WILDCARD_PROPERTY = "*";
-
-    private static final String[] NO_KEYS = new String[0];
-    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
 
     // a lexeme of at most this many characters is always within long range, so getLong() is safe
     private static final int LONG_DIGITS = 18;
@@ -213,6 +213,9 @@ public final class JsonSchemaImpl implements JsonSchema
     // than risk following a cyclic reference to precompute it). false means the position needs only the
     // event kind/count, so a window-fragmented value can stream through instead of being buffered whole.
     private final boolean needsContent;
+    // true when this schema is evaluated on the frame stack: none of its keywords needs state that cannot be
+    // kept as numbers per frame, so the value is tracked without an evaluator per applied schema
+    private final boolean framed;
     private final JsonNode raw;
 
     private List<String> retainedPaths;
@@ -669,6 +672,12 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentOne(notSchema) || needsContentOne(ifSchema) ||
             needsContentOne(thenSchema) || needsContentOne(elseSchema) ||
             needsContentAny(dependentSchemas);
+        this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
+            !(context != null && is2019Plus(context.draft())) &&
+            simpleObject && allOf == null && anyOf == null && oneOf == null &&
+            notSchema == null && ifSchema == null && thenSchema == null && elseSchema == null &&
+            contains == null && !uniqueItems && unevaluatedItems == null &&
+            !((constantCanon != null || enumCanons != null) && constString == null && enumStrings == null);
         this.raw = schema;
     }
 
@@ -774,6 +783,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // lazily resolved via eval()'s ref chase; conservatively assumed to need content rather than
         // resolve (and risk cycling through) the target schema just to precompute this flag
         this.needsContent = true;
+        this.framed = false;
         this.raw = null;
     }
 
@@ -835,13 +845,15 @@ public final class JsonSchemaImpl implements JsonSchema
         this.elseSchema = null;
         // ANY has no keywords at all; NONE (deny) rejects unconditionally regardless of content
         this.needsContent = false;
+        this.framed = true;
         this.raw = null;
     }
 
     private Evaluator evaluator(
         Trace trace)
     {
-        return eval(trace, DynScope.ROOT);
+        final JsonSchemaImpl schema = ref != null ? target() : this;
+        return schema.framed ? new FrameEval(schema, trace) : schema.eval(trace, DynScope.ROOT);
     }
 
     private Eval eval(
@@ -3428,6 +3440,461 @@ public final class JsonSchemaImpl implements JsonSchema
         return invalid;
     }
 
+    private JsonSchemaImpl elementSchema(
+        int index)
+    {
+        JsonSchemaImpl schema;
+        if (items != null)
+        {
+            schema = items;
+        }
+        else if (itemsTuple != null)
+        {
+            schema = index < itemsTuple.size()
+                ? itemsTuple.get(index)
+                : additionalItems != null ? additionalItems : ANY;
+        }
+        else
+        {
+            schema = ANY;
+        }
+        return schema;
+    }
+
+    // Evaluates a value against a schema whose keywords keep their state as numbers, on a stack of frames held
+    // in parallel arrays: one frame per applied schema and nested value, the deepest receiving each event. Reuse
+    // across values and across the elements and members of a value allocates nothing once the arrays have grown
+    // to the depth of the values. A schema outside the keywords supported here, below a frame, is evaluated by an
+    // Eval held by its frame.
+    private static final class FrameEval implements Evaluator
+    {
+        private static final int OBJECT = 1;
+        private static final int ARRAY = 2;
+        private static final int STARTED = 4;
+        private static final int INVALID = 8;
+        private static final int STRING_OK = 16;
+        private static final int NO_BITS = -1;
+        private static final int INITIAL_FRAMES = 8;
+        private static final int INITIAL_WORDS = 8;
+
+        private final JsonSchemaImpl root;
+        private final Trace trace;
+
+        private JsonSchemaImpl[] schemas = new JsonSchemaImpl[INITIAL_FRAMES];
+        private Eval[] delegates = new Eval[INITIAL_FRAMES];
+        private int[] flags = new int[INITIAL_FRAMES];
+        private int[] depths = new int[INITIAL_FRAMES];
+        private int[] counts = new int[INITIAL_FRAMES];
+        private int[] requiredBases = new int[INITIAL_FRAMES];
+        private long[] requiredBits = new long[INITIAL_WORDS];
+        private int top;
+        private int bitsTop;
+        private boolean done;
+        private Verdict result;
+        private Verdict delegated;
+        private DynScope scope;
+
+        private FrameEval(
+            JsonSchemaImpl root,
+            Trace trace)
+        {
+            this.root = root;
+            this.trace = trace;
+        }
+
+        @Override
+        public Verdict feed(
+            Event event,
+            JsonSource parser)
+        {
+            Verdict verdict = result;
+            if (!done)
+            {
+                if (top == 0)
+                {
+                    push(root);
+                }
+                verdict = unwind(route(event, parser), event, parser);
+            }
+            return verdict;
+        }
+
+        @Override
+        public boolean needsContentNow()
+        {
+            boolean needs;
+            if (top == 0)
+            {
+                needs = root.needsContent;
+            }
+            else
+            {
+                final int frame = top - 1;
+                final JsonSchemaImpl schema = schemas[frame];
+                if (delegates[frame] != null)
+                {
+                    needs = delegates[frame].needsContentNow();
+                }
+                else if ((flags[frame] & STARTED) == 0)
+                {
+                    needs = schema.needsContent;
+                }
+                else if ((flags[frame] & ARRAY) != 0)
+                {
+                    needs = schema.elementSchema(counts[frame]).needsContent;
+                }
+                else
+                {
+                    needs = true;
+                }
+            }
+            return needs;
+        }
+
+        @Override
+        public void reset()
+        {
+            Arrays.fill(delegates, 0, top, null);
+            top = 0;
+            bitsTop = 0;
+            done = false;
+            result = null;
+            delegated = null;
+        }
+
+        // the deepest frame handles the event, and an array element's frame, opened by the event that is also its
+        // first, handles it too; returns the deepest frame that received it
+        private int route(
+            Event event,
+            JsonSource parser)
+        {
+            int frame = top - 1;
+            while (handle(frame, event, parser))
+            {
+                frame++;
+            }
+            return frame;
+        }
+
+        // completes the frames the event finished, deepest first: a finished frame is popped after passing
+        // its verdict to the frame that applied it, and the root's verdict is the verdict of the value
+        private Verdict unwind(
+            int last,
+            Event event,
+            JsonSource parser)
+        {
+            Verdict verdict = Verdict.PENDING;
+            for (int frame = last; frame >= 0; frame--)
+            {
+                final Verdict completed = progress(frame, event, parser);
+                if (completed != Verdict.PENDING)
+                {
+                    if (frame == 0)
+                    {
+                        done = true;
+                        result = completed;
+                        verdict = completed;
+                    }
+                    else
+                    {
+                        if (completed == Verdict.INVALID)
+                        {
+                            flags[frame - 1] |= INVALID;
+                        }
+                        pop(frame);
+                    }
+                }
+            }
+            return verdict;
+        }
+
+        private Verdict progress(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            Verdict completed;
+            if (delegates[frame] != null)
+            {
+                completed = frame == top - 1 ? delegated : Verdict.PENDING;
+            }
+            else
+            {
+                flags[frame] |= STARTED;
+                if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+                {
+                    depths[frame]++;
+                }
+                else if (event == Event.END_OBJECT || event == Event.END_ARRAY)
+                {
+                    depths[frame]--;
+                }
+                completed = depths[frame] == 0 ? combine(frame, parser) : Verdict.PENDING;
+            }
+            return completed;
+        }
+
+        private Verdict combine(
+            int frame,
+            JsonSource parser)
+        {
+            final JsonSchemaImpl schema = schemas[frame];
+            boolean valid = (flags[frame] & INVALID) == 0;
+            if (valid && schema.constString != null)
+            {
+                valid = (flags[frame] & STRING_OK) != 0;
+                if (!valid)
+                {
+                    trace.report("const", "value does not equal const", parser);
+                }
+            }
+            else if (valid && schema.enumStrings != null)
+            {
+                valid = (flags[frame] & STRING_OK) != 0;
+                if (!valid)
+                {
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
+            return valid ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        // returns whether the event opened a frame for an array element, which receives the event as well
+        private boolean handle(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            boolean opened = false;
+            final JsonSchemaImpl schema = schemas[frame];
+            if (delegates[frame] != null)
+            {
+                delegated = delegates[frame].feed(event, parser);
+            }
+            else if (schema != ANY)
+            {
+                if ((flags[frame] & STARTED) == 0)
+                {
+                    open(frame, schema, event, parser);
+                }
+                else if ((flags[frame] & OBJECT) != 0)
+                {
+                    handleObject(frame, schema, event, parser);
+                }
+                else if ((flags[frame] & ARRAY) != 0)
+                {
+                    opened = handleArray(frame, schema, event, parser);
+                }
+            }
+            return opened;
+        }
+
+        private void open(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            final int open = schema.checkOpen(trace, event, parser);
+            int state = flags[frame];
+            state |= (open & OPEN_INVALID) != 0 ? INVALID : 0;
+            state |= (open & OPEN_STRING_OK) != 0 ? STRING_OK : 0;
+            if (event == Event.START_OBJECT)
+            {
+                state |= OBJECT;
+                final int words = schema.requiredKeys.length + 63 >>> 6;
+                if (bitsTop + words > requiredBits.length)
+                {
+                    requiredBits = Arrays.copyOf(requiredBits, Math.max(bitsTop + words, requiredBits.length << 1));
+                }
+                requiredBases[frame] = bitsTop;
+                Arrays.fill(requiredBits, bitsTop, bitsTop + words, 0L);
+                bitsTop += words;
+            }
+            else if (event == Event.START_ARRAY)
+            {
+                state |= ARRAY;
+            }
+            flags[frame] = state;
+        }
+
+        private void handleObject(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            if (event == Event.END_OBJECT)
+            {
+                checkRequired(frame, schema, parser);
+                final int count = counts[frame];
+                if (schema.minProperties >= 0 && count < schema.minProperties)
+                {
+                    flags[frame] |= INVALID;
+                    trace.report("minProperties", count + " < minProperties " + schema.minProperties, parser);
+                }
+                if (schema.maxProperties >= 0 && count > schema.maxProperties)
+                {
+                    flags[frame] |= INVALID;
+                    trace.report("maxProperties", count + " > maxProperties " + schema.maxProperties, parser);
+                }
+            }
+            else
+            {
+                handleKey(frame, schema, parser);
+            }
+        }
+
+        // matches the key as a CharSequence against the schema's property and required key arrays, so a key is
+        // validated and required-tracked without materializing a String
+        private void handleKey(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final CharSequence key = parser.getStringView();
+            counts[frame]++;
+            final String[] requiredKeys = schema.requiredKeys;
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if (charsEqual(requiredKeys[i], key))
+                {
+                    requiredBits[requiredBases[frame] + (i >>> 6)] |= 1L << (i & 63);
+                    break;
+                }
+            }
+            JsonSchemaImpl applicable = null;
+            final String[] propertyKeys = schema.propertyKeys;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    applicable = schema.propertySchemas[i];
+                    // a declared property: the schema owns this exact name, so the location refers to it
+                    trace.key(propertyKeys[i]);
+                    break;
+                }
+            }
+            if (applicable == null)
+            {
+                applicable = schema.additionalSchema != null ? schema.additionalSchema
+                    : schema.additionalAllowed ? ANY : NONE;
+                if (applicable != ANY && trace.active())
+                {
+                    // routed to a subschema that can fail without the schema naming the key: only here does
+                    // the location need the document's own key text
+                    trace.key(key.toString());
+                }
+            }
+            push(applicable);
+        }
+
+        private void checkRequired(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final String[] requiredKeys = schema.requiredKeys;
+            boolean missing = false;
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if ((requiredBits[requiredBases[frame] + (i >>> 6)] & 1L << (i & 63)) == 0L)
+                {
+                    missing = true;
+                }
+            }
+            if (missing)
+            {
+                flags[frame] |= INVALID;
+                // the message text is built only on this rare failure path
+                if (trace.active())
+                {
+                    final Set<String> names = new LinkedHashSet<>();
+                    for (int i = 0; i < requiredKeys.length; i++)
+                    {
+                        if ((requiredBits[requiredBases[frame] + (i >>> 6)] & 1L << (i & 63)) == 0L)
+                        {
+                            names.add(requiredKeys[i]);
+                        }
+                    }
+                    trace.report("required", "missing required " + names, parser);
+                }
+            }
+        }
+
+        private boolean handleArray(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            boolean opened = false;
+            if (event == Event.END_ARRAY)
+            {
+                final int count = counts[frame];
+                if (schema.minItems >= 0 && count < schema.minItems)
+                {
+                    flags[frame] |= INVALID;
+                    trace.report("minItems", count + " < minItems " + schema.minItems, parser);
+                }
+                if (schema.maxItems >= 0 && count > schema.maxItems)
+                {
+                    flags[frame] |= INVALID;
+                    trace.report("maxItems", count + " > maxItems " + schema.maxItems, parser);
+                }
+            }
+            else
+            {
+                push(schema.elementSchema(counts[frame]++));
+                opened = true;
+            }
+            return opened;
+        }
+
+        private void push(
+            JsonSchemaImpl applicable)
+        {
+            final JsonSchemaImpl schema = applicable.ref != null ? applicable.target() : applicable;
+            if (top == schemas.length)
+            {
+                final int capacity = top << 1;
+                schemas = Arrays.copyOf(schemas, capacity);
+                delegates = Arrays.copyOf(delegates, capacity);
+                flags = Arrays.copyOf(flags, capacity);
+                depths = Arrays.copyOf(depths, capacity);
+                counts = Arrays.copyOf(counts, capacity);
+                requiredBases = Arrays.copyOf(requiredBases, capacity);
+            }
+            schemas[top] = schema;
+            delegates[top] = schema.framed ? null : schema.eval(trace, delegateScope());
+            flags[top] = 0;
+            depths[top] = 0;
+            counts[top] = 0;
+            requiredBases[top] = NO_BITS;
+            top++;
+        }
+
+        private void pop(
+            int frame)
+        {
+            if (requiredBases[frame] != NO_BITS)
+            {
+                bitsTop = requiredBases[frame];
+            }
+            delegates[frame] = null;
+            top = frame;
+        }
+
+        private DynScope delegateScope()
+        {
+            if (scope == null)
+            {
+                scope = root.context != null ? DynScope.ROOT.push(root.context.base.toString()) : DynScope.ROOT;
+            }
+            return scope;
+        }
+    }
+
     private final class Eval implements Evaluator
     {
         private final Trace trace;
@@ -4043,27 +4510,6 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             return items != null ||
                 itemsTuple != null && (index < itemsTuple.size() || additionalItems != null);
-        }
-
-        private JsonSchemaImpl elementSchema(
-            int index)
-        {
-            JsonSchemaImpl schema;
-            if (items != null)
-            {
-                schema = items;
-            }
-            else if (itemsTuple != null)
-            {
-                schema = index < itemsTuple.size()
-                    ? itemsTuple.get(index)
-                    : additionalItems != null ? additionalItems : ANY;
-            }
-            else
-            {
-                schema = ANY;
-            }
-            return schema;
         }
 
         private void routeChildren(
