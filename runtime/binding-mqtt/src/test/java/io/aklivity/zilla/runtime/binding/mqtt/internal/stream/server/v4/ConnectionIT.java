@@ -402,4 +402,31 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.username.flag.missing/client"})
+    public void shouldRejectConnectWithUsernameNoUsernameFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client"})
+    public void shouldRejectConnectWithPasswordNoPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.will.topic.no.will.flag/client"})
+    public void shouldRejectConnectWillTopicNoWillFlag() throws Exception
+    {
+        k3po.finish();
+    }
 }
