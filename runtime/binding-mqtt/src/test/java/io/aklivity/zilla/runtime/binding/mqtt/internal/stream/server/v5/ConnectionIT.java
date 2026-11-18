@@ -461,6 +461,16 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/connect.server.defined.keep.alive.default.minimum/client",
+        "${app}/session.connect/server"})
+    public void shouldConnectWithServerDefinedKeepAliveDefaultMinimum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/connect.server.defined.keep.alive/client",
         "${app}/session.connect/server"})
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "10")

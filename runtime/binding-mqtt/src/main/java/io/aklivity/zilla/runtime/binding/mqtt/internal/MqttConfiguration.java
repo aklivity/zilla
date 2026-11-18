@@ -57,8 +57,7 @@ public class MqttConfiguration extends Configuration
         PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.MINUTES.toSeconds(2));
         CONNECT_TIMEOUT = config.property("connect.timeout", TimeUnit.SECONDS.toSeconds(3));
         CONNACK_TIMEOUT = config.property("connack.timeout", TimeUnit.SECONDS.toSeconds(3));
-        //TODO: better default values?
-        KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 10);
+        KEEP_ALIVE_MINIMUM = config.property("keep.alive.minimum", (short) 60);
         KEEP_ALIVE_MAXIMUM = config.property("keep.alive.maximum", (short) 1000);
         MAXIMUM_PACKET_SIZE = config.property("maximum.packet.size", Integer.MAX_VALUE);
         MAXIMUM_QOS = config.property("maximum.qos", (byte) 2);
