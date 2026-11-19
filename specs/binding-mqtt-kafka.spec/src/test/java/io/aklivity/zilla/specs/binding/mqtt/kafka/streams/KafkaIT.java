@@ -1221,6 +1221,16 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.abort.after.publish/client",
+        "${kafka}/publish.qos2.abort.after.publish/server"})
+    public void shouldPublishQoS2MessageAbortAfterPublish() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.meta.abort/client",
         "${kafka}/publish.qos2.meta.abort/server"})
     public void shouldSessionReceiveQos2MetaSentAbort() throws Exception
