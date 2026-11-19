@@ -1,0 +1,246 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+read zilla:begin.ext ${proxy:matchBeginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker1.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .info()
+                                .authority("broker1.example.com")
+                                .build()
+                              .build()}
+connected
+
+read  43                                # size
+      9s                                # offset fetch
+      5s                                # v0
+      (int:firstRequestId)
+      5s "zilla"                        # client id
+      8s "client-1"                       # group id
+      1                                 # topics
+        4s "test"                       # "test" topic
+        1                               # partitions
+          0                             # partition
+
+write 952                                # size
+      ${firstRequestId}
+      0                                  # throttle time ms
+      1                                  # topics
+        4s "test"                          # "test" topic
+        32                                 # partitions
+write notify RESPONSE_PARTIAL
+
+write await APPLICATION_ABORTED
+
+write 0                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 1                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 2                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 3                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 4                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 5                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 6                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 7                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 8                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 9                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 10                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 11                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 12                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 13                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 14                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 15                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 16                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 17                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 18                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 19                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 20                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 21                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 22                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 23                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 24                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 25                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 26                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 27                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 28                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 29                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 30                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 31                                 # partition index
+      2L                                  # committed offset
+      0                                   # committed leader epoch
+      9s "test-meta"                      # metadata
+      0s                                  # no error
+write 0s                                 # error code
+
+read  43                                # size
+      9s                                # offset fetch
+      5s                                # v0
+      (int:secondRequestId)
+      5s "zilla"                        # client id
+      8s "client-2"                       # group id
+      1                                 # topics
+        4s "test"                       # "test" topic
+        1                               # partitions
+          0                             # partition
+
+write 53                                 # size
+      ${secondRequestId}
+      0                                  # throttle time ms
+      1                                  # topics
+        4s "test"                          # "test" topic
+        1                                  # partitions
+          0                                   # partition index
+          2L                                  # committed offset
+          0                                   # committed leader epoch
+          9s "test-meta"                      # metadata
+          0s                                  # no error
+      0s                                 # error code

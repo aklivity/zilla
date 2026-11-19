@@ -1008,19 +1008,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             else
             {
                 replySeq += reserved;
+                replyAck = replySeq;
 
-                // TODO: responseAckBytes == 0, remove if
-                if (responseBytes == 0)
+                flushStreamWindow(traceId);
+
+                if (responseBytes == 0 && StreamState.replyAborting(state))
                 {
-                    if (StreamState.replyAborting(state))
-                    {
-                        doStreamAbort(traceId);
-                    }
-                    else
-                    {
-                        replyAck = replySeq;
-                        flushStreamWindow(traceId);
-                    }
+                    doStreamAbort(traceId);
                 }
             }
         }
@@ -1034,8 +1028,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
                 assert replyAck >= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
 
-                // TODO: && responseAckBytes == 0
-                if (replyAck == replySeq)
+                if (replyAck == replySeq && responseBytes == 0)
                 {
                     replyAckOffsets.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
 

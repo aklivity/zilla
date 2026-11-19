@@ -64,4 +64,12 @@ public class OffsetFetchIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/abort.during.response/client",
+        "${net}/abort.during.response/server"})
+    public void shouldAbortDuringResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
