@@ -498,7 +498,7 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
         if (length != 0)
         {
             final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
-            if (responseHeader == null)
+            if (responseHeader == null || length < responseHeader.sizeof() + responseHeader.length())
             {
                 break decode;
             }

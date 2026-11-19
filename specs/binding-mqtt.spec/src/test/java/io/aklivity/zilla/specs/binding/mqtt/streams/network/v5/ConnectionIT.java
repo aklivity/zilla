@@ -247,6 +247,15 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/disconnect.after.guard.session.expired/client",
+        "${net}/disconnect.after.guard.session.expired/server"})
+    public void shouldDisconnectClientAfterGuardSessionExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
     @Test
     @Specification({

@@ -310,6 +310,16 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.credentials.username.expiring.yaml")
+    @Specification({
+        "${net}/disconnect.after.guard.session.expired/client",
+        "${app}/session.connect.authorization/server"})
+    public void shouldDisconnectClientAfterGuardSessionExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.timeout.before.connect/client"})
