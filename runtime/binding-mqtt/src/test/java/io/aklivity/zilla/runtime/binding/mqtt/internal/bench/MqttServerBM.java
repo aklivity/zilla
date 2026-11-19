@@ -77,12 +77,13 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code leave} operation opens one connection, completes its handshake and leaves the connection open,
  * so the connected session stays live.
  * <p>
- * Each {@code publish} operation sends one PUBLISH at QoS {@code qos}, with a payload of {@code payload} bytes, on one of
- * the connected sessions, each with its own topic, and completes once the PUBACK has arrived for QoS 1, or, for
- * QoS 2, once the PUBREC has arrived, the PUBREL has been sent and the PUBCOMP has arrived. The sessions are
- * connected, and each has published once, before measurement starts. The application keeps every session
- * open, and acknowledges the messages published on each topic. With MQTT 5 and {@code properties=all} each
- * message also carries a content type, a response topic, correlation data and a user property.
+ * Each {@code publish} operation sends one PUBLISH at QoS {@code qos}, retained if {@code retain} is set, with a
+ * payload of {@code payload} bytes, on one of the connected sessions, each with its own topic, and completes once
+ * the PUBACK has arrived for QoS 1, or, for QoS 2, once the PUBREC has arrived, the PUBREL has been sent and the
+ * PUBCOMP has arrived. The sessions are connected, and each has published once, before measurement starts. The
+ * application keeps every session open, and acknowledges the messages published on each topic. With MQTT 5 and
+ * {@code properties=all} each message also carries a content type, a response topic, correlation data and a user
+ * property.
  * <p>
  * Each {@code subscribe} operation subscribes one of the connected sessions to its own topic filter, waits for the
  * SUBACK, then unsubscribes and waits for the UNSUBACK, so the session is back where it started for the next
@@ -759,13 +760,17 @@ public class MqttServerBM
         @Param({"1", "2"})
         public int qos;
 
+        @Param({"false", "true"})
+        public boolean retain;
+
         @Override
         void attach(
             Handshake handshake,
             int connection)
         {
             final boolean withProperties = "all".equals(properties);
-            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties, qos));
+            handshake.publication =
+                new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties, qos, retain));
             handshake.release = qos == 2 ? new UnsafeBufferEx(pubrelPacket(version)) : null;
         }
 
@@ -1026,7 +1031,8 @@ public class MqttServerBM
         int publisher,
         int payload,
         boolean withProperties,
-        int qos)
+        int qos,
+        boolean retain)
     {
         final byte[] topic = ("device/" + publisher).getBytes(US_ASCII);
         final byte[] properties = version == 5 && withProperties ? publishProperties(publisher) : new byte[0];
@@ -1036,7 +1042,7 @@ public class MqttServerBM
         final byte[] packet = new byte[1 + lengthBytes + remaining];
 
         int offset = 0;
-        packet[offset++] = (byte) (0x30 | qos << 1);
+        packet[offset++] = (byte) (0x30 | qos << 1 | (retain ? 0x01 : 0x00));
         if (lengthBytes == 1)
         {
             packet[offset++] = (byte) remaining;
