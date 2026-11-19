@@ -24,6 +24,7 @@ public abstract class GuardConfigBuilder<T, B extends GuardConfigBuilder<T, B>> 
     private String name;
     private String type;
     private String kind;
+    private String vault;
     private String store;
     private OptionsConfig options;
 
@@ -61,6 +62,13 @@ public abstract class GuardConfigBuilder<T, B extends GuardConfigBuilder<T, B>> 
         return thisType().cast(this);
     }
 
+    public B vault(
+        String vault)
+    {
+        this.vault = vault;
+        return thisType().cast(this);
+    }
+
     public B store(
         String store)
     {
@@ -84,7 +92,24 @@ public abstract class GuardConfigBuilder<T, B extends GuardConfigBuilder<T, B>> 
     @Override
     public T build()
     {
-        return mapper.apply(newGuard(namespace, name, type, kind, store, options));
+        return mapper.apply(newGuard(namespace, name, type, kind, vault, store, options));
+    }
+
+    protected GuardConfig newGuard(
+        String namespace,
+        String name,
+        String type,
+        String kind,
+        String vault,
+        String store,
+        OptionsConfig options)
+    {
+        if (vault != null)
+        {
+            throw new IllegalArgumentException(String.format("guard type %s does not support vault", type));
+        }
+
+        return newGuard(namespace, name, type, kind, store, options);
     }
 
     protected abstract GuardConfig newGuard(

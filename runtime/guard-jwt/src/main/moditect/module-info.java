@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.guard.jwt
 {
+    requires io.aklivity.zilla.runtime.common.agrona;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.guard.jwt;
     requires io.aklivity.zilla.runtime.common.jwt;

@@ -48,9 +48,22 @@ public final class JwtGuardConfigBuilder<T> extends GuardConfigBuilder<T, JwtGua
         String name,
         String type,
         String kind,
+        String vault,
         String store,
         OptionsConfig options)
     {
-        return new JwtGuardConfig(namespace, name, type, kind, store, options);
+        return new JwtGuardConfig(namespace, name, type, kind, vault, store, options);
+    }
+
+    @Override
+    protected GuardConfig newGuard(
+        String namespace,
+        String name,
+        String type,
+        String kind,
+        String store,
+        OptionsConfig options)
+    {
+        return newGuard(namespace, name, type, kind, null, store, options);
     }
 }

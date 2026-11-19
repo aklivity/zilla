@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -44,6 +45,8 @@ import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfigReader;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.common.jwt.Jwe;
+import io.aklivity.zilla.runtime.common.jwt.JweKeyManager;
 import io.aklivity.zilla.runtime.common.jwt.Jwk;
 import io.aklivity.zilla.runtime.common.jwt.Jws;
 import io.aklivity.zilla.runtime.common.jwt.JwtClaims;
@@ -53,6 +56,8 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class JwtGuardHandler implements GuardHandler
 {
+    private static final int ENCRYPTED_SEPARATORS = 4;
+
     private static final Pattern SPLIT_VALUE_PATTERN = Pattern.compile("\\s+");
 
     private final String issuer;
@@ -61,6 +66,7 @@ public class JwtGuardHandler implements GuardHandler
     private final Duration challenge;
     private final String identity;
     private final Map<String, Jwk> keys;
+    private final JweKeyManager encryption;
     private final Long2ObjectHashMap<JwtSession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
@@ -73,7 +79,8 @@ public class JwtGuardHandler implements GuardHandler
         JwtOptionsConfig options,
         EngineContext context,
         LongSupplier supplyAuthorizedId,
-        LongFunction<String> credentialer)
+        LongFunction<String> credentialer,
+        JweKeyManager encryption)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -115,6 +122,7 @@ public class JwtGuardHandler implements GuardHandler
         this.attributes = options.attributes;
         this.dispatcher = context::dispatch;
         this.credentialer = credentialer;
+        this.encryption = encryption;
     }
 
     @Override
@@ -138,25 +146,39 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            Jws jws = Jws.parse(credentials);
-
-            String kid = jws.keyId();
-            String alg = jws.algorithm();
-            Jwk key = keys.get(kid);
-
-            if (alg == null ||
-                key == null ||
-                !Objects.equals(alg, key.algorithm()))
+            String payload;
+            if (encrypted(credentials))
             {
-                reason = "Invalid alg or key.";
-                break authorize;
+                if (encryption == null)
+                {
+                    reason = "Encrypted tokens are not supported.";
+                    break authorize;
+                }
+
+                payload = new String(Jwe.parse(credentials).open(encryption), UTF_8);
             }
-
-            String payload = jws.verifiedPayload(key);
-            if (payload == null)
+            else
             {
-                reason = "Unable to verify key signature.";
-                break authorize;
+                Jws jws = Jws.parse(credentials);
+
+                String kid = jws.keyId();
+                String alg = jws.algorithm();
+                Jwk key = keys.get(kid);
+
+                if (alg == null ||
+                    key == null ||
+                    !Objects.equals(alg, key.algorithm()))
+                {
+                    reason = "Invalid alg or key.";
+                    break authorize;
+                }
+
+                payload = jws.verifiedPayload(key);
+                if (payload == null)
+                {
+                    reason = "Unable to verify key signature.";
+                    break authorize;
+                }
             }
 
             JwtClaims claims = JwtClaims.parse(payload);
@@ -504,6 +526,21 @@ public class JwtGuardHandler implements GuardHandler
         {
             jwk.add(name, value);
         }
+    }
+
+    private static boolean encrypted(
+        String credentials)
+    {
+        int separators = 0;
+        for (int i = 0; i < credentials.length(); i++)
+        {
+            if (credentials.charAt(i) == '.')
+            {
+                separators++;
+            }
+        }
+
+        return separators == ENCRYPTED_SEPARATORS;
     }
 
     private static Object claimValue(

@@ -20,6 +20,8 @@ import java.util.function.ToLongFunction;
 
 public abstract class GuardConfig extends NamedConfig
 {
+    public transient long vaultId;
+    public transient String qvault;
     public transient long storeId;
     public transient String qstore;
     public transient ToLongFunction<String> resolveId;
@@ -27,6 +29,7 @@ public abstract class GuardConfig extends NamedConfig
     public final String namespace;
     public final String type;
     public final String kind;
+    public final String vault;
     public final String store;
     public final OptionsConfig options;
 
@@ -38,11 +41,24 @@ public abstract class GuardConfig extends NamedConfig
         String store,
         OptionsConfig options)
     {
+        this(namespace, name, type, kind, null, store, options);
+    }
+
+    protected GuardConfig(
+        String namespace,
+        String name,
+        String type,
+        String kind,
+        String vault,
+        String store,
+        OptionsConfig options)
+    {
         super(name);
         this.namespace = requireNonNull(namespace);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = kind;
+        this.vault = vault;
         this.store = store;
         this.options = options;
     }

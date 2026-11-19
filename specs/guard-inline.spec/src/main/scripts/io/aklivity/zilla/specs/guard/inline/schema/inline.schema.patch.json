@@ -28,6 +28,7 @@
                         "const": "inline"
                     },
                     "kind": false,
+                    "vault": false,
                     "options":
                     {
                         "properties":

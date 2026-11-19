@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.guard.jwt.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -66,5 +67,14 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
         JsonObject optionsConfig = (JsonObject) config.getValue("/guards/jwt0/options");
         assertThat(optionsConfig.containsKey("keys"), is(false));
+    }
+
+    @Test
+    public void shouldValidateGuardWithVault()
+    {
+        JsonObject config = schema.validate("guard-vault.yaml");
+
+        assertThat(config, not(nullValue()));
+        assertThat(((JsonString) config.getValue("/guards/jwt0/vault")).getString(), equalTo("vault0"));
     }
 }

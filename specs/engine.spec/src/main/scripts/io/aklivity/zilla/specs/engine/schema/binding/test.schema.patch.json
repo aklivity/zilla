@@ -136,6 +136,10 @@
                                             "wrap":
                                             {
                                                 "type": "string"
+                                            },
+                                            "unwrapOnly":
+                                            {
+                                                "type": "boolean"
                                             }
                                         }
                                     },

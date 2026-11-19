@@ -67,6 +67,16 @@ public class FileSystemVaultIT
     }
 
     @Test
+    @Configuration("vault.secrets.unwrap.only.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldUnwrapWithoutNamingKeysThroughEngine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("vault.secrets.unknown.yaml")
     @Specification({
         "${net}/vault.assert.reject/client",

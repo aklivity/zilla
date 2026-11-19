@@ -29,6 +29,7 @@ public class GuardConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
+    private static final String VAULT_NAME = "vault";
     private static final String STORE_NAME = "store";
     private static final String OPTIONS_NAME = "options";
 
@@ -52,6 +53,11 @@ public class GuardConfigAdapter
         if (guard.kind != null)
         {
             object.add(KIND_NAME, guard.kind);
+        }
+
+        if (guard.vault != null)
+        {
+            object.add(VAULT_NAME, guard.vault);
         }
 
         if (guard.store != null)
@@ -80,6 +86,11 @@ public class GuardConfigAdapter
         if (object.containsKey(KIND_NAME))
         {
             guard.kind(object.getString(KIND_NAME));
+        }
+
+        if (object.containsKey(VAULT_NAME))
+        {
+            guard.vault(object.getString(VAULT_NAME));
         }
 
         if (object.containsKey(STORE_NAME))

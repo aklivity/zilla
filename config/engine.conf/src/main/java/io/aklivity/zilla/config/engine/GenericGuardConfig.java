@@ -34,9 +34,10 @@ public final class GenericGuardConfig extends GuardConfig
         String name,
         String type,
         String kind,
+        String vault,
         String store,
         OptionsConfig options)
     {
-        super(namespace, name, type, kind, store, options);
+        super(namespace, name, type, kind, vault, store, options);
     }
 }

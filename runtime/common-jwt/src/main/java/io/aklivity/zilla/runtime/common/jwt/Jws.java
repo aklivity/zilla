@@ -159,7 +159,7 @@ public final class Jws
         return signature;
     }
 
-    private static JsonObject readHeader(
+    static JsonObject readHeader(
         byte[] json) throws JwtException
     {
         JsonObject header;
@@ -175,7 +175,7 @@ public final class Jws
         return header;
     }
 
-    private static String member(
+    static String member(
         JsonObject header,
         String name) throws JwtException
     {
