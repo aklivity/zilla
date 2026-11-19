@@ -10102,6 +10102,60 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.request.tool.call.no.id.10k/client",
+        "${app}/gemini.request.tool.call.no.id.10k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.no.id.100k/client",
+        "${app}/gemini.request.tool.call.no.id.100k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.id.last.10k/client",
+        "${app}/gemini.request.tool.call.id.last.10k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.id.last.100k/client",
+        "${app}/gemini.request.tool.call.id.last.100k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.result.10k/client",
+        "${app}/gemini.request.tool.result.10k/server"})
+    public void shouldForwardGeminiRequestToolResult10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.result.100k/client",
+        "${app}/gemini.request.tool.result.100k/server"})
+    public void shouldForwardGeminiRequestToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.request.text.100k/client",
         "${app}/gemini.request.text.100k/server"})
     public void shouldForwardGeminiRequestText100k() throws Exception

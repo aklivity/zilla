@@ -1976,6 +1976,132 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gemini.request.tool.call.no.id.10k/client",
+        "${app}/gemini.request.tool.call.no.id.10k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.call.no.id.10k/client",
+        "${app}/gemini.request.tool.call.no.id.10k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId10kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.call.no.id.100k/client",
+        "${app}/gemini.request.tool.call.no.id.100k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.call.no.id.100k/client",
+        "${app}/gemini.request.tool.call.no.id.100k/server"})
+    public void shouldForwardGeminiRequestToolCallNoId100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.call.id.last.10k/client",
+        "${app}/gemini.request.tool.call.id.last.10k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.call.id.last.10k/client",
+        "${app}/gemini.request.tool.call.id.last.10k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast10kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.call.id.last.100k/client",
+        "${app}/gemini.request.tool.call.id.last.100k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.call.id.last.100k/client",
+        "${app}/gemini.request.tool.call.id.last.100k/server"})
+    public void shouldForwardGeminiRequestToolCallIdLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.result.10k/client",
+        "${app}/gemini.request.tool.result.10k/server"})
+    public void shouldForwardGeminiRequestToolResult10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.result.10k/client",
+        "${app}/gemini.request.tool.result.10k/server"})
+    public void shouldForwardGeminiRequestToolResult10kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.result.100k/client",
+        "${app}/gemini.request.tool.result.100k/server"})
+    public void shouldForwardGeminiRequestToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/gemini.request.tool.result.100k/client",
+        "${app}/gemini.request.tool.result.100k/server"})
+    public void shouldForwardGeminiRequestToolResult100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gemini.request.text.100k/client",
         "${app}/gemini.request.text.100k/server"})
     public void shouldForwardGeminiRequestText100k() throws Exception
