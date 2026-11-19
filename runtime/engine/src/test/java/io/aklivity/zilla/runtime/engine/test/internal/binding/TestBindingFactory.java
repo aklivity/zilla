@@ -46,6 +46,7 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingConfig;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
@@ -54,6 +55,9 @@ import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingO
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.StoreAssertion;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestRouteConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestSessionConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestSessionConfig.Challenge;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestSessionConfig.Reauthorization;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -156,6 +160,7 @@ final class TestBindingFactory implements BindingHandler
     private String expectCredentials;
     private Map<String, String> attributes;
     private boolean releaseOnEnd;
+    private TestSessionConfig session;
     private List<Event> events;
     private int eventIndex;
     private VaultHandler vault;
@@ -231,6 +236,7 @@ final class TestBindingFactory implements BindingHandler
                 this.expectCredentials = options.authorization.expectCredentials;
                 this.attributes = options.authorization.attributes;
                 this.releaseOnEnd = options.authorization.releaseOnEnd;
+                this.session = options.authorization.session;
             }
 
             this.events = options.events;
@@ -1067,12 +1073,107 @@ final class TestBindingFactory implements BindingHandler
                 doInitialReset(traceId);
             }
 
+            if (guard != null && session != null && !assertSession(traceId))
+            {
+                doInitialReset(traceId);
+            }
+
             while (events != null && eventIndex < events.size())
             {
                 Event e = events.get(eventIndex);
                 event.connected(traceId, routedId, e.timestamp, e.message);
                 eventIndex++;
             }
+        }
+
+        private boolean assertSession(
+            long traceId)
+        {
+            boolean asserted = true;
+
+            asserted &= session.expiresAt == null || session.expiresAt == guard.expiresAt(authorization);
+            asserted &= session.expiringAt == null || session.expiringAt == guard.expiringAt(authorization);
+
+            if (session.challenges != null)
+            {
+                for (Challenge challenge : session.challenges)
+                {
+                    asserted &= challenge.expect == guard.challenge(authorization, challenge.at);
+                }
+            }
+
+            if (session.reauthorizations != null)
+            {
+                for (Reauthorization reauthorization : session.reauthorizations)
+                {
+                    asserted &= assertReauthorization(traceId, reauthorization);
+                }
+            }
+
+            if (session.routeIdentity != null || session.routeAttributes != null)
+            {
+                asserted &= assertRouteGuarded();
+            }
+
+            if (session.unknown)
+            {
+                asserted &= assertUnknownSession(authorization + 1L) && assertUnknownSession(~authorization);
+            }
+
+            return asserted;
+        }
+
+        private boolean assertReauthorization(
+            long traceId,
+            Reauthorization reauthorization)
+        {
+            final long sessionId = guard.reauthorize(traceId, routedId, reauthorization.context, reauthorization.credentials);
+
+            final boolean resolved = switch (reauthorization.expect)
+            {
+            case TestSessionConfig.SAME -> sessionId == authorization;
+            case TestSessionConfig.DIFFERENT -> sessionId != authorization && sessionId != NOT_AUTHORIZED;
+            default -> sessionId == NOT_AUTHORIZED;
+            };
+
+            return resolved && (reauthorization.expiresAt == null || reauthorization.expiresAt == guard.expiresAt(sessionId));
+        }
+
+        private boolean assertRouteGuarded()
+        {
+            final TestBindingConfig binding = bindings.get(routedId);
+            final TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
+            final GuardedConfig guarded = route != null && !route.guarded.isEmpty() ? route.guarded.get(0) : null;
+
+            boolean asserted = guarded != null;
+
+            if (asserted && session.routeIdentity != null)
+            {
+                asserted = session.routeIdentity.equals(guarded.identity.apply(authorization));
+            }
+
+            if (asserted && session.routeAttributes != null)
+            {
+                for (Map.Entry<String, String> entry : session.routeAttributes.entrySet())
+                {
+                    asserted &= entry.getValue().equals(
+                        JsonStrings.asString(guarded.attributes.apply(authorization, entry.getKey())));
+                }
+            }
+
+            return asserted;
+        }
+
+        private boolean assertUnknownSession(
+            long sessionId)
+        {
+            return guard.identity(sessionId) == null &&
+                guard.attribute(sessionId, "unknown") == null &&
+                guard.credentials(sessionId) == null &&
+                guard.expiresAt(sessionId) == GuardHandler.EXPIRES_NEVER &&
+                guard.expiringAt(sessionId) == GuardHandler.EXPIRES_NEVER &&
+                !guard.challenge(sessionId, 0L) &&
+                !guard.verify(sessionId, EMPTY_ROLES);
         }
 
         private boolean roundTripsSecretKey(

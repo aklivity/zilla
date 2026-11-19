@@ -35,7 +35,7 @@ bindings:
     options:
       authorization:
         jwt0:
-          credentials: "eyJhbGciOiJFUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDB9.Rwix92al1Cv2bCk1jKIBFzeHGerF-HB6Dyhv9XC92gLkQpvY9ZmU0XDwAb4SFb6RTTghVdFhJ2Ds5EMYjGwDBw"
+          credentials: "eyJhbGciOiJFUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDB9.VTaJ75L6dRZpZJ33NLf0tPC6OfdHZmRzsJ3LgTljSBBrjURo7iBLrd9pJ_C7NhboCxscZJEJbWnjfcL3143xTA"
           expectIdentity: "testSubject"
     routes:
       - guarded:

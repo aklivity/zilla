@@ -42,6 +42,11 @@ bindings:
           attributes:
             site: "http://example.com"
             user: "12345"
+          session:
+            routeIdentity: "testSubject"
+            routeAttributes:
+              site: "http://example.com"
+              user: "12345"
     routes:
       - guarded:
           jwt0:

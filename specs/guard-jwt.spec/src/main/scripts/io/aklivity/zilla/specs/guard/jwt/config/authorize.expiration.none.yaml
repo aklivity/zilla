@@ -36,6 +36,9 @@ bindings:
         jwt0:
           credentials: "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwfQ.bJYJqN_6WuigGqY_8QKrDxQod_xBTKVmrqtLKxViwsEORptLJOZGqez_2sWRlqJ2sIVwLZA5rJAXafddR7Ge4vz3Xj2PmWnkcIaNxk-B9_5c0HhF3UTRw-zc1cBtu8K2pOCV0WSI27LWz6YkiJFj4f01juNTCceicUW-t4ujHv6atn4hPfthIovzXAq9Xqde9M2dniQYAUQfkmxBIVH1dVgm4YX-7gowNJ113Owo9URKG3zoZipgqDhIff8KEgeYrjxRfSPC-X9c7YjxE7aBFRFNwgunbLFi-J3Vy6OQM7dJt1Yj7b3oX3ArhxFI_g4xgPMYCYXCdpDkuQTTWD2P_Q"
           expectIdentity: "testSubject"
+          session:
+            expiresAt: 9223372036854775807
+            expiringAt: 9223372036854775807
     routes:
       - guarded:
           jwt0:

@@ -526,4 +526,125 @@ public class JwtGuardIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("authorize.expiration.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldAuthorizeExpiration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("authorize.challenge.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldAuthorizeChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("authorize.challenge.subject.missing.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldAuthorizeChallengeSubjectMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("authorize.session.unknown.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldAuthorizeSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.expiration.later.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenExpirationLater() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.expiration.earlier.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenExpirationEarlier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.scope.broader.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenScopeBroader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.scope.narrower.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenScopeNarrower() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.subject.differs.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenSubjectDiffers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.context.differs.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldReauthorizeWhenContextDiffers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reauthorize.credentials.missing.yaml")
+    @Specification({
+        "${net}/handshake.authorized/client",
+        "${app}/handshake.authorized/server"
+    })
+    public void shouldNotReauthorizeWhenCredentialsMissing() throws Exception
+    {
+        k3po.finish();
+    }
 }
