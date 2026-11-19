@@ -101,6 +101,51 @@ accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-sessions")
+                                .build()
+                            .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#offsets")
+                               .hashKey("client")
+                               .build()
+                           .build()}
+read ${mqtt_kafka:sessionOffsets()
+            .entry("mqtt-messages", 0, 1, 1, 1, 0)
+            .entry("mqtt-messages", 1, 1, 1, 1, 0)
+            .entry("mqtt-retained", 0, 1, 1, 1, 0)
+            .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#offsets")
+                               .hashKey("client")
+                               .build()
+                           .build()}
+read ${mqtt_kafka:sessionOffsets()
+            .entry("mqtt-messages", 0, 2, 1, 1, 0)
+            .entry("mqtt-messages", 1, 1, 1, 1, 0)
+            .entry("mqtt-retained", 0, 1, 1, 1, 0)
+            .build()}
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
                             .apiRequest()
                                 .length(27)
                                 .api(10)
@@ -135,6 +180,30 @@ write [0x00]                                    # tagged fields
       [0x00]                                    # tagged fields
 
 write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(0)
+                                .producerEpoch(0)
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(1)
+                                .producerEpoch(1)
+                                .build()
+                            .build()}
+
+connected
 
 read closed
 write close
@@ -188,109 +257,6 @@ write flush
 
 read closed
 write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt-sessions")
-                                .filter()
-                                    .key("client#offsets")
-                                    .build()
-                                .build()
-                            .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .fetch()
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .build()
-                           .build()}
-write ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 0, 0, 0)
-            .entry("mqtt-messages", 1, 1, 0, 0, 0)
-            .entry("mqtt-retained", 0, 1, 0, 0, 0)
-            .build()}
-write flush
-
-read closed
-write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .initProducerId()
-                                .producerId(0)
-                                .producerEpoch(0)
-                                .build()
-                            .build()}
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .initProducerId()
-                                .producerId(1)
-                                .producerEpoch(1)
-                                .build()
-                            .build()}
-
-connected
-
-read closed
-write close
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-sessions")
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
 
 
 accepted
