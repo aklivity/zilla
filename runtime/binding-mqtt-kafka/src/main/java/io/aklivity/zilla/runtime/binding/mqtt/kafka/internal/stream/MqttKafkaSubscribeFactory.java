@@ -51,7 +51,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.Object2IntHashMap;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.config.MqttKafkaRouteConfig;
@@ -206,7 +205,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private final Map<String, ClientHighWaterMarks> highWaterMarksByClient;
     private final MqttKafkaTickets ticketCodec;
     private final MqttKafkaMemberships membershipCodec;
-    private final Object2IntHashMap<String> qosLevels;
     private final String groupIdPrefixFormat;
     private final Function<Long, String> supplyNamespace;
     private final Function<Long, String> supplyLocalName;
@@ -250,10 +248,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         this.highWaterMarksByClient = new HashMap<>();
         this.ticketCodec = new MqttKafkaTickets();
         this.membershipCodec = new MqttKafkaMemberships();
-        this.qosLevels = new Object2IntHashMap<>(-1);
-        this.qosLevels.put("0", 0);
-        this.qosLevels.put("1", 1);
-        this.qosLevels.put("2", 2);
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
@@ -1426,7 +1420,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         expireInterval = helper.timeout;
                     }
 
-                    final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
+                    final int messageQos = helper.qos != -1 ? helper.qos : MqttQoS.AT_MOST_ONCE.value();
                     final boolean acknowledged = messageQos >= MqttQoS.AT_LEAST_ONCE.value();
                     final int packetId = acknowledged ?
                         mqtt.clientHighWaterMarks.inflight.allocate(
@@ -1489,8 +1483,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
                             final DirectBufferEx buffer = kafkaMergedDataEx.buffer();
                             final int limit = kafkaMergedDataEx.limit();
-                            helper.userPropertiesOffsets.forEach(o ->
+                            for (int index = 0; index < helper.userPropertiesOffsets.size(); index++)
                             {
+                                final int o = helper.userPropertiesOffsets.getInt(index);
                                 final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
                                 final OctetsFW name = header.name();
                                 final OctetsFW value = header.value();
@@ -1500,7 +1495,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                                         .key(name.buffer(), name.offset(), name.sizeof())
                                         .value(value.buffer(), value.offset(), value.sizeof()));
                                 }
-                            });
+                            }
                         }).build();
                 }
 
@@ -2154,7 +2149,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         expireInterval = helper.timeout;
                     }
 
-                    final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
+                    final int messageQos = helper.qos != -1 ? helper.qos : MqttQoS.AT_MOST_ONCE.value();
                     final boolean acknowledged = messageQos >= MqttQoS.AT_LEAST_ONCE.value();
                     final int packetId = acknowledged ?
                         mqtt.clientHighWaterMarks.inflight.allocate(
@@ -2217,8 +2212,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
                             final DirectBufferEx buffer = kafkaMergedDataEx.buffer();
                             final int limit = kafkaMergedDataEx.limit();
-                            helper.userPropertiesOffsets.forEach(o ->
+                            for (int index = 0; index < helper.userPropertiesOffsets.size(); index++)
                             {
+                                final int o = helper.userPropertiesOffsets.getInt(index);
                                 final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
                                 final OctetsFW name = header.name();
                                 final OctetsFW value = header.value();
@@ -2228,7 +2224,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                                         .key(name.buffer(), name.offset(), name.sizeof())
                                         .value(value.buffer(), value.offset(), value.sizeof()));
                                 }
-                            });
+                            }
                         }).build();
                 }
 
@@ -3299,7 +3295,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             KafkaShareDataExFW kafkaShareDataEx,
             long expireInterval)
         {
-            final int messageQos = helper.qos != null ? qosLevels.getValue(helper.qos) : MqttQoS.AT_MOST_ONCE.value();
+            final int messageQos = helper.qos != -1 ? helper.qos : MqttQoS.AT_MOST_ONCE.value();
             final int deliveredQos = Math.min(messageQos, mqtt.qos);
             final boolean acknowledged = deliveredQos >= MqttQoS.AT_LEAST_ONCE.value();
             final boolean ticketed = deliveredQos == MqttQoS.EXACTLY_ONCE.value();
@@ -4425,8 +4421,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                     b.correlation(c -> c.bytes(helper.correlation));
                 }
 
-                helper.userPropertiesOffsets.forEach(o ->
+                for (int index = 0; index < helper.userPropertiesOffsets.size(); index++)
                 {
+                    final int o = helper.userPropertiesOffsets.getInt(index);
                     final KafkaHeaderFW header = kafkaHeaderRO.wrap(headersBuffer, o, headersLimit);
                     final OctetsFW name = header.name();
                     final OctetsFW value = header.value();
@@ -4436,7 +4433,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             .key(name.buffer(), name.offset(), name.sizeof())
                             .value(value.buffer(), value.offset(), value.sizeof()));
                     }
-                });
+                }
             }).build();
     }
 
