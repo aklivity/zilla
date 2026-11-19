@@ -4859,12 +4859,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             List<Subscription> newSubscriptions)
         {
             final Map<String, Subscription> subscriptionsByFilter = new LinkedHashMap<>();
-            for (Subscription subscription : session.subscriptions)
+            for (int subscriptionIndex = 0; subscriptionIndex < session.subscriptions.size(); subscriptionIndex++)
             {
+                final Subscription subscription = session.subscriptions.get(subscriptionIndex);
                 subscriptionsByFilter.put(subscription.filter, subscription);
             }
-            for (Subscription subscription : newSubscriptions)
+            for (int subscriptionIndex = 0; subscriptionIndex < newSubscriptions.size(); subscriptionIndex++)
             {
+                final Subscription subscription = newSubscriptions.get(subscriptionIndex);
                 if (subscription.reasonCode == SUCCESS)
                 {
                     subscriptionsByFilter.put(subscription.filter, subscription);
@@ -4884,8 +4886,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             final Long2ObjectHashMap<List<Subscription>> subscriptionsByRouteId = new Long2ObjectHashMap<>();
             final List<MqttSubscribeStream> awaitingStreams = new ArrayList<>();
 
-            for (Subscription subscription : subscriptions)
+            for (int subscriptionIndex = 0; subscriptionIndex < subscriptions.size(); subscriptionIndex++)
             {
+                final Subscription subscription = subscriptions.get(subscriptionIndex);
                 if (subscription.reasonCode == SUCCESS)
                 {
                     final MqttBindingConfig binding = bindings.get(routedId);
@@ -4945,8 +4948,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int maxQos = 0; maxQos <= MqttQoS.EXACTLY_ONCE.value(); maxQos++)
             {
                 final List<Subscription> subscriptionList = new ArrayList<>();
-                for (Subscription subscription : routeSubscriptions)
+                for (int subscriptionIndex = 0; subscriptionIndex < routeSubscriptions.size(); subscriptionIndex++)
                 {
+                    final Subscription subscription = routeSubscriptions.get(subscriptionIndex);
                     if (!subscription.shared() && subscription.qos == maxQos)
                     {
                         subscriptionList.add(subscription);
@@ -4974,8 +4978,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            for (Subscription subscription : routeSubscriptions)
+            for (int subscriptionIndex = 0; subscriptionIndex < routeSubscriptions.size(); subscriptionIndex++)
             {
+                final Subscription subscription = routeSubscriptions.get(subscriptionIndex);
                 if (subscription.shared() && subscription.reasonCode <= GRANTED_QOS_2)
                 {
                     awaitReply(awaitingStreams, openSharedSubscribeStream(traceId, routeId, subscription));
@@ -5001,7 +5006,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean subscribeFailed(
             List<Subscription> subscriptions)
         {
-            return !subscriptions.isEmpty() && subscriptions.stream().noneMatch(s -> s.reasonCode == SUCCESS);
+            boolean granted = false;
+            for (int index = 0; !granted && index < subscriptions.size(); index++)
+            {
+                granted = subscriptions.get(index).reasonCode == SUCCESS;
+            }
+
+            return !subscriptions.isEmpty() && !granted;
         }
 
         private void doSubscribeFailure(
@@ -5246,7 +5257,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                if (topicFilters.stream().anyMatch(this::subscribePending))
+                if (anySubscribePending(topicFilters))
                 {
                     session.deferredUnsubscribes.put(packetId, topicFilters);
                     putPendingFilters(packetId, topicFilters);
@@ -5254,12 +5265,18 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 if (subscribed(topicFilters))
                 {
-                    topicFilters.forEach(filter -> putPendingFilter(PENDING_UNSUBSCRIBE, filter, packetId));
+                    for (int index = 0; index < topicFilters.size(); index++)
+                    {
+                        putPendingFilter(PENDING_UNSUBSCRIBE, topicFilters.get(index), packetId);
+                    }
                     putPendingFilters(packetId, topicFilters);
 
-                    if (topicFilters.stream().anyMatch(this::delivering))
+                    if (anyDelivering(topicFilters))
                     {
-                        topicFilters.forEach(filter -> stopDelivering(traceId, filter));
+                        for (int index = 0; index < topicFilters.size(); index++)
+                        {
+                            stopDelivering(traceId, topicFilters.get(index));
+                        }
                         session.deferredUnsubscribes.put(packetId, topicFilters);
                     }
                     else
@@ -5273,6 +5290,32 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 doSignalKeepAliveTimeout(traceId);
             }
+        }
+
+        private boolean anySubscribePending(
+            List<String> topicFilters)
+        {
+            boolean pending = false;
+
+            for (int index = 0; !pending && index < topicFilters.size(); index++)
+            {
+                pending = subscribePending(topicFilters.get(index));
+            }
+
+            return pending;
+        }
+
+        private boolean anyDelivering(
+            List<String> topicFilters)
+        {
+            boolean delivering = false;
+
+            for (int index = 0; !delivering && index < topicFilters.size(); index++)
+            {
+                delivering = delivering(topicFilters.get(index));
+            }
+
+            return delivering;
         }
 
         private boolean subscribePending(
@@ -5355,6 +5398,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
+            if (session.deferredUnsubscribes.isEmpty())
+            {
+                return;
+            }
+
             final List<String> unsubscribedFilters = new ArrayList<>();
 
             final Iterator<Map.Entry<Integer, List<String>>> iterator = session.deferredUnsubscribes.entrySet().iterator();
@@ -5397,8 +5445,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
             final List<Subscription> newState = new ArrayList<>();
-            for (Subscription subscription : session.subscriptions())
+            for (int subscriptionIndex = 0; subscriptionIndex < session.subscriptions().size(); subscriptionIndex++)
             {
+                final Subscription subscription = session.subscriptions().get(subscriptionIndex);
                 if (!topicFilters.contains(subscription.filter))
                 {
                     newState.add(subscription);
@@ -5427,8 +5476,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final Map<MqttSubscribeStream, List<Subscription>> filtersByStream = new HashMap<>();
 
-            for (String topicFilter : topicFilters)
+            for (int topicFilterIndex = 0; topicFilterIndex < topicFilters.size(); topicFilterIndex++)
             {
+                final String topicFilter = topicFilters.get(topicFilterIndex);
                 final MqttBindingConfig binding = bindings.get(routedId);
                 final String shareName = MqttValidator.shareName(topicFilter);
                 final String pattern = shareName != null ? MqttValidator.sharePattern(topicFilter) : topicFilter;
@@ -7002,6 +7052,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             private int id = 0;
             private int filterId;
             private String filter;
+            private String shareName;
+            private String pattern;
             private int qos;
             private int flags;
             private int reasonCode;
@@ -7020,12 +7072,25 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private String shareName()
             {
-                return MqttValidator.shareName(filter);
+                resolveShare();
+
+                return shareName;
             }
 
             private String pattern()
             {
-                return shared() ? MqttValidator.sharePattern(filter) : filter;
+                resolveShare();
+
+                return pattern;
+            }
+
+            private void resolveShare()
+            {
+                if (pattern == null)
+                {
+                    shareName = MqttValidator.shareName(filter);
+                    pattern = shared() ? MqttValidator.sharePattern(filter) : filter;
+                }
             }
 
             private Subscription withTopicFilter(
@@ -7033,6 +7098,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 String pattern)
             {
                 this.filter = MqttValidator.topicFilter(shareName, pattern);
+                this.shareName = null;
+                this.pattern = null;
                 this.filterId = filterIds.computeIfAbsent(filter, f -> --filterIdSequence);
                 return this;
             }
@@ -7470,8 +7537,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                             if (newState.size() >= currentSubscriptions.size())
                             {
                                 final List<Subscription> newSubscriptions = new ArrayList<>();
-                                for (Subscription subscription : newState)
+                                for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
                                 {
+                                    final Subscription subscription = newState.get(subscriptionIndex);
                                     if (!currentSubscriptions.contains(subscription) ||
                                         unAckedSubscriptions.contains(subscription))
                                     {
@@ -7497,8 +7565,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                             else
                             {
                                 final List<String> unsubscribedFilters = new ArrayList<>();
-                                for (Subscription subscription : currentSubscriptions)
+                                for (int currentIndex = 0; currentIndex < currentSubscriptions.size(); currentIndex++)
                                 {
+                                    final Subscription subscription = currentSubscriptions.get(currentIndex);
                                     if (!newState.contains(subscription))
                                     {
                                         unsubscribedFilters.add(subscription.filter);
@@ -7508,8 +7577,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 if (!unsubscribedFilters.isEmpty())
                                 {
                                     final Map<Integer, List<String>> packetIdToFilters = new HashMap<>();
-                                    for (String unsubscribedFilter : unsubscribedFilters)
+                                    for (int filterIndex = 0; filterIndex < unsubscribedFilters.size(); filterIndex++)
                                     {
+                                        final String unsubscribedFilter = unsubscribedFilters.get(filterIndex);
                                         if (pendingPacketId(PENDING_UNSUBSCRIBE, unsubscribedFilter) != NO_PACKET_ID)
                                         {
                                             packetIdToFilters
@@ -7524,8 +7594,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                                         for (int unsubscribePacketId : packetIdToFilters.keySet())
                                         {
                                             final List<String> filters = removePendingFilters(unsubscribePacketId);
-                                            for (String filter : filters)
+                                            for (int filterIndex = 0; filterIndex < filters.size(); filterIndex++)
                                             {
+                                                final String filter = filters.get(filterIndex);
                                                 removePendingFilter(PENDING_UNSUBSCRIBE, filter);
                                             }
                                             sendUnsuback(unsubscribePacketId, traceId, authorization, filters, newState, false);
@@ -7538,8 +7609,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 }
                             }
                             final List<Subscription> granted = new ArrayList<>();
-                            for (Subscription subscription : newState)
+                            for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
                             {
+                                final Subscription subscription = newState.get(subscriptionIndex);
                                 if (subscription.reasonCode == SUCCESS)
                                 {
                                     granted.add(subscription);
@@ -7560,8 +7632,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final List<Subscription> acknowledged = new ArrayList<>();
 
-                for (Subscription unacked : unAckedSubscriptions)
+                for (int unackedIndex = 0; unackedIndex < unAckedSubscriptions.size(); unackedIndex++)
                 {
+                    final Subscription unacked = unAckedSubscriptions.get(unackedIndex);
                     if (pendingPacketId(PENDING_SUBSCRIBE, unacked.filter) == packetId)
                     {
                         if (unacked.reasonCode != SUCCESS)
@@ -7570,10 +7643,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         else
                         {
-                            newSubscriptions.stream()
-                                .filter(s -> s.filter.equals(unacked.filter))
-                                .findFirst()
-                                .ifPresent(acknowledged::add);
+                            final Subscription match = findByFilter(newSubscriptions, unacked.filter);
+                            if (match != null)
+                            {
+                                acknowledged.add(match);
+                            }
                         }
                     }
                 }
@@ -8557,8 +8631,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 List<Subscription> removed = List.of();
 
-                for (Subscription subscription : subscriptions)
+                for (int subscriptionIndex = 0; subscriptionIndex < subscriptions.size(); subscriptionIndex++)
                 {
+                    final Subscription subscription = subscriptions.get(subscriptionIndex);
                     if (findByFilter(replacements, subscription.filter) != null)
                     {
                         removed = removed.isEmpty() ? new ArrayList<>() : removed;
@@ -8689,8 +8764,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 List<Subscription> unsubscribed)
             {
-                for (Subscription subscription : unsubscribed)
+                for (int subscriptionIndex = 0; subscriptionIndex < unsubscribed.size(); subscriptionIndex++)
                 {
+                    final Subscription subscription = unsubscribed.get(subscriptionIndex);
                     if (subscription.reasonCode <= GRANTED_QOS_2)
                     {
                         this.subscriptions.remove(subscription);
