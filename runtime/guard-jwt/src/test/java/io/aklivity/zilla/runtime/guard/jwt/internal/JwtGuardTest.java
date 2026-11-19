@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ public class JwtGuardTest
     public void shouldNotVerifyMissingHandler() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
 
@@ -101,6 +103,7 @@ public class JwtGuardTest
     public void shouldNotVerifyMissingSession() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
 
@@ -133,6 +136,7 @@ public class JwtGuardTest
     public void shouldNotVerifyRolesWhenInsufficient() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
 
@@ -184,6 +188,7 @@ public class JwtGuardTest
     public void shouldVerifyRolesWhenExact() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
@@ -237,6 +242,7 @@ public class JwtGuardTest
     public void shouldVerifyRolesWhenSuperset() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
@@ -289,6 +295,7 @@ public class JwtGuardTest
     public void shouldVerifyRolesWhenEmpty() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
@@ -340,6 +347,7 @@ public class JwtGuardTest
     public void shouldVerifyWhenIndexDiffers() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(0x01L);
@@ -391,6 +399,7 @@ public class JwtGuardTest
     public void shouldIdentify() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
@@ -442,6 +451,7 @@ public class JwtGuardTest
     public void shouldIdentifyWhenIndexDiffers() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(0x01L);
@@ -495,6 +505,7 @@ public class JwtGuardTest
     public void shouldResolveAttributes() throws Exception
     {
         EngineContext engine = Mockito.mock(EngineContext.class);
+        Mockito.when(engine.clock()).thenReturn(Clock.systemUTC());
 
         when(engine.index()).thenReturn(0);
         when(engine.supplyAuthorizedId()).thenReturn(1L);
@@ -545,10 +556,12 @@ public class JwtGuardTest
     public void shouldResolveCredentialsAcrossWorkers() throws Exception
     {
         EngineContext engine0 = Mockito.mock(EngineContext.class);
+        when(engine0.clock()).thenReturn(Clock.systemUTC());
         when(engine0.index()).thenReturn(0);
         when(engine0.supplyAuthorizedId()).thenReturn(1L);
 
         EngineContext engine1 = Mockito.mock(EngineContext.class);
+        when(engine1.clock()).thenReturn(Clock.systemUTC());
         when(engine1.index()).thenReturn(1);
         when(engine1.indexOf(Mockito.anyLong())).thenReturn(0);
 

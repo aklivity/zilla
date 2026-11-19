@@ -19,6 +19,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -68,6 +69,7 @@ public class JwtGuardHandler implements GuardHandler
     private final Map<String, String> attributes;
     private final Consumer<Runnable> dispatcher;
     private final LongFunction<String> credentialer;
+    private final Clock clock;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
@@ -114,6 +116,7 @@ public class JwtGuardHandler implements GuardHandler
         this.event = new JwtEventContext(context);
         this.attributes = options.attributes;
         this.dispatcher = context::dispatch;
+        this.clock = context.clock();
         this.credentialer = credentialer;
     }
 
@@ -166,7 +169,7 @@ public class JwtGuardHandler implements GuardHandler
             String issuer = claims.getIssuer();
             List<String> audience = claims.getAudience();
 
-            long now = Instant.now().toEpochMilli();
+            long now = clock.millis();
             if (notBefore != null && now < notBefore.toEpochMilli() ||
                 notAfter != null && now > notAfter.toEpochMilli())
             {
