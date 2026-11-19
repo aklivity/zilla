@@ -30,13 +30,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -176,6 +175,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private int consumerProgressPartitionId;
+    private long consumerProgressPartitionOffset;
+    private String16FW consumerProgressMetadata;
+    private long consumerProgressCorrelationId;
+    private final Consumer<KafkaOffsetFW.Builder> consumerProgressWriter = p -> p
+        .partitionId(consumerProgressPartitionId)
+        .partitionOffset(consumerProgressPartitionOffset)
+        .metadata(consumerProgressMetadata);
+    private final Consumer<KafkaMergedConsumerFlushExFW.Builder> consumerFlushWriter = f -> f
+        .progress(consumerProgressWriter)
+        .correlationId(consumerProgressCorrelationId);
+    private final Consumer<KafkaMergedFlushExFW.Builder> mergedConsumerProgressWriter = m -> m.consumer(consumerFlushWriter);
     private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filtersRW =
         new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
 
@@ -536,25 +547,23 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             final long topicPartitionKey = topicPartitionKey(offset.topicKey, offset.partitionId);
             final long messagesId = messagesPerTopicKey.get(offset.topicKey);
 
-            OffsetCommit offsetCommit = new OffsetCommit(offset, qos, state, packetId);
-
             final OffsetHighWaterMark highWaterMark = clientHighWaterMarks.marks.get(topicPartitionKey);
 
             final KafkaProxy proxy = messagesId != -1 ? messages.get(messagesId) : retained;
 
             if (!highWaterMark.awaitingAcknowledge(offset.offset))
             {
-                commitOffset(traceId, authorization, budgetId, reserved, proxy, offsetCommit);
+                proxy.doKafkaConsumerFlush(traceId, authorization, budgetId, reserved, offset, qos, state, packetId);
             }
             else if (highWaterMark.nextAcknowledge(offset.offset))
             {
                 highWaterMark.acknowledge(offset.offset);
-                commitOffset(traceId, authorization, budgetId, reserved, proxy, offsetCommit);
+                proxy.doKafkaConsumerFlush(traceId, authorization, budgetId, reserved, offset, qos, state, packetId);
                 commitDeferredOffsets(traceId, authorization, budgetId, reserved, highWaterMark);
             }
             else
             {
-                highWaterMark.deferOffsetCommit(offsetCommit, proxy);
+                highWaterMark.deferOffsetCommit(new OffsetCommit(offset, qos, state, packetId), proxy);
             }
         }
 
@@ -903,17 +912,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             }
         }
 
-        private void commitOffset(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            KafkaProxy proxy,
-            OffsetCommit offsetCommit)
-        {
-            proxy.doKafkaConsumerFlush(traceId, authorization, budgetId, reserved, offsetCommit);
-        }
-
         public int replyPendingAck()
         {
             return (int)(replySeq - replyAck);
@@ -1223,7 +1221,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             long authorization,
             long budgetId,
             int reserved,
-            OffsetCommit offsetCommit);
+            PartitionOffset offset,
+            int qos,
+            MqttOffsetStateFlags state,
+            int packetId);
     }
 
     final class KafkaMessagesProxy extends  KafkaProxy
@@ -1713,13 +1714,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             long authorization,
             long budgetId,
             int reserved,
-            OffsetCommit offsetCommit)
+            PartitionOffset offset,
+            int qos,
+            MqttOffsetStateFlags state,
+            int packetId)
         {
-            final int qos = offsetCommit.qos;
-            final PartitionOffset offset = offsetCommit.partitionOffset;
-            final MqttOffsetStateFlags state = offsetCommit.state;
-            final int packetId = offsetCommit.packetId;
-
             if (qos == MqttQoS.EXACTLY_ONCE.value() && state == MqttOffsetStateFlags.COMPLETE)
             {
                 incompletePacketIds.computeIfAbsent(offset.partitionId, c -> new IntArrayList()).removeInt(packetId);
@@ -1731,21 +1730,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final int correlationId = state == MqttOffsetStateFlags.INCOMPLETE ? packetId : -1;
 
+            final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
+
+            consumerProgressPartitionId = offset.partitionId;
+            consumerProgressPartitionOffset = offset.offset + 1;
+            consumerProgressMetadata = incomplete == null || incomplete.isEmpty() ?
+                EMPTY_STRING : offsetMetadataListToString(incomplete);
+            consumerProgressCorrelationId = correlationId;
+
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m.consumer(f ->
-                    {
-                        f.progress(p ->
-                        {
-                            p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
-                            final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
-                            final String16FW partitionMetadata = incomplete == null || incomplete.isEmpty() ?
-                                EMPTY_STRING : offsetMetadataListToString(incomplete);
-                            p.metadata(partitionMetadata);
-                        });
-                        f.correlationId(correlationId);
-                    }))
+                    .merged(mergedConsumerProgressWriter)
                     .build();
 
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, this.state, initialMax,
@@ -2423,13 +2419,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             long authorization,
             long budgetId,
             int reserved,
-            OffsetCommit offsetCommit)
+            PartitionOffset offset,
+            int qos,
+            MqttOffsetStateFlags state,
+            int packetId)
         {
-            final int qos = offsetCommit.qos;
-            final PartitionOffset offset = offsetCommit.partitionOffset;
-            final MqttOffsetStateFlags state = offsetCommit.state;
-            final int packetId = offsetCommit.packetId;
-
             if (qos == MqttQoS.EXACTLY_ONCE.value() && state == MqttOffsetStateFlags.COMPLETE)
             {
                 final IntArrayList incompletes = incompletePacketIds.get(offset.partitionId);
@@ -2447,21 +2441,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final int correlationId = state == MqttOffsetStateFlags.INCOMPLETE ? packetId : -1;
 
+            final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
+
+            consumerProgressPartitionId = offset.partitionId;
+            consumerProgressPartitionOffset = offset.offset + 1;
+            consumerProgressMetadata = incomplete == null || incomplete.isEmpty() ?
+                EMPTY_STRING : offsetMetadataListToString(incomplete);
+            consumerProgressCorrelationId = correlationId;
+
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m.consumer(f ->
-                    {
-                        f.progress(p ->
-                        {
-                            p.partitionId(offset.partitionId).partitionOffset(offset.offset + 1);
-                            final IntArrayList incomplete = incompletePacketIds.get(offset.partitionId);
-                            final String16FW partitionMetadata = incomplete == null || incomplete.isEmpty() ?
-                                EMPTY_STRING : offsetMetadataListToString(incomplete);
-                            p.metadata(partitionMetadata);
-                        });
-                        f.correlationId(correlationId);
-                    }))
+                    .merged(mergedConsumerProgressWriter)
                     .build();
 
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, this.state, initialMax,
@@ -5204,7 +5195,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             long budgetId,
             int reserved)
         {
-            proxy.doKafkaConsumerFlush(traceId, authorization, budgetId, reserved, this);
+            proxy.doKafkaConsumerFlush(traceId, authorization, budgetId, reserved, partitionOffset, qos, state, packetId);
         }
     }
 
@@ -5238,43 +5229,67 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
     private static final class OffsetHighWaterMark
     {
+        private static final int INITIAL_CAPACITY = 16;
+
         final Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
-        private final NavigableSet<Long> unacknowledged;
+        private long[] unacknowledged;
+        private int unacknowledgedCount;
 
         OffsetHighWaterMark()
         {
             this.deferredOffsetCommits = new Long2ObjectHashMap<>();
-            this.unacknowledged = new TreeSet<>();
+            this.unacknowledged = new long[INITIAL_CAPACITY];
         }
 
         public void awaitAcknowledge(
             long offset)
         {
-            unacknowledged.add(offset);
+            final int index = Arrays.binarySearch(unacknowledged, 0, unacknowledgedCount, offset);
+
+            if (index < 0)
+            {
+                final int insertAt = -index - 1;
+
+                if (unacknowledgedCount == unacknowledged.length)
+                {
+                    unacknowledged = Arrays.copyOf(unacknowledged, unacknowledgedCount << 1);
+                }
+
+                System.arraycopy(unacknowledged, insertAt, unacknowledged, insertAt + 1, unacknowledgedCount - insertAt);
+                unacknowledged[insertAt] = offset;
+                unacknowledgedCount++;
+            }
         }
 
         public boolean awaitingAcknowledge(
             long offset)
         {
-            return unacknowledged.contains(offset);
+            return Arrays.binarySearch(unacknowledged, 0, unacknowledgedCount, offset) >= 0;
         }
 
         public boolean nextAcknowledge(
             long offset)
         {
-            return unacknowledged.first() == offset;
+            return unacknowledgedCount > 0 && unacknowledged[0] == offset;
         }
 
         public void acknowledge(
             long offset)
         {
-            unacknowledged.remove(offset);
+            final int index = Arrays.binarySearch(unacknowledged, 0, unacknowledgedCount, offset);
+
+            if (index >= 0)
+            {
+                System.arraycopy(unacknowledged, index + 1, unacknowledged, index, unacknowledgedCount - index - 1);
+                unacknowledgedCount--;
+            }
+
             deferredOffsetCommits.remove(offset);
         }
 
         public DeferredOffsetCommit nextDeferred()
         {
-            return unacknowledged.isEmpty() ? null : deferredOffsetCommits.get(unacknowledged.first());
+            return unacknowledgedCount == 0 ? null : deferredOffsetCommits.get(unacknowledged[0]);
         }
 
         public void deferOffsetCommit(
