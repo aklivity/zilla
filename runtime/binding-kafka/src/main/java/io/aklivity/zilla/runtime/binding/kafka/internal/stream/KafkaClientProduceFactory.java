@@ -1363,6 +1363,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             private int encodeableRecordBytesDeferred;
             private int encodeableRecordBatchSlotOffset;
+            private int encodeableRecordValueSlotOffset;
             private int flushableRequestBytes;
 
             private int decodeSlot = NO_SLOT;
@@ -1871,6 +1872,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 final int newRecordHeaderSize = recordHeader.sizeof();
                 encodeSlotLimit += newRecordHeaderSize;
+                encodeableRecordValueSlotOffset = encodeSlotLimit;
 
                 int newRecordSize = newRecordHeaderSize + valueSize + encodeableRecordBytesDeferred +
                     recordTrailerSize + headerSize;
@@ -2134,7 +2136,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
                     final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                    final int recordHeaderLimit = encodeLimit - (valueCompleteSize - encodeableRecordBytesDeferred);
+                    final int recordHeaderLimit = encodeableRecordValueSlotOffset;
                     final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
 
                     final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
@@ -2219,7 +2221,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         }
                         final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
                         encodeBuffer.putBytes(encodeSlotOffset, buffer, offset + length, remaining);
-                        encodeableRecordBatchSlotOffset -= offset + length - encodeSlotOffset;
+                        final int encodeSlotShift = offset + length - encodeSlotOffset;
+                        encodeableRecordBatchSlotOffset -= encodeSlotShift;
+                        encodeableRecordValueSlotOffset -= encodeSlotShift;
                         encodeSlotLimit = encodeSlotOffset + remaining;
                     }
                 }

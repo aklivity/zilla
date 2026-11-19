@@ -82,6 +82,8 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world"
 write flush
 
+write notify RECORD_WRITTEN
+
 write await REQUEST_ENCODED
 
 write zilla:data.ext ${kafka:dataEx()
