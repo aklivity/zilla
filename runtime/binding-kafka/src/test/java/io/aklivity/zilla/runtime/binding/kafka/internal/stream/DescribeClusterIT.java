@@ -56,4 +56,14 @@ public class DescribeClusterIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/cluster.brokers.info.twice/client",
+        "${net}/cluster.brokers.info.unsolicited/server"})
+    public void shouldDiscardUnsolicitedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

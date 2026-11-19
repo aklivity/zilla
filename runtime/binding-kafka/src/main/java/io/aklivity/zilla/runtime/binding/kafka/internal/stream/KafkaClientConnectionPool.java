@@ -1635,20 +1635,23 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                         responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
                     }
 
-                    final int responseBytesMin = Math.min(responseBytes, payload.sizeof());
+                    final int responseBytesMin = Math.min(responseBytes, limit - progress);
                     responseBytes -= responseBytesMin;
                     assert responseBytes >= 0;
 
-                    long initialId = responses.peekLong();
+                    final KafkaClientStream stream = !responses.isEmpty()
+                        ? streamsByInitialId.get(responses.peekLong())
+                        : null;
 
-                    KafkaClientStream stream = streamsByInitialId.get(initialId);
-
-                    stream.doStreamData(traceId, flags | COMPLETE,
-                        reserved, buffer, progress, responseBytesMin, extension);
+                    if (stream != null)
+                    {
+                        stream.doStreamData(traceId, flags | COMPLETE,
+                            reserved, buffer, progress, responseBytesMin, extension);
+                    }
 
                     progress += responseBytesMin;
 
-                    if (responseBytes == 0)
+                    if (responseBytes == 0 && !responses.isEmpty())
                     {
                         responses.removeLong();
                     }
