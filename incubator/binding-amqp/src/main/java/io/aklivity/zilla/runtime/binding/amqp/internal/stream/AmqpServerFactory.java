@@ -85,13 +85,13 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasIncomplete;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static io.aklivity.zilla.runtime.engine.util.Flags.init;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
@@ -458,6 +458,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final EngineContext context;
+    private final Clock clock;
 
     private final Long2ObjectHashMap<AmqpBindingConfig> bindings;
     private final int amqpTypeId;
@@ -484,6 +485,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.context = context;
+        this.clock = context.clock();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -2431,7 +2433,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
             if (now >= readIdleTimeoutAt)
             {
                 onDecodeError(traceId, authorization, RESOURCE_LIMIT_EXCEEDED, timeoutDescription);
@@ -2450,7 +2452,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
             if (now >= writeIdleTimeoutAt)
             {
                 writeIdleTimeoutId = NO_CANCEL_ID;
@@ -2997,7 +2999,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             if (readIdleTimeout > 0)
             {
-                readIdleTimeoutAt = currentTimeMillis() + readIdleTimeout;
+                readIdleTimeoutAt = clock.millis() + readIdleTimeout;
 
                 if (readIdleTimeoutId == NO_CANCEL_ID)
                 {
@@ -3012,7 +3014,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         {
             if (writeIdleTimeout > 0)
             {
-                writeIdleTimeoutAt = currentTimeMillis() + writeIdleTimeout;
+                writeIdleTimeoutAt = clock.millis() + writeIdleTimeout;
 
                 if (writeIdleTimeoutId == NO_CANCEL_ID)
                 {
@@ -3025,7 +3027,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         private void doSignalCloseTimeout(
             long traceId)
         {
-            final long closeTimeoutAt = currentTimeMillis() + closeTimeout;
+            final long closeTimeoutAt = clock.millis() + closeTimeout;
 
             assert closeTimeoutId == NO_CANCEL_ID;
             closeTimeoutId = signaler.signalAt(closeTimeoutAt, originId, routedId, replyId, traceId, CLOSE_SIGNAL_ID, 0);
