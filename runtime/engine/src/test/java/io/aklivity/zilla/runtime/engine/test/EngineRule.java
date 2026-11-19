@@ -40,6 +40,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -93,6 +94,7 @@ public final class EngineRule implements TestRule
     private final EngineBuilder builder;
 
     private Engine engine;
+    private Clock clock;
 
     private EngineConfiguration configuration;
     private String configRoot;
@@ -144,6 +146,13 @@ public final class EngineRule implements TestRule
         requireNonNull(value);
         properties.setProperty(name, value);
         return this;
+    }
+
+    public EngineRule clock(
+        Clock clock)
+    {
+        this.clock = requireNonNull(clock);
+        return configure(ENGINE_CLOCK_NAME, TestClock.class.getName() + "::supply");
     }
 
     public EngineRule configurationRoot(
@@ -480,6 +489,11 @@ public final class EngineRule implements TestRule
 
                 final FileSystem fs = openConfigFileSystem(config.configURI());
 
+                if (clock != null)
+                {
+                    TestClock.install(clock);
+                }
+
                 engine = builder.config(config)
                                 .errorHandler(errorHandler)
                                 .build();
@@ -560,6 +574,10 @@ public final class EngineRule implements TestRule
                     }
                     finally
                     {
+                        if (clock != null)
+                        {
+                            TestClock.uninstall();
+                        }
                         if (fs != null)
                         {
                             fs.close();
