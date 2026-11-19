@@ -134,6 +134,8 @@ public final class JsonSchemaImpl implements JsonSchema
         VALID, INVALID, PENDING
     }
 
+    private static final Verdict[] VERDICTS = Verdict.values();
+
     // evaluates the events of one value against a schema, one event at a time
     private interface Evaluator
     {
@@ -2644,6 +2646,42 @@ public final class JsonSchemaImpl implements JsonSchema
             return progress - offset;
         }
 
+        // decodes UTF-8 straight into the buffer of a key, so that no String is made of it
+        private static void appendUtf8(
+            StringBuilder out,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            final int limit = index + length;
+            int position = index;
+            while (position < limit)
+            {
+                final int lead = buffer.getByte(position++) & 0xFF;
+                if (lead < 0x80)
+                {
+                    out.append((char) lead);
+                }
+                else if (lead < 0xE0)
+                {
+                    out.append((char) ((lead & 0x1F) << 6 | buffer.getByte(position++) & 0x3F));
+                }
+                else if (lead < 0xF0)
+                {
+                    final int second = buffer.getByte(position++) & 0x3F;
+                    final int third = buffer.getByte(position++) & 0x3F;
+                    out.append((char) ((lead & 0x0F) << 12 | second << 6 | third));
+                }
+                else
+                {
+                    final int second = buffer.getByte(position++) & 0x3F;
+                    final int third = buffer.getByte(position++) & 0x3F;
+                    final int fourth = buffer.getByte(position++) & 0x3F;
+                    out.appendCodePoint((lead & 0x07) << 18 | second << 12 | third << 6 | fourth);
+                }
+            }
+        }
+
         private int restore(
             DirectBufferEx buffer,
             int offset)
@@ -2682,7 +2720,7 @@ public final class JsonSchemaImpl implements JsonSchema
                         copies[level] = copy;
                     }
                     copy.setLength(0);
-                    copy.append(buffer.getStringWithoutLengthUtf8(progress, length));
+                    appendUtf8(copy, buffer, progress, length);
                     copied[level] = true;
                     progress += length;
                 }
@@ -3025,7 +3063,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 restoreDiagnostics(buffer, progress);
             }
-            verdict = Verdict.values()[mode & 3];
+            verdict = VERDICTS[mode & 3];
         }
 
         private int saveDiagnostics(

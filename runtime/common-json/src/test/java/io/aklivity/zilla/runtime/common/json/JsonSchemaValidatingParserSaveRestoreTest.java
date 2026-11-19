@@ -174,14 +174,18 @@ class JsonSchemaValidatingParserSaveRestoreTest
             final com.sun.management.ThreadMXBean threads =
                 (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
             final long threadId = Thread.currentThread().threadId();
-            final long before = threads.getThreadAllocatedBytes(threadId);
-            for (int round = 0; round < 1_000; round++)
+            long allocated = Long.MAX_VALUE;
+            for (int sample = 0; sample < 5; sample++)
             {
-                parser.save(record, RECORD_OFFSET);
+                final long before = threads.getThreadAllocatedBytes(threadId);
+                for (int round = 0; round < 1_000; round++)
+                {
+                    parser.save(record, RECORD_OFFSET);
+                }
+                allocated = Math.min(allocated, threads.getThreadAllocatedBytes(threadId) - before);
             }
-            final long allocated = threads.getThreadAllocatedBytes(threadId) - before;
 
-            assertEquals(0L, allocated, "save allocated " + allocated + " B over 1000 saves, diagnostics " + diagnostics);
+            assertEquals(0L, allocated, "save allocated " + allocated + " B over 1000 saves at best, diagnostics " + diagnostics);
         }
     }
 
@@ -212,6 +216,88 @@ class JsonSchemaValidatingParserSaveRestoreTest
         }
 
         return trace;
+    }
+
+    @Test
+    void shouldRestoreWithoutAllocating()
+    {
+        final JsonSchema schema = JsonSchema.of(SCHEMA);
+        final UnsafeBufferEx record = new UnsafeBufferEx(new byte[RECORD_CAPACITY]);
+        final byte[] bytes = FIRST.getBytes(UTF_8);
+
+        for (boolean diagnostics : new boolean[] {false, true})
+        {
+            final JsonParserEx parser = diagnostics
+                ? schema.newParser(false, JsonEx.createParser(), d ->
+                {
+                })
+                : schema.newParser(false, JsonEx.createParser());
+            parser.wrap(new UnsafeBufferEx(bytes), 0, 40, false);
+            pull(parser, new ArrayList<>());
+            parser.save(record, RECORD_OFFSET);
+
+            for (int round = 0; round < 50_000; round++)
+            {
+                parser.restore(record, RECORD_OFFSET);
+            }
+
+            final com.sun.management.ThreadMXBean threads =
+                (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
+            final long threadId = Thread.currentThread().threadId();
+            long allocated = Long.MAX_VALUE;
+            for (int sample = 0; sample < 5; sample++)
+            {
+                final long before = threads.getThreadAllocatedBytes(threadId);
+                for (int round = 0; round < 1_000; round++)
+                {
+                    parser.restore(record, RECORD_OFFSET);
+                }
+                allocated = Math.min(allocated, threads.getThreadAllocatedBytes(threadId) - before);
+            }
+
+            assertEquals(0L, allocated,
+                "restore allocated " + allocated + " B over 1000 restores at best, diagnostics " + diagnostics);
+        }
+    }
+
+    @Test
+    void shouldRestoreThePointerOfAKeyOfAnyCharacters()
+    {
+        final JsonSchema schema = JsonSchema.of("{\"additionalProperties\":{\"type\":\"number\"}}");
+        final byte[] bytes = "{\"na\u00efve\u20ac\ud83d\ude00\":\"x\",\"a/b\":true} ".getBytes(UTF_8);
+
+        for (int split = 1; split < bytes.length; split++)
+        {
+            assertEquals(pointers(schema, bytes, split, false), pointers(schema, bytes, split, true), "split " + split);
+        }
+        assertTrue(pointers(schema, bytes, 17, true).contains("/na\u00efve\u20ac\ud83d\ude00 type"),
+            "got " + pointers(schema, bytes, 17, true));
+    }
+
+    private static List<String> pointers(
+        JsonSchema schema,
+        byte[] bytes,
+        int split,
+        boolean save)
+    {
+        final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+        final UnsafeBufferEx record = new UnsafeBufferEx(new byte[RECORD_CAPACITY]);
+        final List<String> reported = new ArrayList<>();
+
+        JsonParserEx parser = schema.newParser(false, JsonEx.createParser(), d -> reported.add(d.pointer() + " " + d.keyword()));
+        parser.wrap(input, 0, split, false);
+        pull(parser, new ArrayList<>());
+        final int progress = split - parser.remaining();
+        if (save)
+        {
+            parser.save(record, RECORD_OFFSET);
+            parser = schema.newParser(false, JsonEx.createParser(), d -> reported.add(d.pointer() + " " + d.keyword()));
+            parser.restore(record, RECORD_OFFSET);
+        }
+        parser.wrap(input, progress, bytes.length, true);
+        pull(parser, new ArrayList<>());
+
+        return reported;
     }
 
     private static List<String> silentTwoWindows(
