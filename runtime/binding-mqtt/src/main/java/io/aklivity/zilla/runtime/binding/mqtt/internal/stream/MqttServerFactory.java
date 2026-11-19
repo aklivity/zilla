@@ -413,7 +413,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Consumer<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW.Builder>
         publishUserPropertyBuilder = this::buildPublishUserProperty;
     private final MutableDirectBufferEx topicKeyBuffer = new UnsafeBufferEx(new byte[MAXIMUM_TOPIC_BYTES]);
-    private final UnsafeBufferEx clientIdBuffer = new UnsafeBufferEx(new byte[0]);
     private final String16FW decodedContentTypeRO = new String16FW();
     private final String16FW decodedResponseTopicRO = new String16FW();
     private final OctetsFW decodedCorrelationDataRO = new OctetsFW();
@@ -2902,7 +2901,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private MqttSessionStream session;
 
         private String clientId;
-        private byte[] clientIdEncoded;
+        private UnsafeBufferEx clientIdBuffer;
 
         private long affinity;
         private long decodeSeq;
@@ -3478,13 +3477,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (length == 0)
             {
                 this.clientId = supplyClientId.get();
-                this.clientIdEncoded = encodeClientId(new String16FW(clientId));
+                this.clientIdBuffer = encodeClientId(new String16FW(clientId));
                 this.assignedClientId = true;
             }
             else
             {
                 this.clientId = clientIdentifier.asString();
-                this.clientIdEncoded = encodeClientId(clientIdentifier);
+                this.clientIdBuffer = encodeClientId(clientIdentifier);
             }
 
             this.keepAlive = (short) Math.min(Math.max(keepAlive, keepAliveMinimum), keepAliveMaximum);
@@ -3941,9 +3940,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private String16FW clientId()
         {
-            clientIdBuffer.wrap(clientIdEncoded);
-
-            return clientIdRO.wrap(clientIdBuffer, 0, clientIdEncoded.length);
+            return clientIdRO.wrap(clientIdBuffer, 0, clientIdBuffer.capacity());
         }
 
         private String ownerNonce()
@@ -10283,15 +10280,14 @@ public final class MqttServerFactory implements MqttStreamFactory
         return flyweights;
     }
 
-    private byte[] encodeClientId(
+    private UnsafeBufferEx encodeClientId(
         String16FW clientId)
     {
         final int length = clientId.length();
-        final byte[] encoded = new byte[Short.BYTES + length];
+        final UnsafeBufferEx encoded = new UnsafeBufferEx(new byte[Short.BYTES + length]);
 
-        clientId.buffer().getBytes(clientId.offset() + Short.BYTES, encoded, Short.BYTES, length);
-        clientIdBuffer.wrap(encoded);
-        clientIdBuffer.putShort(0, (short) length, nativeOrder());
+        encoded.putShort(0, (short) length, nativeOrder());
+        encoded.putBytes(Short.BYTES, clientId.buffer(), clientId.offset() + Short.BYTES, length);
 
         return encoded;
     }
