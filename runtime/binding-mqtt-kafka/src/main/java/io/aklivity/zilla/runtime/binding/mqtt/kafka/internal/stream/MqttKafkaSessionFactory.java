@@ -154,6 +154,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private static final short OFFSET_DELETE_API_VERSION = 0;
     private static final String WILL_SIGNAL_KEY_POSTFIX = "#will";
     private static final String EXPIRY_SIGNAL_KEY_POSTFIX = "#expiry";
+    private static final String16FW EXPIRY_SIGNAL_KEY_POSTFIX_FW = new String16FW(EXPIRY_SIGNAL_KEY_POSTFIX);
     private static final String WILL_KEY_POSTFIX = "#will-";
     private static final String16FW SENDER_ID_NAME = new String16FW("sender-id");
     private static final String16FW TYPE_HEADER_NAME = new String16FW("type");
@@ -276,6 +277,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MutableDirectBufferEx sessionSignalBuffer;
     private final MutableDirectBufferEx willKeyBuffer;
     private final MutableDirectBufferEx sessionSignalKeyBuffer;
+    private final MutableDirectBufferEx signalKeyBuffer;
+    private final String16FW.Builder signalKeyRW = new String16FW.Builder();
     private final MutableDirectBufferEx sessionExtBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
@@ -336,6 +339,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.sessionSignalBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.willKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.sessionSignalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.signalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.sessionExtBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
@@ -407,6 +411,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         }
 
         return newStream;
+    }
+
+    private String16FW expirySignalKey(
+        String16FW clientId)
+    {
+        final int clientIdLength = clientId.length();
+        final int keyLength = clientIdLength + EXPIRY_SIGNAL_KEY_POSTFIX_FW.length();
+
+        signalKeyBuffer.putBytes(0, clientId.value(), 0, clientIdLength);
+        signalKeyBuffer.putBytes(clientIdLength, EXPIRY_SIGNAL_KEY_POSTFIX_FW.value(), 0, EXPIRY_SIGNAL_KEY_POSTFIX_FW.length());
+
+        return signalKeyRW.wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
+            .set(signalKeyBuffer, 0, keyLength)
+            .build();
     }
 
     @Override
@@ -3667,9 +3685,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             long traceId)
         {
-            String16FW expirySignalKey = new String16FW.Builder()
-                .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, UTF_8).build();
+            final String16FW expirySignalKey = expirySignalKey(delegate.clientId);
             Flyweight expirySignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
@@ -3697,9 +3713,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             Flyweight payload)
         {
-            String16FW expirySignalKey = new String16FW.Builder()
-                .wrap(sessionSignalKeyBuffer, 0, sessionSignalKeyBuffer.capacity())
-                .set(delegate.clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX, UTF_8).build();
+            final String16FW expirySignalKey = expirySignalKey(delegate.clientId);
             Flyweight expirySignalKafkaDataEx = kafkaDataExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
