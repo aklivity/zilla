@@ -2334,6 +2334,60 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.tool.definition.100k/client",
         "${app}/anthropic.section.tool.definition.100k/server"})
     public void shouldAnthropicSectionToolDefinition100k() throws Exception
