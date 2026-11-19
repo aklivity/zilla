@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -762,8 +761,15 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 retained.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
             }
 
-            messages.values().forEach(m -> m.flushDataIfNecessary(traceId, authorization, budgetId));
-            messages.values().forEach(m -> m.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities));
+            for (KafkaMessagesProxy m : messages.values())
+            {
+                m.flushDataIfNecessary(traceId, authorization, budgetId);
+            }
+
+            for (KafkaMessagesProxy m : messages.values())
+            {
+                m.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
+            }
         }
 
         private void doMqttBegin(
@@ -1402,8 +1408,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if (hasInit(flags) && key != null)
                 {
-                    String topicName = kafkaMergedDataEx.fetch().key().value()
-                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
 
                     long expireInterval;
@@ -1448,7 +1452,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         .subscribe(b ->
                         {
                             b.deferred(deferred);
-                            b.topic(topicName);
+                            b.topic(key.buffer(), key.offset(), key.sizeof());
                             if (acknowledged)
                             {
                                 b.packetId(packetId);
@@ -2132,8 +2136,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
                 if (hasInit(flags) && key != null)
                 {
-                    String topicName = kafkaMergedDataEx.fetch().key().value()
-                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
                     helper.visit(kafkaMergedDataEx);
 
                     long expireInterval;
@@ -2178,7 +2180,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         .subscribe(b ->
                         {
                             b.deferred(deferred);
-                            b.topic(topicName);
+                            b.topic(key.buffer(), key.offset(), key.sizeof());
 
                             if (acknowledged)
                             {
@@ -5290,6 +5292,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         long topicKey,
         int partitionId)
     {
-        return Objects.hash(topicKey, partitionId);
+        return 31 * (31 + Long.hashCode(topicKey)) + partitionId;
     }
 }
