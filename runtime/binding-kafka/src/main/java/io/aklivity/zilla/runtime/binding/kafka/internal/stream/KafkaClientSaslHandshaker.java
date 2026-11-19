@@ -679,7 +679,7 @@ public abstract class KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -860,7 +860,7 @@ public abstract class KafkaClientSaslHandshaker
         long authorization,
         long budgetId,
         int reserved,
-        MutableDirectBufferEx buffer,
+        DirectBufferEx buffer,
         int offset,
         int progress,
         int limit)
