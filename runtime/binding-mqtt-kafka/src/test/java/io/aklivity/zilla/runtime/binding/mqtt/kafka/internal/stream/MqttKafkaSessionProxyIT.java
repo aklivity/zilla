@@ -24,13 +24,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_STREAM_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +36,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -61,8 +57,7 @@ public class MqttKafkaSessionProxyIT
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
         .configure(INSTANCE_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
-        .configure(ENGINE_CLOCK_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyClock")
+        .clock(TestClock.of(1000L))
         .configure(LIFETIME_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyLifetimeId")
         .configure(WILL_ID_NAME,
@@ -749,10 +744,6 @@ public class MqttKafkaSessionProxyIT
         return "zilla-1";
     }
 
-    public static Clock supplyClock()
-    {
-        return Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
-    }
 
     @Test
     @Configuration("proxy.yaml")
