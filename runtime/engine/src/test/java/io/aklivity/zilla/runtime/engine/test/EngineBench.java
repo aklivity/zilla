@@ -166,16 +166,16 @@ public final class EngineBench implements AutoCloseable
 
         configFileSystem = EngineRule.openConfigFileSystem(config.configURI());
 
-        engine = builder.config(config)
-                        .errorHandler(this::onError)
-                        .build();
-        engine.start();
-
         externalLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", EXTERNAL_INDEX)))
                 .streamsCapacity(config.streamsBufferCapacity())
                 .readonly(false)
                 .build();
+        engine = builder.config(config)
+                        .errorHandler(this::onError)
+                        .build();
+        engine.start();
+
         workerLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", WORKER_INDEX)))
                 .readonly(true)
