@@ -22,7 +22,6 @@ accepted
 read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .flags("CLEAN_START")
                                 .expiry(1)
                                 .publishQosMax(2)
                                 .capabilities("REDIRECT")
