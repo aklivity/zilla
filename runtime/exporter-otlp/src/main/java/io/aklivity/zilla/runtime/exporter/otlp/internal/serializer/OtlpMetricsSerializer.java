@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.exporter.otlp.internal.serializer;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,6 +65,7 @@ public class OtlpMetricsSerializer
 
     private final List<MetricRecord> records;
     private final List<AttributeConfig> attributes;
+    private final Clock clock;
     private final Function<String, Metric> resolveMetric;
     private final OtlpMetricsDescriptor descriptor;
     private final AttributeConfig serviceNameAttribute;
@@ -71,10 +73,12 @@ public class OtlpMetricsSerializer
     public OtlpMetricsSerializer(
         List<MetricRecord> records,
         List<AttributeConfig> attributes,
+        Clock clock,
         Function<String, Metric> resolveMetric)
     {
         this.records = records;
         this.attributes = attributes;
+        this.clock = clock;
         this.resolveMetric = resolveMetric;
         this.descriptor = new OtlpMetricsDescriptor();
         this.serviceNameAttribute = resolveServiceNameAttribute();
@@ -163,7 +167,7 @@ public class OtlpMetricsSerializer
 
     private long now()
     {
-        return TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+        return TimeUnit.MILLISECONDS.toNanos(clock.millis());
     }
 
     private JsonArrayBuilder attributes(
