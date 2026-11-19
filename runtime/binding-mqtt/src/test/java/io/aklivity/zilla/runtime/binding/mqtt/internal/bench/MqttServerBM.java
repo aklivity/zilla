@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
@@ -50,8 +51,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCa
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -73,6 +77,11 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code leave} operation opens one connection, completes its handshake and leaves the connection open,
  * so the connected session stays live.
  * <p>
+ * Each {@code publish} operation sends one QoS 1 PUBLISH, with a payload of {@code payload} bytes, on one of the
+ * connected sessions, each with its own topic, and completes once the PUBACK has arrived. The sessions are
+ * connected, and each has published once, before measurement starts. The application keeps every session
+ * open, and acknowledges the messages published on each topic.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
  * depend on {@code version} or {@code inflight}, so run it with {@code -p version=5 -p inflight=256}.
@@ -89,7 +98,9 @@ public class MqttServerBM
     private static final int CLIENT_ID_DIGITS = 8;
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
+    private static final int PUBACK_TYPE = 0x40;
     private static final int CONNECTED = 2_000;
+    private static final int PUBLISHERS = 1_000;
 
     @Benchmark
     public void handshake(
@@ -115,6 +126,13 @@ public class MqttServerBM
         fixture.drain();
     }
 
+    @Benchmark
+    public void publish(
+        Publishing fixture)
+    {
+        fixture.publish();
+    }
+
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
@@ -126,15 +144,16 @@ public class MqttServerBM
 
         private final Queue<Handshake> idle = new ArrayDeque<>();
         private final Queue<Handshake> completed = new ArrayDeque<>();
-        private final BooleanSupplier hasCapacity = () -> closeCompleted() < inflight;
+        final BooleanSupplier hasCapacity = () -> closeCompleted() < inflight;
         private final BooleanSupplier drained = () -> closeCompleted() == 0;
 
         private EngineBench bench;
-        private Responder responder;
+        private Responder sessions;
+        private Responder publications;
         private long netId;
         private byte[] packet;
         private UnsafeBufferEx connect;
-        private int pending;
+        int pending;
         private int sequence;
         private boolean failed;
 
@@ -150,8 +169,9 @@ public class MqttServerBM
             connect = new UnsafeBufferEx(packet);
             netId = bench.bindingId("net0");
 
-            responder = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
-            bench.newServer("app0", responder);
+            sessions = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
+            publications = new Responder(Trigger.BEGIN, null);
+            bench.newServer("app0", new Application(sessions, publications));
 
             prepare();
         }
@@ -164,14 +184,14 @@ public class MqttServerBM
         @TearDown(Level.Trial)
         public void destroy() throws Exception
         {
-            final int sessions = responder.counter().begins();
+            final int begins = sessions.counter().begins();
 
             disconnect();
             bench.close();
 
-            if (sessions == 0 || failed)
+            if (begins == 0 || failed)
             {
-                throw new IllegalStateException("sessions did not reach the application: " + sessions);
+                throw new IllegalStateException("sessions did not reach the application: " + begins);
             }
         }
 
@@ -211,15 +231,18 @@ public class MqttServerBM
             return pending;
         }
 
-        private void await(
+        void await(
             BooleanSupplier condition)
         {
             if (!bench.pollUntil(condition) || failed)
             {
                 throw new IllegalStateException("handshake did not complete: pending=" + pending + " failed=" + failed +
                     " started=" + sequence +
-                    " begins=" + responder.counter().begins() + " datas=" + responder.counter().datas() +
-                    " windows=" + responder.counter().windows() + " aborts=" + responder.counter().aborts());
+                    " begins=" + sessions.counter().begins() + " datas=" + sessions.counter().datas() +
+                    " windows=" + sessions.counter().windows() + " aborts=" + sessions.counter().aborts() +
+                    " publishes: begins=" + publications.counter().begins() + " datas=" + publications.counter().datas() +
+                    " aborts=" + publications.counter().aborts() + " resets=" + publications.counter().resets() +
+                    " sessions: ends=" + sessions.counter().ends() + " resets=" + sessions.counter().resets());
             }
         }
 
@@ -238,6 +261,9 @@ public class MqttServerBM
             private final DataFW dataRO = new DataFW();
             private final MessageConsumer awaitWindow = this::onAwaitWindow;
             private final MessageConsumer awaitConnack = this::onAwaitConnack;
+            private final MessageConsumer awaitPuback = this::onAwaitPuback;
+
+            UnsafeBufferEx publication;
 
             private Client client;
             private MessageConsumer stage;
@@ -248,6 +274,12 @@ public class MqttServerBM
                 client = bench.newClient(netId, this);
                 client.begin();
                 client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            void publish()
+            {
+                stage = awaitPuback;
+                client.data(publication, 0, publication.capacity());
             }
 
             void finish()
@@ -314,6 +346,25 @@ public class MqttServerBM
                     }
                 }
             }
+
+            private void onAwaitPuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        failed |= (data.payload().buffer().getByte(data.payload().offset()) & 0xff) != PUBACK_TYPE;
+                        stage = MessageConsumer.NOOP;
+                        completed.offer(this);
+                    }
+                }
+            }
         }
     }
 
@@ -375,6 +426,137 @@ public class MqttServerBM
         }
     }
 
+    @State(Scope.Benchmark)
+    public static class Publishing extends Fixture
+    {
+        @Param({"16", "1024"})
+        public int payload;
+
+        private final Queue<Handshake> ready = new ArrayDeque<>();
+        private final List<Handshake> connected = new ArrayList<>();
+
+        @Override
+        void prepare()
+        {
+            final int publishers = Math.max(PUBLISHERS, inflight);
+
+            for (int publisher = 0; publisher < publishers; publisher++)
+            {
+                handshake();
+            }
+
+            drain();
+
+            for (int publisher = 0; publisher < publishers; publisher++)
+            {
+                publish();
+            }
+
+            drain();
+        }
+
+        @TearDown(Level.Iteration)
+        public void settle()
+        {
+            drain();
+        }
+
+        void publish()
+        {
+            await(hasCapacity);
+
+            ready.poll().publish();
+            pending++;
+        }
+
+        @Override
+        void disconnect()
+        {
+            ready.clear();
+            connected.forEach(Handshake::finish);
+            connected.clear();
+        }
+
+        @Override
+        void release(
+            Handshake handshake)
+        {
+            if (handshake.publication == null)
+            {
+                handshake.publication = new UnsafeBufferEx(publishPacket(version, connected.size(), payload));
+                connected.add(handshake);
+            }
+
+            ready.offer(handshake);
+        }
+    }
+
+    private static final class Application implements BindingHandler
+    {
+        private final BeginFW beginRO = new BeginFW();
+        private final MqttBeginExFW beginExRO = new MqttBeginExFW();
+        private final BindingHandler sessions;
+        private final BindingHandler publications;
+
+        private Application(
+            BindingHandler sessions,
+            BindingHandler publications)
+        {
+            this.sessions = sessions;
+            this.publications = publications;
+        }
+
+        @Override
+        public MessageConsumer newStream(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length,
+            MessageConsumer sender)
+        {
+            final OctetsFW extension = beginRO.wrap(buffer, index, index + length).extension();
+            final MqttBeginExFW beginEx = beginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final boolean session = beginEx != null && beginEx.kind() == MqttBeginExFW.KIND_SESSION;
+            final BindingHandler handler = session ? sessions : publications;
+
+            return handler.newStream(msgTypeId, buffer, index, length, sender);
+        }
+    }
+
+    private static byte[] publishPacket(
+        int version,
+        int publisher,
+        int payload)
+    {
+        final byte[] topic = ("device/" + publisher).getBytes(US_ASCII);
+        final int properties = version == 5 ? 1 : 0;
+        final int remaining = 2 + topic.length + 2 + properties + payload;
+        final int lengthBytes = remaining < 128 ? 1 : 2;
+        final byte[] packet = new byte[1 + lengthBytes + remaining];
+
+        int offset = 0;
+        packet[offset++] = 0x32;
+        if (lengthBytes == 1)
+        {
+            packet[offset++] = (byte) remaining;
+        }
+        else
+        {
+            packet[offset++] = (byte) (remaining & 0x7f | 0x80);
+            packet[offset++] = (byte) (remaining >> 7);
+        }
+        packet[offset++] = 0x00;
+        packet[offset++] = (byte) topic.length;
+        System.arraycopy(topic, 0, packet, offset, topic.length);
+        offset += topic.length;
+        packet[offset++] = 0x00;
+        packet[offset++] = 0x01;
+        offset += properties;
+        Arrays.fill(packet, offset, packet.length, (byte) 'x');
+
+        return packet;
+    }
+
     private static byte[] connectPacket(
         int version)
     {
@@ -425,7 +607,7 @@ public class MqttServerBM
         final byte[] encoded = new byte[beginEx.sizeof()];
         buffer.getBytes(0, encoded);
 
-        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, new byte[0], 0);
+        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, null, 0);
     }
 
     public static void main(
