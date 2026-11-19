@@ -2869,8 +2869,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long sessionId;
         private long guardSessionId = NOT_AUTHORIZED;
         private int decodableRemainingBytes;
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
+        private final Int2ObjectHashMap<MqttSubscribeStream> awaitingAcknowledgeSubscribes;
         private final Deque<MqttPublishStream> unAckedReceivedPublishes;
         private final Deque<MqttSubscribeStream> heldSubscribes;
 
@@ -2924,8 +2923,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.unAckedReceivedPublishes = new ArrayDeque<>();
             this.heldSubscribes = new ArrayDeque<>();
             this.unsubscribePacketFilters = new Int2ObjectHashMap<>();
-            this.qos1Subscribes = new Int2ObjectHashMap<>();
-            this.qos2Subscribes = new Int2ObjectHashMap<>();
+            this.awaitingAcknowledgeSubscribes = new Int2ObjectHashMap<>();
             this.unreleasedPacketIds = new IntArrayList();
         }
 
@@ -4153,10 +4151,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
+        private int acknowledgeKey(
+            int qos,
+            int packetId)
+        {
+            return qos << Short.SIZE | packetId;
+        }
+
         private boolean receiveAvailable()
         {
             return version == MQTT_PROTOCOL_VERSION_4 ||
-                qos1Subscribes.size() + qos2Subscribes.size() < receiveMaximum;
+                awaitingAcknowledgeSubscribes.size() < receiveMaximum;
         }
 
         private void releaseHeldSubscribes(
@@ -4177,7 +4182,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             int reasonCode)
         {
-            final MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
+            final MqttSubscribeStream stream =
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey(MqttQoS.AT_LEAST_ONCE.ordinal(), packetId));
 
             if (stream != null)
             {
@@ -4199,7 +4205,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode)
         {
             final boolean rejected = isError(reasonCode);
-            final MqttSubscribeStream stream = rejected ? qos2Subscribes.remove(packetId) : qos2Subscribes.get(packetId);
+            final int acknowledgeKey = acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId);
+            final MqttSubscribeStream stream = rejected ?
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey) : awaitingAcknowledgeSubscribes.get(acknowledgeKey);
 
             if (stream != null)
             {
@@ -4263,7 +4271,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             int reasonCode)
         {
-            final MqttSubscribeStream stream = qos2Subscribes.remove(packetId);
+            final MqttSubscribeStream stream =
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId));
 
             if (stream != null)
             {
@@ -8050,8 +8059,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 drainingSubscribes.remove(this);
                 heldSubscribes.remove(this);
                 cleanupHeldSlot();
-                qos1Subscribes.values().removeIf(stream -> stream == this);
-                qos2Subscribes.values().removeIf(stream -> stream == this);
+                awaitingAcknowledgeSubscribes.values().removeIf(stream -> stream == this);
                 releaseHeldSubscribes(0L);
             }
 
@@ -8273,8 +8281,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 return subscribeDecoder == decodeSubscribeFragment ||
                     subscribeDecoder == decodeSubscribeHold ||
-                    qos1Subscribes.containsValue(this) ||
-                    qos2Subscribes.containsValue(this);
+                    awaitingAcknowledgeSubscribes.containsValue(this);
             }
 
             private void completeSubscribeClosing(
@@ -8638,11 +8645,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (deliveryQos == 1)
                 {
-                    qos1Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(deliveryQos, packetId), this);
                 }
                 else if (deliveryQos == 2)
                 {
-                    qos2Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(deliveryQos, packetId), this);
                 }
             }
 
@@ -8737,7 +8744,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doEncodePubrelV5(traceId, authorization, packetId, SUCCESS);
                         break;
                     }
-                    qos2Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId), this);
                 }
             }
 
