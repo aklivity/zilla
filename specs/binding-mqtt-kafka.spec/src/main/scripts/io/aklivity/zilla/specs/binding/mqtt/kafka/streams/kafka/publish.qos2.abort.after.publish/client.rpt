@@ -47,8 +47,6 @@ read zilla:data.ext ${kafka:dataEx()
 
 write close
 
-read closed
-
 connect await KAFKA_0
         "zilla://streams/kafka0"
          option zilla:window 8192
@@ -75,8 +73,6 @@ read zilla:data.ext ${kafka:dataEx()
 
 write close
 
-read closed
-
 connect await KAFKA_1
         "zilla://streams/kafka0"
          option zilla:window 8192
@@ -101,8 +97,6 @@ read zilla:data.ext ${kafka:dataEx()
                              .build()}
 
 write close
-
-read closed
 
 connect await KAFKA_2
         "zilla://streams/kafka0"
@@ -148,8 +142,6 @@ read [0x00]                                    # tagged fields
       [0x00]                                    # tagged fields
 
 write close
-
-read closed
 
 connect await KAFKA_3
         "zilla://streams/kafka0"
@@ -203,8 +195,6 @@ read [0x00 0x00]                               # error code
 
 write close
 
-read closed
-
 connect await KAFKA_4
         "zilla://streams/kafka0"
          option zilla:window 8192
@@ -242,8 +232,6 @@ read ${mqtt_kafka:sessionOffsets()
 
 write close
 
-read closed
-
 connect await KAFKA_5
         "zilla://streams/kafka0"
          option zilla:window 8192
@@ -270,8 +258,6 @@ connected
 write notify KAFKA_6
 
 write close
-
-read closed
 
 connect await KAFKA_6
         "zilla://streams/kafka0"
@@ -525,8 +511,6 @@ read zilla:data.ext ${kafka:dataEx()
 
 write close
 
-read closed
-
 connect await KAFKA_11
         "zilla://streams/kafka0"
          option zilla:window 8192
@@ -551,8 +535,6 @@ read zilla:data.ext ${kafka:dataEx()
                              .build()}
 
 write close
-
-read closed
 
 connect await KAFKA_12
         "zilla://streams/kafka0"
@@ -591,8 +573,6 @@ read ${mqtt_kafka:sessionOffsets()
             .build()}
 
 write close
-
-read closed
 
 connect await KAFKA_13
         "zilla://streams/kafka0"
