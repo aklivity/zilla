@@ -952,4 +952,15 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.abort.after.publish/client",
+        "${kafka}/publish.qos2.abort.after.publish/server"})
+    public void shouldRecoverMessageQos2AbortedAfterPublish() throws Exception
+    {
+        k3po.finish();
+    }
 }
