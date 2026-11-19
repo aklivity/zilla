@@ -58,6 +58,23 @@ public class TestClockTest
     }
 
     @Test
+    public void shouldChangeStepWhileRunning()
+    {
+        final TestClock clock = TestClock.of(0L);
+
+        assertEquals(0L, clock.millis());
+        assertEquals(0L, clock.millis());
+
+        clock.step(500L);
+        assertEquals(0L, clock.millis());
+        assertEquals(500L, clock.millis());
+
+        clock.step(0L);
+        assertEquals(1000L, clock.millis());
+        assertEquals(1000L, clock.millis());
+    }
+
+    @Test
     public void shouldSupplyInstalledClockToInheritingThreads() throws Exception
     {
         final TestClock clock = TestClock.of(42L);

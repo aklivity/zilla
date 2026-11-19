@@ -297,7 +297,7 @@
               <includes>
                 <include>META-INF/**/*</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/TestClock.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/TestClock*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineBench.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineBench$*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/Responder.class</include>

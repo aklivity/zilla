@@ -35,7 +35,7 @@ public final class TestClock extends Clock
     };
 
     private final AtomicLong millis;
-    private final long stepMillis;
+    private final AtomicLong stepMillis;
 
     public static TestClock of(
         long startMillis)
@@ -78,6 +78,12 @@ public final class TestClock extends Clock
         millis.set(timeMillis);
     }
 
+    public void step(
+        long stepMillis)
+    {
+        this.stepMillis.set(stepMillis);
+    }
+
     @Override
     public ZoneId getZone()
     {
@@ -94,7 +100,7 @@ public final class TestClock extends Clock
     @Override
     public long millis()
     {
-        return millis.getAndAdd(stepMillis);
+        return millis.getAndAdd(stepMillis.get());
     }
 
     @Override
@@ -108,6 +114,6 @@ public final class TestClock extends Clock
         long stepMillis)
     {
         this.millis = new AtomicLong(startMillis);
-        this.stepMillis = stepMillis;
+        this.stepMillis = new AtomicLong(stepMillis);
     }
 }
