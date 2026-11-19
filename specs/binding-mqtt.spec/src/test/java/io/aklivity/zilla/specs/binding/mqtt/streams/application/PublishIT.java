@@ -39,18 +39,18 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message.properties/client",
-        "${app}/publish.one.message.properties/server"})
-    public void shouldSendOneMessage() throws Exception
+        "${app}/publish.messages.no.carry.over.properties/client",
+        "${app}/publish.messages.no.carry.over.properties/server"})
+    public void shouldSendMessagesWithoutCarryOverProperties() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/publish.messages.no.carry.over.properties/client",
-        "${app}/publish.messages.no.carry.over.properties/server"})
-    public void shouldPublishMessagesNoCarryOverProperties() throws Exception
+        "${app}/publish.one.message.properties/client",
+        "${app}/publish.one.message.properties/server"})
+    public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
     }
