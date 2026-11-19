@@ -114,6 +114,7 @@ public class MqttKafkaHeaderHelper
         this.contentType = null;
         this.format = null;
         this.replyTo = null;
+        this.replyKey = null;
         this.correlation = null;
         this.qos = null;
         this.retained = false;
