@@ -404,6 +404,55 @@ public class ProtobufSourceCompilerTest
         return new String(bytes, UTF_8);
     }
 
+    @Test
+    public void shouldResolveImportedWellKnownTypes()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package orders;\n" +
+            "import \"google/protobuf/timestamp.proto\";\n" +
+            "import \"google/protobuf/duration.proto\";\n" +
+            "import \"google/protobuf/struct.proto\";\n" +
+            "import \"google/protobuf/wrappers.proto\";\n" +
+            "message OrderCreated {\n" +
+            "  string id = 1;\n" +
+            "  google.protobuf.Timestamp created_at = 2;\n" +
+            "  google.protobuf.Duration ttl = 3;\n" +
+            "  google.protobuf.Struct attributes = 4;\n" +
+            "  google.protobuf.StringValue note = 5;\n" +
+            "  google.protobuf.NullValue nothing = 6;\n" +
+            "}\n");
+
+        ProtobufMessage order = schema.message("orders.OrderCreated");
+        ProtobufMessage timestamp = order.field(2).message();
+        assertEquals("google.protobuf.Timestamp", timestamp.name());
+        assertEquals(ProtobufType.INT64, timestamp.field(1).type());
+        assertEquals(ProtobufType.INT32, timestamp.field(2).type());
+        assertEquals("google.protobuf.Duration", order.field(3).message().name());
+        assertEquals("google.protobuf.Value",
+            order.field(4).message().field(1).message().field(2).message().name());
+        assertEquals("google.protobuf.StringValue", order.field(5).message().name());
+        assertEquals(ProtobufType.ENUM, order.field(6).type());
+        assertNotNull(order.field(6).enumeration());
+
+        byte[] original = wire(g ->
+        {
+            g.writeString(1, "o-1");
+            g.startMessage(2, 0);
+            g.writeInt64(1, 1_763_550_000L);
+            g.writeInt32(2, 5);
+            g.endMessage();
+        });
+
+        MutableDirectBufferEx out = new UnsafeBufferEx(new byte[8192]);
+        ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, out.capacity());
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "orders.OrderCreated"))
+            .into(ProtobufSink.of(generator, schema, "orders.OrderCreated"));
+        pipeline.reset();
+
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(original), 0, original.length));
+    }
+
     private static byte[] toProtobuf(
         ProtobufSchema schema,
         String messageName,

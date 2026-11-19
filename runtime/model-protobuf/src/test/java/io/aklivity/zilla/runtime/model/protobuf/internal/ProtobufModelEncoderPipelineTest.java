@@ -166,6 +166,29 @@ public class ProtobufModelEncoderPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
+    @Test
+    public void shouldRejectRecordWhenSchemaDoesNotCompile()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", """
+            syntax = "proto3";
+            import "acme/money.proto";
+            message SimpleMessage {
+                string content = 1;
+                acme.Money price = 2;
+            }
+            """);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+    }
+
     private ProtobufModelHandlerImpl newHandler()
     {
         return newHandler("SimpleMessage");
@@ -174,13 +197,20 @@ public class ProtobufModelEncoderPipelineTest
     private ProtobufModelHandlerImpl newHandler(
         String record)
     {
+        return newHandler(record, SCHEMA);
+    }
+
+    private ProtobufModelHandlerImpl newHandler(
+        String record,
+        String schema)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
-                .schema(SCHEMA)
+                .schema(schema)
                 .build()
             .build();
         ProtobufModelConfig model = ProtobufModelConfig.builder()
