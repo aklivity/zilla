@@ -30,10 +30,10 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasSkip;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -163,6 +163,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final BufferPool bufferPool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -192,6 +193,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -258,7 +260,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(routedId), supplyLocalName.apply(routedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
-                final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
+                final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(clock, partitionId);
                 final KafkaTopicType topicType = binding.resolveTopicType(topicName);
                 final KafkaCacheServerFetchFanout newFanout =
                     new KafkaCacheServerFetchFanout(routedId, resolvedId, authorization,
@@ -701,7 +703,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onServerFanoutSignal);
             }
@@ -1167,7 +1169,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onServerFanoutSignal);
             }
@@ -1208,7 +1210,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onServerFanoutSignal);
             }
@@ -1255,7 +1257,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onServerFanoutSignal);
             }
@@ -1311,7 +1313,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void onServerFanoutInitialSignalSegmentDelete(
             int signalId)
         {
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
 
             Node segmentNode = partition.sentinel().next();
             while (!segmentNode.sentinel() && segmentNode != partition.head() &&
@@ -1338,7 +1340,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private void onServerFanoutInitialSignalSegmentCompact(
             int signalId)
         {
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
 
             Node segmentNode = partition.sentinel().next();
             while (!segmentNode.next().sentinel()) // avoid cleaning head

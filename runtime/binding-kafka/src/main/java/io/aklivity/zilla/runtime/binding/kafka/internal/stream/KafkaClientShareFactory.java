@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
-import static java.lang.System.currentTimeMillis;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -4041,7 +4040,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
 
             if (!delegate.leaving())
             {
-                heartbeatId = signaler.signalAt(currentTimeMillis() + heartbeatInterval,
+                heartbeatId = signaler.signalAt(clock.millis() + heartbeatInterval,
                     originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
             }
 

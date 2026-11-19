@@ -21,10 +21,10 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -303,6 +303,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
     private final MutableDirectBufferEx userdataBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final Clock clock;
     private final IntFunction<Signaler> supplySignaler;
     private final IntFunction<BindingHandler> supplyStreamFactory;
     private final IntObjectToObjectFunction<KafkaSaslConfig, KafkaSaslConfig> resolveSasl;
@@ -341,6 +342,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
+        this.clock = context.clock();
         this.supplySignaler = supplySignaler;
         this.supplyStreamFactory = supplyStreamFactory;
         this.resolveSasl = resolveSasl;
@@ -5417,7 +5419,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
             else
             {
-                heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+                heartbeatRequestId = signaler.signalAt(clock.millis() + delegate.timeout / 2,
                     originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
 
                 if (!encoders.isEmpty())
@@ -5435,7 +5437,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cancelHeartbeat();
 
-            heartbeatRequestId = signaler.signalAt(currentTimeMillis() + delegate.timeout / 2,
+            heartbeatRequestId = signaler.signalAt(clock.millis() + delegate.timeout / 2,
                 originId, routedId, initialId, traceId, SIGNAL_HEARTBEAT_REQUEST, 0);
 
             if (!encoders.isEmpty())

@@ -30,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientShareIT
 {
@@ -223,6 +224,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/change.assignment/client",
         "${net}/change.assignment/server"})
@@ -233,6 +235,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/change.assignment.acknowledge/client",
         "${net}/change.assignment.acknowledge/server"})
@@ -243,6 +246,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/await.assignment/client",
         "${net}/await.assignment/server"})
@@ -313,6 +317,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/broker.coordinator.connection.abort/client",
         "${net}/broker.coordinator.connection.abort/server"})
@@ -343,6 +348,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/rejoin.unknown.member.id/client",
         "${net}/rejoin.unknown.member.id/server"})
@@ -353,6 +359,7 @@ public class ClientShareIT
 
     @Test
     @Configuration("client.yaml")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${app}/rejoin.fenced.member.epoch/client",
         "${net}/rejoin.fenced.member.epoch/server"})

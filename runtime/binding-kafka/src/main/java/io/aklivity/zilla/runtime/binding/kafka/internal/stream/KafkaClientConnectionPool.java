@@ -19,8 +19,8 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
-import static java.lang.System.currentTimeMillis;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
@@ -131,6 +131,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialId;
     private final long connectionPoolCleanupMillis;
     private final KafkaEventContext event;
+    private final Clock clock;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -156,6 +157,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         this.streamsByInitialId = new Long2ObjectHashMap<>();
         this.connectionPoolCleanupMillis = config.clientConnectionPoolCleanupMillis();
         this.event = new KafkaEventContext(context);
+        this.clock = context.clock();
     }
 
     private MessageConsumer newStream(
@@ -1846,7 +1848,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             this.reconnectAt = signaler.delegate.signalAt(
-                currentTimeMillis() + connectionPoolCleanupMillis,
+                clock.millis() + connectionPoolCleanupMillis,
                 SIGNAL_CONNECTION_CLEANUP, this::onStreamCleanupSignal);
         }
 
