@@ -180,6 +180,11 @@ public final class MqttBindingConfig
         return config;
     }
 
+    public boolean hasTopicModels()
+    {
+        return !topics.isEmpty();
+    }
+
     public ModelConfig supplyUserPropertyModelConfig(
         String topic,
         String16FW userPropertyKey)

@@ -435,7 +435,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
-        this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
+        this.utf8Validator = new MqttUtf8Validator();
         this.clients = new Long2ObjectHashMap<>();
     }
 

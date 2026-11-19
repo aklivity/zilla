@@ -18,6 +18,9 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 public final class MqttValidator
 {
     private static final String SHARED_PREFIX = "$share/";
@@ -42,6 +45,24 @@ public final class MqttValidator
         String topicName)
     {
         return topicNameMatcher.reset(topicName).matches();
+    }
+
+    public boolean isTopicNameValid(
+        String16FW topicName)
+    {
+        final int length = topicName.length();
+        final DirectBufferEx buffer = topicName.buffer();
+        final int offset = topicName.offset() + Short.BYTES;
+
+        boolean valid = length > 0;
+
+        for (int index = 0; valid && index < length; index++)
+        {
+            final byte value = buffer.getByte(offset + index);
+            valid = value != '#' && value != '+' && value != 0;
+        }
+
+        return valid;
     }
 
     public boolean isSharedTopicFilterValid(

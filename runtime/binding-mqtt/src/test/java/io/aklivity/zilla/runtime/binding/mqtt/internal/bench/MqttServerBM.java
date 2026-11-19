@@ -80,7 +80,8 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code publish} operation sends one QoS 1 PUBLISH, with a payload of {@code payload} bytes, on one of the
  * connected sessions, each with its own topic, and completes once the PUBACK has arrived. The sessions are
  * connected, and each has published once, before measurement starts. The application keeps every session
- * open, and acknowledges the messages published on each topic.
+ * open, and acknowledges the messages published on each topic. With MQTT 5 and {@code properties=all} each
+ * message also carries a content type, a response topic, correlation data and a user property.
  * <p>
  * Each {@code subscribe} operation subscribes one of the connected sessions to its own topic filter, waits for the
  * SUBACK, then unsubscribes and waits for the UNSUBACK, so the session is back where it started for the next
@@ -579,12 +580,16 @@ public class MqttServerBM
         @Param({"16", "1024"})
         public int payload;
 
+        @Param({"none", "all"})
+        public String properties;
+
         @Override
         void attach(
             Handshake handshake,
             int connection)
         {
-            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload));
+            final boolean withProperties = "all".equals(properties);
+            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties));
         }
 
         @Override
@@ -682,14 +687,52 @@ public class MqttServerBM
         return packet;
     }
 
+    private static byte[] publishProperties(
+        int publisher)
+    {
+        final byte[] contentType = "application/json".getBytes(US_ASCII);
+        final byte[] responseTopic = ("reply/" + publisher).getBytes(US_ASCII);
+        final byte[] userKey = "trace".getBytes(US_ASCII);
+        final byte[] userValue = "abc123".getBytes(US_ASCII);
+        final byte[] properties = new byte[1 + 2 + contentType.length + 1 + 2 + responseTopic.length +
+            1 + 2 + 8 + 1 + 2 + userKey.length + 2 + userValue.length];
+
+        int offset = 0;
+        properties[offset++] = 0x03;
+        offset = putString(properties, offset, contentType);
+        properties[offset++] = 0x08;
+        offset = putString(properties, offset, responseTopic);
+        properties[offset++] = 0x09;
+        offset = putString(properties, offset, new byte[8]);
+        properties[offset++] = 0x26;
+        offset = putString(properties, offset, userKey);
+        putString(properties, offset, userValue);
+
+        return properties;
+    }
+
+    private static int putString(
+        byte[] packet,
+        int offset,
+        byte[] value)
+    {
+        packet[offset++] = (byte) (value.length >> 8);
+        packet[offset++] = (byte) value.length;
+        System.arraycopy(value, 0, packet, offset, value.length);
+
+        return offset + value.length;
+    }
+
     private static byte[] publishPacket(
         int version,
         int publisher,
-        int payload)
+        int payload,
+        boolean withProperties)
     {
         final byte[] topic = ("device/" + publisher).getBytes(US_ASCII);
-        final int properties = version == 5 ? 1 : 0;
-        final int remaining = 2 + topic.length + 2 + properties + payload;
+        final byte[] properties = version == 5 && withProperties ? publishProperties(publisher) : new byte[0];
+        final int propertiesLength = version == 5 ? 1 + properties.length : 0;
+        final int remaining = 2 + topic.length + 2 + propertiesLength + payload;
         final int lengthBytes = remaining < 128 ? 1 : 2;
         final byte[] packet = new byte[1 + lengthBytes + remaining];
 
@@ -710,7 +753,12 @@ public class MqttServerBM
         offset += topic.length;
         packet[offset++] = 0x00;
         packet[offset++] = 0x01;
-        offset += properties;
+        if (version == 5)
+        {
+            packet[offset++] = (byte) properties.length;
+            System.arraycopy(properties, 0, packet, offset, properties.length);
+            offset += properties.length;
+        }
         Arrays.fill(packet, offset, packet.length, (byte) 'x');
 
         return packet;
