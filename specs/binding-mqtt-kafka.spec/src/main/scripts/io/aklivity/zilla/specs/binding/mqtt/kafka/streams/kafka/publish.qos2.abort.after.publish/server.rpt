@@ -440,9 +440,6 @@ read "message"
 read await PENDING_PACKET_ID_PERSISTED
 read notify RECEIVED_PENDING_PACKET_ID
 
-read closed
-write close
-
 
 accepted
 
