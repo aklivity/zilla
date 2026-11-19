@@ -37,6 +37,8 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
  * Accepts streams routed to an external binding, grants request credit, counts the frames it receives and
  * replays a pre-built {@link Response} once the {@link Trigger} frame arrives, within the reply credit it is
  * granted. A {@code null} response withholds the reply so the request stays in flight.
+ * A response whose end extension is {@code null} leaves the reply open after its last section, as a long-lived
+ * stream does.
  * <p>
  * Extensions are opaque bytes, so the responder knows nothing about the protocol it replays. It does not
  * allocate in steady state: stream state is pooled and frames are built into a reused buffer.
@@ -70,7 +72,7 @@ public final class Responder implements BindingHandler
             this.beginEx = new UnsafeBufferEx(beginEx);
             this.sectionEx = wrap(sectionEx);
             this.sectionPayload = wrap(sectionPayload);
-            this.endEx = new UnsafeBufferEx(endEx);
+            this.endEx = endEx != null ? new UnsafeBufferEx(endEx) : null;
             this.fragmentLength = fragmentLength;
         }
 
@@ -265,7 +267,7 @@ public final class Responder implements BindingHandler
                 }
             }
 
-            if (step == sections + 1)
+            if (step == sections + 1 && response.endEx != null)
             {
                 final boolean closed = StreamState.closed(state);
 
