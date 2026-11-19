@@ -45,4 +45,13 @@ public class DescribeClusterIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/cluster.brokers.info.coalesced/client",
+        "${net}/cluster.brokers.info.coalesced/server"})
+    public void shouldDecodeResponsesCoalescedInOneFrame() throws Exception
+    {
+        k3po.finish();
+    }
 }

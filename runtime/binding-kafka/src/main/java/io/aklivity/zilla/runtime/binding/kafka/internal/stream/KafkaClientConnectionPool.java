@@ -1635,7 +1635,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                         responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
                     }
 
-                    final int responseBytesMin = Math.min(responseBytes, payload.sizeof());
+                    final int responseBytesMin = Math.min(responseBytes, limit - progress);
                     responseBytes -= responseBytesMin;
                     assert responseBytes >= 0;
 
