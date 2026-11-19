@@ -89,9 +89,10 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * operation. The application echoes the session state it receives and accepts the subscription stream. With
  * {@code filters=shared} every session subscribes to its own shared subscription, always over MQTT 5.
  * <p>
- * Each {@code deliver} operation has the application send one message of {@code payload} bytes on the QoS 1
+ * Each {@code deliver} operation has the application send one message of {@code payload} bytes on the QoS {@code qos}
  * subscription of one of the connected sessions, each subscribed to its own topic filter, and completes once the
- * client has received the PUBLISH and sent the PUBACK. Each {@code fanout} operation is the same with every session
+ * client has received the PUBLISH and sent the PUBACK for QoS 1, or, for QoS 2, has sent the PUBREC, received the
+ * PUBREL and sent the PUBCOMP. Each {@code fanout} operation is the same with every session
  * subscribed to one topic filter. Each {@code sharedsub} operation delivers to one of the five members of a shared
  * subscription group in turn, always over MQTT 5.
  * <p>
@@ -113,11 +114,15 @@ public class MqttServerBM
     private static final int CONNACK_TYPE = 0x20;
     private static final int PUBACK_TYPE = 0x40;
     private static final int PUBREC_TYPE = 0x50;
+    private static final int PUBREL_TYPE = 0x62;
     private static final int PUBCOMP_TYPE = 0x70;
     private static final int CONNECTED = 2_000;
     private static final int SUBACK_TYPE = 0x90;
     private static final int PUBLISH_TYPE = 0x32;
+    private static final int PUBLISH_QOS2_TYPE = 0x34;
     private static final UnsafeBufferEx PUBACK = new UnsafeBufferEx(new byte[] {0x40, 0x02, 0x00, 0x01});
+    private static final UnsafeBufferEx PUBREC = new UnsafeBufferEx(new byte[] {0x50, 0x02, 0x00, 0x01});
+    private static final UnsafeBufferEx PUBCOMP = new UnsafeBufferEx(new byte[] {0x70, 0x02, 0x00, 0x01});
     private static final int UNSUBACK_TYPE = 0xb0;
     private static final int CLIENTS = 1_000;
     private static final int GROUP_MEMBERS = 5;
@@ -301,7 +306,10 @@ public class MqttServerBM
                     " windows=" + sessions.counter().windows() + " aborts=" + sessions.counter().aborts() +
                     " publishes: begins=" + publications.counter().begins() + " datas=" + publications.counter().datas() +
                     " aborts=" + publications.counter().aborts() + " resets=" + publications.counter().resets() +
-                    " sessions: ends=" + sessions.counter().ends() + " resets=" + sessions.counter().resets());
+                    " sessions: ends=" + sessions.counter().ends() + " resets=" + sessions.counter().resets() +
+                    " subscribes: begins=" + deliverer.counter().begins() + " windows=" + deliverer.counter().windows() +
+                    " flushes=" + deliverer.counter().flushes() + " ends=" + deliverer.counter().ends() +
+                    " aborts=" + deliverer.counter().aborts() + " resets=" + deliverer.counter().resets());
             }
         }
 
@@ -327,11 +335,14 @@ public class MqttServerBM
             private final MessageConsumer awaitUnsuback = this::onAwaitUnsuback;
             private final MessageConsumer awaitSubscribed = this::onAwaitSubscribed;
             private final MessageConsumer awaitPublish = this::onAwaitPublish;
+            private final MessageConsumer awaitPublishQos2 = this::onAwaitPublishQos2;
+            private final MessageConsumer awaitPubrel = this::onAwaitPubrel;
 
             int connection = -1;
             int number;
             UnsafeBufferEx publication;
             UnsafeBufferEx release;
+            int deliveryQos = 1;
             UnsafeBufferEx subscription;
             UnsafeBufferEx unsubscription;
 
@@ -366,7 +377,7 @@ public class MqttServerBM
 
             void expectPublish()
             {
-                stage = awaitPublish;
+                stage = deliveryQos == 2 ? awaitPublishQos2 : awaitPublish;
             }
 
             void finish()
@@ -484,6 +495,33 @@ public class MqttServerBM
                 {
                     stage = MessageConsumer.NOOP;
                     client.data(PUBACK, 0, PUBACK.capacity());
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitPublishQos2(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBLISH_QOS2_TYPE))
+                {
+                    stage = awaitPubrel;
+                    client.data(PUBREC, 0, PUBREC.capacity());
+                }
+            }
+
+            private void onAwaitPubrel(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBREL_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    client.data(PUBCOMP, 0, PUBCOMP.capacity());
                     completed.offer(this);
                 }
             }
@@ -806,6 +844,9 @@ public class MqttServerBM
         @Param({"16", "1024"})
         public int payload;
 
+        @Param({"1", "2"})
+        public int qos;
+
         private int awaiting;
 
         private final BooleanSupplier credited = () -> deliverer.credited(awaiting);
@@ -815,6 +856,7 @@ public class MqttServerBM
             int clients)
         {
             deliverer.payload(payload);
+            deliverer.qos(qos);
 
             for (int client = 0; client < clients; client++)
             {
@@ -832,7 +874,8 @@ public class MqttServerBM
             Handshake handshake,
             int connection)
         {
-            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection)));
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection), qos));
+            handshake.deliveryQos = qos;
         }
 
         String filter(
@@ -896,6 +939,15 @@ public class MqttServerBM
         int version,
         String topicFilter)
     {
+        return filterPacket(type, version, topicFilter, 1);
+    }
+
+    private static byte[] filterPacket(
+        int type,
+        int version,
+        String topicFilter,
+        int qos)
+    {
         final byte[] filter = topicFilter.getBytes(US_ASCII);
         final int properties = version == 5 ? 1 : 0;
         final int options = type == SUBSCRIBE_PACKET ? 1 : 0;
@@ -914,7 +966,7 @@ public class MqttServerBM
         offset += filter.length;
         if (options != 0)
         {
-            packet[offset] = 0x01;
+            packet[offset] = (byte) qos;
         }
 
         return packet;

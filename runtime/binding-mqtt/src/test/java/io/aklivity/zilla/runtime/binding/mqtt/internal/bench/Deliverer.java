@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -38,15 +39,16 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
 
 /**
  * Accepts the subscribe streams of an mqtt server, replies to each and keeps it open, and delivers one message at
- * a time on the QoS 1 stream of a client, found by the number its client id ends with, within the reply credit the
- * server has granted. Streams are pooled and the delivery extension is built once per stream, so a delivery does
- * not allocate.
+ * a time on the stream of a client at the QoS it is set to deliver at, found by the number its client id ends with,
+ * within the reply credit the server has granted. It echoes the flush frames that advise it a QoS 2 delivery is
+ * incomplete. Streams are pooled and the delivery extension is built once per stream, so a delivery does not allocate.
  */
 final class Deliverer implements BindingHandler
 {
@@ -57,16 +59,19 @@ final class Deliverer implements BindingHandler
     private static final int INITIAL_WINDOW = 8192;
     private static final int FLAGS_COMPLETE = 0x03;
     private static final int PACKET_ID = 1;
-    private static final int QOS_AT_LEAST_ONCE = 1;
     private static final int NONE = -1;
+    private static final int STATE_INCOMPLETE = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final WindowFW windowRO = new WindowFW();
+    private final FlushFW flushRO = new FlushFW();
+    private final MqttFlushExFW flushExRO = new MqttFlushExFW();
     private final MqttBeginExFW beginExRO = new MqttBeginExFW();
     private final MqttTopicFilterFW filterRO = new MqttTopicFilterFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final MqttDataExFW.Builder dataExRW = new MqttDataExFW.Builder();
     private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[WRITE_BUFFER_CAPACITY]);
@@ -76,6 +81,7 @@ final class Deliverer implements BindingHandler
     private final int mqttTypeId;
 
     private DirectBufferEx payload = EMPTY_EXTENSION;
+    private int deliveryQos = 1;
 
     Deliverer(
         int mqttTypeId)
@@ -94,6 +100,12 @@ final class Deliverer implements BindingHandler
         final byte[] bytes = new byte[length];
         Arrays.fill(bytes, (byte) 'x');
         this.payload = new UnsafeBufferEx(bytes);
+    }
+
+    void qos(
+        int qos)
+    {
+        this.deliveryQos = qos;
     }
 
     boolean credited(
@@ -178,7 +190,7 @@ final class Deliverer implements BindingHandler
                     .typeId(mqttTypeId)
                     .subscribe(s -> s.topic(topic, 0, topicLength)
                         .packetId(PACKET_ID)
-                        .qos(QOS_AT_LEAST_ONCE)
+                        .qos(deliveryQos)
                         .subscriptionIdsItem(i -> i.set(filterId))
                         .format(f -> f.set(MqttPayloadFormat.NONE)))
                     .build();
@@ -233,6 +245,9 @@ final class Deliverer implements BindingHandler
                 replyPad = window.padding();
                 state = StreamState.openReply(state);
                 break;
+            case FlushFW.TYPE_ID:
+                onFlush(flushRO.wrap(buffer, index, index + length));
+                break;
             case EndFW.TYPE_ID:
                 onEnd();
                 break;
@@ -242,6 +257,32 @@ final class Deliverer implements BindingHandler
                 break;
             default:
                 break;
+            }
+        }
+
+        private void onFlush(
+            FlushFW flush)
+        {
+            final OctetsFW extension = flush.extension();
+            final MqttFlushExFW flushEx = flushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+
+            if (flushEx != null && flushEx.kind() == MqttFlushExFW.KIND_SUBSCRIBE &&
+                flushEx.subscribe().state() == STATE_INCOMPLETE)
+            {
+                final FlushFW echo = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(routedId)
+                    .routedId(originId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .state(state)
+                    .maximum(0)
+                    .budgetId(0L)
+                    .reserved(0)
+                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                    .build();
+
+                sender.accept(echo.typeId(), echo.buffer(), echo.offset(), echo.sizeof());
             }
         }
 
@@ -274,7 +315,7 @@ final class Deliverer implements BindingHandler
             doInitialWindow();
             doReplyBegin();
 
-            if (qos == QOS_AT_LEAST_ONCE && client != NONE)
+            if (qos == deliveryQos && client != NONE)
             {
                 while (deliverable.size() <= client)
                 {
