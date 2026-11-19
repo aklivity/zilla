@@ -213,6 +213,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExF
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
@@ -396,6 +397,16 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final String16FW clientIdRO = new String16FW();
     private final MqttPayloadFormatFW[] payloadFormats = payloadFormats();
+    private final io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW subscribeUserPropertyRO =
+        new io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW();
+    private final Consumer<MqttUserPropertyFW.Builder> subscribeUserPropertyBuilder = this::buildSubscribeUserProperty;
+    private final Consumer<MqttPropertiesFW.Builder> publishPropertiesBuilder = this::buildPublishProperties;
+    private final Consumer<MqttSubscribeFlushExFW.Builder> subscribeFlushBuilder = this::buildSubscribeFlush;
+    private int publishPropertiesSize;
+    private int flushQos;
+    private int flushPacketId;
+    private int flushOffsetState;
+    private int flushReasonCode;
     private final MqttUserPropertyFW publishUserPropertyRO = new MqttUserPropertyFW();
     private final Consumer<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW.Builder>
         publishUserPropertyBuilder = this::buildPublishUserProperty;
@@ -516,6 +527,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx dataExtBuffer;
+    private final MutableDirectBufferEx flushExtBuffer;
     private final MutableDirectBufferEx payloadBuffer;
     private final MutableDirectBufferEx propertyBuffer;
     private final MutableDirectBufferEx sessionExtBuffer;
@@ -572,6 +584,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.flushExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -962,6 +975,41 @@ public final class MqttServerFactory implements MqttStreamFactory
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int state,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx extension,
+        int extensionOffset,
+        int extensionLength)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .state(state)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .extension(extension, extensionOffset, extensionLength)
+            .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doFlush(
@@ -5936,7 +5984,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final int topicNameLength = Math.max(topicName.length(), 0);
 
-            AtomicInteger propertiesSize = new AtomicInteger();
+            int propertiesSize = 0;
 
             final DirectBufferEx filterIdItems = filterIds.items();
             final int filterIdLimit = filterIdItems.capacity();
@@ -5950,9 +5998,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final int subscriptionId = subscription.id;
                     mqttPropertyRW.wrap(propertyBuffer,
-                        propertiesSize.get(), propertyBuffer.capacity())
+                        propertiesSize, propertyBuffer.capacity())
                         .subscriptionId(v -> v.set(subscriptionId));
-                    propertiesSize.set(mqttPropertyRW.limit());
+                    propertiesSize = mqttPropertyRW.limit();
                 }
             }
 
@@ -5964,68 +6012,71 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (expiryInterval != -1)
             {
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
+                    propertiesSize, propertyBuffer.capacity())
                     .expiryInterval(expiryInterval)
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                propertiesSize = mqttPropertyRW.limit();
             }
 
             if (contentType.value() != null)
             {
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
+                    propertiesSize, propertyBuffer.capacity())
                     .contentType(contentType.asString())
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                propertiesSize = mqttPropertyRW.limit();
             }
 
             if (!format.get().equals(MqttPayloadFormat.NONE))
             {
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
+                    propertiesSize, propertyBuffer.capacity())
                     .payloadFormat((byte) subscribeDataEx.subscribe().format().get().ordinal())
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                propertiesSize = mqttPropertyRW.limit();
             }
 
             if (responseTopic.value() != null)
             {
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
+                    propertiesSize, propertyBuffer.capacity())
                     .responseTopic(responseTopic.asString())
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                propertiesSize = mqttPropertyRW.limit();
             }
 
             if (correlation.length() != -1)
             {
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
+                    propertiesSize, propertyBuffer.capacity())
                     .correlationData(a -> a.bytes(correlation.bytes()))
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
+                propertiesSize = mqttPropertyRW.limit();
             }
 
-            properties.forEach(p ->
+            final DirectBufferEx userPropertyItems = properties.items();
+            final int userPropertyLimit = userPropertyItems.capacity();
+            for (int userPropertyOffset = 0; userPropertyOffset < userPropertyLimit;
+                userPropertyOffset = subscribeUserPropertyRO.limit())
             {
+                subscribeUserPropertyRO.wrap(userPropertyItems, userPropertyOffset, userPropertyLimit);
                 mqttPropertyRW.wrap(propertyBuffer,
-                    propertiesSize.get(), propertyBuffer.capacity())
-                    .userProperty(c -> c.key(p.key()).value(p.value()))
+                    propertiesSize, propertyBuffer.capacity())
+                    .userProperty(subscribeUserPropertyBuilder)
                     .build();
-                propertiesSize.set(mqttPropertyRW.limit());
-            });
+                propertiesSize = mqttPropertyRW.limit();
+            }
 
-            final int propertiesSize0 = propertiesSize.get();
+            publishPropertiesSize = propertiesSize;
             if (qos == 0)
             {
                 final MqttPublishV5FW publish = mqttPublishV5RW
                     .wrap(writeBuffer,
                         DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .typeAndFlags(publishNetworkTypeAndFlags)
-                        .remainingLength(3 + topicNameLength + propertiesSize.get() + payloadSize + deferred)
+                        .remainingLength(3 + topicNameLength + propertiesSize + payloadSize + deferred)
                         .topicName(topicName)
-                        .properties(p -> p.length(propertiesSize0)
-                            .value(propertyBuffer, 0, propertiesSize0))
+                        .properties(publishPropertiesBuilder)
                         .build();
 
                 int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
@@ -6040,11 +6091,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .wrap(writeBuffer,
                         DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .typeAndFlags(publishNetworkTypeAndFlags)
-                        .remainingLength(5 + topicNameLength + propertiesSize.get() + payloadSize + deferred)
+                        .remainingLength(5 + topicNameLength + propertiesSize + payloadSize + deferred)
                         .topicName(topicName)
                         .packetId(packetId)
-                        .properties(p -> p.length(propertiesSize0)
-                            .value(propertyBuffer, 0, propertiesSize0))
+                        .properties(publishPropertiesBuilder)
                         .build();
 
                 int limit = DataFW.FIELD_OFFSET_PAYLOAD + publish.sizeof();
@@ -8606,17 +8656,18 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (!StreamState.initialClosed(state))
                 {
+                    flushQos = qos;
+                    flushPacketId = packetId;
+                    flushOffsetState = offsetState;
+                    flushReasonCode = reasonCode;
+
+                    final MqttFlushExFW flushEx = mqttFlushExRW.wrap(flushExtBuffer, 0, flushExtBuffer.capacity())
+                        .typeId(mqttTypeId)
+                        .subscribe(subscribeFlushBuilder)
+                        .build();
+
                     doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                        traceId, sessionId, 0L, reserved,
-                        ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                            .typeId(mqttTypeId)
-                            .subscribe(subscribeBuilder -> subscribeBuilder
-                                .qos(qos)
-                                .packetId(packetId)
-                                .state(offsetState)
-                                .reasonCode(reasonCode))
-                            .build()
-                            .sizeof()));
+                        traceId, sessionId, 0L, reserved, flushEx.buffer(), flushEx.offset(), flushEx.sizeof());
 
                     initialSeq += reserved;
                     assert initialSeq <= initialAck + initialMax;
@@ -8861,7 +8912,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long authorization = data.authorization();
                 final int flags = data.flags();
                 final OctetsFW payload = data.payload();
-                final MqttDataExFW subscribeDataEx = data.extension().get(mqttSubscribeDataExRO::tryWrap);
+                final OctetsFW extension = data.extension();
+                final MqttDataExFW subscribeDataEx =
+                    mqttSubscribeDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
 
                 if (hasInit(flags) && deliverable(payload, subscribeDataEx))
                 {
@@ -10029,6 +10082,24 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             return flags;
         }
+    }
+
+    private void buildSubscribeUserProperty(
+        MqttUserPropertyFW.Builder item)
+    {
+        item.key(subscribeUserPropertyRO.key()).value(subscribeUserPropertyRO.value());
+    }
+
+    private void buildPublishProperties(
+        MqttPropertiesFW.Builder properties)
+    {
+        properties.length(publishPropertiesSize).value(propertyBuffer, 0, publishPropertiesSize);
+    }
+
+    private void buildSubscribeFlush(
+        MqttSubscribeFlushExFW.Builder subscribe)
+    {
+        subscribe.qos(flushQos).packetId(flushPacketId).state(flushOffsetState).reasonCode(flushReasonCode);
     }
 
     private void buildPublishUserProperty(
