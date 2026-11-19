@@ -127,6 +127,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 # cleanup client-2
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -148,6 +161,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .partition(-1, -1)
                                .key("client-2#offsets")
                                .hashKey("client-2")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2#expiry")
+                               .hashKey("client-2")
+                               .header("type", "expiry-signal")
                                .build()
                            .build()}
 read zilla:data.null
