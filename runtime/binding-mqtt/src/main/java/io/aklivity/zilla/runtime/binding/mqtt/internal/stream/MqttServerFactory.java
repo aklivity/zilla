@@ -5871,9 +5871,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             for (int index = 0; deliverable == null && index < subscriptions.size(); index++)
             {
                 final Subscription subscription = subscriptions.get(index);
-                final boolean wildcardFirst = MqttValidator.wildcardFirst(subscription.filter);
 
-                if (subscription.filterId == filterId && !(wildcardFirst && systemTopic(topicName)))
+                if (subscription.filterId == filterId &&
+                    !(systemTopic(topicName) && MqttValidator.wildcardFirst(subscription.filter)))
                 {
                     deliverable = subscription;
                 }
