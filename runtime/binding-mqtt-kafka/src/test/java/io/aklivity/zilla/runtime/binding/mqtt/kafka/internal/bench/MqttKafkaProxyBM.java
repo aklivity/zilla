@@ -99,6 +99,7 @@ public class MqttKafkaProxyBM
     private static final long OFFSET_MARKER = 0x0102030405060708L;
     private static final int FANOUT_SUBSCRIBERS = 1000;
     private static final int SHARED_SUBSCRIBERS = 5;
+    private static final int EXPIRY_SECONDS = 24 * 60 * 60;
     private static final String SHARE_NAME = "benchmark";
     private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
     private static final String FANOUT_TOPIC = "device/fanout";
@@ -681,6 +682,9 @@ public class MqttKafkaProxyBM
         @Param({"1", "256"})
         public int inflight;
 
+        @Param({"qos", "format", "expiry"})
+        public String headers;
+
         @Override
         int subscribers()
         {
@@ -721,17 +725,7 @@ public class MqttKafkaProxyBM
             int kafkaTypeId,
             int subscriber)
         {
-            return KafkaFunctions.dataEx()
-                .typeId(kafkaTypeId)
-                .merged()
-                    .fetch()
-                        .timestamp(1L)
-                        .filters(1L)
-                        .partition(0, OFFSET_MARKER, OFFSET_MARKER)
-                        .key(topic(subscriber))
-                        .header("zilla:qos", "1")
-                        .build()
-                    .build();
+            return fetchDataEx(kafkaTypeId, topic(subscriber), headers);
         }
 
         @Override
@@ -755,6 +749,9 @@ public class MqttKafkaProxyBM
     @State(Scope.Benchmark)
     public static class FanoutFixture extends SubscribeFixture
     {
+        @Param({"qos", "format", "expiry"})
+        public String headers;
+
         @Override
         int subscribers()
         {
@@ -795,17 +792,7 @@ public class MqttKafkaProxyBM
             int kafkaTypeId,
             int subscriber)
         {
-            return KafkaFunctions.dataEx()
-                .typeId(kafkaTypeId)
-                .merged()
-                    .fetch()
-                        .timestamp(1L)
-                        .filters(1L)
-                        .partition(0, OFFSET_MARKER, OFFSET_MARKER)
-                        .key(topic(subscriber))
-                        .header("zilla:qos", "1")
-                        .build()
-                    .build();
+            return fetchDataEx(kafkaTypeId, topic(subscriber), headers);
         }
 
         @Override
@@ -893,6 +880,33 @@ public class MqttKafkaProxyBM
             idle.add(opened.get(committed));
             kafka.deliver(idle.poll().index);
         }
+    }
+
+    private static byte[] fetchDataEx(
+        int kafkaTypeId,
+        String topic,
+        String headers)
+    {
+        final var fetch = KafkaFunctions.dataEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .fetch()
+                    .timestamp(System.currentTimeMillis())
+                    .filters(1L)
+                    .partition(0, OFFSET_MARKER, OFFSET_MARKER)
+                    .key(topic)
+                    .header("zilla:qos", "1");
+
+        if ("format".equals(headers))
+        {
+            fetch.header("zilla:format", "TEXT");
+        }
+        else if ("expiry".equals(headers))
+        {
+            fetch.headerInt("zilla:expiry", EXPIRY_SECONDS);
+        }
+
+        return fetch.build().build();
     }
 
     public static void main(
