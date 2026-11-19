@@ -209,6 +209,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttExtensionKind;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttOffsetStateFlags;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities;
@@ -244,7 +245,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int CONNACK_FIXED_LENGTH = 3;
     private static final int DISCONNECT_FIXED_LENGTH = 2;
     private static final int MAXIMUM_CLIENT_ID_LENGTH = 256;
+    private static final int MAXIMUM_TOPIC_BYTES = 0xffff * 3;
     private static final int NO_PACKET_ID = -1;
+    private static final int TOPIC_HASH_SEED = 0x811c9dc5;
+    private static final int TOPIC_HASH_PRIME = 0x01000193;
     private static final int PENDING_SUBSCRIBE = 0;
     private static final int PENDING_UNSUBSCRIBE = 1;
     private static final int PENDING_UNSUBSCRIBE_FILTERS = 2;
@@ -393,11 +397,16 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final String16FW clientIdRO = new String16FW();
+    private final MqttPayloadFormatFW[] payloadFormats = payloadFormats();
+    private final MqttUserPropertyFW publishUserPropertyRO = new MqttUserPropertyFW();
+    private final Consumer<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW.Builder>
+        publishUserPropertyBuilder = this::buildPublishUserProperty;
+    private final MutableDirectBufferEx topicKeyBuffer = new UnsafeBufferEx(new byte[MAXIMUM_TOPIC_BYTES]);
     private final UnsafeBufferEx clientIdBuffer = new UnsafeBufferEx(new byte[0]);
+    private final String16FW decodedContentTypeRO = new String16FW();
+    private final String16FW decodedResponseTopicRO = new String16FW();
     private final OctetsFW decodedCorrelationDataRO = new OctetsFW();
-    private final UnsafeBufferEx decodedCorrelationDataBuffer = new UnsafeBufferEx(new byte[0]);
     private final Array32FW<MqttUserPropertyFW> decodedUserPropertiesRO = new Array32FW<>(new MqttUserPropertyFW());
-    private final UnsafeBufferEx decodedUserPropertiesBuffer = new UnsafeBufferEx(new byte[0]);
     private final MqttPropertyFW mqttPropertyRO = new MqttPropertyFW();
     private final MqttPropertyFW.Builder mqttPropertyRW = new MqttPropertyFW.Builder();
 
@@ -669,7 +678,30 @@ public final class MqttServerFactory implements MqttStreamFactory
         String topic,
         int qos)
     {
-        final int topicHashCode = System.identityHashCode(topic.intern());
+        final int length = topicKeyBuffer.putStringWithoutLengthUtf8(0, topic);
+
+        return topicKey(topicKeyBuffer, 0, length, qos);
+    }
+
+    private long topicKey(
+        String16FW topicName,
+        int qos)
+    {
+        return topicKey(topicName.buffer(), topicName.offset() + Short.BYTES, topicName.length(), qos);
+    }
+
+    private long topicKey(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        int qos)
+    {
+        int topicHashCode = TOPIC_HASH_SEED;
+        for (int index = 0; index < length; index++)
+        {
+            topicHashCode = (topicHashCode ^ (buffer.getByte(offset + index) & 0xff)) * TOPIC_HASH_PRIME;
+        }
+
         return ((long) topicHashCode << 32) | (qos & 0xFFFFFFFFL);
     }
 
@@ -1347,6 +1379,22 @@ public final class MqttServerFactory implements MqttStreamFactory
         return topic.indexOf('\u0000') != -1 ? MALFORMED_PACKET : PROTOCOL_ERROR;
     }
 
+    private int topicReasonCode(
+        String16FW topicName)
+    {
+        final DirectBufferEx buffer = topicName.buffer();
+        final int offset = topicName.offset() + Short.BYTES;
+        final int length = Math.max(topicName.length(), 0);
+
+        int reasonCode = PROTOCOL_ERROR;
+        for (int index = 0; reasonCode == PROTOCOL_ERROR && index < length; index++)
+        {
+            reasonCode = buffer.getByte(offset + index) == 0 ? MALFORMED_PACKET : PROTOCOL_ERROR;
+        }
+
+        return reasonCode;
+    }
+
     private int decodePublishV4(
         MqttServer server,
         final long traceId,
@@ -1427,13 +1475,13 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == SUCCESS)
             {
-                final String topic = mqttPublishHelper.topic;
-                final long topicKey = topicKey(topic, mqttPublishHelper.qos);
+                final long topicKey = mqttPublishHelper.topicKey();
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
                 {
-                    publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
+                    publisher = server.resolvePublishStream(traceId, authorization, topicKey, mqttPublishHelper.topic(),
+                        mqttPublishHelper.qos);
                     if (publisher == null)
                     {
                         server.decodeablePublishPayloadBytes =
@@ -1562,13 +1610,13 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == SUCCESS)
             {
-                final String topic = mqttPublishHelper.topic;
-                final long topicKey = topicKey(topic, mqttPublishHelper.qos);
+                final long topicKey = mqttPublishHelper.topicKey();
                 MqttServer.MqttPublishStream publisher = server.publishes.get(topicKey);
 
                 if (publisher == null)
                 {
-                    publisher = server.resolvePublishStream(traceId, authorization, topicKey, topic, mqttPublishHelper.qos);
+                    publisher = server.resolvePublishStream(traceId, authorization, topicKey, mqttPublishHelper.topic(),
+                        mqttPublishHelper.qos);
                     if (publisher == null)
                     {
                         server.decodeablePublishPayloadBytes =
@@ -1586,17 +1634,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodedPacketId = mqttPublishHelper.packetId;
                 server.decodedFlags = mqttPublishHelper.flags;
                 server.decodedExpiryInterval = mqttPublishHelper.expiryInterval;
-                server.decodedContentType = stringOrNull(mqttPublishHelper.contentType);
+                server.decodePublishProperties(mqttPublishHelper);
                 server.decodedPayloadFormat = mqttPublishHelper.payloadFormat;
-                server.decodedResponseTopic = stringOrNull(mqttPublishHelper.responseTopic);
-
-                server.decodedCorrelationData = mqttPublishHelper.correlationData != null
-                    ? copyOf(mqttPublishHelper.correlationData)
-                    : null;
-                final Array32FW<MqttUserPropertyFW> userProperties = mqttPublishHelper.userProperties;
-                server.decodedUserProperties = userProperties != null && !userProperties.isEmpty()
-                    ? copyOf(userProperties)
-                    : null;
 
                 final int decodeablePublishPayloadBytes =
                     publishHeader.remainingLength() + publishHeader.sizeof() - (publishLimit - offset);
@@ -1758,10 +1797,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (accepted)
                     {
-                        server.onDecodePublishPayload(traceId, authorization, valueClaimed, server.decodedPacketId,
-                            server.decodedQos, server.decodedFlags, server.decodedExpiryInterval, server.decodedContentType,
-                            server.decodedPayloadFormat, server.decodedResponseTopic, server.correlationData(),
-                            server.userProperties(), payload, payload.offset(), payload.offset() + sizeClaimed);
+                        server.onDecodePublishPayload(traceId, authorization, valueClaimed, payload, payload.offset(),
+                            payload.offset() + sizeClaimed);
 
                         if (server.publishPayloadModeling)
                         {
@@ -2888,11 +2925,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean decodedRetained = false;
         private int decodedFlags;
         private int decodedExpiryInterval = DEFAULT_EXPIRY_INTERVAL;
-        private String16FW decodedContentType = NULL_STRING;
+        private DecodedBytes decodedContentType;
         private MqttPayloadFormat decodedPayloadFormat = DEFAULT_FORMAT;
-        private String16FW decodedResponseTopic = NULL_STRING;
-        private byte[] decodedCorrelationData = null;
-        private byte[] decodedUserProperties = null;
+        private DecodedBytes decodedResponseTopic;
+        private DecodedBytes decodedCorrelationData;
+        private DecodedBytes decodedUserProperties;
+        private Consumer<MqttPublishDataExFW.Builder> publishDataExBuilder;
 
         private MqttServer(
             MessageConsumer network,
@@ -3720,30 +3758,111 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private OctetsFW correlationData()
+        private void decodePublishProperties(
+            MqttPublishHelper helper)
         {
-            OctetsFW correlationData = null;
+            decodedContentType = decodeString(decodedContentType, helper.contentType);
+            decodedResponseTopic = decodeString(decodedResponseTopic, helper.responseTopic);
+            decodedCorrelationData = decodeBytes(decodedCorrelationData, helper.correlationData);
+            decodedUserProperties = decodeBytes(decodedUserProperties,
+                helper.userProperties != null && !helper.userProperties.isEmpty() ? helper.userProperties : null);
+        }
 
-            if (decodedCorrelationData != null)
+        private DecodedBytes decodeString(
+            DecodedBytes decoded,
+            String16FW value)
+        {
+            DecodedBytes result = decoded;
+
+            if (value.value() != null)
             {
-                decodedCorrelationDataBuffer.wrap(decodedCorrelationData);
-                correlationData = decodedCorrelationDataRO.wrap(decodedCorrelationDataBuffer, 0, decodedCorrelationData.length);
+                final int length = value.length();
+
+                result = result != null ? result : new DecodedBytes();
+                result.reserve(Short.BYTES + length);
+                result.buffer.putShort(0, (short) length, nativeOrder());
+                result.buffer.putBytes(Short.BYTES, value.buffer(), value.offset() + Short.BYTES, length);
+            }
+            else if (result != null)
+            {
+                result.clear();
             }
 
-            return correlationData;
+            return result;
+        }
+
+        private DecodedBytes decodeBytes(
+            DecodedBytes decoded,
+            Flyweight value)
+        {
+            DecodedBytes result = decoded;
+
+            if (value != null)
+            {
+                result = result != null ? result : new DecodedBytes();
+                result.reserve(value.sizeof());
+                result.buffer.putBytes(0, value.buffer(), value.offset(), value.sizeof());
+            }
+            else if (result != null)
+            {
+                result.clear();
+            }
+
+            return result;
+        }
+
+        private String16FW contentType()
+        {
+            return decodedContentType != null && decodedContentType.length >= 0
+                ? decodedContentTypeRO.wrap(decodedContentType.buffer, 0, decodedContentType.length)
+                : NULL_STRING;
+        }
+
+        private String16FW responseTopic()
+        {
+            return decodedResponseTopic != null && decodedResponseTopic.length >= 0
+                ? decodedResponseTopicRO.wrap(decodedResponseTopic.buffer, 0, decodedResponseTopic.length)
+                : NULL_STRING;
+        }
+
+        private OctetsFW correlationData()
+        {
+            return decodedCorrelationData != null && decodedCorrelationData.length >= 0
+                ? decodedCorrelationDataRO.wrap(decodedCorrelationData.buffer, 0, decodedCorrelationData.length)
+                : null;
         }
 
         private Array32FW<MqttUserPropertyFW> userProperties()
         {
-            Array32FW<MqttUserPropertyFW> userProperties = null;
+            return decodedUserProperties != null && decodedUserProperties.length >= 0
+                ? decodedUserPropertiesRO.wrap(decodedUserProperties.buffer, 0, decodedUserProperties.length)
+                : null;
+        }
 
-            if (decodedUserProperties != null)
+        private void buildPublishDataEx(
+            MqttPublishDataExFW.Builder publish)
+        {
+            publish.deferred(publishPayloadDeferred)
+                .qos(decodedQos)
+                .flags(decodedFlags)
+                .packetId(decodedPacketId)
+                .expiryInterval(decodedExpiryInterval)
+                .contentType(contentType())
+                .format(payloadFormats[decodedPayloadFormat.ordinal()])
+                .responseTopic(responseTopic())
+                .correlation(c -> c.bytes(correlationData()));
+
+            final Array32FW<MqttUserPropertyFW> userProperties = userProperties();
+            if (userProperties != null)
             {
-                decodedUserPropertiesBuffer.wrap(decodedUserProperties);
-                userProperties = decodedUserPropertiesRO.wrap(decodedUserPropertiesBuffer, 0, decodedUserProperties.length);
+                final DirectBufferEx items = userProperties.items();
+                final int limit = items.capacity();
+                for (int offset = 0; offset < limit; offset = publishUserPropertyRO.limit())
+                {
+                    publishUserPropertyRO.wrap(items, offset, limit);
+                    publish.propertiesItem(publishUserPropertyBuilder);
+                }
             }
-
-            return userProperties;
         }
 
         private String16FW clientId()
@@ -4115,15 +4234,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization,
             int reserved,
-            int packetId,
-            int qos,
-            int flags,
-            int expiryInterval,
-            String16FW contentType,
-            MqttPayloadFormat payloadFormat,
-            String16FW responseTopic,
-            OctetsFW correlationData,
-            Array32FW<MqttUserPropertyFW> userProperties,
             OctetsFW payload,
             int offset,
             int limit)
@@ -4144,38 +4254,26 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final int length = limit - offset;
 
-                if (!unreleasedPacketIds.contains(packetId))
+                if (!unreleasedPacketIds.contains(decodedPacketId))
                 {
                     MqttPublishStream stream = publishes.get(decodePublisherKey);
 
                     if (publishPayloadDeferred == 0)
                     {
                         publishPayloadDeferred = decodeablePublishPayloadBytes - length;
+                        publishDataExBuilder = publishDataExBuilder != null ? publishDataExBuilder : this::buildPublishDataEx;
+
                         final Flyweight dataEx = mqttPublishDataExRW
                             .wrap(dataExtBuffer, 0, dataExtBuffer.capacity())
                             .typeId(mqttTypeId)
-                            .publish(p ->
-                            {
-                                p.deferred(publishPayloadDeferred)
-                                    .qos(qos)
-                                    .flags(flags)
-                                    .packetId(packetId)
-                                    .expiryInterval(expiryInterval)
-                                    .contentType(contentType)
-                                    .format(f -> f.set(payloadFormat))
-                                    .responseTopic(responseTopic)
-                                    .correlation(c -> c.bytes(correlationData));
-                                if (userProperties != null)
-                                {
-                                    userProperties.forEach(c -> p.propertiesItem(pi -> pi.key(c.key()).value(c.value())));
-                                }
-                            }).build();
+                            .publish(publishDataExBuilder)
+                            .build();
 
                         int dataFlags = publishPayloadDeferred > 0 ? INIT : COMPLETE;
 
                         if (stream != null)
                         {
-                            stream.doPublishData(traceId, authorization, reserved, packetId, payload, dataFlags,
+                            stream.doPublishData(traceId, authorization, reserved, decodedPacketId, payload, dataFlags,
                                 offset, limit, dataEx);
                             decodeablePublishPayloadBytes -= length;
                         }
@@ -4188,7 +4286,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                         if (stream != null)
                         {
-                            stream.doPublishData(traceId, authorization, reserved, packetId, payload, dataFlags,
+                            stream.doPublishData(traceId, authorization, reserved, decodedPacketId, payload, dataFlags,
                                 offset, limit, EMPTY_OCTETS);
                             decodeablePublishPayloadBytes -= length;
                         }
@@ -9531,6 +9629,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     private final class MqttPublishHelper
     {
+        private String16FW topicName;
         private String topic;
         private int flags;
         private int qos;
@@ -9543,8 +9642,21 @@ public final class MqttServerFactory implements MqttStreamFactory
         private boolean retained = false;
         private Array32FW<MqttUserPropertyFW> userProperties = null;
 
+        private String topic()
+        {
+            topic = topic != null ? topic : topicName.asString();
+
+            return topic;
+        }
+
+        private long topicKey()
+        {
+            return topic != null ? MqttServerFactory.this.topicKey(topic, qos) : MqttServerFactory.this.topicKey(topicName, qos);
+        }
+
         private MqttPublishHelper reset()
         {
+            this.topicName = null;
             this.topic = null;
             this.flags = 0;
             this.qos = 0;
@@ -9569,7 +9681,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             int qos,
             int packetId)
         {
-            this.topic = topicName.asString();
+            this.topicName = topicName;
             this.qos = qos;
             this.packetId = packetId;
             int reasonCode = SUCCESS;
@@ -9580,7 +9692,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int decodeOffset = propertiesValue.offset();
             final int decodeLimit = propertiesValue.limit();
 
-            if (topic == null)
+            if (topicName.value() == null)
             {
                 reasonCode = PROTOCOL_ERROR;
             }
@@ -9643,7 +9755,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             break decode;
                         }
 
-                        if (topic.isEmpty())
+                        if (topicName.length() == 0)
                         {
                             if (!server.topicAliases.containsKey(alias))
                             {
@@ -9654,7 +9766,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         else
                         {
-                            server.topicAliases.put(alias, topic);
+                            server.topicAliases.put(alias, topic());
                         }
                         break;
                     case KIND_PAYLOAD_FORMAT:
@@ -9669,10 +9781,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         if (mResponseTopic.value() != null)
                         {
-                            final String responseTopicName = mResponseTopic.asString();
-                            if (!validator.isTopicNameValid(responseTopicName))
+                            if (!validator.isTopicNameValid(mResponseTopic))
                             {
-                                reasonCode = topicReasonCode(responseTopicName);
+                                reasonCode = topicReasonCode(mResponseTopic);
                                 break decode;
                             }
 
@@ -9694,7 +9805,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             reasonCode = MALFORMED_PACKET;
                             break decode;
                         }
-                        final ModelConfig config = binding.supplyUserPropertyModelConfig(topic, userPropertyKey);
+                        final ModelConfig config =
+                            binding.hasTopicModels() ? binding.supplyUserPropertyModelConfig(topic(), userPropertyKey) : null;
                         final MqttModel model =
                             MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
                         if (model.active())
@@ -9728,13 +9840,25 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 userProperties = userPropertiesRW.build();
 
-                if (reasonCode == SUCCESS && !validator.isTopicNameValid(topic))
+                if (reasonCode == SUCCESS)
                 {
-                    reasonCode = topicReasonCode(topic);
+                    reasonCode = topic != null ? topicNameReasonCode(topic) : topicNameReasonCode(topicName);
                 }
             }
 
             return reasonCode;
+        }
+
+        private int topicNameReasonCode(
+            String name)
+        {
+            return validator.isTopicNameValid(name) ? SUCCESS : topicReasonCode(name);
+        }
+
+        private int topicNameReasonCode(
+            String16FW name)
+        {
+            return validator.isTopicNameValid(name) ? SUCCESS : topicReasonCode(name);
         }
 
         private int decodeV4(
@@ -9746,9 +9870,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             this.qos = qos;
             this.packetId = packetId;
-            this.topic = topicName.asString();
+            this.topicName = topicName;
             int reasonCode = SUCCESS;
-            if (topic == null)
+            if (topicName.value() == null)
             {
                 reasonCode = PROTOCOL_ERROR;
             }
@@ -9756,9 +9880,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 reasonCode = MALFORMED_PACKET;
             }
-            else if (!validator.isTopicNameValid(topic))
+            else if (!validator.isTopicNameValid(topicName))
             {
-                reasonCode = topicReasonCode(topic);
+                reasonCode = topicReasonCode(topicName);
             }
             else
             {
@@ -9782,20 +9906,26 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
     }
 
-    private static String16FW stringOrNull(
-        String16FW value)
+    private void buildPublishUserProperty(
+        io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW.Builder item)
     {
-        return value.value() != null ? new String16FW(value.asString()) : NULL_STRING;
+        item.key(publishUserPropertyRO.key()).value(publishUserPropertyRO.value());
     }
 
-    private static byte[] copyOf(
-        Flyweight value)
+    private static MqttPayloadFormatFW[] payloadFormats()
     {
-        final byte[] copy = new byte[value.sizeof()];
+        final MqttPayloadFormat[] formats = MqttPayloadFormat.values();
+        final MqttPayloadFormatFW[] flyweights = new MqttPayloadFormatFW[formats.length];
 
-        value.buffer().getBytes(value.offset(), copy);
+        for (MqttPayloadFormat format : formats)
+        {
+            flyweights[format.ordinal()] = new MqttPayloadFormatFW.Builder()
+                .wrap(new UnsafeBufferEx(new byte[Byte.BYTES]), 0, Byte.BYTES)
+                .set(format)
+                .build();
+        }
 
-        return copy;
+        return flyweights;
     }
 
     private byte[] encodeClientId(
@@ -9809,6 +9939,30 @@ public final class MqttServerFactory implements MqttStreamFactory
         clientIdBuffer.putShort(0, (short) length, nativeOrder());
 
         return encoded;
+    }
+
+    private static final class DecodedBytes
+    {
+        private static final int ABSENT = -1;
+
+        private UnsafeBufferEx buffer;
+        private int length = ABSENT;
+
+        private void reserve(
+            int length)
+        {
+            if (buffer == null || buffer.capacity() < length)
+            {
+                buffer = new UnsafeBufferEx(new byte[length]);
+            }
+
+            this.length = length;
+        }
+
+        private void clear()
+        {
+            length = ABSENT;
+        }
     }
 
     private static final class OwnershipRecord
