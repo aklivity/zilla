@@ -141,7 +141,69 @@ connected
 
 # both qos2 partition metadata streams are now open; no session state
 # stream has been established yet
-write notify SESSION_META_STREAMS_OPENED
+read aborted
+write abort
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-sessions")
+                                .build()
+                            .build()}
+
+connected
 
 read aborted
 write abort
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .apiRequest()
+                                .length(29)
+                                .api(10)
+                                .version(3)
+                                .clientId("zilla")
+                                .build()
+                            .build()}
+
+connected
+
+read option zilla:affinity 0x0000000000000000L
+read [0x00]                                    # request header tagged fields
+      [0x1a] "zilla:test-mqtt0-client-1"       # group id (key)
+      [0x00]                                    # key type (group)
+      [0x00]                                    # tagged fields
+
+read aborted
+write abort
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(0)
+                                .producerEpoch(0)
+                                .build()
+                            .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .initProducerId()
+                                .producerId(1)
+                                .producerEpoch(1)
+                                .build()
+                            .build()}
+
+connected
+
+read closed
+write close
+
+write notify SESSION_META_STREAMS_OPENED

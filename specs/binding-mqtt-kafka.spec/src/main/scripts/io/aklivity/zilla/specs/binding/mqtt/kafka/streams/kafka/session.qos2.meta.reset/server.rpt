@@ -49,16 +49,18 @@ read closed
 write close
 
 
-rejected
-
-
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .meta()
-                                .topic("mqtt-retained")
+                                .topic("mqtt-messages")
                                 .build()
                             .build()}
 
 connected
+
+read aborted
+write abort
+
+rejected

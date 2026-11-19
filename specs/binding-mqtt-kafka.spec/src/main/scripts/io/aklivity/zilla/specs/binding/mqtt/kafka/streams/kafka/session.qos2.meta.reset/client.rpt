@@ -57,7 +57,10 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
-connect aborted
+connected
+
+write abort
+read aborted
 
 connect "zilla://streams/kafka0"
         option zilla:window 8192
@@ -70,4 +73,4 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
-connected
+connect aborted
