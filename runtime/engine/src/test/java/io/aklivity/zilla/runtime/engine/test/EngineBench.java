@@ -93,6 +93,7 @@ public final class EngineBench implements AutoCloseable
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
@@ -600,6 +601,26 @@ public final class EngineBench implements AutoCloseable
                 .build();
 
             accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        }
+
+        public void flush(
+            DirectBufferEx extension,
+            int offset,
+            int length)
+        {
+            final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(initialId)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .state(state)
+                .maximum(initialMax)
+                .budgetId(0L)
+                .extension(extension, offset, length)
+                .build();
+
+            accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
         }
 
         public void end()
