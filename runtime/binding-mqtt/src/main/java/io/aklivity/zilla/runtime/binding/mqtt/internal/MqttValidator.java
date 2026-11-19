@@ -68,16 +68,17 @@ public final class MqttValidator
     public boolean isSharedTopicFilterValid(
         String topicFilter)
     {
-        final String shareName = shareName(topicFilter);
-        final String pattern = sharePattern(topicFilter);
+        final int separator = shareSeparator(topicFilter);
 
-        return shareName != null &&
-            !shareName.isEmpty() &&
-            shareName.indexOf('+') == -1 &&
-            shareName.indexOf('#') == -1 &&
-            pattern != null &&
-            !pattern.isEmpty() &&
-            isTopicFilterValid(pattern);
+        boolean valid = separator != -1 && separator > SHARED_PREFIX.length() && separator + 1 < topicFilter.length();
+
+        for (int index = SHARED_PREFIX.length(); valid && index < separator; index++)
+        {
+            final char value = topicFilter.charAt(index);
+            valid = value != '+' && value != '#';
+        }
+
+        return valid && topicFilterMatcher.reset(topicFilter).region(separator + 1, topicFilter.length()).matches();
     }
 
     public static boolean isShared(
