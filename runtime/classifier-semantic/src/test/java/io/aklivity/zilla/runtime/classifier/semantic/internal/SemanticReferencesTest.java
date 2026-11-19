@@ -30,6 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -85,7 +86,7 @@ public class SemanticReferencesTest
             return scheduled.remove(cancelId) != null;
         });
 
-        references = new SemanticReferences(embedding, store, signaler, PHRASES, LOCK_TTL, TIMEOUT);
+        references = new SemanticReferences(embedding, store, signaler, Clock.systemUTC(), PHRASES, LOCK_TTL, TIMEOUT);
     }
 
     @Test

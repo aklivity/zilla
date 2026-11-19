@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.classifier.semantic.internal;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -50,6 +51,7 @@ final class SemanticReferences
     private final EmbeddingHandler embedding;
     private final StoreHandler store;
     private final Signaler signaler;
+    private final Clock clock;
     private final List<String> phrases;
     private final Duration lockTtl;
     private final Duration timeout;
@@ -69,6 +71,7 @@ final class SemanticReferences
         EmbeddingHandler embedding,
         StoreHandler store,
         Signaler signaler,
+        Clock clock,
         List<String> phrases,
         Duration lockTtl,
         Duration timeout)
@@ -76,6 +79,7 @@ final class SemanticReferences
         this.embedding = embedding;
         this.store = store;
         this.signaler = signaler;
+        this.clock = clock;
         this.phrases = phrases;
         this.lockTtl = lockTtl;
         this.timeout = timeout;
@@ -125,7 +129,7 @@ final class SemanticReferences
     {
         if (closed)
         {
-            signaler.signalAt(System.currentTimeMillis(), TIMEOUT_SIGNAL_ID,
+            signaler.signalAt(clock.millis(), TIMEOUT_SIGNAL_ID,
                 signalId -> waiter.failed(new IllegalStateException("closed")));
         }
         else if (vectors != null)
@@ -136,7 +140,7 @@ final class SemanticReferences
         {
             Pending entry = new Pending(waiter);
             entry.cancelId = signaler.signalAt(
-                System.currentTimeMillis() + timeout.toMillis(), TIMEOUT_SIGNAL_ID, signalId -> onTimeout(entry));
+                clock.millis() + timeout.toMillis(), TIMEOUT_SIGNAL_ID, signalId -> onTimeout(entry));
             pending.add(entry);
         }
     }
@@ -280,13 +284,13 @@ final class SemanticReferences
 
     private void scheduleRetry()
     {
-        retryCancelId = signaler.signalAt(System.currentTimeMillis() + retryDelayMillis, RETRY_SIGNAL_ID, this::onRetry);
+        retryCancelId = signaler.signalAt(clock.millis() + retryDelayMillis, RETRY_SIGNAL_ID, this::onRetry);
         retryDelayMillis = Math.min(retryDelayMillis * 2L, lockTtl.toMillis());
     }
 
     private void scheduleRenew()
     {
-        renewCancelId = signaler.signalAt(System.currentTimeMillis() + lockTtl.toMillis() / 2L, RENEW_SIGNAL_ID, this::onRenew);
+        renewCancelId = signaler.signalAt(clock.millis() + lockTtl.toMillis() / 2L, RENEW_SIGNAL_ID, this::onRenew);
     }
 
     private void unlock()
