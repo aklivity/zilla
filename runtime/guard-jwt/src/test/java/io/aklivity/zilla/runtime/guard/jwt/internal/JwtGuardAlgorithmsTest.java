@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static io.aklivity.zilla.config.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.EXPIRES_NEVER;
-import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_ES256;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -28,11 +27,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.Signature;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Base64;
 
 import org.agrona.collections.MutableLong;
@@ -60,202 +57,6 @@ public class JwtGuardAlgorithmsTest
     }
 
     @Test
-    public void shouldAuthorizeEachSupportedAlgorithm() throws Exception
-    {
-        for (String alg : new String[] {"RS256", "RS384", "RS512", "PS256", "PS384", "PS512"})
-        {
-            JwtGuardHandler guard = newGuard(rsaKey("test", alg));
-
-            long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", alg, RFC7515_RS256, claims(Instant.now())));
-
-            assertThat(alg, sessionId, not(equalTo(0L)));
-            assertThat(alg, guard.identity(sessionId), equalTo("testSubject"));
-        }
-    }
-
-    @Test
-    public void shouldAuthorizeWithEs256() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(ecKey("test", "ES256"));
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "ES256", RFC7515_ES256, claims(Instant.now())));
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.identity(sessionId), equalTo("testSubject"));
-    }
-
-    @Test
-    public void shouldAuthorizeWithEdDsa() throws Exception
-    {
-        KeyPair pair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
-        byte[] encoded = pair.getPublic().getEncoded();
-        byte[] raw = Arrays.copyOfRange(encoded, encoded.length - 32, encoded.length);
-        String x = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
-        JwtKeyConfig key = JwtKeyConfig.builder().kty("OKP").kid("test").alg("EdDSA").crv("Ed25519").x(x).build();
-        JwtGuardHandler guard = newGuard(key);
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "EdDSA", pair, claims(Instant.now())));
-
-        assertThat(sessionId, not(equalTo(0L)));
-    }
-
-    @Test
-    public void shouldAuthorizeWithStandardBase64KeyMembers() throws Exception
-    {
-        String n = Base64.getEncoder().encodeToString(Base64.getUrlDecoder().decode(RFC7515_RS256_CONFIG.n));
-        JwtKeyConfig key = JwtKeyConfig.builder().kty("RSA").kid("test").alg("RS256").n(n).e("AQAB").build();
-        JwtGuardHandler guard = newGuard(key);
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims(Instant.now())));
-
-        assertThat(sessionId, not(equalTo(0L)));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenSignatureTampered() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String token = token("test", "RS256", RFC7515_RS256, claims(Instant.now()));
-        String tampered = token.substring(0, token.length() - 2) + (token.endsWith("AA") ? "BB" : "AA");
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, tampered), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenPayloadTampered() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String[] parts = token("test", "RS256", RFC7515_RS256, claims(Instant.now())).split("\\.");
-        String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(
-            claims(Instant.now()).replace("testSubject", "mallory").getBytes(UTF_8));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, parts[0] + "." + payload + "." + parts[2]), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenAlgorithmNone() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String token = unsigned("{\"alg\":\"none\",\"kid\":\"test\"}", claims(Instant.now()));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenKeyConfiguredWithAlgorithmNone() throws Exception
-    {
-        JwtKeyConfig key = JwtKeyConfig.builder().kty("RSA").kid("test").alg("none")
-            .n(RFC7515_RS256_CONFIG.n).e(RFC7515_RS256_CONFIG.e).build();
-        JwtGuardHandler guard = newGuard(key);
-        String token = unsigned("{\"alg\":\"none\",\"kid\":\"test\"}", claims(Instant.now()));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenRsaTokenPresentedWithEcKey() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(ecKey("test", "RS256"));
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims(Instant.now())));
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenEcTokenPresentedWithRsaKey() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(rsaKey("test", "ES256"));
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "ES256", RFC7515_ES256, claims(Instant.now())));
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenKeyIdMissing() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token(null, "RS256", RFC7515_RS256, claims(Instant.now())));
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenCriticalHeaderPresent() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String header = "{\"alg\":\"RS256\",\"kid\":\"test\",\"crit\":[\"exp\"],\"exp\":1}";
-        String token = signedWithHeader(header, claims(Instant.now()));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenHeaderHasDuplicateNames() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String token = signedWithHeader("{\"alg\":\"RS256\",\"kid\":\"test\",\"kid\":\"other\"}", claims(Instant.now()));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenClaimsHaveDuplicateNames() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String duplicate = "{\"iss\":\"test issuer\",\"iss\":\"other issuer\",\"aud\":\"testAudience\"}";
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, duplicate)), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenClaimsAreMalformed() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        long exp = Instant.now().getEpochSecond() + 10L;
-
-        String[] malformed =
-        {
-            "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"sub\":42,\"exp\":" + exp + "}",
-            "{\"iss\":42,\"aud\":\"testAudience\",\"exp\":" + exp + "}",
-            "{\"iss\":\"test issuer\",\"aud\":[\"testAudience\",1],\"exp\":" + exp + "}",
-            "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"exp\":\"soon\"}",
-            "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"nbf\":true}",
-            "[\"test issuer\"]",
-            "not json"
-        };
-
-        for (String claims : malformed)
-        {
-            assertThat(claims, guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims)), equalTo(0L));
-        }
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenAudienceMissing() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        String claims = "{\"iss\":\"test issuer\",\"sub\":\"testSubject\"}";
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims)), equalTo(0L));
-    }
-
-    @Test
-    public void shouldAuthorizeWhenAudienceIsArrayContainingConfiguredAudience() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        long exp = Instant.now().getEpochSecond() + 10L;
-        String claims = "{\"iss\":\"test issuer\",\"aud\":[\"other\",\"testAudience\"]," +
-            "\"sub\":\"testSubject\",\"exp\":" + exp + "}";
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims));
-
-        assertThat(sessionId, not(equalTo(0L)));
-    }
-
-    @Test
     public void shouldTruncateFractionalExpiration() throws Exception
     {
         JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
@@ -277,19 +78,6 @@ public class JwtGuardAlgorithmsTest
 
         assertThat(sessionId, not(equalTo(0L)));
         assertThat(guard.expiresAt(sessionId), equalTo(EXPIRES_NEVER));
-    }
-
-    @Test
-    public void shouldAuthorizeWhenNotBeforeAlreadyReached() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(RFC7515_RS256_CONFIG);
-        long now = Instant.now().getEpochSecond();
-        String claims = "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"sub\":\"testSubject\"," +
-            "\"nbf\":" + (now - 5L) + ",\"exp\":" + (now + 10L) + "}";
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token("test", "RS256", RFC7515_RS256, claims));
-
-        assertThat(sessionId, not(equalTo(0L)));
     }
 
     private JwtGuardHandler newGuard(

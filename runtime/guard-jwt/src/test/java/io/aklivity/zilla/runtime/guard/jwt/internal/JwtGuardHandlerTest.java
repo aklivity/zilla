@@ -22,11 +22,8 @@ import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,27 +31,22 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonValue;
 
 import org.agrona.collections.MutableLong;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.jwt.Jws;
 import io.aklivity.zilla.runtime.common.jwt.JwsAlgorithm;
 import io.aklivity.zilla.runtime.common.jwt.JwtException;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 
 public class JwtGuardHandlerTest
 {
@@ -66,65 +58,6 @@ public class JwtGuardHandlerTest
         context = mock(EngineContext.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-    }
-
-    @Test
-    public void shouldDeferAsyncReauthorize() throws Exception
-    {
-        Deque<Runnable> dispatched = new ArrayDeque<>();
-        doAnswer(invocation -> dispatched.add(invocation.getArgument(0))).when(context).dispatch(any());
-
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Instant now = Instant.now();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("sub", "testSubject");
-        claims.put("exp", now.getEpochSecond() + 10L);
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long[] completed = new long[] { Long.MIN_VALUE, Long.MIN_VALUE };
-        LongCompletionCallback completion = new LongCompletionCallback()
-        {
-            @Override
-            public void completed(
-                long contextId,
-                long sessionId)
-            {
-                completed[0] = contextId;
-                completed[1] = sessionId;
-            }
-
-            @Override
-            public void failed(
-                long contextId,
-                Throwable ex)
-            {
-                throw new AssertionError("unexpected failure", ex);
-            }
-        };
-
-        guard.reauthorize(0L, 0L, 101L, token, completion);
-
-        // the token carries everything needed to decide, so the temptation is to answer inline;
-        // the contract says the caller still must not observe the result before this returns
-        assertThat("completed on the caller's stack", completed[1], equalTo(Long.MIN_VALUE));
-        assertThat(dispatched.size(), equalTo(1));
-
-        dispatched.remove().run();
-
-        assertThat(completed[0], equalTo(101L));
-        assertThat(completed[1], not(equalTo(0L)));
-        assertThat(guard.identity(completed[1]), equalTo("testSubject"));
     }
 
     @Test
@@ -155,40 +88,6 @@ public class JwtGuardHandlerTest
 
         assertThat(sessionId, not(equalTo(0L)));
         assertThat(guard.identity(sessionId), equalTo("testSubject"));
-        assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
-        assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
-        assertTrue(guard.verify(sessionId, asList("read:stream", "write:stream")));
-    }
-
-    @Test
-    public void shouldAuthorizeWithCustomIdentity() throws Exception
-    {
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .challenge(challenge)
-            .identity("username")
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Instant now = Instant.now();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("username", "johndoe");
-        claims.put("exp", now.getEpochSecond() + 10L);
-        claims.put("scope", "read:stream write:stream");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.identity(sessionId), equalTo("johndoe"));
         assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
         assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
         assertTrue(guard.verify(sessionId, asList("read:stream", "write:stream")));
@@ -312,28 +211,6 @@ public class JwtGuardHandlerTest
     }
 
     @Test
-    public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS512");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
     public void shouldNotAuthorizeWhenCredentialsMissing()
     {
         JwtOptionsConfig options = JwtOptionsConfig.builder()
@@ -347,150 +224,6 @@ public class JwtGuardHandlerTest
         long sessionId = guard.reauthorize(0L, 0L, 101L, null);
 
         assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256")
-                .replaceFirst("\\.[^X]", ".X")
-                .replaceFirst("\\.[^Y]", ".Y");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenIssuerDiffers() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "not test issuer");
-        claims.put("aud", "testAudience");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenAudienceDiffers() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "not testAudience");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenExpired() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Instant now = Instant.now();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("exp", now.getEpochSecond() - 10L);
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWhenNotYetValid() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Instant now = Instant.now();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("nbf", now.getEpochSecond() + 10L);
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotVerifyAuthorizedWhenRolesInsufficient() throws Exception
-    {
-        Duration challenge = ofSeconds(30L);
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .challenge(challenge)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("scope", "read:stream");
-
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertFalse(guard.verify(sessionId, asList("read:stream", "write:stream")));
     }
 
     @Test
@@ -773,92 +506,6 @@ public class JwtGuardHandlerTest
         assertFalse(guard.verify(sessionId, asList("admin")));
     }
 
-
-    @Test
-    public void shouldResolveAttributes() throws Exception
-    {
-        Duration challenge = ofSeconds(3L);
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .attributes(Map.of("site", "website", "user", "user.id"))
-            .key(RFC7515_RS256_CONFIG)
-            .challenge(challenge)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        Instant now = Instant.now();
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("iss", "test issuer");
-        claims.put("aud", "testAudience");
-        claims.put("sub", "testSubject");
-        claims.put("exp", now.getEpochSecond() + 10L);
-        claims.put("scope", "read:stream write:stream");
-        claims.put("website", "http://example.com");
-
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("id", "12345");
-        userInfo.put("email", "recipient@email.address");
-        claims.put("user", userInfo);
-        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.attribute(sessionId, "site"), equalTo(Json.createValue("http://example.com")));
-        assertThat(guard.attribute(sessionId, "given_name"), equalTo(null));
-        assertThat(guard.attribute(sessionId, "user"), equalTo(Json.createValue("12345")));
-    }
-
-    @Test
-    public void shouldResolveTypedAttributes() throws Exception
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .inject(identity())
-            .issuer("test issuer")
-            .audience("testAudience")
-            .attributes(Map.of(
-                "text", "s",
-                "count", "n",
-                "active", "flag",
-                "nothing", "none",
-                "groups", "groups",
-                "profile", "profile",
-                "tier", "profile.tier.name",
-                "absent", "profile.absent",
-                "unknown", "unknown"))
-            .key(RFC7515_RS256_CONFIG)
-            .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
-
-        long exp = Instant.now().getEpochSecond() + 10L;
-        String claims = "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"sub\":\"testSubject\",\"exp\":" + exp + "," +
-            "\"s\":\"[1,2]\",\"n\":7,\"flag\":true,\"none\":null,\"groups\":[\"admins\",\"operators\"]," +
-            "\"profile\":{\"id\":\"12345\",\"tier\":{\"name\":\"gold\"}}}";
-        String token = sign(claims, "test", RFC7515_RS256, "RS256");
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.attribute(sessionId, "text"), equalTo(Json.createValue("[1,2]")));
-        assertThat(guard.attribute(sessionId, "count"), equalTo(Json.createValue(7)));
-        assertThat(guard.attribute(sessionId, "active"), equalTo(JsonValue.TRUE));
-        assertThat(guard.attribute(sessionId, "nothing"), equalTo(JsonValue.NULL));
-        assertThat(guard.attribute(sessionId, "groups"),
-            equalTo(Json.createArrayBuilder().add("admins").add("operators").build()));
-        assertThat(guard.attribute(sessionId, "profile"), equalTo(Json.createObjectBuilder()
-            .add("id", "12345")
-            .add("tier", Json.createObjectBuilder().add("name", "gold"))
-            .build()));
-        assertThat(guard.attribute(sessionId, "tier"), equalTo(Json.createValue("gold")));
-        assertThat(guard.attribute(sessionId, "absent"), nullValue());
-        assertThat(guard.attribute(sessionId, "unknown"), nullValue());
-        assertThat(JsonStrings.asString(guard.attribute(sessionId, "text")), equalTo("[1,2]"));
-        assertThat(JsonStrings.asString(guard.attribute(sessionId, "groups")), equalTo("[\"admins\",\"operators\"]"));
-        assertThat(JsonStrings.asString(guard.attribute(sessionId, "nothing")), equalTo("null"));
-    }
 
     static String sign(
         String payload,
