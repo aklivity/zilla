@@ -56,7 +56,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
     private static final int RECORD_CAPACITY = 4096;
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
+    @Disabled("enabled by the change that adds saving and restoring the state of a validating parser")
     void shouldValidateInterleavedStreamsOnOneParserLikeSeparateParsers()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);
@@ -78,7 +78,7 @@ class JsonSchemaValidatingParserSaveRestoreTest
     }
 
     @Test
-    @Disabled("a validating parser saves and restores its state by a later change")
+    @Disabled("enabled by the change that adds saving and restoring the state of a validating parser")
     void shouldReportFailureOnlyOnTheStreamThatFailed()
     {
         final JsonSchema schema = JsonSchema.of(SCHEMA);

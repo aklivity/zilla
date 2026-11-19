@@ -48,14 +48,14 @@ class JsonSchemaValidationAllocationTest
     }
 
     @Test
-    @Disabled("annotation drafts are evaluated on frames by a later change")
+    @Disabled("enabled by the change that evaluates the annotation drafts on the frame stack")
     void shouldNotAllocatePerPropertyForInlineSchemasWithAnnotations()
     {
         assertNoPerPropertyAllocation(Draft.DRAFT_2020_12, false);
     }
 
     @Test
-    @Disabled("annotation drafts are evaluated on frames by a later change")
+    @Disabled("enabled by the change that evaluates the annotation drafts on the frame stack")
     void shouldNotAllocatePerPropertyForReferencedSchemasWithAnnotations()
     {
         assertNoPerPropertyAllocation(Draft.DRAFT_2020_12, true);
