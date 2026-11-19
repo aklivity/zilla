@@ -60,9 +60,9 @@ public class DescribeClusterIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/cluster.brokers.info.twice/client",
-        "${net}/cluster.brokers.info.unsolicited/server"})
-    public void shouldDiscardUnsolicitedResponse() throws Exception
+        "${app}/cluster.brokers.info.concurrent/client",
+        "${net}/cluster.brokers.info.coalesced/server"})
+    public void shouldDecodeResponsesCoalescedInOneFrame() throws Exception
     {
         k3po.finish();
     }

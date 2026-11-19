@@ -48,9 +48,9 @@ public class DescribeClusterIT
 
     @Test
     @Specification({
-        "${net}/cluster.brokers.info.unsolicited/client",
-        "${net}/cluster.brokers.info.unsolicited/server"})
-    public void shouldDiscardUnsolicitedResponse() throws Exception
+        "${net}/cluster.brokers.info.coalesced/client",
+        "${net}/cluster.brokers.info.coalesced/server"})
+    public void shouldDecodeResponsesCoalescedInOneFrame() throws Exception
     {
         k3po.finish();
     }

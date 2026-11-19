@@ -54,4 +54,13 @@ public class DescribeClusterIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cluster.brokers.info.concurrent/client",
+        "${app}/cluster.brokers.info.concurrent/server"})
+    public void shouldDescribeClusterBrokerInfoConcurrently() throws Exception
+    {
+        k3po.finish();
+    }
 }
