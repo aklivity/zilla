@@ -108,6 +108,7 @@ connect await KAFKA_2
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
+         option zilla:affinity 0x0000000000000000L
 
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
@@ -130,9 +131,6 @@ read zilla:begin.ext ${kafka:beginEx()
 connected
 
 write notify KAFKA_3
-
-write option zilla:affinity 0x0000000000000000L
-write flush
 
 write [0x00]                                    # request header tagged fields
       [0x18] "zilla:test-mqtt0-client"       # group id (key)
@@ -157,6 +155,7 @@ connect await KAFKA_3
         "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
+         option zilla:affinity 0x0000000000000002L
 
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
@@ -179,9 +178,6 @@ read zilla:begin.ext ${kafka:beginEx()
 connected
 
 write notify KAFKA_4
-
-write option zilla:affinity 0x0000000000000002L
-write flush
 
 write [0x00 0x17] "zilla:test-mqtt0-client"  # group id
       [0x00 0x00 0x00 0x02]                     # topic count
