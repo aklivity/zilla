@@ -361,6 +361,30 @@ read ${mqtt:sessionSignal()
 
 write advise zilla:flush
 
+# session expireAt signal for client
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client#expiry")
+                               .hashKey("client")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+           .build()}
+
+read aborted
+write abort
+
 
 accepted
 
@@ -391,6 +415,9 @@ read ${mqtt_kafka:sessionOffsets()
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}
 read notify PENDING_PACKET_ID_PERSISTED
+
+read aborted
+write abort
 
 
 accepted
@@ -442,6 +469,9 @@ read zilla:data.ext ${kafka:matchDataEx()
 read "message"
 read await PENDING_PACKET_ID_PERSISTED
 read notify RECEIVED_PENDING_PACKET_ID
+
+read aborted
+write abort
 
 
 accepted
