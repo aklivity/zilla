@@ -77,7 +77,7 @@
             case 0x15: string16 authenticationMethod;
             case 0x16: Binary authenticationData;
             case 0x17: uint8 requestProblemInformation;
-            case 0x18: int32 willDelayInterval;
+            case 0x18: uint32 willDelayInterval;
             case 0x19: uint8 requestResponseInformation;
             case 0x1A: string16 responseInformation;
             case 0x1C: string16 serverReference;
