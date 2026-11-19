@@ -140,6 +140,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.will.message.max.delay/client",
+        "${net}/session.will.message.max.delay/server"})
+    public void shouldConnectWithWillMessageMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.will.message.32k/client",
         "${net}/session.will.message.32k/server"})
     public void shouldSendWillMessage32k() throws Exception

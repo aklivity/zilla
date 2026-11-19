@@ -9134,7 +9134,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private BinaryFW password;
         private int payloadSize;
 
-        private int willDelay = DEFAULT_WILL_DELAY;
+        private long willDelay = DEFAULT_WILL_DELAY;
         private MqttPayloadFormat payloadFormat = DEFAULT_FORMAT;
         private int expiryInterval = DEFAULT_EXPIRY_INTERVAL;
         private String16FW contentType = NULL_STRING;

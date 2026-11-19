@@ -776,6 +776,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.max.delay/client",
+        "${mqtt}/session.will.message.max.delay/server"})
+    public void shouldSendWillMessageWithMaximumDelay() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.10k.abort.deliver.will/client",
         "${mqtt}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
