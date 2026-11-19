@@ -55,6 +55,15 @@ write advise zilla:flush ${mqtt:flushEx()
 
 write await RECEIVED_CLEARED_PACKET_ID
 write abort
+
+# PUBCOMP already in flight when the connection is lost
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
 read aborted
 write notify SENT_SESSION_ABORTED
 

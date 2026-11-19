@@ -54,6 +54,13 @@ read advised zilla:flush ${mqtt:flushEx()
                                  .build()}
 write notify RECEIVED_CLEARED_PACKET_ID
 
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .packetId(1)
+                                     .build()
+                                 .build()}
+
 read aborted
 write abort
 
