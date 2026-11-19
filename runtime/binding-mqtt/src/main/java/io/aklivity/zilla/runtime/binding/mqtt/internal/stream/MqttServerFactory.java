@@ -590,7 +590,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.noLocal = config.noLocal();
         this.encodeBudgetMax = bufferPool.slotCapacity();
         this.validator = new MqttValidator();
-        this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
+        this.utf8Validator = new MqttUtf8Validator();
         this.publishQosMaxDefault = config.publishQosMax();
         this.subscribeQosMaxDefault = config.maximumQos();
         final String configuredClientId = config.clientId();
@@ -1584,15 +1584,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 server.decodedPacketId = mqttPublishHelper.packetId;
                 server.decodedFlags = mqttPublishHelper.flags;
                 server.decodedExpiryInterval = mqttPublishHelper.expiryInterval;
-                server.decodedContentType = new String16FW(mqttPublishHelper.contentType.asString());
+                server.decodedContentType = stringOrNull(mqttPublishHelper.contentType);
                 server.decodedPayloadFormat = mqttPublishHelper.payloadFormat;
-                server.decodedResponseTopic = new String16FW(mqttPublishHelper.responseTopic.asString());
+                server.decodedResponseTopic = stringOrNull(mqttPublishHelper.responseTopic);
 
                 server.decodedCorrelationData = mqttPublishHelper.correlationData != null
                     ? copyOf(mqttPublishHelper.correlationData)
                     : null;
-                server.decodedUserProperties = mqttPublishHelper.userProperties != null
-                    ? copyOf(mqttPublishHelper.userProperties)
+                final Array32FW<MqttUserPropertyFW> userProperties = mqttPublishHelper.userProperties;
+                server.decodedUserProperties = userProperties != null && !userProperties.isEmpty()
+                    ? copyOf(userProperties)
                     : null;
 
                 final int decodeablePublishPayloadBytes =
@@ -9724,6 +9725,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             return flags;
         }
+    }
+
+    private static String16FW stringOrNull(
+        String16FW value)
+    {
+        return value.value() != null ? new String16FW(value.asString()) : NULL_STRING;
     }
 
     private static byte[] copyOf(
