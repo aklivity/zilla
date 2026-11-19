@@ -972,6 +972,26 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.abort.after.publish/client",
+        "${mqtt}/publish.qos2.abort.after.publish/server"})
+    public void shouldPublishQoS2MessageAbortAfterPublish() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.abort.after.pubrel/client",
+        "${mqtt}/publish.qos2.abort.after.pubrel/server"})
+    public void shouldPublishQoS2MessageAbortAfterPubrel() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.abort/client",
         "${mqtt}/publish.qos2.abort/server"})
     public void shouldSessionReceiveQos2Abort() throws Exception
