@@ -377,6 +377,15 @@ public final class EngineRule implements TestRule
         return engine.context().counterWriter(namespace, binding, metric, core);
     }
 
+    public LongConsumer gaugeWriter(
+        String namespace,
+        String binding,
+        String metric,
+        int core)
+    {
+        return engine.context().gaugeWriter(namespace, binding, metric, core);
+    }
+
     public LongSupplier usage()
     {
         return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME), 0);

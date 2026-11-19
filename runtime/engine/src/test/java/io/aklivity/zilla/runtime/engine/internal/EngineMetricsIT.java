@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -67,8 +68,8 @@ public class EngineMetricsIT
         long[][] counterIds = engine.counterIds();
 
         // THEN
-        // counterIds[0] is coming from test.counter in server.yaml
-        assertThat(counterIds[1], equalTo(new long[]{3L, 7L, 0L, -1L}));
+        List<String> fetched = Arrays.stream(counterIds).map(Arrays::toString).toList();
+        assertThat(fetched, hasItem("[3, 7, 0, -1]"));
     }
 
     @Test

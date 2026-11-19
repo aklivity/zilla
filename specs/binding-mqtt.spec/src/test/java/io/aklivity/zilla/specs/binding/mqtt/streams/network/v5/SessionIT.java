@@ -140,6 +140,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.will.message.max.delay/client",
+        "${net}/session.will.message.max.delay/server"})
+    public void shouldConnectWithWillMessageMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.will.message.32k/client",
         "${net}/session.will.message.32k/server"})
     public void shouldSendWillMessage32k() throws Exception
@@ -437,6 +446,15 @@ public class SessionIT
         "${net}/session.server.redirect.with.reason.after.connack/client",
         "${net}/session.server.redirect.with.reason.after.connack/server"})
     public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.empty.state/client",
+        "${net}/session.connect.non.clean.start.store.empty.state/server"})
+    public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
     {
         k3po.finish();
     }
