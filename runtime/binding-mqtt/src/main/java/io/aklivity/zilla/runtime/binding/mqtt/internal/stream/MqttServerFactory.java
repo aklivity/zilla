@@ -240,6 +240,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     public static final int MQTT_PROTOCOL_VERSION_4 = 4;
     private static final int LEGACY_GENERATED_SUBSCRIPTION_ID_MASK = 0x70;
     private static final int SESSION_EXPIRY_NEVER = -1;
+    private static final int CONNACK_FIXED_LENGTH = 3;
+    private static final int DISCONNECT_FIXED_LENGTH = 2;
     private static final int MAXIMUM_CLIENT_ID_LENGTH = 256;
     private static final int NO_PACKET_ID = -1;
     private static final int PENDING_SUBSCRIBE = 0;
@@ -6147,7 +6149,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                     propertiesSize = mqttProperty.limit();
                 }
             }
-            else if (reason != null && reason.length() != -1)
+            else if (reason != null && reason.length() != -1 &&
+                withinClientMaximumPacketSize(CONNACK_FIXED_LENGTH,
+                    propertiesSize + sizeOfStringProperty(reason) + sizeOfStringProperty(serverReference)))
             {
                 mqttProperty = mqttPropertyRW
                     .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
@@ -6281,9 +6285,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> userProperties)
         {
             int propertiesSize = 0;
+            final int serverReferenceSize = sizeOfStringProperty(serverReference);
 
             MqttPropertyFW mqttProperty;
-            if (reason != null && reason.length() != -1)
+            final boolean reasonSent = reason != null && reason.length() != -1 &&
+                withinClientMaximumPacketSize(DISCONNECT_FIXED_LENGTH, serverReferenceSize + sizeOfStringProperty(reason));
+            if (reasonSent)
             {
                 mqttProperty = mqttPropertyRW
                     .wrap(propertyBuffer, propertiesSize, propertyBuffer.capacity())
@@ -6301,7 +6308,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 propertiesSize = mqttProperty.limit();
             }
 
-            if (userProperties != null)
+            if (userProperties != null &&
+                withinClientMaximumPacketSize(DISCONNECT_FIXED_LENGTH, propertiesSize + sizeOfUserProperties(userProperties)))
             {
                 final AtomicInteger userPropertiesSize = new AtomicInteger(propertiesSize);
                 userProperties.forEach(p ->
@@ -6325,6 +6333,30 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .build();
 
             doNetworkData(traceId, authorization, 0L, disconnect);
+        }
+
+        private boolean withinClientMaximumPacketSize(
+            int fixedLength,
+            int propertiesLength)
+        {
+            final int remainingLength = fixedLength + propertiesLength;
+            final int remainingLengthSize =
+                remainingLength < 0x80 ? 1 : remainingLength < 0x4000 ? 2 : remainingLength < 0x200000 ? 3 : 4;
+            return 1 + remainingLengthSize + remainingLength <= clientMaximumPacketSize;
+        }
+
+        private int sizeOfStringProperty(
+            String16FW value)
+        {
+            return value != null ? 1 + 2 + Math.max(value.length(), 0) : 0;
+        }
+
+        private int sizeOfUserProperties(
+            Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> userProperties)
+        {
+            final AtomicInteger size = new AtomicInteger();
+            userProperties.forEach(p -> size.addAndGet(1 + 2 + p.key().length() + 2 + p.value().length()));
+            return size.get();
         }
 
         private void encodeNetwork(

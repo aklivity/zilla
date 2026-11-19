@@ -51,9 +51,9 @@ import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
  */
 class JsonSchemaConformanceTest
 {
-    private static final String ROOT = "io/aklivity/zilla/runtime/common/json/conformance/";
+    static final String ROOT = "io/aklivity/zilla/runtime/common/json/conformance/";
 
-    private static final String[] DRAFT7_FILES =
+    static final String[] DRAFT7_FILES =
     {
         "type", "enum", "const", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
@@ -62,7 +62,7 @@ class JsonSchemaConformanceTest
         "allOf", "anyOf", "oneOf", "not", "if-then-else", "boolean_schema", "definitions", "format"
     };
 
-    private static final String[] DRAFT6_FILES =
+    static final String[] DRAFT6_FILES =
     {
         "type", "enum", "const", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
         "multipleOf", "minLength", "maxLength", "pattern", "items", "additionalItems", "contains",
@@ -71,7 +71,7 @@ class JsonSchemaConformanceTest
         "allOf", "anyOf", "oneOf", "not", "boolean_schema", "definitions", "format"
     };
 
-    private static final String[] DRAFT4_FILES =
+    static final String[] DRAFT4_FILES =
     {
         "type", "enum", "minimum", "maximum", "multipleOf", "minLength", "maxLength", "pattern",
         "items", "additionalItems", "uniqueItems", "minItems", "maxItems", "properties", "required",
@@ -79,7 +79,7 @@ class JsonSchemaConformanceTest
         "allOf", "anyOf", "oneOf", "not", "definitions", "format"
     };
 
-    private static final String[] DRAFT2019_FILES =
+    static final String[] DRAFT2019_FILES =
     {
         "type", "enum", "const", "multipleOf", "minimum", "maximum", "exclusiveMinimum",
         "exclusiveMaximum", "minLength", "maxLength", "pattern", "minItems", "maxItems",
@@ -90,7 +90,7 @@ class JsonSchemaConformanceTest
         "unevaluatedProperties", "unevaluatedItems", "recursiveRef", "defs", "anchor"
     };
 
-    private static final String[] DRAFT2020_FILES =
+    static final String[] DRAFT2020_FILES =
     {
         "type", "enum", "const", "multipleOf", "minimum", "maximum", "exclusiveMinimum",
         "exclusiveMaximum", "minLength", "maxLength", "pattern", "minItems", "maxItems",
@@ -211,7 +211,7 @@ class JsonSchemaConformanceTest
         });
     }
 
-    private static String toJson(
+    static String toJson(
         JsonNode node)
     {
         StringBuilder sb = new StringBuilder();
@@ -319,7 +319,7 @@ class JsonSchemaConformanceTest
         sb.append('"');
     }
 
-    private static String resolveRemote(
+    static String resolveRemote(
         String uri)
     {
         String resource = null;
@@ -346,7 +346,7 @@ class JsonSchemaConformanceTest
         return JsonSchemaConformanceTest.class.getClassLoader().getResource(resource) != null;
     }
 
-    private static String read(
+    static String read(
         String resource)
     {
         try (InputStream in = JsonSchemaConformanceTest.class.getClassLoader().getResourceAsStream(resource))

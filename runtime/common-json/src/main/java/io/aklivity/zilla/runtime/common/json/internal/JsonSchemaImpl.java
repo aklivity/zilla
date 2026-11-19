@@ -91,6 +91,12 @@ import io.aklivity.zilla.runtime.common.json.view.JsonStringView;
  */
 public final class JsonSchemaImpl implements JsonSchema
 {
+    private static final String[] NO_KEYS = new String[0];
+    private static final int[] NO_INDEXES = new int[0];
+    private static final Pattern[] NO_PATTERNS = new Pattern[0];
+    private static final int[][] NO_INDEX_SETS = new int[0][];
+    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
+
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
@@ -98,9 +104,6 @@ public final class JsonSchemaImpl implements JsonSchema
     // distinct from JsonProjectorImpl's array-only "-" wildcard, since an object key literally named "-"
     // is matched like any other key there
     private static final String WILDCARD_PROPERTY = "*";
-
-    private static final String[] NO_KEYS = new String[0];
-    private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
 
     // a lexeme of at most this many characters is always within long range, so getLong() is safe
     private static final int LONG_DIGITS = 18;
@@ -129,6 +132,32 @@ public final class JsonSchemaImpl implements JsonSchema
     private enum Verdict
     {
         VALID, INVALID, PENDING
+    }
+
+    private static final Verdict[] VERDICTS = Verdict.values();
+
+    // evaluates the events of one value against a schema, one event at a time
+    private interface Evaluator
+    {
+        Verdict feed(
+            Event event,
+            JsonSource parser);
+
+        // whether the position about to receive the next scalar event needs the scalar's content
+        boolean needsContentNow();
+
+        // rearms for the next value
+        void reset();
+
+        // writes the state of the evaluation at a boundary between events and returns the bytes written
+        int save(
+            MutableDirectBufferEx buffer,
+            int offset);
+
+        // replaces the state of the evaluation with the record save wrote, and returns the bytes it read
+        int restore(
+            DirectBufferEx buffer,
+            int offset);
     }
 
     private final boolean deny;
@@ -175,6 +204,8 @@ public final class JsonSchemaImpl implements JsonSchema
     private final int minProperties;
     private final int maxProperties;
     private final Map<Pattern, JsonSchemaImpl> patternProperties;
+    private final Pattern[] patternKeys;
+    private final JsonSchemaImpl[] patternSchemas;
     private final JsonSchemaImpl propertyNames;
     private final Map<String, Set<String>> dependentRequired;
     private final Map<String, JsonSchemaImpl> dependentSchemas;
@@ -184,6 +215,16 @@ public final class JsonSchemaImpl implements JsonSchema
     private final String[] propertyKeys;
     private final JsonSchemaImpl[] propertySchemas;
     private final String[] requiredKeys;
+    // every key whose presence is tracked as the members of an object are read: the required keys first, then
+    // the keys that a dependency names or depends on
+    private final String[] trackedKeys;
+    private final String[] dependentRequiredKeys;
+    private final int[] dependentRequiredAt;
+    private final int[][] dependentRequiredBits;
+    private final List<Set<String>> dependentRequiredSets;
+    private final String[] dependentSchemaKeys;
+    private final int[] dependentSchemaAt;
+    private final List<JsonSchemaImpl> dependentSchemaList;
     private final List<JsonSchemaImpl> allOf;
     private final List<JsonSchemaImpl> anyOf;
     private final List<JsonSchemaImpl> oneOf;
@@ -199,7 +240,22 @@ public final class JsonSchemaImpl implements JsonSchema
     // than risk following a cyclic reference to precompute it). false means the position needs only the
     // event kind/count, so a window-fragmented value can stream through instead of being buffered whole.
     private final boolean needsContent;
+    // true when this schema is evaluated on the frame stack: none of its keywords needs state that cannot be
+    // kept as numbers per frame, so the value is tracked without an evaluator per applied schema
+    private final boolean framed;
+    // true when this schema applies allOf, anyOf, oneOf, not or if to the value it is applied to
+    private final boolean combined;
+    // true when the verdict of this schema is more than whether a check of its own value failed
+    private final boolean combines;
+    // true when a const or enum is compared as the canonical form of the value, rather than as a string
+    private final boolean canon;
+    // true when the verdict of this schema for a scalar is decided by its checks of that scalar alone, which
+    // includes its const and enum
+    private final boolean leaf;
     private final JsonNode raw;
+
+    // the numbers by which the records of validating parsers built from this schema name its subschemas
+    private volatile Nodes nodes;
 
     private List<String> retainedPaths;
     private List<String> rejectedPaths;
@@ -275,7 +331,7 @@ public final class JsonSchemaImpl implements JsonSchema
     public boolean validate(
         JsonParser parser)
     {
-        return drive(eval(), Trace.NONE, new ParserSource().wrap(parser), parser);
+        return drive(evaluator(Trace.NONE), Trace.NONE, new ParserSource().wrap(parser), parser);
     }
 
     @Override
@@ -285,11 +341,11 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         final Trace trace = new Trace(reporter);
 
-        return drive(eval(trace), trace, new ParserSource().wrap(parser), parser);
+        return drive(evaluator(trace), trace, new ParserSource().wrap(parser), parser);
     }
 
     private static boolean drive(
-        Eval eval,
+        Evaluator eval,
         Trace trace,
         JsonSource source,
         JsonParser parser)
@@ -303,7 +359,7 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     private static Verdict feed(
-        Eval eval,
+        Evaluator eval,
         Trace trace,
         Event event,
         JsonSource source)
@@ -311,6 +367,14 @@ public final class JsonSchemaImpl implements JsonSchema
         trace.enter(event);
 
         final Verdict verdict = eval.feed(event, source);
+
+        // a key that no schema applied to the value under it named can still be on the path to where a value fails,
+        // when the value is larger than the window and a keyword reads its content, so the key is kept as text until
+        // the value is over
+        if (event == Event.KEY_NAME && trace.unnamed())
+        {
+            trace.keyOf(source.getStringView());
+        }
 
         trace.leave(event);
 
@@ -630,12 +694,22 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = integer(schema, "minProperties");
         this.maxProperties = integer(schema, "maxProperties");
         this.patternProperties = parsePatternProperties(schema.get("patternProperties"), context);
+        this.patternKeys = patternProperties != null ? patternProperties.keySet().toArray(NO_PATTERNS) : NO_PATTERNS;
+        this.patternSchemas = patternProperties != null ? patternProperties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.propertyNames = schema.has("propertyNames") ? from(schema.get("propertyNames"), context) : null;
         this.dependentRequired = parseDependentRequired(schema);
         this.dependentSchemas = parseDependentSchemas(schema, context);
         this.simpleObject = patternProperties == null && propertyNames == null &&
             unevaluatedProperties == null && dependentRequired == null && dependentSchemas == null;
         this.requiredKeys = required != null ? required.toArray(NO_KEYS) : NO_KEYS;
+        this.trackedKeys = trackedKeys(required, dependentRequired, dependentSchemas);
+        this.dependentRequiredKeys = dependentRequired != null ? dependentRequired.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.dependentRequiredAt = indexesOf(trackedKeys, dependentRequiredKeys);
+        this.dependentRequiredBits = requiredIndexes(trackedKeys, dependentRequired);
+        this.dependentRequiredSets = dependentRequired != null ? new ArrayList<>(dependentRequired.values()) : List.of();
+        this.dependentSchemaKeys = dependentSchemas != null ? dependentSchemas.keySet().toArray(NO_KEYS) : NO_KEYS;
+        this.dependentSchemaAt = indexesOf(trackedKeys, dependentSchemaKeys);
+        this.dependentSchemaList = dependentSchemas != null ? new ArrayList<>(dependentSchemas.values()) : List.of();
         this.propertyKeys = properties != null ? properties.keySet().toArray(NO_KEYS) : NO_KEYS;
         this.propertySchemas = properties != null ? properties.values().toArray(NO_SCHEMAS) : NO_SCHEMAS;
         this.allOf = parseSchemaArray(schema.get("allOf"), context);
@@ -655,7 +729,70 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentOne(notSchema) || needsContentOne(ifSchema) ||
             needsContentOne(thenSchema) || needsContentOne(elseSchema) ||
             needsContentAny(dependentSchemas);
+        this.framed = ref == null && refApplicator == null && dynamicRef == null && !recursiveRef &&
+            !(context != null && is2019Plus(context.draft())) &&
+            unevaluatedProperties == null &&
+            unevaluatedItems == null;
+        this.combined = allOf != null || anyOf != null || oneOf != null || notSchema != null || ifSchema != null ||
+            dependentRequired != null || dependentSchemas != null;
+        this.canon = (constantCanon != null || enumCanons != null) && constString == null && enumStrings == null;
+        this.combines = combined || constString != null || enumStrings != null || canon;
+        this.leaf = framed && !combined;
         this.raw = schema;
+    }
+
+    private static String[] trackedKeys(
+        Set<String> required,
+        Map<String, Set<String>> dependentRequired,
+        Map<String, JsonSchemaImpl> dependentSchemas)
+    {
+        final Set<String> keys = new LinkedHashSet<>();
+        if (required != null)
+        {
+            keys.addAll(required);
+        }
+        if (dependentRequired != null)
+        {
+            for (Map.Entry<String, Set<String>> entry : dependentRequired.entrySet())
+            {
+                keys.add(entry.getKey());
+                keys.addAll(entry.getValue());
+            }
+        }
+        if (dependentSchemas != null)
+        {
+            keys.addAll(dependentSchemas.keySet());
+        }
+        return keys.toArray(NO_KEYS);
+    }
+
+    private static int[] indexesOf(
+        String[] tracked,
+        String[] keys)
+    {
+        final int[] indexes = new int[keys.length];
+        for (int i = 0; i < keys.length; i++)
+        {
+            indexes[i] = Arrays.asList(tracked).indexOf(keys[i]);
+        }
+        return indexes;
+    }
+
+    private static int[][] requiredIndexes(
+        String[] tracked,
+        Map<String, Set<String>> dependentRequired)
+    {
+        int[][] indexes = NO_INDEX_SETS;
+        if (dependentRequired != null)
+        {
+            indexes = new int[dependentRequired.size()][];
+            int entry = 0;
+            for (Set<String> names : dependentRequired.values())
+            {
+                indexes[entry++] = indexesOf(tracked, names.toArray(NO_KEYS));
+            }
+        }
+        return indexes;
     }
 
     private static boolean needsContentOne(
@@ -743,11 +880,21 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
+        this.patternKeys = NO_PATTERNS;
+        this.patternSchemas = NO_SCHEMAS;
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
         this.simpleObject = false;
         this.requiredKeys = NO_KEYS;
+        this.trackedKeys = NO_KEYS;
+        this.dependentRequiredKeys = NO_KEYS;
+        this.dependentRequiredAt = NO_INDEXES;
+        this.dependentRequiredBits = NO_INDEX_SETS;
+        this.dependentRequiredSets = List.of();
+        this.dependentSchemaKeys = NO_KEYS;
+        this.dependentSchemaAt = NO_INDEXES;
+        this.dependentSchemaList = List.of();
         this.propertyKeys = NO_KEYS;
         this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
@@ -760,6 +907,11 @@ public final class JsonSchemaImpl implements JsonSchema
         // lazily resolved via eval()'s ref chase; conservatively assumed to need content rather than
         // resolve (and risk cycling through) the target schema just to precompute this flag
         this.needsContent = true;
+        this.framed = false;
+        this.combined = false;
+        this.combines = false;
+        this.canon = false;
+        this.leaf = false;
         this.raw = null;
     }
 
@@ -805,11 +957,21 @@ public final class JsonSchemaImpl implements JsonSchema
         this.minProperties = -1;
         this.maxProperties = -1;
         this.patternProperties = null;
+        this.patternKeys = NO_PATTERNS;
+        this.patternSchemas = NO_SCHEMAS;
         this.propertyNames = null;
         this.dependentRequired = null;
         this.dependentSchemas = null;
         this.simpleObject = false;
         this.requiredKeys = NO_KEYS;
+        this.trackedKeys = NO_KEYS;
+        this.dependentRequiredKeys = NO_KEYS;
+        this.dependentRequiredAt = NO_INDEXES;
+        this.dependentRequiredBits = NO_INDEX_SETS;
+        this.dependentRequiredSets = List.of();
+        this.dependentSchemaKeys = NO_KEYS;
+        this.dependentSchemaAt = NO_INDEXES;
+        this.dependentSchemaList = List.of();
         this.propertyKeys = NO_KEYS;
         this.propertySchemas = NO_SCHEMAS;
         this.allOf = null;
@@ -821,12 +983,37 @@ public final class JsonSchemaImpl implements JsonSchema
         this.elseSchema = null;
         // ANY has no keywords at all; NONE (deny) rejects unconditionally regardless of content
         this.needsContent = false;
+        this.framed = true;
+        this.combined = false;
+        this.combines = false;
+        this.canon = false;
+        this.leaf = true;
         this.raw = null;
     }
 
-    private Eval eval()
+    private Evaluator evaluator(
+        Trace trace)
     {
-        return eval(Trace.NONE, DynScope.ROOT);
+        final JsonSchemaImpl schema = ref != null ? target() : this;
+        return schema.framed ? new FrameEval(this, schema, trace) : schema.eval(trace, DynScope.ROOT);
+    }
+
+    private Nodes nodes()
+    {
+        Nodes result = nodes;
+        if (result == null)
+        {
+            synchronized (this)
+            {
+                result = nodes;
+                if (result == null)
+                {
+                    result = new Nodes();
+                    nodes = result;
+                }
+            }
+        }
+        return result;
     }
 
     private Eval eval(
@@ -1906,6 +2093,68 @@ public final class JsonSchemaImpl implements JsonSchema
         }
     }
 
+    // the keyword that keeps this schema off the frame stack, for the message of a refusal to save
+    private String unframedKeyword()
+    {
+        final String keyword;
+        if (unevaluatedProperties != null)
+        {
+            keyword = "unevaluatedProperties";
+        }
+        else if (unevaluatedItems != null)
+        {
+            keyword = "unevaluatedItems";
+        }
+        else if (refApplicator != null)
+        {
+            keyword = "$ref";
+        }
+        else if (dynamicRef != null)
+        {
+            keyword = "$dynamicRef";
+        }
+        else if (recursiveRef)
+        {
+            keyword = "$recursiveRef";
+        }
+        else
+        {
+            keyword = "a keyword of draft 2019-09 or later";
+        }
+        return keyword;
+    }
+
+    // Numbers the subschemas that frames of validating parsers refer to, in the order a record first names them, so a
+    // record written by one parser names them for any other parser built from the same schema
+    private static final class Nodes
+    {
+        private final Map<JsonSchemaImpl, Integer> ids = new IdentityHashMap<>();
+        private final List<JsonSchemaImpl> nodes = new ArrayList<>();
+
+        private synchronized int idOf(
+            JsonSchemaImpl node)
+        {
+            Integer id = ids.get(node);
+            if (id == null)
+            {
+                id = nodes.size();
+                ids.put(node, id);
+                nodes.add(node);
+            }
+            return id;
+        }
+
+        private synchronized JsonSchemaImpl nodeOf(
+            int id)
+        {
+            if (id < 0 || id >= nodes.size())
+            {
+                throw new IllegalArgumentException("record names a schema that was not saved from this one: " + id);
+            }
+            return nodes.get(id);
+        }
+    }
+
     private static final class DynScope
     {
         private static final DynScope ROOT = new DynScope(null, null);
@@ -2350,6 +2599,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean[] arrays;
         private int[] counts;
         private String[] names;
+        // the key at a depth when it is the document's own text, copied into a buffer that is reused, so that a
+        // String is made of it only when a diagnostic is built
+        private StringBuilder[] copies;
+        private boolean[] copied;
         private int depth;
         private int pathDepth;
 
@@ -2360,6 +2613,119 @@ public final class JsonSchemaImpl implements JsonSchema
             this.arrays = reporter != null ? new boolean[FRAMES] : null;
             this.counts = reporter != null ? new int[FRAMES] : null;
             this.names = reporter != null ? new String[FRAMES] : null;
+            this.copies = reporter != null ? new StringBuilder[FRAMES] : null;
+            this.copied = reporter != null ? new boolean[FRAMES] : null;
+        }
+
+        // the path to the value being read: for each container it is in, whether it is an array, how many values it has
+        // had, and the key the value is under, as the document's own text
+        private int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            buffer.putInt(progress, depth);
+            progress += Integer.BYTES;
+            buffer.putInt(progress, pathDepth);
+            progress += Integer.BYTES;
+            for (int level = 0; level < depth; level++)
+            {
+                final CharSequence name = copied[level] ? copies[level] : names[level];
+                buffer.putInt(progress, (arrays[level] ? 1 : 0) | (name != null ? 2 : 0));
+                progress += Integer.BYTES;
+                buffer.putInt(progress, counts[level]);
+                progress += Integer.BYTES;
+                if (name != null)
+                {
+                    final int length = MutableDirectBufferEx.utf8Length(name, 0, name.length());
+                    buffer.putInt(progress, length);
+                    progress += Integer.BYTES;
+                    progress += buffer.putStringWithoutLengthUtf8(progress, name, 0, name.length());
+                }
+            }
+            return progress - offset;
+        }
+
+        // decodes UTF-8 straight into the buffer of a key, so that no String is made of it
+        private static void appendUtf8(
+            StringBuilder out,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            final int limit = index + length;
+            int position = index;
+            while (position < limit)
+            {
+                final int lead = buffer.getByte(position++) & 0xFF;
+                if (lead < 0x80)
+                {
+                    out.append((char) lead);
+                }
+                else if (lead < 0xE0)
+                {
+                    out.append((char) ((lead & 0x1F) << 6 | buffer.getByte(position++) & 0x3F));
+                }
+                else if (lead < 0xF0)
+                {
+                    final int second = buffer.getByte(position++) & 0x3F;
+                    final int third = buffer.getByte(position++) & 0x3F;
+                    out.append((char) ((lead & 0x0F) << 12 | second << 6 | third));
+                }
+                else
+                {
+                    final int second = buffer.getByte(position++) & 0x3F;
+                    final int third = buffer.getByte(position++) & 0x3F;
+                    final int fourth = buffer.getByte(position++) & 0x3F;
+                    out.appendCodePoint((lead & 0x07) << 18 | second << 12 | third << 6 | fourth);
+                }
+            }
+        }
+
+        private int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            final int levels = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            pathDepth = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            while (levels > arrays.length)
+            {
+                arrays = Arrays.copyOf(arrays, arrays.length * 2);
+                counts = Arrays.copyOf(counts, counts.length * 2);
+                names = Arrays.copyOf(names, names.length * 2);
+                copies = Arrays.copyOf(copies, copies.length * 2);
+                copied = Arrays.copyOf(copied, copied.length * 2);
+            }
+            depth = levels;
+            for (int level = 0; level < levels; level++)
+            {
+                final int flags = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                arrays[level] = (flags & 1) != 0;
+                counts[level] = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                names[level] = null;
+                copied[level] = false;
+                if ((flags & 2) != 0)
+                {
+                    final int length = buffer.getInt(progress);
+                    progress += Integer.BYTES;
+                    StringBuilder copy = copies[level];
+                    if (copy == null)
+                    {
+                        copy = new StringBuilder();
+                        copies[level] = copy;
+                    }
+                    copy.setLength(0);
+                    appendUtf8(copy, buffer, progress, length);
+                    copied[level] = true;
+                    progress += length;
+                }
+            }
+            return progress - offset;
         }
 
         private void reset()
@@ -2373,6 +2739,12 @@ public final class JsonSchemaImpl implements JsonSchema
             return reporter != null;
         }
 
+        // whether the object being read has not been given the name of the key it is at
+        private boolean unnamed()
+        {
+            return active() && depth > 0 && names[depth - 1] == null && !copied[depth - 1];
+        }
+
         // supplies the name of the key the object being read is at
         private void key(
             String name)
@@ -2380,6 +2752,27 @@ public final class JsonSchemaImpl implements JsonSchema
             if (active())
             {
                 names[depth - 1] = name;
+                copied[depth - 1] = false;
+            }
+        }
+
+        // supplies the key the object being read is at as the document's own text, which is kept until a diagnostic
+        // is built
+        private void keyOf(
+            CharSequence name)
+        {
+            if (active())
+            {
+                StringBuilder copy = copies[depth - 1];
+                if (copy == null)
+                {
+                    copy = new StringBuilder();
+                    copies[depth - 1] = copy;
+                }
+                copy.setLength(0);
+                copy.append(name);
+                names[depth - 1] = null;
+                copied[depth - 1] = true;
             }
         }
 
@@ -2393,6 +2786,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                 case KEY_NAME:
                     names[depth - 1] = null;
+                    copied[depth - 1] = false;
                     pathDepth = depth - 1;
                     break;
                 case END_OBJECT:
@@ -2437,10 +2831,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 arrays = Arrays.copyOf(arrays, depth * 2);
                 counts = Arrays.copyOf(counts, depth * 2);
                 names = Arrays.copyOf(names, depth * 2);
+                copies = Arrays.copyOf(copies, depth * 2);
+                copied = Arrays.copyOf(copied, depth * 2);
             }
             arrays[depth] = array;
             counts[depth] = 0;
             names[depth] = null;
+            copied[depth] = false;
             depth++;
         }
 
@@ -2456,7 +2853,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
                 else
                 {
-                    pointer.append(escapePointer(names[frame]));
+                    pointer.append(escapePointer(copied[frame] ? copies[frame].toString() : names[frame]));
                 }
             }
             return pointer.toString();
@@ -2492,7 +2889,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final Consumer<JsonSchemaDiagnostic> reporter;
         private final List<JsonSchemaDiagnostic> diagnostics;
         private final Trace trace;
-        private final Eval eval;
+        private final Evaluator eval;
         private final ParserSource source;
 
         private Verdict verdict;
@@ -2508,7 +2905,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.reporter = reporter;
             this.diagnostics = throwing || reporter != null ? new ArrayList<>() : null;
             this.trace = diagnostics != null ? new Trace(this::report) : Trace.NONE;
-            this.eval = diagnostics != null ? eval(trace) : eval();
+            this.eval = evaluator(diagnostics != null ? trace : Trace.NONE);
             this.source = new ParserSource().wrap(delegate);
             this.verdict = Verdict.PENDING;
         }
@@ -2596,12 +2993,40 @@ public final class JsonSchemaImpl implements JsonSchema
         // rearms for the next document in the same session: rewinds this pass's own validation state exactly
         // as reset() does, but delegates to the underlying parser's nextDocument() so its stream position
         // and scratch state carry over rather than rewinding to the start of input
+        // The record is a mode word (the verdict, whether the parser throws and whether it reports diagnostics), the
+        // record of the parser that is wrapped, which a restore cannot measure and so is preceded by its length, the
+        // record of the evaluation, and, for a parser that reports diagnostics, the path to the value being read
+        // and, for one that throws, the diagnostics reported so far, which a validation exception carries. A parser
+        // restores only a record of a parser built from the same schema that reports diagnostics in the same way.
         @Override
         public int save(
             MutableDirectBufferEx buffer,
             int offset)
         {
-            throw new UnsupportedOperationException();
+            if (delegateEx == null)
+            {
+                throw new UnsupportedOperationException("the parser that is wrapped cannot save its state");
+            }
+
+            int progress = offset;
+            buffer.putInt(progress, verdict.ordinal() | (throwing ? 1 << 2 : 0) | (trace.active() ? 1 << 3 : 0));
+            progress += Integer.BYTES;
+            final int delegateAt = progress;
+            progress += Integer.BYTES;
+            final int delegateLength = delegateEx.save(buffer, progress);
+            buffer.putInt(delegateAt, delegateLength);
+            progress += delegateLength;
+            progress += eval.save(buffer, progress);
+            if (trace.active())
+            {
+                progress += trace.save(buffer, progress);
+            }
+            if (throwing)
+            {
+                progress += saveDiagnostics(buffer, progress);
+            }
+
+            return progress - offset;
         }
 
         @Override
@@ -2609,7 +3034,93 @@ public final class JsonSchemaImpl implements JsonSchema
             DirectBufferEx buffer,
             int offset)
         {
-            throw new UnsupportedOperationException();
+            if (delegateEx == null)
+            {
+                throw new UnsupportedOperationException("the parser that is wrapped cannot restore its state");
+            }
+
+            int progress = offset;
+            final int mode = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            if ((mode & 1 << 2) != 0 != throwing || (mode & 1 << 3) != 0 != trace.active())
+            {
+                throw new IllegalStateException("the record was written by a parser that reports diagnostics differently");
+            }
+            final int delegateLength = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            delegateEx.restore(buffer, progress);
+            progress += delegateLength;
+            progress += eval.restore(buffer, progress);
+            if (trace.active())
+            {
+                progress += trace.restore(buffer, progress);
+            }
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
+            if (throwing)
+            {
+                restoreDiagnostics(buffer, progress);
+            }
+            verdict = VERDICTS[mode & 3];
+        }
+
+        private int saveDiagnostics(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            buffer.putInt(progress, diagnostics.size());
+            progress += Integer.BYTES;
+            for (int index = 0; index < diagnostics.size(); index++)
+            {
+                final JsonSchemaDiagnostic diagnostic = diagnostics.get(index);
+                buffer.putLong(progress, diagnostic.line());
+                progress += Long.BYTES;
+                buffer.putLong(progress, diagnostic.column());
+                progress += Long.BYTES;
+                progress += saveText(buffer, progress, diagnostic.pointer());
+                progress += saveText(buffer, progress, diagnostic.keyword());
+                progress += saveText(buffer, progress, diagnostic.message());
+            }
+            return progress - offset;
+        }
+
+        private void restoreDiagnostics(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            int progress = offset;
+            final int count = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            for (int index = 0; index < count; index++)
+            {
+                final long line = buffer.getLong(progress);
+                progress += Long.BYTES;
+                final long column = buffer.getLong(progress);
+                progress += Long.BYTES;
+                final int pointerLength = buffer.getInt(progress);
+                final String pointer = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, pointerLength);
+                progress += Integer.BYTES + pointerLength;
+                final int keywordLength = buffer.getInt(progress);
+                final String keyword = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, keywordLength);
+                progress += Integer.BYTES + keywordLength;
+                final int messageLength = buffer.getInt(progress);
+                final String message = buffer.getStringWithoutLengthUtf8(progress + Integer.BYTES, messageLength);
+                progress += Integer.BYTES + messageLength;
+                diagnostics.add(new JsonSchemaDiagnostic(line, column, pointer, keyword, message));
+            }
+        }
+
+        private int saveText(
+            MutableDirectBufferEx buffer,
+            int offset,
+            String text)
+        {
+            final int length = MutableDirectBufferEx.utf8Length(text, 0, text.length());
+            buffer.putInt(offset, length);
+            return Integer.BYTES + buffer.putStringWithoutLengthUtf8(offset + Integer.BYTES, text, 0, text.length());
         }
 
         @Override
@@ -2818,7 +3329,7 @@ public final class JsonSchemaImpl implements JsonSchema
         private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
         private final boolean lenient;
         private final Trace trace = new Trace(diagnostics::add);
-        private final Eval eval;
+        private final Evaluator eval;
         // captures a KEY_NAME's chars before forwarding to the sink (see transform()'s structural-event
         // branch below): reading getStringView() only after the forward can return an empty remainder if
         // the sink (or an intermediate stage) already rendered this same key, since that shared cursor
@@ -2837,7 +3348,7 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean lenient)
         {
             this.lenient = lenient;
-            this.eval = eval(trace);
+            this.eval = evaluator(trace);
         }
 
         // Redirects getStringView() to the pre-forward key capture, delegating every other accessor to
@@ -3156,7 +3667,1795 @@ public final class JsonSchemaImpl implements JsonSchema
         };
     }
 
-    private final class Eval
+    private static final int OPEN_INVALID = 1;
+    private static final int OPEN_STRING_OK = 2;
+
+    // the checks of this schema that read only the first event of the value it is applied to: the false
+    // schema, the type, and the content keywords of a scalar. Reports each failure to the trace and returns
+    // whether the value is already invalid, and whether a string equals the const or is one of the enum
+    private int checkOpen(
+        Trace trace,
+        Event event,
+        JsonSource parser,
+        Matcher matcher)
+    {
+        boolean invalid = false;
+        boolean stringOk = false;
+        if (deny)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("false", "subschema disallows all instances", parser);
+            }
+        }
+        switch (event)
+        {
+        case START_OBJECT:
+            if (types != null && !types.contains(JsonType.OBJECT))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was object", parser);
+                }
+            }
+            break;
+        case START_ARRAY:
+            if (types != null && !types.contains(JsonType.ARRAY))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was array", parser);
+                }
+            }
+            break;
+        case VALUE_STRING:
+            if (needsContent)
+            {
+                invalid |= checkStringReport(trace, parser, matcher);
+                if (constString != null || enumStrings != null)
+                {
+                    CharSequence value = parser.getStringView();
+                    stringOk = constString != null
+                        ? charsEqual(constString, value)
+                        : containsString(enumStrings, value);
+                }
+            }
+            else if (types != null && !types.contains(JsonType.STRING))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was string", parser);
+                }
+            }
+            break;
+        case VALUE_NUMBER:
+            if (needsContent)
+            {
+                invalid |= checkNumberReport(trace, parser);
+            }
+            else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was number", parser);
+                }
+            }
+            break;
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+            if (types != null && !types.contains(JsonType.BOOLEAN))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was boolean", parser);
+                }
+            }
+            break;
+        case VALUE_NULL:
+            if (types != null && !types.contains(JsonType.NULL))
+            {
+                invalid = true;
+                if (trace.active())
+                {
+                    trace.report("type", "expected " + typesText() + " but was null", parser);
+                }
+            }
+            break;
+        default:
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("type", "unexpected event " + event, parser);
+            }
+            break;
+        }
+        return (invalid ? OPEN_INVALID : 0) | (stringOk ? OPEN_STRING_OK : 0);
+    }
+
+
+    private String typesText()
+    {
+        String result;
+        if (types == null)
+        {
+            result = "any";
+        }
+        else if (types.size() == 1)
+        {
+            result = types.iterator().next().name().toLowerCase();
+        }
+        else
+        {
+            StringBuilder sb = new StringBuilder("one of [");
+            boolean first = true;
+            for (JsonType t : types)
+            {
+                if (!first)
+                {
+                    sb.append(',');
+                }
+                sb.append(t.name().toLowerCase());
+                first = false;
+            }
+            sb.append(']');
+            result = sb.toString();
+        }
+        return result;
+    }
+
+    private boolean checkStringReport(
+        Trace trace,
+        JsonSource parser,
+        Matcher matcher)
+    {
+        boolean invalid = false;
+        CharSequence value = parser.getStringView();
+        int length = Character.codePointCount(value, 0, value.length());
+        if (types != null && !types.contains(JsonType.STRING))
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was string", parser);
+            }
+        }
+        else if (minLength >= 0 && length < minLength)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
+            }
+        }
+        else if (maxLength >= 0 && length > maxLength)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
+            }
+        }
+        else if (pattern != null && !(matcher != null ? matcher.reset(value) : pattern.matcher(value)).find())
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
+            }
+        }
+        return invalid;
+    }
+
+    private boolean checkNumberReport(
+        Trace trace,
+        JsonSource parser)
+    {
+        boolean invalid = false;
+        boolean lexicalIntegral = parser.isIntegralNumber();
+        boolean bounded = minimum != null || maximum != null ||
+            exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
+        if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
+        {
+            // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
+            invalid = checkIntegerBounds(trace, parser, parser.getLong());
+        }
+        else
+        {
+            invalid = checkDecimalReport(trace, parser, lexicalIntegral, bounded);
+        }
+        return invalid;
+    }
+
+    private boolean checkIntegerBounds(
+        Trace trace,
+        JsonSource parser,
+        long value)
+    {
+        boolean invalid = false;
+        boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
+        if (!typeOk)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
+        }
+        else if (minimum != null && value < minimum.longValue())
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
+        }
+        else if (maximum != null && value > maximum.longValue())
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
+        }
+        else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
+        }
+        else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
+        }
+        else if (multipleOf != null && value % multipleOf.longValue() != 0)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
+        }
+        return invalid;
+    }
+
+    private boolean checkDecimalReport(
+        Trace trace,
+        JsonSource parser,
+        boolean lexicalIntegral,
+        boolean bounded)
+    {
+        boolean invalid = false;
+        boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
+        // a BigDecimal is needed only for a bounds check, or to decide integrality of a
+        // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
+        BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
+        boolean integral = modernDraft && value != null
+            ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
+            : lexicalIntegral;
+        boolean typeOk = types == null ||
+            types.contains(JsonType.NUMBER) ||
+            integral && types.contains(JsonType.INTEGER);
+        if (!typeOk)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("type", "expected " + typesText() + " but was number", parser);
+            }
+        }
+        else if (minimum != null && value.compareTo(minimum) < 0)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("minimum", value + " < minimum " + minimum, parser);
+            }
+        }
+        else if (maximum != null && value.compareTo(maximum) > 0)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("maximum", value + " > maximum " + maximum, parser);
+            }
+        }
+        else if (exclusiveMinimum != null && value.compareTo(exclusiveMinimum) <= 0)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
+            }
+        }
+        else if (exclusiveMaximum != null && value.compareTo(exclusiveMaximum) >= 0)
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
+            }
+        }
+        else if (multipleOf != null && (multipleOf.signum() == 0 || value.remainder(multipleOf).signum() != 0))
+        {
+            invalid = true;
+            if (trace.active())
+            {
+                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
+            }
+        }
+        return invalid;
+    }
+
+    private JsonSchemaImpl elementSchema(
+        int index)
+    {
+        JsonSchemaImpl schema;
+        if (items != null)
+        {
+            schema = items;
+        }
+        else if (itemsTuple != null)
+        {
+            schema = index < itemsTuple.size()
+                ? itemsTuple.get(index)
+                : additionalItems != null ? additionalItems : ANY;
+        }
+        else
+        {
+            schema = ANY;
+        }
+        return schema;
+    }
+
+    // Evaluates a value against a schema whose keywords keep their state as numbers, on a stack of frames held
+    // in parallel arrays: one frame per applied schema and nested value. A frame routes an event to the frame of
+    // the member or element it is in, if any, and to the frames of its combinator subschemas, which read the
+    // same value and finish in the same event; the frame itself finishes when its value does. Reuse across
+    // values and across the elements and members of a value allocates nothing once the arrays have grown to
+    // the depth of the values. A schema outside the keywords supported here, below a frame, is evaluated by an
+    // Eval held by its frame.
+    private static final class FrameEval implements Evaluator
+    {
+        private static final int OBJECT = 1;
+        private static final int ARRAY = 2;
+        private static final int STARTED = 4;
+        private static final int INVALID = 8;
+        private static final int STRING_OK = 16;
+        private static final int DONE = 32;
+        private static final int SILENT = 64;
+        private static final int UNIQUE_ELEMENT = 512;
+        private static final int PASSED = 128;
+        private static final int FAILED = 256;
+        private static final int NONE = -1;
+        private static final int LEAF = Integer.MIN_VALUE;
+        private static final int FLAGS = 0;
+        private static final int DEPTH = 1;
+        private static final int COUNT = 2;
+        private static final int DIRECT = 3;
+        private static final int COMBINATOR_FIRST = 4;
+        private static final int COMBINATOR_COUNT = 5;
+        private static final int REQUIRED_BASE = 6;
+        private static final int BITS_MARK = 7;
+        private static final int CONTAINS = 8;
+        private static final int MATCHED = 9;
+        private static final int DIRECT_COUNT = 10;
+        private static final int STRIDE = 11;
+        private static final int INITIAL_FRAMES = 4;
+        private static final int INITIAL_WORDS = 4;
+
+        private final JsonSchemaImpl owner;
+        private final JsonSchemaImpl root;
+        private final Trace trace;
+
+        // the numbers of every frame, FRAME fields apart, so a frame is one stretch of one array
+        private int[] frames = new int[INITIAL_FRAMES * STRIDE];
+        private JsonSchemaImpl[] schemas = new JsonSchemaImpl[INITIAL_FRAMES];
+        // allocated when a frame first holds a schema outside the supported keywords
+        private Eval[] delegates;
+        // allocated when a frame first holds an object with required keys
+        private long[] requiredBits;
+        // the canonical form of the value of a frame whose const or enum compares it, built as the events arrive
+        private UniqueCanon[] canons;
+        // for a frame at a key whose value is checked as a scalar against a leaf schema, if it is one, without a frame
+        private JsonSchemaImpl[] leaves;
+        // the canonical form of a scalar that a const or enum of a leaf schema compares
+        private UniqueCanon scalars;
+        // the matcher of each pattern of patternProperties, reset to each key rather than made for it
+        private Map<Pattern, Matcher> matchers;
+        // for an array frame under uniqueItems, the canonical form of the element being read and of those read
+        private UniqueCanon[] uniques;
+        private CanonSet[] uniqueSets;
+        private int top;
+        private int bitsTop;
+        private boolean done;
+        private Verdict result;
+        private DynScope scope;
+
+        private FrameEval(
+            JsonSchemaImpl owner,
+            JsonSchemaImpl root,
+            Trace trace)
+        {
+            this.owner = owner;
+            this.root = root;
+            this.trace = trace;
+        }
+
+        @Override
+        public Verdict feed(
+            Event event,
+            JsonSource parser)
+        {
+            Verdict verdict = result;
+            if (!done)
+            {
+                if (top == 0)
+                {
+                    push(root, false);
+                }
+                feedFrame(0, event, parser);
+                while (top > 1 && (frames[((top - 1) * STRIDE) + FLAGS] & DONE) != 0)
+                {
+                    pop(top - 1);
+                }
+                if ((frames[(0 * STRIDE) + FLAGS] & DONE) != 0)
+                {
+                    done = true;
+                    result = verdictOf(0);
+                }
+                verdict = done ? result : Verdict.PENDING;
+            }
+            return verdict;
+        }
+
+        // The frames, and the bits of the required keys they have seen, written as numbers, each frame naming its
+        // schema by its number among the subschemas of the schema the parser was built from. What cannot be written
+        // is state that is not numbers: an evaluator outside the frame stack, the canonical form of a value that a
+        // const or enum is comparing as it is read, and the elements an array under uniqueItems has read so far.
+        @Override
+        public int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            refuseUnsavable();
+
+            final Nodes registry = owner.nodes();
+            int progress = offset;
+            buffer.putInt(progress, top);
+            progress += Integer.BYTES;
+            buffer.putInt(progress, bitsTop);
+            progress += Integer.BYTES;
+            for (int frame = 0; frame < top; frame++)
+            {
+                buffer.putInt(progress, registry.idOf(schemas[frame]));
+                progress += Integer.BYTES;
+                final boolean pending = frames[(frame * STRIDE) + DIRECT] == LEAF;
+                buffer.putInt(progress, pending ? registry.idOf(leaves[frame]) : NONE);
+                progress += Integer.BYTES;
+                for (int field = 0; field < STRIDE; field++)
+                {
+                    buffer.putInt(progress, frames[(frame * STRIDE) + field]);
+                    progress += Integer.BYTES;
+                }
+            }
+            for (int word = 0; word < bitsTop; word++)
+            {
+                buffer.putLong(progress, requiredBits[word]);
+                progress += Long.BYTES;
+            }
+
+            return progress - offset;
+        }
+
+        @Override
+        public int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            final Nodes registry = owner.nodes();
+            int progress = offset;
+            final int count = buffer.getInt(progress);
+            progress += Integer.BYTES;
+            final int bits = buffer.getInt(progress);
+            progress += Integer.BYTES;
+
+            ensureFrames(count);
+            if (delegates != null)
+            {
+                Arrays.fill(delegates, 0, Math.max(top, count), null);
+            }
+            for (int frame = 0; frame < count; frame++)
+            {
+                schemas[frame] = registry.nodeOf(buffer.getInt(progress));
+                progress += Integer.BYTES;
+                final int pending = buffer.getInt(progress);
+                progress += Integer.BYTES;
+                if (pending != NONE)
+                {
+                    if (leaves == null)
+                    {
+                        leaves = new JsonSchemaImpl[schemas.length];
+                    }
+                    leaves[frame] = registry.nodeOf(pending);
+                }
+                for (int field = 0; field < STRIDE; field++)
+                {
+                    frames[(frame * STRIDE) + field] = buffer.getInt(progress);
+                    progress += Integer.BYTES;
+                }
+                if (schemas[frame].canon && (frames[(frame * STRIDE) + FLAGS] & STARTED) == 0)
+                {
+                    if (canons == null)
+                    {
+                        canons = new UniqueCanon[schemas.length];
+                    }
+                    if (canons[frame] == null)
+                    {
+                        canons[frame] = new UniqueCanon();
+                    }
+                    canons[frame].reset();
+                }
+            }
+            if (bits > 0 && (requiredBits == null || bits > requiredBits.length))
+            {
+                requiredBits = new long[Math.max(bits, INITIAL_WORDS)];
+            }
+            for (int word = 0; word < bits; word++)
+            {
+                requiredBits[word] = buffer.getLong(progress);
+                progress += Long.BYTES;
+            }
+
+            top = count;
+            bitsTop = bits;
+            done = count > 0 && (frames[FLAGS] & DONE) != 0;
+            result = done ? verdictOf(0) : null;
+
+            return progress - offset;
+        }
+
+        private void refuseUnsavable()
+        {
+            for (int frame = 0; frame < top; frame++)
+            {
+                final int flags = frames[(frame * STRIDE) + FLAGS];
+                if ((flags & DONE) == 0)
+                {
+                    final JsonSchemaImpl schema = schemas[frame];
+                    if (delegateOf(frame) != null)
+                    {
+                        throw new IllegalStateException("an evaluator outside the frame stack (" + schema.unframedKeyword() +
+                            ") is open and its state cannot be saved");
+                    }
+                    if ((flags & STARTED) != 0 && schema.canon)
+                    {
+                        throw new IllegalStateException("the canonical form of an open value, compared by " +
+                            (schema.constantCanon != null ? "const" : "enum") + ", cannot be saved");
+                    }
+                    if ((flags & ARRAY) != 0 && schema.uniqueItems)
+                    {
+                        throw new IllegalStateException("the elements read so far of an open array under uniqueItems " +
+                            "cannot be saved");
+                    }
+                }
+            }
+        }
+
+        @Override
+        public boolean needsContentNow()
+        {
+            return top == 0 ? root.needsContent : needsContentNow(0);
+        }
+
+        @Override
+        public void reset()
+        {
+            if (delegates != null)
+            {
+                Arrays.fill(delegates, 0, top, null);
+            }
+            top = 0;
+            bitsTop = 0;
+            done = false;
+            result = null;
+        }
+
+        private boolean needsContentNow(
+            int frame)
+        {
+            final JsonSchemaImpl schema = schemas[frame];
+            final boolean needs;
+            final int direct = frames[(frame * STRIDE) + DIRECT];
+            if (delegateOf(frame) != null)
+            {
+                needs = delegateOf(frame).needsContentNow();
+            }
+            else if ((frames[(frame * STRIDE) + FLAGS] & STARTED) == 0)
+            {
+                needs = schema.needsContent;
+            }
+            else if (direct == LEAF)
+            {
+                needs = leaves[frame].needsContent || containsNeedsContentNow(frame);
+            }
+            else if (direct >= 0)
+            {
+                needs = directsNeedContentNow(frame) || containsNeedsContentNow(frame);
+            }
+            else if (direct < NONE)
+            {
+                needs = frames[(frame * STRIDE) + DEPTH] > -2 - direct || containsNeedsContentNow(frame);
+            }
+            else if ((frames[(frame * STRIDE) + FLAGS] & ARRAY) != 0)
+            {
+                needs = schema.elementSchema(frames[(frame * STRIDE) + COUNT]).needsContent ||
+                    schema.contains != null && schema.contains.needsContent;
+            }
+            else
+            {
+                needs = true;
+            }
+            return needs;
+        }
+
+        private boolean directsNeedContentNow(
+            int frame)
+        {
+            final int direct = frames[(frame * STRIDE) + DIRECT];
+            final int count = frames[(frame * STRIDE) + DIRECT_COUNT];
+            boolean needs = false;
+            for (int i = 0; i < count; i++)
+            {
+                needs |= needsContentNow(direct + i);
+            }
+            return needs;
+        }
+
+        private boolean containsNeedsContentNow(
+            int frame)
+        {
+            final int contains = frames[(frame * STRIDE) + CONTAINS];
+            return contains != NONE && needsContentNow(contains);
+        }
+
+        private Trace traceOf(
+            int frame)
+        {
+            return (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0 ? Trace.NONE : trace;
+        }
+
+        private void feedFrame(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final JsonSchemaImpl schema = schemas[frame];
+            final Eval delegate = delegates != null ? delegates[frame] : null;
+            if (delegate != null)
+            {
+                final Verdict verdict = delegate.feed(event, parser);
+                if (verdict != Verdict.PENDING)
+                {
+                    finish(frame, verdict);
+                }
+            }
+            else
+            {
+                if (schema.canon)
+                {
+                    canons[frame].feed(event, parser);
+                }
+                final int direct = frames[(frame * STRIDE) + DIRECT];
+                if (direct >= 0)
+                {
+                    routeDirect(frame, event, parser);
+                }
+                else if (direct == LEAF)
+                {
+                    feedLeaf(frame, event, parser);
+                }
+                else if (direct == NONE && schema != ANY)
+                {
+                    feedOwn(frame, schema, event, parser);
+                }
+                else if (direct < NONE && (frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0)
+                {
+                    uniques[frame].feed(event, parser);
+                }
+                if (frames[(frame * STRIDE) + CONTAINS] != NONE)
+                {
+                    feedContains(frame, event, parser);
+                }
+
+                final int end = frames[(frame * STRIDE) + COMBINATOR_FIRST] + frames[(frame * STRIDE) + COMBINATOR_COUNT];
+                for (int combinator = frames[(frame * STRIDE) + COMBINATOR_FIRST]; combinator < end; combinator++)
+                {
+                    if ((frames[(combinator * STRIDE) + FLAGS] & DONE) == 0)
+                    {
+                        feedFrame(combinator, event, parser);
+                    }
+                }
+
+                advance(frame, event, parser);
+                final int skipping = frames[(frame * STRIDE) + DIRECT];
+                if (skipping < NONE && skipping != LEAF)
+                {
+                    endSkip(frame, event, parser);
+                }
+            }
+        }
+
+        // the frame that checks whether the element matches contains reads the element with it, and counts it
+        // when it matches
+        private void feedContains(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final int contains = frames[(frame * STRIDE) + CONTAINS];
+            feedFrame(contains, event, parser);
+            if ((frames[(contains * STRIDE) + FLAGS] & DONE) != 0)
+            {
+                if (passed(contains))
+                {
+                    frames[(frame * STRIDE) + MATCHED]++;
+                }
+                frames[(frame * STRIDE) + CONTAINS] = NONE;
+            }
+        }
+
+        // the value of a key is checked against a leaf schema as a scalar without a frame for it, and given a frame
+        // if it turns out to be a container
+        private void feedLeaf(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final JsonSchemaImpl leaf = leaves[frame];
+            if (scalar(event))
+            {
+                checkLeaf(frame, leaf, event, parser);
+                frames[(frame * STRIDE) + DIRECT] = NONE;
+            }
+            else
+            {
+                frames[(frame * STRIDE) + DIRECT] = top;
+                push(leaf, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+                routeDirect(frame, event, parser);
+            }
+        }
+
+        private void checkLeaf(
+            int frame,
+            JsonSchemaImpl leaf,
+            Event event,
+            JsonSource parser)
+        {
+            if (!leafValid(traceOf(frame), leaf, event, parser))
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+            }
+        }
+
+        // the verdict of a leaf schema for a scalar: its own checks of the scalar, then its const or enum, with
+        // the diagnostics a frame would report
+        private boolean leafValid(
+            Trace trace,
+            JsonSchemaImpl leaf,
+            Event event,
+            JsonSource parser)
+        {
+            final Matcher matcher = leaf.pattern != null ? matcher(leaf.pattern) : null;
+            final int open = leaf.checkOpen(trace, event, parser, matcher);
+            boolean valid = (open & OPEN_INVALID) == 0;
+            if (valid && leaf.constString != null)
+            {
+                valid = (open & OPEN_STRING_OK) != 0;
+                if (!valid && trace.active())
+                {
+                    trace.report("const", "value does not equal const", parser);
+                }
+            }
+            else if (valid && leaf.enumStrings != null)
+            {
+                valid = (open & OPEN_STRING_OK) != 0;
+                if (!valid && trace.active())
+                {
+                    trace.report("enum", "value not in enum", parser);
+                }
+            }
+            else if (valid && leaf.canon)
+            {
+                final String canon = canonOf(event, parser);
+                if (leaf.constantCanon != null && !leaf.constantCanon.equals(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
+                }
+                else if (leaf.enumCanons != null && !leaf.enumCanons.contains(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+            return valid;
+        }
+
+        private String canonOf(
+            Event event,
+            JsonSource parser)
+        {
+            if (scalars == null)
+            {
+                scalars = new UniqueCanon();
+            }
+            scalars.reset();
+            scalars.feed(event, parser);
+            return scalars.result;
+        }
+
+        private boolean scalar(
+            Event event)
+        {
+            return event != Event.START_OBJECT && event != Event.START_ARRAY && event != Event.END_OBJECT &&
+                event != Event.END_ARRAY && event != Event.KEY_NAME;
+        }
+
+        // a member or element whose schema accepts any value has no frame: the frame it is in only notes the depth
+        // it is at, and the value is over with the scalar, or with the end of the container, that brings it back
+        private void endSkip(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final boolean scalar = event != Event.KEY_NAME && event != Event.START_OBJECT && event != Event.START_ARRAY &&
+                event != Event.END_OBJECT && event != Event.END_ARRAY;
+            final boolean closed = (scalar || event == Event.END_OBJECT || event == Event.END_ARRAY) &&
+                frames[(frame * STRIDE) + DEPTH] == -2 - frames[(frame * STRIDE) + DIRECT];
+            if (closed)
+            {
+                frames[(frame * STRIDE) + DIRECT] = NONE;
+                if ((frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0)
+                {
+                    frames[(frame * STRIDE) + FLAGS] &= ~UNIQUE_ELEMENT;
+                    if (!uniqueSets[frame].add(uniques[frame].result))
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                        if (traceOf(frame).active())
+                        {
+                            traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void feedOwn(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            if ((frames[(frame * STRIDE) + FLAGS] & STARTED) == 0)
+            {
+                open(frame, schema, event, parser);
+            }
+            else if ((frames[(frame * STRIDE) + FLAGS] & OBJECT) != 0)
+            {
+                handleObject(frame, schema, event, parser);
+            }
+            else if ((frames[(frame * STRIDE) + FLAGS] & ARRAY) != 0 && handleArray(frame, schema, event, parser))
+            {
+                routeDirect(frame, event, parser);
+            }
+        }
+
+        // hands the event to the frame of the member or element, and takes its verdict into this frame once it
+        // has finished
+        private void routeDirect(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            final int direct = frames[(frame * STRIDE) + DIRECT];
+            final int count = frames[(frame * STRIDE) + DIRECT_COUNT];
+            final boolean unique = (frames[(frame * STRIDE) + FLAGS] & UNIQUE_ELEMENT) != 0;
+            if (unique)
+            {
+                uniques[frame].feed(event, parser);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                feedFrame(direct + i, event, parser);
+            }
+            if ((frames[(direct * STRIDE) + FLAGS] & DONE) != 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    if (failed(direct + i))
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    }
+                }
+                frames[(frame * STRIDE) + DIRECT] = NONE;
+                frames[(frame * STRIDE) + DIRECT_COUNT] = 1;
+                if (unique)
+                {
+                    frames[(frame * STRIDE) + FLAGS] &= ~UNIQUE_ELEMENT;
+                    if (!uniqueSets[frame].add(uniques[frame].result))
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                        if (traceOf(frame).active())
+                        {
+                            traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void advance(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            frames[(frame * STRIDE) + FLAGS] |= STARTED;
+            if (event == Event.START_OBJECT || event == Event.START_ARRAY)
+            {
+                frames[(frame * STRIDE) + DEPTH]++;
+            }
+            else if (event == Event.END_OBJECT || event == Event.END_ARRAY)
+            {
+                frames[(frame * STRIDE) + DEPTH]--;
+            }
+            if (frames[(frame * STRIDE) + DEPTH] == 0)
+            {
+                finish(frame, combines(frame) ? combine(frame, parser)
+                    : (frames[(frame * STRIDE) + FLAGS] & INVALID) == 0 ? Verdict.VALID : Verdict.INVALID);
+            }
+        }
+
+        private boolean combines(
+            int frame)
+        {
+            return schemas[frame].combines;
+        }
+
+        private void finish(
+            int frame,
+            Verdict verdict)
+        {
+            frames[(frame * STRIDE) + FLAGS] |= DONE | (verdict == Verdict.VALID ? PASSED : FAILED);
+        }
+
+        private Verdict combine(
+            int frame,
+            JsonSource parser)
+        {
+            final JsonSchemaImpl schema = schemas[frame];
+            final Trace trace = traceOf(frame);
+            boolean valid = (frames[(frame * STRIDE) + FLAGS] & INVALID) == 0;
+            if (valid && schema.constString != null)
+            {
+                valid = (frames[(frame * STRIDE) + FLAGS] & STRING_OK) != 0;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
+                }
+            }
+            else if (valid && schema.enumStrings != null)
+            {
+                valid = (frames[(frame * STRIDE) + FLAGS] & STRING_OK) != 0;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+            else if (valid && schema.canon)
+            {
+                final String canon = canons[frame].result;
+                if (schema.constantCanon != null && !schema.constantCanon.equals(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("const", "value does not equal const", parser);
+                    }
+                }
+                else if (schema.enumCanons != null && !schema.enumCanons.contains(canon))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("enum", "value not in enum", parser);
+                    }
+                }
+            }
+
+            if (valid && schema.combined)
+            {
+                valid = combineCombinators(frame, schema, parser);
+            }
+            return valid ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        private boolean combineCombinators(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final Trace trace = traceOf(frame);
+            boolean valid = true;
+            int combinator = frames[(frame * STRIDE) + COMBINATOR_FIRST];
+            if (valid && schema.allOf != null)
+            {
+                for (int i = 0; i < schema.allOf.size(); i++)
+                {
+                    if (!passed(combinator + i))
+                    {
+                        valid = false;
+                    }
+                }
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("allOf", "instance failed at least one allOf subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.allOf != null ? schema.allOf.size() : 0;
+            if (valid && schema.anyOf != null)
+            {
+                boolean any = false;
+                for (int i = 0; i < schema.anyOf.size(); i++)
+                {
+                    any |= passed(combinator + i);
+                }
+                valid = any;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("anyOf", "instance failed every anyOf subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.anyOf != null ? schema.anyOf.size() : 0;
+            if (valid && schema.oneOf != null)
+            {
+                int matched = 0;
+                for (int i = 0; i < schema.oneOf.size(); i++)
+                {
+                    if (passed(combinator + i))
+                    {
+                        matched++;
+                    }
+                }
+                valid = matched == 1;
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("oneOf", matched == 0
+                            ? "instance failed every oneOf subschema"
+                            : "instance matched " + matched + " oneOf subschemas (must be exactly 1)", parser);
+                    }
+                }
+            }
+            combinator += schema.oneOf != null ? schema.oneOf.size() : 0;
+            if (valid && schema.notSchema != null)
+            {
+                valid = !passed(combinator);
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report("not", "instance must not match not-subschema", parser);
+                    }
+                }
+            }
+            combinator += schema.notSchema != null ? 1 : 0;
+            if (valid && schema.ifSchema != null)
+            {
+                final int thenAt = combinator + 1;
+                final int elseAt = thenAt + (schema.thenSchema != null ? 1 : 0);
+                final boolean matched = passed(combinator);
+                valid = matched
+                    ? schema.thenSchema == null || passed(thenAt)
+                    : schema.elseSchema == null || passed(elseAt);
+                if (!valid)
+                {
+                    if (trace.active())
+                    {
+                        trace.report(matched ? "then" : "else", "if/then/else branch failed", parser);
+                    }
+                }
+            }
+            combinator += (schema.ifSchema != null ? 1 : 0) + (schema.thenSchema != null ? 1 : 0) +
+                (schema.elseSchema != null ? 1 : 0);
+            if (valid && (frames[(frame * STRIDE) + FLAGS] & OBJECT) != 0)
+            {
+                valid = combineDependencies(frame, schema, combinator, parser);
+            }
+            return valid;
+        }
+
+        private void openUnique(
+            int frame)
+        {
+            if (uniques == null)
+            {
+                uniques = new UniqueCanon[schemas.length];
+                uniqueSets = new CanonSet[schemas.length];
+            }
+            if (uniques[frame] == null)
+            {
+                uniques[frame] = new UniqueCanon();
+                uniqueSets[frame] = new CanonSet();
+            }
+            uniqueSets[frame].clear();
+        }
+
+        private boolean combineDependencies(
+            int frame,
+            JsonSchemaImpl schema,
+            int dependentAt,
+            JsonSource parser)
+        {
+            final Trace trace = traceOf(frame);
+            final int base = frames[(frame * STRIDE) + REQUIRED_BASE];
+            boolean valid = true;
+            for (int i = 0; valid && i < schema.dependentRequiredKeys.length; i++)
+            {
+                if (seen(base, schema.dependentRequiredAt[i]) && !seenAll(base, schema.dependentRequiredBits[i]))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("dependencies", "presence of '" + schema.dependentRequiredKeys[i] + "' requires " +
+                            schema.dependentRequiredSets.get(i), parser);
+                    }
+                }
+            }
+            for (int i = 0; valid && i < schema.dependentSchemaKeys.length; i++)
+            {
+                if (seen(base, schema.dependentSchemaAt[i]) && !passed(dependentAt + i))
+                {
+                    valid = false;
+                    if (trace.active())
+                    {
+                        trace.report("dependencies", "presence of '" + schema.dependentSchemaKeys[i] +
+                            "' requires dependent schema to match", parser);
+                    }
+                }
+            }
+            return valid;
+        }
+
+        private boolean seen(
+            int base,
+            int key)
+        {
+            return (requiredBits[base + (key >>> 6)] & 1L << (key & 63)) != 0L;
+        }
+
+        private boolean seenAll(
+            int base,
+            int[] keys)
+        {
+            boolean all = true;
+            for (int i = 0; i < keys.length; i++)
+            {
+                all &= seen(base, keys[i]);
+            }
+            return all;
+        }
+
+        private void open(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            final Matcher matcher = schema.pattern != null ? matcher(schema.pattern) : null;
+            final int open = schema.checkOpen(traceOf(frame), event, parser, matcher);
+            int state = frames[(frame * STRIDE) + FLAGS];
+            state |= (open & OPEN_INVALID) != 0 ? INVALID : 0;
+            state |= (open & OPEN_STRING_OK) != 0 ? STRING_OK : 0;
+            if (event == Event.START_OBJECT)
+            {
+                state |= OBJECT;
+                final int words = schema.trackedKeys.length + 63 >>> 6;
+                if (words > 0 && (requiredBits == null || bitsTop + words > requiredBits.length))
+                {
+                    requiredBits = requiredBits == null
+                        ? new long[Math.max(words, INITIAL_WORDS)]
+                        : Arrays.copyOf(requiredBits, Math.max(bitsTop + words, requiredBits.length << 1));
+                }
+                frames[(frame * STRIDE) + REQUIRED_BASE] = bitsTop;
+                if (words > 0)
+                {
+                    Arrays.fill(requiredBits, bitsTop, bitsTop + words, 0L);
+                    bitsTop += words;
+                }
+            }
+            else if (event == Event.START_ARRAY)
+            {
+                state |= ARRAY;
+                if (schema.uniqueItems)
+                {
+                    openUnique(frame);
+                }
+            }
+            frames[(frame * STRIDE) + FLAGS] = state;
+            if (schema.combined)
+            {
+                pushCombinators(frame, schema);
+            }
+        }
+
+        // allOf subschemas report as the schema does; the others select among candidates, where a subschema that
+        // does not match is expected, and so are silent
+        private void pushCombinators(
+            int frame,
+            JsonSchemaImpl schema)
+        {
+            final boolean silent = (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0;
+            frames[(frame * STRIDE) + COMBINATOR_FIRST] = top;
+            pushAll(schema.allOf, silent);
+            pushAll(schema.anyOf, true);
+            pushAll(schema.oneOf, true);
+            pushOne(schema.notSchema);
+            pushOne(schema.ifSchema);
+            pushOne(schema.thenSchema);
+            pushOne(schema.elseSchema);
+            pushAll(schema.dependentSchemaList, true);
+            frames[(frame * STRIDE) + COMBINATOR_COUNT] = top - frames[(frame * STRIDE) + COMBINATOR_FIRST];
+        }
+
+        private void pushAll(
+            List<JsonSchemaImpl> subschemas,
+            boolean silent)
+        {
+            if (subschemas != null)
+            {
+                for (int i = 0; i < subschemas.size(); i++)
+                {
+                    push(subschemas.get(i), silent);
+                }
+            }
+        }
+
+        private void pushOne(
+            JsonSchemaImpl subschema)
+        {
+            if (subschema != null)
+            {
+                push(subschema, true);
+            }
+        }
+
+        private void handleObject(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            if (event == Event.END_OBJECT)
+            {
+                checkRequired(frame, schema, parser);
+                final int count = frames[(frame * STRIDE) + COUNT];
+                if (schema.minProperties >= 0 && count < schema.minProperties)
+                {
+                    frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("minProperties", count + " < minProperties " + schema.minProperties, parser);
+                    }
+                }
+                if (schema.maxProperties >= 0 && count > schema.maxProperties)
+                {
+                    frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("maxProperties", count + " > maxProperties " + schema.maxProperties, parser);
+                    }
+                }
+            }
+            else
+            {
+                handleKey(frame, schema, parser);
+            }
+        }
+
+        // matches the key as a CharSequence against the schema's property and required key arrays, so a key is
+        // validated and required-tracked without materializing a String
+        private void handleKey(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final Trace trace = traceOf(frame);
+            final CharSequence key = parser.getStringView();
+            frames[(frame * STRIDE) + COUNT]++;
+            final String[] trackedKeys = schema.trackedKeys;
+            for (int i = 0; i < trackedKeys.length; i++)
+            {
+                if (charsEqual(trackedKeys[i], key))
+                {
+                    requiredBits[frames[(frame * STRIDE) + REQUIRED_BASE] + (i >>> 6)] |= 1L << (i & 63);
+                    break;
+                }
+            }
+            if (schema.propertyNames != null)
+            {
+                checkPropertyName(frame, schema, key, parser);
+            }
+            if (schema.patternKeys.length > 0)
+            {
+                handlePatternKey(frame, schema, key);
+            }
+            else
+            {
+                handleDeclaredKey(frame, schema, key);
+            }
+        }
+
+        // the key is read as a string by the schema of propertyNames, on a frame that is removed as soon as it has
+        // its verdict
+        private void checkPropertyName(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key,
+            JsonSource parser)
+        {
+            final int name = top;
+            push(schema.propertyNames, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+            feedFrame(name, Event.VALUE_STRING, parser);
+            final boolean valid = passed(name);
+            pop(name);
+            if (!valid)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("propertyNames", "property name '" + key + "' violates propertyNames", parser);
+                }
+            }
+        }
+
+        private void handleDeclaredKey(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key)
+        {
+            final Trace trace = traceOf(frame);
+            JsonSchemaImpl applicable = null;
+            final String[] propertyKeys = schema.propertyKeys;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    applicable = schema.propertySchemas[i];
+                    // a declared property: the schema owns this exact name, so the location refers to it
+                    trace.key(propertyKeys[i]);
+                    break;
+                }
+            }
+            if (applicable == null)
+            {
+                applicable = schema.additionalSchema != null ? schema.additionalSchema
+                    : schema.additionalAllowed ? ANY : JsonSchemaImpl.NONE;
+                if (applicable != ANY && trace.active())
+                {
+                    // routed to a subschema that can fail without the schema naming the key: only here does
+                    // the location need the document's own key text
+                    trace.keyOf(key);
+                }
+            }
+            final JsonSchemaImpl target = applicable.ref != null ? applicable.target() : applicable;
+            if (applicable == ANY)
+            {
+                frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+            }
+            else if (target.leaf)
+            {
+                frames[(frame * STRIDE) + DIRECT] = LEAF;
+                if (leaves == null)
+                {
+                    leaves = new JsonSchemaImpl[schemas.length];
+                }
+                leaves[frame] = target;
+            }
+            else
+            {
+                frames[(frame * STRIDE) + DIRECT] = top;
+                push(applicable, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+            }
+        }
+
+        // a key is validated by the schema of the property it names, by the schema of every pattern it matches, and
+        // by the additional schema only when neither applies
+        private void handlePatternKey(
+            int frame,
+            JsonSchemaImpl schema,
+            CharSequence key)
+        {
+            final boolean silent = (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0;
+            final Trace trace = traceOf(frame);
+            if (trace.active())
+            {
+                trace.keyOf(key);
+            }
+            final int first = top;
+            final String[] propertyKeys = schema.propertyKeys;
+            for (int i = 0; i < propertyKeys.length; i++)
+            {
+                if (charsEqual(propertyKeys[i], key))
+                {
+                    push(schema.propertySchemas[i], silent);
+                    break;
+                }
+            }
+            for (int i = 0; i < schema.patternKeys.length; i++)
+            {
+                if (matcher(schema.patternKeys[i]).reset(key).find())
+                {
+                    push(schema.patternSchemas[i], silent);
+                }
+            }
+            if (top == first)
+            {
+                final JsonSchemaImpl additional = schema.additionalSchema != null ? schema.additionalSchema
+                    : schema.additionalAllowed ? ANY : JsonSchemaImpl.NONE;
+                if (additional == ANY)
+                {
+                    frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+                }
+                else
+                {
+                    push(additional, silent);
+                }
+            }
+            if (top > first)
+            {
+                frames[(frame * STRIDE) + DIRECT] = first;
+                frames[(frame * STRIDE) + DIRECT_COUNT] = top - first;
+            }
+        }
+
+        private Matcher matcher(
+            Pattern pattern)
+        {
+            if (matchers == null)
+            {
+                matchers = new IdentityHashMap<>();
+            }
+            Matcher matcher = matchers.get(pattern);
+            if (matcher == null)
+            {
+                matcher = pattern.matcher("");
+                matchers.put(pattern, matcher);
+            }
+            return matcher;
+        }
+
+        private void checkRequired(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final String[] requiredKeys = schema.requiredKeys;
+            boolean missing = false;
+            for (int i = 0; i < requiredKeys.length; i++)
+            {
+                if ((requiredBits[frames[(frame * STRIDE) + REQUIRED_BASE] + (i >>> 6)] & 1L << (i & 63)) == 0L)
+                {
+                    missing = true;
+                }
+            }
+            if (missing)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                // the message text is built only on this rare failure path
+                if (traceOf(frame).active())
+                {
+                    final Set<String> names = new LinkedHashSet<>();
+                    for (int i = 0; i < requiredKeys.length; i++)
+                    {
+                        if ((requiredBits[frames[(frame * STRIDE) + REQUIRED_BASE] + (i >>> 6)] & 1L << (i & 63)) == 0L)
+                        {
+                            names.add(requiredKeys[i]);
+                        }
+                    }
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("required", "missing required " + names, parser);
+                    }
+                }
+            }
+        }
+
+        // returns whether the event opened a frame for an array element, which receives the event as well
+        private void checkContains(
+            int frame,
+            JsonSchemaImpl schema,
+            JsonSource parser)
+        {
+            final int matched = frames[(frame * STRIDE) + MATCHED];
+            final int min = schema.minContains >= 0 ? schema.minContains : 1;
+            if (matched < min)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("contains",
+                        "matched " + matched + " elements, fewer than minContains " + min, parser);
+                }
+            }
+            if (schema.maxContains >= 0 && matched > schema.maxContains)
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("maxContains",
+                        "matched " + matched + " elements, more than maxContains " + schema.maxContains, parser);
+                }
+            }
+        }
+
+        // a scalar element is its own canonical form, so it is added to the set of those read as soon as it is read
+        private void checkUnique(
+            int frame,
+            Event event,
+            JsonSource parser)
+        {
+            uniques[frame].reset();
+            uniques[frame].feed(event, parser);
+            if (!uniqueSets[frame].add(uniques[frame].result))
+            {
+                frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                if (traceOf(frame).active())
+                {
+                    traceOf(frame).report("uniqueItems", "duplicate array element", parser);
+                }
+            }
+        }
+
+        private boolean handleArray(
+            int frame,
+            JsonSchemaImpl schema,
+            Event event,
+            JsonSource parser)
+        {
+            boolean opened = false;
+            if (event == Event.END_ARRAY)
+            {
+                final int count = frames[(frame * STRIDE) + COUNT];
+                if (schema.minItems >= 0 && count < schema.minItems)
+                {
+                    frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("minItems", count + " < minItems " + schema.minItems, parser);
+                    }
+                }
+                if (schema.maxItems >= 0 && count > schema.maxItems)
+                {
+                    frames[(frame * STRIDE) + FLAGS] |= INVALID;
+                    if (traceOf(frame).active())
+                    {
+                        traceOf(frame).report("maxItems", count + " > maxItems " + schema.maxItems, parser);
+                    }
+                }
+                if (schema.contains != null)
+                {
+                    checkContains(frame, schema, parser);
+                }
+            }
+            else
+            {
+                final JsonSchemaImpl element = schema.elementSchema(frames[(frame * STRIDE) + COUNT]++);
+                final JsonSchemaImpl target = element.ref != null ? element.target() : element;
+                final boolean scalar = scalar(event);
+                if (scalar && target.leaf)
+                {
+                    if (target != ANY)
+                    {
+                        checkLeaf(frame, target, event, parser);
+                    }
+                    if (schema.uniqueItems)
+                    {
+                        checkUnique(frame, event, parser);
+                    }
+                }
+                else if (element == ANY)
+                {
+                    frames[(frame * STRIDE) + DIRECT] = -2 - frames[(frame * STRIDE) + DEPTH];
+                    if (schema.uniqueItems)
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= UNIQUE_ELEMENT;
+                        uniques[frame].reset();
+                        uniques[frame].feed(event, parser);
+                    }
+                }
+                else
+                {
+                    frames[(frame * STRIDE) + DIRECT] = top;
+                    push(element, (frames[(frame * STRIDE) + FLAGS] & SILENT) != 0);
+                    if (schema.uniqueItems)
+                    {
+                        frames[(frame * STRIDE) + FLAGS] |= UNIQUE_ELEMENT;
+                        uniques[frame].reset();
+                    }
+                    opened = true;
+                }
+                if (schema.contains != null)
+                {
+                    final JsonSchemaImpl containing = schema.contains.ref != null ? schema.contains.target() : schema.contains;
+                    if (scalar && containing.leaf)
+                    {
+                        if (leafValid(Trace.NONE, containing, event, parser))
+                        {
+                            frames[(frame * STRIDE) + MATCHED]++;
+                        }
+                    }
+                    else
+                    {
+                        frames[(frame * STRIDE) + CONTAINS] = top;
+                        push(schema.contains, true);
+                    }
+                }
+            }
+            return opened;
+        }
+
+        private void push(
+            JsonSchemaImpl applicable,
+            boolean silent)
+        {
+            final JsonSchemaImpl schema = applicable.ref != null ? applicable.target() : applicable;
+            if (top == schemas.length)
+            {
+                ensureFrames(top + 1);
+            }
+            if (schema.canon)
+            {
+                if (canons == null)
+                {
+                    canons = new UniqueCanon[schemas.length];
+                }
+                if (canons[top] == null)
+                {
+                    canons[top] = new UniqueCanon();
+                }
+                canons[top].reset();
+            }
+            schemas[top] = schema;
+            if (!schema.framed)
+            {
+                if (delegates == null)
+                {
+                    delegates = new Eval[schemas.length];
+                }
+                delegates[top] = schema.eval(silent ? Trace.NONE : trace, delegateScope());
+            }
+            else if (delegates != null)
+            {
+                delegates[top] = null;
+            }
+            frames[(top * STRIDE) + FLAGS] = silent ? SILENT : 0;
+            frames[(top * STRIDE) + DEPTH] = 0;
+            frames[(top * STRIDE) + COUNT] = 0;
+            frames[(top * STRIDE) + DIRECT] = NONE;
+            frames[(top * STRIDE) + COMBINATOR_FIRST] = 0;
+            frames[(top * STRIDE) + COMBINATOR_COUNT] = 0;
+            frames[(top * STRIDE) + CONTAINS] = NONE;
+            frames[(top * STRIDE) + MATCHED] = 0;
+            frames[(top * STRIDE) + DIRECT_COUNT] = 1;
+            frames[(top * STRIDE) + BITS_MARK] = bitsTop;
+            top++;
+        }
+
+        private void ensureFrames(
+            int needed)
+        {
+            if (needed > schemas.length)
+            {
+                final int capacity = Math.max(needed, schemas.length << 1);
+                schemas = Arrays.copyOf(schemas, capacity);
+                frames = Arrays.copyOf(frames, capacity * STRIDE);
+                if (delegates != null)
+                {
+                    delegates = Arrays.copyOf(delegates, capacity);
+                }
+                if (canons != null)
+                {
+                    canons = Arrays.copyOf(canons, capacity);
+                }
+                if (leaves != null)
+                {
+                    leaves = Arrays.copyOf(leaves, capacity);
+                }
+                if (uniques != null)
+                {
+                    uniques = Arrays.copyOf(uniques, capacity);
+                    uniqueSets = Arrays.copyOf(uniqueSets, capacity);
+                }
+            }
+        }
+
+        private void pop(
+            int frame)
+        {
+            bitsTop = frames[(frame * STRIDE) + BITS_MARK];
+            if (delegates != null)
+            {
+                delegates[frame] = null;
+            }
+            top = frame;
+        }
+
+        private Eval delegateOf(
+            int frame)
+        {
+            return delegates != null ? delegates[frame] : null;
+        }
+
+        private boolean passed(
+            int frame)
+        {
+            return (frames[(frame * STRIDE) + FLAGS] & PASSED) != 0;
+        }
+
+        private boolean failed(
+            int frame)
+        {
+            return (frames[(frame * STRIDE) + FLAGS] & FAILED) != 0;
+        }
+
+        private Verdict verdictOf(
+            int frame)
+        {
+            return passed(frame) ? Verdict.VALID : Verdict.INVALID;
+        }
+
+        private DynScope delegateScope()
+        {
+            if (scope == null)
+            {
+                scope = root.context != null ? DynScope.ROOT.push(root.context.base.toString()) : DynScope.ROOT;
+            }
+            return scope;
+        }
+    }
+
+    private final class Eval implements Evaluator
     {
         private final Trace trace;
         private final Eval[] allOfEvals;
@@ -3242,7 +5541,24 @@ public final class JsonSchemaImpl implements JsonSchema
 
         // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
         // (directChild, refEval, dynEval) dropped, the itemEval/containsEval/propEvals caches left intact
-        private void reset()
+        @Override
+        public int save(
+            MutableDirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException("evaluation of this schema is not on the frame stack and cannot be saved");
+        }
+
+        @Override
+        public int restore(
+            DirectBufferEx buffer,
+            int offset)
+        {
+            throw new UnsupportedOperationException("evaluation of this schema is not on the frame stack and cannot be restored");
+        }
+
+        @Override
+        public void reset()
         {
             reused = true;
             started = false;
@@ -3381,7 +5697,8 @@ public final class JsonSchemaImpl implements JsonSchema
             return result;
         }
 
-        private Verdict feed(
+        @Override
+        public Verdict feed(
             Event event,
             JsonSource parser)
         {
@@ -3443,7 +5760,8 @@ public final class JsonSchemaImpl implements JsonSchema
         // replayed against that keyword once the container closes. A not-yet-routed array (the pending
         // event is the first for its next element) resolves the applicable item/contains schema for the
         // next index without mutating any routing state.
-        private boolean needsContentNow()
+        @Override
+        public boolean needsContentNow()
         {
             boolean result;
             if (!started)
@@ -3503,11 +5821,9 @@ public final class JsonSchemaImpl implements JsonSchema
             Event event,
             JsonSource parser)
         {
-            if (deny)
-            {
-                directInvalid = true;
-                trace.report("false", "subschema disallows all instances", parser);
-            }
+            final int open = checkOpen(trace, event, parser, null);
+            directInvalid = (open & OPEN_INVALID) != 0;
+            scalarStringOk = (open & OPEN_STRING_OK) != 0;
             switch (event)
             {
             case START_OBJECT:
@@ -3535,11 +5851,6 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     propValues = new LinkedHashMap<>();
                 }
-                if (types != null && !types.contains(JsonType.OBJECT))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was object", parser);
-                }
                 break;
             case START_ARRAY:
                 array = true;
@@ -3551,218 +5862,9 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     itemValues = new ArrayList<>();
                 }
-                if (types != null && !types.contains(JsonType.ARRAY))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was array", parser);
-                }
-                break;
-            case VALUE_STRING:
-                if (needsContent)
-                {
-                    checkStringReport(parser);
-                    if (constString != null || enumStrings != null)
-                    {
-                        CharSequence value = parser.getStringView();
-                        scalarStringOk = constString != null
-                            ? charsEqual(constString, value)
-                            : containsString(enumStrings, value);
-                    }
-                }
-                else if (types != null && !types.contains(JsonType.STRING))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was string", parser);
-                }
-                break;
-            case VALUE_NUMBER:
-                if (needsContent)
-                {
-                    checkNumberReport(parser);
-                }
-                else if (types != null && !types.contains(JsonType.NUMBER) && !types.contains(JsonType.INTEGER))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was number", parser);
-                }
-                break;
-            case VALUE_TRUE:
-            case VALUE_FALSE:
-                if (types != null && !types.contains(JsonType.BOOLEAN))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was boolean", parser);
-                }
-                break;
-            case VALUE_NULL:
-                if (types != null && !types.contains(JsonType.NULL))
-                {
-                    directInvalid = true;
-                    trace.report("type", "expected " + typesText() + " but was null", parser);
-                }
                 break;
             default:
-                directInvalid = true;
-                trace.report("type", "unexpected event " + event, parser);
                 break;
-            }
-        }
-
-        private String typesText()
-        {
-            String result;
-            if (types == null)
-            {
-                result = "any";
-            }
-            else if (types.size() == 1)
-            {
-                result = types.iterator().next().name().toLowerCase();
-            }
-            else
-            {
-                StringBuilder sb = new StringBuilder("one of [");
-                boolean first = true;
-                for (JsonType t : types)
-                {
-                    if (!first)
-                    {
-                        sb.append(',');
-                    }
-                    sb.append(t.name().toLowerCase());
-                    first = false;
-                }
-                sb.append(']');
-                result = sb.toString();
-            }
-            return result;
-        }
-
-        private void checkStringReport(
-            JsonSource parser)
-        {
-            CharSequence value = parser.getStringView();
-            int length = Character.codePointCount(value, 0, value.length());
-            if (types != null && !types.contains(JsonType.STRING))
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was string", parser);
-            }
-            else if (minLength >= 0 && length < minLength)
-            {
-                directInvalid = true;
-                trace.report("minLength", "length " + length + " < minLength " + minLength, parser);
-            }
-            else if (maxLength >= 0 && length > maxLength)
-            {
-                directInvalid = true;
-                trace.report("maxLength", "length " + length + " > maxLength " + maxLength, parser);
-            }
-            else if (pattern != null && !pattern.matcher(value).find())
-            {
-                directInvalid = true;
-                trace.report("pattern", "does not match pattern " + pattern.pattern(), parser);
-            }
-        }
-
-        private void checkNumberReport(
-            JsonSource parser)
-        {
-            boolean lexicalIntegral = parser.isIntegralNumber();
-            boolean bounded = minimum != null || maximum != null ||
-                exclusiveMinimum != null || exclusiveMaximum != null || multipleOf != null;
-            if (bounded && integerBounds && lexicalIntegral && parser.getStringView().length() <= LONG_DIGITS)
-            {
-                // integer instance against integer bounds: compare with long arithmetic, no BigDecimal
-                checkIntegerBounds(parser, parser.getLong());
-            }
-            else
-            {
-                checkDecimalReport(parser, lexicalIntegral, bounded);
-            }
-        }
-
-        private void checkIntegerBounds(
-            JsonSource parser,
-            long value)
-        {
-            boolean typeOk = types == null || types.contains(JsonType.NUMBER) || types.contains(JsonType.INTEGER);
-            if (!typeOk)
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was number", parser);
-            }
-            else if (minimum != null && value < minimum.longValue())
-            {
-                directInvalid = true;
-                trace.report("minimum", value + " < minimum " + minimum, parser);
-            }
-            else if (maximum != null && value > maximum.longValue())
-            {
-                directInvalid = true;
-                trace.report("maximum", value + " > maximum " + maximum, parser);
-            }
-            else if (exclusiveMinimum != null && value <= exclusiveMinimum.longValue())
-            {
-                directInvalid = true;
-                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
-            }
-            else if (exclusiveMaximum != null && value >= exclusiveMaximum.longValue())
-            {
-                directInvalid = true;
-                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
-            }
-            else if (multipleOf != null && value % multipleOf.longValue() != 0)
-            {
-                directInvalid = true;
-                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
-            }
-        }
-
-        private void checkDecimalReport(
-            JsonSource parser,
-            boolean lexicalIntegral,
-            boolean bounded)
-        {
-            boolean modernDraft = context != null && context.draft() != Draft.DRAFT_04;
-            // a BigDecimal is needed only for a bounds check, or to decide integrality of a
-            // fractional-looking lexeme (1.0, 6e2) under a modern draft — never for an unbounded integer
-            BigDecimal value = bounded || modernDraft && !lexicalIntegral ? parser.getBigDecimal() : null;
-            boolean integral = modernDraft && value != null
-                ? value.signum() == 0 || value.stripTrailingZeros().scale() <= 0
-                : lexicalIntegral;
-            boolean typeOk = types == null ||
-                types.contains(JsonType.NUMBER) ||
-                integral && types.contains(JsonType.INTEGER);
-            if (!typeOk)
-            {
-                directInvalid = true;
-                trace.report("type", "expected " + typesText() + " but was number", parser);
-            }
-            else if (minimum != null && value.compareTo(minimum) < 0)
-            {
-                directInvalid = true;
-                trace.report("minimum", value + " < minimum " + minimum, parser);
-            }
-            else if (maximum != null && value.compareTo(maximum) > 0)
-            {
-                directInvalid = true;
-                trace.report("maximum", value + " > maximum " + maximum, parser);
-            }
-            else if (exclusiveMinimum != null && value.compareTo(exclusiveMinimum) <= 0)
-            {
-                directInvalid = true;
-                trace.report("exclusiveMinimum", value + " <= exclusiveMinimum " + exclusiveMinimum, parser);
-            }
-            else if (exclusiveMaximum != null && value.compareTo(exclusiveMaximum) >= 0)
-            {
-                directInvalid = true;
-                trace.report("exclusiveMaximum", value + " >= exclusiveMaximum " + exclusiveMaximum, parser);
-            }
-            else if (multipleOf != null && (multipleOf.signum() == 0 || value.remainder(multipleOf).signum() != 0))
-            {
-                directInvalid = true;
-                trace.report("multipleOf", value + " is not a multiple of " + multipleOf, parser);
             }
         }
 
@@ -3871,7 +5973,7 @@ public final class JsonSchemaImpl implements JsonSchema
                 {
                     // routed to a subschema that can fail without the schema naming the key: only here does
                     // the location need the document's own key text
-                    trace.key(key.toString());
+                    trace.keyOf(key);
                 }
             }
             directChild = propEvalFor(schema);
@@ -3984,27 +6086,6 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             return items != null ||
                 itemsTuple != null && (index < itemsTuple.size() || additionalItems != null);
-        }
-
-        private JsonSchemaImpl elementSchema(
-            int index)
-        {
-            JsonSchemaImpl schema;
-            if (items != null)
-            {
-                schema = items;
-            }
-            else if (itemsTuple != null)
-            {
-                schema = index < itemsTuple.size()
-                    ? itemsTuple.get(index)
-                    : additionalItems != null ? additionalItems : ANY;
-            }
-            else
-            {
-                schema = ANY;
-            }
-            return schema;
         }
 
         private void routeChildren(

@@ -21,7 +21,13 @@ import static org.hamcrest.Matchers.is;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +43,8 @@ public class EventWriterTest
     // so only 7 events fit before rotation (8th write fails → rotate).
     private static final int CAPACITY = 64;
     private static final int EVENTS_PER_ROTATION = (CAPACITY / 8) - 1;
+    private static final int READERS = 32;
+    private static final int ROUNDS = 100;
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -171,6 +179,67 @@ public class EventWriterTest
 
         // rotated file should be cleaned up by EventAccessor.close() traversal via next()
         assertThat(Files.exists(rotated.get()), is(false));
+    }
+
+    @Test
+    public void shouldCreateEventAccessorsConcurrently() throws Exception
+    {
+        final ExecutorService readers = Executors.newFixedThreadPool(READERS);
+
+        try
+        {
+            for (int round = 0; round < ROUNDS; round++)
+            {
+                Path dir = tempFolder.newFolder().toPath();
+                Path path = dir.resolve("events");
+
+                try (EventWriter writer = new EventWriter(path, CAPACITY, false))
+                {
+                    CyclicBarrier start = new CyclicBarrier(READERS);
+                    List<Future<EventAccessor>> created = new ArrayList<>();
+                    for (int reader = 0; reader < READERS; reader++)
+                    {
+                        created.add(readers.submit(() ->
+                        {
+                            start.await();
+                            return writer.createEventAccessor();
+                        }));
+                    }
+
+                    List<EventAccessor> accessors = new ArrayList<>();
+                    for (Future<EventAccessor> accessor : created)
+                    {
+                        accessors.add(accessor.get());
+                    }
+
+                    for (int i = 1; i <= EVENTS_PER_ROTATION + 1; i++)
+                    {
+                        writer.writeEvent(i, new UnsafeBufferEx(), 0, 0);
+                    }
+
+                    Path rotated = Files.list(dir)
+                        .filter(p -> p.getFileName().toString().startsWith("events_"))
+                        .findFirst()
+                        .get();
+
+                    for (int reader = 0; reader < READERS; reader++)
+                    {
+                        EventAccessor accessor = accessors.get(reader);
+                        for (int i = 0; i < EVENTS_PER_ROTATION; i++)
+                        {
+                            accessor.readEvent((m, b, idx, l) -> {}, 1);
+                        }
+                        accessor.readEvent((m, b, idx, l) -> {}, 1);
+
+                        assertThat(Files.exists(rotated), is(reader < READERS - 1));
+                    }
+                }
+            }
+        }
+        finally
+        {
+            readers.shutdownNow();
+        }
     }
 
     private void readEvent(

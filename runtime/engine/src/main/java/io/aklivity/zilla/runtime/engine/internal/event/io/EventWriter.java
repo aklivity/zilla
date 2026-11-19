@@ -23,9 +23,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -49,7 +50,7 @@ public final class EventWriter implements AutoCloseable
         this.basePath = basePath;
         this.readonly = readonly;
         this.activeEntry = new EventWriterEntry(basePath, capacity);
-        this.accessors = new ArrayList<>();
+        this.accessors = new CopyOnWriteArrayList<>();
 
         DateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
         this.timestamp = () -> format.format(new Date());
@@ -94,7 +95,7 @@ public final class EventWriter implements AutoCloseable
         private final long capacity;
         private Path path;
         private EventsLayout layout;
-        private int pendingCount;
+        private final AtomicInteger pendingCount = new AtomicInteger();
         private Runnable cleanup = () -> {};
 
         EventWriterEntry next;
@@ -129,12 +130,12 @@ public final class EventWriter implements AutoCloseable
 
         void increment()
         {
-            pendingCount++;
+            pendingCount.incrementAndGet();
         }
 
         void decrement()
         {
-            if (next != null && --pendingCount == 0)
+            if (next != null && pendingCount.decrementAndGet() == 0)
             {
                 layout.close();
                 delete(path);
