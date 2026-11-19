@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
@@ -119,6 +119,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
     private final EngineContext context;
+    private final Clock clock;
 
     private final int decodeMax;
     private final int handshakeMax;
@@ -142,6 +143,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
         this.context = context;
+        this.clock = context.clock();
     }
 
     @Override
@@ -773,7 +775,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 assert handshakeTimeoutFutureId == NO_CANCEL_ID;
                 handshakeTimeoutFutureId = signaler.signalAt(
-                    currentTimeMillis() + handshakeTimeoutMillis,
+                    clock.millis() + handshakeTimeoutMillis,
                     originId,
                     routedId,
                     replyId,
