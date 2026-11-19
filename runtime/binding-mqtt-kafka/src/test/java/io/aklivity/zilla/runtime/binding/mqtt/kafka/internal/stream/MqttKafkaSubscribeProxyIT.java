@@ -960,6 +960,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.store.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.shared.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.shared.message.expiry.interval.reduced/server"})
+    public void shouldSubscribeSharedMessageExpiryIntervalReduced() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.store.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.shared.expire.message.fragmented/client",
         "${kafka}/subscribe.shared.expire.message.fragmented/server"})
     public void shouldSubscribeSharedExpireMessageFragmented() throws Exception
