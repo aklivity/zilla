@@ -44,7 +44,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.KafkaFunctions;
  * {@code mqtt-kafka}, the way the session scripts in {@code binding-mqtt-kafka.spec} specify: the retained topic
  * describe, a meta stream per topic, the group coordinator and offset delete api requests, the session offsets
  * fetch, init producer id, the offset commit produce stream and the sessions topic stream. A client with no
- * prior offsets is answered with a flush on the offsets fetch.
+ * prior offsets is answered with a flush on the offsets fetch. It also accepts the produce stream that a publish
+ * opens on the messages topic.
  * <p>
  * Produce streams are acknowledged by growing the stream window to the received position, as Kafka does, and
  * every answer is delayed by the configured latency; {@link #release()} delivers the delayed answers and must
@@ -96,6 +97,7 @@ public final class KafkaStub implements BindingHandler
         INIT_PRODUCER_ID,
         OFFSET_FETCH,
         OFFSET_COMMIT,
+        MESSAGES,
         SESSION,
         UNEXPECTED
     }
@@ -105,6 +107,7 @@ public final class KafkaStub implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final String16FW retainedTopicRO = new String16FW("mqtt-retained");
+    private final String16FW messagesTopicRO = new String16FW("mqtt-messages");
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
@@ -266,7 +269,7 @@ public final class KafkaStub implements BindingHandler
             kind = switch (capabilities)
             {
             case FETCH_ONLY -> Kind.OFFSET_FETCH;
-            case PRODUCE_ONLY -> Kind.OFFSET_COMMIT;
+            case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES : Kind.OFFSET_COMMIT;
             case PRODUCE_AND_FETCH -> Kind.SESSION;
             };
             break;
@@ -404,6 +407,7 @@ public final class KafkaStub implements BindingHandler
                 }
                 break;
             case OFFSET_COMMIT:
+            case MESSAGES:
             case SESSION:
                 pending++;
                 schedule(ackStep);
