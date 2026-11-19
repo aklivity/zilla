@@ -212,6 +212,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttResetExF
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionDataKind;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSessionFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.SignalFW;
@@ -404,6 +405,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Consumer<MqttUserPropertyFW.Builder> subscribeUserPropertyBuilder = this::buildSubscribeUserProperty;
     private final Consumer<MqttPropertiesFW.Builder> publishPropertiesBuilder = this::buildPublishProperties;
     private final Consumer<MqttSubscribeFlushExFW.Builder> subscribeFlushBuilder = this::buildSubscribeFlush;
+    private final Consumer<MqttSessionFlushExFW.Builder> sessionFlushBuilder = this::buildSessionFlush;
     private int publishPropertiesSize;
     private int flushQos;
     private int flushPacketId;
@@ -7810,13 +7812,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 int reserved,
                 int packetId)
             {
+                flushPacketId = packetId;
+
+                final MqttFlushExFW flushEx = mqttFlushExRW.wrap(flushExtBuffer, 0, flushExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .session(sessionFlushBuilder)
+                    .build();
+
                 doFlush(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, sessionId, 0L, reserved,
-                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-                        .typeId(mqttTypeId)
-                        .session(sessionBuilder -> sessionBuilder.packetId(packetId))
-                        .build()
-                        .sizeof()));
+                    traceId, sessionId, 0L, reserved, flushEx.buffer(), flushEx.offset(), flushEx.sizeof());
 
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
@@ -10266,6 +10270,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         MqttPropertiesFW.Builder properties)
     {
         properties.length(publishPropertiesSize).value(propertyBuffer, 0, publishPropertiesSize);
+    }
+
+    private void buildSessionFlush(
+        MqttSessionFlushExFW.Builder session)
+    {
+        session.packetId(flushPacketId);
     }
 
     private void buildSubscribeFlush(
