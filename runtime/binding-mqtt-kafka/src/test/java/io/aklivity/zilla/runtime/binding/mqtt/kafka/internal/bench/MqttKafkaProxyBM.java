@@ -96,7 +96,11 @@ public class MqttKafkaProxyBM
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final String CLIENT_ID_PREFIX = "client-";
     private static final int CLIENT_ID_DIGITS = 10;
+    private static final long OFFSET_MARKER = 0x0102030405060708L;
     private static final int FANOUT_SUBSCRIBERS = 1000;
+    private static final int SHARED_SUBSCRIBERS = 5;
+    private static final String SHARE_NAME = "benchmark";
+    private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
     private static final String FANOUT_TOPIC = "device/fanout";
 
     @Benchmark
@@ -117,6 +121,13 @@ public class MqttKafkaProxyBM
     @OperationsPerInvocation(FANOUT_SUBSCRIBERS)
     public void fanout(
         FanoutFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void sharedsub(
+        SharedFixture fixture)
     {
         fixture.complete();
     }
@@ -476,7 +487,6 @@ public class MqttKafkaProxyBM
 
     public abstract static class SubscribeFixture
     {
-        private static final long OFFSET_MARKER = 0x0102030405060708L;
         private static final int ACK_PACKET_ID_MARKER = 0x7e57;
 
         @Param({"16", "1024"})
@@ -498,7 +508,14 @@ public class MqttKafkaProxyBM
 
         abstract int subscribers();
 
-        abstract String topic(
+        abstract String configuration();
+
+        abstract byte[] subscribeBeginEx(
+            int mqttTypeId,
+            int subscriber);
+
+        abstract byte[] dataEx(
+            int kafkaTypeId,
             int subscriber);
 
         abstract void prime();
@@ -510,7 +527,7 @@ public class MqttKafkaProxyBM
                 .directory("target/zilla-bench")
                 .external("kafka0")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .start(CONFIGURATION);
+                .start(configuration());
 
             kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis);
             bench.newServer("kafka0", kafka);
@@ -535,31 +552,13 @@ public class MqttKafkaProxyBM
 
             for (int subscriber = 0; subscriber < subscribers(); subscriber++)
             {
-                final String topic = topic(subscriber);
-                final byte[] beginEx = MqttFunctions.beginEx()
-                    .typeId(mqttTypeId)
-                    .subscribe()
-                        .clientId(CLIENT_ID_PREFIX + subscriber)
-                        .qos("AT_LEAST_ONCE")
-                        .filter(topic, 1, "AT_LEAST_ONCE")
-                        .build()
-                    .build();
+                final byte[] beginEx = subscribeBeginEx(mqttTypeId, subscriber);
 
                 final Subscriber subscribed = new Subscriber(subscriber);
                 subscribed.begin(bench.newClient(mqttId, subscribed), new UnsafeBufferEx(beginEx));
                 await(() -> established > subscribed.index, "subscribe stream established");
 
-                kafka.prepare(subscriber, KafkaFunctions.dataEx()
-                    .typeId(kafkaTypeId)
-                    .merged()
-                        .fetch()
-                            .timestamp(1L)
-                            .filters(1L)
-                            .partition(0, OFFSET_MARKER, OFFSET_MARKER)
-                            .key(topic)
-                            .header("zilla:qos", "1")
-                            .build()
-                        .build(), OFFSET_MARKER, message);
+                kafka.prepare(subscriber, dataEx(kafkaTypeId, subscriber), OFFSET_MARKER, message);
 
                 opened.add(subscribed);
                 idle.add(subscribed);
@@ -687,11 +686,51 @@ public class MqttKafkaProxyBM
             return subscribers;
         }
 
-        @Override
         String topic(
             int subscriber)
         {
             return "device/" + subscriber;
+        }
+
+        @Override
+        String configuration()
+        {
+            return CONFIGURATION;
+        }
+
+        @Override
+        byte[] subscribeBeginEx(
+            int mqttTypeId,
+            int subscriber)
+        {
+            final String topic = topic(subscriber);
+
+            return MqttFunctions.beginEx()
+                .typeId(mqttTypeId)
+                .subscribe()
+                    .clientId(CLIENT_ID_PREFIX + subscriber)
+                    .qos("AT_LEAST_ONCE")
+                    .filter(topic, 1, "AT_LEAST_ONCE")
+                    .build()
+                .build();
+        }
+
+        @Override
+        byte[] dataEx(
+            int kafkaTypeId,
+            int subscriber)
+        {
+            return KafkaFunctions.dataEx()
+                .typeId(kafkaTypeId)
+                .merged()
+                    .fetch()
+                        .timestamp(1L)
+                        .filters(1L)
+                        .partition(0, OFFSET_MARKER, OFFSET_MARKER)
+                        .key(topic(subscriber))
+                        .header("zilla:qos", "1")
+                        .build()
+                    .build();
         }
 
         @Override
@@ -721,11 +760,51 @@ public class MqttKafkaProxyBM
             return FANOUT_SUBSCRIBERS;
         }
 
-        @Override
         String topic(
             int subscriber)
         {
             return FANOUT_TOPIC;
+        }
+
+        @Override
+        String configuration()
+        {
+            return CONFIGURATION;
+        }
+
+        @Override
+        byte[] subscribeBeginEx(
+            int mqttTypeId,
+            int subscriber)
+        {
+            final String topic = topic(subscriber);
+
+            return MqttFunctions.beginEx()
+                .typeId(mqttTypeId)
+                .subscribe()
+                    .clientId(CLIENT_ID_PREFIX + subscriber)
+                    .qos("AT_LEAST_ONCE")
+                    .filter(topic, 1, "AT_LEAST_ONCE")
+                    .build()
+                .build();
+        }
+
+        @Override
+        byte[] dataEx(
+            int kafkaTypeId,
+            int subscriber)
+        {
+            return KafkaFunctions.dataEx()
+                .typeId(kafkaTypeId)
+                .merged()
+                    .fetch()
+                        .timestamp(1L)
+                        .filters(1L)
+                        .partition(0, OFFSET_MARKER, OFFSET_MARKER)
+                        .key(topic(subscriber))
+                        .header("zilla:qos", "1")
+                        .build()
+                    .build();
         }
 
         @Override
@@ -744,6 +823,74 @@ public class MqttKafkaProxyBM
             {
                 await(committedAvailable, "message delivered and acknowledged");
             }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class SharedFixture extends SubscribeFixture
+    {
+        @Param({"1", "5"})
+        public int inflight;
+
+        @Override
+        int subscribers()
+        {
+            return SHARED_SUBSCRIBERS;
+        }
+
+        @Override
+        String configuration()
+        {
+            return SHARED_CONFIGURATION;
+        }
+
+        @Override
+        byte[] subscribeBeginEx(
+            int mqttTypeId,
+            int subscriber)
+        {
+            return MqttFunctions.beginEx()
+                .typeId(mqttTypeId)
+                .subscribe()
+                    .clientId(CLIENT_ID_PREFIX + subscriber)
+                    .qos("AT_LEAST_ONCE")
+                    .sharedFilter(SHARE_NAME, "device/#", 1, "AT_LEAST_ONCE")
+                    .build()
+                .build();
+        }
+
+        @Override
+        byte[] dataEx(
+            int kafkaTypeId,
+            int subscriber)
+        {
+            return KafkaFunctions.dataEx()
+                .typeId(kafkaTypeId)
+                .share()
+                    .timestamp(1L)
+                    .deliveryCount(1)
+                    .partition(0, OFFSET_MARKER)
+                    .key("device/" + subscriber)
+                    .header("zilla:qos", "1")
+                    .build()
+                .build();
+        }
+
+        @Override
+        void prime()
+        {
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                kafka.deliver(idle.poll().index);
+            }
+        }
+
+        void complete()
+        {
+            await(committedAvailable, "message delivered and acknowledged");
+
+            idle.add(opened.get(committed));
+            kafka.deliver(idle.poll().index);
         }
     }
 

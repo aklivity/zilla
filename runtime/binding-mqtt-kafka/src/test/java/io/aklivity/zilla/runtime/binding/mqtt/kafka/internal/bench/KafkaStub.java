@@ -104,6 +104,7 @@ public final class KafkaStub implements BindingHandler
         MESSAGES,
         MESSAGES_FETCH,
         MESSAGES_DELIVER,
+        SHARE,
         SESSION,
         UNEXPECTED
     }
@@ -137,6 +138,7 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx offsetDeleteBeginEx;
     private final DirectBufferEx initProducerIdBeginEx;
     private final DirectBufferEx messagesFetchBeginEx;
+    private final DirectBufferEx shareBeginEx;
     private final DirectBufferEx findCoordinatorResponse = new UnsafeBufferEx(FIND_COORDINATOR_RESPONSE);
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
@@ -194,6 +196,15 @@ public final class KafkaStub implements BindingHandler
                 .capabilities("FETCH_ONLY")
                 .topic("mqtt-messages")
                 .partition(0, 0, 1, 1)
+                .build()
+            .build());
+        this.shareBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
+            .typeId(kafkaTypeId)
+            .share()
+                .groupId("zilla.test-mqtt0.share.benchmark.ZGV2aWNlLyM.0")
+                .topic("mqtt-messages")
+                .host("broker1.example.com")
+                .port(9092)
                 .build()
             .build());
         this.initProducerIdBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
@@ -312,6 +323,9 @@ public final class KafkaStub implements BindingHandler
         case KafkaBeginExFW.KIND_INIT_PRODUCER_ID:
             kind = Kind.INIT_PRODUCER_ID;
             break;
+        case KafkaBeginExFW.KIND_SHARE:
+            kind = Kind.SHARE;
+            break;
         case KafkaBeginExFW.KIND_MERGED:
             final KafkaCapabilities capabilities = beginEx.merged().capabilities().get();
             kind = switch (capabilities)
@@ -413,7 +427,7 @@ public final class KafkaStub implements BindingHandler
                 doDeliver();
                 break;
             case FlushFW.TYPE_ID:
-                if (kind == Kind.MESSAGES_DELIVER)
+                if (delivering())
                 {
                     committed.addInt(deliverIndex);
                 }
@@ -452,7 +466,7 @@ public final class KafkaStub implements BindingHandler
                     this.requestLength = beginEx.apiRequest().length();
                 }
 
-                if (kind == Kind.MESSAGES_DELIVER)
+                if (delivering())
                 {
                     deliverIndex = deliverables.size();
                     deliverables.add(this);
@@ -586,6 +600,11 @@ public final class KafkaStub implements BindingHandler
             this.offsetPositions = positions.stream().mapToInt(Integer::intValue).toArray();
         }
 
+        private boolean delivering()
+        {
+            return kind == Kind.MESSAGES_DELIVER || kind == Kind.SHARE;
+        }
+
         private void requestDelivery()
         {
             pending++;
@@ -602,7 +621,7 @@ public final class KafkaStub implements BindingHandler
 
         private void doDeliver()
         {
-            if (kind == Kind.MESSAGES_DELIVER && deliveryEx != null)
+            if (delivering() && deliveryEx != null)
             {
                 final int reserved = deliveryPayload.capacity() + replyPad;
 
@@ -684,6 +703,7 @@ public final class KafkaStub implements BindingHandler
             case OFFSET_DELETE -> offsetDeleteBeginEx;
             case INIT_PRODUCER_ID -> initProducerIdBeginEx;
             case MESSAGES_FETCH, MESSAGES_DELIVER -> messagesFetchBeginEx;
+            case SHARE -> shareBeginEx;
             default -> emptyEx;
             };
 
