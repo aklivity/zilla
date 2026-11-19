@@ -922,6 +922,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.max.delay/client",
+        "${kafka}/session.will.message.max.delay/server"})
+    public void shouldSendWillMessageWithMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
