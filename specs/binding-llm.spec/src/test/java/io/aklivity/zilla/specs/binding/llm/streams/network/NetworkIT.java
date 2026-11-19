@@ -10686,6 +10686,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.request.assistant.text.10k/client",
+        "${net}/gemini.request.assistant.text.10k/server"})
+    public void shouldEncodeGeminiRequestAssistantText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.assistant.text.100k/client",
+        "${net}/gemini.request.assistant.text.100k/server"})
+    public void shouldEncodeGeminiRequestAssistantText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.request.text.100k/client",
         "${net}/gemini.request.text.100k/server"})
     public void shouldEncodeGeminiRequestText100k() throws Exception

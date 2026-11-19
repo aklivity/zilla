@@ -10156,6 +10156,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.request.assistant.text.10k/client",
+        "${app}/gemini.request.assistant.text.10k/server"})
+    public void shouldForwardGeminiRequestAssistantText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.assistant.text.100k/client",
+        "${app}/gemini.request.assistant.text.100k/server"})
+    public void shouldForwardGeminiRequestAssistantText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.request.text.100k/client",
         "${app}/gemini.request.text.100k/server"})
     public void shouldForwardGeminiRequestText100k() throws Exception
