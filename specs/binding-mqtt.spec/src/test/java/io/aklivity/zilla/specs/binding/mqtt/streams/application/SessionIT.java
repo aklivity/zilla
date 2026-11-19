@@ -139,6 +139,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.max.delay/client",
+        "${app}/session.will.message.max.delay/server"})
+    public void shouldSendWillMessageWithMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.will.message.10k/client",
         "${app}/session.will.message.10k/server"})
     public void shouldSendWillMessage10k() throws Exception
@@ -608,6 +617,15 @@ public class SessionIT
         "${app}/session.disconnect.update.session.expiry/client",
         "${app}/session.disconnect.update.session.expiry/server"})
     public void shouldEndSessionWithUpdatedSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.non.clean.start.store.empty.state/client",
+        "${app}/session.connect.non.clean.start.store.empty.state/server"})
+    public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
     {
         k3po.finish();
     }

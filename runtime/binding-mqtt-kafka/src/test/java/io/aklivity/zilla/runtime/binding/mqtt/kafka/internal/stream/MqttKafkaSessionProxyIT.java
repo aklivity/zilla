@@ -555,6 +555,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.will.message.max.delay/client",
+        "${kafka}/session.will.message.max.delay/server"})
+    public void shouldSendWillMessageWithMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
@@ -928,6 +939,16 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.close.end.expiry.zero/client",
         "${kafka}/session.close.end.expiry.zero/server"})
     public void shouldExpireSessionOnCloseWithEndExpiryZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.expiry.signal.replaced/server"})
+    public void shouldReplaceSessionExpiryTimerForSameClient() throws Exception
     {
         k3po.finish();
     }

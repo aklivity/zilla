@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.util.function.LongConsumer;
@@ -66,5 +67,98 @@ public class EngineContextIT
         // THEN
         // the aggregated counter value across the 3 cores should be 42 + 21 + 14 = 77
         assertThat(counter.getAsLong(), equalTo(77L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldCountWorkers()
+    {
+        assertThat(engine.context().workers(), equalTo(3));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchGaugeValuePerWorker()
+    {
+        // GIVEN
+        engine.gaugeWriter("test", "net0", "test.gauge", 0).accept(42L);
+        engine.gaugeWriter("test", "net0", "test.gauge", 1).accept(21L);
+        engine.gaugeWriter("test", "net0", "test.gauge", 2).accept(14L);
+
+        // WHEN
+        LongSupplier worker0 = engine.context().gauge("test", "net0", "test.gauge", 0);
+        LongSupplier worker1 = engine.context().gauge("test", "net0", "test.gauge", 1);
+        LongSupplier worker2 = engine.context().gauge("test", "net0", "test.gauge", 2);
+
+        // THEN
+        assertThat(worker0.getAsLong(), equalTo(42L));
+        assertThat(worker1.getAsLong(), equalTo(21L));
+        assertThat(worker2.getAsLong(), equalTo(14L));
+        assertThat(engine.context().gauge("test", "net0", "test.gauge").getAsLong(), equalTo(77L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldReflectGaugeChangesPerWorker()
+    {
+        // GIVEN
+        LongConsumer writer = engine.gaugeWriter("test", "net0", "test.gauge", 1);
+        LongSupplier worker1 = engine.context().gauge("test", "net0", "test.gauge", 1);
+
+        // WHEN
+        writer.accept(5L);
+        writer.accept(-2L);
+
+        // THEN
+        assertThat(worker1.getAsLong(), equalTo(3L));
+        assertThat(engine.context().gauge("test", "net0", "test.gauge", 0).getAsLong(), equalTo(0L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldNotFetchGaugeValueForUnknownWorker()
+    {
+        assertThat(engine.context().gauge("test", "net0", "test.gauge", -1), nullValue());
+        assertThat(engine.context().gauge("test", "net0", "test.gauge", 3), nullValue());
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchCounterValuePerWorker()
+    {
+        // GIVEN
+        engine.counterWriter("test", "net0", "test.counter", 0).accept(42L);
+        engine.counterWriter("test", "net0", "test.counter", 1).accept(21L);
+        engine.counterWriter("test", "net0", "test.counter", 2).accept(14L);
+
+        // WHEN
+        LongSupplier worker0 = engine.context().counter("test", "net0", "test.counter", 0);
+        LongSupplier worker1 = engine.context().counter("test", "net0", "test.counter", 1);
+        LongSupplier worker2 = engine.context().counter("test", "net0", "test.counter", 2);
+
+        // THEN
+        assertThat(worker0.getAsLong(), equalTo(42L));
+        assertThat(worker1.getAsLong(), equalTo(21L));
+        assertThat(worker2.getAsLong(), equalTo(14L));
+        assertThat(engine.context().counter("test", "net0", "test.counter").getAsLong(), equalTo(77L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldNotFetchCounterValueForUnknownWorker()
+    {
+        assertThat(engine.context().counter("test", "net0", "test.counter", -1), nullValue());
+        assertThat(engine.context().counter("test", "net0", "test.counter", 3), nullValue());
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldReadListenerCountersPerWorkerWithoutListeners()
+    {
+        for (int worker = 0; worker < engine.context().workers(); worker++)
+        {
+            assertThat(engine.context().counter(null, null, "engine.workers.listeners.bound", worker).getAsLong(), equalTo(0L));
+            assertThat(engine.context().counter(null, null, "engine.workers.listeners.unbound", worker).getAsLong(), equalTo(0L));
+        }
     }
 }

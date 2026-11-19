@@ -1911,6 +1911,21 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeWillMessageMaximumDelay()
+    {
+        final byte[] array = MqttFunctions.will()
+                .topic("will.client")
+                .delay(4294967295L)
+                .payloadSize(10)
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttWillMessageFW willMessage = new MqttWillMessageFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(4294967295L, willMessage.delay());
+    }
+
+    @Test
     public void shouldEncodeWillMessageBytesPayload()
     {
         final byte[] array = MqttFunctions.will()
@@ -2073,5 +2088,53 @@ public class MqttFunctionsTest
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldEncodeWillSignalLong()
+    {
+        final byte[] array = MqttFunctions.sessionSignal()
+                .willLong()
+                    .instanceId("zilla-1")
+                    .clientId("client-1")
+                    .delay(3000000000L)
+                    .deliverAt(100000)
+                    .lifetimeId("1")
+                    .willId("2")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionSignalType.WILL_LONG.value(), signal.kind());
+        assertEquals("client-1", signal.willLong().clientId().asString());
+        assertEquals(3000000000L, signal.willLong().delay());
+        assertEquals(100000, signal.willLong().deliverAt());
+        assertEquals("1", signal.willLong().lifetimeId().asString());
+        assertEquals("2", signal.willLong().willId().asString());
+        assertEquals("zilla-1", signal.willLong().instanceId().asString());
+    }
+
+    @Test
+    public void shouldEncodeExpirySignalLong()
+    {
+        final byte[] array = MqttFunctions.sessionSignal()
+                .expiryLong()
+                    .instanceId("zilla-1")
+                    .clientId("client-1")
+                    .delay(3000000000L)
+                    .expireAt(100000)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttSessionSignalFW signal = new MqttSessionSignalFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(MqttSessionSignalType.EXPIRY_LONG.value(), signal.kind());
+        assertEquals("client-1", signal.expiryLong().clientId().asString());
+        assertEquals(3000000000L, signal.expiryLong().delay());
+        assertEquals(100000, signal.expiryLong().expireAt());
+        assertEquals("zilla-1", signal.expiryLong().instanceId().asString());
     }
 }

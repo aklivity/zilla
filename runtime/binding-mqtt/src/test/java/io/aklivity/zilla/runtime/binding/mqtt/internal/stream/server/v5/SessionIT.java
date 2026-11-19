@@ -191,6 +191,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.max.delay/client",
+        "${app}/session.will.message.max.delay/server"})
+    public void shouldConnectWithWillMessageMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.10k/client",
         "${app}/session.will.message.10k/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
@@ -580,6 +590,16 @@ public class SessionIT
         "${net}/session.server.redirect.with.reason.after.connack/client",
         "${app}/session.server.redirect.with.reason.after.connack/server"})
     public void shouldRedirectWithReasonAfterConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.empty.state/client",
+        "${app}/session.connect.non.clean.start.store.empty.state/server"})
+    public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
     {
         k3po.finish();
     }
