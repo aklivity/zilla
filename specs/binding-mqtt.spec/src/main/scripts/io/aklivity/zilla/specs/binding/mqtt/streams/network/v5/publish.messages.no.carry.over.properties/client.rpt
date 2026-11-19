@@ -35,15 +35,16 @@ read  [0x20 0x03]                    # CONNACK
       [0x00]                         # reason code
       [0x00]                         # properties
 
-write [0x30 0x28]                    # PUBLISH
+write [0x30 0x29]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
       [0x14]                         # properties
       [0x09 0x00 0x04] "info"        # correlation data
-      [0x26 0x00 0x03] "key"         # user property key
+      [0x26]                         # user property id
+      [0x00 0x03] "key"              # user property key
       [0x00 0x05] "value"            # user property value
-      "message"                      # payload
+      "message1"                     # payload
 
-write [0x30 0x14]                    # PUBLISH
+write [0x30 0x15]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
       [0x00]                         # properties = none
-      "message"                      # payload
+      "message2"                     # payload

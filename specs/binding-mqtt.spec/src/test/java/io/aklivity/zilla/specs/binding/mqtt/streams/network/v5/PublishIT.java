@@ -50,7 +50,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.no.carry.over.properties/client",
         "${net}/publish.messages.no.carry.over.properties/server"})
-    public void shouldPublishMessagesNoCarryOverProperties() throws Exception
+    public void shouldSendMessagesWithoutCarryOverProperties() throws Exception
     {
         k3po.finish();
     }
