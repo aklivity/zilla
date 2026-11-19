@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -42,11 +43,12 @@ public class ClientShareIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
 
+    private final TestClock clock = TestClock.of(0L);
+
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_CLOCK_NAME,
-            "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ShareFetchClock::supplyClock")
+        .clock(clock)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("net0")
         .clean();
@@ -131,14 +133,14 @@ public class ClientShareIT
         "${net}/reduce.lock.timeout.delayed.response/server"})
     public void shouldReduceLockTimeoutDelayedResponse() throws Exception
     {
-        ShareFetchClock.advanceBy(5000L);
+        clock.step(5000L);
         try
         {
             k3po.finish();
         }
         finally
         {
-            ShareFetchClock.freeze();
+            clock.step(0L);
         }
     }
 
