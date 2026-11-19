@@ -3371,10 +3371,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             long expireInterval,
             int messageQos)
         {
-            final String topicName = kafkaShareDataEx.key().value()
-                .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+            final OctetsFW topic = kafkaShareDataEx.key().value();
 
-            final Flyweight mqttSubscribeDataEx = newSubscribeDataEx(topicName, kafkaShareDataEx.deferred(),
+            final Flyweight mqttSubscribeDataEx = newSubscribeDataEx(topic, kafkaShareDataEx.deferred(),
                 recordPacketId, messageQos, 0, subscriptionId, expireInterval,
                 kafkaShareDataEx.buffer(), kafkaShareDataEx.limit());
 
@@ -4038,10 +4037,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             KafkaMergedFetchDataExFW kafkaFetchDataEx,
             long expireInterval)
         {
-            final String topicName = kafkaFetchDataEx.key().value()
-                .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+            final OctetsFW topic = kafkaFetchDataEx.key().value();
 
-            final Flyweight mqttSubscribeDataEx = newSubscribeDataEx(topicName, kafkaFetchDataEx.deferred(),
+            final Flyweight mqttSubscribeDataEx = newSubscribeDataEx(topic, kafkaFetchDataEx.deferred(),
                 ticket.packetId, MqttQoS.EXACTLY_ONCE.value(), DUP_FLAG, shared.subscriptionId, expireInterval,
                 kafkaFetchDataEx.buffer(), kafkaFetchDataEx.limit());
 
@@ -4373,7 +4371,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     }
 
     private Flyweight newSubscribeDataEx(
-        String topicName,
+        OctetsFW topic,
         int deferred,
         int packetId,
         int qos,
@@ -4388,7 +4386,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             .subscribe(b ->
             {
                 b.deferred(deferred);
-                b.topic(topicName);
+                b.topic(topic.buffer(), topic.offset(), topic.sizeof());
                 if (packetId != NO_PACKET_ID)
                 {
                     b.packetId(packetId);
