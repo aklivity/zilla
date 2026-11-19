@@ -79,6 +79,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttP
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_FORMAT;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.EXPIRES_NEVER;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
@@ -311,6 +312,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int SIGNAL_RENEW_SESSION_OWNERSHIP = 4;
     private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
     private static final int SIGNAL_ACQUIRE_SESSION_OWNERSHIP = 6;
+    private static final int GUARD_SESSION_EXPIRING_SIGNAL = 7;
 
     private static final String OWNER_KEY_POSTFIX = "#owner";
 
@@ -2871,6 +2873,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int state;
         private long sessionId;
         private long guardSessionId = NOT_AUTHORIZED;
+        private long guardSessionExpiringId = NO_CANCEL_ID;
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> awaitingAcknowledgeSubscribes;
         private final Deque<MqttPublishStream> unAckedReceivedPublishes;
@@ -3155,6 +3158,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             case KEEP_ALIVE_TIMEOUT_SIGNAL:
                 onKeepAliveTimeoutSignal(signal);
                 break;
+            case GUARD_SESSION_EXPIRING_SIGNAL:
+                onGuardSessionExpiringSignal(signal);
+                break;
             case CONNECT_TIMEOUT_SIGNAL:
                 onConnectTimeoutSignal(signal);
                 break;
@@ -3190,6 +3196,44 @@ public final class MqttServerFactory implements MqttStreamFactory
                 keepAliveTimeoutId =
                     signaler.signalAt(keepAliveTimeoutAt, originId, routedId, replyId, traceId,
                         KEEP_ALIVE_TIMEOUT_SIGNAL, 0);
+            }
+        }
+
+        private void onGuardSessionExpiringSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+            final long authorization = signal.authorization();
+
+            guardSessionExpiringId = NO_CANCEL_ID;
+
+            if ((guardSessionId & MASK_AUTHORIZED) != 0)
+            {
+                if (System.currentTimeMillis() >= guard.expiresAt(guardSessionId))
+                {
+                    if (session != null)
+                    {
+                        session.doSessionAbort(traceId);
+                    }
+                    onDecodeError(traceId, authorization, MqttReasonCodes.NOT_AUTHORIZED);
+                    decoder = decodeIgnoreAll;
+                }
+                else
+                {
+                    doScheduleGuardSessionExpiring(traceId);
+                }
+            }
+        }
+
+        private void doScheduleGuardSessionExpiring(
+            long traceId)
+        {
+            final long expiringAt = guard.expiringAt(guardSessionId);
+            final long checkAt = expiringAt > System.currentTimeMillis() ? expiringAt : guard.expiresAt(guardSessionId);
+            if (checkAt != EXPIRES_NEVER)
+            {
+                guardSessionExpiringId = signaler.signalAt(checkAt, originId, routedId, replyId, traceId,
+                    GUARD_SESSION_EXPIRING_SIGNAL, 0);
             }
         }
 
@@ -3414,6 +3458,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.pendingSessionCompositeId = resolved.compositeId();
                 this.pendingConnectPayloadLimit = connectPayloadLimit;
                 this.pendingConnectWillFlagSet = willFlagSet;
+
+                if (guard != null && (guardSessionId & MASK_AUTHORIZED) != 0)
+                {
+                    doScheduleGuardSessionExpiring(traceId);
+                }
 
                 if (store != null && !ownershipResolved)
                 {
@@ -5545,6 +5594,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 guard.deauthorize(guardSessionId);
                 guardSessionId = NOT_AUTHORIZED;
+            }
+
+            if (guardSessionExpiringId != NO_CANCEL_ID)
+            {
+                signaler.cancel(guardSessionExpiringId);
+                guardSessionExpiringId = NO_CANCEL_ID;
             }
         }
 
