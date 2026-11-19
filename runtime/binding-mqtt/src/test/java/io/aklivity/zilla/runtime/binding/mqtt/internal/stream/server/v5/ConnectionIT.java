@@ -523,6 +523,36 @@ public class ConnectionIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/client",
+        "${app}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonStringFromConnackWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/client",
+        "${app}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonAndUserPropertiesFromDisconnectWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.non.successful.disconnect.reason.within.maximum.packet.size/client",
+        "${app}/connect.non.successful.disconnect.reason.within.maximum.packet.size/server"})
+    public void shouldSendReasonAndUserPropertiesOnDisconnectWithinMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.credentials.username.max.sessions.yaml")
     @Specification({
         "${net}/connect.username.reauthorize.after.disconnect/client",
