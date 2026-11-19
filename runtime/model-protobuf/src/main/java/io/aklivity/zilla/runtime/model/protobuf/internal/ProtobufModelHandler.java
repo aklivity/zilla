@@ -300,11 +300,18 @@ public class ProtobufModelHandler
         String overlayText = overlayHandler != null ? overlayHandler.resolve(overlaySchemaId) : null;
         if (schemaText != null && (overlayHandler == null || overlayText != null))
         {
-            schema = Protobuf.schema(schemaText);
-            if (overlayText != null)
+            try
             {
-                JsonValue overlay = Json.createReader(new StringReader(overlayText)).readValue();
-                schema = ProtobufOverlay.of(overlay).apply(schema);
+                schema = Protobuf.schema(schemaText);
+                if (overlayText != null)
+                {
+                    JsonValue overlay = Json.createReader(new StringReader(overlayText)).readValue();
+                    schema = ProtobufOverlay.of(overlay).apply(schema);
+                }
+            }
+            catch (RuntimeException ex)
+            {
+                schema = null;
             }
         }
         return schema;
