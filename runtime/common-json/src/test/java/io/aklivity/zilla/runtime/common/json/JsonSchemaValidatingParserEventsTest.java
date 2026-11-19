@@ -107,6 +107,18 @@ class JsonSchemaValidatingParserEventsTest
     }
 
     @Test
+    void shouldReportTheKeyOfAStraddlingValueUnderASchemaThatNamesNoKey()
+    {
+        final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
+
+        pull("{\"uniqueItems\":true}", "[{\"foo\":\"bar\",\"bar\":\"foo\"},{\"bar\":\"foo\",\"foo\":\"bar\"}] ",
+            Mode.STRUCTURED, 7, diagnostics);
+
+        assertTrue(diagnostics.stream().anyMatch(d -> "content".equals(d.keyword()) && d.pointer().startsWith("/0/")),
+            "got " + diagnostics);
+    }
+
+    @Test
     void shouldAcceptStringLargerThanWindowWhenNoKeywordReadsContent()
     {
         final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();

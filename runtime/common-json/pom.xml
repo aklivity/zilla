@@ -80,6 +80,7 @@
         <configuration>
           <excludes>
             <exclude>src/test/resources/**/jsontestsuite/**</exclude>
+            <exclude>src/test/resources/**/conformance/diagnostics-*.golden</exclude>
           </excludes>
         </configuration>
       </plugin>

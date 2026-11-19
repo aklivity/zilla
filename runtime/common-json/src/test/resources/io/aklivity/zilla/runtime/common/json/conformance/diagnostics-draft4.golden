@@ -1,0 +1,1094 @@
+type#0.0 whole valid
+type#0.0 windowed valid
+type#0.1 whole invalid | 1,4 <root> type: expected integer but was number
+type#0.1 windowed invalid | 1,4 <root> type: expected integer but was number
+type#0.2 whole invalid | 1,6 <root> type: expected integer but was string
+type#0.2 windowed invalid | 1,6 <root> type: expected integer but was string
+type#0.3 whole invalid | 1,4 <root> type: expected integer but was string
+type#0.3 windowed invalid | 1,4 <root> type: expected integer but was string
+type#0.4 whole invalid | 1,2 <root> type: expected integer but was object
+type#0.4 windowed invalid | 1,2 <root> type: expected integer but was object
+type#0.5 whole invalid | 1,2 <root> type: expected integer but was array
+type#0.5 windowed invalid | 1,2 <root> type: expected integer but was array
+type#0.6 whole invalid | 1,5 <root> type: expected integer but was boolean
+type#0.6 windowed invalid | 1,5 <root> type: expected integer but was boolean
+type#0.7 whole invalid | 1,5 <root> type: expected integer but was null
+type#0.7 windowed invalid | 1,5 <root> type: expected integer but was null
+type#1.0 whole valid
+type#1.0 windowed valid
+type#1.1 whole valid
+type#1.1 windowed valid
+type#1.2 whole valid
+type#1.2 windowed valid
+type#1.3 whole invalid | 1,6 <root> type: expected number but was string
+type#1.3 windowed invalid | 1,6 <root> type: expected number but was string
+type#1.4 whole invalid | 1,4 <root> type: expected number but was string
+type#1.4 windowed invalid | 1,4 <root> type: expected number but was string
+type#1.5 whole invalid | 1,2 <root> type: expected number but was object
+type#1.5 windowed invalid | 1,2 <root> type: expected number but was object
+type#1.6 whole invalid | 1,2 <root> type: expected number but was array
+type#1.6 windowed invalid | 1,2 <root> type: expected number but was array
+type#1.7 whole invalid | 1,5 <root> type: expected number but was boolean
+type#1.7 windowed invalid | 1,5 <root> type: expected number but was boolean
+type#1.8 whole invalid | 1,5 <root> type: expected number but was null
+type#1.8 windowed invalid | 1,5 <root> type: expected number but was null
+type#2.0 whole invalid | 1,2 <root> type: expected string but was number
+type#2.0 windowed invalid | 1,2 <root> type: expected string but was number
+type#2.1 whole invalid | 1,4 <root> type: expected string but was number
+type#2.1 windowed invalid | 1,4 <root> type: expected string but was number
+type#2.2 whole valid
+type#2.2 windowed valid
+type#2.3 whole valid
+type#2.3 windowed valid
+type#2.4 whole valid
+type#2.4 windowed valid
+type#2.5 whole invalid | 1,2 <root> type: expected string but was object
+type#2.5 windowed invalid | 1,2 <root> type: expected string but was object
+type#2.6 whole invalid | 1,2 <root> type: expected string but was array
+type#2.6 windowed invalid | 1,2 <root> type: expected string but was array
+type#2.7 whole invalid | 1,5 <root> type: expected string but was boolean
+type#2.7 windowed invalid | 1,5 <root> type: expected string but was boolean
+type#2.8 whole invalid | 1,5 <root> type: expected string but was null
+type#2.8 windowed invalid | 1,5 <root> type: expected string but was null
+type#3.0 whole invalid | 1,2 <root> type: expected object but was number
+type#3.0 windowed invalid | 1,2 <root> type: expected object but was number
+type#3.1 whole invalid | 1,4 <root> type: expected object but was number
+type#3.1 windowed invalid | 1,4 <root> type: expected object but was number
+type#3.2 whole invalid | 1,6 <root> type: expected object but was string
+type#3.2 windowed invalid | 1,6 <root> type: expected object but was string
+type#3.3 whole valid
+type#3.3 windowed valid
+type#3.4 whole invalid | 1,2 <root> type: expected object but was array
+type#3.4 windowed invalid | 1,2 <root> type: expected object but was array
+type#3.5 whole invalid | 1,5 <root> type: expected object but was boolean
+type#3.5 windowed invalid | 1,5 <root> type: expected object but was boolean
+type#3.6 whole invalid | 1,5 <root> type: expected object but was null
+type#3.6 windowed invalid | 1,5 <root> type: expected object but was null
+type#4.0 whole invalid | 1,2 <root> type: expected array but was number
+type#4.0 windowed invalid | 1,2 <root> type: expected array but was number
+type#4.1 whole invalid | 1,4 <root> type: expected array but was number
+type#4.1 windowed invalid | 1,4 <root> type: expected array but was number
+type#4.2 whole invalid | 1,6 <root> type: expected array but was string
+type#4.2 windowed invalid | 1,6 <root> type: expected array but was string
+type#4.3 whole invalid | 1,2 <root> type: expected array but was object
+type#4.3 windowed invalid | 1,2 <root> type: expected array but was object
+type#4.4 whole valid
+type#4.4 windowed valid
+type#4.5 whole invalid | 1,5 <root> type: expected array but was boolean
+type#4.5 windowed invalid | 1,5 <root> type: expected array but was boolean
+type#4.6 whole invalid | 1,5 <root> type: expected array but was null
+type#4.6 windowed invalid | 1,5 <root> type: expected array but was null
+type#5.0 whole invalid | 1,2 <root> type: expected boolean but was number
+type#5.0 windowed invalid | 1,2 <root> type: expected boolean but was number
+type#5.1 whole invalid | 1,2 <root> type: expected boolean but was number
+type#5.1 windowed invalid | 1,2 <root> type: expected boolean but was number
+type#5.2 whole invalid | 1,4 <root> type: expected boolean but was number
+type#5.2 windowed invalid | 1,4 <root> type: expected boolean but was number
+type#5.3 whole invalid | 1,6 <root> type: expected boolean but was string
+type#5.3 windowed invalid | 1,6 <root> type: expected boolean but was string
+type#5.4 whole invalid | 1,3 <root> type: expected boolean but was string
+type#5.4 windowed invalid | 1,3 <root> type: expected boolean but was string
+type#5.5 whole invalid | 1,2 <root> type: expected boolean but was object
+type#5.5 windowed invalid | 1,2 <root> type: expected boolean but was object
+type#5.6 whole invalid | 1,2 <root> type: expected boolean but was array
+type#5.6 windowed invalid | 1,2 <root> type: expected boolean but was array
+type#5.7 whole valid
+type#5.7 windowed valid
+type#5.8 whole valid
+type#5.8 windowed valid
+type#5.9 whole invalid | 1,5 <root> type: expected boolean but was null
+type#5.9 windowed invalid | 1,5 <root> type: expected boolean but was null
+type#6.0 whole invalid | 1,2 <root> type: expected null but was number
+type#6.0 windowed invalid | 1,2 <root> type: expected null but was number
+type#6.1 whole invalid | 1,4 <root> type: expected null but was number
+type#6.1 windowed invalid | 1,4 <root> type: expected null but was number
+type#6.2 whole invalid | 1,2 <root> type: expected null but was number
+type#6.2 windowed invalid | 1,2 <root> type: expected null but was number
+type#6.3 whole invalid | 1,6 <root> type: expected null but was string
+type#6.3 windowed invalid | 1,6 <root> type: expected null but was string
+type#6.4 whole invalid | 1,3 <root> type: expected null but was string
+type#6.4 windowed invalid | 1,3 <root> type: expected null but was string
+type#6.5 whole invalid | 1,2 <root> type: expected null but was object
+type#6.5 windowed invalid | 1,2 <root> type: expected null but was object
+type#6.6 whole invalid | 1,2 <root> type: expected null but was array
+type#6.6 windowed invalid | 1,2 <root> type: expected null but was array
+type#6.7 whole invalid | 1,5 <root> type: expected null but was boolean
+type#6.7 windowed invalid | 1,5 <root> type: expected null but was boolean
+type#6.8 whole invalid | 1,6 <root> type: expected null but was boolean
+type#6.8 windowed invalid | 1,6 <root> type: expected null but was boolean
+type#6.9 whole valid
+type#6.9 windowed valid
+type#7.0 whole valid
+type#7.0 windowed valid
+type#7.1 whole valid
+type#7.1 windowed valid
+type#7.2 whole invalid | 1,4 <root> type: expected one of [string,integer] but was number
+type#7.2 windowed invalid | 1,4 <root> type: expected one of [string,integer] but was number
+type#7.3 whole invalid | 1,2 <root> type: expected one of [string,integer] but was object
+type#7.3 windowed invalid | 1,2 <root> type: expected one of [string,integer] but was object
+type#7.4 whole invalid | 1,2 <root> type: expected one of [string,integer] but was array
+type#7.4 windowed invalid | 1,2 <root> type: expected one of [string,integer] but was array
+type#7.5 whole invalid | 1,5 <root> type: expected one of [string,integer] but was boolean
+type#7.5 windowed invalid | 1,5 <root> type: expected one of [string,integer] but was boolean
+type#7.6 whole invalid | 1,5 <root> type: expected one of [string,integer] but was null
+type#7.6 windowed invalid | 1,5 <root> type: expected one of [string,integer] but was null
+type#8.0 whole valid
+type#8.0 windowed valid
+type#8.1 whole invalid | 1,4 <root> type: expected string but was number
+type#8.1 windowed invalid | 1,4 <root> type: expected string but was number
+type#9.0 whole valid
+type#9.0 windowed valid
+type#9.1 whole valid
+type#9.1 windowed valid
+type#9.2 whole invalid | 1,4 <root> type: expected one of [object,array] but was number
+type#9.2 windowed invalid | 1,4 <root> type: expected one of [object,array] but was number
+type#9.3 whole invalid | 1,6 <root> type: expected one of [object,array] but was string
+type#9.3 windowed invalid | 1,6 <root> type: expected one of [object,array] but was string
+type#9.4 whole invalid | 1,5 <root> type: expected one of [object,array] but was null
+type#9.4 windowed invalid | 1,5 <root> type: expected one of [object,array] but was null
+type#10.0 whole valid
+type#10.0 windowed valid
+type#10.1 whole valid
+type#10.1 windowed valid
+type#10.2 whole valid
+type#10.2 windowed valid
+type#10.3 whole invalid | 1,4 <root> type: expected one of [object,array,null] but was number
+type#10.3 windowed invalid | 1,4 <root> type: expected one of [object,array,null] but was number
+type#10.4 whole invalid | 1,6 <root> type: expected one of [object,array,null] but was string
+type#10.4 windowed invalid | 1,6 <root> type: expected one of [object,array,null] but was string
+enum#0.0 whole valid
+enum#0.0 windowed valid
+enum#0.1 whole invalid | 1,2 <root> enum: value not in enum
+enum#0.1 windowed invalid | 1,2 <root> enum: value not in enum
+enum#1.0 whole valid
+enum#1.0 windowed valid
+enum#1.1 whole invalid | 1,5 <root> enum: value not in enum
+enum#1.1 windowed invalid | 1,5 <root> enum: value not in enum
+enum#1.2 whole invalid | 1,14 <root> enum: value not in enum
+enum#1.2 windowed invalid | 1,14 <root> enum: value not in enum
+enum#1.3 whole valid
+enum#1.3 windowed valid
+enum#1.4 whole invalid | 1,20 <root> enum: value not in enum
+enum#1.4 windowed invalid | 1,20 <root> enum: value not in enum
+enum#2.0 whole valid
+enum#2.0 windowed valid
+enum#2.1 whole valid
+enum#2.1 windowed valid
+enum#2.2 whole invalid | 1,7 <root> enum: value not in enum
+enum#2.2 windowed invalid | 1,7 <root> enum: value not in enum
+enum#3.0 whole valid
+enum#3.0 windowed invalid | 1,22 /bar content: value exceeds the input window and a keyword reads its content
+enum#3.1 whole invalid | 1,14 /foo enum: value not in enum
+enum#3.1 windowed invalid | 1,14 /foo enum: value not in enum | 1,22 /bar content: value exceeds the input window and a keyword reads its content
+enum#3.2 whole invalid | 1,26 /bar enum: value not in enum
+enum#3.2 windowed invalid | 1,22 /bar content: value exceeds the input window and a keyword reads its content
+enum#3.3 whole valid
+enum#3.3 windowed valid
+enum#3.4 whole invalid | 1,14 <root> required: missing required [bar]
+enum#3.4 windowed invalid | 1,14 <root> required: missing required [bar]
+enum#3.5 whole invalid | 1,3 <root> required: missing required [bar]
+enum#3.5 windowed invalid | 1,3 <root> required: missing required [bar]
+enum#4.0 whole valid
+enum#4.0 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+enum#4.1 whole valid
+enum#4.1 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+enum#4.2 whole invalid | 1,6 <root> enum: value not in enum
+enum#4.2 windowed invalid | 1,6 <root> enum: value not in enum
+enum#5.0 whole valid
+enum#5.0 windowed valid
+enum#5.1 whole invalid | 1,2 <root> enum: value not in enum
+enum#5.1 windowed invalid | 1,2 <root> enum: value not in enum
+enum#5.2 whole invalid | 1,4 <root> enum: value not in enum
+enum#5.2 windowed invalid | 1,4 <root> enum: value not in enum
+enum#6.0 whole valid
+enum#6.0 windowed valid
+enum#6.1 whole invalid | 1,4 <root> enum: value not in enum
+enum#6.1 windowed invalid | 1,4 <root> enum: value not in enum
+enum#6.2 whole invalid | 1,6 <root> enum: value not in enum
+enum#6.2 windowed invalid | 1,6 <root> enum: value not in enum
+enum#7.0 whole valid
+enum#7.0 windowed valid
+enum#7.1 whole invalid | 1,2 <root> enum: value not in enum
+enum#7.1 windowed invalid | 1,2 <root> enum: value not in enum
+enum#7.2 whole invalid | 1,4 <root> enum: value not in enum
+enum#7.2 windowed invalid | 1,4 <root> enum: value not in enum
+enum#8.0 whole valid
+enum#8.0 windowed valid
+enum#8.1 whole invalid | 1,4 <root> enum: value not in enum
+enum#8.1 windowed invalid | 1,4 <root> enum: value not in enum
+enum#8.2 whole invalid | 1,6 <root> enum: value not in enum
+enum#8.2 windowed invalid | 1,6 <root> enum: value not in enum
+enum#9.0 whole invalid | 1,6 <root> enum: value not in enum
+enum#9.0 windowed invalid | 1,6 <root> enum: value not in enum
+enum#9.1 whole valid
+enum#9.1 windowed valid
+enum#9.2 whole valid
+enum#9.2 windowed valid
+enum#10.0 whole invalid | 1,8 <root> enum: value not in enum
+enum#10.0 windowed invalid | 1,8 <root> enum: value not in enum
+enum#10.1 whole valid
+enum#10.1 windowed valid
+enum#10.2 whole valid
+enum#10.2 windowed valid
+enum#11.0 whole invalid | 1,5 <root> enum: value not in enum
+enum#11.0 windowed invalid | 1,5 <root> enum: value not in enum
+enum#11.1 whole valid
+enum#11.1 windowed valid
+enum#11.2 whole valid
+enum#11.2 windowed valid
+enum#12.0 whole invalid | 1,7 <root> enum: value not in enum
+enum#12.0 windowed invalid | 1,7 <root> enum: value not in enum
+enum#12.1 whole valid
+enum#12.1 windowed valid
+enum#12.2 whole valid
+enum#12.2 windowed valid
+enum#13.0 whole valid
+enum#13.0 windowed invalid | 1,7 <root> content: value exceeds the input window and a keyword reads its content
+enum#13.1 whole invalid | 1,13 <root> enum: value not in enum
+enum#13.1 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+enum#14.0 whole valid
+enum#14.0 windowed valid
+enum#14.1 whole invalid | 1,4 <root> enum: value not in enum
+enum#14.1 windowed invalid | 1,4 <root> enum: value not in enum
+enum#15.0 whole valid
+enum#15.0 windowed valid
+enum#15.1 whole invalid | 1,5 <root> enum: value not in enum
+enum#15.1 windowed invalid | 1,5 <root> enum: value not in enum
+minimum#0.0 whole valid
+minimum#0.0 windowed valid
+minimum#0.1 whole valid
+minimum#0.1 windowed valid
+minimum#0.2 whole invalid | 1,4 <root> minimum: 0.6 < minimum 1.1
+minimum#0.2 windowed invalid | 1,4 <root> minimum: 0.6 < minimum 1.1
+minimum#0.3 whole valid
+minimum#0.3 windowed valid
+minimum#1.0 whole valid
+minimum#1.0 windowed valid
+minimum#1.1 whole valid
+minimum#1.1 windowed valid
+minimum#1.2 whole invalid | 1,4 <root> minimum: 0.6 < minimum 1.1
+minimum#1.2 windowed invalid | 1,4 <root> minimum: 0.6 < minimum 1.1
+minimum#1.3 whole valid
+minimum#1.3 windowed valid
+minimum#2.0 whole valid
+minimum#2.0 windowed valid
+minimum#2.1 whole invalid | 1,4 <root> exclusiveMinimum: 1.1 <= exclusiveMinimum 1.1
+minimum#2.1 windowed invalid | 1,4 <root> exclusiveMinimum: 1.1 <= exclusiveMinimum 1.1
+minimum#3.0 whole valid
+minimum#3.0 windowed valid
+minimum#3.1 whole valid
+minimum#3.1 windowed valid
+minimum#3.2 whole valid
+minimum#3.2 windowed valid
+minimum#3.3 whole valid
+minimum#3.3 windowed valid
+minimum#3.4 whole invalid | 1,8 <root> minimum: -2.0001 < minimum -2
+minimum#3.4 windowed invalid | 1,8 <root> minimum: -2.0001 < minimum -2
+minimum#3.5 whole invalid | 1,3 <root> minimum: -3 < minimum -2
+minimum#3.5 windowed invalid | 1,3 <root> minimum: -3 < minimum -2
+minimum#3.6 whole valid
+minimum#3.6 windowed valid
+maximum#0.0 whole valid
+maximum#0.0 windowed valid
+maximum#0.1 whole valid
+maximum#0.1 windowed valid
+maximum#0.2 whole invalid | 1,4 <root> maximum: 3.5 > maximum 3.0
+maximum#0.2 windowed invalid | 1,4 <root> maximum: 3.5 > maximum 3.0
+maximum#0.3 whole valid
+maximum#0.3 windowed valid
+maximum#1.0 whole valid
+maximum#1.0 windowed valid
+maximum#1.1 whole valid
+maximum#1.1 windowed valid
+maximum#1.2 whole valid
+maximum#1.2 windowed valid
+maximum#1.3 whole invalid | 1,6 <root> maximum: 300.5 > maximum 300
+maximum#1.3 windowed invalid | 1,6 <root> maximum: 300.5 > maximum 300
+maximum#2.0 whole valid
+maximum#2.0 windowed valid
+maximum#2.1 whole valid
+maximum#2.1 windowed valid
+maximum#2.2 whole invalid | 1,4 <root> maximum: 3.5 > maximum 3.0
+maximum#2.2 windowed invalid | 1,4 <root> maximum: 3.5 > maximum 3.0
+maximum#2.3 whole valid
+maximum#2.3 windowed valid
+maximum#3.0 whole valid
+maximum#3.0 windowed valid
+maximum#3.1 whole invalid | 1,4 <root> exclusiveMaximum: 3.0 >= exclusiveMaximum 3.0
+maximum#3.1 windowed invalid | 1,4 <root> exclusiveMaximum: 3.0 >= exclusiveMaximum 3.0
+multipleOf#0.0 whole valid
+multipleOf#0.0 windowed valid
+multipleOf#0.1 whole invalid | 1,2 <root> multipleOf: 7 is not a multiple of 2
+multipleOf#0.1 windowed invalid | 1,2 <root> multipleOf: 7 is not a multiple of 2
+multipleOf#0.2 whole valid
+multipleOf#0.2 windowed valid
+multipleOf#1.0 whole valid
+multipleOf#1.0 windowed valid
+multipleOf#1.1 whole valid
+multipleOf#1.1 windowed valid
+multipleOf#1.2 whole valid
+multipleOf#1.2 windowed valid
+multipleOf#1.3 whole invalid | 1,3 <root> multipleOf: 35 is not a multiple of 1.5
+multipleOf#1.3 windowed invalid | 1,3 <root> multipleOf: 35 is not a multiple of 1.5
+multipleOf#2.0 whole valid
+multipleOf#2.0 windowed valid
+multipleOf#2.1 whole invalid | 1,8 <root> multipleOf: 0.00751 is not a multiple of 0.0001
+multipleOf#2.1 windowed invalid | 1,8 <root> multipleOf: 0.00751 is not a multiple of 0.0001
+multipleOf#3.0 whole invalid | 1,6 <root> type: expected integer but was number
+multipleOf#3.0 windowed invalid | 1,6 <root> type: expected integer but was number
+multipleOf#4.0 whole valid
+multipleOf#4.0 windowed valid
+minLength#0.0 whole valid
+minLength#0.0 windowed valid
+minLength#0.1 whole valid
+minLength#0.1 windowed valid
+minLength#0.2 whole invalid | 1,4 <root> minLength: length 1 < minLength 2
+minLength#0.2 windowed invalid | 1,4 <root> minLength: length 1 < minLength 2
+minLength#0.3 whole valid
+minLength#0.3 windowed valid
+minLength#0.4 whole invalid | 1,3 <root> content: value exceeds the input window and a keyword reads its content
+minLength#0.4 windowed invalid | 1,4 <root> minLength: length 1 < minLength 2
+maxLength#0.0 whole valid
+maxLength#0.0 windowed valid
+maxLength#0.1 whole valid
+maxLength#0.1 windowed valid
+maxLength#0.2 whole invalid | 1,6 <root> maxLength: length 3 > maxLength 2
+maxLength#0.2 windowed invalid | 1,6 <root> maxLength: length 3 > maxLength 2
+maxLength#0.3 whole valid
+maxLength#0.3 windowed valid
+maxLength#0.4 whole invalid | 1,3 <root> content: value exceeds the input window and a keyword reads its content
+maxLength#0.4 windowed invalid | 1,3 <root> content: value exceeds the input window and a keyword reads its content
+pattern#0.0 whole valid
+pattern#0.0 windowed valid
+pattern#0.1 whole invalid | 1,6 <root> pattern: does not match pattern ^a*$
+pattern#0.1 windowed invalid | 1,6 <root> pattern: does not match pattern ^a*$
+pattern#0.2 whole valid
+pattern#0.2 windowed valid
+pattern#0.3 whole valid
+pattern#0.3 windowed valid
+pattern#0.4 whole valid
+pattern#0.4 windowed valid
+pattern#0.5 whole valid
+pattern#0.5 windowed valid
+pattern#0.6 whole valid
+pattern#0.6 windowed valid
+pattern#0.7 whole valid
+pattern#0.7 windowed valid
+pattern#1.0 whole valid
+pattern#1.0 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+items#0.0 whole valid
+items#0.0 windowed valid
+items#0.1 whole invalid | 1,7 /1 type: expected integer but was string
+items#0.1 windowed invalid | 1,7 /1 type: expected integer but was string
+items#0.2 whole valid
+items#0.2 windowed valid
+items#0.3 whole valid
+items#0.3 windowed valid
+items#1.0 whole valid
+items#1.0 windowed valid
+items#1.1 whole invalid | 1,7 /0 type: expected integer but was string | 1,9 /1 type: expected string but was number
+items#1.1 windowed invalid | 1,7 /0 type: expected integer but was string | 1,9 /1 type: expected string but was number
+items#1.2 whole valid
+items#1.2 windowed valid
+items#1.3 whole valid
+items#1.3 windowed valid
+items#1.4 whole valid
+items#1.4 windowed valid
+items#1.5 whole valid
+items#1.5 windowed valid
+items#2.0 whole valid
+items#2.0 windowed valid
+items#2.1 whole invalid | 1,87 /3 false: subschema disallows all instances
+items#2.1 windowed invalid | 1,87 /3 false: subschema disallows all instances
+items#2.2 whole invalid | 1,30 /0/2 false: subschema disallows all instances
+items#2.2 windowed invalid | 1,30 /0/2 false: subschema disallows all instances
+items#2.3 whole invalid | 1,3 /0 type: expected array but was object
+items#2.3 windowed invalid | 1,3 /0 type: expected array but was object
+items#2.4 whole invalid | 1,5 /0/0 required: missing required [foo]
+items#2.4 windowed invalid | 1,5 /0/0 required: missing required [foo]
+items#2.5 whole valid
+items#2.5 windowed valid
+items#3.0 whole valid
+items#3.0 windowed valid
+items#3.1 whole invalid | 1,8 /0/0/0/0 type: expected number but was string
+items#3.1 windowed invalid | 1,8 /0/0/0/0 type: expected number but was string
+items#3.2 whole invalid | 1,5 /0/0/0 type: expected array but was number | 1,9 /0/1/0 type: expected array but was number | 1,13 /0/2/0 type: expected array but was number | 1,19 /1/0/0 type: expected array but was number | 1,23 /1/1/0 type: expected array but was number | 1,27 /1/2/0 type: expected array but was number
+items#3.2 windowed invalid | 1,5 /0/0/0 type: expected array but was number | 1,9 /0/1/0 type: expected array but was number | 1,13 /0/2/0 type: expected array but was number | 1,19 /1/0/0 type: expected array but was number | 1,23 /1/1/0 type: expected array but was number | 1,27 /1/2/0 type: expected array but was number
+items#4.0 whole valid
+items#4.0 windowed valid
+items#5.0 whole valid
+items#5.0 windowed valid
+additionalItems#0.0 whole valid
+additionalItems#0.0 windowed valid
+additionalItems#0.1 whole invalid | 1,16 /3 type: expected integer but was string
+additionalItems#0.1 windowed invalid | 1,15 /3 content: value exceeds the input window and a keyword reads its content
+additionalItems#1.0 whole valid
+additionalItems#1.0 windowed valid
+additionalItems#2.0 whole valid
+additionalItems#2.0 windowed valid
+additionalItems#2.1 whole valid
+additionalItems#2.1 windowed valid
+additionalItems#2.2 whole valid
+additionalItems#2.2 windowed valid
+additionalItems#2.3 whole valid
+additionalItems#2.3 windowed valid
+additionalItems#2.4 whole invalid | 1,9 /3 false: subschema disallows all instances
+additionalItems#2.4 windowed invalid | 1,9 /3 false: subschema disallows all instances
+additionalItems#3.0 whole valid
+additionalItems#3.0 windowed valid
+additionalItems#3.1 whole valid
+additionalItems#3.1 windowed valid
+additionalItems#4.0 whole valid
+additionalItems#4.0 windowed valid
+additionalItems#5.0 whole invalid | 1,11 /1 type: expected boolean but was string
+additionalItems#5.0 windowed invalid | 1,11 /1 type: expected boolean but was string
+additionalItems#6.0 whole valid
+additionalItems#6.0 windowed valid
+additionalItems#6.1 whole invalid | 1,9 /1 type: expected integer but was string
+additionalItems#6.1 windowed invalid | 1,8 /1 content: value exceeds the input window and a keyword reads its content
+additionalItems#7.0 whole invalid | 1,13 /1 false: subschema disallows all instances | 1,16 /2 false: subschema disallows all instances
+additionalItems#7.0 windowed invalid | 1,13 /1 false: subschema disallows all instances | 1,16 /2 false: subschema disallows all instances
+additionalItems#7.1 whole valid
+additionalItems#7.1 windowed valid
+additionalItems#8.0 whole valid
+additionalItems#8.0 windowed valid
+uniqueItems#0.0 whole valid
+uniqueItems#0.0 windowed valid
+uniqueItems#0.1 whole invalid | 1,5 /1 uniqueItems: duplicate array element
+uniqueItems#0.1 windowed invalid | 1,5 /1 uniqueItems: duplicate array element
+uniqueItems#0.2 whole invalid | 1,7 /2 uniqueItems: duplicate array element
+uniqueItems#0.2 windowed invalid | 1,7 /2 uniqueItems: duplicate array element
+uniqueItems#0.3 whole invalid | 1,10 /1 uniqueItems: duplicate array element | 1,12 /2 uniqueItems: duplicate array element
+uniqueItems#0.3 windowed invalid | 1,10 /1 uniqueItems: duplicate array element | 1,12 /2 uniqueItems: duplicate array element
+uniqueItems#0.4 whole valid
+uniqueItems#0.4 windowed valid
+uniqueItems#0.5 whole valid
+uniqueItems#0.5 windowed valid
+uniqueItems#0.6 whole valid
+uniqueItems#0.6 windowed valid
+uniqueItems#0.7 whole invalid | 1,19 /2 uniqueItems: duplicate array element
+uniqueItems#0.7 windowed invalid | 1,19 /2 uniqueItems: duplicate array element
+uniqueItems#0.8 whole valid
+uniqueItems#0.8 windowed valid
+uniqueItems#0.9 whole invalid | 1,29 /1 uniqueItems: duplicate array element
+uniqueItems#0.9 windowed invalid | 1,29 /1 uniqueItems: duplicate array element
+uniqueItems#0.10 whole invalid | 1,53 /1 uniqueItems: duplicate array element
+uniqueItems#0.10 windowed invalid | 1,22 /0/bar content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.11 whole valid
+uniqueItems#0.11 windowed valid
+uniqueItems#0.12 whole invalid | 1,59 /1 uniqueItems: duplicate array element
+uniqueItems#0.12 windowed invalid | 1,59 /1 uniqueItems: duplicate array element
+uniqueItems#0.13 whole valid
+uniqueItems#0.13 windowed invalid | 1,15 /1/0 content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.14 whole invalid | 1,17 /1 uniqueItems: duplicate array element
+uniqueItems#0.14 windowed invalid | 1,15 /1/0 content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.15 whole invalid | 1,25 /2 uniqueItems: duplicate array element
+uniqueItems#0.15 windowed invalid | 1,15 /1/0 content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.16 whole valid
+uniqueItems#0.16 windowed valid
+uniqueItems#0.17 whole valid
+uniqueItems#0.17 windowed valid
+uniqueItems#0.18 whole valid
+uniqueItems#0.18 windowed valid
+uniqueItems#0.19 whole valid
+uniqueItems#0.19 windowed valid
+uniqueItems#0.20 whole valid
+uniqueItems#0.20 windowed invalid | 1,8 /0/1 content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.21 whole valid
+uniqueItems#0.21 windowed invalid | 1,8 /0/1 content: value exceeds the input window and a keyword reads its content
+uniqueItems#0.22 whole valid
+uniqueItems#0.22 windowed valid
+uniqueItems#0.23 whole invalid | 1,21 /4 uniqueItems: duplicate array element
+uniqueItems#0.23 windowed invalid | 1,21 /4 uniqueItems: duplicate array element
+uniqueItems#0.24 whole valid
+uniqueItems#0.24 windowed valid
+uniqueItems#0.25 whole invalid | 1,29 /1 uniqueItems: duplicate array element
+uniqueItems#0.25 windowed invalid | 1,29 /1 uniqueItems: duplicate array element
+uniqueItems#0.26 whole valid
+uniqueItems#0.26 windowed valid
+uniqueItems#0.27 whole valid
+uniqueItems#0.27 windowed valid
+uniqueItems#1.0 whole valid
+uniqueItems#1.0 windowed valid
+uniqueItems#1.1 whole valid
+uniqueItems#1.1 windowed valid
+uniqueItems#1.2 whole invalid | 1,13 /1 uniqueItems: duplicate array element
+uniqueItems#1.2 windowed invalid | 1,13 /1 uniqueItems: duplicate array element
+uniqueItems#1.3 whole invalid | 1,11 /1 uniqueItems: duplicate array element
+uniqueItems#1.3 windowed invalid | 1,11 /1 uniqueItems: duplicate array element
+uniqueItems#1.4 whole valid
+uniqueItems#1.4 windowed valid
+uniqueItems#1.5 whole valid
+uniqueItems#1.5 windowed valid
+uniqueItems#1.6 whole invalid | 1,24 /3 uniqueItems: duplicate array element
+uniqueItems#1.6 windowed valid
+uniqueItems#1.7 whole invalid | 1,24 /3 uniqueItems: duplicate array element
+uniqueItems#1.7 windowed valid
+uniqueItems#2.0 whole valid
+uniqueItems#2.0 windowed valid
+uniqueItems#2.1 whole valid
+uniqueItems#2.1 windowed valid
+uniqueItems#2.2 whole invalid | 1,13 /1 uniqueItems: duplicate array element
+uniqueItems#2.2 windowed invalid | 1,13 /1 uniqueItems: duplicate array element
+uniqueItems#2.3 whole invalid | 1,11 /1 uniqueItems: duplicate array element
+uniqueItems#2.3 windowed invalid | 1,11 /1 uniqueItems: duplicate array element
+uniqueItems#2.4 whole invalid | 1,17 /2 false: subschema disallows all instances
+uniqueItems#2.4 windowed invalid | 1,17 /2 false: subschema disallows all instances
+uniqueItems#3.0 whole valid
+uniqueItems#3.0 windowed valid
+uniqueItems#3.1 whole valid
+uniqueItems#3.1 windowed valid
+uniqueItems#3.2 whole valid
+uniqueItems#3.2 windowed valid
+uniqueItems#3.3 whole valid
+uniqueItems#3.3 windowed valid
+uniqueItems#3.4 whole valid
+uniqueItems#3.4 windowed valid
+uniqueItems#3.5 whole valid
+uniqueItems#3.5 windowed valid
+uniqueItems#3.6 whole valid
+uniqueItems#3.6 windowed valid
+uniqueItems#3.7 whole valid
+uniqueItems#3.7 windowed valid
+uniqueItems#3.8 whole valid
+uniqueItems#3.8 windowed valid
+uniqueItems#3.9 whole valid
+uniqueItems#3.9 windowed invalid | 1,15 /1/0 content: value exceeds the input window and a keyword reads its content
+uniqueItems#3.10 whole valid
+uniqueItems#3.10 windowed invalid | 1,15 /1/0 content: value exceeds the input window and a keyword reads its content
+uniqueItems#3.11 whole valid
+uniqueItems#3.11 windowed valid
+uniqueItems#3.12 whole valid
+uniqueItems#3.12 windowed valid
+uniqueItems#3.13 whole valid
+uniqueItems#3.13 windowed valid
+uniqueItems#3.14 whole valid
+uniqueItems#3.14 windowed valid
+uniqueItems#4.0 whole valid
+uniqueItems#4.0 windowed valid
+uniqueItems#4.1 whole valid
+uniqueItems#4.1 windowed valid
+uniqueItems#4.2 whole valid
+uniqueItems#4.2 windowed valid
+uniqueItems#4.3 whole valid
+uniqueItems#4.3 windowed valid
+uniqueItems#4.4 whole valid
+uniqueItems#4.4 windowed valid
+uniqueItems#4.5 whole valid
+uniqueItems#4.5 windowed valid
+uniqueItems#4.6 whole valid
+uniqueItems#4.6 windowed valid
+uniqueItems#4.7 whole valid
+uniqueItems#4.7 windowed valid
+uniqueItems#5.0 whole valid
+uniqueItems#5.0 windowed valid
+uniqueItems#5.1 whole valid
+uniqueItems#5.1 windowed valid
+uniqueItems#5.2 whole valid
+uniqueItems#5.2 windowed valid
+uniqueItems#5.3 whole valid
+uniqueItems#5.3 windowed valid
+uniqueItems#5.4 whole invalid | 1,17 /2 false: subschema disallows all instances
+uniqueItems#5.4 windowed invalid | 1,17 /2 false: subschema disallows all instances
+minItems#0.0 whole valid
+minItems#0.0 windowed valid
+minItems#0.1 whole valid
+minItems#0.1 windowed valid
+minItems#0.2 whole invalid | 1,3 <root> minItems: 0 < minItems 1
+minItems#0.2 windowed invalid | 1,3 <root> minItems: 0 < minItems 1
+minItems#0.3 whole valid
+minItems#0.3 windowed valid
+maxItems#0.0 whole valid
+maxItems#0.0 windowed valid
+maxItems#0.1 whole valid
+maxItems#0.1 windowed valid
+maxItems#0.2 whole invalid | 1,8 <root> maxItems: 3 > maxItems 2
+maxItems#0.2 windowed invalid | 1,8 <root> maxItems: 3 > maxItems 2
+maxItems#0.3 whole valid
+maxItems#0.3 windowed valid
+properties#0.0 whole valid
+properties#0.0 windowed valid
+properties#0.1 whole invalid | 1,17 /bar type: expected string but was object
+properties#0.1 windowed invalid | 1,17 /bar type: expected string but was object
+properties#0.2 whole invalid | 1,9 /foo type: expected integer but was array | 1,18 /bar type: expected string but was object
+properties#0.2 windowed invalid | 1,9 /foo type: expected integer but was array | 1,18 /bar type: expected string but was object
+properties#0.3 whole valid
+properties#0.3 windowed valid
+properties#0.4 whole valid
+properties#0.4 windowed valid
+properties#0.5 whole valid
+properties#0.5 windowed valid
+properties#1.0 whole valid
+properties#1.0 windowed valid
+properties#1.1 whole invalid | 1,17 /foo maxItems: 4 > maxItems 3
+properties#1.1 windowed invalid | 1,17 /foo maxItems: 4 > maxItems 3
+properties#1.2 whole invalid | 1,10 /foo minItems: 0 < minItems 2
+properties#1.2 windowed invalid | 1,10 /foo minItems: 0 < minItems 2
+properties#1.3 whole valid
+properties#1.3 windowed valid
+properties#1.4 whole invalid | 1,10 /fxo minItems: 0 < minItems 2
+properties#1.4 windowed invalid | 1,10 /fxo minItems: 0 < minItems 2
+properties#1.5 whole valid
+properties#1.5 windowed valid
+properties#1.6 whole valid
+properties#1.6 windowed valid
+properties#1.7 whole invalid | 1,14 /quux type: expected integer but was string
+properties#1.7 windowed invalid | 1,14 /quux type: expected integer but was string
+properties#2.0 whole valid
+properties#2.0 windowed valid
+properties#2.1 whole invalid | 1,16 /foo bar type: expected number but was string | 1,31 /foo"bar type: expected number but was string | 1,46 /foo\bar type: expected number but was string | 1,61 /foobar type: expected number but was string | 1,76 /foo	bar type: expected number but was string | 1,91 /foobar type: expected number but was string
+properties#2.1 windowed invalid | 1,16 /foo bar type: expected number but was string | 1,31 /foo"bar type: expected number but was string | 1,46 /foo\bar type: expected number but was string | 1,61 /foobar type: expected number but was string | 1,76 /foo	bar type: expected number but was string | 1,91 /foobar type: expected number but was string
+properties#3.0 whole valid
+properties#3.0 windowed valid
+properties#4.0 whole valid
+properties#4.0 windowed valid
+properties#4.1 whole valid
+properties#4.1 windowed valid
+properties#4.2 whole valid
+properties#4.2 windowed valid
+properties#4.3 whole invalid | 1,19 /__proto__ type: expected number but was string
+properties#4.3 windowed invalid | 1,19 /__proto__ type: expected number but was string
+properties#4.4 whole invalid | 1,25 /toString/length type: expected string but was number
+properties#4.4 windowed invalid | 1,25 /toString/length type: expected string but was number
+properties#4.5 whole invalid | 1,17 /constructor type: expected number but was object
+properties#4.5 windowed invalid | 1,17 /constructor type: expected number but was object
+properties#4.6 whole valid
+properties#4.6 windowed valid
+required#0.0 whole valid
+required#0.0 windowed valid
+required#0.1 whole invalid | 1,10 <root> required: missing required [foo]
+required#0.1 windowed invalid | 1,10 <root> required: missing required [foo]
+required#0.2 whole valid
+required#0.2 windowed valid
+required#0.3 whole valid
+required#0.3 windowed valid
+required#0.4 whole valid
+required#0.4 windowed valid
+required#0.5 whole valid
+required#0.5 windowed valid
+required#0.6 whole valid
+required#0.6 windowed valid
+required#1.0 whole valid
+required#1.0 windowed valid
+required#2.0 whole valid
+required#2.0 windowed valid
+required#2.1 whole invalid | 1,32 <root> required: missing required [foo\bar, foobar, foobar, foo	bar]
+required#2.1 windowed invalid | 1,32 <root> required: missing required [foo\bar, foobar, foobar, foo	bar]
+required#3.0 whole valid
+required#3.0 windowed valid
+required#3.1 whole valid
+required#3.1 windowed valid
+required#3.2 whole invalid | 1,3 <root> required: missing required [__proto__, constructor, toString]
+required#3.2 windowed invalid | 1,3 <root> required: missing required [__proto__, constructor, toString]
+required#3.3 whole invalid | 1,20 <root> required: missing required [constructor, toString]
+required#3.3 windowed invalid | 1,20 <root> required: missing required [constructor, toString]
+required#3.4 whole invalid | 1,27 <root> required: missing required [__proto__, constructor]
+required#3.4 windowed invalid | 1,27 <root> required: missing required [__proto__, constructor]
+required#3.5 whole invalid | 1,30 <root> required: missing required [__proto__, toString]
+required#3.5 windowed invalid | 1,30 <root> required: missing required [__proto__, toString]
+required#3.6 whole valid
+required#3.6 windowed valid
+additionalProperties#0.0 whole valid
+additionalProperties#0.0 windowed valid
+additionalProperties#0.1 whole invalid | 1,31 /quux false: subschema disallows all instances
+additionalProperties#0.1 windowed invalid | 1,31 /quux false: subschema disallows all instances
+additionalProperties#0.2 whole valid
+additionalProperties#0.2 windowed valid
+additionalProperties#0.3 whole valid
+additionalProperties#0.3 windowed valid
+additionalProperties#0.4 whole valid
+additionalProperties#0.4 windowed valid
+additionalProperties#0.5 whole valid
+additionalProperties#0.5 windowed valid
+additionalProperties#1.0 whole valid
+additionalProperties#1.0 windowed valid
+additionalProperties#1.1 whole invalid | 1,12 /élmény false: subschema disallows all instances
+additionalProperties#1.1 windowed invalid | 1,12 /élmény false: subschema disallows all instances
+additionalProperties#2.0 whole valid
+additionalProperties#2.0 windowed valid
+additionalProperties#2.1 whole valid
+additionalProperties#2.1 windowed valid
+additionalProperties#2.2 whole invalid | 1,27 /quux type: expected boolean but was number
+additionalProperties#2.2 windowed invalid | 1,27 /quux type: expected boolean but was number
+additionalProperties#3.0 whole valid
+additionalProperties#3.0 windowed valid
+additionalProperties#3.1 whole invalid | 1,9 /foo type: expected boolean but was number
+additionalProperties#3.1 windowed invalid | 1,9 /foo type: expected boolean but was number
+additionalProperties#4.0 whole valid
+additionalProperties#4.0 windowed valid
+additionalProperties#5.0 whole invalid | 1,9 /foo type: expected boolean but was number
+additionalProperties#5.0 windowed invalid | 1,9 /foo type: expected boolean but was number
+additionalProperties#6.0 whole valid
+additionalProperties#6.0 windowed valid
+minProperties#0.0 whole valid
+minProperties#0.0 windowed valid
+minProperties#0.1 whole valid
+minProperties#0.1 windowed valid
+minProperties#0.2 whole invalid | 1,3 <root> minProperties: 0 < minProperties 1
+minProperties#0.2 windowed invalid | 1,3 <root> minProperties: 0 < minProperties 1
+minProperties#0.3 whole valid
+minProperties#0.3 windowed valid
+minProperties#0.4 whole valid
+minProperties#0.4 windowed valid
+minProperties#0.5 whole valid
+minProperties#0.5 windowed valid
+minProperties#0.6 whole valid
+minProperties#0.6 windowed valid
+minProperties#0.7 whole valid
+minProperties#0.7 windowed valid
+maxProperties#0.0 whole valid
+maxProperties#0.0 windowed valid
+maxProperties#0.1 whole valid
+maxProperties#0.1 windowed valid
+maxProperties#0.2 whole invalid | 1,26 <root> maxProperties: 3 > maxProperties 2
+maxProperties#0.2 windowed invalid | 1,26 <root> maxProperties: 3 > maxProperties 2
+maxProperties#0.3 whole valid
+maxProperties#0.3 windowed valid
+maxProperties#0.4 whole valid
+maxProperties#0.4 windowed valid
+maxProperties#0.5 whole valid
+maxProperties#0.5 windowed valid
+maxProperties#1.0 whole valid
+maxProperties#1.0 windowed valid
+maxProperties#1.1 whole invalid | 1,10 <root> maxProperties: 1 > maxProperties 0
+maxProperties#1.1 windowed invalid | 1,10 <root> maxProperties: 1 > maxProperties 0
+patternProperties#0.0 whole valid
+patternProperties#0.0 windowed valid
+patternProperties#0.1 whole valid
+patternProperties#0.1 windowed valid
+patternProperties#0.2 whole invalid | 1,13 /foo type: expected integer but was string
+patternProperties#0.2 windowed invalid | 1,13 /foo type: expected integer but was string
+patternProperties#0.3 whole invalid | 1,13 /foo type: expected integer but was string | 1,29 /foooooo type: expected integer but was string
+patternProperties#0.3 windowed invalid | 1,13 /foo type: expected integer but was string | 1,29 /foooooo type: expected integer but was string
+patternProperties#0.4 whole valid
+patternProperties#0.4 windowed valid
+patternProperties#0.5 whole valid
+patternProperties#0.5 windowed valid
+patternProperties#0.6 whole valid
+patternProperties#0.6 windowed valid
+patternProperties#1.0 whole valid
+patternProperties#1.0 windowed valid
+patternProperties#1.1 whole valid
+patternProperties#1.1 windowed valid
+patternProperties#1.2 whole valid
+patternProperties#1.2 windowed valid
+patternProperties#1.3 whole invalid | 1,11 /a type: expected integer but was string
+patternProperties#1.3 windowed invalid | 1,8 /a content: value exceeds the input window and a keyword reads its content
+patternProperties#1.4 whole invalid | 1,11 /aaaa maximum: 31 > maximum 20
+patternProperties#1.4 windowed invalid | 1,11 /aaaa maximum: 31 > maximum 20
+patternProperties#1.5 whole invalid | 1,13 /aaa type: expected integer but was string | 1,23 /aaaa maximum: 31 > maximum 20
+patternProperties#1.5 windowed invalid | 1,13 /aaa type: expected integer but was string | 1,23 /aaaa maximum: 31 > maximum 20
+patternProperties#2.0 whole valid
+patternProperties#2.0 windowed valid
+patternProperties#2.1 whole invalid | 1,13 /a31b type: expected boolean but was null
+patternProperties#2.1 windowed invalid | 1,13 /a31b type: expected boolean but was null
+patternProperties#2.2 whole valid
+patternProperties#2.2 windowed valid
+patternProperties#2.3 whole invalid | 1,11 /a_X_3 type: expected string but was number
+patternProperties#2.3 windowed invalid | 1,11 /a_X_3 type: expected string but was number
+patternProperties#3.0 whole valid
+patternProperties#3.0 windowed valid
+dependencies#0.0 whole valid
+dependencies#0.0 windowed valid
+dependencies#0.1 whole valid
+dependencies#0.1 windowed valid
+dependencies#0.2 whole valid
+dependencies#0.2 windowed valid
+dependencies#0.3 whole invalid | 1,10 <root> dependencies: presence of 'bar' requires [foo]
+dependencies#0.3 windowed invalid | 1,10 <root> dependencies: presence of 'bar' requires [foo]
+dependencies#0.4 whole valid
+dependencies#0.4 windowed valid
+dependencies#0.5 whole valid
+dependencies#0.5 windowed valid
+dependencies#0.6 whole valid
+dependencies#0.6 windowed valid
+dependencies#1.0 whole valid
+dependencies#1.0 windowed valid
+dependencies#1.1 whole valid
+dependencies#1.1 windowed valid
+dependencies#1.2 whole valid
+dependencies#1.2 windowed valid
+dependencies#1.3 whole invalid | 1,19 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#1.3 windowed invalid | 1,19 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#1.4 whole invalid | 1,19 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#1.4 windowed invalid | 1,19 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#1.5 whole invalid | 1,11 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#1.5 windowed invalid | 1,11 <root> dependencies: presence of 'quux' requires [foo, bar]
+dependencies#2.0 whole valid
+dependencies#2.0 windowed valid
+dependencies#2.1 whole valid
+dependencies#2.1 windowed valid
+dependencies#2.2 whole invalid | 1,23 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#2.2 windowed invalid | 1,23 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#2.3 whole invalid | 1,23 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#2.3 windowed invalid | 1,23 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#2.4 whole invalid | 1,28 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#2.4 windowed invalid | 1,28 <root> dependencies: presence of 'bar' requires dependent schema to match
+dependencies#3.0 whole valid
+dependencies#3.0 windowed valid
+dependencies#3.1 whole valid
+dependencies#3.1 windowed valid
+dependencies#3.2 whole valid
+dependencies#3.2 windowed valid
+dependencies#3.3 whole invalid | 1,23 <root> dependencies: presence of 'foo bar' requires [foobar]
+dependencies#3.3 windowed invalid | 1,23 <root> dependencies: presence of 'foo bar' requires [foobar]
+dependencies#3.4 whole invalid | 1,21 <root> dependencies: presence of 'foo	bar' requires dependent schema to match
+dependencies#3.4 windowed invalid | 1,21 <root> dependencies: presence of 'foo	bar' requires dependent schema to match
+dependencies#3.5 whole invalid | 1,14 <root> dependencies: presence of 'foo'bar' requires dependent schema to match
+dependencies#3.5 windowed invalid | 1,14 <root> dependencies: presence of 'foo'bar' requires dependent schema to match
+dependencies#3.6 whole invalid | 1,15 <root> dependencies: presence of 'foo"bar' requires [foo'bar]
+dependencies#3.6 windowed invalid | 1,15 <root> dependencies: presence of 'foo"bar' requires [foo'bar]
+dependencies#4.0 whole invalid | 1,10 <root> dependencies: presence of 'foo' requires dependent schema to match
+dependencies#4.0 windowed invalid | 1,10 <root> dependencies: presence of 'foo' requires dependent schema to match
+dependencies#4.1 whole valid
+dependencies#4.1 windowed valid
+dependencies#4.2 whole invalid | 1,18 <root> dependencies: presence of 'foo' requires dependent schema to match
+dependencies#4.2 windowed invalid | 1,18 <root> dependencies: presence of 'foo' requires dependent schema to match
+dependencies#4.3 whole valid
+dependencies#4.3 windowed valid
+allOf#0.0 whole valid
+allOf#0.0 windowed valid
+allOf#0.1 whole invalid | 1,14 <root> required: missing required [bar] | 1,14 <root> allOf: instance failed at least one allOf subschema
+allOf#0.1 windowed invalid | 1,14 <root> required: missing required [bar] | 1,14 <root> allOf: instance failed at least one allOf subschema
+allOf#0.2 whole invalid | 1,10 <root> required: missing required [foo] | 1,10 <root> allOf: instance failed at least one allOf subschema
+allOf#0.2 windowed invalid | 1,10 <root> required: missing required [foo] | 1,10 <root> allOf: instance failed at least one allOf subschema
+allOf#0.3 whole invalid | 1,26 /bar type: expected integer but was string | 1,27 <root> allOf: instance failed at least one allOf subschema
+allOf#0.3 windowed invalid | 1,26 /bar type: expected integer but was string | 1,27 <root> allOf: instance failed at least one allOf subschema
+allOf#1.0 whole valid
+allOf#1.0 windowed valid
+allOf#1.1 whole invalid | 1,26 <root> required: missing required [bar]
+allOf#1.1 windowed invalid | 1,26 <root> required: missing required [bar]
+allOf#1.2 whole invalid | 1,21 <root> required: missing required [foo] | 1,21 <root> allOf: instance failed at least one allOf subschema
+allOf#1.2 windowed invalid | 1,21 <root> required: missing required [foo] | 1,21 <root> allOf: instance failed at least one allOf subschema
+allOf#1.3 whole invalid | 1,23 <root> required: missing required [baz] | 1,23 <root> allOf: instance failed at least one allOf subschema
+allOf#1.3 windowed invalid | 1,23 <root> required: missing required [baz] | 1,23 <root> allOf: instance failed at least one allOf subschema
+allOf#1.4 whole invalid | 1,10 <root> required: missing required [foo] | 1,10 <root> required: missing required [baz] | 1,10 <root> allOf: instance failed at least one allOf subschema
+allOf#1.4 windowed invalid | 1,10 <root> required: missing required [foo] | 1,10 <root> required: missing required [baz] | 1,10 <root> allOf: instance failed at least one allOf subschema
+allOf#2.0 whole valid
+allOf#2.0 windowed valid
+allOf#2.1 whole invalid | 1,3 <root> maximum: 35 > maximum 30 | 1,3 <root> allOf: instance failed at least one allOf subschema
+allOf#2.1 windowed invalid | 1,3 <root> maximum: 35 > maximum 30 | 1,3 <root> allOf: instance failed at least one allOf subschema
+allOf#3.0 whole valid
+allOf#3.0 windowed valid
+allOf#4.0 whole valid
+allOf#4.0 windowed valid
+allOf#5.0 whole valid
+allOf#5.0 windowed valid
+allOf#5.1 whole invalid | 1,6 <root> type: expected number but was string | 1,6 <root> allOf: instance failed at least one allOf subschema
+allOf#5.1 windowed invalid | 1,6 <root> type: expected number but was string | 1,6 <root> allOf: instance failed at least one allOf subschema
+allOf#6.0 whole valid
+allOf#6.0 windowed valid
+allOf#6.1 whole invalid | 1,6 <root> type: expected number but was string | 1,6 <root> allOf: instance failed at least one allOf subschema
+allOf#6.1 windowed invalid | 1,6 <root> type: expected number but was string | 1,6 <root> allOf: instance failed at least one allOf subschema
+allOf#7.0 whole valid
+allOf#7.0 windowed valid
+allOf#7.1 whole invalid | 1,4 <root> type: expected null but was number | 1,4 <root> allOf: instance failed at least one allOf subschema | 1,4 <root> allOf: instance failed at least one allOf subschema
+allOf#7.1 windowed invalid | 1,4 <root> type: expected null but was number | 1,4 <root> allOf: instance failed at least one allOf subschema | 1,4 <root> allOf: instance failed at least one allOf subschema
+allOf#8.0 whole invalid | 1,2 <root> multipleOf: 1 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.0 windowed invalid | 1,2 <root> multipleOf: 1 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.1 whole invalid | 1,2 <root> multipleOf: 5 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.1 windowed invalid | 1,2 <root> multipleOf: 5 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.2 whole invalid | 1,2 <root> multipleOf: 3 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.2 windowed invalid | 1,2 <root> multipleOf: 3 is not a multiple of 2 | 1,2 <root> allOf: instance failed at least one allOf subschema
+allOf#8.3 whole invalid | 1,3 <root> multipleOf: 15 is not a multiple of 2 | 1,3 <root> allOf: instance failed at least one allOf subschema
+allOf#8.3 windowed invalid | 1,3 <root> multipleOf: 15 is not a multiple of 2 | 1,3 <root> allOf: instance failed at least one allOf subschema
+allOf#8.4 whole invalid | 1,2 <root> anyOf: instance failed every anyOf subschema
+allOf#8.4 windowed invalid | 1,2 <root> anyOf: instance failed every anyOf subschema
+allOf#8.5 whole invalid | 1,3 <root> anyOf: instance failed every anyOf subschema
+allOf#8.5 windowed invalid | 1,3 <root> anyOf: instance failed every anyOf subschema
+allOf#8.6 whole invalid | 1,2 <root> oneOf: instance failed every oneOf subschema
+allOf#8.6 windowed invalid | 1,2 <root> oneOf: instance failed every oneOf subschema
+allOf#8.7 whole valid
+allOf#8.7 windowed valid
+anyOf#0.0 whole valid
+anyOf#0.0 windowed valid
+anyOf#0.1 whole valid
+anyOf#0.1 windowed valid
+anyOf#0.2 whole valid
+anyOf#0.2 windowed valid
+anyOf#0.3 whole invalid | 1,4 <root> anyOf: instance failed every anyOf subschema
+anyOf#0.3 windowed invalid | 1,4 <root> anyOf: instance failed every anyOf subschema
+anyOf#1.0 whole invalid | 1,2 <root> type: expected string but was number
+anyOf#1.0 windowed invalid | 1,2 <root> type: expected string but was number
+anyOf#1.1 whole valid
+anyOf#1.1 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+anyOf#1.2 whole invalid | 1,6 <root> anyOf: instance failed every anyOf subschema
+anyOf#1.2 windowed invalid | 1,6 <root> anyOf: instance failed every anyOf subschema
+anyOf#2.0 whole valid
+anyOf#2.0 windowed valid
+anyOf#2.1 whole valid
+anyOf#2.1 windowed valid
+anyOf#2.2 whole valid
+anyOf#2.2 windowed valid
+anyOf#2.3 whole invalid | 1,23 <root> anyOf: instance failed every anyOf subschema
+anyOf#2.3 windowed invalid | 1,23 <root> anyOf: instance failed every anyOf subschema
+anyOf#3.0 whole valid
+anyOf#3.0 windowed valid
+anyOf#3.1 whole valid
+anyOf#3.1 windowed valid
+anyOf#4.0 whole valid
+anyOf#4.0 windowed valid
+anyOf#4.1 whole invalid | 1,4 <root> anyOf: instance failed every anyOf subschema
+anyOf#4.1 windowed invalid | 1,4 <root> anyOf: instance failed every anyOf subschema
+oneOf#0.0 whole valid
+oneOf#0.0 windowed valid
+oneOf#0.1 whole valid
+oneOf#0.1 windowed valid
+oneOf#0.2 whole invalid | 1,2 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#0.2 windowed invalid | 1,2 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#0.3 whole invalid | 1,4 <root> oneOf: instance failed every oneOf subschema
+oneOf#0.3 windowed invalid | 1,4 <root> oneOf: instance failed every oneOf subschema
+oneOf#1.0 whole invalid | 1,2 <root> type: expected string but was number
+oneOf#1.0 windowed invalid | 1,2 <root> type: expected string but was number
+oneOf#1.1 whole valid
+oneOf#1.1 windowed invalid | 1,8 <root> content: value exceeds the input window and a keyword reads its content
+oneOf#1.2 whole invalid | 1,6 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#1.2 windowed invalid | 1,6 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#2.0 whole valid
+oneOf#2.0 windowed valid
+oneOf#2.1 whole valid
+oneOf#2.1 windowed valid
+oneOf#2.2 whole invalid | 1,22 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#2.2 windowed invalid | 1,22 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#2.3 whole invalid | 1,23 <root> oneOf: instance failed every oneOf subschema
+oneOf#2.3 windowed invalid | 1,23 <root> oneOf: instance failed every oneOf subschema
+oneOf#3.0 whole valid
+oneOf#3.0 windowed valid
+oneOf#3.1 whole invalid | 1,4 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#3.1 windowed invalid | 1,4 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#4.0 whole invalid | 1,10 <root> oneOf: instance failed every oneOf subschema
+oneOf#4.0 windowed invalid | 1,10 <root> oneOf: instance failed every oneOf subschema
+oneOf#4.1 whole valid
+oneOf#4.1 windowed valid
+oneOf#4.2 whole valid
+oneOf#4.2 windowed valid
+oneOf#4.3 whole invalid | 1,26 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#4.3 windowed invalid | 1,26 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#5.0 whole valid
+oneOf#5.0 windowed valid
+oneOf#5.1 whole valid
+oneOf#5.1 windowed valid
+oneOf#5.2 whole invalid | 1,22 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#5.2 windowed invalid | 1,22 <root> oneOf: instance matched 2 oneOf subschemas (must be exactly 1)
+oneOf#5.3 whole invalid | 1,15 <root> oneOf: instance failed every oneOf subschema
+oneOf#5.3 windowed invalid | 1,15 <root> oneOf: instance failed every oneOf subschema
+oneOf#6.0 whole valid
+oneOf#6.0 windowed valid
+oneOf#6.1 whole invalid | 1,4 <root> oneOf: instance failed every oneOf subschema
+oneOf#6.1 windowed invalid | 1,4 <root> oneOf: instance failed every oneOf subschema
+not#0.0 whole valid
+not#0.0 windowed valid
+not#0.1 whole invalid | 1,2 <root> not: instance must not match not-subschema
+not#0.1 windowed invalid | 1,2 <root> not: instance must not match not-subschema
+not#1.0 whole valid
+not#1.0 windowed valid
+not#1.1 whole invalid | 1,2 <root> not: instance must not match not-subschema
+not#1.1 windowed invalid | 1,2 <root> not: instance must not match not-subschema
+not#1.2 whole invalid | 1,5 <root> not: instance must not match not-subschema
+not#1.2 windowed invalid | 1,5 <root> not: instance must not match not-subschema
+not#2.0 whole valid
+not#2.0 windowed valid
+not#2.1 whole valid
+not#2.1 windowed valid
+not#2.2 whole invalid | 1,14 <root> not: instance must not match not-subschema
+not#2.2 windowed invalid | 1,14 <root> not: instance must not match not-subschema
+not#3.0 whole invalid | 1,9 /foo not: instance must not match not-subschema
+not#3.0 windowed invalid | 1,9 /foo not: instance must not match not-subschema
+not#3.1 whole valid
+not#3.1 windowed valid
+not#4.0 whole invalid | 1,2 <root> not: instance must not match not-subschema
+not#4.0 windowed invalid | 1,2 <root> not: instance must not match not-subschema
+not#4.1 whole invalid | 1,6 <root> not: instance must not match not-subschema
+not#4.1 windowed invalid | 1,6 <root> not: instance must not match not-subschema
+not#4.2 whole invalid | 1,5 <root> not: instance must not match not-subschema
+not#4.2 windowed invalid | 1,5 <root> not: instance must not match not-subschema
+not#4.3 whole invalid | 1,6 <root> not: instance must not match not-subschema
+not#4.3 windowed invalid | 1,6 <root> not: instance must not match not-subschema
+not#4.4 whole invalid | 1,5 <root> not: instance must not match not-subschema
+not#4.4 windowed invalid | 1,5 <root> not: instance must not match not-subschema
+not#4.5 whole invalid | 1,14 <root> not: instance must not match not-subschema
+not#4.5 windowed invalid | 1,14 <root> not: instance must not match not-subschema
+not#4.6 whole invalid | 1,3 <root> not: instance must not match not-subschema
+not#4.6 windowed invalid | 1,3 <root> not: instance must not match not-subschema
+not#4.7 whole invalid | 1,8 <root> not: instance must not match not-subschema
+not#4.7 windowed invalid | 1,8 <root> not: instance must not match not-subschema
+not#4.8 whole invalid | 1,3 <root> not: instance must not match not-subschema
+not#4.8 windowed invalid | 1,3 <root> not: instance must not match not-subschema
+not#5.0 whole valid
+not#5.0 windowed valid
+definitions#0.0 whole valid
+definitions#0.0 windowed invalid | 1,36 /definitions/foo/type content: value exceeds the input window and a keyword reads its content
+definitions#0.1 whole invalid | 1,32 /definitions/foo/type anyOf: instance failed every anyOf subschema
+definitions#0.1 windowed invalid | 1,32 /definitions/foo/type anyOf: instance failed every anyOf subschema
+format#0.0 whole valid
+format#0.0 windowed valid
+format#0.1 whole valid
+format#0.1 windowed valid
+format#0.2 whole valid
+format#0.2 windowed valid
+format#0.3 whole valid
+format#0.3 windowed valid
+format#0.4 whole valid
+format#0.4 windowed valid
+format#0.5 whole valid
+format#0.5 windowed valid
+format#1.0 whole valid
+format#1.0 windowed valid
+format#1.1 whole valid
+format#1.1 windowed valid
+format#1.2 whole valid
+format#1.2 windowed valid
+format#1.3 whole valid
+format#1.3 windowed valid
+format#1.4 whole valid
+format#1.4 windowed valid
+format#1.5 whole valid
+format#1.5 windowed valid
+format#2.0 whole valid
+format#2.0 windowed valid
+format#2.1 whole valid
+format#2.1 windowed valid
+format#2.2 whole valid
+format#2.2 windowed valid
+format#2.3 whole valid
+format#2.3 windowed valid
+format#2.4 whole valid
+format#2.4 windowed valid
+format#2.5 whole valid
+format#2.5 windowed valid
+format#3.0 whole valid
+format#3.0 windowed valid
+format#3.1 whole valid
+format#3.1 windowed valid
+format#3.2 whole valid
+format#3.2 windowed valid
+format#3.3 whole valid
+format#3.3 windowed valid
+format#3.4 whole valid
+format#3.4 windowed valid
+format#3.5 whole valid
+format#3.5 windowed valid
+format#4.0 whole valid
+format#4.0 windowed valid
+format#4.1 whole valid
+format#4.1 windowed valid
+format#4.2 whole valid
+format#4.2 windowed valid
+format#4.3 whole valid
+format#4.3 windowed valid
+format#4.4 whole valid
+format#4.4 windowed valid
+format#4.5 whole valid
+format#4.5 windowed valid
+format#5.0 whole valid
+format#5.0 windowed valid
+format#5.1 whole valid
+format#5.1 windowed valid
+format#5.2 whole valid
+format#5.2 windowed valid
+format#5.3 whole valid
+format#5.3 windowed valid
+format#5.4 whole valid
+format#5.4 windowed valid
+format#5.5 whole valid
+format#5.5 windowed valid
