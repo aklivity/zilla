@@ -82,6 +82,10 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * connected, and each has published once, before measurement starts. The application keeps every session
  * open, and acknowledges the messages published on each topic.
  * <p>
+ * Each {@code subscribe} operation subscribes one of the connected sessions to its own topic filter, waits for the
+ * SUBACK, then unsubscribes and waits for the UNSUBACK, so the session is back where it started for the next
+ * operation. The application echoes the session state it receives and accepts the subscription stream.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
  * depend on {@code version} or {@code inflight}, so run it with {@code -p version=5 -p inflight=256}.
@@ -100,7 +104,11 @@ public class MqttServerBM
     private static final int CONNACK_TYPE = 0x20;
     private static final int PUBACK_TYPE = 0x40;
     private static final int CONNECTED = 2_000;
-    private static final int PUBLISHERS = 1_000;
+    private static final int SUBACK_TYPE = 0x90;
+    private static final int UNSUBACK_TYPE = 0xb0;
+    private static final int CLIENTS = 1_000;
+    private static final int SUBSCRIBE_PACKET = 0x82;
+    private static final int UNSUBSCRIBE_PACKET = 0xa2;
 
     @Benchmark
     public void handshake(
@@ -130,7 +138,14 @@ public class MqttServerBM
     public void publish(
         Publishing fixture)
     {
-        fixture.publish();
+        fixture.operate();
+    }
+
+    @Benchmark
+    public void subscribe(
+        Subscribing fixture)
+    {
+        fixture.operate();
     }
 
     @State(Scope.Benchmark)
@@ -150,6 +165,7 @@ public class MqttServerBM
         private EngineBench bench;
         private Responder sessions;
         private Responder publications;
+        private Responder subscriptions;
         private long netId;
         private byte[] packet;
         private UnsafeBufferEx connect;
@@ -171,7 +187,8 @@ public class MqttServerBM
 
             sessions = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
             publications = new Responder(Trigger.BEGIN, null);
-            bench.newServer("app0", new Application(sessions, publications));
+            subscriptions = new Responder(Trigger.BEGIN, new Response(new byte[0], new byte[0][], new byte[0][], null, 0));
+            bench.newServer("app0", new Application(sessions, publications, subscriptions));
 
             prepare();
         }
@@ -262,8 +279,13 @@ public class MqttServerBM
             private final MessageConsumer awaitWindow = this::onAwaitWindow;
             private final MessageConsumer awaitConnack = this::onAwaitConnack;
             private final MessageConsumer awaitPuback = this::onAwaitPuback;
+            private final MessageConsumer awaitSuback = this::onAwaitSuback;
+            private final MessageConsumer awaitUnsuback = this::onAwaitUnsuback;
 
+            int connection = -1;
             UnsafeBufferEx publication;
+            UnsafeBufferEx subscription;
+            UnsafeBufferEx unsubscription;
 
             private Client client;
             private MessageConsumer stage;
@@ -280,6 +302,12 @@ public class MqttServerBM
             {
                 stage = awaitPuback;
                 client.data(publication, 0, publication.capacity());
+            }
+
+            void subscribe()
+            {
+                stage = awaitSuback;
+                client.data(subscription, 0, subscription.capacity());
             }
 
             void finish()
@@ -345,6 +373,55 @@ public class MqttServerBM
                         completed.offer(this);
                     }
                 }
+            }
+
+            private void onAwaitSuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, SUBACK_TYPE))
+                {
+                    stage = awaitUnsuback;
+                    client.data(unsubscription, 0, unsubscription.capacity());
+                }
+            }
+
+            private void onAwaitUnsuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, UNSUBACK_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private boolean arrived(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length,
+                int packetType)
+            {
+                boolean arrived = false;
+
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        failed |= (data.payload().buffer().getByte(data.payload().offset()) & 0xff) != packetType;
+                        arrived = true;
+                    }
+                }
+
+                return arrived;
             }
 
             private void onAwaitPuback(
@@ -427,29 +504,26 @@ public class MqttServerBM
     }
 
     @State(Scope.Benchmark)
-    public static class Publishing extends Fixture
+    public abstract static class Connected extends Fixture
     {
-        @Param({"16", "1024"})
-        public int payload;
-
         private final Queue<Handshake> ready = new ArrayDeque<>();
         private final List<Handshake> connected = new ArrayList<>();
 
         @Override
         void prepare()
         {
-            final int publishers = Math.max(PUBLISHERS, inflight);
+            final int clients = Math.max(CLIENTS, inflight);
 
-            for (int publisher = 0; publisher < publishers; publisher++)
+            for (int client = 0; client < clients; client++)
             {
                 handshake();
             }
 
             drain();
 
-            for (int publisher = 0; publisher < publishers; publisher++)
+            for (int client = 0; client < clients; client++)
             {
-                publish();
+                operate();
             }
 
             drain();
@@ -461,13 +535,20 @@ public class MqttServerBM
             drain();
         }
 
-        void publish()
+        void operate()
         {
             await(hasCapacity);
 
-            ready.poll().publish();
+            exchange(ready.poll());
             pending++;
         }
+
+        abstract void attach(
+            Handshake handshake,
+            int connection);
+
+        abstract void exchange(
+            Handshake handshake);
 
         @Override
         void disconnect()
@@ -481,13 +562,56 @@ public class MqttServerBM
         void release(
             Handshake handshake)
         {
-            if (handshake.publication == null)
+            if (handshake.connection == -1)
             {
-                handshake.publication = new UnsafeBufferEx(publishPacket(version, connected.size(), payload));
+                handshake.connection = connected.size();
+                attach(handshake, handshake.connection);
                 connected.add(handshake);
             }
 
             ready.offer(handshake);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Publishing extends Connected
+    {
+        @Param({"16", "1024"})
+        public int payload;
+
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload));
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.publish();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Subscribing extends Connected
+    {
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, connection));
+            handshake.unsubscription = new UnsafeBufferEx(filterPacket(UNSUBSCRIBE_PACKET, version, connection));
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.subscribe();
         }
     }
 
@@ -497,13 +621,16 @@ public class MqttServerBM
         private final MqttBeginExFW beginExRO = new MqttBeginExFW();
         private final BindingHandler sessions;
         private final BindingHandler publications;
+        private final BindingHandler subscriptions;
 
         private Application(
             BindingHandler sessions,
-            BindingHandler publications)
+            BindingHandler publications,
+            BindingHandler subscriptions)
         {
             this.sessions = sessions;
             this.publications = publications;
+            this.subscriptions = subscriptions;
         }
 
         @Override
@@ -516,11 +643,43 @@ public class MqttServerBM
         {
             final OctetsFW extension = beginRO.wrap(buffer, index, index + length).extension();
             final MqttBeginExFW beginEx = beginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
-            final boolean session = beginEx != null && beginEx.kind() == MqttBeginExFW.KIND_SESSION;
-            final BindingHandler handler = session ? sessions : publications;
+            final int kind = beginEx != null ? beginEx.kind() : MqttBeginExFW.KIND_PUBLISH;
+            final BindingHandler handler =
+                kind == MqttBeginExFW.KIND_SESSION ? sessions :
+                kind == MqttBeginExFW.KIND_SUBSCRIBE ? subscriptions :
+                publications;
 
             return handler.newStream(msgTypeId, buffer, index, length, sender);
         }
+    }
+
+    private static byte[] filterPacket(
+        int type,
+        int version,
+        int client)
+    {
+        final byte[] filter = ("device/" + client).getBytes(US_ASCII);
+        final int properties = version == 5 ? 1 : 0;
+        final int options = type == SUBSCRIBE_PACKET ? 1 : 0;
+        final int remaining = 2 + properties + 2 + filter.length + options;
+        final byte[] packet = new byte[2 + remaining];
+
+        int offset = 0;
+        packet[offset++] = (byte) type;
+        packet[offset++] = (byte) remaining;
+        packet[offset++] = 0x00;
+        packet[offset++] = 0x01;
+        offset += properties;
+        packet[offset++] = 0x00;
+        packet[offset++] = (byte) filter.length;
+        System.arraycopy(filter, 0, packet, offset, filter.length);
+        offset += filter.length;
+        if (options != 0)
+        {
+            packet[offset] = 0x01;
+        }
+
+        return packet;
     }
 
     private static byte[] publishPacket(
@@ -607,7 +766,7 @@ public class MqttServerBM
         final byte[] encoded = new byte[beginEx.sizeof()];
         buffer.getBytes(0, encoded);
 
-        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, null, 0);
+        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, null, 0, true);
     }
 
     public static void main(
