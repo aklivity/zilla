@@ -330,6 +330,7 @@ public class MqttKafkaProxyBM
 
         private final Queue<Publisher> idle = new ArrayDeque<>();
         private final Queue<Publisher> acknowledged = new ArrayDeque<>();
+        private final BooleanSupplier acknowledgedAvailable = () -> !acknowledged.isEmpty();
 
         private EngineBench bench;
         private KafkaStub kafka;
@@ -390,7 +391,7 @@ public class MqttKafkaProxyBM
 
         void complete()
         {
-            await(() -> !acknowledged.isEmpty(), "publish acknowledged");
+            await(acknowledgedAvailable, "publish acknowledged");
 
             idle.add(acknowledged.poll());
             idle.poll().publish();
