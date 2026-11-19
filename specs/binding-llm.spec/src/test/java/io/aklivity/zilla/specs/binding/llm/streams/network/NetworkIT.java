@@ -1694,6 +1694,78 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.tool.definition.name.last.12k/client",
+        "${net}/openai.section.tool.definition.name.last.12k/server"})
+    public void shouldOpenaiSectionToolDefinitionNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.12k/client",
+        "${net}/openai.section.tool.call.no.id.12k/server"})
+    public void shouldOpenaiSectionToolCallNoId12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.12k/client",
+        "${net}/openai.section.tool.call.id.last.12k/server"})
+    public void shouldOpenaiSectionToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.12k/client",
+        "${net}/openai.section.tool.call.name.last.12k/server"})
+    public void shouldOpenaiSectionToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.definition.name.last.100k/client",
+        "${net}/openai.section.tool.definition.name.last.100k/server"})
+    public void shouldOpenaiSectionToolDefinitionNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.100k/client",
+        "${net}/openai.section.tool.call.no.id.100k/server"})
+    public void shouldOpenaiSectionToolCallNoId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.100k/client",
+        "${net}/openai.section.tool.call.id.last.100k/server"})
+    public void shouldOpenaiSectionToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.100k/client",
+        "${net}/openai.section.tool.call.name.last.100k/server"})
+    public void shouldOpenaiSectionToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.user.document.reference/client",
         "${net}/anthropic.section.user.document.reference/server"})
     public void shouldAnthropicSectionUserDocumentReference() throws Exception
