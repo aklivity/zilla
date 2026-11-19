@@ -31,6 +31,7 @@ import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
-import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -289,7 +289,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final Supplier<String> supplySessionId;
     private final Supplier<String> supplyWillId;
     private final Supplier<String> supplyLifetimeId;
-    private final LongSupplier supplyTime;
+    private final Clock clock;
     private final Long2ObjectHashMap<String> sessionIds;
     private final MqttKafkaHeaderHelper helper;
     private final int coreIndex;
@@ -348,7 +348,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.supplySessionId = config.sessionId();
         this.supplyWillId = config.willId();
         this.supplyLifetimeId = config.lifetimeId();
-        this.supplyTime = config.time();
+        this.clock = context.clock();
         this.supplyTraceId = context::supplyTraceId;
         this.sessionIds = new Long2ObjectHashMap<>();
         this.coreIndex = context.index();
@@ -511,7 +511,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             .value(clientId.value(), 0, clientId.length());
         private final Consumer<KafkaMergedProduceDataExFW.Builder> commitOffsetProduce = mp -> mp
             .deferred(0)
-            .timestamp(System.currentTimeMillis())
+            .timestamp(clock.millis())
             .partition(COMMIT_OFFSET_PARTITION)
             .key(commitOffsetKey)
             .hashKey(commitOffsetHashKey);
@@ -831,7 +831,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(0)
-                        .timestamp(System.currentTimeMillis())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(b -> b.length(willSignalKey.length())
                             .value(willSignalKey.value(), 0, willSignalKey.length()))
@@ -903,7 +903,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(will.payloadSize() - payloadSize)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(key.length())
                         .value(key.value(), 0, key.length()))
@@ -932,7 +932,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(clientId.length())
                         .value(clientId.value(), 0, clientId.length()))))
@@ -1025,7 +1025,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(0)
-                        .timestamp(System.currentTimeMillis())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(b -> b.length(key.length())
                             .value(key.value(), 0, key.length()))
@@ -1044,7 +1044,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(0)
-                        .timestamp(System.currentTimeMillis())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(b -> b.length(willSignalKey.length())
                             .value(willSignalKey.value(), 0, willSignalKey.length()))
@@ -1064,7 +1064,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (isSessionExpiring())
             {
                 final MqttSessionSignalFW expirySignal =
-                    expirySignal(clientId, sessionExpiryDelay(), supplyTime.getAsLong() + sessionExpiryMillis());
+                    expirySignal(clientId, sessionExpiryDelay(), clock.millis() + sessionExpiryMillis());
                 sessionPadding += expirySignal.sizeof();
                 session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
             }
@@ -1130,7 +1130,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (isSessionExpiring())
             {
                 final MqttSessionSignalFW expirySignal =
-                    expirySignal(clientId, sessionExpiryDelay(), supplyTime.getAsLong() + sessionExpiryMillis());
+                    expirySignal(clientId, sessionExpiryDelay(), clock.millis() + sessionExpiryMillis());
                 sessionPadding += expirySignal.sizeof();
                 session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
             }
@@ -2101,7 +2101,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (!local)
             {
                 final long deliverAtResolved =
-                    deliverAt == MqttTime.UNKNOWN.value() ? supplyTime.getAsLong() + delay : deliverAt;
+                    deliverAt == MqttTime.UNKNOWN.value() ? clock.millis() + delay : deliverAt;
 
                 KafkaFetchWillStream willFetcher =
                     new KafkaFetchWillStream(originId, routedId, this, sessionsTopic, willClientId,
@@ -2124,7 +2124,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             if (!local)
             {
-                final long expireAtResolved = expireAt == MqttTime.UNKNOWN.value() ? supplyTime.getAsLong() + delay : expireAt;
+                final long expireAtResolved = expireAt == MqttTime.UNKNOWN.value() ? clock.millis() + delay : expireAt;
                 final String16FW expiryClientId = new String16FW(signalClientId.asString());
 
                 final int contextId = nextContextId++;
@@ -2309,7 +2309,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(key.length())
                         .value(key.value(), 0, key.length()))
@@ -2693,7 +2693,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(0)
-                        .timestamp(System.currentTimeMillis())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(b -> b.length(key.length())
                             .value(key.value(), 0, key.length()))
@@ -2711,7 +2711,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(0)
-                        .timestamp(System.currentTimeMillis())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(b -> b.length(willSignalKey.length())
                             .value(willSignalKey.value(), 0, willSignalKey.length()))
@@ -3153,7 +3153,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(will.payloadSize() - payload.sizeof())
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.set(key))
                     .headers(kafkaHeadersRW.build())))
@@ -3666,7 +3666,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(expirySignalKey.length())
                         .value(expirySignalKey.value(), 0, expirySignalKey.length()))
@@ -3696,7 +3696,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(expirySignalKey.length())
                         .value(expirySignalKey.value(), 0, expirySignalKey.length()))
@@ -3725,7 +3725,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(willSignalKey.length())
                         .value(willSignalKey.value(), 0, willSignalKey.length()))
@@ -3739,7 +3739,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .build();
 
             final MqttSessionSignalFW willSignal = willSignal(delegate.clientId, delegate.delay,
-                supplyTime.getAsLong() + delegate.delay, delegate.lifetimeId, delegate.willId);
+                clock.millis() + delegate.delay, delegate.lifetimeId, delegate.willId);
 
             doKafkaData(traceId, authorization, 0, willSignal.sizeof(), delegate.sessionPadding, COMPLETE,
                 willSignal, willSignalKafkaDataEx);
@@ -3981,7 +3981,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(willSignalKey.length())
                         .value(willSignalKey.value(), 0, willSignalKey.length()))

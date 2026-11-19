@@ -20,9 +20,9 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -125,6 +125,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         MQTT_ACKNOWLEDGEMENT_REASON_CODES = acknowledgementReasonCodes;
     }
 
+    private final Clock clock;
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -184,6 +185,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         LongFunction<MqttKafkaBindingConfig> supplyBinding,
         LongFunction<MqttKafkaPublishMetadata> supplyClientMetadata)
     {
+        this.clock = context.clock();
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -311,7 +313,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             .value(clientId.value(), 0, clientId.length());
         private final Consumer<KafkaMergedProduceDataExFW.Builder> commitOffsetProduce = mp -> mp
             .deferred(0)
-            .timestamp(System.currentTimeMillis())
+            .timestamp(clock.millis())
             .partition(COMMIT_OFFSET_PARTITION)
             .key(commitOffsetKey)
             .hashKey(commitOffsetHashKey);
@@ -616,7 +618,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
+                        .timestamp(clock.millis())
                         .producerId(producerId)
                         .producerEpoch(producerEpoch)
                         .partition(p -> p.partitionId(-1).partitionOffset(producerSequence))
@@ -669,7 +671,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                             .typeId(kafkaTypeId)
                             .merged(m -> m.produce(mp -> mp
                                 .deferred(deferred)
-                                .timestamp(now().toEpochMilli())
+                                .timestamp(clock.millis())
                                 .producerId(producerId)
                                 .producerEpoch(producerEpoch)
                                 .partition(p -> p.partitionId(-1).partitionOffset(producerSequence))
