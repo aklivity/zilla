@@ -40,13 +40,15 @@ public class CachedSchemaId
     }
 
     public boolean expired(
+        long now,
         long maxAgeMillis)
     {
-        return System.currentTimeMillis() - this.timestamp > maxAgeMillis;
+        return now - this.timestamp > maxAgeMillis;
     }
 
-    public boolean retry()
+    public boolean retry(
+        long now)
     {
-        return System.currentTimeMillis() - this.timestamp > this.retryAfter;
+        return now - this.timestamp > this.retryAfter;
     }
 }
