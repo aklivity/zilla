@@ -48,6 +48,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.messages.no.carry.over.properties/client",
+        "${net}/publish.messages.no.carry.over.properties/server"})
+    public void shouldSendMessagesWithoutCarryOverProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.one.message.disconnect/client",
         "${net}/publish.one.message.disconnect/server"})
     public void shouldPublishOneMessageAndDisconnect() throws Exception

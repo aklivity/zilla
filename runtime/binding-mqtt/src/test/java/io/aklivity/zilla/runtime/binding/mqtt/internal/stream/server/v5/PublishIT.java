@@ -59,6 +59,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.messages.no.carry.over.properties/client",
+        "${app}/publish.messages.no.carry.over.properties/server"})
+    public void shouldPublishMessagesWithoutCarryOverProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.one.message.properties/client",
         "${app}/publish.one.message.properties/server"})
     public void shouldPublishOneMessage() throws Exception
