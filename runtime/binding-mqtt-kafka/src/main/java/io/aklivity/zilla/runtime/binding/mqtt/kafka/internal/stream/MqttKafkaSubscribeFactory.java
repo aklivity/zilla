@@ -24,7 +24,6 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -274,7 +273,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             {
                 final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
                 bootstrapStreams.add(stream);
-                stream.doKafkaBeginAt(currentTimeMillis());
+                stream.doKafkaBeginAt(clock.millis());
             });
         }
         this.qosNames.put(0, new String16FW("0"));
@@ -1034,7 +1033,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                    clock.millis() + SECONDS.toMillis(reconnectDelay),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
@@ -1066,7 +1065,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                    clock.millis() + SECONDS.toMillis(reconnectDelay),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
@@ -1088,7 +1087,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
