@@ -276,37 +276,7 @@ read ${mqtt_kafka:sessionOffsets()
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 3, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
+read aborted
 
 
 accepted
