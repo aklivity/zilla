@@ -15,48 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.StandardCharsets;
-
 import org.agrona.BitUtil;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.MemorySegments;
 
 final class MqttUtf8Validator
 {
-    private final CharsetDecoder utf8Decoder = StandardCharsets.UTF_8.newDecoder();
-    private final ByteBuffer charsetBuffer;
-
-    MqttUtf8Validator(
-        int capacity)
-    {
-        this.charsetBuffer = ByteBuffer.wrap(new byte[capacity]);
-    }
-
     boolean isWellFormed(
         DirectBufferEx buffer,
         int offset,
         int length)
     {
-        boolean wellFormed = true;
-
-        buffer.getBytes(offset, charsetBuffer.array(), 0, length);
-
-        try
-        {
-            charsetBuffer.position(0).limit(length);
-            utf8Decoder.decode(charsetBuffer);
-        }
-        catch (CharacterCodingException ex)
-        {
-            wellFormed = false;
-            utf8Decoder.reset();
-        }
-
-        return wellFormed;
+        return MemorySegments.utf8Bytes(buffer.segment(), buffer.wrapAdjustment() + offset, length) == length;
     }
 
     boolean isValidString(
