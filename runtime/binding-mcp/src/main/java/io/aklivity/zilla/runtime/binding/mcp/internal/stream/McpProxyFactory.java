@@ -88,7 +88,7 @@ public final class McpProxyFactory implements McpStreamFactory
 
         final McpProxyCacheHydrater hydrater = new McpProxyCacheHydrater(
             context.bufferPool(), context::supplyTraceId, bindings::get, lifecycleFactory, listFactories);
-        this.supplyManager = new McpProxyCacheManager.Factory(hydrater, context.signaler())::create;
+        this.supplyManager = new McpProxyCacheManager.Factory(hydrater, context.signaler(), context.clock())::create;
 
         this.factories.put(KIND_LIFECYCLE, lifecycleFactory);
         this.factories.put(KIND_TOOLS_CALL,

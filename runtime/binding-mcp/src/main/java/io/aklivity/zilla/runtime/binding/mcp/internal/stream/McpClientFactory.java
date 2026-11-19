@@ -38,6 +38,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
+import java.time.Clock;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -241,6 +242,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final long inactivityTimeoutMillis;
     private final int keepaliveTolerance;
     private final Signaler signaler;
+    private final Clock clock;
     private final String clientName;
     private final String clientVersion;
 
@@ -282,6 +284,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
         this.keepaliveTolerance = config.keepaliveTolerance();
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.clientName = config.clientName();
         this.clientVersion = config.clientVersion();
 
@@ -2340,7 +2343,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         void touch()
         {
-            lastActiveAt = System.currentTimeMillis();
+            lastActiveAt = clock.millis();
             failedKeepalives = 0;
         }
 
@@ -2844,7 +2847,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             final long nextPingAt = lastActiveAt + inactivityTimeoutMillis / 2;
 
             if (nextPingAt > now)
@@ -3084,7 +3087,7 @@ public final class McpClientFactory implements McpStreamFactory
             if (timeout > 0L)
             {
                 elicitTimeoutId = signaler.signalAt(
-                    System.currentTimeMillis() + timeout,
+                    clock.millis() + timeout,
                     originId, routedId, replyId,
                     traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
             }
@@ -3140,7 +3143,7 @@ public final class McpClientFactory implements McpStreamFactory
                     elicitAuthorization = authorization;
 
                     elicitTimeoutId = signaler.signalAt(
-                        System.currentTimeMillis() + timeout,
+                        clock.millis() + timeout,
                         originId, routedId, replyId,
                         traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
                 }
