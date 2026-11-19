@@ -191,6 +191,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.max.delay/client",
+        "${app}/session.will.message.max.delay/server"})
+    public void shouldConnectWithWillMessageMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.10k/client",
         "${app}/session.will.message.10k/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")

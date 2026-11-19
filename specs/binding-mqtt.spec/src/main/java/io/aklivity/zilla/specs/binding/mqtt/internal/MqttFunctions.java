@@ -1277,7 +1277,7 @@ public final class MqttFunctions
         }
 
         public MqttWillMessageBuilder delay(
-            int delay)
+            long delay)
         {
             willMessageRW.delay(delay);
             return this;

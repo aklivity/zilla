@@ -253,6 +253,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.discard.offsets/server"})
@@ -263,6 +264,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
@@ -273,6 +275,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
@@ -283,6 +286,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
@@ -293,6 +297,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
@@ -303,6 +308,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
@@ -555,6 +561,17 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${mqtt}/session.will.message.max.delay/client",
+        "${kafka}/session.will.message.max.delay/server"})
+    public void shouldSendWillMessageWithMaximumDelay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.10k.abort.deliver.will/client",
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
@@ -608,6 +625,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.qos2.init.producer.reset/client",
         "${kafka}/session.qos2.init.producer.reset/server"})
@@ -618,6 +636,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.qos2.offset.fetch.reset/client",
         "${kafka}/session.qos2.offset.fetch.reset/server"})
