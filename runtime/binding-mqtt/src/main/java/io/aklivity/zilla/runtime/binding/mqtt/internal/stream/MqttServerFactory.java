@@ -126,7 +126,6 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayList;
-import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig.MqttConnectProperty;
@@ -244,6 +243,10 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int CONNACK_FIXED_LENGTH = 3;
     private static final int DISCONNECT_FIXED_LENGTH = 2;
     private static final int MAXIMUM_CLIENT_ID_LENGTH = 256;
+    private static final int NO_PACKET_ID = -1;
+    private static final int PENDING_SUBSCRIBE = 0;
+    private static final int PENDING_UNSUBSCRIBE = 1;
+    private static final int PENDING_UNSUBSCRIBE_FILTERS = 2;
     private static final int CONNECT_FIXED_HEADER = 0b0001_0000;
     private static final int SUBSCRIBE_FIXED_HEADER = 0b1000_0010;
     private static final int UNSUBSCRIBE_FIXED_HEADER = 0b1010_0010;
@@ -2775,13 +2778,10 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
         private final List<MqttSubscribeStream> drainingSubscribes;
-        private final Int2ObjectHashMap<List<Subscription>> subscribeRequests;
         private final List<PendingSuback> pendingSubacks;
         private final Int2ObjectHashMap<String> topicAliases;
-        private final Object2IntHashMap<String> subscribePacketIds;
         private final Map<String, Integer> filterIds;
-        private final Object2IntHashMap<String> unsubscribePacketIds;
-        private final Int2ObjectHashMap<List<String>> unsubscribePacketFilters;
+        private PendingRequest pendingRequests;
         private final GuardHandler guard;
         private final Function<String, String> credentials;
         private final MqttConnectProperty authField;
@@ -2872,8 +2872,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long sessionId;
         private long guardSessionId = NOT_AUTHORIZED;
         private int decodableRemainingBytes;
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
-        private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
+        private final Int2ObjectHashMap<MqttSubscribeStream> awaitingAcknowledgeSubscribes;
         private final Deque<MqttPublishStream> unAckedReceivedPublishes;
         private final Deque<MqttSubscribeStream> heldSubscribes;
 
@@ -2919,17 +2918,12 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribes = new Long2ObjectHashMap<>();
             this.sharedSubscribes = new Long2ObjectHashMap<>();
             this.drainingSubscribes = new ArrayList<>();
-            this.subscribeRequests = new Int2ObjectHashMap<>();
             this.pendingSubacks = new ArrayList<>();
             this.topicAliases = new Int2ObjectHashMap<>();
-            this.subscribePacketIds = new Object2IntHashMap<>(-1);
             this.filterIds = new HashMap<>();
-            this.unsubscribePacketIds = new Object2IntHashMap<>(-1);
             this.unAckedReceivedPublishes = new ArrayDeque<>();
             this.heldSubscribes = new ArrayDeque<>();
-            this.unsubscribePacketFilters = new Int2ObjectHashMap<>();
-            this.qos1Subscribes = new Int2ObjectHashMap<>();
-            this.qos2Subscribes = new Int2ObjectHashMap<>();
+            this.awaitingAcknowledgeSubscribes = new Int2ObjectHashMap<>();
             this.unreleasedPacketIds = new IntArrayList();
         }
 
@@ -4157,10 +4151,90 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
+        private int acknowledgeKey(
+            int qos,
+            int packetId)
+        {
+            return qos << Short.SIZE | packetId;
+        }
+
+        private int pendingPacketId(
+            int kind,
+            String filter)
+        {
+            PendingRequest pending = pendingRequests;
+            while (pending != null && !pending.matches(kind, NO_PACKET_ID, filter))
+            {
+                pending = pending.next;
+            }
+
+            return pending != null ? pending.packetId : NO_PACKET_ID;
+        }
+
+        private void putPendingFilter(
+            int kind,
+            String filter,
+            int packetId)
+        {
+            removePendingFilter(kind, filter);
+            pendingRequests = new PendingRequest(kind, packetId, filter, null, pendingRequests);
+        }
+
+        private int removePendingFilter(
+            int kind,
+            String filter)
+        {
+            final PendingRequest removed = removePending(kind, NO_PACKET_ID, filter);
+            return removed != null ? removed.packetId : NO_PACKET_ID;
+        }
+
+        private void putPendingFilters(
+            int packetId,
+            List<String> filters)
+        {
+            removePendingFilters(packetId);
+            pendingRequests = new PendingRequest(PENDING_UNSUBSCRIBE_FILTERS, packetId, null, filters, pendingRequests);
+        }
+
+        private List<String> removePendingFilters(
+            int packetId)
+        {
+            final PendingRequest removed = removePending(PENDING_UNSUBSCRIBE_FILTERS, packetId, null);
+            return removed != null ? removed.filters : null;
+        }
+
+        private PendingRequest removePending(
+            int kind,
+            int packetId,
+            String filter)
+        {
+            PendingRequest previous = null;
+            PendingRequest pending = pendingRequests;
+            while (pending != null && !pending.matches(kind, packetId, filter))
+            {
+                previous = pending;
+                pending = pending.next;
+            }
+
+            if (pending != null)
+            {
+                if (previous != null)
+                {
+                    previous.next = pending.next;
+                }
+                else
+                {
+                    pendingRequests = pending.next;
+                }
+            }
+
+            return pending;
+        }
+
         private boolean receiveAvailable()
         {
             return version == MQTT_PROTOCOL_VERSION_4 ||
-                qos1Subscribes.size() + qos2Subscribes.size() < receiveMaximum;
+                awaitingAcknowledgeSubscribes.size() < receiveMaximum;
         }
 
         private void releaseHeldSubscribes(
@@ -4181,7 +4255,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             int reasonCode)
         {
-            final MqttSubscribeStream stream = qos1Subscribes.remove(packetId);
+            final MqttSubscribeStream stream =
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey(MqttQoS.AT_LEAST_ONCE.ordinal(), packetId));
 
             if (stream != null)
             {
@@ -4203,7 +4278,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode)
         {
             final boolean rejected = isError(reasonCode);
-            final MqttSubscribeStream stream = rejected ? qos2Subscribes.remove(packetId) : qos2Subscribes.get(packetId);
+            final int acknowledgeKey = acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId);
+            final MqttSubscribeStream stream = rejected ?
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey) : awaitingAcknowledgeSubscribes.get(acknowledgeKey);
 
             if (stream != null)
             {
@@ -4267,7 +4344,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             int packetId,
             int reasonCode)
         {
-            final MqttSubscribeStream stream = qos2Subscribes.remove(packetId);
+            final MqttSubscribeStream stream =
+                awaitingAcknowledgeSubscribes.remove(acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId));
 
             if (stream != null)
             {
@@ -4343,7 +4421,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscription.filter = filter;
                     subscription.flags = retainAvailable(capabilities) ? SEND_RETAINED_FLAG : 0;
                     subscription.qos = Math.min(options, subscribeQosMax);
-                    subscribePacketIds.put(filter, packetId);
+                    putPendingFilter(PENDING_SUBSCRIBE, filter, packetId);
 
                     newSubscriptions.add(subscription);
                 }
@@ -4536,7 +4614,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscription.filter = filter;
                         subscription.flags = retainAvailable(capabilities) ? flags : flags & ~SEND_RETAINED_FLAG;
                         subscription.qos = Math.min(qos, subscribeQosMax);
-                        subscribePacketIds.put(filter, packetId);
+                        putPendingFilter(PENDING_SUBSCRIBE, filter, packetId);
 
                         newSubscriptions.add(subscription);
                     }
@@ -4696,7 +4774,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             session.unAckedSubscriptions.removeAll(subscriptions);
-            subscriptions.forEach(s -> subscribePacketIds.remove(s.filter));
+            subscriptions.forEach(s -> removePendingFilter(PENDING_SUBSCRIBE, s.filter));
         }
 
         private void doEncodeSuback(
@@ -4930,13 +5008,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (topicFilters.stream().anyMatch(this::subscribePending))
                 {
                     session.deferredUnsubscribes.put(packetId, topicFilters);
-                    unsubscribePacketFilters.put(packetId, topicFilters);
+                    putPendingFilters(packetId, topicFilters);
                     return;
                 }
                 if (subscribed(topicFilters))
                 {
-                    topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, packetId));
-                    unsubscribePacketFilters.put(packetId, topicFilters);
+                    topicFilters.forEach(filter -> putPendingFilter(PENDING_UNSUBSCRIBE, filter, packetId));
+                    putPendingFilters(packetId, topicFilters);
 
                     if (topicFilters.stream().anyMatch(this::delivering))
                     {
@@ -4960,7 +5038,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             String topicFilter)
         {
             return session.unAckedSubscriptions.stream()
-                    .anyMatch(s -> s.filter.equals(topicFilter) && subscribePacketIds.containsKey(s.filter)) ||
+                    .anyMatch(s -> s.filter.equals(topicFilter) &&
+                        pendingPacketId(PENDING_SUBSCRIBE, s.filter) != NO_PACKET_ID) ||
                 pendingSubacks.stream()
                     .anyMatch(suback -> suback.subscriptions.stream().anyMatch(s -> s.filter.equals(topicFilter)));
         }
@@ -5033,7 +5112,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (subscribed(topicFilters))
                     {
-                        topicFilters.forEach(filter -> unsubscribePacketIds.put(filter, unsubscribePacketId));
+                        topicFilters.forEach(filter -> putPendingFilter(PENDING_UNSUBSCRIBE, filter, unsubscribePacketId));
                         unsubscribedFilters.addAll(topicFilters);
                     }
                     else
@@ -6571,6 +6650,38 @@ public final class MqttServerFactory implements MqttStreamFactory
             return mqttSessionStateRW.build();
         }
 
+        private static final class PendingRequest
+        {
+            private final int kind;
+            private final int packetId;
+            private final String filter;
+            private final List<String> filters;
+            private PendingRequest next;
+
+            private PendingRequest(
+                int kind,
+                int packetId,
+                String filter,
+                List<String> filters,
+                PendingRequest next)
+            {
+                this.kind = kind;
+                this.packetId = packetId;
+                this.filter = filter;
+                this.filters = filters;
+                this.next = next;
+            }
+
+            private boolean matches(
+                int kind,
+                int packetId,
+                String filter)
+            {
+                return this.kind == kind &&
+                    (kind == PENDING_UNSUBSCRIBE_FILTERS ? this.packetId == packetId : this.filter.equals(filter));
+            }
+        }
+
         private final class PendingSuback
         {
             private final int packetId;
@@ -7067,12 +7178,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                                     .filter(s -> !currentSubscriptions.contains(s) || unAckedSubscriptions.contains(s))
                                     .collect(Collectors.toList());
                                 if (!newSubscriptions.isEmpty() &&
-                                    subscribePacketIds.containsKey(newSubscriptions.get(0).filter))
+                                    pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter) != NO_PACKET_ID)
                                 {
-                                    int packetId = subscribePacketIds.getValue(newSubscriptions.get(0).filter);
+                                    int packetId = pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter);
                                     final List<Subscription> acknowledgedSubscriptions =
                                         acknowledgedSubscriptions(packetId, newSubscriptions);
-                                    acknowledgedSubscriptions.forEach(sub -> subscribePacketIds.remove(sub.filter));
+                                    acknowledgedSubscriptions.forEach(sub -> removePendingFilter(PENDING_SUBSCRIBE, sub.filter));
                                     openSubscribeStreams(packetId, traceId, authorization, acknowledgedSubscriptions, false);
                                     unAckedSubscriptions.removeAll(acknowledgedSubscriptions);
                                 }
@@ -7092,15 +7203,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 if (!unsubscribedFilters.isEmpty())
                                 {
                                     Map<Integer, List<String>> packetIdToFilters = unsubscribedFilters.stream()
-                                        .filter(unsubscribePacketIds::containsKey)
-                                        .collect(Collectors.groupingBy(unsubscribePacketIds::remove, Collectors.toList()));
+                                        .filter(f -> pendingPacketId(PENDING_UNSUBSCRIBE, f) != NO_PACKET_ID)
+                                        .collect(Collectors.groupingBy(
+                                            f -> removePendingFilter(PENDING_UNSUBSCRIBE, f), Collectors.toList()));
 
                                     if (!packetIdToFilters.isEmpty())
                                     {
                                         packetIdToFilters.keySet().forEach(unsubscribePacketId ->
                                         {
-                                            final List<String> filters = unsubscribePacketFilters.remove(unsubscribePacketId);
-                                            filters.forEach(unsubscribePacketIds::remove);
+                                            final List<String> filters = removePendingFilters(unsubscribePacketId);
+                                            filters.forEach(f -> removePendingFilter(PENDING_UNSUBSCRIBE, f));
                                             sendUnsuback(unsubscribePacketId, traceId, authorization, filters, newState, false);
                                         });
                                     }
@@ -7129,7 +7241,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 for (Subscription unacked : unAckedSubscriptions)
                 {
-                    if (subscribePacketIds.getValue(unacked.filter) == packetId)
+                    if (pendingPacketId(PENDING_SUBSCRIBE, unacked.filter) == packetId)
                     {
                         if (unacked.reasonCode != SUCCESS)
                         {
@@ -8084,8 +8196,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 drainingSubscribes.remove(this);
                 heldSubscribes.remove(this);
                 cleanupHeldSlot();
-                qos1Subscribes.values().removeIf(stream -> stream == this);
-                qos2Subscribes.values().removeIf(stream -> stream == this);
+                awaitingAcknowledgeSubscribes.values().removeIf(stream -> stream == this);
                 releaseHeldSubscribes(0L);
             }
 
@@ -8307,8 +8418,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 return subscribeDecoder == decodeSubscribeFragment ||
                     subscribeDecoder == decodeSubscribeHold ||
-                    qos1Subscribes.containsValue(this) ||
-                    qos2Subscribes.containsValue(this);
+                    awaitingAcknowledgeSubscribes.containsValue(this);
             }
 
             private void completeSubscribeClosing(
@@ -8672,11 +8782,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (deliveryQos == 1)
                 {
-                    qos1Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(deliveryQos, packetId), this);
                 }
                 else if (deliveryQos == 2)
                 {
-                    qos2Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(deliveryQos, packetId), this);
                 }
             }
 
@@ -8771,7 +8881,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doEncodePubrelV5(traceId, authorization, packetId, SUCCESS);
                         break;
                     }
-                    qos2Subscribes.put(packetId, this);
+                    awaitingAcknowledgeSubscribes.put(acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId), this);
                 }
             }
 
