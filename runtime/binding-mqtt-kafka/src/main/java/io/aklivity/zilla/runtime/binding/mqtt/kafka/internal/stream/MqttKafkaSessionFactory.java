@@ -1710,7 +1710,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            final String groupId = String.format("%s-%s", groupIdPrefix, clientId.asString());
+            final String groupId = groupIdPrefix + "-" + clientId.asString();
             findCoordinator = new KafkaFindCoordinatorStream(routedId, resolvedId, this, groupId);
             findCoordinator.doKafkaBegin(traceId, authorization, 0);
         }
@@ -5413,7 +5413,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         Set<String16FW> messagesTopics,
         String16FW retainedTopic)
     {
-        final String groupId = String.format("%s-%s", groupIdPrefix, clientId.asString());
+        final String groupId = groupIdPrefix + "-" + clientId.asString();
         final KafkaGroupOffsetsReset reset =
             new KafkaGroupOffsetsReset(originId, routedId, clientId, groupId, messagesTopics, retainedTopic);
 
