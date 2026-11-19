@@ -77,8 +77,9 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code leave} operation opens one connection, completes its handshake and leaves the connection open,
  * so the connected session stays live.
  * <p>
- * Each {@code publish} operation sends one QoS 1 PUBLISH, with a payload of {@code payload} bytes, on one of the
- * connected sessions, each with its own topic, and completes once the PUBACK has arrived. The sessions are
+ * Each {@code publish} operation sends one PUBLISH at QoS {@code qos}, with a payload of {@code payload} bytes, on one of
+ * the connected sessions, each with its own topic, and completes once the PUBACK has arrived for QoS 1, or, for
+ * QoS 2, once the PUBREC has arrived, the PUBREL has been sent and the PUBCOMP has arrived. The sessions are
  * connected, and each has published once, before measurement starts. The application keeps every session
  * open, and acknowledges the messages published on each topic. With MQTT 5 and {@code properties=all} each
  * message also carries a content type, a response topic, correlation data and a user property.
@@ -111,6 +112,8 @@ public class MqttServerBM
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
     private static final int PUBACK_TYPE = 0x40;
+    private static final int PUBREC_TYPE = 0x50;
+    private static final int PUBCOMP_TYPE = 0x70;
     private static final int CONNECTED = 2_000;
     private static final int SUBACK_TYPE = 0x90;
     private static final int PUBLISH_TYPE = 0x32;
@@ -318,6 +321,8 @@ public class MqttServerBM
             private final MessageConsumer awaitWindow = this::onAwaitWindow;
             private final MessageConsumer awaitConnack = this::onAwaitConnack;
             private final MessageConsumer awaitPuback = this::onAwaitPuback;
+            private final MessageConsumer awaitPubrec = this::onAwaitPubrec;
+            private final MessageConsumer awaitPubcomp = this::onAwaitPubcomp;
             private final MessageConsumer awaitSuback = this::onAwaitSuback;
             private final MessageConsumer awaitUnsuback = this::onAwaitUnsuback;
             private final MessageConsumer awaitSubscribed = this::onAwaitSubscribed;
@@ -326,6 +331,7 @@ public class MqttServerBM
             int connection = -1;
             int number;
             UnsafeBufferEx publication;
+            UnsafeBufferEx release;
             UnsafeBufferEx subscription;
             UnsafeBufferEx unsubscription;
 
@@ -342,7 +348,7 @@ public class MqttServerBM
 
             void publish()
             {
-                stage = awaitPuback;
+                stage = release != null ? awaitPubrec : awaitPuback;
                 client.data(publication, 0, publication.capacity());
             }
 
@@ -503,6 +509,32 @@ public class MqttServerBM
                 }
 
                 return arrived;
+            }
+
+            private void onAwaitPubrec(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBREC_TYPE))
+                {
+                    stage = awaitPubcomp;
+                    client.data(release, 0, release.capacity());
+                }
+            }
+
+            private void onAwaitPubcomp(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBCOMP_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
             }
 
             private void onAwaitPuback(
@@ -681,13 +713,17 @@ public class MqttServerBM
         @Param({"none", "all"})
         public String properties;
 
+        @Param({"1", "2"})
+        public int qos;
+
         @Override
         void attach(
             Handshake handshake,
             int connection)
         {
             final boolean withProperties = "all".equals(properties);
-            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties));
+            handshake.publication = new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties, qos));
+            handshake.release = qos == 2 ? new UnsafeBufferEx(pubrelPacket(version)) : null;
         }
 
         @Override
@@ -920,11 +956,20 @@ public class MqttServerBM
         return offset + value.length;
     }
 
+    private static byte[] pubrelPacket(
+        int version)
+    {
+        return version == 5
+            ? new byte[] {0x62, 0x04, 0x00, 0x01, 0x00, 0x00}
+            : new byte[] {0x62, 0x02, 0x00, 0x01};
+    }
+
     private static byte[] publishPacket(
         int version,
         int publisher,
         int payload,
-        boolean withProperties)
+        boolean withProperties,
+        int qos)
     {
         final byte[] topic = ("device/" + publisher).getBytes(US_ASCII);
         final byte[] properties = version == 5 && withProperties ? publishProperties(publisher) : new byte[0];
@@ -934,7 +979,7 @@ public class MqttServerBM
         final byte[] packet = new byte[1 + lengthBytes + remaining];
 
         int offset = 0;
-        packet[offset++] = 0x32;
+        packet[offset++] = (byte) (0x30 | qos << 1);
         if (lengthBytes == 1)
         {
             packet[offset++] = (byte) remaining;

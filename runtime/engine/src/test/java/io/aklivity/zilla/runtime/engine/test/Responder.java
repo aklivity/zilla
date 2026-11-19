@@ -40,7 +40,8 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
  * granted. A {@code null} response withholds the reply so the request stays in flight.
  * A response whose end extension is {@code null} leaves the reply open after its last section, as a long-lived
  * stream does, and ends the reply when the request ends. An echoing response also replays every data frame it
- * receives on the reply, with its extension, once the reply has begun; an echoed frame must fit the reply credit.
+ * receives on the reply, with its extension, once the reply has begun, and every flush frame with its extension;
+ * an echoed data frame must fit the reply credit.
  * <p>
  * Extensions are opaque bytes, so the responder knows nothing about the protocol it replays. It does not
  * allocate in steady state: stream state is pooled and frames are built into a reused buffer.
@@ -112,9 +113,11 @@ public final class Responder implements BindingHandler
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[WRITE_BUFFER_CAPACITY]);
@@ -227,7 +230,12 @@ public final class Responder implements BindingHandler
                 }
                 break;
             case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                 onTrigger(Trigger.FLUSH);
+                if (response != null && response.echo && step != 0)
+                {
+                    doReplyFlushEcho(flush);
+                }
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW windowFW = windowRO.wrap(buffer, index, index + length);
@@ -403,6 +411,27 @@ public final class Responder implements BindingHandler
             replySeq += data.reserved();
 
             sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        }
+
+        private void doReplyFlushEcho(
+            FlushFW received)
+        {
+            final OctetsFW extension = received.extension();
+
+            final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(routedId)
+                .routedId(originId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .state(state)
+                .maximum(0)
+                .budgetId(0L)
+                .reserved(0)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+            sender.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
         }
 
         private void doReplyEnd(
