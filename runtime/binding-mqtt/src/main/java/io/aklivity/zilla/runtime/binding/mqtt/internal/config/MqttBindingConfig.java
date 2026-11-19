@@ -123,10 +123,15 @@ public final class MqttBindingConfig
         long authorization,
         String clientId)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSession(clientId))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesSession(clientId) ? route : null;
+        }
+
+        return resolved;
     }
 
     public MqttRouteConfig resolveSubscribe(
@@ -134,10 +139,15 @@ public final class MqttBindingConfig
         String shareName,
         String topic)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, shareName, topic))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesSubscribe(authorization, shareName, topic) ? route : null;
+        }
+
+        return resolved;
     }
 
     public int resolveSubscribeReasonCode(
@@ -154,10 +164,15 @@ public final class MqttBindingConfig
         long authorization,
         String topic)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesPublish(authorization, topic))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesPublish(authorization, topic) ? route : null;
+        }
+
+        return resolved;
     }
 
     public ModelConfig supplyModelConfig(
