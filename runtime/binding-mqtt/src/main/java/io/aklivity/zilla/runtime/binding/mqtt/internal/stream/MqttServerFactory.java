@@ -2773,7 +2773,6 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
         private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
         private final List<MqttSubscribeStream> drainingSubscribes;
-        private final Int2ObjectHashMap<List<Subscription>> subscribeRequests;
         private final List<PendingSuback> pendingSubacks;
         private final Int2ObjectHashMap<String> topicAliases;
         private final Object2IntHashMap<String> subscribePacketIds;
@@ -2917,7 +2916,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.subscribes = new Long2ObjectHashMap<>();
             this.sharedSubscribes = new Long2ObjectHashMap<>();
             this.drainingSubscribes = new ArrayList<>();
-            this.subscribeRequests = new Int2ObjectHashMap<>();
             this.pendingSubacks = new ArrayList<>();
             this.topicAliases = new Int2ObjectHashMap<>();
             this.subscribePacketIds = new Object2IntHashMap<>(-1);
