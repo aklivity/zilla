@@ -170,7 +170,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_TIMER_WHEEL_TICK_MILLIS = config.property("timer.wheel.tick.millis", 64);
-        ENGINE_TIMER_WHEEL_TICKS = config.property("timer.wheel.ticks", 8192);
+        ENGINE_TIMER_WHEEL_TICKS = config.property("timer.wheel.ticks", 512);
         ENGINE_DEBUG = config.property("debug", false);
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
