@@ -291,6 +291,101 @@
                                                 "releaseOnEnd":
                                                 {
                                                     "type": "boolean"
+                                                },
+                                                "session":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "expiresAt":
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        "expiringAt":
+                                                        {
+                                                            "type": "integer"
+                                                        },
+                                                        "challenges":
+                                                        {
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "object",
+                                                                "properties":
+                                                                {
+                                                                    "at":
+                                                                    {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "expect":
+                                                                    {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required":
+                                                                [
+                                                                    "at",
+                                                                    "expect"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            }
+                                                        },
+                                                        "reauthorize":
+                                                        {
+                                                            "type": "array",
+                                                            "items":
+                                                            {
+                                                                "type": "object",
+                                                                "properties":
+                                                                {
+                                                                    "credentials":
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "context":
+                                                                    {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "expect":
+                                                                    {
+                                                                        "type": "string",
+                                                                        "enum":
+                                                                        [
+                                                                            "same",
+                                                                            "different",
+                                                                            "rejected"
+                                                                        ]
+                                                                    },
+                                                                    "expiresAt":
+                                                                    {
+                                                                        "type": "integer"
+                                                                    }
+                                                                },
+                                                                "required":
+                                                                [
+                                                                    "expect"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            }
+                                                        },
+                                                        "routeIdentity":
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        "routeAttributes":
+                                                        {
+                                                            "type": "object",
+                                                            "additionalProperties":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "unknown":
+                                                        {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
                                                 }
                                             }
                                         }

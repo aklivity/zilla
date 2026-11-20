@@ -38,6 +38,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestSessionConfig.Challenge;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestSessionConfig.Reauthorization;
 
 public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
@@ -55,6 +57,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String EXPECT_CREDENTIALS_NAME = "expectCredentials";
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String RELEASE_ON_END_NAME = "releaseOnEnd";
+    private static final String SESSION_NAME = "session";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -502,8 +505,10 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                             guard.getJsonObject(ATTRIBUTES_NAME)
                                 .forEach((key, value) -> attributes.put(key, ((JsonString) value).getString()));
                         }
+                        TestSessionConfig session = guard.containsKey(SESSION_NAME)
+                            ? readSession(guard.getJsonObject(SESSION_NAME)) : null;
                         testOptions.authorization(name, credentials, callback, callbackParams,
-                            expectIdentity, expectCredentials, attributes, releaseOnEnd);
+                            expectIdentity, expectCredentials, attributes, releaseOnEnd, session);
                     }
                 }
             }
@@ -750,5 +755,52 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         {
             builder.add(value);
         }
+    }
+
+    private static TestSessionConfig readSession(
+        JsonObject session)
+    {
+        List<Challenge> challenges = null;
+        if (session.containsKey("challenges"))
+        {
+            challenges = new LinkedList<>();
+            for (JsonValue value : session.getJsonArray("challenges"))
+            {
+                JsonObject challenge = value.asJsonObject();
+                challenges.add(new Challenge(challenge.getJsonNumber("at").longValue(), challenge.getBoolean("expect")));
+            }
+        }
+
+        List<Reauthorization> reauthorizations = null;
+        if (session.containsKey("reauthorize"))
+        {
+            reauthorizations = new LinkedList<>();
+            for (JsonValue value : session.getJsonArray("reauthorize"))
+            {
+                JsonObject reauthorization = value.asJsonObject();
+                reauthorizations.add(new Reauthorization(
+                    reauthorization.containsKey("credentials") ? reauthorization.getString("credentials") : null,
+                    reauthorization.containsKey("context") ? reauthorization.getJsonNumber("context").longValue() : 0L,
+                    reauthorization.getString("expect"),
+                    reauthorization.containsKey("expiresAt") ? reauthorization.getJsonNumber("expiresAt").longValue() : null));
+            }
+        }
+
+        Map<String, String> routeAttributes = null;
+        if (session.containsKey("routeAttributes"))
+        {
+            routeAttributes = new HashMap<>();
+            Map<String, String> sink = routeAttributes;
+            session.getJsonObject("routeAttributes").forEach((key, value) -> sink.put(key, ((JsonString) value).getString()));
+        }
+
+        return new TestSessionConfig(
+            session.containsKey("expiresAt") ? session.getJsonNumber("expiresAt").longValue() : null,
+            session.containsKey("expiringAt") ? session.getJsonNumber("expiringAt").longValue() : null,
+            challenges,
+            reauthorizations,
+            session.containsKey("routeIdentity") ? session.getString("routeIdentity") : null,
+            routeAttributes,
+            session.getBoolean("unknown", false));
     }
 }

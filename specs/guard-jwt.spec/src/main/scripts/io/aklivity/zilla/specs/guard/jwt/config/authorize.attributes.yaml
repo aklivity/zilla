@@ -1,0 +1,54 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      attributes:
+        site: "website"
+        user: "user.id"
+      keys:
+        - kty: RSA
+          kid: "test"
+          alg: RS256
+          n: ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ
+          e: AQAB
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials: "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsIndlYnNpdGUiOiJodHRwOi8vZXhhbXBsZS5jb20iLCJ1c2VyIjp7ImlkIjoiMTIzNDUiLCJlbWFpbCI6InJlY2lwaWVudEBlbWFpbC5hZGRyZXNzIn19.Oj4RJ_X-Asf7lB5xrGzG2jStOfxurqTbXi364I5pdqHUDbvttmI4y6taaOtF0Jz9rslIxEZaLBwF1Z_B8lXhq25P3ljXb7_RWqDWJSaz9W_a_24aLtTu-b1kjkXKwhZLYoAOJCOolQ1Qwwh3rrxjtK4_7-nK8jH7uuSqAp9zmnJ9y5_XJNuZyeWTpSBYBBLPr_XLsVq6DuL8-Av73y4QrNRo3IehX0RCwSNmo6fuWvy1Pm1N5kK8F_U_UHOzTGieQHsiH5WNPuNRyt-0Qc2lFTl3sIHTi_rp59kLdVWo6C9Vgsgv0CCEubl4x78JMifquPk_HoD2TVvBM7_5HiMgIw"
+          expectIdentity: "testSubject"
+          attributes:
+            site: "http://example.com"
+            user: "12345"
+          session:
+            routeIdentity: "testSubject"
+            routeAttributes:
+              site: "http://example.com"
+              user: "12345"
+    routes:
+      - guarded:
+          jwt0:
+            - "read"
+        exit: app0

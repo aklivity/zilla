@@ -1,0 +1,43 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: OKP
+          kid: "test"
+          alg: EdDSA
+          crv: Ed25519
+          x: ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials: "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDB9.8gwftPbo34y5f-6U1Y4dq2WAqqk9VahBxEcVDC9n-5jyM75bHYhR-JCJDwG6jhX-4UCYJCC6zc--A84cXJelDA"
+          expectIdentity: "testSubject"
+    routes:
+      - guarded:
+          jwt0:
+            - "read"
+        exit: app0
