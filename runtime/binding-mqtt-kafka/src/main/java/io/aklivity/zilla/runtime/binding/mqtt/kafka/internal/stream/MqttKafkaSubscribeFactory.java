@@ -1717,10 +1717,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
                 filters.forEach(f ->
                 {
-                    if (matchesTopicFilter(f.pattern().asString()))
+                    final String pattern = f.pattern().asString();
+                    if (matchesTopicFilter(pattern))
                     {
                         int subscriptionId = (int) f.subscriptionId();
-                        addSubscription(f.pattern().asString(), subscriptionId, f.flags());
+                        addSubscription(pattern, subscriptionId, f.flags());
                         filterBuilder.item(fb -> fb
                             .subscriptionId(subscriptionId).qos(f.qos()).flags(f.flags()).pattern(f.pattern()));
                     }
@@ -4722,7 +4723,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                     m.topic(topic);
                     if (qos >= MqttQoS.AT_LEAST_ONCE.value())
                     {
-                        m.groupId(String.format("%s-%s", groupIdPrefix, clientId.asString()));
+                        m.groupId(groupIdPrefix + "-" + clientId.asString());
                     }
                     m.partitionsItem(p ->
                         p.partitionId(offsetType.value())
