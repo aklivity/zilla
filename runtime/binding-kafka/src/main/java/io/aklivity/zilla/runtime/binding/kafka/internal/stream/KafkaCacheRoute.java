@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerP
 public final class KafkaCacheRoute
 {
     public static final int LEADER_UNKNOWN = Integer.MIN_VALUE;
-    public static final long NO_AFFINITY = 0L;
 
     public final long resolvedId;
     public final Int2ObjectHashMap<KafkaCacheClientDescribeFanout> clientDescribeFanoutsByTopic;
@@ -67,7 +66,7 @@ public final class KafkaCacheRoute
         int leaderId,
         long affinity)
     {
-        return leaderId == LEADER_UNKNOWN && affinity != NO_AFFINITY ? (int) affinity : leaderId;
+        return leaderId == LEADER_UNKNOWN && affinity >= 0L && affinity <= Integer.MAX_VALUE ? (int) affinity : leaderId;
     }
 
     public Int2IntHashMap supplyLeadersByPartitionId(
