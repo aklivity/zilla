@@ -160,8 +160,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String SHARED_PREFIX = "x:";
 
     private static final int MIN_WINDOW = 64;
-    private static final int CONTROL_GROWTH = 3;
-
+    private static final int MIN_MEMBER_INPUT = "\"a\":0".length();
+    private static final int MEMBER_GROWTH = 1 + (VENDOR_PREFIX.length() + MIN_MEMBER_INPUT - 1) / MIN_MEMBER_INPUT;
 
     private static final int HELD_TAIL_MAX = LlmBreakpointStash.CAPACITY + 2;
     private static final String MEMBER_CACHE_CONTROL = "cache_control";
@@ -2582,7 +2582,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         server.probeExtension = extension;
                         server.probe.begin(blockType);
 
-                        if (server.probed(traceId, limit))
+                        if (LlmAnthropicAttributeProbe.streams(blockType) || server.probed(traceId, limit))
                         {
                             server.decoder = decodeBlockStart;
                         }
@@ -3839,7 +3839,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final int textGrowth = 1 + (framing + MIN_TEXT_INPUT - 1) / MIN_TEXT_INPUT;
             final int growth = decoder == decodeText || decoder == decodeTextPiece
                 ? textGrowth
-                : Math.max(textGrowth, CONTROL_GROWTH);
+                : Math.max(textGrowth, MEMBER_GROWTH);
 
             return stream != null
                 ? (int) Math.min(limit - offset, Math.max(credit - reserved - reserve, 0) / growth)
@@ -4383,6 +4383,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             onDecodeBlock(type, blockMessage, extension);
 
             writing = writer();
+            probe.consuming(false);
             writing.beginToolCall(blockBuffer(), 0);
             blockThen = decodeParts;
             decoder = decodeBlockKey;
@@ -4472,6 +4473,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final boolean accepted = writing.finish();
 
             writing = null;
+            probe.consuming(true);
             decoder = blockThen;
 
             return accepted;
@@ -4482,35 +4484,39 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             JsonParserEx parser,
             LlmBlockHandler handler)
         {
-            int outcome;
+            int outcome = LlmAnthropicBlockWriter.MORE;
 
             final boolean fragment = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
             final int length = fragment ? parser.getStringView().length() : 0;
 
-            if (probing() && !fragment)
+            final boolean observed = probing() && (!fragment || LlmAnthropicAttributeProbe.streams(blockSection));
+
+            if (observed && probe.onEvent(event, parser) == LlmAttributeProbe.Status.REJECTED)
             {
-                probe.onEvent(event, parser);
+                onDecodeInvalidRequest(decodeTraceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
             }
-
-            try
+            else
             {
-                if (writing.reserve(event))
+                try
                 {
-                    outcome = handler.handle(this, event, parser);
-
-                    if (fragment && outcome != LlmAnthropicBlockWriter.REJECT)
+                    if (writing.reserve(event))
                     {
-                        parser.consumed(length);
+                        outcome = handler.handle(this, event, parser);
+
+                        if (fragment && outcome != LlmAnthropicBlockWriter.REJECT)
+                        {
+                            parser.consumed(length);
+                        }
+                    }
+                    else
+                    {
+                        outcome = LlmAnthropicBlockWriter.REJECT;
                     }
                 }
-                else
+                catch (JsonException ex)
                 {
                     outcome = LlmAnthropicBlockWriter.REJECT;
                 }
-            }
-            catch (JsonException ex)
-            {
-                outcome = LlmAnthropicBlockWriter.REJECT;
             }
 
             return outcome;

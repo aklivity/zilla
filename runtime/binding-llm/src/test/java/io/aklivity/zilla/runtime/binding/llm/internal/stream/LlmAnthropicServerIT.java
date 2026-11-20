@@ -934,6 +934,132 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.tool.definition.100k/client",
         "${app}/anthropic.section.tool.definition.100k/server"})
     public void shouldDecodeAnthropicSectionToolDefinition100k() throws Exception
