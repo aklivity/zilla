@@ -32,6 +32,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -43,7 +44,10 @@ public class PublishIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(1000L);
+
     private final EngineRule engine = new EngineRule()
+        .clock(clock)
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
@@ -186,7 +190,7 @@ public class PublishIT
     {
         k3po.start();
         k3po.awaitBarrier("PUBLISHED_MESSAGE_TWO");
-        Thread.sleep(500);
+        clock.advanceBy(500L);
         k3po.notifyBarrier("PUBLISH_MESSAGE_THREE");
         k3po.finish();
     }
@@ -201,7 +205,9 @@ public class PublishIT
     {
         k3po.start();
         k3po.awaitBarrier("PUBLISHED_MESSAGE_TWO");
-        Thread.sleep(2500);
+        k3po.awaitBarrier("MESSAGE_TWO_RECEIVED");
+        clock.advanceBy(2500L);
+        k3po.awaitBarrier("PUBLISH_TIMED_OUT");
         k3po.notifyBarrier("PUBLISH_MESSAGE_THREE");
         k3po.finish();
     }
