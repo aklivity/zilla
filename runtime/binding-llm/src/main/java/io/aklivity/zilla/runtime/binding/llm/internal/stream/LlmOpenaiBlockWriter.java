@@ -28,6 +28,8 @@ final class LlmOpenaiBlockWriter
     static final int MORE = 0;
     static final int VALUE = 1;
     static final int REJECT = 2;
+    static final int STALL = 3;
+    static final int RETRY = 4;
 
     static final int ACTION_DROP = 0;
     static final int ACTION_COPY = 1;
@@ -48,7 +50,6 @@ final class LlmOpenaiBlockWriter
     private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
     private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
     private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
-    private static final int HEADROOM = 16;
 
     private final LlmOutputSink sink;
     private final JsonGeneratorEx generator;
@@ -56,12 +57,20 @@ final class LlmOpenaiBlockWriter
 
     private MutableDirectBufferEx buffer;
     private int origin;
+    private int carried;
+    private int flushed;
     private int depth;
     private boolean functioned;
     private boolean argumented;
     private boolean separating;
     private byte separator;
     private boolean usageWritten;
+    private int fragmentTaken;
+
+    private int markDepth;
+    private boolean markFunctioned;
+    private boolean markArgumented;
+    private boolean markUsageWritten;
 
     LlmOpenaiBlockWriter(
         LlmOutputSink sink,
@@ -78,7 +87,16 @@ final class LlmOpenaiBlockWriter
         this.buffer = buffer;
         this.origin = origin;
 
-        generator.wrap(buffer, origin, buffer.capacity());
+        generator.wrap(buffer, origin + carried, buffer.capacity());
+    }
+
+    void suspend(
+        MutableDirectBufferEx detached)
+    {
+        carried = staged();
+        buffer = detached;
+
+        generator.wrap(detached, 0, detached.capacity());
     }
 
     void begin(
@@ -87,6 +105,8 @@ final class LlmOpenaiBlockWriter
     {
         this.buffer = buffer;
         this.origin = origin;
+        this.carried = 0;
+        this.flushed = 0;
         this.depth = 0;
         this.functioned = false;
         this.argumented = false;
@@ -103,6 +123,8 @@ final class LlmOpenaiBlockWriter
     {
         this.buffer = buffer;
         this.origin = origin;
+        this.carried = 0;
+        this.flushed = 0;
         this.depth = 0;
         this.separator = (byte) separator;
         this.separating = true;
@@ -120,12 +142,6 @@ final class LlmOpenaiBlockWriter
     {
         beginMember(buffer, origin, separator);
         generator.writeKey(name);
-        flush(false);
-    }
-
-    void endMember()
-    {
-        flush(false);
     }
 
     int streamValue(
@@ -287,33 +303,47 @@ final class LlmOpenaiBlockWriter
         return outcome;
     }
 
+    int staged()
+    {
+        return carried + generator.length();
+    }
+
     int pending()
     {
-        return generator.length();
+        return staged() - flushed;
+    }
+
+    int leftover()
+    {
+        return Math.max(carried - flushed, 0);
+    }
+
+    int fragmentTaken()
+    {
+        return fragmentTaken;
+    }
+
+    void mark()
+    {
+        generator.mark();
+        markDepth = depth;
+        markFunctioned = functioned;
+        markArgumented = argumented;
+        markUsageWritten = usageWritten;
+    }
+
+    void rewind()
+    {
+        generator.rewind();
+        depth = markDepth;
+        functioned = markFunctioned;
+        argumented = markArgumented;
+        usageWritten = markUsageWritten;
     }
 
     boolean functioned()
     {
         return functioned;
-    }
-
-    boolean reserve(
-        JsonEvent event,
-        JsonParserEx parser)
-    {
-        int need = HEADROOM;
-
-        if (event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER)
-        {
-            need += PREFIX.length();
-        }
-
-        if (generator.remaining() < need)
-        {
-            flush(false);
-        }
-
-        return generator.remaining() >= need;
     }
 
     int rootAction(
@@ -416,15 +446,17 @@ final class LlmOpenaiBlockWriter
     void finish()
     {
         generator.writeEnd();
-        flush(true);
     }
 
-    void flush(
+    int flush(
+        int room,
         boolean last)
     {
-        final int length = generator.length();
+        final int pending = pending();
+        final int length = Math.min(room, pending);
+        final boolean fin = last && length == pending;
 
-        if (length > 0 || last)
+        if (length > 0 || fin)
         {
             if (separating && length > 0)
             {
@@ -432,9 +464,18 @@ final class LlmOpenaiBlockWriter
                 separating = false;
             }
 
-            sink.put(buffer, origin, length, last);
-            generator.wrap(buffer, origin, buffer.capacity());
+            sink.put(buffer, origin + flushed, length, fin);
+            flushed += length;
+
+            if (flushed == staged())
+            {
+                carried = 0;
+                flushed = 0;
+                generator.wrap(buffer, origin, buffer.capacity());
+            }
         }
+
+        return length;
     }
 
     private void writeIncludeUsage()
@@ -502,42 +543,27 @@ final class LlmOpenaiBlockWriter
     {
         final Completion completion = deferred ? Completion.INCOMPLETE : Completion.COMPLETE;
         final int length = chars.length();
+        final int before = generator.consumed();
 
-        int taken = 0;
-
-        do
+        if (event == JsonEvent.KEY_NAME)
         {
-            final CharSequence rest = taken == 0 ? chars : chars.subSequence(taken, length);
-            final int before = generator.consumed();
-
-            if (event == JsonEvent.KEY_NAME)
-            {
-                generator.writeKey(rest, completion);
-            }
-            else if (event == JsonEvent.VALUE_NUMBER)
-            {
-                generator.writeNumber(rest, completion);
-            }
-            else
-            {
-                generator.write(rest, completion);
-            }
-
-            final int advanced = generator.consumed() - before;
-
-            taken += advanced;
-
-            if (taken < length)
-            {
-                if (advanced == 0 && generator.length() == 0)
-                {
-                    throw new JsonException("insufficient room to write the next character");
-                }
-
-                flush(false);
-            }
+            generator.writeKey(chars, completion);
         }
-        while (taken < length);
+        else if (event == JsonEvent.VALUE_NUMBER)
+        {
+            generator.writeNumber(chars, completion);
+        }
+        else
+        {
+            generator.write(chars, completion);
+        }
+
+        fragmentTaken = generator.consumed() - before;
+
+        if (fragmentTaken < length && !deferred)
+        {
+            throw new JsonException("insufficient room to stage the event");
+        }
     }
 
     private static int step(
