@@ -18,6 +18,7 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.agrona.collections.IntArrayList;
 
@@ -71,7 +72,8 @@ public class MqttKafkaHeaderHelper
     public OctetsFW replyTo;
     public OctetsFW replyKey;
     public OctetsFW correlation;
-    public IntArrayList userPropertiesOffsets;
+    public final IntArrayList userPropertiesOffsets = new IntArrayList();
+    private final Predicate<KafkaHeaderFW> dispatcher = this::dispatch;
 
     public MqttKafkaHeaderHelper()
     {
@@ -118,10 +120,10 @@ public class MqttKafkaHeaderHelper
         this.correlation = null;
         this.qos = null;
         this.retained = false;
-        this.userPropertiesOffsets = new IntArrayList();
+        this.userPropertiesOffsets.clear();
         if (headers != null)
         {
-            headers.matchFirst(this::dispatch);
+            headers.matchFirst(dispatcher);
         }
     }
 

@@ -16,9 +16,13 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.bench;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 
+import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.LongArrayQueue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
@@ -98,6 +102,8 @@ public final class KafkaStub implements BindingHandler
         OFFSET_FETCH,
         OFFSET_COMMIT,
         MESSAGES,
+        MESSAGES_FETCH,
+        MESSAGES_DELIVER,
         SESSION,
         UNEXPECTED
     }
@@ -118,6 +124,8 @@ public final class KafkaStub implements BindingHandler
     private final Queue<StubStream> idleStreams = new ArrayDeque<>();
     private final Queue<Runnable> delayedSteps = new ArrayDeque<>();
     private final LongArrayQueue delayedDeadlines = new LongArrayQueue();
+    private final List<StubStream> deliverables = new ArrayList<>();
+    private final IntArrayQueue committed = new IntArrayQueue(-1);
     private final long delayNanos;
 
     private final DirectBufferEx emptyEx = new UnsafeBufferEx(new byte[0]);
@@ -128,6 +136,7 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx findCoordinatorBeginEx;
     private final DirectBufferEx offsetDeleteBeginEx;
     private final DirectBufferEx initProducerIdBeginEx;
+    private final DirectBufferEx messagesFetchBeginEx;
     private final DirectBufferEx findCoordinatorResponse = new UnsafeBufferEx(FIND_COORDINATOR_RESPONSE);
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
@@ -179,6 +188,14 @@ public final class KafkaStub implements BindingHandler
                 .version(0)
                 .build()
             .build());
+        this.messagesFetchBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .capabilities("FETCH_ONLY")
+                .topic("mqtt-messages")
+                .partition(0, 0, 1, 1)
+                .build()
+            .build());
         this.initProducerIdBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
             .typeId(kafkaTypeId)
             .initProducerId()
@@ -191,6 +208,37 @@ public final class KafkaStub implements BindingHandler
     public int unexpected()
     {
         return unexpected;
+    }
+
+    /**
+     * Prepares the delivery stream opened {@code index}th, counting the streams that fetch with a group id, to
+     * send {@code payload} with {@code dataEx} as the fetch data extension. {@code dataEx} is a data extension
+     * built with a partition offset of {@code offsetMarker}, which is replaced by the offset of each delivery.
+     */
+    public void prepare(
+        int index,
+        byte[] dataEx,
+        long offsetMarker,
+        DirectBufferEx payload)
+    {
+        deliverables.get(index).prepare(dataEx, offsetMarker, payload);
+    }
+
+    /**
+     * Delivers one message on the {@code index}th delivery stream, after the configured latency.
+     */
+    public void deliver(
+        int index)
+    {
+        deliverables.get(index).requestDelivery();
+    }
+
+    /**
+     * Returns the index of a delivery stream whose offset commit has arrived, or -1.
+     */
+    public int committed()
+    {
+        return committed.pollInt();
     }
 
     public int release()
@@ -268,7 +316,9 @@ public final class KafkaStub implements BindingHandler
             final KafkaCapabilities capabilities = beginEx.merged().capabilities().get();
             kind = switch (capabilities)
             {
-            case FETCH_ONLY -> Kind.OFFSET_FETCH;
+            case FETCH_ONLY -> beginEx.merged().topic().equals(messagesTopicRO)
+                ? beginEx.merged().groupId().length() > 0 ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH
+                : Kind.OFFSET_FETCH;
             case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES : Kind.OFFSET_COMMIT;
             case PRODUCE_AND_FETCH -> Kind.SESSION;
             };
@@ -286,6 +336,7 @@ public final class KafkaStub implements BindingHandler
         private final Runnable openStep = this::doOpen;
         private final Runnable replyStep = this::doReply;
         private final Runnable ackStep = this::doAck;
+        private final Runnable deliverStep = this::doDeliverStep;
 
         private MessageConsumer sender;
         private Kind kind;
@@ -304,6 +355,14 @@ public final class KafkaStub implements BindingHandler
         private int requestLength;
         private int requestBytes;
         private int acks;
+        private int deliverIndex;
+        private int deliveries;
+        private long deliveryOffset;
+        private byte[] deliveryBytes;
+        private MutableDirectBufferEx deliveryEx;
+        private int[] offsetPositions;
+        private ByteOrder offsetOrder;
+        private DirectBufferEx deliveryPayload;
 
         private MessageConsumer reset(
             MessageConsumer sender)
@@ -321,6 +380,8 @@ public final class KafkaStub implements BindingHandler
             this.requestLength = 0;
             this.requestBytes = 0;
             this.acks = 0;
+            this.deliveries = 0;
+            this.deliveryOffset = 2L;
             return consumer;
         }
 
@@ -349,6 +410,13 @@ public final class KafkaStub implements BindingHandler
                 replyPad = window.padding();
                 state = StreamState.openReply(state);
                 doReply();
+                doDeliver();
+                break;
+            case FlushFW.TYPE_ID:
+                if (kind == Kind.MESSAGES_DELIVER)
+                {
+                    committed.addInt(deliverIndex);
+                }
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
@@ -382,6 +450,12 @@ public final class KafkaStub implements BindingHandler
                 if (kind == Kind.FIND_COORDINATOR || kind == Kind.OFFSET_DELETE)
                 {
                     this.requestLength = beginEx.apiRequest().length();
+                }
+
+                if (kind == Kind.MESSAGES_DELIVER)
+                {
+                    deliverIndex = deliverables.size();
+                    deliverables.add(this);
                 }
 
                 doInitialWindow();
@@ -474,6 +548,79 @@ public final class KafkaStub implements BindingHandler
             }
         }
 
+        private void prepare(
+            byte[] dataEx,
+            long offsetMarker,
+            DirectBufferEx payload)
+        {
+            this.deliveryBytes = dataEx.clone();
+            this.deliveryEx = new UnsafeBufferEx(deliveryBytes);
+            this.deliveryPayload = payload;
+
+            final UnsafeBufferEx template = new UnsafeBufferEx(dataEx);
+            final List<Integer> positions = new ArrayList<>();
+            ByteOrder order = ByteOrder.LITTLE_ENDIAN;
+            for (ByteOrder candidate : new ByteOrder[] {ByteOrder.LITTLE_ENDIAN, ByteOrder.BIG_ENDIAN})
+            {
+                for (int offset = 0; offset + Long.BYTES <= dataEx.length; offset++)
+                {
+                    if (template.getLong(offset, candidate) == offsetMarker)
+                    {
+                        positions.add(offset);
+                        order = candidate;
+                    }
+                }
+
+                if (!positions.isEmpty())
+                {
+                    break;
+                }
+            }
+
+            if (positions.isEmpty())
+            {
+                throw new IllegalStateException("offset marker not found in delivery data extension");
+            }
+
+            this.offsetOrder = order;
+            this.offsetPositions = positions.stream().mapToInt(Integer::intValue).toArray();
+        }
+
+        private void requestDelivery()
+        {
+            pending++;
+            schedule(deliverStep);
+        }
+
+        private void doDeliverStep()
+        {
+            pending--;
+            deliveries++;
+            doDeliver();
+            doEnd();
+        }
+
+        private void doDeliver()
+        {
+            if (kind == Kind.MESSAGES_DELIVER && deliveryEx != null)
+            {
+                final int reserved = deliveryPayload.capacity() + replyPad;
+
+                while (deliveries > 0 && StreamState.replyOpening(state) && !StreamState.replyClosed(state) &&
+                    replyAck + replyMax - replySeq >= reserved)
+                {
+                    for (int position : offsetPositions)
+                    {
+                        deliveryEx.putLong(position, deliveryOffset, offsetOrder);
+                    }
+
+                    doReplyData(deliveryPayload, deliveryEx, reserved);
+                    deliveryOffset++;
+                    deliveries--;
+                }
+            }
+        }
+
         private void doAck()
         {
             pending--;
@@ -536,6 +683,7 @@ public final class KafkaStub implements BindingHandler
             case FIND_COORDINATOR -> findCoordinatorBeginEx;
             case OFFSET_DELETE -> offsetDeleteBeginEx;
             case INIT_PRODUCER_ID -> initProducerIdBeginEx;
+            case MESSAGES_FETCH, MESSAGES_DELIVER -> messagesFetchBeginEx;
             default -> emptyEx;
             };
 
