@@ -83,6 +83,8 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_LOCAL_CONFIG_URI_NAME = "zilla.engine.local.config.uri";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
     public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
+    public static final String ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME = "zilla.engine.timer.wheel.tick.millis";
+    public static final String ENGINE_TIMER_WHEEL_TICKS_NAME = "zilla.engine.timer.wheel.ticks";
     public static final String ENGINE_ROUTER_NAME = "zilla.engine.router";
     public static final String ENGINE_SERVICE_HOSTNAME_NAME = "zilla.engine.service.hostname";
     public static final String ENGINE_NODE_INSTANCE_ID_NAME = "zilla.engine.node.instance.id";
@@ -520,6 +522,7 @@ public final class EngineRule implements TestRule
                         {
                             release = aroundStart.get();
                             engine.start();
+                            tickClock(config);
                         }
                         catch (Throwable t)
                         {
@@ -550,6 +553,7 @@ public final class EngineRule implements TestRule
                     else
                     {
                         engine.start();
+                        tickClock(config);
                     }
 
                     base.evaluate();
@@ -590,6 +594,15 @@ public final class EngineRule implements TestRule
                 }
             }
         };
+    }
+
+    private void tickClock(
+        EngineConfiguration config)
+    {
+        if (clock instanceof TestClock testClock)
+        {
+            testClock.advanceBy(config.timerWheelTickMillis());
+        }
     }
 
     static FileSystem openConfigFileSystem(

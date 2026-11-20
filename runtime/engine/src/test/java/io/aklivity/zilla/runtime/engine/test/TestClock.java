@@ -84,6 +84,13 @@ public final class TestClock extends Clock
         this.stepMillis.set(stepMillis);
     }
 
+    public Ticker ticker(
+        long periodMillis,
+        long stepMillis)
+    {
+        return new Ticker(periodMillis, stepMillis);
+    }
+
     @Override
     public ZoneId getZone()
     {
@@ -115,5 +122,44 @@ public final class TestClock extends Clock
     {
         this.millis = new AtomicLong(startMillis);
         this.stepMillis = new AtomicLong(stepMillis);
+    }
+
+    public final class Ticker implements AutoCloseable
+    {
+        private final Thread thread;
+
+        private Ticker(
+            long periodMillis,
+            long stepMillis)
+        {
+            this.thread = new Thread(() -> run(periodMillis, stepMillis), "test-clock-ticker");
+            this.thread.setDaemon(true);
+            this.thread.start();
+        }
+
+        @Override
+        public void close() throws InterruptedException
+        {
+            thread.interrupt();
+            thread.join();
+        }
+
+        private void run(
+            long periodMillis,
+            long stepMillis)
+        {
+            try
+            {
+                while (!Thread.currentThread().isInterrupted())
+                {
+                    Thread.sleep(periodMillis);
+                    advanceBy(stepMillis);
+                }
+            }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

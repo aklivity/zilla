@@ -97,6 +97,8 @@ public class EngineConfiguration extends Configuration
     public static final BooleanPropertyDef ENGINE_SYNTHETIC_ABORT;
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
+    public static final IntPropertyDef ENGINE_TIMER_WHEEL_TICK_MILLIS;
+    public static final IntPropertyDef ENGINE_TIMER_WHEEL_TICKS;
     public static final BooleanPropertyDef ENGINE_DEBUG;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final BooleanPropertyDef ENGINE_VERBOSE_EXCEPTIONS;
@@ -167,6 +169,8 @@ public class EngineConfiguration extends Configuration
         ENGINE_SYNTHETIC_ABORT = config.property("synthetic.abort", false);
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
+        ENGINE_TIMER_WHEEL_TICK_MILLIS = config.property("timer.wheel.tick.millis", 64);
+        ENGINE_TIMER_WHEEL_TICKS = config.property("timer.wheel.ticks", 8192);
         ENGINE_DEBUG = config.property("debug", false);
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_VERBOSE_COMPOSITES = config.property("verbose.composites", false);
@@ -378,6 +382,16 @@ public class EngineConfiguration extends Configuration
     public long childCleanupLingerMillis()
     {
         return ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS.getAsLong(this);
+    }
+
+    public int timerWheelTickMillis()
+    {
+        return ENGINE_TIMER_WHEEL_TICK_MILLIS.getAsInt(this);
+    }
+
+    public int timerWheelTicks()
+    {
+        return ENGINE_TIMER_WHEEL_TICKS.getAsInt(this);
     }
 
     public boolean debug()
