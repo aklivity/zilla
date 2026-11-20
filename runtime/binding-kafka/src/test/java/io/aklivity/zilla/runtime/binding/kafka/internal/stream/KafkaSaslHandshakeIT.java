@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -83,5 +84,24 @@ public class KafkaSaslHandshakeIT
     public void shouldRejectSaslHandshakeV1WhenGuardConfigured() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guard.scram.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+            value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaSaslHandshakeIT::supplyNonce")
+    @ScriptProperty("authorization 1L")
+    @Specification({
+        "${app}/create.topics.v7/client",
+        "${net}/create.topics.v7.authorized.scram/server"})
+    public void shouldAuthenticateScramImplicitlyWhenGuardConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    public static String supplyNonce()
+    {
+        return "fyko+d2lbbFgONRv9qkxdawL";
     }
 }

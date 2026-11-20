@@ -32,6 +32,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class KafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
+    private static final String STORE_NAME = "store";
     private static final String BOOTSTRAP_NAME = "bootstrap";
     private static final String SERVERS_NAME = "servers";
     private static final String TOPICS_NAME = "topics";
@@ -52,6 +53,11 @@ public final class KafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig
         KafkaOptionsConfig kafkaOptions = (KafkaOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (kafkaOptions.store != null)
+        {
+            object.add(STORE_NAME, kafkaOptions.store);
+        }
 
         if (kafkaOptions.bootstrap != null &&
             !kafkaOptions.bootstrap.isEmpty())
@@ -112,6 +118,11 @@ public final class KafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig
         JsonObject object)
     {
         KafkaOptionsConfigBuilder<KafkaOptionsConfig> options = KafkaOptionsConfig.builder();
+
+        if (object.containsKey(STORE_NAME))
+        {
+            options.store(object.getString(STORE_NAME));
+        }
 
         if (object.containsKey(BOOTSTRAP_NAME))
         {

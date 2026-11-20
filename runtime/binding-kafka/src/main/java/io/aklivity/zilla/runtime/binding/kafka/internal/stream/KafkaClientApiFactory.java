@@ -34,6 +34,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.events.KafkaEventContext;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
@@ -179,6 +181,7 @@ public final class KafkaClientApiFactory implements BindingHandler
     private final Long2ObjectHashMap<KafkaApiRefresh> refreshByRoute;
     private final KafkaEventContext event;
     private final boolean apiVersionsEnabled;
+    private final Supplier<String> nonceSupplier;
     private final int reconnectDelay;
 
     public KafkaClientApiFactory(
@@ -191,6 +194,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         BindingHandler streamFactory)
     {
         this.apiVersionsEnabled = config.clientApiVersions();
+        this.nonceSupplier = config.nonceSupplier();
         this.reconnectDelay = config.clientReconnectDelay();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
@@ -533,7 +537,12 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             progress = saslAuthenticateResponse.limit();
 
-            client.onDecodeSaslAuthenticateResponse(traceId, saslAuthenticateResponse.errorCode());
+            final OctetsFW authBytes = saslAuthenticateResponse.authBytes();
+            final String challenge = authBytes != null
+                ? authBytes.buffer().getStringWithoutLengthUtf8(authBytes.offset(), authBytes.sizeof())
+                : null;
+
+            client.onDecodeSaslAuthenticateResponse(traceId, saslAuthenticateResponse.errorCode(), challenge);
         }
 
         return progress;
@@ -1256,6 +1265,8 @@ public final class KafkaClientApiFactory implements BindingHandler
         private int apiVersionKeysRemaining;
 
         private boolean saslResolved;
+        private KafkaScram scram;
+        private boolean scramFinalSent;
         private int saslMechanismsRemaining;
         private long guardSession;
         private boolean guardSessionOwned;
@@ -1558,8 +1569,26 @@ public final class KafkaClientApiFactory implements BindingHandler
             long budgetId)
         {
             final String username = guard.identity(guardSession);
-            final String password = guard.credentials(guardSession);
+            final KafkaScramMechanism mechanism = KafkaScramMechanism.forMechanismName(sasl.mechanism.toUpperCase());
 
+            if (mechanism != null)
+            {
+                scram = new KafkaScram(mechanism, username, nonceSupplier.get());
+                scramFinalSent = false;
+                doEncodeSaslAuthenticateRequest(traceId, budgetId, scram.clientFirst());
+            }
+            else
+            {
+                final String password = guard.credentials(guardSession);
+                doEncodeSaslAuthenticateRequest(traceId, budgetId, "\0" + username + "\0" + password);
+            }
+        }
+
+        private void doEncodeSaslAuthenticateRequest(
+            long traceId,
+            long budgetId,
+            String authBytes)
+        {
             final MutableDirectBufferEx encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
             final int encodeLimit = encodeBuffer.capacity();
@@ -1578,15 +1607,7 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             final SaslAuthenticateRequestFW saslAuthenticateRequest =
                 saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .authBytes(a -> a.put((b, o, l) ->
-                    {
-                        int p = o;
-                        b.putByte(p++, (byte) 0);
-                        p += b.putStringWithoutLengthUtf8(p, username);
-                        b.putByte(p++, (byte) 0);
-                        p += b.putStringWithoutLengthUtf8(p, password);
-                        return p - o;
-                    }))
+                    .authBytes(a -> a.put((b, o, l) -> b.putStringWithoutLengthUtf8(o, authBytes)))
                     .build();
 
             encodeProgress = saslAuthenticateRequest.limit();
@@ -1609,19 +1630,48 @@ public final class KafkaClientApiFactory implements BindingHandler
 
         private void onDecodeSaslAuthenticateResponse(
             long traceId,
-            short errorCode)
+            short errorCode,
+            String challenge)
         {
             if (errorCode != ERROR_NONE)
             {
-                event.saslAuthenticationFailed(traceId, routedId, guard.identity(guardSession));
-                cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);
+                onSaslAuthenticateFailed(traceId);
+            }
+            else if (scram != null && !scramFinalSent)
+            {
+                final String clientFinal = challenge != null
+                    ? scram.clientFinal(challenge, guard.credentials(guardSession))
+                    : null;
+
+                if (clientFinal == null)
+                {
+                    onSaslAuthenticateFailed(traceId);
+                }
+                else
+                {
+                    scramFinalSent = true;
+                    doEncodeSaslAuthenticateRequest(traceId, initialBudgetId, clientFinal);
+                }
+            }
+            else if (scram != null && (challenge == null || !scram.verify(challenge)))
+            {
+                onSaslAuthenticateFailed(traceId);
             }
             else
             {
+                scram = null;
                 saslResolved = true;
                 decoder = decodeResponseHeader;
                 doEncodeRequest(traceId);
             }
+        }
+
+        private void onSaslAuthenticateFailed(
+            long traceId)
+        {
+            scram = null;
+            event.saslAuthenticationFailed(traceId, routedId, guard.identity(guardSession));
+            cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);
         }
 
         private void encodeRequestHeader(

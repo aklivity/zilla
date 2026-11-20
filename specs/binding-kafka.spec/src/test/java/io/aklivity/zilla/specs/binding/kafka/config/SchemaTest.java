@@ -35,6 +35,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config");
 
     @Test
@@ -57,6 +58,14 @@ public class SchemaTest
     public void shouldValidateCacheServer()
     {
         JsonObject config = schema.validate("cache.server.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientOptionsStore()
+    {
+        JsonObject config = schema.validate("client.options.store.yaml");
 
         assertThat(config, not(nullValue()));
     }

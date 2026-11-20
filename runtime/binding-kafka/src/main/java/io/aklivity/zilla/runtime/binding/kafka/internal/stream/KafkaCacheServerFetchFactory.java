@@ -250,7 +250,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
             final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
-            final int leaderId = leadersByPartitionId.get(partitionId);
+            final int leaderId = KafkaCacheRoute.resolveLeaderId(leadersByPartitionId.get(partitionId), begin.affinity());
 
             KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)

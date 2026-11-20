@@ -20,7 +20,6 @@ connect "zilla://streams/mqtt0"
 write zilla:begin.ext ${mqtt:beginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
-                              .flags("CLEAN_START")
                               .expiry(1)
                               .publishQosMax(2)
                               .capabilities("REDIRECT")
