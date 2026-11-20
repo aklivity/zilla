@@ -1093,6 +1093,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.signal.stream.credit/client",
+        "${kafka}/session.signal.stream.credit/server"})
+    public void shouldSessionSignalStreamCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.ignore.non.fetch.signal.stream.flush/client",
         "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
     public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
