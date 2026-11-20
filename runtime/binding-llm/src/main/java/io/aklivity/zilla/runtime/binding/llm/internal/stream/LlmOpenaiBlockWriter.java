@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import jakarta.json.JsonException;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -59,14 +60,17 @@ final class LlmOpenaiBlockWriter
     private int origin;
     private int carried;
     private int flushed;
+    private DirectBufferEx closing;
+    private int closingTaken;
     private int depth;
     private boolean functioned;
     private boolean argumented;
-    private boolean separating;
-    private byte separator;
     private boolean usageWritten;
     private int fragmentTaken;
 
+    private int wraps;
+    private int markWraps;
+    private int markStaged;
     private int markDepth;
     private boolean markFunctioned;
     private boolean markArgumented;
@@ -80,6 +84,15 @@ final class LlmOpenaiBlockWriter
         this.generator = generator;
     }
 
+    private void wrap(
+        MutableDirectBufferEx target,
+        int offset,
+        int limit)
+    {
+        generator.wrap(target, offset, limit);
+        wraps++;
+    }
+
     void resume(
         MutableDirectBufferEx buffer,
         int origin)
@@ -87,7 +100,7 @@ final class LlmOpenaiBlockWriter
         this.buffer = buffer;
         this.origin = origin;
 
-        generator.wrap(buffer, origin + carried, buffer.capacity());
+        wrap(buffer, origin + carried, buffer.capacity());
     }
 
     void suspend(
@@ -96,7 +109,7 @@ final class LlmOpenaiBlockWriter
         carried = staged();
         buffer = detached;
 
-        generator.wrap(detached, 0, detached.capacity());
+        wrap(detached, 0, detached.capacity());
     }
 
     void begin(
@@ -107,12 +120,14 @@ final class LlmOpenaiBlockWriter
         this.origin = origin;
         this.carried = 0;
         this.flushed = 0;
+        this.closing = null;
+        this.closingTaken = 0;
         this.depth = 0;
         this.functioned = false;
         this.argumented = false;
 
         generator.reset();
-        generator.wrap(buffer, origin, buffer.capacity());
+        wrap(buffer, origin, buffer.capacity());
         generator.writeStartObject();
     }
 
@@ -121,17 +136,20 @@ final class LlmOpenaiBlockWriter
         int origin,
         char separator)
     {
+        final int staged = staged();
+
         this.buffer = buffer;
         this.origin = origin;
-        this.carried = 0;
-        this.flushed = 0;
+        this.carried = staged;
+        this.closing = null;
+        this.closingTaken = 0;
         this.depth = 0;
-        this.separator = (byte) separator;
-        this.separating = true;
 
         generator.reset();
-        generator.wrap(buffer, origin, buffer.capacity());
+        wrap(buffer, origin + staged, buffer.capacity());
         generator.writeStartObject();
+
+        buffer.putByte(origin + staged, (byte) separator);
     }
 
     void memberKey(
@@ -313,6 +331,37 @@ final class LlmOpenaiBlockWriter
         return staged() - flushed;
     }
 
+    void stageRaw(
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        final int staged = staged();
+
+        if (origin + staged + length > buffer.capacity())
+        {
+            throw new JsonException("insufficient room to stage the event");
+        }
+
+        buffer.putBytes(origin + staged, source, offset, length);
+
+        carried = staged + length;
+        wrap(buffer, origin + carried, buffer.capacity());
+    }
+
+    void close(
+        DirectBufferEx tail)
+    {
+        closing = tail;
+        closingTaken = 0;
+    }
+
+    void fragmentTaken(
+        int taken)
+    {
+        fragmentTaken = taken;
+    }
+
     int leftover()
     {
         return Math.max(carried - flushed, 0);
@@ -326,6 +375,8 @@ final class LlmOpenaiBlockWriter
     void mark()
     {
         generator.mark();
+        markWraps = wraps;
+        markStaged = staged();
         markDepth = depth;
         markFunctioned = functioned;
         markArgumented = argumented;
@@ -334,7 +385,16 @@ final class LlmOpenaiBlockWriter
 
     void rewind()
     {
-        generator.rewind();
+        if (wraps == markWraps)
+        {
+            generator.rewind();
+        }
+        else
+        {
+            carried = markStaged;
+            wrap(buffer, origin + carried, buffer.capacity());
+        }
+
         depth = markDepth;
         functioned = markFunctioned;
         argumented = markArgumented;
@@ -453,29 +513,41 @@ final class LlmOpenaiBlockWriter
         boolean last)
     {
         final int pending = pending();
+        final int tail = closing != null ? closing.capacity() - closingTaken : 0;
         final int length = Math.min(room, pending);
-        final boolean fin = last && length == pending;
+        final boolean drained = length == pending;
+        final int tailed = last && drained ? Math.min(room - length, tail) : 0;
+        final boolean fin = last && drained && tailed == tail;
 
-        if (length > 0 || fin)
+        if (length > 0)
         {
-            if (separating && length > 0)
-            {
-                buffer.putByte(origin, separator);
-                separating = false;
-            }
-
-            sink.put(buffer, origin + flushed, length, fin);
+            sink.put(buffer, origin + flushed, length, fin && tail == 0);
             flushed += length;
 
             if (flushed == staged())
             {
                 carried = 0;
                 flushed = 0;
-                generator.wrap(buffer, origin, buffer.capacity());
+                wrap(buffer, origin, buffer.capacity());
             }
         }
 
-        return length;
+        if (tailed > 0)
+        {
+            sink.put(closing, closingTaken, tailed, fin);
+            closingTaken += tailed;
+        }
+        else if (fin && length == 0)
+        {
+            sink.put(buffer, origin, 0, true);
+        }
+
+        return length + tailed;
+    }
+
+    boolean drained()
+    {
+        return pending() == 0 && (closing == null || closingTaken == closing.capacity());
     }
 
     private void writeIncludeUsage()
