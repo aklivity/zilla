@@ -25,10 +25,10 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.hasIncomplete;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
-import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -163,6 +163,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final KafkaEventContext event;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final MutableDirectBufferEx writeBuffer;
@@ -202,6 +203,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.trailersMergeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -275,7 +277,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         String.format("%s.%s", supplyNamespace.apply(resolvedId), supplyLocalName.apply(resolvedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, localIndex);
+                final KafkaCachePartition partition = topic.supplyProducePartition(clock, partitionId, localIndex);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
                             partition, cacheRoute, topicName);
@@ -640,7 +642,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
                 else
                 {
-                    this.groupCleanupId = doClientFanoutInitialSignalAt(currentTimeMillis() + SECONDS.toMillis(cleanupDelay),
+                    this.groupCleanupId = doClientFanoutInitialSignalAt(clock.millis() + SECONDS.toMillis(cleanupDelay),
                             traceId, SIGNAL_GROUP_CLEANUP);
                 }
             }
@@ -858,7 +860,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
                 partition.writeProduceEntryStart(traceId, routedId, stream.authorization, partitionOffset, stream.segment,
-                    stream.entryMark, stream.valueMark, stream.valueLimit, stream.trailersClaimMark, now().toEpochMilli(),
+                    stream.entryMark, stream.valueMark, stream.valueLimit, stream.trailersClaimMark, clock.millis(),
                     stream.initialId,
                     PRODUCE_FLUSH_PRODUCER_ID, PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY,
                     EMPTY_KEY, 0, valuePaddingMax, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, stream.transformKey,
@@ -970,7 +972,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onClientFanInitialSignalReconnect);
             }
@@ -1023,7 +1025,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void onClientFanInitialSignalSegmentCompact(
             SignalFW signal)
         {
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
 
             KafkaCachePartition.Node segmentNode = partition.sentinel().next();
             while (!segmentNode.next().sentinel()) // avoid cleaning head

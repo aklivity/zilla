@@ -19,11 +19,11 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -153,6 +153,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
@@ -173,6 +174,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         this.maxAgeMillis = Math.min(config.clientDescribeMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
+        this.clock = context.clock();
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -1710,7 +1712,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 }
 
                 nextResponseId++;
-                signaler.signalAt(currentTimeMillis() + maxAgeMillis, originId, routedId, initialId,
+                signaler.signalAt(clock.millis() + maxAgeMillis, originId, routedId, initialId,
                     traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 

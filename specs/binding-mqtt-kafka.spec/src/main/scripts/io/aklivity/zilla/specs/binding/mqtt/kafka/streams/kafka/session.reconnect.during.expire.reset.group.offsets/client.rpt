@@ -351,6 +351,8 @@ write ${mqtt:sessionSignal()
                 .build()
             .build()}
 
+write notify CLOCK_RESET
+
 # no will signals
 # no session state
 read advised zilla:flush

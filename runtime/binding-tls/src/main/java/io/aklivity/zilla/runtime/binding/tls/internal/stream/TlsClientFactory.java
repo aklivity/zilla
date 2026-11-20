@@ -17,13 +17,13 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -134,6 +134,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final int initialPadAdjust;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
     private final EngineContext context;
+    private final Clock clock;
     private final TlsEventContext event;
 
     private final int decodeMax;
@@ -177,6 +178,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
         this.bindings = new Long2ObjectHashMap<>();
         this.context = context;
+        this.clock = context.clock();
         this.event = new TlsEventContext(context);
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
         this.inNetBuffer = new UnsafeBufferEx(inNetByteBuffer);
@@ -1780,7 +1782,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 {
                     assert handshakeTimeoutFutureId == NO_CANCEL_ID;
                     handshakeTimeoutFutureId = signaler.signalAt(
-                        currentTimeMillis() + handshakeTimeoutMillis,
+                        clock.millis() + handshakeTimeoutMillis,
                         originId,
                         routedId,
                         initialId,

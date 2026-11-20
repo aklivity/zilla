@@ -48,7 +48,7 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.URI;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.EnumMap;
@@ -615,6 +615,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBufferEx frameBuffer;
     private final BufferPool bufferPool;
     private final EngineContext context;
+    private final Clock clock;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -668,6 +669,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.connectionWindow = config.connectionWindow();
         this.connectionWindowLowMark = connectionWindow >> 1;
         this.context = context;
+        this.clock = context.clock();
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
@@ -3286,7 +3288,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     doEncodePayload(exchange, traceId, authorization, replyBudgetId, size + replyPad, payload);
 
-                    exchange.lastEventAt = System.currentTimeMillis();
+                    exchange.lastEventAt = clock.millis();
                 }
             }
         }
@@ -3360,7 +3362,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 reserved = Math.max(reserved, limit - offset + replyPad);
             }
 
-            exchange.lastEventAt = System.currentTimeMillis();
+            exchange.lastEventAt = clock.millis();
 
             if (encodeSlot != NO_SLOT)
             {
@@ -3914,7 +3916,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (eventFraming)
                     {
-                        lastEventAt = System.currentTimeMillis();
+                        lastEventAt = clock.millis();
 
                         if (config.sseInitialCommentEnabled())
                         {
@@ -3946,7 +3948,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (responseState == HttpExchangeState.OPEN)
                 {
-                    if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
+                    if (clock.millis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
                     {
                         doEncodeEventComment(this, traceId, sessionId);
                     }
@@ -4044,7 +4046,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseExpiring(
                 long traceId)
             {
-                final long now = Instant.now().toEpochMilli();
+                final long now = clock.millis();
                 final long expiresAt = guard.expiresAt(sessionId);
                 if (now > expiresAt)
                 {
@@ -5223,7 +5225,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (!streams.isEmpty())
             {
-                final long timeMillis = Instant.now().plusMillis(config.streamsCleanupDelay()).toEpochMilli();
+                final long timeMillis = clock.instant().plusMillis(config.streamsCleanupDelay()).toEpochMilli();
                 signaler.signalAt(timeMillis, CLEANUP_SIGNAL, s -> onNetworkSignal(traceId, authorization, s));
             }
             else
@@ -7426,7 +7428,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (eventFraming)
                     {
-                        lastEventAt = System.currentTimeMillis();
+                        lastEventAt = clock.millis();
 
                         if (config.sseInitialCommentEnabled())
                         {
@@ -7469,7 +7471,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     doEncodeData(traceId, authorization, COMPLETE, Http2Server.this.budgetId, length, streamId, payload, false);
 
-                    lastEventAt = System.currentTimeMillis();
+                    lastEventAt = clock.millis();
                 }
             }
 
@@ -7492,7 +7494,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (!StreamState.replyClosed(state))
                 {
-                    if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
+                    if (clock.millis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
                     {
                         doEncodeEventComment(traceId, authorization);
                     }
@@ -7654,7 +7656,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void onResponseExpiring(
                 long traceId)
             {
-                final long now = Instant.now().toEpochMilli();
+                final long now = clock.millis();
                 final long expiresAt = guard.expiresAt(sessionId);
                 if (now > expiresAt)
                 {

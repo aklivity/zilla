@@ -39,7 +39,6 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.S
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACED_ID;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
-import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -196,8 +195,6 @@ public class EngineWorker implements EngineContext, Agent
     private static final int NODE_SHIFT_SIZE = 48;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
-    static final int TIMER_WHEEL_TICK_MILLIS = 64;
-    static final int TIMER_WHEEL_TICKS = 512;
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
@@ -215,6 +212,7 @@ public class EngineWorker implements EngineContext, Agent
     private final byte selfNodeId;
     private final long affinity;
     private final EngineConfiguration config;
+    private final Clock clock;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -336,6 +334,7 @@ public class EngineWorker implements EngineContext, Agent
         this.selfNodeId = nodeId;
         this.affinity = (((long) selfNodeId & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
+        this.clock = config.clock();
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
         this.affinityMask = affinityMask;
@@ -415,7 +414,8 @@ public class EngineWorker implements EngineContext, Agent
         this.targetsByIndex = new Int2ObjectHashMap<>();
         this.writersByIndex = new Int2ObjectHashMap<>();
 
-        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), TIMER_WHEEL_TICK_MILLIS, TIMER_WHEEL_TICKS);
+        this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, clock.millis(),
+            config.timerWheelTickMillis(), config.timerWheelTicks());
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
         this.signaler = new EngineSignaler(executor, Math.max(config.bufferSlotCapacity(), 512));
@@ -441,7 +441,7 @@ public class EngineWorker implements EngineContext, Agent
                 .build();
 
         this.creditor = new DefaultBudgetCreditor(index, budgetsLayout, this::doSystemFlush, this::supplyBudgetId,
-            signaler::executeTaskAt, config.childCleanupLingerMillis());
+            signaler::executeTaskAt, config.childCleanupLingerMillis(), clock);
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.budgetHandles = new BudgetHandleRegistry();
 
@@ -1032,7 +1032,7 @@ public class EngineWorker implements EngineContext, Agent
 
             if (timerWheel.timerCount() != 0L)
             {
-                final long now = currentTimeMillis();
+                final long now = clock.millis();
                 int expiredMax = expireLimit;
                 while (timerWheel.currentTickTime() <= now && expiredMax > 0)
                 {
@@ -1419,7 +1419,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public Clock clock()
     {
-        return config.clock();
+        return clock;
     }
 
     @Override

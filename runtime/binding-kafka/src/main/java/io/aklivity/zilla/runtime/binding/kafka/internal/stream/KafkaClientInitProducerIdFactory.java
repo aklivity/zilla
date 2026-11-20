@@ -20,9 +20,9 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
@@ -122,6 +122,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
@@ -141,6 +142,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
         super(config, context);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
+        this.clock = context.clock();
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -1487,7 +1489,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             cancelReconnect();
 
             reconnectAt = signaler.signalAt(
-                currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                 originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
         }
 

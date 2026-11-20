@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_QOS_MAX;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SHARED_SUBSCRIPTION_AVAILABLE;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.TIME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_STREAM_RECONNECT_DELAY;
@@ -39,7 +38,6 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttKafkaConfigurationTest
 {
-    public static final String TIME_NAME = "zilla.binding.mqtt.kafka.time";
     public static final String WILL_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.will.available";
     public static final String WILL_STREAM_RECONNECT_DELAY_NAME = "zilla.binding.mqtt.kafka.will.stream.reconnect";
     public static final String BOOTSTRAP_AVAILABLE_NAME = "zilla.binding.mqtt.kafka.bootstrap.available";
@@ -55,7 +53,6 @@ public class MqttKafkaConfigurationTest
     @Test
     public void shouldVerifyConstants()
     {
-        assertEquals(TIME.name(), TIME_NAME);
         assertEquals(WILL_AVAILABLE.name(), WILL_AVAILABLE_NAME);
         assertEquals(WILL_STREAM_RECONNECT_DELAY.name(), WILL_STREAM_RECONNECT_DELAY_NAME);
         assertEquals(BOOTSTRAP_AVAILABLE.name(), BOOTSTRAP_AVAILABLE_NAME);

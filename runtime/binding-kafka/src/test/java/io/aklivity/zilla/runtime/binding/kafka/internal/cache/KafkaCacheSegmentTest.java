@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNotEquals;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.stream.Stream;
 
 import org.junit.Rule;
@@ -44,7 +45,8 @@ public class KafkaCacheSegmentTest
         Path location = tempFolder.getRoot().toPath();
         MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(0));
 
-        try (KafkaCacheSegment head = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new);
+        try (KafkaCacheSegment head = new KafkaCacheSegment(Clock.systemUTC(), location, config, "test", 0, 1L, appendBuf,
+            long[]::new);
                 KafkaCacheSegment tail = head.freeze())
         {
             assertEquals(head.location(), tail.location());
@@ -76,7 +78,8 @@ public class KafkaCacheSegmentTest
         Path location = tempFolder.getRoot().toPath();
         MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(0));
 
-        try (KafkaCacheSegment segment = new KafkaCacheSegment(location, config, "test", 0, 1L, appendBuf, long[]::new))
+        try (KafkaCacheSegment segment = new KafkaCacheSegment(Clock.systemUTC(), location, config, "test", 0, 1L, appendBuf,
+            long[]::new))
         {
             assertEquals("test", segment.name());
             assertEquals(0, segment.id());

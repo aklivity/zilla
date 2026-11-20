@@ -37,9 +37,9 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static io.aklivity.zilla.runtime.engine.util.Flags.skip;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -152,6 +152,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -178,6 +179,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -245,7 +247,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         String.format("%s.%s", supplyNamespace.apply(resolvedId), supplyLocalName.apply(resolvedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCachePartition partition = topic.supplyFetchPartition(partitionId);
+                final KafkaCachePartition partition = topic.supplyFetchPartition(clock, partitionId);
                 final long defaultOffset = resolved.with != null
                     ? KafkaOffsetType.valueOf(resolved.with.defaultOffset.toUpperCase()).value()
                     : KafkaOffsetType.HISTORICAL.value();
@@ -710,7 +712,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onClientFanoutSignal);
             }
@@ -922,7 +924,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onClientFanoutSignal);
             }

@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,24 +75,27 @@ public final class KafkaCacheTopic
     }
 
     public KafkaCachePartition supplyFetchPartition(
+        Clock clock,
         int id)
     {
-        return partitionsById.computeIfAbsent(id, this::newFetchPartition);
+        return partitionsById.computeIfAbsent(id, i -> newFetchPartition(clock, i));
     }
 
     public KafkaCachePartition newShareStaging(
+        Clock clock,
         KafkaCacheTopicConfig stagingConfig,
         String staging)
     {
-        return new KafkaCachePartition(location, stagingConfig, cache, name, staging, appendCapacity, sortSpaceRef);
+        return new KafkaCachePartition(clock, location, stagingConfig, cache, name, staging, appendCapacity, sortSpaceRef);
     }
 
     public KafkaCachePartition supplyProducePartition(
+        Clock clock,
         int id,
         int index)
     {
         final long uniqueId = (((long) id) << Integer.SIZE) | index;
-        return partitionsByIndex.computeIfAbsent(uniqueId, i -> newProducePartition(id, index));
+        return partitionsByIndex.computeIfAbsent(uniqueId, i -> newProducePartition(clock, id, index));
     }
 
     @Override
@@ -101,17 +105,19 @@ public final class KafkaCacheTopic
     }
 
     private KafkaCachePartition newFetchPartition(
+        Clock clock,
         int id)
     {
-        return new KafkaCachePartition(location, config, cache, name, id, appendCapacity, sortSpaceRef);
+        return new KafkaCachePartition(clock, location, config, cache, name, id, appendCapacity, sortSpaceRef);
     }
 
     private KafkaCachePartition newProducePartition(
+        Clock clock,
         int id,
         int index)
     {
-        return new KafkaCachePartition(location, config, cache, produceCapacity, maxProduceCapacity, name, id, appendCapacity,
-            sortSpaceRef, index);
+        return new KafkaCachePartition(clock, location, config, cache, produceCapacity, maxProduceCapacity, name, id,
+            appendCapacity, sortSpaceRef, index);
     }
 
 }

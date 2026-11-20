@@ -24,9 +24,8 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.lang.System.currentTimeMillis;
-import static java.time.Instant.now;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -148,6 +147,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongPredicate activate;
     private final LongConsumer deactivate;
     private final Signaler signaler;
+    private final Clock clock;
     private final String groupIdFormat;
     private final int grpcTypeId;
     private final int kafkaTypeId;
@@ -167,6 +167,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.context = context;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
@@ -213,7 +214,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 }));
 
             this.reconnectAt = signaler.signalAt(
-                currentTimeMillis(),
+                clock.millis(),
                 SIGNAL_INITIATE_KAFKA_STREAM,
                 this::onKafkaStreamInitializationSignal);
         }
@@ -1091,7 +1092,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
-                    .timestamp(now().toEpochMilli())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(k -> condition.key(delegate.correlationId, k))
                     .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, message, h))))
@@ -1346,7 +1347,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
-                        .timestamp(now().toEpochMilli())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(k -> condition.key(c, k))
                         .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, null, h))))
@@ -1510,7 +1511,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(k -> server.condition.key(correlationId, k))
                         .headers(h ->

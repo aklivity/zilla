@@ -64,7 +64,7 @@ public class JwtGuardHandlerTest
     public void init()
     {
         context = mock(EngineContext.class);
-        when(context.clock()).thenReturn(mock(Clock.class));
+        when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
     }
 

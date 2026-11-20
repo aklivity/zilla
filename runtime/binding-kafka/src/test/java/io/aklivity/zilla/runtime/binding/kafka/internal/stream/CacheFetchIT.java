@@ -25,6 +25,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.time.Clock;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -76,7 +78,7 @@ public class CacheFetchIT
         final KafkaBinding binding = engine.binding(KafkaBinding.class);
         final KafkaCache cache = binding.supplyCache("test.cache0");
         final KafkaCacheTopic topic = cache.supplyTopic("test");
-        this.partition = topic.supplyFetchPartition(0);
+        this.partition = topic.supplyFetchPartition(Clock.systemUTC(), 0);
     }
 
     @Test

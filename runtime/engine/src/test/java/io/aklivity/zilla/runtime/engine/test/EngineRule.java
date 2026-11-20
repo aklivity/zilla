@@ -40,6 +40,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -82,6 +83,8 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_LOCAL_CONFIG_URI_NAME = "zilla.engine.local.config.uri";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
     public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
+    public static final String ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME = "zilla.engine.timer.wheel.tick.millis";
+    public static final String ENGINE_TIMER_WHEEL_TICKS_NAME = "zilla.engine.timer.wheel.ticks";
     public static final String ENGINE_ROUTER_NAME = "zilla.engine.router";
     public static final String ENGINE_SERVICE_HOSTNAME_NAME = "zilla.engine.service.hostname";
     public static final String ENGINE_NODE_INSTANCE_ID_NAME = "zilla.engine.node.instance.id";
@@ -93,6 +96,7 @@ public final class EngineRule implements TestRule
     private final EngineBuilder builder;
 
     private Engine engine;
+    private Clock clock;
 
     private EngineConfiguration configuration;
     private String configRoot;
@@ -144,6 +148,13 @@ public final class EngineRule implements TestRule
         requireNonNull(value);
         properties.setProperty(name, value);
         return this;
+    }
+
+    public EngineRule clock(
+        Clock clock)
+    {
+        this.clock = requireNonNull(clock);
+        return configure(ENGINE_CLOCK_NAME, TestClock.class.getName() + "::supply");
     }
 
     public EngineRule configurationRoot(
@@ -480,6 +491,11 @@ public final class EngineRule implements TestRule
 
                 final FileSystem fs = openConfigFileSystem(config.configURI());
 
+                if (clock != null)
+                {
+                    TestClock.install(clock);
+                }
+
                 engine = builder.config(config)
                                 .errorHandler(errorHandler)
                                 .build();
@@ -506,6 +522,7 @@ public final class EngineRule implements TestRule
                         {
                             release = aroundStart.get();
                             engine.start();
+                            tickClock(config);
                         }
                         catch (Throwable t)
                         {
@@ -536,6 +553,7 @@ public final class EngineRule implements TestRule
                     else
                     {
                         engine.start();
+                        tickClock(config);
                     }
 
                     base.evaluate();
@@ -560,6 +578,10 @@ public final class EngineRule implements TestRule
                     }
                     finally
                     {
+                        if (clock != null)
+                        {
+                            TestClock.uninstall();
+                        }
                         if (fs != null)
                         {
                             fs.close();
@@ -572,6 +594,15 @@ public final class EngineRule implements TestRule
                 }
             }
         };
+    }
+
+    private void tickClock(
+        EngineConfiguration config)
+    {
+        if (clock instanceof TestClock testClock)
+        {
+            testClock.advanceBy(config.timerWheelTickMillis());
+        }
     }
 
     static FileSystem openConfigFileSystem(

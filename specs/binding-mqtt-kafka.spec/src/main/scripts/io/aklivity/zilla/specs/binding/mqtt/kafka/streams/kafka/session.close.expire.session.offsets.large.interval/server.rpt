@@ -269,6 +269,7 @@ write notify RECEIVED_EXPIRE_LATER_SIGNAL
 
 # no session state
 # no migrate signals
+write await CLOCK_RESET
 write advise zilla:flush
 
 # expiry signal for client-1, expire at (now + delay)

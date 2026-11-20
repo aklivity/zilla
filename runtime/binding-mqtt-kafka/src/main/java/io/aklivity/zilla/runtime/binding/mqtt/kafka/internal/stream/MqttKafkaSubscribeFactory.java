@@ -24,11 +24,10 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -138,6 +137,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private static final int SHARED_FRAME_FIXED_SIZE = 13;
     private static final int DUP_FLAG = 1 << DUP.ordinal();
 
+    private final Clock clock;
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -229,6 +229,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         EngineContext context,
         LongFunction<MqttKafkaBindingConfig> supplyBinding)
     {
+        this.clock = context.clock();
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
@@ -272,7 +273,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             {
                 final KafkaMessagesBootstrap stream = new KafkaMessagesBootstrap(binding.id, r);
                 bootstrapStreams.add(stream);
-                stream.doKafkaBeginAt(currentTimeMillis());
+                stream.doKafkaBeginAt(clock.millis());
             });
         }
         this.qosNames.put(0, new String16FW("0"));
@@ -1032,7 +1033,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                    clock.millis() + SECONDS.toMillis(reconnectDelay),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
@@ -1064,7 +1065,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                    clock.millis() + SECONDS.toMillis(reconnectDelay),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
@@ -1086,7 +1087,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
 
                 reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_CONNECT_BOOTSTRAP_STREAM,
                     this::onSignalConnectBootstrapStream);
             }
@@ -1409,7 +1410,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - clock.millis();
                         if (remainingMillis < 0)
                         {
                             expiredMessage = true;
@@ -2139,7 +2140,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                     long expireInterval;
                     if (helper.timeout != -1)
                     {
-                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - now().toEpochMilli();
+                        final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - clock.millis();
                         if (remainingMillis < 0)
                         {
                             expiredMessage = true;
@@ -4198,7 +4199,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final boolean expiring = helper.timeout != -1;
             final long expireInterval =
-                expiring ? kafkaShareDataEx.timestamp() + helper.timeout - now().toEpochMilli() : helper.timeout;
+                expiring ? kafkaShareDataEx.timestamp() + helper.timeout - clock.millis() : helper.timeout;
 
             if (expiring && expireInterval < 0)
             {
@@ -4324,7 +4325,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final boolean expiring = helper.timeout != -1;
             final long expireInterval =
-                expiring ? kafkaFetchDataEx.timestamp() + helper.timeout - now().toEpochMilli() : helper.timeout;
+                expiring ? kafkaFetchDataEx.timestamp() + helper.timeout - clock.millis() : helper.timeout;
 
             if (fetched && !(expiring && expireInterval < 0))
             {

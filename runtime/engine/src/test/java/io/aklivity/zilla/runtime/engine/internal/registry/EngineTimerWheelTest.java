@@ -24,6 +24,8 @@ import java.lang.reflect.Field;
 import org.agrona.DeadlineTimerWheel;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+
 public class EngineTimerWheelTest
 {
     private static final int SESSIONS = 10_000;
@@ -85,7 +87,9 @@ public class EngineTimerWheelTest
     private static DeadlineTimerWheel newWheel(
         long now)
     {
-        return new DeadlineTimerWheel(MILLISECONDS, now, EngineWorker.TIMER_WHEEL_TICK_MILLIS, EngineWorker.TIMER_WHEEL_TICKS);
+        final EngineConfiguration config = new EngineConfiguration();
+
+        return new DeadlineTimerWheel(MILLISECONDS, now, config.timerWheelTickMillis(), config.timerWheelTicks());
     }
 
     private static long wheelBytes(

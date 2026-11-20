@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
-import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -26,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.security.Principal;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -153,6 +153,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final int replyPadAdjust;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
     private final EngineContext context;
+    private final Clock clock;
     private final TlsEventContext event;
 
     private final int decodeMax;
@@ -195,6 +196,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
         this.context = context;
+        this.clock = context.clock();
         this.event = new TlsEventContext(context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
@@ -1143,7 +1145,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                 {
                     assert handshakeTimeoutFutureId == NO_CANCEL_ID;
                     handshakeTimeoutFutureId = signaler.signalAt(
-                        currentTimeMillis() + handshakeTimeoutMillis,
+                        clock.millis() + handshakeTimeoutMillis,
                         originId,
                         routedId,
                         replyId,
@@ -2397,7 +2399,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     if (StreamState.initialClosing(state) &&
                         awaitSyncCloseMillis > 0L)
                     {
-                        final long signalAt = currentTimeMillis() + awaitSyncCloseMillis;
+                        final long signalAt = clock.millis() + awaitSyncCloseMillis;
                         resetLaterAt = signaler.signalAt(signalAt, originId, routedId, traceId,
                             initialId, APP_SIGNAL_RESET_LATER, 0);
                     }

@@ -29,7 +29,6 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
-import static java.time.Instant.now;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -44,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Clock;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -140,6 +140,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final URI serverRoot;
     private final FileSystemDigest digest;
     private final Signaler signaler;
+    private final Clock clock;
     private final Supplier<FileSystemWatcher> supplyWatcher;
 
     private final int decodeMax;
@@ -163,6 +164,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.digest = new FileSystemDigest(readBuffer.byteArray());
         this.supplyWatcher = supplyWatcher;
         this.decodeMax = bufferPool.slotCapacity();
@@ -401,7 +403,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             }
             else
             {
-                long timeoutAt = now().toEpochMilli() + beginEx.timeout();
+                long timeoutAt = clock.millis() + beginEx.timeout();
                 long timeoutId = signaler.signalAt(timeoutAt, originId, routedId, replyId, traceId,
                     TIMEOUT_EXPIRED_SIGNAL_ID, 0);
                 watchedFile = new FileSystemWatcher.WatchedFile(

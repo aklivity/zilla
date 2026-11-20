@@ -88,13 +88,13 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -492,6 +492,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV4;
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketTypeV5;
     private final EngineContext context;
+    private final Clock clock;
 
     private final int maximumPacketSize;
 
@@ -610,6 +611,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
         this.context = context;
+        this.clock = context.clock();
         this.bindings = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
@@ -3281,7 +3283,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             keepAliveTimeoutId = NO_CANCEL_ID;
 
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             if (now >= keepAliveTimeoutAt)
             {
                 session.doSessionAbort(traceId);
@@ -3306,7 +3308,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if ((guardSessionId & MASK_AUTHORIZED) != 0)
             {
-                if (System.currentTimeMillis() >= guard.expiresAt(guardSessionId))
+                if (clock.millis() >= guard.expiresAt(guardSessionId))
                 {
                     if (session != null)
                     {
@@ -3326,7 +3328,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId)
         {
             final long expiringAt = guard.expiringAt(guardSessionId);
-            final long checkAt = expiringAt > System.currentTimeMillis() ? expiringAt : guard.expiresAt(guardSessionId);
+            final long checkAt = expiringAt > clock.millis() ? expiringAt : guard.expiresAt(guardSessionId);
             if (checkAt != EXPIRES_NEVER)
             {
                 guardSessionExpiringId = signaler.signalAt(checkAt, originId, routedId, replyId, traceId,
@@ -3342,7 +3344,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             connectTimeoutId = NO_CANCEL_ID;
 
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             if (now >= connectTimeoutAt)
             {
                 cleanupStreamsUsingAbort(traceId);
@@ -3710,7 +3712,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else if (claimed)
             {
-                stealAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                stealAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
                     originId, routedId, replyId, traceId, SIGNAL_STEAL_SESSION_OWNERSHIP, 0);
             }
         }
@@ -3724,7 +3726,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             ownershipResolved = true;
             store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
             ownerWatch = store.watch(ownerKey, (key, value) -> onOwnershipChallenged(traceId, value));
-            renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+            renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
                 originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
 
             doEstablishSession(traceId);
@@ -3824,7 +3826,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = renewTraceId;
             if (token != null)
             {
-                renewAt = signaler.signalAt(currentTimeMillis() + sessionRenew.toMillis(),
+                renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
                     originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
             }
             else if (owns)
@@ -6965,7 +6967,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (keepAlive > 0)
             {
-                keepAliveTimeoutAt = System.currentTimeMillis() + keepAliveTimeout;
+                keepAliveTimeoutAt = clock.millis() + keepAliveTimeout;
 
                 if (keepAliveTimeoutId == NO_CANCEL_ID)
                 {
@@ -6979,7 +6981,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doSignalConnectTimeout(
             long traceId)
         {
-            connectTimeoutAt = System.currentTimeMillis() + connectTimeoutMillis;
+            connectTimeoutAt = clock.millis() + connectTimeoutMillis;
 
             if (connectTimeoutId == NO_CANCEL_ID)
             {
@@ -8451,7 +8453,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 final long traceId = signal.traceId();
 
-                final long now = System.currentTimeMillis();
+                final long now = clock.millis();
                 if (now >= publishExpiresAt && decodeablePublishPayloadBytes == 0)
                 {
                     doPublishEnd(traceId);
@@ -8466,7 +8468,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private void doSignalPublishExpiration(
                 long traceId)
             {
-                publishExpiresAt = System.currentTimeMillis() + publishTimeoutMillis;
+                publishExpiresAt = clock.millis() + publishTimeoutMillis;
 
                 if (publishExpiresId == NO_CANCEL_ID)
                 {
