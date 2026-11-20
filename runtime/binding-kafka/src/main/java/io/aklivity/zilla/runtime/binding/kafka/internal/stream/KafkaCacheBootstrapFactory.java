@@ -111,6 +111,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
     private final int kafkaTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final BindingHandler streamFactory;
+    private final EngineContext context;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -123,6 +124,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
+        this.context = context;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
@@ -1430,7 +1432,8 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
             state = StreamState.openingInitial(state);
 
-            this.initialId = supplyInitialId.applyAsLong(bootstrap.resolvedId);
+            this.initialId = context.supplyInitialId(bootstrap.resolvedId,
+                context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(bootstrap.topic, partitionId)));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onFetchReply,
                 bootstrap.routedId, bootstrap.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
@@ -1695,7 +1698,8 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
             state = StreamState.openingInitial(state);
 
-            this.initialId = supplyInitialId.applyAsLong(bootstrap.resolvedId);
+            this.initialId = context.supplyInitialId(bootstrap.resolvedId,
+                context.resolveAffinityId(bootstrap.groupId.hashCode()));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onConsumerReply,
                 bootstrap.routedId,  bootstrap.resolvedId, initialId, initialSeq, initialAck, state, initialMax,

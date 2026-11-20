@@ -155,7 +155,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
+    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
@@ -182,7 +182,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
+        this.context = context;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
@@ -259,6 +259,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                             affinity,
                             leadersByPartitionId,
                             partition,
+                            partitionKey,
                             defaultOffset);
 
                 cacheRoute.clientFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
@@ -558,6 +559,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final long authorization;
         private final Int2IntHashMap leadersByPartitionId;
         private final KafkaCachePartition partition;
+        private final long partitionKey;
         private final List<KafkaCacheClientFetchStream> members;
 
         private long leaderId;
@@ -588,6 +590,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long leaderId,
             Int2IntHashMap leadersByPartitionId,
             KafkaCachePartition partition,
+            long partitionKey,
             long defaultOffset)
         {
             this.originId = originId;
@@ -595,6 +598,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.authorization = authorization;
             this.leadersByPartitionId = leadersByPartitionId;
             this.partition = partition;
+            this.partitionKey = partitionKey;
             this.partitionOffset = defaultOffset;
             this.stableOffset = DEFAULT_STABLE_OFFSET;
             this.latestOffset = DEFAULT_LATEST_OFFSET;
@@ -723,7 +727,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.initialId = context.supplyInitialId(routedId, context.resolveAffinityId(partitionKey));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onClientFanoutMessage,
