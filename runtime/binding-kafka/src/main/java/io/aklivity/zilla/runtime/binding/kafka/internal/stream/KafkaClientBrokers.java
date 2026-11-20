@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.io.StringReader;
 
 import jakarta.json.Json;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
 
 import org.agrona.LangUtil;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -35,6 +37,8 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class KafkaClientBrokers
 {
     private static final String BROKERS_NAME = "brokers";
+    private static final String PARTITIONS_NAME = "partitions";
+    private static final String EXPIRES_AT_NAME = "expiresAt";
 
     private final Object2ObjectHashMap<String, KafkaClientBrokersEntry> entriesByKey = new Object2ObjectHashMap<>();
 
@@ -44,6 +48,48 @@ final class KafkaClientBrokers
         String route)
     {
         return String.format("zilla:%s-%s:brokers:%s", namespace, binding, route);
+    }
+
+    static String metaKey(
+        String namespace,
+        String binding,
+        String route,
+        String topic)
+    {
+        return String.format("zilla:%s-%s:meta:%s:%s", namespace, binding, route, topic);
+    }
+
+    static String encodePartitions(
+        long expiresAt,
+        Int2IntHashMap leadersByPartitionId)
+    {
+        final JsonObjectBuilder partitions = Json.createObjectBuilder();
+        leadersByPartitionId.keySet().stream()
+            .sorted()
+            .forEach(id -> partitions.add(String.valueOf(id), leadersByPartitionId.get(id)));
+
+        return Json.createObjectBuilder()
+            .add(EXPIRES_AT_NAME, expiresAt)
+            .add(PARTITIONS_NAME, partitions)
+            .build()
+            .toString();
+    }
+
+    static long decodePartitions(
+        String value,
+        Int2IntHashMap leadersByPartitionId)
+    {
+        try (JsonReader reader = Json.createReader(new StringReader(value)))
+        {
+            final JsonObject meta = reader.readObject();
+            final JsonObject partitions = meta.getJsonObject(PARTITIONS_NAME);
+
+            leadersByPartitionId.clear();
+            partitions.forEach((id, leader) ->
+                leadersByPartitionId.put(Integer.parseInt(id), ((JsonNumber) leader).intValue()));
+
+            return meta.getJsonNumber(EXPIRES_AT_NAME).longValue();
+        }
     }
 
     static String encode(

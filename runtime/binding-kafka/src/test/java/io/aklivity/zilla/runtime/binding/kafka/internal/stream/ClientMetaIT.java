@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_META_MAX_AGE_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,7 +29,9 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientMetaIT
 {
@@ -38,11 +41,14 @@ public class ClientMetaIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(15, SECONDS));
 
+    private final TestClock clock = TestClock.of(1000L);
+
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(KAFKA_CLIENT_META_MAX_AGE_MILLIS, 0)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .clock(clock)
         .external("net0")
         .clean();
 
@@ -89,11 +95,44 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.store.brokers.yaml")
+    @Configuration("client.store.meta.yaml")
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info/server"})
-    public void shouldPublishBrokersToStore() throws Exception
+    public void shouldPublishMetaToStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.store.meta.entries.yaml")
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
+    @Specification({
+        "${app}/topic.partition.info/client"})
+    public void shouldReceiveMetaFromStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.store.meta.stale.yaml")
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
+    @Specification({
+        "${app}/topic.partition.info/client",
+        "${net}/topic.partition.info/server"})
+    public void shouldRefreshExpiredMetaFromStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.store.meta.yaml")
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
+    @Specification({
+        "${app}/topic.partition.info.shared/client",
+        "${net}/topic.partition.info/server"})
+    public void shouldShareMetaRequestThroughStore() throws Exception
     {
         k3po.finish();
     }
@@ -115,7 +154,10 @@ public class ClientMetaIT
         "${net}/topic.partition.info.changed/server"})
     public void shouldReceiveTopicPartitionInfoChanged() throws Exception
     {
-        k3po.finish();
+        try (TestClock.Ticker ticker = clock.ticker(10L, 10L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
