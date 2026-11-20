@@ -178,6 +178,7 @@ public final class KafkaStub implements BindingHandler
     private final int progressOffsetPosition;
     private final int progressCorrelationPosition;
 
+    private final MutableDirectBufferEx echoBuffer = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
     private final DirectBufferEx emptyEx = new UnsafeBufferEx(new byte[0]);
     private final DirectBufferEx describeBeginEx;
     private final DirectBufferEx describeDataEx;
@@ -1029,9 +1030,7 @@ public final class KafkaStub implements BindingHandler
 
                 if (endsWith(produce.key(), WILL_KEY_POSTFIX))
                 {
-                    final byte[] echoBytes = new byte[PARTITION_FLUSH_CAPACITY];
-                    final MutableDirectBufferEx echoEx = new UnsafeBufferEx(echoBytes);
-                    final int echoLength = kafkaDataExRW.wrap(echoEx, 0, echoEx.capacity())
+                    final int echoLength = kafkaDataExRW.wrap(echoBuffer, 0, echoBuffer.capacity())
                         .typeId(kafkaTypeId)
                         .merged(m -> m.fetch(f -> f
                             .deferred(0)
@@ -1049,7 +1048,9 @@ public final class KafkaStub implements BindingHandler
                     final DirectBufferEx echoPayload = data.payload() != null
                         ? new UnsafeBufferEx(copyOf(data.payload())) : null;
 
-                    schedule(() -> willSignalStream.doEcho(echoPayload, new UnsafeBufferEx(copyOf(echoEx, echoLength))));
+                    final DirectBufferEx echoExtension = new UnsafeBufferEx(copyOf(echoBuffer, echoLength));
+
+                    schedule(() -> willSignalStream.doEcho(echoPayload, echoExtension));
                 }
             }
         }
@@ -1126,15 +1127,16 @@ public final class KafkaStub implements BindingHandler
                 }
 
                 willFetchPayload = new UnsafeBufferEx(message);
-                final byte[] extension = KafkaFunctions.dataEx()
+                final int extensionLength = kafkaDataExRW.wrap(echoBuffer, 0, echoBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged()
-                        .fetch()
-                            .deferred(0)
-                            .partition(-1, -1)
-                            .key(new String(willFetchKey, StandardCharsets.UTF_8))
-                            .build()
-                        .build();
+                    .merged(m -> m.fetch(f -> f
+                        .deferred(0)
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(k -> k.length(willFetchKey.length)
+                            .value(new UnsafeBufferEx(willFetchKey), 0, willFetchKey.length))))
+                    .build()
+                    .sizeof();
+                final byte[] extension = copyOf(echoBuffer, extensionLength);
                 willFetchEx = new UnsafeBufferEx(extension);
             }
 
