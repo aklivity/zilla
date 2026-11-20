@@ -455,4 +455,24 @@ public class ManyToOneRingBufferTest
         inOrder.verify(buffer).putBytes(encodedMsgOffset(0), srcBuffer, 0, messageLength);
         inOrder.verify(buffer).putIntOrdered(lengthOffset(0), recordLength);
     }
+
+    @Test
+    public void shouldWriteWhenTailAdvancesPastSnapshotWhileWrapping()
+    {
+        final int length = 8;
+        final int recordLength = length + HEADER_LENGTH;
+        final long staleTail = CAPACITY - 8L;
+        final long freshTail = CAPACITY + 16L;
+        final long head = CAPACITY;
+        final int tailIndex = (int) freshTail & (CAPACITY - 1);
+
+        when(buffer.getLongVolatile(TAIL_COUNTER_INDEX)).thenReturn(staleTail, freshTail);
+        when(buffer.getLongVolatile(HEAD_COUNTER_CACHE_INDEX)).thenReturn(0L);
+        when(buffer.getLongVolatile(HEAD_COUNTER_INDEX)).thenReturn(head);
+        when(buffer.compareAndSetInt(lengthOffset(tailIndex), 0, -recordLength)).thenReturn(TRUE);
+
+        final UnsafeBufferEx srcBuffer = new UnsafeBufferEx(new byte[1024]);
+
+        assertTrue(ringBuffer.write(MSG_TYPE_ID, srcBuffer, 0, length));
+    }
 }
