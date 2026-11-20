@@ -4671,6 +4671,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
                 newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub));
+                if (session.unAckedSubscriptions == EMPTY_LIST)
+                {
+                    session.unAckedSubscriptions = new ArrayList<>();
+                }
                 session.unAckedSubscriptions.addAll(newSubscriptions);
 
                 if (subscribeFailed(newSubscriptions))
@@ -4864,6 +4868,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
                     newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub));
+                    if (session.unAckedSubscriptions == EMPTY_LIST)
+                    {
+                        session.unAckedSubscriptions = new ArrayList<>();
+                    }
                     session.unAckedSubscriptions.addAll(newSubscriptions);
 
                     if (subscribeFailed(newSubscriptions))
@@ -5303,6 +5311,10 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 if (anySubscribePending(topicFilters))
                 {
+                    if (session.deferredUnsubscribes == EMPTY_INT_MAP)
+                    {
+                        session.deferredUnsubscribes = new Int2ObjectHashMap<>();
+                    }
                     session.deferredUnsubscribes.put(packetId, topicFilters);
                     putPendingFilters(packetId, topicFilters);
                     return;
@@ -5320,6 +5332,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         for (int index = 0; index < topicFilters.size(); index++)
                         {
                             stopDelivering(traceId, topicFilters.get(index));
+                        }
+                        if (session.deferredUnsubscribes == EMPTY_INT_MAP)
+                        {
+                            session.deferredUnsubscribes = new Int2ObjectHashMap<>();
                         }
                         session.deferredUnsubscribes.put(packetId, topicFilters);
                     }
@@ -7241,8 +7257,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private class MqttSessionStream
         {
             private List<Subscription> subscriptions;
-            private final List<Subscription> unAckedSubscriptions;
-            private final Int2ObjectHashMap<List<String>> deferredUnsubscribes;
+            private List<Subscription> unAckedSubscriptions;
+            private Int2ObjectHashMap<List<String>> deferredUnsubscribes;
             private MessageConsumer application;
 
             private long originId;
@@ -7273,14 +7289,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long routedId,
                 int packetId)
             {
-                this.subscriptions = new ArrayList<>();
+                this.subscriptions = Collections.emptyList();
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.packetId = packetId;
-                this.unAckedSubscriptions = new ArrayList<>();
-                this.deferredUnsubscribes = new Int2ObjectHashMap<>();
+                this.unAckedSubscriptions = Collections.emptyList();
+                this.deferredUnsubscribes = Int2ObjectHashMaps.emptyMap();
             }
 
             private void onSession(
