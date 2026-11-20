@@ -4198,10 +4198,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             helper.visit(kafkaShareDataEx.headers());
 
             final boolean expiring = helper.timeout != -1;
-            final long expireInterval =
-                expiring ? kafkaShareDataEx.timestamp() + helper.timeout - clock.millis() : helper.timeout;
+            final long remainingMillis = expiring ?
+                kafkaShareDataEx.timestamp() + TimeUnit.SECONDS.toMillis(helper.timeout) - clock.millis() : 0L;
+            final long expireInterval = expiring ? TimeUnit.MILLISECONDS.toSeconds(remainingMillis) : helper.timeout;
 
-            if (expiring && expireInterval < 0)
+            if (expiring && remainingMillis < 0)
             {
                 shared.decoder = decodeRecordSkip;
             }

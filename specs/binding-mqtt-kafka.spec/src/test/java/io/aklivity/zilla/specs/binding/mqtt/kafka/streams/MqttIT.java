@@ -1497,6 +1497,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.shared.message.expiry.interval.reduced/server"})
+    public void shouldSubscribeSharedMessageExpiryIntervalReduced() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.receive.message.parent.level.overlapping/client",
         "${mqtt}/subscribe.receive.message.parent.level.overlapping/server"})
     public void shouldReceiveMessageAtParentLevelWithOverlappingFilters() throws Exception
