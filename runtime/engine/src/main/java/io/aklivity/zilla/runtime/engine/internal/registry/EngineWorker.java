@@ -196,8 +196,8 @@ public class EngineWorker implements EngineContext, Agent
     private static final int NODE_SHIFT_SIZE = 48;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
-    private static final int TIMER_WHEEL_TICK_MILLIS = 64;
-    private static final int TIMER_WHEEL_TICKS = 8192;
+    static final int TIMER_WHEEL_TICK_MILLIS = 64;
+    static final int TIMER_WHEEL_TICKS = 512;
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
