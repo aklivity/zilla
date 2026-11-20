@@ -3491,11 +3491,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int available()
         {
             final long credit = stream != null ? stream.initialAvailable() - stream.initialPad : 0L;
-            final int available = (int) Math.min(Math.max(credit - (writing != null ? writing.pending() : 0), 0L),
-                extBuffer.capacity());
-            final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
-            return available - appendRoom;
+            return (int) Math.min(Math.max(credit - (writing != null ? writing.pending() : 0), 0L), extBuffer.capacity());
         }
 
         private int position()
