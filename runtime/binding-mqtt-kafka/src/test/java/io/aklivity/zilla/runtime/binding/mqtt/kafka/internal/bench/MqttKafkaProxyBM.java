@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
 
+import org.agrona.collections.IntArrayQueue;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -122,6 +123,14 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * its Kafka streams, and the next subscription begins. {@code depth} is the number of subscriptions kept
  * outstanding, {@code payload} the size of the retained message and {@code ackDelayMillis} the delay of every stub
  * answer.
+ * <p>
+ * {@code deliverLagged} is {@code deliver} with a subscriber that acknowledges late: it holds each acknowledgement
+ * back until {@code ackLag} newer messages have been delivered on the same subscribe stream, so the proxy tracks
+ * {@code ackLag} unacknowledged messages for every active subscription. Each subscription is primed with
+ * {@code ackLag} plus one messages and each acknowledgement it commits is answered by delivering the next message to
+ * the same subscription, which keeps {@code ackLag} messages outstanding in steady state. Subscriptions are primed
+ * one at a time so the stub never writes more than one subscription's messages ahead of the proxy; an
+ * {@code ackLag} of 0 acknowledges every message at once and is the baseline.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -194,6 +203,13 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void deliver(
         DeliverFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void deliverLagged(
+        LaggedDeliverFixture fixture)
     {
         fixture.complete();
     }
@@ -996,6 +1012,11 @@ public class MqttKafkaProxyBM
             return 0;
         }
 
+        int ackLag()
+        {
+            return 0;
+        }
+
         abstract String configuration();
 
         String qosName()
@@ -1138,6 +1159,8 @@ public class MqttKafkaProxyBM
             private final MqttFlushExFW flushExRO = new MqttFlushExFW();
             private final byte[] ackBytes = new byte[ackEx.capacity()];
             private final MutableDirectBufferEx ack = new UnsafeBufferEx(ackBytes);
+            private final IntArrayQueue unacknowledged = new IntArrayQueue();
+            private final int ackLag = ackLag();
             private final byte[] completeBytes = new byte[completeEx != null ? completeEx.capacity() : 0];
             private final MutableDirectBufferEx complete = new UnsafeBufferEx(completeBytes);
             private final int index;
@@ -1182,8 +1205,13 @@ public class MqttKafkaProxyBM
                     final DataFW data = dataRO.wrap(buffer, index, index + length);
                     final MqttDataExFW mqttDataEx = dataExRO.wrap(data.extension().buffer(), data.extension().offset(),
                         data.extension().limit());
-                    ack.putShort(ackPacketIdOffset, (short) mqttDataEx.subscribe().packetId(), ByteOrder.LITTLE_ENDIAN);
-                    client.flush(ack, 0, ack.capacity());
+                    unacknowledged.addInt(mqttDataEx.subscribe().packetId());
+
+                    if (unacknowledged.size() > ackLag)
+                    {
+                        ack.putShort(ackPacketIdOffset, (short) unacknowledged.pollInt(), ByteOrder.LITTLE_ENDIAN);
+                        client.flush(ack, 0, ack.capacity());
+                    }
                     break;
                 case FlushFW.TYPE_ID:
                     final FlushFW flush = flushRO.wrap(buffer, index, index + length);
@@ -1297,6 +1325,43 @@ public class MqttKafkaProxyBM
 
             idle.add(opened.get(committed));
             kafka.deliver(idle.poll().index);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class LaggedDeliverFixture extends DeliverFixture
+    {
+        @Param({"0", "100", "1000"})
+        public int ackLag;
+
+        @Override
+        int ackLag()
+        {
+            return ackLag;
+        }
+
+        @Override
+        void prime()
+        {
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                final int subscriber = idle.poll().index;
+
+                for (int message = 0; message <= ackLag; message++)
+                {
+                    kafka.deliver(subscriber);
+                }
+
+                complete();
+            }
+        }
+
+        @Override
+        void complete()
+        {
+            await(committedAvailable, "message delivered and acknowledged");
+
+            kafka.deliver(committed);
         }
     }
 
