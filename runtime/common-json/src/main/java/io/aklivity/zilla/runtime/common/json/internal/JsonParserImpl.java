@@ -985,7 +985,7 @@ public final class JsonParserImpl implements JsonParserEx
         // shared cursor so a resumed write continues from where the bounded output left off; otherwise (a
         // verbatim/segment value) the full decoded view
         return charScalar() && stringViewOffset > 0
-            ? stringViewRO.wrap(spanView(), stringViewOffset)
+            ? stringViewRO.wrap(resumedView(), stringViewOffset)
             : spanView();
     }
 
@@ -1008,6 +1008,31 @@ public final class JsonParserImpl implements JsonParserEx
         {
             view = encodedView.wrap(syncedBuffer, tokenizer.tokenOffset(), length, tokenizer.tokenChars(),
                 tokenizer.tokenPlain());
+        }
+
+        return view;
+    }
+
+    // once part of the token has been consumed, the view already reading it keeps its place, so each step continues
+    // from where the previous step stopped instead of decoding the token again from its start
+    private JsonStringView resumedView()
+    {
+        final int length = tokenizer.tokenLength();
+        final int offset = tokenizer.tokenOffset();
+        final int chars = tokenizer.tokenChars();
+        final JsonStringView view;
+
+        if (length >= 0 && tokenizer.inScope() && escapedView.wraps(syncedBuffer, offset, length, chars))
+        {
+            view = escapedView;
+        }
+        else if (length >= 0 && !tokenizer.inScope() && encodedView.wraps(syncedBuffer, offset, length, chars))
+        {
+            view = encodedView;
+        }
+        else
+        {
+            view = spanView();
         }
 
         return view;

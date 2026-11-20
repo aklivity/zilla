@@ -183,6 +183,15 @@ public interface JsonStringView extends CharSequenceEx
             return this;
         }
 
+        public boolean wraps(
+            DirectBufferEx buffer,
+            int offset,
+            int byteLength,
+            int chars)
+        {
+            return this.buffer == buffer && this.offset == offset && limit == offset + byteLength && length == chars;
+        }
+
         @Override
         public int length()
         {
@@ -637,6 +646,15 @@ public interface JsonStringView extends CharSequenceEx
             restart();
 
             return this;
+        }
+
+        public boolean wraps(
+            DirectBufferEx buffer,
+            int offset,
+            int byteLength,
+            int chars)
+        {
+            return this.buffer == buffer && this.offset == offset && limit == offset + byteLength && length == chars;
         }
 
         @Override
