@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
@@ -87,29 +86,54 @@ public class MqttKafkaBindingConfig
     public MqttKafkaRouteConfig resolve(
         long authorization)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization))
-            .findFirst()
-            .orElse(null);
+        MqttKafkaRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttKafkaRouteConfig route = routes.get(index);
+            if (route.authorized(authorization))
+            {
+                resolved = route;
+            }
+        }
+
+        return resolved;
     }
 
     public MqttKafkaRouteConfig resolve(
         long authorization,
         String topic)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic, MqttKafkaConditionKind.PUBLISH))
-            .findFirst()
-            .orElse(null);
+        MqttKafkaRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttKafkaRouteConfig route = routes.get(index);
+            if (route.authorized(authorization) && route.matches(topic, MqttKafkaConditionKind.PUBLISH))
+            {
+                resolved = route;
+            }
+        }
+
+        return resolved;
     }
 
     public List<MqttKafkaRouteConfig> resolveAll(
         long authorization,
         Array32FW<MqttTopicFilterFW> filters)
     {
-        return routes.stream()
-            .filter(r -> filters.anyMatch(f -> subscribes(r, authorization, f.pattern().asString(), f.shareName().asString())))
-            .collect(Collectors.toList());
+        final List<MqttKafkaRouteConfig> resolved = new ArrayList<>(routes.size());
+
+        for (int index = 0; index < routes.size(); index++)
+        {
+            final MqttKafkaRouteConfig route = routes.get(index);
+            if (filters.anyMatch(f -> subscribes(route, authorization, f.pattern().asString(), f.shareName().asString())))
+            {
+                resolved.add(route);
+            }
+        }
+
+        return resolved;
     }
 
     public int resolveSubscribeReasonCode(
@@ -124,7 +148,17 @@ public class MqttKafkaBindingConfig
         String topic,
         String share)
     {
-        return routes.stream().anyMatch(r -> subscribes(r, authorization, topic, share)) ? SUCCESS : UNSPECIFIED_ERROR;
+        int reasonCode = UNSPECIFIED_ERROR;
+
+        for (int index = 0; reasonCode != SUCCESS && index < routes.size(); index++)
+        {
+            if (subscribes(routes.get(index), authorization, topic, share))
+            {
+                reasonCode = SUCCESS;
+            }
+        }
+
+        return reasonCode;
     }
 
     private boolean subscribes(
@@ -138,8 +172,15 @@ public class MqttKafkaBindingConfig
 
     public MqttQoS publishQosMax()
     {
-        return routes.stream().noneMatch(r -> r.with != null && r.with.containsParams()) ?
-            publishQosMax : AT_LEAST_ONCE;
+        boolean parameterized = false;
+
+        for (int index = 0; !parameterized && index < routes.size(); index++)
+        {
+            final MqttKafkaRouteConfig route = routes.get(index);
+            parameterized = route.with != null && route.with.containsParams();
+        }
+
+        return parameterized ? AT_LEAST_ONCE : publishQosMax;
     }
 
     public String16FW messagesTopic()
