@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_STREAM_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -48,6 +49,8 @@ public class MqttKafkaSessionProxyIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(999L);
+
     public final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
@@ -57,7 +60,8 @@ public class MqttKafkaSessionProxyIT
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
         .configure(INSTANCE_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
-        .clock(TestClock.of(1000L))
+        .configure(ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, "1")
+        .clock(clock)
         .configure(LIFETIME_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyLifetimeId")
         .configure(WILL_ID_NAME,
@@ -402,7 +406,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -531,7 +541,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
