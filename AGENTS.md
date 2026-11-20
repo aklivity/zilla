@@ -422,7 +422,8 @@ for the concern in front of you, not by inventing a mechanism and iterating.
   pattern was missed. Stop and find the pattern. Do not ship the workaround
   and do not offer it as an option to be replaced later.
 - Correctness comes from honoring the protocol contract, not from margins.
-  Flow control credit is a contract in every direction; see
+  Flow control credit is a contract in every direction, honored exactly by
+  pausing and resuming where processing stopped; see
   [runtime/AGENTS.md](runtime/AGENTS.md) for how it is honored.
 - Do not defer a correctness fix as a "larger change, say if you want it".
   Build the proper behavior in the first change.
