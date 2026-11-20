@@ -4640,7 +4640,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .typeId(mqttTypeId)
                         .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
-                newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub.filter));
+                newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub));
                 session.unAckedSubscriptions.addAll(newSubscriptions);
 
                 if (subscribeFailed(newSubscriptions))
@@ -4833,7 +4833,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .typeId(mqttTypeId)
                             .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
 
-                    newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub.filter));
+                    newSubscriptions.forEach(sub -> sub.reasonCode = resolveSubscribeReasonCode(sub));
                     session.unAckedSubscriptions.addAll(newSubscriptions);
 
                     if (subscribeFailed(newSubscriptions))
@@ -4904,7 +4904,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     else
                     {
-                        subscription.reasonCode = resolveSubscribeReasonCode(subscription.filter);
+                        subscription.reasonCode = resolveSubscribeReasonCode(subscription);
                     }
                 }
             }
@@ -4994,13 +4994,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         }
 
         private int resolveSubscribeReasonCode(
-            String filter)
+            Subscription subscription)
         {
             final MqttBindingConfig binding = bindings.get(routedId);
 
-            return version == 4 && MqttValidator.isShared(filter) || binding == null
+            return version == 4 && subscription.shared() || binding == null
                 ? UNSPECIFIED_ERROR
-                : binding.resolveSubscribeReasonCode(sessionId, filter);
+                : binding.resolveSubscribeReasonCode(sessionId, subscription.shareName(), subscription.pattern());
         }
 
         private boolean subscribeFailed(
@@ -7098,8 +7098,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 String pattern)
             {
                 this.filter = MqttValidator.topicFilter(shareName, pattern);
-                this.shareName = null;
-                this.pattern = null;
+                this.shareName = shareName;
+                this.pattern = pattern;
                 this.filterId = filterIds.computeIfAbsent(filter, f -> --filterIdSequence);
                 return this;
             }

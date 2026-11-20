@@ -41,7 +41,6 @@ import io.aklivity.zilla.config.binding.mqtt.MqttVersion;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -152,11 +151,9 @@ public final class MqttBindingConfig
 
     public int resolveSubscribeReasonCode(
         long authorization,
-        String topicFilter)
+        String shareName,
+        String topic)
     {
-        final String shareName = MqttValidator.shareName(topicFilter);
-        final String topic = shareName != null ? MqttValidator.sharePattern(topicFilter) : topicFilter;
-
         return resolveSubscribe(authorization, shareName, topic) != null ? SUCCESS : UNSPECIFIED_ERROR;
     }
 
