@@ -9967,6 +9967,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.request.window.byte.fragmented/client",
+        "${app}/openai.request.window.byte.fragmented/server"})
+    public void shouldOpenaiRequestWindowByteFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.request.window.padded.1.stall/client",
         "${app}/openai.request.window.padded.1.stall/server"})
     public void shouldOpenaiRequestWindowPadded1Stall() throws Exception

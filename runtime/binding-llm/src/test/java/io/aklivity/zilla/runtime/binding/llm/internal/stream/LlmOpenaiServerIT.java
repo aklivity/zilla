@@ -2256,6 +2256,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.request.window.byte.fragmented/client",
+        "${app}/openai.request.window.byte.fragmented/server"})
+    public void shouldOpenaiRequestWindowByteFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.request.window.padded.1.stall/client",
         "${app}/openai.request.window.padded.1.stall/server"})
     public void shouldOpenaiRequestWindowPadded1Stall() throws Exception

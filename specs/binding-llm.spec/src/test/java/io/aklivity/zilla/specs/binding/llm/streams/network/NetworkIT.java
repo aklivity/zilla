@@ -10489,6 +10489,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.window.byte.fragmented/client",
+        "${net}/openai.request.window.byte.fragmented/server"})
+    public void shouldOpenaiRequestWindowByteFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.window.padded.1.stall/client",
         "${net}/openai.request.window.padded.1.stall/server"})
     public void shouldOpenaiRequestWindowPadded1Stall() throws Exception
