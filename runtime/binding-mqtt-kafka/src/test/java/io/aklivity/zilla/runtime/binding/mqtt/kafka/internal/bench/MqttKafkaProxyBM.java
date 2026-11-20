@@ -32,6 +32,7 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -95,6 +96,8 @@ public class MqttKafkaProxyBM
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final String CLIENT_ID_PREFIX = "client-";
     private static final int CLIENT_ID_DIGITS = 10;
+    private static final int FANOUT_SUBSCRIBERS = 1000;
+    private static final String FANOUT_TOPIC = "device/fanout";
 
     @Benchmark
     public void handshake(
@@ -106,6 +109,14 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void publish(
         PublishFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(FANOUT_SUBSCRIBERS)
+    public void fanout(
+        FanoutFixture fixture)
     {
         fixture.complete();
     }
@@ -464,17 +475,10 @@ public class MqttKafkaProxyBM
         }
     }
 
-    @State(Scope.Benchmark)
-    public static class DeliverFixture
+    public abstract static class SubscribeFixture
     {
         private static final long OFFSET_MARKER = 0x0102030405060708L;
         private static final int ACK_PACKET_ID_MARKER = 0x7e57;
-
-        @Param({"1000"})
-        public int subscribers;
-
-        @Param({"1", "256"})
-        public int inflight;
 
         @Param({"16", "1024"})
         public int payload;
@@ -482,16 +486,23 @@ public class MqttKafkaProxyBM
         @Param({"0", "5"})
         public long ackDelayMillis;
 
-        private final Queue<Subscriber> idle = new ArrayDeque<>();
-        private final List<Subscriber> opened = new ArrayList<>();
+        final Queue<Subscriber> idle = new ArrayDeque<>();
+        final List<Subscriber> opened = new ArrayList<>();
 
-        private EngineBench bench;
-        private KafkaStub kafka;
-        private BooleanSupplier committedAvailable;
+        EngineBench bench;
+        KafkaStub kafka;
+        BooleanSupplier committedAvailable;
         private DirectBufferEx ackEx;
         private int ackPacketIdOffset;
-        private int established;
-        private int committed;
+        int established;
+        int committed;
+
+        abstract int subscribers();
+
+        abstract String topic(
+            int subscriber);
+
+        abstract void prime();
 
         @Setup(Level.Trial)
         public void init() throws Exception
@@ -523,9 +534,9 @@ public class MqttKafkaProxyBM
 
             final DirectBufferEx message = new UnsafeBufferEx(new byte[payload]);
 
-            for (int subscriber = 0; subscriber < subscribers; subscriber++)
+            for (int subscriber = 0; subscriber < subscribers(); subscriber++)
             {
-                final String topic = "device/" + subscriber;
+                final String topic = topic(subscriber);
                 final byte[] beginEx = MqttFunctions.beginEx()
                     .typeId(mqttTypeId)
                     .subscribe()
@@ -555,10 +566,7 @@ public class MqttKafkaProxyBM
                 idle.add(subscribed);
             }
 
-            for (int slot = 0; slot < inflight; slot++)
-            {
-                kafka.deliver(idle.poll().index);
-            }
+            prime();
         }
 
         @TearDown(Level.Trial)
@@ -567,15 +575,7 @@ public class MqttKafkaProxyBM
             bench.close();
         }
 
-        void complete()
-        {
-            await(committedAvailable, "message delivered and acknowledged");
-
-            idle.add(opened.get(committed));
-            kafka.deliver(idle.poll().index);
-        }
-
-        private void await(
+        void await(
             BooleanSupplier condition,
             String description)
         {
@@ -671,6 +671,81 @@ public class MqttKafkaProxyBM
             }
         }
 
+    }
+
+    @State(Scope.Benchmark)
+    public static class DeliverFixture extends SubscribeFixture
+    {
+        @Param({"1000"})
+        public int subscribers;
+
+        @Param({"1", "256"})
+        public int inflight;
+
+        @Override
+        int subscribers()
+        {
+            return subscribers;
+        }
+
+        @Override
+        String topic(
+            int subscriber)
+        {
+            return "device/" + subscriber;
+        }
+
+        @Override
+        void prime()
+        {
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                kafka.deliver(idle.poll().index);
+            }
+        }
+
+        void complete()
+        {
+            await(committedAvailable, "message delivered and acknowledged");
+
+            idle.add(opened.get(committed));
+            kafka.deliver(idle.poll().index);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class FanoutFixture extends SubscribeFixture
+    {
+        @Override
+        int subscribers()
+        {
+            return FANOUT_SUBSCRIBERS;
+        }
+
+        @Override
+        String topic(
+            int subscriber)
+        {
+            return FANOUT_TOPIC;
+        }
+
+        @Override
+        void prime()
+        {
+        }
+
+        void complete()
+        {
+            for (int subscriber = 0; subscriber < FANOUT_SUBSCRIBERS; subscriber++)
+            {
+                kafka.deliver(subscriber);
+            }
+
+            for (int delivery = 0; delivery < FANOUT_SUBSCRIBERS; delivery++)
+            {
+                await(committedAvailable, "message delivered and acknowledged");
+            }
+        }
     }
 
     public static void main(

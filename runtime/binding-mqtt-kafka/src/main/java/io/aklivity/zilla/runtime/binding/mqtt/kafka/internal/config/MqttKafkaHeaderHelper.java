@@ -67,7 +67,7 @@ public class MqttKafkaHeaderHelper
     public int timeout;
     public OctetsFW contentType;
     public String format;
-    public String qos;
+    public int qos;
     public boolean retained;
     public OctetsFW replyTo;
     public OctetsFW replyKey;
@@ -118,7 +118,7 @@ public class MqttKafkaHeaderHelper
         this.replyTo = null;
         this.replyKey = null;
         this.correlation = null;
-        this.qos = null;
+        this.qos = -1;
         this.retained = false;
         this.userPropertiesOffsets.clear();
         if (headers != null)
@@ -144,7 +144,7 @@ public class MqttKafkaHeaderHelper
             format != null &&
             replyTo != null &&
             correlation != null &&
-            qos != null;
+            qos != -1;
     }
 
     private void skip(
@@ -167,7 +167,7 @@ public class MqttKafkaHeaderHelper
     private void visitQos(
         OctetsFW value)
     {
-        qos = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        qos = value.get((b, o, m) -> m - o == 1 && b.getByte(o) >= '0' && b.getByte(o) <= '2' ? b.getByte(o) - '0' : -1);
     }
 
     private void visitRetain(
