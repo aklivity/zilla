@@ -10450,4 +10450,247 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.byte.text/client",
+        "${net}/openai.request.window.byte.text/server"})
+    public void shouldOpenaiRequestWindowByteText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.byte.tool.call/client",
+        "${net}/openai.request.window.byte.tool.call/server"})
+    public void shouldOpenaiRequestWindowByteToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.byte.control/client",
+        "${net}/openai.request.window.byte.control/server"})
+    public void shouldOpenaiRequestWindowByteControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.byte.escaped/client",
+        "${net}/openai.request.window.byte.escaped/server"})
+    public void shouldOpenaiRequestWindowByteEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.padded.1.stall/client",
+        "${net}/openai.request.window.padded.1.stall/server"})
+    public void shouldOpenaiRequestWindowPadded1Stall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.padded.1.progress/client",
+        "${net}/openai.request.window.padded.1.progress/server"})
+    public void shouldOpenaiRequestWindowPadded1Progress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.padded.32.stall/client",
+        "${net}/openai.request.window.padded.32.stall/server"})
+    public void shouldOpenaiRequestWindowPadded32Stall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.padded.32.progress/client",
+        "${net}/openai.request.window.padded.32.progress/server"})
+    public void shouldOpenaiRequestWindowPadded32Progress() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.steps.text/client",
+        "${net}/openai.request.window.steps.text/server"})
+    public void shouldOpenaiRequestWindowStepsText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.steps.tool.call/client",
+        "${net}/openai.request.window.steps.tool.call/server"})
+    public void shouldOpenaiRequestWindowStepsToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.exact.text/client",
+        "${net}/openai.request.window.exact.text/server"})
+    public void shouldOpenaiRequestWindowExactText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.withheld.slot.4096/client",
+        "${net}/openai.request.window.withheld.slot.4096/server"})
+    public void shouldOpenaiRequestWindowWithheldSlot4096() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.withheld.slot.8192/client",
+        "${net}/openai.request.window.withheld.slot.8192/server"})
+    public void shouldOpenaiRequestWindowWithheldSlot8192() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.4096.below/client",
+        "${net}/openai.request.slot.4096.below/server"})
+    public void shouldOpenaiRequestSlot4096Below() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.4096.at/client",
+        "${net}/openai.request.slot.4096.at/server"})
+    public void shouldOpenaiRequestSlot4096At() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.4096.above/client",
+        "${net}/openai.request.slot.4096.above/server"})
+    public void shouldOpenaiRequestSlot4096Above() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.4096.double/client",
+        "${net}/openai.request.slot.4096.double/server"})
+    public void shouldOpenaiRequestSlot4096Double() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.8192.below/client",
+        "${net}/openai.request.slot.8192.below/server"})
+    public void shouldOpenaiRequestSlot8192Below() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.8192.at/client",
+        "${net}/openai.request.slot.8192.at/server"})
+    public void shouldOpenaiRequestSlot8192At() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.8192.above/client",
+        "${net}/openai.request.slot.8192.above/server"})
+    public void shouldOpenaiRequestSlot8192Above() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.slot.8192.double/client",
+        "${net}/openai.request.slot.8192.double/server"})
+    public void shouldOpenaiRequestSlot8192Double() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.text.16/client",
+        "${net}/openai.request.window.100k.text.16/server"})
+    public void shouldOpenaiRequestWindow100kText16() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.tool.call.16/client",
+        "${net}/openai.request.window.100k.tool.call.16/server"})
+    public void shouldOpenaiRequestWindow100kToolCall16() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.text.127/client",
+        "${net}/openai.request.window.100k.text.127/server"})
+    public void shouldOpenaiRequestWindow100kText127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.tool.call.127/client",
+        "${net}/openai.request.window.100k.tool.call.127/server"})
+    public void shouldOpenaiRequestWindow100kToolCall127() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.text.512/client",
+        "${net}/openai.request.window.100k.text.512/server"})
+    public void shouldOpenaiRequestWindow100kText512() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.window.100k.tool.call.512/client",
+        "${net}/openai.request.window.100k.tool.call.512/server"})
+    public void shouldOpenaiRequestWindow100kToolCall512() throws Exception
+    {
+        k3po.finish();
+    }
 }
