@@ -151,7 +151,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private static final int MIN_WINDOW = 64;
     private static final int CONTROL_GROWTH = 3;
-    private static final int IDENTITY_GROWTH = 1;
 
 
     private static final String MEMBER_STREAM = "stream";
@@ -3333,6 +3332,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private int decodeRoom()
         {
+            return decoder == decodeTools || decoder == decodeTool ? available() : decodeTransformRoom();
+        }
+
+        private int decodeTransformRoom()
+        {
             final int framing = REASONING_PREFIX.length + REASONING_SUFFIX.length;
             final boolean inside = decoder == decodeText && scanType != null;
             final boolean assistant = decoder == decodeText
@@ -3343,9 +3347,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int sections = 1 + (framing + MIN_TEXT_INPUT - 1) / MIN_TEXT_INPUT;
             final int blocks = 1 + (2 * framing + minBlock - 1) / minBlock;
             final int textGrowth = assistant ? Math.max(sections, blocks) : sections;
-            final int growth = decoder == decodeText ? textGrowth
-                : decoder == decodeTool ? IDENTITY_GROWTH
-                : Math.max(textGrowth, CONTROL_GROWTH);
+            final int growth = decoder == decodeText ? textGrowth : Math.max(textGrowth, CONTROL_GROWTH);
 
             return Math.max(available() - reserve, 0) / growth;
         }
