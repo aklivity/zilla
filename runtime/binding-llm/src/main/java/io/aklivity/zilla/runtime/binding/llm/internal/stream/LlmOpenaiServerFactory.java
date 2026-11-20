@@ -4040,6 +4040,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 while (textValueTaken < length && room > 0)
                 {
+                    if (textUnitTaken == 0 && plain(chars))
+                    {
+                        final int run = Math.min(room, length - textValueTaken);
+
+                        body.transfer(chars, textValueTaken, textValueTaken + run,
+                            pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + written));
+                        textValueTaken += run;
+                        written += run;
+                        room -= run;
+                        continue;
+                    }
+
                     final int width = unitWidth(chars, textValueTaken);
                     final int encoded = body.length(chars, textValueTaken, textValueTaken + width);
 
@@ -4076,6 +4088,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, written, false);
             }
+        }
+
+        private boolean plain(
+            JsonStringView chars)
+        {
+            return chars instanceof JsonStringView.Encoded encoded && encoded.plain();
         }
 
         private int unitWidth(
