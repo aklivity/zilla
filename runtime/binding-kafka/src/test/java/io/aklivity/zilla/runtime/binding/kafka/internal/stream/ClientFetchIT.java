@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -104,6 +105,17 @@ public class ClientFetchIT
         "${app}/partition.not.leader.refresh.meta.topics/client",
         "${net}/partition.not.leader.refresh.meta.topics/server"})
     public void shouldRefreshMetaForAllTopicsWhenPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.store.meta.route.flush.yaml")
+    @Specification({
+        "${app}/partition.not.leader.refresh.meta.topics/client",
+        "${net}/partition.not.leader.refresh.meta.topics/server"})
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
+    public void shouldRefreshMetaFromStoreWhenPartitionNotLeader() throws Exception
     {
         k3po.finish();
     }
