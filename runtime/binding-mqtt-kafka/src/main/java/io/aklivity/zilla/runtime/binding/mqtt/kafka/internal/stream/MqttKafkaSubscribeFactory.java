@@ -65,11 +65,14 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedTicketState;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Varint32FW;
@@ -98,6 +101,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFl
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttOffsetStateFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttSubscribeFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.WindowFW;
@@ -175,6 +179,20 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private int dataDeferred;
+    private OctetsFW dataKey;
+    private int dataPacketId;
+    private int dataQos;
+    private long dataFilters;
+    private long dataExpireInterval;
+    private KafkaProxy dataProxy;
+    private KafkaMergedDataExFW dataKafkaEx;
+    private OctetsFW dataPropertyName;
+    private OctetsFW dataPropertyValue;
+    private final Consumer<MqttSubscribeDataExFW.Builder> subscribeDataWriter;
+    private final Consumer<MqttPayloadFormatFW.Builder> payloadFormatWriter;
+    private final Consumer<MqttBinaryFW.Builder> correlationWriter;
+    private final Consumer<MqttUserPropertyFW.Builder> propertyWriter;
     private int consumerProgressPartitionId;
     private long consumerProgressPartitionOffset;
     private String16FW consumerProgressMetadata;
@@ -263,6 +281,62 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
+        this.payloadFormatWriter = f -> f.set(MqttPayloadFormat.valueOf(helper.format));
+        this.correlationWriter = c -> c.bytes(helper.correlation);
+        this.propertyWriter = pi -> pi
+            .key(dataPropertyName.buffer(), dataPropertyName.offset(), dataPropertyName.sizeof())
+            .value(dataPropertyValue.buffer(), dataPropertyValue.offset(), dataPropertyValue.sizeof());
+        this.subscribeDataWriter = b ->
+        {
+            b.deferred(dataDeferred);
+            b.topic(dataKey.buffer(), dataKey.offset(), dataKey.sizeof());
+            if (dataPacketId != NO_PACKET_ID)
+            {
+                b.packetId(dataPacketId);
+                b.qos(dataQos);
+            }
+
+            final int matchedFlags = dataProxy.buildSubscriptionIds(dataFilters);
+            final boolean retainAsPublished = (matchedFlags & RETAIN_AS_PUBLISHED_FLAG) != 0;
+            b.flags(helper.retained && retainAsPublished ? RETAIN_FLAG : 0);
+            b.subscriptionIds(subscriptionIdsRW.build());
+
+            if (dataExpireInterval != -1)
+            {
+                b.expiryInterval((int) dataExpireInterval);
+            }
+            if (helper.contentType != null)
+            {
+                b.contentType(helper.contentType.buffer(), helper.contentType.offset(), helper.contentType.sizeof());
+            }
+            if (helper.format != null)
+            {
+                b.format(payloadFormatWriter);
+            }
+            if (helper.replyKey != null)
+            {
+                b.responseTopic(helper.replyKey.buffer(), helper.replyKey.offset(), helper.replyKey.sizeof());
+            }
+            if (helper.correlation != null)
+            {
+                b.correlation(correlationWriter);
+            }
+
+            final DirectBufferEx buffer = dataKafkaEx.buffer();
+            final int limit = dataKafkaEx.limit();
+            for (int index = 0; index < helper.userPropertiesOffsets.size(); index++)
+            {
+                final int o = helper.userPropertiesOffsets.getInt(index);
+                final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
+                final OctetsFW value = header.value();
+                if (value != null)
+                {
+                    dataPropertyName = header.name();
+                    dataPropertyValue = value;
+                    b.propertiesItem(propertyWriter);
+                }
+            }
+        };
     }
 
     @Override
@@ -1443,62 +1517,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                         highWaterMark.awaitAcknowledge(partition.partitionOffset());
                     }
 
+                    dataDeferred = deferred;
+                    dataKey = key;
+                    dataPacketId = packetId;
+                    dataQos = messageQos;
+                    dataFilters = filters;
+                    dataExpireInterval = expireInterval;
+                    dataProxy = this;
+                    dataKafkaEx = kafkaMergedDataEx;
+
                     mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(mqttTypeId)
-                        .subscribe(b ->
-                        {
-                            b.deferred(deferred);
-                            b.topic(key.buffer(), key.offset(), key.sizeof());
-                            if (acknowledged)
-                            {
-                                b.packetId(packetId);
-                                b.qos(messageQos);
-                            }
-
-                            final int matchedFlags = buildSubscriptionIds(filters);
-                            final boolean retainAsPublished = (matchedFlags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-                            b.flags(helper.retained && retainAsPublished ? RETAIN_FLAG : 0);
-                            b.subscriptionIds(subscriptionIdsRW.build());
-
-                            if (expireInterval != -1)
-                            {
-                                b.expiryInterval((int) expireInterval);
-                            }
-                            if (helper.contentType != null)
-                            {
-                                b.contentType(
-                                    helper.contentType.buffer(), helper.contentType.offset(), helper.contentType.sizeof());
-                            }
-                            if (helper.format != null)
-                            {
-                                b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
-                            }
-                            if (helper.replyKey != null)
-                            {
-                                b.responseTopic(
-                                    helper.replyKey.buffer(), helper.replyKey.offset(), helper.replyKey.sizeof());
-                            }
-                            if (helper.correlation != null)
-                            {
-                                b.correlation(c -> c.bytes(helper.correlation));
-                            }
-
-                            final DirectBufferEx buffer = kafkaMergedDataEx.buffer();
-                            final int limit = kafkaMergedDataEx.limit();
-                            for (int index = 0; index < helper.userPropertiesOffsets.size(); index++)
-                            {
-                                final int o = helper.userPropertiesOffsets.getInt(index);
-                                final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
-                                final OctetsFW name = header.name();
-                                final OctetsFW value = header.value();
-                                if (value != null)
-                                {
-                                    b.propertiesItem(pi -> pi
-                                        .key(name.buffer(), name.offset(), name.sizeof())
-                                        .value(value.buffer(), value.offset(), value.sizeof()));
-                                }
-                            }
-                        }).build();
+                        .subscribe(subscribeDataWriter)
+                        .build();
                 }
 
                 if (!expiredMessage)
