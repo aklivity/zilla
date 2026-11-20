@@ -26,8 +26,11 @@ import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.LongArrayQueue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -49,7 +52,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.KafkaFunctions;
  * describe, a meta stream per topic, the group coordinator and offset delete api requests, the session offsets
  * fetch, init producer id, the offset commit produce stream and the sessions topic stream. A client with no
  * prior offsets is answered with a flush on the offsets fetch. It also accepts the produce stream that a publish
- * opens on the messages topic.
+ * opens on the messages topic, and answers the flush that a QoS 2 publish sends on it with the partition the
+ * message is produced to.
  * <p>
  * Produce streams are acknowledged by growing the stream window to the received position, as Kafka does, and
  * every answer is delayed by the configured latency; {@link #release()} delivers the delayed answers and must
@@ -64,6 +68,8 @@ public final class KafkaStub implements BindingHandler
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
     private static final int STREAM_WINDOW = 8192;
     private static final int SESSION_SIGNALS = 2;
+    private static final int PRODUCE_PARTITION = 0;
+    private static final int PARTITION_FLUSH_CAPACITY = 1024;
 
     private static final byte[] FIND_COORDINATOR_RESPONSE =
     {
@@ -111,8 +117,11 @@ public final class KafkaStub implements BindingHandler
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final String16FW retainedTopicRO = new String16FW("mqtt-retained");
     private final String16FW messagesTopicRO = new String16FW("mqtt-messages");
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -127,6 +136,7 @@ public final class KafkaStub implements BindingHandler
     private final LongArrayQueue delayedDeadlines = new LongArrayQueue();
     private final List<StubStream> deliverables = new ArrayList<>();
     private final IntArrayQueue committed = new IntArrayQueue(-1);
+    private final int kafkaTypeId;
     private final long delayNanos;
 
     private final DirectBufferEx emptyEx = new UnsafeBufferEx(new byte[0]);
@@ -148,6 +158,7 @@ public final class KafkaStub implements BindingHandler
         int kafkaTypeId,
         long delayMillis)
     {
+        this.kafkaTypeId = kafkaTypeId;
         this.delayNanos = MILLISECONDS.toNanos(delayMillis);
 
         this.describeBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
@@ -351,6 +362,8 @@ public final class KafkaStub implements BindingHandler
         private final Runnable replyStep = this::doReply;
         private final Runnable ackStep = this::doAck;
         private final Runnable deliverStep = this::doDeliverStep;
+        private final Runnable partitionStep = this::doPartitionReply;
+        private final MutableDirectBufferEx partitionEx = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
 
         private MessageConsumer sender;
         private Kind kind;
@@ -371,6 +384,7 @@ public final class KafkaStub implements BindingHandler
         private int acks;
         private int deliverIndex;
         private int deliveries;
+        private int partitionExLength;
         private long deliveryOffset;
         private byte[] deliveryBytes;
         private MutableDirectBufferEx deliveryEx;
@@ -430,6 +444,10 @@ public final class KafkaStub implements BindingHandler
                 if (delivering())
                 {
                     committed.addInt(deliverIndex);
+                }
+                else if (kind == Kind.MESSAGES)
+                {
+                    onProduceFlush(flushRO.wrap(buffer, index, index + length));
                 }
                 break;
             case AbortFW.TYPE_ID:
@@ -505,6 +523,39 @@ public final class KafkaStub implements BindingHandler
             }
         }
 
+        private void onProduceFlush(
+            FlushFW flush)
+        {
+            final KafkaFlushExFW flushEx = flush.extension().get(kafkaFlushExRO::tryWrap);
+
+            if (flushEx != null && flushEx.kind() == KafkaFlushExFW.KIND_MERGED &&
+                flushEx.merged().kind() == KafkaMergedFlushExFW.KIND_PRODUCE)
+            {
+                final KafkaKeyFW hashKey = flushEx.merged().produce().hashKey();
+
+                partitionExLength = kafkaFlushExRW.wrap(partitionEx, 0, partitionEx.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m.produce(p -> p.hashKey(hashKey).partitionId(PRODUCE_PARTITION)))
+                    .build()
+                    .sizeof();
+
+                pending++;
+                schedule(partitionStep);
+            }
+        }
+
+        private void doPartitionReply()
+        {
+            pending--;
+
+            if (!StreamState.replyClosed(state))
+            {
+                doReplyFlush(partitionEx, partitionExLength);
+            }
+
+            doEnd();
+        }
+
         private void doOpen()
         {
             pending--;
@@ -521,7 +572,7 @@ public final class KafkaStub implements BindingHandler
                     replyDue = true;
                     break;
                 case OFFSET_FETCH:
-                    doReplyFlush();
+                    doReplyFlush(emptyEx, 0);
                     break;
                 default:
                     break;
@@ -651,7 +702,7 @@ public final class KafkaStub implements BindingHandler
 
             if (kind == Kind.SESSION && ++acks == SESSION_SIGNALS && !StreamState.replyClosed(state))
             {
-                doReplyFlush();
+                doReplyFlush(emptyEx, 0);
             }
 
             doEnd();
@@ -747,7 +798,9 @@ public final class KafkaStub implements BindingHandler
             sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
         }
 
-        private void doReplyFlush()
+        private void doReplyFlush(
+            DirectBufferEx extension,
+            int extensionLength)
         {
             final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
@@ -758,7 +811,7 @@ public final class KafkaStub implements BindingHandler
                 .state(state)
                 .maximum(0)
                 .budgetId(0L)
-                .extension(emptyEx, 0, 0)
+                .extension(extension, 0, extensionLength)
                 .build();
 
             sender.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
