@@ -34,11 +34,15 @@ read  [0x20 0x03]                   # CONNACK
       [0x00]                        # reason code
       [0x00]                        # properties
 
+read notify CONNECTED
+
 read await WAIT_1_SECOND
 
 write [0xc0 0x00]                   # PINGREQ
 
 read  [0xd0 0x00]                   # PINGRESP
+
+read notify PINGED
 
 read await WAIT_1_SECOND2
 
