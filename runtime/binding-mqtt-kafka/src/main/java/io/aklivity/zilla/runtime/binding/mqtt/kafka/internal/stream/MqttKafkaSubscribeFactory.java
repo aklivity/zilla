@@ -93,7 +93,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaShareAckType;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaShareAckTypeFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaShareDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaShareFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
@@ -204,6 +206,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         .progress(consumerProgressWriter)
         .correlationId(consumerProgressCorrelationId);
     private final Consumer<KafkaMergedFlushExFW.Builder> mergedConsumerProgressWriter = m -> m.consumer(consumerFlushWriter);
+    private int shareAckPartitionId;
+    private long shareAckPartitionOffset;
+    private KafkaShareAckType shareAckType;
+    private final Consumer<KafkaOffsetFW.Builder> shareAckPartitionWriter = p -> p
+        .partitionId(shareAckPartitionId)
+        .partitionOffset(shareAckPartitionOffset);
+    private final Consumer<KafkaShareAckTypeFW.Builder> shareAckTypeWriter = t -> t.set(shareAckType);
+    private final Consumer<KafkaShareFlushExFW.Builder> shareAckWriter = s -> s
+        .partition(shareAckPartitionWriter)
+        .type(shareAckTypeWriter);
     private final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filtersRW =
         new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW());
 
@@ -3667,12 +3679,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         {
             initialSeq = mqtt.initialSeq;
 
+            shareAckPartitionId = partitionId;
+            shareAckPartitionOffset = partitionOffset;
+            shareAckType = type;
+
             final KafkaFlushExFW kafkaFlushEx =
                 kafkaFlushExRW.wrap(writeBuffer, FlushFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .share(s -> s
-                        .partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset))
-                        .type(t -> t.set(type)))
+                    .share(shareAckWriter)
                     .build();
 
             doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
