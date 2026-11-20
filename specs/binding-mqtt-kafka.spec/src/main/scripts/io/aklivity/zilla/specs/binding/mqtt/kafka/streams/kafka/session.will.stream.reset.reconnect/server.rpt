@@ -37,6 +37,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 connected
 
 read abort
+read notify WILL_STREAM_CLOSED
 
 accepted
 

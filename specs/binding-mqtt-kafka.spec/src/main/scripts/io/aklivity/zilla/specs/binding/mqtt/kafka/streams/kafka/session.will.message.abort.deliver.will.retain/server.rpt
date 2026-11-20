@@ -353,6 +353,7 @@ read ${mqtt:sessionSignal()
                .expireAt(2000)
                .build()
            .build()}
+write notify RECEIVED_SESSION_EXPIRE_AT_SIGNAL
 
 read aborted
 write abort
