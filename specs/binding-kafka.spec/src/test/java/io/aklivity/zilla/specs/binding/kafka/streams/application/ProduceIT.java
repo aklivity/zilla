@@ -211,6 +211,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.leader.from.affinity/client",
+        "${app}/message.value.leader.from.affinity/server"})
+    public void shouldSendMessageValueLeaderFromAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.window.before.begin/client",
         "${app}/message.value.window.before.begin/server"})
     public void shouldMessageValueWindowBeforeBegin() throws Exception

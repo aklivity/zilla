@@ -269,6 +269,16 @@ public class ClientFetchIT
     }
 
     @Test
+    @Configuration("client.store.brokers.entries.yaml")
+    @Specification({
+        "${app}/message.value.leader.from.affinity/client",
+        "${net}/message.value.broker.in.store/server"})
+    public void shouldReceiveMessageValueBrokerInStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/message.value.null/client",

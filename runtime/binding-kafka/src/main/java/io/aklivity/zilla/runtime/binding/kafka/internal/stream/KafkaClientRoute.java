@@ -26,6 +26,8 @@ import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 
 public final class KafkaClientRoute
 {
+    public static final int LEADER_UNKNOWN = -1;
+
     private static final LongConsumer[] NO_META_FLUSHES = new LongConsumer[0];
     private static final LongConsumer[] NO_META_REFRESHES = new LongConsumer[0];
 
@@ -99,10 +101,20 @@ public final class KafkaClientRoute
         }
     }
 
+    public static boolean leaderMatches(
+        Int2IntHashMap partitions,
+        int partitionId,
+        long leaderId)
+    {
+        final int knownLeaderId = partitions.get(partitionId);
+
+        return knownLeaderId == LEADER_UNKNOWN || knownLeaderId == leaderId;
+    }
+
     public Int2IntHashMap supplyPartitions(
         String topic)
     {
         int topicKey = System.identityHashCode(topic.intern());
-        return partitions.computeIfAbsent(topicKey, k -> new Int2IntHashMap(-1));
+        return partitions.computeIfAbsent(topicKey, k -> new Int2IntHashMap(LEADER_UNKNOWN));
     }
 }

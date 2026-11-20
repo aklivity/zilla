@@ -229,6 +229,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${net}/message.value.broker.in.store/client",
+        "${net}/message.value.broker.in.store/server"})
+    public void shouldReceiveMessageValueBrokerInStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.value.null/client",
         "${net}/message.value.null/server"})
     public void shouldReceiveMessageValueNull() throws Exception
