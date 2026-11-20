@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFo
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
@@ -320,6 +321,29 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private final Consumer<KafkaMergedDataExFW.Builder> commitOffsetMerged =
             m -> m.produce(commitOffsetProduce);
 
+        private int produceDeferred;
+        private long produceProducerId;
+        private short produceProducerEpoch;
+        private long producePartitionOffset;
+        private final Consumer<String16FW> filterHeaderWriter = th -> addHeader(helper.kafkaFilterHeaderName, th);
+        private final Consumer<MqttUserPropertyFW> propertyHeaderWriter = property ->
+            addHeader(property.key(), property.value());
+        private final Consumer<KafkaKeyFW.Builder> hashKeyWriter = this::setHashKey;
+        private final Consumer<KafkaKeyFW.Builder> keyWriter = b -> b.set(key);
+        private final Consumer<KafkaOffsetFW.Builder> producePartitionWriter = p -> p
+            .partitionId(-1)
+            .partitionOffset(producePartitionOffset);
+        private final Consumer<KafkaMergedProduceDataExFW.Builder> produceWriter = mp -> mp
+            .deferred(produceDeferred)
+            .timestamp(clock.millis())
+            .producerId(produceProducerId)
+            .producerEpoch(produceProducerEpoch)
+            .partition(producePartitionWriter)
+            .key(keyWriter)
+            .hashKey(hashKeyWriter)
+            .headers(kafkaHeadersRW.build());
+        private final Consumer<KafkaMergedDataExFW.Builder> produceMerged = m -> m.produce(produceWriter);
+
         private MqttPublishProxy(
             MessageConsumer mqtt,
             long originId,
@@ -543,7 +567,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 final MqttPublishDataExFW mqttPublishDataEx = mqttDataEx.publish();
                 kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
 
-                topicNameHeaders.forEach(th -> addHeader(helper.kafkaFilterHeaderName, th));
+                topicNameHeaders.forEach(filterHeaderWriter);
 
                 addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
 
@@ -585,8 +609,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     addHeader(helper.kafkaCorrelationHeaderName, mqttPublishDataEx.correlation().bytes());
                 }
 
-                mqttPublishDataEx.properties().forEach(property ->
-                    addHeader(property.key(), property.value()));
+                mqttPublishDataEx.properties().forEach(propertyHeaderWriter);
 
                 addHeader(helper.kafkaQosHeaderName, qosLevels.get(mqttPublishDataEx.qos()));
                 addRetainHeader(mqttPublishDataEx.flags());
@@ -613,18 +636,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     producerSequence = -1;
                 }
 
+                produceDeferred = deferred;
+                produceProducerId = producerId;
+                produceProducerEpoch = producerEpoch;
+                producePartitionOffset = producerSequence;
+
                 kafkaDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
-                    .merged(m -> m.produce(mp -> mp
-                        .deferred(deferred)
-                        .timestamp(clock.millis())
-                        .producerId(producerId)
-                        .producerEpoch(producerEpoch)
-                        .partition(p -> p.partitionId(-1).partitionOffset(producerSequence))
-                        .key(b -> b.set(key))
-                        .hashKey(this::setHashKey)
-                        .headers(kafkaHeadersRW.build())))
+                    .merged(produceMerged)
                     .build();
 
                 publishFlags = mqttPublishDataEx.flags();
@@ -666,18 +686,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                         producerEpoch = metadata.producerEpoch;
                         producerSequence = metadata.sequence;
 
+                        produceDeferred = deferred;
+                        produceProducerId = producerId;
+                        produceProducerEpoch = producerEpoch;
+                        producePartitionOffset = producerSequence;
+
                         kafkaDataEx = kafkaDataExRW
                             .wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
-                            .merged(m -> m.produce(mp -> mp
-                                .deferred(deferred)
-                                .timestamp(clock.millis())
-                                .producerId(producerId)
-                                .producerEpoch(producerEpoch)
-                                .partition(p -> p.partitionId(-1).partitionOffset(producerSequence))
-                                .key(b -> b.set(key))
-                                .hashKey(this::setHashKey)
-                                .headers(kafkaHeadersRW.build())))
+                            .merged(produceMerged)
                             .build();
                     }
 
