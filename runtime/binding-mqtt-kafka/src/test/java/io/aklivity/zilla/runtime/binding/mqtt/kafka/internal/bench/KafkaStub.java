@@ -17,16 +17,19 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.bench;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.function.Consumer;
 
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.LongArrayQueue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
@@ -128,6 +131,7 @@ public final class KafkaStub implements BindingHandler
         MESSAGES_DELIVER,
         SHARE,
         SESSION,
+        SESSION_STATE,
         UNEXPECTED
     }
 
@@ -173,6 +177,10 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx findCoordinatorResponse = new UnsafeBufferEx(FIND_COORDINATOR_RESPONSE);
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
+    private byte[] sessionStateTemplate;
+    private int sessionStateKeyPosition;
+    private int sessionStateKeyLength;
+    private DirectBufferEx sessionStatePayload;
     private DirectBufferEx retainedReplayDataEx;
     private DirectBufferEx retainedReplayPayload;
     private int unexpected;
@@ -331,6 +339,59 @@ public final class KafkaStub implements BindingHandler
     }
 
     /**
+     * Makes the session stream of a client with a stored session state send {@code payload} as that state, in a
+     * fetch data extension keyed by the client id, which is {@code keyLength} bytes long, as the non clean start
+     * session scripts specify. Without it the session stream answers as for a clean start.
+     */
+    public void sessionState(
+        int keyLength,
+        DirectBufferEx payload)
+    {
+        final String keyMarker = "k".repeat(keyLength);
+
+        this.sessionStateTemplate = KafkaFunctions.dataEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .fetch()
+                    .deferred(0)
+                    .partition(-1, -1)
+                    .key(keyMarker)
+                    .build()
+                .build();
+        this.sessionStateKeyLength = keyLength;
+        this.sessionStateKeyPosition = indexOfBytes(sessionStateTemplate, keyMarker.getBytes(StandardCharsets.UTF_8));
+        this.sessionStatePayload = payload;
+    }
+
+    private static int indexOfBytes(
+        byte[] array,
+        byte[] pattern)
+    {
+        int index = -1;
+
+        for (int offset = 0; index == -1 && offset + pattern.length <= array.length; offset++)
+        {
+            int length = 0;
+            while (length < pattern.length && array[offset + length] == pattern[length])
+            {
+                length++;
+            }
+
+            if (length == pattern.length)
+            {
+                index = offset;
+            }
+        }
+
+        if (index == -1)
+        {
+            throw new IllegalStateException("key marker not found in session state data extension");
+        }
+
+        return index;
+    }
+
+    /**
      * Returns whether the offset commit of a replayed retained message has arrived, consuming it.
      */
     public boolean replayCommitted()
@@ -459,7 +520,8 @@ public final class KafkaStub implements BindingHandler
                 : retainedReplayKind(beginEx.merged());
             case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES :
                 beginEx.merged().topic().equals(retainedTopicRO) ? Kind.RETAINED : Kind.OFFSET_COMMIT;
-            case PRODUCE_AND_FETCH -> Kind.SESSION;
+            case PRODUCE_AND_FETCH -> sessionStateTemplate != null && hasKeyFilter(beginEx.merged())
+                ? Kind.SESSION_STATE : Kind.SESSION;
             };
             break;
         default:
@@ -473,6 +535,12 @@ public final class KafkaStub implements BindingHandler
         KafkaMergedBeginExFW merged)
     {
         return merged.groupId().length() > 0 && qosOf(merged) == deliveryQos ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH;
+    }
+
+    private boolean hasKeyFilter(
+        KafkaMergedBeginExFW merged)
+    {
+        return merged.filters().anyMatch(filter -> filter.conditions().anyMatch(c -> c.kind() == KafkaConditionFW.KIND_KEY));
     }
 
     private Kind retainedReplayKind(
@@ -517,6 +585,8 @@ public final class KafkaStub implements BindingHandler
         private final Runnable deliverStep = this::doDeliverStep;
         private final Runnable partitionStep = this::doPartitionReply;
         private final Runnable progressStep = this::doProgressReply;
+        private final Consumer<KafkaConditionFW> keyCapture = this::captureSessionKey;
+        private final Consumer<KafkaFilterFW> filterCapture = filter -> filter.conditions().forEach(keyCapture);
         private final MutableDirectBufferEx partitionEx = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
 
         private MessageConsumer sender;
@@ -540,6 +610,7 @@ public final class KafkaStub implements BindingHandler
         private int deliveries;
         private int partitionExLength;
         private MutableDirectBufferEx progressEx;
+        private MutableDirectBufferEx sessionStateEx;
         private long deliveryOffset;
         private byte[] deliveryBytes;
         private MutableDirectBufferEx deliveryEx;
@@ -650,6 +721,16 @@ public final class KafkaStub implements BindingHandler
                     deliverables.add(this);
                 }
 
+                if (kind == Kind.SESSION_STATE)
+                {
+                    if (sessionStateEx == null)
+                    {
+                        sessionStateEx = new UnsafeBufferEx(sessionStateTemplate.clone());
+                    }
+
+                    beginEx.merged().filters().forEach(filterCapture);
+                }
+
                 doInitialWindow();
                 pending++;
                 schedule(openStep);
@@ -676,6 +757,7 @@ public final class KafkaStub implements BindingHandler
             case MESSAGES:
             case RETAINED:
             case SESSION:
+            case SESSION_STATE:
                 pending++;
                 schedule(ackStep);
                 break;
@@ -752,6 +834,23 @@ public final class KafkaStub implements BindingHandler
             doEnd();
         }
 
+        private void captureSessionKey(
+            KafkaConditionFW condition)
+        {
+            if (condition.kind() == KafkaConditionFW.KIND_KEY)
+            {
+                final KafkaKeyFW key = condition.key();
+
+                if (key.length() != sessionStateKeyLength)
+                {
+                    throw new IllegalStateException(String.format(
+                        "session key length %d, expected %d", key.length(), sessionStateKeyLength));
+                }
+
+                sessionStateEx.putBytes(sessionStateKeyPosition, key.value().buffer(), key.value().offset(), key.length());
+            }
+        }
+
         private void doPartitionReply()
         {
             pending--;
@@ -783,6 +882,7 @@ public final class KafkaStub implements BindingHandler
                     doReplyFlush(emptyEx, 0);
                     break;
                 case RETAINED_REPLAY:
+                case SESSION_STATE:
                     deliveries = 1;
                     break;
                 default:
@@ -798,14 +898,16 @@ public final class KafkaStub implements BindingHandler
 
         private void doReplay()
         {
-            if (kind == Kind.RETAINED_REPLAY && deliveries > 0 && StreamState.replyOpening(state) &&
-                !StreamState.replyClosed(state))
+            if ((kind == Kind.RETAINED_REPLAY || kind == Kind.SESSION_STATE) && deliveries > 0 &&
+                StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
-                final int reserved = retainedReplayPayload.capacity() + replyPad;
+                final DirectBufferEx payload = kind == Kind.SESSION_STATE ? sessionStatePayload : retainedReplayPayload;
+                final DirectBufferEx extension = kind == Kind.SESSION_STATE ? sessionStateEx : retainedReplayDataEx;
+                final int reserved = payload.capacity() + replyPad;
 
                 if (replyAck + replyMax - replySeq >= reserved)
                 {
-                    doReplyData(retainedReplayPayload, retainedReplayDataEx, reserved);
+                    doReplyData(payload, extension, reserved);
                     doReplyFlush(emptyEx, 0);
                     deliveries--;
                 }

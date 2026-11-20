@@ -131,6 +131,14 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * the same subscription, which keeps {@code ackLag} messages outstanding in steady state. Subscriptions are primed
  * one at a time so the stub never writes more than one subscription's messages ahead of the proxy; an
  * {@code ackLag} of 0 acknowledges every message at once and is the baseline.
+ * <p>
+ * Each {@code resume} operation is one persistent session that reconnects and resumes: the peer opens an
+ * {@code mqtt} session stream without a clean start, with a client id it used before, and the operation completes
+ * when the stored session state reaches it. {@link KafkaStub} answers the session stream of a client with the stored
+ * state, a session state of {@code subscriptions} subscriptions in a fetch data extension keyed by the client id,
+ * followed by the caught up flush, as the non clean start session scripts specify. The session stream is then ended
+ * and the next resume begins, so {@code depth} sessions are kept resuming at once. {@code subscriptions} is the size
+ * of the stored session state, which the proxy reads and reconciles on every resume.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -203,6 +211,13 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void deliver(
         DeliverFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void resume(
+        ResumeFixture fixture)
     {
         fixture.complete();
     }
@@ -973,6 +988,158 @@ public class MqttKafkaProxyBM
                 case ResetFW.TYPE_ID:
                     throw new IllegalStateException(String.format(
                         "retained subscribe stream rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class ResumeFixture
+    {
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"1", "100"})
+        public int subscriptions;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Resumption> established = new ArrayDeque<>();
+        private final Queue<Resumption> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private long mqttId;
+        private int mqttTypeId;
+        private int resumptions;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+
+            final MqttFunctions.MqttSessionStateBuilder sessionState = MqttFunctions.session();
+            for (int subscription = 0; subscription < subscriptions; subscription++)
+            {
+                sessionState.subscription("device/" + subscription, subscription + 1);
+            }
+            kafka.sessionState(CLIENT_ID_PREFIX.length() + CLIENT_ID_DIGITS, new UnsafeBufferEx(sessionState.build()));
+            bench.newServer("kafka0", kafka);
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            bench.close();
+        }
+
+        void complete()
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (established.isEmpty())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "session resume timed out, unexpected kafka streams %d", kafka.unexpected()));
+                }
+            }
+
+            established.poll().end();
+            begin();
+        }
+
+        private void begin()
+        {
+            Resumption resumption = idle.poll();
+
+            if (resumption == null)
+            {
+                resumption = new Resumption(++resumptions);
+            }
+
+            resumption.begin();
+        }
+
+        private final class Resumption implements MessageConsumer
+        {
+            private final DataFW dataRO = new DataFW();
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+
+            private Resumption(
+                int number)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .expiry(1)
+                        .clientId(CLIENT_ID_PREFIX + String.format("%0" + CLIENT_ID_DIGITS + "d", number))
+                        .build()
+                    .build());
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void end()
+            {
+                client.end();
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        established.add(this);
+                    }
+                    break;
+                case EndFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "session resume rejected, unexpected kafka streams %d", kafka.unexpected()));
                 default:
                     break;
                 }
