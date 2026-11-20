@@ -40,6 +40,8 @@ read  [0x20 0x03]                   # CONNACK
       [0x00]                        # properties = none
 
 
+read notify CONNECTED
+
 read  [0xe0 0x02]             # DISCONNECT
       [0x87]                  # reason = not authorized
       [0x00]                  # properties = none

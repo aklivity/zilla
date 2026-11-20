@@ -42,4 +42,6 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
+write notify SESSION_OPENED
+
 read aborted
