@@ -10135,4 +10135,112 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.10k/client",
+        "${net}/openai.responses.section.tool.call.call.id.last.10k/server"})
+    public void shouldOpenaiResponsesSectionToolCallCallIdLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.12k/client",
+        "${net}/openai.responses.section.tool.call.call.id.last.12k/server"})
+    public void shouldOpenaiResponsesSectionToolCallCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.100k/client",
+        "${net}/openai.responses.section.tool.call.call.id.last.100k/server"})
+    public void shouldOpenaiResponsesSectionToolCallCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.10k/client",
+        "${net}/openai.responses.section.tool.call.name.last.10k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNameLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.12k/client",
+        "${net}/openai.responses.section.tool.call.name.last.12k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.100k/client",
+        "${net}/openai.responses.section.tool.call.name.last.100k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.10k/client",
+        "${net}/openai.responses.section.tool.call.no.call.id.10k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNoCallId10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.12k/client",
+        "${net}/openai.responses.section.tool.call.no.call.id.12k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNoCallId12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.100k/client",
+        "${net}/openai.responses.section.tool.call.no.call.id.100k/server"})
+    public void shouldOpenaiResponsesSectionToolCallNoCallId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.10k/client",
+        "${net}/openai.responses.section.tool.definition.name.last.10k/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionNameLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.12k/client",
+        "${net}/openai.responses.section.tool.definition.name.last.12k/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.100k/client",
+        "${net}/openai.responses.section.tool.definition.name.last.100k/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

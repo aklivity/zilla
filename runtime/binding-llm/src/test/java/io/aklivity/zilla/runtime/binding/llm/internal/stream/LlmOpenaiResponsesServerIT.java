@@ -2507,4 +2507,256 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.10k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.10k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast10kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.12k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.12k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast12kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.100k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.call.id.last.100k/client",
+        "${app}/openai.responses.section.tool.call.call.id.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallCallIdLast100kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.10k/client",
+        "${app}/openai.responses.section.tool.call.name.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.10k/client",
+        "${app}/openai.responses.section.tool.call.name.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast10kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.12k/client",
+        "${app}/openai.responses.section.tool.call.name.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.12k/client",
+        "${app}/openai.responses.section.tool.call.name.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast12kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.100k/client",
+        "${app}/openai.responses.section.tool.call.name.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.name.last.100k/client",
+        "${app}/openai.responses.section.tool.call.name.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNameLast100kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.10k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.10k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId10kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.12k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.12k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId12kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.100k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.call.no.call.id.100k/client",
+        "${app}/openai.responses.section.tool.call.no.call.id.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolCallNoCallId100kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.10k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.10k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.10k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast10kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.12k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.12k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.12k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast12kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.100k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.name.last.100k/client",
+        "${app}/openai.responses.section.tool.definition.name.last.100k/server"})
+    public void shouldDecodeOpenaiResponsesSectionToolDefinitionNameLast100kSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
 }
