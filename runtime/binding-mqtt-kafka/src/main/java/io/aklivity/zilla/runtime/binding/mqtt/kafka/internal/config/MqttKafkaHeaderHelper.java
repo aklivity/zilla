@@ -24,6 +24,7 @@ import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -48,6 +49,10 @@ public class MqttKafkaHeaderHelper
 
     private static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
 
+    private static final String FORMAT_BINARY = "BINARY";
+    private static final String FORMAT_TEXT = "TEXT";
+    private static final String FORMAT_NONE = "NONE";
+
     public final OctetsFW kafkaFilterHeaderName;
     public final OctetsFW kafkaReplyFilterHeaderName;
     public final OctetsFW kafkaLocalHeaderName;
@@ -59,6 +64,9 @@ public class MqttKafkaHeaderHelper
     public final OctetsFW kafkaReplyToHeaderName;
     public final OctetsFW kafkaReplyKeyHeaderName;
     public final OctetsFW kafkaCorrelationHeaderName;
+    private final OctetsFW formatBinary;
+    private final OctetsFW formatText;
+    private final OctetsFW formatNone;
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     public final OctetsFW contentTypeRO = new OctetsFW();
     public final OctetsFW replyToRO = new OctetsFW();
@@ -66,7 +74,7 @@ public class MqttKafkaHeaderHelper
 
     public int timeout;
     public OctetsFW contentType;
-    public String format;
+    public MqttPayloadFormat format;
     public int qos;
     public boolean retained;
     public OctetsFW replyTo;
@@ -88,6 +96,9 @@ public class MqttKafkaHeaderHelper
         kafkaReplyToHeaderName = stringToOctets(KAFKA_REPLY_TO_HEADER_NAME);
         kafkaReplyKeyHeaderName = stringToOctets(KAFKA_REPLY_KEY_HEADER_NAME);
         kafkaCorrelationHeaderName = stringToOctets(KAFKA_CORRELATION_ID_HEADER_NAME);
+        formatBinary = stringToOctets(FORMAT_BINARY);
+        formatText = stringToOctets(FORMAT_TEXT);
+        formatNone = stringToOctets(FORMAT_NONE);
 
         visitors = new HashMap<>();
         visitors.put(kafkaFilterHeaderName, this::skip);
@@ -161,7 +172,9 @@ public class MqttKafkaHeaderHelper
     private void visitFormat(
         OctetsFW value)
     {
-        format = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        format = value.equals(formatText) ? MqttPayloadFormat.TEXT :
+            value.equals(formatBinary) ? MqttPayloadFormat.BINARY :
+            value.equals(formatNone) ? MqttPayloadFormat.NONE : null;
     }
 
     private void visitQos(

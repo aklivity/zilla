@@ -66,7 +66,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttBinaryFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedTicketState;
@@ -281,7 +280,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
-        this.payloadFormatWriter = f -> f.set(MqttPayloadFormat.valueOf(helper.format));
+        this.payloadFormatWriter = f -> f.set(helper.format);
         this.correlationWriter = c -> c.bytes(helper.correlation);
         this.propertyWriter = pi -> pi
             .key(dataPropertyName.buffer(), dataPropertyName.offset(), dataPropertyName.sizeof())
@@ -2226,7 +2225,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                             }
                             if (helper.format != null)
                             {
-                                b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
+                                b.format(f -> f.set(helper.format));
                             }
                             if (helper.replyKey != null)
                             {
@@ -4432,7 +4431,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 }
                 if (helper.format != null)
                 {
-                    b.format(f -> f.set(MqttPayloadFormat.valueOf(helper.format)));
+                    b.format(f -> f.set(helper.format));
                 }
                 if (helper.replyKey != null)
                 {
