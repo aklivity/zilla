@@ -46,6 +46,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -93,6 +94,15 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * offset commit streams on the sessions topic that the exchange opens, and answers the flush that resolves the
  * partition. {@code inflight}, {@code payload} and {@code ackDelayMillis} are as for {@code publish}, and the
  * sessions and streams are opened before measurement starts.
+ * <p>
+ * {@code deliver} and {@code fanout} take a {@code qos} of 1 or 2 for the subscription and its deliveries. With a
+ * {@code qos} of 2 the peer acknowledges each delivered message with a flush in the incomplete state, which is the
+ * PUBREC, and {@link KafkaStub} answers the incomplete offset commit that the proxy sends, as the QoS 2 subscribe
+ * scripts specify. The proxy then releases the message with a flush carrying the packet id, which is the PUBREL, and
+ * the peer completes it with a flush, which is the PUBCOMP. The operation completes when the proxy commits the final
+ * offset, so a QoS 2 delivery is the whole exchange and not the acknowledgement alone. {@link KafkaStub} takes the
+ * fetch stream with a group id whose lowest included QoS level equals {@code qos} as the delivery stream of a
+ * subscription, so the proxy's other fetch streams are opened and answered but deliver nothing.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -757,12 +767,21 @@ public class MqttKafkaProxyBM
         BooleanSupplier committedAvailable;
         private DirectBufferEx ackEx;
         private int ackPacketIdOffset;
+        private DirectBufferEx completeEx;
+        private int completePacketIdOffset;
         int established;
         int committed;
 
         abstract int subscribers();
 
+        abstract int qos();
+
         abstract String configuration();
+
+        String qosName()
+        {
+            return qos() == 2 ? "EXACTLY_ONCE" : "AT_LEAST_ONCE";
+        }
 
         abstract byte[] subscribeBeginEx(
             int mqttTypeId,
@@ -783,7 +802,7 @@ public class MqttKafkaProxyBM
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
                 .start(configuration());
 
-            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis);
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, qos());
             bench.newServer("kafka0", kafka);
 
             committedAvailable = () -> (committed = kafka.committed()) != -1;
@@ -792,15 +811,37 @@ public class MqttKafkaProxyBM
             final int kafkaTypeId = bench.labelId("kafka");
             final long mqttId = bench.bindingId("mqtt0");
 
-            final byte[] ackTemplate = MqttFunctions.flushEx()
-                .typeId(mqttTypeId)
-                .subscribe()
-                    .qos("AT_LEAST_ONCE")
-                    .packetId(ACK_PACKET_ID_MARKER)
+            final byte[] ackTemplate = qos() == 2
+                ? MqttFunctions.flushEx()
+                    .typeId(mqttTypeId)
+                    .subscribe()
+                        .qos(qosName())
+                        .packetId(ACK_PACKET_ID_MARKER)
+                        .state("INCOMPLETE")
+                        .build()
                     .build()
-                .build();
+                : MqttFunctions.flushEx()
+                    .typeId(mqttTypeId)
+                    .subscribe()
+                        .qos(qosName())
+                        .packetId(ACK_PACKET_ID_MARKER)
+                        .build()
+                    .build();
             ackPacketIdOffset = indexOfShort(ackTemplate, (short) ACK_PACKET_ID_MARKER);
             ackEx = new UnsafeBufferEx(ackTemplate);
+
+            if (qos() == 2)
+            {
+                final byte[] completeTemplate = MqttFunctions.flushEx()
+                    .typeId(mqttTypeId)
+                    .subscribe()
+                        .qos(qosName())
+                        .packetId(ACK_PACKET_ID_MARKER)
+                        .build()
+                    .build();
+                completePacketIdOffset = indexOfShort(completeTemplate, (short) ACK_PACKET_ID_MARKER);
+                completeEx = new UnsafeBufferEx(completeTemplate);
+            }
 
             final DirectBufferEx message = new UnsafeBufferEx(new byte[payload]);
 
@@ -870,9 +911,13 @@ public class MqttKafkaProxyBM
         private final class Subscriber implements MessageConsumer
         {
             private final DataFW dataRO = new DataFW();
+            private final FlushFW flushRO = new FlushFW();
             private final MqttDataExFW dataExRO = new MqttDataExFW();
+            private final MqttFlushExFW flushExRO = new MqttFlushExFW();
             private final byte[] ackBytes = new byte[ackEx.capacity()];
             private final MutableDirectBufferEx ack = new UnsafeBufferEx(ackBytes);
+            private final byte[] completeBytes = new byte[completeEx != null ? completeEx.capacity() : 0];
+            private final MutableDirectBufferEx complete = new UnsafeBufferEx(completeBytes);
             private final int index;
 
             private Client client;
@@ -882,6 +927,11 @@ public class MqttKafkaProxyBM
             {
                 this.index = index;
                 ackEx.getBytes(0, ackBytes);
+
+                if (completeEx != null)
+                {
+                    completeEx.getBytes(0, completeBytes);
+                }
             }
 
             private void begin(
@@ -913,6 +963,18 @@ public class MqttKafkaProxyBM
                     ack.putShort(ackPacketIdOffset, (short) mqttDataEx.subscribe().packetId(), ByteOrder.LITTLE_ENDIAN);
                     client.flush(ack, 0, ack.capacity());
                     break;
+                case FlushFW.TYPE_ID:
+                    final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                    final MqttFlushExFW mqttFlushEx = flushExRO.tryWrap(flush.extension().buffer(), flush.extension().offset(),
+                        flush.extension().limit());
+
+                    if (completeEx != null && mqttFlushEx != null)
+                    {
+                        complete.putShort(completePacketIdOffset, (short) mqttFlushEx.subscribe().packetId(),
+                            ByteOrder.LITTLE_ENDIAN);
+                        client.flush(complete, 0, complete.capacity());
+                    }
+                    break;
                 case AbortFW.TYPE_ID:
                 case ResetFW.TYPE_ID:
                     throw new IllegalStateException(String.format(
@@ -937,10 +999,19 @@ public class MqttKafkaProxyBM
         @Param({"qos", "format", "expiry"})
         public String headers;
 
+        @Param({"1", "2"})
+        public int qos;
+
         @Override
         int subscribers()
         {
             return subscribers;
+        }
+
+        @Override
+        int qos()
+        {
+            return qos;
         }
 
         String topic(
@@ -966,8 +1037,8 @@ public class MqttKafkaProxyBM
                 .typeId(mqttTypeId)
                 .subscribe()
                     .clientId(CLIENT_ID_PREFIX + subscriber)
-                    .qos("AT_LEAST_ONCE")
-                    .filter(topic, 1, "AT_LEAST_ONCE")
+                    .qos(qosName())
+                    .filter(topic, 1, qosName())
                     .build()
                 .build();
         }
@@ -977,7 +1048,7 @@ public class MqttKafkaProxyBM
             int kafkaTypeId,
             int subscriber)
         {
-            return fetchDataEx(kafkaTypeId, topic(subscriber), headers);
+            return fetchDataEx(kafkaTypeId, topic(subscriber), qos, headers);
         }
 
         @Override
@@ -1004,10 +1075,19 @@ public class MqttKafkaProxyBM
         @Param({"qos", "format", "expiry"})
         public String headers;
 
+        @Param({"1", "2"})
+        public int qos;
+
         @Override
         int subscribers()
         {
             return FANOUT_SUBSCRIBERS;
+        }
+
+        @Override
+        int qos()
+        {
+            return qos;
         }
 
         String topic(
@@ -1033,8 +1113,8 @@ public class MqttKafkaProxyBM
                 .typeId(mqttTypeId)
                 .subscribe()
                     .clientId(CLIENT_ID_PREFIX + subscriber)
-                    .qos("AT_LEAST_ONCE")
-                    .filter(topic, 1, "AT_LEAST_ONCE")
+                    .qos(qosName())
+                    .filter(topic, 1, qosName())
                     .build()
                 .build();
         }
@@ -1044,7 +1124,7 @@ public class MqttKafkaProxyBM
             int kafkaTypeId,
             int subscriber)
         {
-            return fetchDataEx(kafkaTypeId, topic(subscriber), headers);
+            return fetchDataEx(kafkaTypeId, topic(subscriber), qos, headers);
         }
 
         @Override
@@ -1076,6 +1156,12 @@ public class MqttKafkaProxyBM
         int subscribers()
         {
             return SHARED_SUBSCRIBERS;
+        }
+
+        @Override
+        int qos()
+        {
+            return 1;
         }
 
         @Override
@@ -1137,6 +1223,7 @@ public class MqttKafkaProxyBM
     private static byte[] fetchDataEx(
         int kafkaTypeId,
         String topic,
+        int qos,
         String headers)
     {
         final var fetch = KafkaFunctions.dataEx()
@@ -1147,7 +1234,7 @@ public class MqttKafkaProxyBM
                     .filters(1L)
                     .partition(0, OFFSET_MARKER, OFFSET_MARKER)
                     .key(topic)
-                    .header("zilla:qos", "1");
+                    .header("zilla:qos", Integer.toString(qos));
 
         if ("format".equals(headers))
         {
