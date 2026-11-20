@@ -96,10 +96,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -220,6 +219,9 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.collections.Int2ObjectHashMaps;
+import io.aklivity.zilla.runtime.common.agrona.collections.IntArrayLists;
+import io.aklivity.zilla.runtime.common.agrona.collections.Long2ObjectHashMaps;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -537,6 +539,12 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBufferEx willUserPropertiesBuffer;
 
     private final BufferPool bufferPool;
+    private static final Long2ObjectHashMap<?> EMPTY_LONG_MAP = Long2ObjectHashMaps.emptyMap();
+    private static final Int2ObjectHashMap<?> EMPTY_INT_MAP = Int2ObjectHashMaps.emptyMap();
+    private static final Map<?, ?> EMPTY_MAP = Collections.emptyMap();
+    private static final List<?> EMPTY_LIST = Collections.emptyList();
+    private static final IntArrayList EMPTY_INT_LIST = IntArrayLists.emptyList();
+
     private final Signaler signaler;
     private final MessageConsumer droppedHandler;
     private final BindingHandler streamFactory;
@@ -2860,13 +2868,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         private final long replyId;
         private final long encodeBudgetId;
 
-        private final Long2ObjectHashMap<MqttPublishStream> publishes;
-        private final Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
-        private final Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
-        private final List<MqttSubscribeStream> drainingSubscribes;
-        private final List<PendingSuback> pendingSubacks;
-        private final Int2ObjectHashMap<String> topicAliases;
-        private final Map<String, Integer> filterIds;
+        private Long2ObjectHashMap<MqttPublishStream> publishes;
+        private Long2ObjectHashMap<Int2ObjectHashMap<MqttSubscribeStream>> subscribes;
+        private Long2ObjectHashMap<Map<String, MqttSubscribeStream>> sharedSubscribes;
+        private List<MqttSubscribeStream> drainingSubscribes;
+        private List<PendingSuback> pendingSubacks;
+        private Int2ObjectHashMap<String> topicAliases;
+        private Map<String, Integer> filterIds;
         private PendingRequest pendingRequests;
         private final GuardHandler guard;
         private final Function<String, String> credentials;
@@ -2959,9 +2967,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         private long guardSessionId = NOT_AUTHORIZED;
         private long guardSessionExpiringId = NO_CANCEL_ID;
         private int decodableRemainingBytes;
-        private final Int2ObjectHashMap<MqttSubscribeStream> awaitingAcknowledgeSubscribes;
-        private final Deque<MqttPublishStream> unAckedReceivedPublishes;
-        private final Deque<MqttSubscribeStream> heldSubscribes;
+        private Int2ObjectHashMap<MqttSubscribeStream> awaitingAcknowledgeSubscribes;
+        private List<MqttPublishStream> unAckedReceivedPublishes;
+        private List<MqttSubscribeStream> heldSubscribes;
 
         private IntArrayList unreleasedPacketIds;
 
@@ -3002,17 +3010,17 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.store = store;
             this.encodeBudgetId = supplyBudgetId.getAsLong();
             this.decoder = decodeInitialType;
-            this.publishes = new Long2ObjectHashMap<>();
-            this.subscribes = new Long2ObjectHashMap<>();
-            this.sharedSubscribes = new Long2ObjectHashMap<>();
-            this.drainingSubscribes = new ArrayList<>();
-            this.pendingSubacks = new ArrayList<>();
-            this.topicAliases = new Int2ObjectHashMap<>();
-            this.filterIds = new HashMap<>();
-            this.unAckedReceivedPublishes = new ArrayDeque<>();
-            this.heldSubscribes = new ArrayDeque<>();
-            this.awaitingAcknowledgeSubscribes = new Int2ObjectHashMap<>();
-            this.unreleasedPacketIds = new IntArrayList();
+            this.publishes = Long2ObjectHashMaps.emptyMap();
+            this.subscribes = Long2ObjectHashMaps.emptyMap();
+            this.sharedSubscribes = Long2ObjectHashMaps.emptyMap();
+            this.drainingSubscribes = Collections.emptyList();
+            this.pendingSubacks = Collections.emptyList();
+            this.topicAliases = Int2ObjectHashMaps.emptyMap();
+            this.filterIds = Collections.emptyMap();
+            this.unAckedReceivedPublishes = Collections.emptyList();
+            this.heldSubscribes = Collections.emptyList();
+            this.awaitingAcknowledgeSubscribes = Int2ObjectHashMaps.emptyMap();
+            this.unreleasedPacketIds = IntArrayLists.emptyList();
         }
 
         private void onNetwork(
@@ -4226,6 +4234,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long resolvedId = resolved.id;
                 final long compositeId = resolved.compositeId();
 
+                if (publishes == EMPTY_LONG_MAP)
+                {
+                    publishes = new Long2ObjectHashMap<>();
+                }
+
                 stream = publishes.computeIfAbsent(topicKey, s ->
                     new MqttPublishStream(routedId, resolvedId, compositeId, topic, topicKey, binding.supplyModelConfig(topic)));
                 stream.doPublishBegin(traceId, affinity, qos);
@@ -4471,7 +4484,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             while (receiveAvailable() && !heldSubscribes.isEmpty())
             {
-                heldSubscribes.poll().releaseHeld(traceId);
+                heldSubscribes.removeFirst().releaseHeld(traceId);
             }
         }
 
@@ -4941,6 +4954,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
                 else
                 {
+                    if (pendingSubacks == EMPTY_LIST)
+                    {
+                        pendingSubacks = new ArrayList<>();
+                    }
                     pendingSubacks.add(new PendingSuback(packetId, subscriptions, reasonCodes, awaitingStreams));
                 }
             }
@@ -4952,6 +4969,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             List<Subscription> routeSubscriptions,
             List<MqttSubscribeStream> awaitingStreams)
         {
+            if (subscribes == EMPTY_LONG_MAP)
+            {
+                subscribes = new Long2ObjectHashMap<>();
+            }
+
             final Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes =
                 subscribes.computeIfAbsent(routeId, s -> new Int2ObjectHashMap<>());
 
@@ -5184,6 +5206,11 @@ public final class MqttServerFactory implements MqttStreamFactory
             long routeId,
             Subscription subscription)
         {
+            if (sharedSubscribes == EMPTY_LONG_MAP)
+            {
+                sharedSubscribes = new Long2ObjectHashMap<>();
+            }
+
             final Map<String, MqttSubscribeStream> routeShared =
                 sharedSubscribes.computeIfAbsent(routeId, s -> new Object2ObjectHashMap<>());
 
@@ -6180,12 +6207,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             long traceId,
             long authorization)
         {
-            MqttPublishStream stream = unAckedReceivedPublishes.peek();
-            while (stream != null && stream.acknowledged())
+            while (!unAckedReceivedPublishes.isEmpty() && unAckedReceivedPublishes.getFirst().acknowledged())
             {
-                unAckedReceivedPublishes.remove();
-                stream.doEncodePublishAck(traceId, authorization);
-                stream = unAckedReceivedPublishes.peek();
+                unAckedReceivedPublishes.removeFirst().doEncodePublishAck(traceId, authorization);
             }
         }
 
@@ -7122,6 +7146,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.filter = MqttValidator.topicFilter(shareName, pattern);
                 this.shareName = shareName;
                 this.pattern = pattern;
+                if (filterIds == EMPTY_MAP)
+                {
+                    filterIds = new HashMap<>();
+                }
                 this.filterId = filterIds.computeIfAbsent(filter, f -> --filterIdSequence);
                 return this;
             }
@@ -7420,6 +7448,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     subscribeQosMax = Math.min(subscribeQosMaxDefault, mqttSessionBeginEx.subscribeQosMax());
                     if (packetIds != null)
                     {
+                        if (unreleasedPacketIds == EMPTY_INT_LIST)
+                        {
+                            unreleasedPacketIds = new IntArrayList();
+                        }
                         packetIds.forEachRemaining((IntConsumer) p -> unreleasedPacketIds.add(p));
                     }
                 }
@@ -8060,6 +8092,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     pendingAckSequences.addLong(initialSeq);
                     pendingAckPacketIds.addInt(packetId);
                     pendingAckReasonCodes.addInt(SUCCESS);
+                    if (unAckedReceivedPublishes == EMPTY_LIST)
+                    {
+                        unAckedReceivedPublishes = new ArrayList<>();
+                    }
                     unAckedReceivedPublishes.add(this);
                 }
 
@@ -8264,6 +8300,10 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     if (reasonCode < FAILURE_REASON_CODE_MIN)
                     {
+                        if (unreleasedPacketIds == EMPTY_INT_LIST)
+                        {
+                            unreleasedPacketIds = new IntArrayList();
+                        }
                         unreleasedPacketIds.add(packetId);
                     }
                 }
@@ -8809,6 +8849,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 else if (this.subscriptions.isEmpty())
                 {
                     removeShared();
+                    if (drainingSubscribes == EMPTY_LIST)
+                    {
+                        drainingSubscribes = new ArrayList<>();
+                    }
                     drainingSubscribes.add(this);
                     state = StreamState.closingInitial(state);
 
@@ -9210,6 +9254,11 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             private void doSubscribeAwaitAcknowledge()
             {
+                if (awaitingAcknowledgeSubscribes == EMPTY_INT_MAP)
+                {
+                    awaitingAcknowledgeSubscribes = new Int2ObjectHashMap<>();
+                }
+
                 if (deliveryQos == 1)
                 {
                     awaitingAcknowledgeSubscribes.put(acknowledgeKey(deliveryQos, packetId), this);
@@ -9224,6 +9273,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 DataFW data)
             {
                 subscribeDecoder = decodeSubscribeHold;
+                if (heldSubscribes == EMPTY_LIST)
+                {
+                    heldSubscribes = new ArrayList<>();
+                }
                 heldSubscribes.add(this);
                 decodeSubscribeHold(data);
             }
@@ -9310,6 +9363,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     case 5:
                         doEncodePubrelV5(traceId, authorization, packetId, SUCCESS);
                         break;
+                    }
+                    if (awaitingAcknowledgeSubscribes == EMPTY_INT_MAP)
+                    {
+                        awaitingAcknowledgeSubscribes = new Int2ObjectHashMap<>();
                     }
                     awaitingAcknowledgeSubscribes.put(acknowledgeKey(MqttQoS.EXACTLY_ONCE.ordinal(), packetId), this);
                 }
@@ -10042,6 +10099,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         }
                         else
                         {
+                            if (server.topicAliases == EMPTY_INT_MAP)
+                            {
+                                server.topicAliases = new Int2ObjectHashMap<>();
+                            }
                             server.topicAliases.put(alias, topic());
                         }
                         break;
