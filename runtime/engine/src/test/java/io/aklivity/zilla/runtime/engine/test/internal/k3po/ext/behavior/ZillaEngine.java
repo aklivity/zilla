@@ -307,6 +307,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
     {
         if (immediateIfAligned && thread.get() == Thread.currentThread())
         {
+            executeTasks();
             task.run();
         }
         else
