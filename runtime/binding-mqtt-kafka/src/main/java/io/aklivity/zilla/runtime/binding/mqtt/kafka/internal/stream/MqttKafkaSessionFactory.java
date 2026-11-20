@@ -477,6 +477,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         private final StoreHandler store;
 
         private IntArrayQueue unackedPacketIds;
+        private LongArrayList unackedSeqs;
         private String lifetimeId;
         private KafkaSessionStream session;
         private KafkaInitProducerStream producerInit;
@@ -567,6 +568,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 this.messagesTopics = resolveMessagesTopics(binding);
                 this.unfetchedKafkaTopics = messagesTopics.size() + 1;
                 this.unackedPacketIds = new IntArrayQueue();
+                this.unackedSeqs = new LongArrayList();
             }
         }
 
@@ -1659,23 +1661,30 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         {
             if (offsetCommitSeeded)
             {
-                offsetCommitSeeded = false;
-                doCreateSessionStream(traceId, authorization);
-            }
-            else if (!unackedPacketIds.isEmpty())
-            {
-                final int packetId = unackedPacketIds.remove();
-                if (metadata.partitions.containsKey(packetId))
+                if (offsetCommit.initialAck >= offsetCommit.initialSeq)
                 {
-                    final List<KafkaTopicPartition> partitions = metadata.partitions.get(packetId);
-                    partitions.remove(0);
-                    if (partitions.isEmpty())
-                    {
-                        metadata.partitions.remove(packetId);
-                    }
+                    offsetCommitSeeded = false;
+                    doCreateSessionStream(traceId, authorization);
                 }
+            }
+            else
+            {
+                while (!unackedSeqs.isEmpty() && unackedSeqs.getLong(0) <= offsetCommit.initialAck)
+                {
+                    unackedSeqs.removeAt(0);
+                    final int packetId = unackedPacketIds.remove();
+                    if (metadata.partitions.containsKey(packetId))
+                    {
+                        final List<KafkaTopicPartition> partitions = metadata.partitions.get(packetId);
+                        partitions.remove(0);
+                        if (partitions.isEmpty())
+                        {
+                            metadata.partitions.remove(packetId);
+                        }
+                    }
 
-                doMqttFlush(traceId, authorization, 0, 0, packetId);
+                    doMqttFlush(traceId, authorization, 0, 0, packetId);
+                }
             }
         }
 
@@ -1792,6 +1801,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             unackedPacketIds.add(packetId);
             doProduceSessionOffsets(traceId, authorization, 0);
+            unackedSeqs.addLong(offsetCommit.initialSeq);
         }
 
         private void doFlushProduceAndFetchWithFilter(
