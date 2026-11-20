@@ -85,7 +85,14 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * <p>
  * Each {@code subscribe} operation subscribes one of the connected sessions to its own topic filter, waits for the
  * SUBACK, then unsubscribes and waits for the UNSUBACK, so the session is back where it started for the next
- * operation. The application echoes the session state it receives and accepts the subscription stream.
+ * operation. The application echoes the session state it receives and accepts the subscription stream. With
+ * {@code filters=shared} every session subscribes to its own shared subscription, always over MQTT 5.
+ * <p>
+ * Each {@code deliver} operation has the application send one message of {@code payload} bytes on the QoS 1
+ * subscription of one of the connected sessions, each subscribed to its own topic filter, and completes once the
+ * client has received the PUBLISH and sent the PUBACK. Each {@code fanout} operation is the same with every session
+ * subscribed to one topic filter. Each {@code sharedsub} operation delivers to one of the five members of a shared
+ * subscription group in turn, always over MQTT 5.
  * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
@@ -110,6 +117,7 @@ public class MqttServerBM
     private static final UnsafeBufferEx PUBACK = new UnsafeBufferEx(new byte[] {0x40, 0x02, 0x00, 0x01});
     private static final int UNSUBACK_TYPE = 0xb0;
     private static final int CLIENTS = 1_000;
+    private static final int GROUP_MEMBERS = 5;
     private static final int SUBSCRIBE_PACKET = 0x82;
     private static final int UNSUBSCRIBE_PACKET = 0xa2;
 
@@ -165,6 +173,13 @@ public class MqttServerBM
         fixture.operate();
     }
 
+    @Benchmark
+    public void sharedsub(
+        Sharing fixture)
+    {
+        fixture.operate();
+    }
+
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
@@ -198,6 +213,7 @@ public class MqttServerBM
                 .external("app0")
                 .start(CONFIGURATION);
 
+            version = effectiveVersion(version);
             packet = connectPacket(version);
             connect = new UnsafeBufferEx(packet);
             netId = bench.bindingId("net0");
@@ -236,6 +252,12 @@ public class MqttServerBM
         {
         }
 
+        int effectiveVersion(
+            int configured)
+        {
+            return configured;
+        }
+
         void disconnect()
         {
         }
@@ -254,7 +276,7 @@ public class MqttServerBM
             pending++;
         }
 
-        private int closeCompleted()
+        int closeCompleted()
         {
             for (Handshake handshake = completed.poll(); handshake != null; handshake = completed.poll())
             {
@@ -567,11 +589,12 @@ public class MqttServerBM
     {
         final Queue<Handshake> ready = new ArrayDeque<>();
         private final List<Handshake> connected = new ArrayList<>();
+        private final BooleanSupplier readyAvailable = () -> closeCompleted() >= 0 && !ready.isEmpty();
 
         @Override
         void prepare()
         {
-            final int clients = Math.max(CLIENTS, inflight);
+            final int clients = clients();
 
             for (int client = 0; client < clients; client++)
             {
@@ -590,6 +613,11 @@ public class MqttServerBM
             drain();
         }
 
+        int clients()
+        {
+            return Math.max(CLIENTS, inflight);
+        }
+
         void establish(
             int clients)
         {
@@ -604,6 +632,11 @@ public class MqttServerBM
         void operate()
         {
             await(hasCapacity);
+
+            if (ready.isEmpty())
+            {
+                await(readyAvailable);
+            }
 
             exchange(ready.poll());
             pending++;
@@ -668,12 +701,22 @@ public class MqttServerBM
     @State(Scope.Benchmark)
     public static class Subscribing extends Connected
     {
+        @Param({"plain", "shared"})
+        public String filters;
+
+        @Override
+        int effectiveVersion(
+            int configured)
+        {
+            return "shared".equals(filters) ? 5 : configured;
+        }
+
         @Override
         void attach(
             Handshake handshake,
             int connection)
         {
-            final String filter = "device/" + connection;
+            final String filter = "shared".equals(filters) ? "$share/benchmark/device/" + connection : "device/" + connection;
             handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter));
             handshake.unsubscription = new UnsafeBufferEx(filterPacket(UNSUBSCRIBE_PACKET, version, filter));
         }
@@ -694,6 +737,30 @@ public class MqttServerBM
             int connection)
         {
             return "device/fanout";
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Sharing extends Delivering
+    {
+        @Override
+        int effectiveVersion(
+            int configured)
+        {
+            return 5;
+        }
+
+        @Override
+        int clients()
+        {
+            return GROUP_MEMBERS;
+        }
+
+        @Override
+        String filter(
+            int connection)
+        {
+            return "$share/benchmark/device/#";
         }
     }
 
