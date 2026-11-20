@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.test.EngineBench;
@@ -82,6 +83,16 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * {@code inflight} is the number of publishes kept outstanding, {@code payload} the message size in bytes, and
  * {@code ackDelayMillis} the delay of every stub answer. The streams are opened and acknowledged once before
  * measurement starts, so the benchmark measures steady-state publishing and not the opening of a publish stream.
+ * <p>
+ * Each {@code publishQos2} operation is one completed QoS 2 publish on one of {@code publishers} open {@code mqtt}
+ * publish streams, each with its own topic and its own established session, which is the {@code mqtt} session
+ * stream the proxy needs to track QoS 2 offsets. The publish is sent with a packet id and is received once the
+ * stream's window acknowledges it, which is the PUBREC; the peer then releases it with a flush on the session
+ * stream, which is the PUBREL, and the operation completes when the proxy answers with a flush on the session
+ * stream, which is the PUBCOMP. {@link KafkaStub} acknowledges the produce stream on the messages topic and the
+ * offset commit streams on the sessions topic that the exchange opens, and answers the flush that resolves the
+ * partition. {@code inflight}, {@code payload} and {@code ackDelayMillis} are as for {@code publish}, and the
+ * sessions and streams are opened before measurement starts.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -102,6 +113,7 @@ public class MqttKafkaProxyBM
     private static final int EXPIRY_SECONDS = 24 * 60 * 60;
     private static final String SHARE_NAME = "benchmark";
     private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
+    private static final int QOS2_PACKET_ID = 1;
     private static final String FANOUT_TOPIC = "device/fanout";
 
     @Benchmark
@@ -114,6 +126,13 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void publish(
         PublishFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void publishQos2(
+        Qos2PublishFixture fixture)
     {
         fixture.complete();
     }
@@ -474,6 +493,239 @@ public class MqttKafkaProxyBM
                     {
                         acknowledge = window.acknowledge();
                         acknowledged.add(this);
+                    }
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "publish stream rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Qos2PublishFixture
+    {
+        @Param({"1000"})
+        public int publishers;
+
+        @Param({"1", "256"})
+        public int inflight;
+
+        @Param({"16", "1024"})
+        public int payload;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Qos2Publisher> idle = new ArrayDeque<>();
+        private final Queue<Qos2Publisher> completed = new ArrayDeque<>();
+        private final BooleanSupplier completedAvailable = () -> !completed.isEmpty();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private DirectBufferEx dataEx;
+        private DirectBufferEx releaseEx;
+        private DirectBufferEx message;
+        private int sessions;
+        private int opened;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis);
+            bench.newServer("kafka0", kafka);
+
+            final int mqttTypeId = bench.labelId("mqtt");
+            final long mqttId = bench.bindingId("mqtt0");
+
+            dataEx = new UnsafeBufferEx(MqttFunctions.dataEx()
+                .typeId(mqttTypeId)
+                .publish()
+                    .qos("EXACTLY_ONCE")
+                    .packetId(QOS2_PACKET_ID)
+                    .build()
+                .build());
+            releaseEx = new UnsafeBufferEx(MqttFunctions.flushEx()
+                .typeId(mqttTypeId)
+                .session()
+                    .packetId(QOS2_PACKET_ID)
+                    .build()
+                .build());
+            message = new UnsafeBufferEx(new byte[payload]);
+
+            final List<Qos2Publisher> connecting = new ArrayList<>();
+
+            for (int publisher = 0; publisher < publishers; publisher++)
+            {
+                final byte[] beginEx = MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .flags("CLEAN_START")
+                        .expiry(1)
+                        .publishQosMax(2)
+                        .clientId(CLIENT_ID_PREFIX + publisher)
+                        .build()
+                    .build();
+                final Qos2Publisher connected = new Qos2Publisher(publisher);
+                connected.connect(bench.newClient(mqttId, connected.sessionConsumer), new UnsafeBufferEx(beginEx));
+                connecting.add(connected);
+            }
+
+            await(() -> sessions == publishers, "sessions established");
+
+            for (Qos2Publisher connected : connecting)
+            {
+                final byte[] beginEx = MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .publish()
+                        .clientId(CLIENT_ID_PREFIX + connected.index)
+                        .topic("device/" + connected.index)
+                        .qos(2)
+                        .build()
+                    .build();
+                connected.open(bench.newClient(mqttId, connected.publishConsumer), new UnsafeBufferEx(beginEx));
+            }
+
+            await(() -> opened == publishers, "publish streams opened");
+
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                idle.poll().publish();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            bench.close();
+        }
+
+        void complete()
+        {
+            await(completedAvailable, "publish completed");
+
+            idle.add(completed.poll());
+            idle.poll().publish();
+        }
+
+        private void await(
+            BooleanSupplier condition,
+            String description)
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (!condition.getAsBoolean())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "%s timed out, sessions %d opened %d idle %d completed %d, unexpected kafka streams %d",
+                        description, sessions, opened, idle.size(), completed.size(), kafka.unexpected()));
+                }
+            }
+        }
+
+        private final class Qos2Publisher
+        {
+            private final MessageConsumer sessionConsumer = this::onSession;
+            private final MessageConsumer publishConsumer = this::onPublish;
+            private final WindowFW windowRO = new WindowFW();
+            private final int index;
+
+            private Client session;
+            private Client publish;
+            private long acknowledge = -1L;
+
+            private Qos2Publisher(
+                int index)
+            {
+                this.index = index;
+            }
+
+            private void connect(
+                Client session,
+                DirectBufferEx beginEx)
+            {
+                this.session = session;
+
+                session.begin(index + 1L, beginEx, 0, beginEx.capacity());
+                session.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void open(
+                Client publish,
+                DirectBufferEx beginEx)
+            {
+                this.publish = publish;
+
+                publish.begin(index + 1L, beginEx, 0, beginEx.capacity());
+                publish.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void publish()
+            {
+                publish.data(message, 0, message.capacity(), dataEx, 0, dataEx.capacity());
+            }
+
+            private void onSession(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    sessions++;
+                    break;
+                case FlushFW.TYPE_ID:
+                    completed.add(this);
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "session stream rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+
+            private void onPublish(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case WindowFW.TYPE_ID:
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
+
+                    if (acknowledge == -1L)
+                    {
+                        acknowledge = window.acknowledge();
+                        opened++;
+                        idle.add(this);
+                    }
+                    else if (window.acknowledge() > acknowledge)
+                    {
+                        acknowledge = window.acknowledge();
+                        session.flush(releaseEx, 0, releaseEx.capacity());
                     }
                     break;
                 case AbortFW.TYPE_ID:

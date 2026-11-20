@@ -554,6 +554,15 @@ public final class EngineBench implements AutoCloseable
             int offset,
             int length)
         {
+            begin(0L, extension, offset, length);
+        }
+
+        public void begin(
+            long affinity,
+            DirectBufferEx extension,
+            int offset,
+            int length)
+        {
             state = StreamState.openInitial(state);
 
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -564,7 +573,7 @@ public final class EngineBench implements AutoCloseable
                 .acknowledge(initialAck)
                 .state(state)
                 .maximum(initialMax)
-                .affinity(0L)
+                .affinity(affinity)
                 .extension(extension, offset, length)
                 .build();
 
