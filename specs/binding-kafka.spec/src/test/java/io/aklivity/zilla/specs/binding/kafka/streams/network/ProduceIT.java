@@ -211,6 +211,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.values.request.pending/client",
+        "${net}/message.values.request.pending/server"})
+    public void shouldSendMessageValuesRequestPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.value.fragmented.request.pending/client",
+        "${net}/message.value.fragmented.request.pending/server"})
+    public void shouldSendMessageValueFragmentedRequestPending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.values.producer.id.changes/client",
         "${net}/message.values.producer.id.changes/server"})
     public void shouldSendMessageValuesWithProducerIdThatChanges() throws Exception
