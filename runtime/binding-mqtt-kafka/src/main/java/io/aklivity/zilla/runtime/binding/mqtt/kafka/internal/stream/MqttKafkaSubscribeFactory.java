@@ -599,14 +599,14 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
             final Array32FW<MqttTopicFilterFW> filters = mqttSubscribeFlushEx.filters();
 
-            final List<MqttKafkaRouteConfig> routes = binding != null ?
-                binding.resolveAll(authorization, filters) : null;
             final int packetId = mqttSubscribeFlushEx.packetId();
 
             if (!StreamState.replyClosed(state))
             {
                 if (!filters.isEmpty())
                 {
+                    final List<MqttKafkaRouteConfig> routes = binding != null ?
+                        binding.resolveAll(authorization, filters) : null;
                     onFiltersChanged(traceId, authorization, budgetId, reserved, filters, routes);
                 }
                 else if (packetId > 0)
