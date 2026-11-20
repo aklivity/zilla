@@ -30,9 +30,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
-      ${core:randomBase64(75000)}
-      "\"}]}"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\""
+      ${core:randomBase64(7500)}
+      "\\\"}\"}}]}]}"
 
 read closed
 

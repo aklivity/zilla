@@ -10120,24 +10120,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.request.window.100k.text.16/client",
-        "${app}/openai.request.window.100k.text.16/server"})
-    public void shouldOpenaiRequestWindow100kText16() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.request.window.100k.tool.call.16/client",
-        "${app}/openai.request.window.100k.tool.call.16/server"})
-    public void shouldOpenaiRequestWindow100kToolCall16() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.request.window.100k.text.127/client",
         "${app}/openai.request.window.100k.text.127/server"})
     public void shouldOpenaiRequestWindow100kText127() throws Exception
@@ -10168,6 +10150,24 @@ public class ApplicationIT
         "${app}/openai.request.window.100k.tool.call.512/client",
         "${app}/openai.request.window.100k.tool.call.512/server"})
     public void shouldOpenaiRequestWindow100kToolCall512() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.window.10k.text.16/client",
+        "${app}/openai.request.window.10k.text.16/server"})
+    public void shouldOpenaiRequestWindow10kText16() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.window.10k.tool.call.16/client",
+        "${app}/openai.request.window.10k.tool.call.16/server"})
+    public void shouldOpenaiRequestWindow10kToolCall16() throws Exception
     {
         k3po.finish();
     }

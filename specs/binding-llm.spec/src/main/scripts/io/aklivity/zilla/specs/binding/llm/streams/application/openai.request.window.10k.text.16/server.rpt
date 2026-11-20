@@ -29,12 +29,10 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("TOOL_CALL")
+                          .type("USER_TEXT")
                           .message(0)
-                          .attribute("tool-name", "get_weather")
-                          .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"arguments\":{\"city\":\"" ${core:randomBase64(75000)} "\"}}"
+read "{\"text\":\"" ${core:randomBase64(7500)} "\"}"
 
 read advised zilla:flush
 
