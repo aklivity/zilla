@@ -93,7 +93,9 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code deliver} operation has the application send one message of {@code payload} bytes on the QoS {@code qos}
  * subscription of one of the connected sessions, each subscribed to its own topic filter, and completes once the
  * client has received the PUBLISH and sent the PUBACK for QoS 1, or, for QoS 2, has sent the PUBREC, received the
- * PUBREL and sent the PUBCOMP. Each {@code fanout} operation is the same with every session
+ * PUBREL and sent the PUBCOMP. With {@code retain} set the sessions subscribe with retain as published and the
+ * application sends each message flagged as retained, as it does when it replays a retained message, so each
+ * PUBLISH arrives with the retain flag set. Each {@code fanout} operation is the same with every session
  * subscribed to one topic filter. Each {@code sharedsub} operation delivers to one of the five members of a shared
  * subscription group in turn, always over MQTT 5.
  * <p>
@@ -122,8 +124,9 @@ public class MqttServerBM
     private static final int PUBCOMP_TYPE = 0x70;
     private static final int CONNECTED = 2_000;
     private static final int SUBACK_TYPE = 0x90;
-    private static final int PUBLISH_TYPE = 0x32;
-    private static final int PUBLISH_QOS2_TYPE = 0x34;
+    private static final int PUBLISH_TYPE = 0x30;
+    private static final int RETAIN_BIT = 0x01;
+    private static final int RETAIN_AS_PUBLISHED_OPTION = 0x08;
     private static final UnsafeBufferEx PUBACK = new UnsafeBufferEx(new byte[] {0x40, 0x02, 0x00, 0x01});
     private static final UnsafeBufferEx PUBREC = new UnsafeBufferEx(new byte[] {0x50, 0x02, 0x00, 0x01});
     private static final UnsafeBufferEx PUBCOMP = new UnsafeBufferEx(new byte[] {0x70, 0x02, 0x00, 0x01});
@@ -346,6 +349,7 @@ public class MqttServerBM
             UnsafeBufferEx publication;
             UnsafeBufferEx release;
             int deliveryQos = 1;
+            int publishType = PUBLISH_TYPE | 1 << 1;
             UnsafeBufferEx subscription;
             UnsafeBufferEx unsubscription;
 
@@ -494,7 +498,7 @@ public class MqttServerBM
                 int index,
                 int length)
             {
-                if (arrived(msgTypeId, buffer, index, length, PUBLISH_TYPE))
+                if (arrived(msgTypeId, buffer, index, length, publishType))
                 {
                     stage = MessageConsumer.NOOP;
                     client.data(PUBACK, 0, PUBACK.capacity());
@@ -508,7 +512,7 @@ public class MqttServerBM
                 int index,
                 int length)
             {
-                if (arrived(msgTypeId, buffer, index, length, PUBLISH_QOS2_TYPE))
+                if (arrived(msgTypeId, buffer, index, length, publishType))
                 {
                     stage = awaitPubrel;
                     client.data(PUBREC, 0, PUBREC.capacity());
@@ -857,6 +861,9 @@ public class MqttServerBM
         @Param({"1", "2"})
         public int qos;
 
+        @Param({"false", "true"})
+        public boolean retain;
+
         private int awaiting;
 
         private final BooleanSupplier credited = () -> deliverer.credited(awaiting);
@@ -867,6 +874,7 @@ public class MqttServerBM
         {
             deliverer.payload(payload);
             deliverer.qos(qos);
+            deliverer.retain(retain);
 
             for (int client = 0; client < clients; client++)
             {
@@ -884,8 +892,10 @@ public class MqttServerBM
             Handshake handshake,
             int connection)
         {
-            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection), qos));
+            handshake.subscription =
+                new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection), qos, retain));
             handshake.deliveryQos = qos;
+            handshake.publishType = PUBLISH_TYPE | qos << 1 | (retain ? RETAIN_BIT : 0);
         }
 
         String filter(
@@ -949,14 +959,15 @@ public class MqttServerBM
         int version,
         String topicFilter)
     {
-        return filterPacket(type, version, topicFilter, 1);
+        return filterPacket(type, version, topicFilter, 1, false);
     }
 
     private static byte[] filterPacket(
         int type,
         int version,
         String topicFilter,
-        int qos)
+        int qos,
+        boolean retainAsPublished)
     {
         final byte[] filter = topicFilter.getBytes(US_ASCII);
         final int properties = version == 5 ? 1 : 0;
@@ -976,7 +987,7 @@ public class MqttServerBM
         offset += filter.length;
         if (options != 0)
         {
-            packet[offset] = (byte) qos;
+            packet[offset] = (byte) (qos | (retainAsPublished ? RETAIN_AS_PUBLISHED_OPTION : 0));
         }
 
         return packet;

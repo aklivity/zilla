@@ -61,6 +61,7 @@ final class Deliverer implements BindingHandler
     private static final int PACKET_ID = 1;
     private static final int NONE = -1;
     private static final int STATE_INCOMPLETE = 1;
+    private static final int RETAIN_FLAG = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final WindowFW windowRO = new WindowFW();
@@ -82,6 +83,7 @@ final class Deliverer implements BindingHandler
 
     private DirectBufferEx payload = EMPTY_EXTENSION;
     private int deliveryQos = 1;
+    private int deliveryFlags;
 
     Deliverer(
         int mqttTypeId)
@@ -106,6 +108,12 @@ final class Deliverer implements BindingHandler
         int qos)
     {
         this.deliveryQos = qos;
+    }
+
+    void retain(
+        boolean retain)
+    {
+        this.deliveryFlags = retain ? RETAIN_FLAG : 0;
     }
 
     boolean credited(
@@ -191,6 +199,7 @@ final class Deliverer implements BindingHandler
                     .subscribe(s -> s.topic(topic, 0, topicLength)
                         .packetId(PACKET_ID)
                         .qos(deliveryQos)
+                        .flags(deliveryFlags)
                         .subscriptionIdsItem(i -> i.set(filterId))
                         .format(f -> f.set(MqttPayloadFormat.NONE)))
                     .build();
