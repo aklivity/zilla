@@ -96,6 +96,9 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * subscribed to one topic filter. Each {@code sharedsub} operation delivers to one of the five members of a shared
  * subscription group in turn, always over MQTT 5.
  * <p>
+ * The connected sessions that {@code publish}, {@code subscribe}, {@code deliver} and {@code fanout} operate on number
+ * {@code sessions}, or {@code inflight} if that is larger. {@code sharedsub} always has its five members.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
  * depend on {@code version} or {@code inflight}, so run it with {@code -p version=5 -p inflight=256}.
@@ -124,7 +127,6 @@ public class MqttServerBM
     private static final UnsafeBufferEx PUBREC = new UnsafeBufferEx(new byte[] {0x50, 0x02, 0x00, 0x01});
     private static final UnsafeBufferEx PUBCOMP = new UnsafeBufferEx(new byte[] {0x70, 0x02, 0x00, 0x01});
     private static final int UNSUBACK_TYPE = 0xb0;
-    private static final int CLIENTS = 1_000;
     private static final int GROUP_MEMBERS = 5;
     private static final int SUBSCRIBE_PACKET = 0x82;
     private static final int UNSUBSCRIBE_PACKET = 0xa2;
@@ -657,6 +659,9 @@ public class MqttServerBM
     @State(Scope.Benchmark)
     public abstract static class Connected extends Fixture
     {
+        @Param({"1000", "10000"})
+        public int sessions;
+
         final Queue<Handshake> ready = new ArrayDeque<>();
         private final List<Handshake> connected = new ArrayList<>();
         private final BooleanSupplier readyAvailable = () -> closeCompleted() >= 0 && !ready.isEmpty();
@@ -685,7 +690,7 @@ public class MqttServerBM
 
         int clients()
         {
-            return Math.max(CLIENTS, inflight);
+            return Math.max(sessions, inflight);
         }
 
         void establish(
