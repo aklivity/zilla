@@ -740,6 +740,174 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.tool.definition.name.last.12k/client",
+        "${app}/openai.section.tool.definition.name.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.definition.name.last.12k/client",
+        "${app}/openai.section.tool.definition.name.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionNameLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.12k/client",
+        "${app}/openai.section.tool.call.no.id.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNoId12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.12k/client",
+        "${app}/openai.section.tool.call.no.id.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNoId12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.12k/client",
+        "${app}/openai.section.tool.call.id.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.12k/client",
+        "${app}/openai.section.tool.call.id.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallIdLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.12k/client",
+        "${app}/openai.section.tool.call.name.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.12k/client",
+        "${app}/openai.section.tool.call.name.last.12k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNameLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.name.last.100k/client",
+        "${app}/openai.section.tool.definition.name.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.definition.name.last.100k/client",
+        "${app}/openai.section.tool.definition.name.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionNameLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.100k/client",
+        "${app}/openai.section.tool.call.no.id.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNoId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.no.id.100k/client",
+        "${app}/openai.section.tool.call.no.id.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNoId100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.100k/client",
+        "${app}/openai.section.tool.call.id.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.id.last.100k/client",
+        "${app}/openai.section.tool.call.id.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallIdLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.100k/client",
+        "${app}/openai.section.tool.call.name.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.section.tool.call.name.last.100k/client",
+        "${app}/openai.section.tool.call.name.last.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCallNameLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.image.url.10k/client",
         "${app}/openai.section.user.image.url.10k/server"})
     public void shouldDecodeOpenaiSectionUserImageUrl10k() throws Exception

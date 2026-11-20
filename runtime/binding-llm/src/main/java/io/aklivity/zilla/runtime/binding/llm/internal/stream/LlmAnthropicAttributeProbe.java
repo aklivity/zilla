@@ -44,6 +44,12 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
         return sectionOf(type) != SECTION_NONE;
     }
 
+    static boolean streams(
+        LlmSectionType type)
+    {
+        return sectionOf(type) == SECTION_TOOL_CALL;
+    }
+
     @Override
     protected void onBegin(
         LlmSectionType type)
