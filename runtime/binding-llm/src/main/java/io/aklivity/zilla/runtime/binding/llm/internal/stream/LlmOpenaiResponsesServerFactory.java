@@ -6579,7 +6579,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
             parser.rewind();
 
-            final boolean ready = accepted && (!pending || decodedWindowLimit == limit);
+            final boolean ready = accepted && (!pending || decodedWindowLimit == limit || attributesOnFin(probe.type()));
 
             if (ready)
             {
@@ -6587,6 +6587,15 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
 
             return ready;
+        }
+
+        private boolean attributesOnFin(
+            LlmSectionType type)
+        {
+            return type == LlmSectionType.TOOL_CALL ||
+                type == LlmSectionType.SERVER_TOOL_CALL ||
+                type == LlmSectionType.TOOL_DEFINITION ||
+                type == LlmSectionType.SERVER_TOOL_DEFINITION;
         }
 
         private void capture(
