@@ -158,6 +158,13 @@ public class MqttServerBM
         fixture.operate();
     }
 
+    @Benchmark
+    public void fanout(
+        Fanning fixture)
+    {
+        fixture.operate();
+    }
+
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
@@ -295,6 +302,7 @@ public class MqttServerBM
             private final MessageConsumer awaitPublish = this::onAwaitPublish;
 
             int connection = -1;
+            int number;
             UnsafeBufferEx publication;
             UnsafeBufferEx subscription;
             UnsafeBufferEx unsubscription;
@@ -375,6 +383,7 @@ public class MqttServerBM
                 {
                     stage = awaitConnack;
                     nextClientId();
+                    number = sequence;
                     client.data(connect, 0, connect.capacity());
                 }
             }
@@ -664,8 +673,9 @@ public class MqttServerBM
             Handshake handshake,
             int connection)
         {
-            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, connection));
-            handshake.unsubscription = new UnsafeBufferEx(filterPacket(UNSUBSCRIBE_PACKET, version, connection));
+            final String filter = "device/" + connection;
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter));
+            handshake.unsubscription = new UnsafeBufferEx(filterPacket(UNSUBSCRIBE_PACKET, version, filter));
         }
 
         @Override
@@ -673,6 +683,17 @@ public class MqttServerBM
             Handshake handshake)
         {
             handshake.subscribe();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Fanning extends Delivering
+    {
+        @Override
+        String filter(
+            int connection)
+        {
+            return "device/fanout";
         }
     }
 
@@ -708,7 +729,13 @@ public class MqttServerBM
             Handshake handshake,
             int connection)
         {
-            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, connection));
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection)));
+        }
+
+        String filter(
+            int connection)
+        {
+            return "device/" + connection;
         }
 
         @Override
@@ -717,7 +744,7 @@ public class MqttServerBM
         {
             handshake.expectPublish();
 
-            awaiting = handshake.connection;
+            awaiting = handshake.number;
             await(credited);
             deliverer.deliver(awaiting);
         }
@@ -764,9 +791,9 @@ public class MqttServerBM
     private static byte[] filterPacket(
         int type,
         int version,
-        int client)
+        String topicFilter)
     {
-        final byte[] filter = ("device/" + client).getBytes(US_ASCII);
+        final byte[] filter = topicFilter.getBytes(US_ASCII);
         final int properties = version == 5 ? 1 : 0;
         final int options = type == SUBSCRIBE_PACKET ? 1 : 0;
         final int remaining = 2 + properties + 2 + filter.length + options;

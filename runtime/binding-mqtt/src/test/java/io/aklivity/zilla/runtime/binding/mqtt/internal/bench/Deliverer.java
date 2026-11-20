@@ -23,6 +23,7 @@ import java.util.Queue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
@@ -43,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
 
 /**
  * Accepts the subscribe streams of an mqtt server, replies to each and keeps it open, and delivers one message at
- * a time on the QoS 1 stream of a client subscribed to {@code device/<client>}, within the reply credit the
+ * a time on the QoS 1 stream of a client, found by the number its client id ends with, within the reply credit the
  * server has granted. Streams are pooled and the delivery extension is built once per stream, so a delivery does
  * not allocate.
  */
@@ -266,7 +267,8 @@ final class Deliverer implements BindingHandler
                 filterId = filter.subscriptionId();
                 topicLength = filter.pattern().length();
                 topic.putBytes(0, filter.pattern().buffer(), filter.pattern().offset() + Short.BYTES, topicLength);
-                client = clientOf(topic, topicLength);
+                final String16FW clientId = subscribe.clientId();
+                client = clientOf(clientId.buffer(), clientId.offset() + Short.BYTES, clientId.length());
             }
 
             doInitialWindow();
@@ -284,20 +286,21 @@ final class Deliverer implements BindingHandler
 
         private int clientOf(
             DirectBufferEx buffer,
+            int offset,
             int length)
         {
             int value = 0;
             int scale = 1;
-            int index = length - 1;
+            int index = offset + length - 1;
 
-            while (index >= 0 && buffer.getByte(index) >= '0' && buffer.getByte(index) <= '9')
+            while (index >= offset && buffer.getByte(index) >= '0' && buffer.getByte(index) <= '9')
             {
                 value += (buffer.getByte(index) - '0') * scale;
                 scale *= 10;
                 index--;
             }
 
-            return index == length - 1 ? NONE : value;
+            return index == offset + length - 1 ? NONE : value;
         }
 
         private void doInitialWindow()
