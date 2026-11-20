@@ -5294,13 +5294,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     {
         private static final int INITIAL_CAPACITY = 16;
 
-        final Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
+        private Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
         private long[] unacknowledged;
         private int unacknowledgedCount;
 
         OffsetHighWaterMark()
         {
-            this.deferredOffsetCommits = new Long2ObjectHashMap<>();
             this.unacknowledged = new long[INITIAL_CAPACITY];
         }
 
@@ -5347,18 +5346,28 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 unacknowledgedCount--;
             }
 
-            deferredOffsetCommits.remove(offset);
+            if (deferredOffsetCommits != null)
+            {
+                deferredOffsetCommits.remove(offset);
+            }
         }
 
         public DeferredOffsetCommit nextDeferred()
         {
-            return unacknowledgedCount == 0 ? null : deferredOffsetCommits.get(unacknowledged[0]);
+            return unacknowledgedCount == 0 || deferredOffsetCommits == null
+                ? null
+                : deferredOffsetCommits.get(unacknowledged[0]);
         }
 
         public void deferOffsetCommit(
             OffsetCommit offsetCommit,
             KafkaProxy proxy)
         {
+            if (deferredOffsetCommits == null)
+            {
+                deferredOffsetCommits = new Long2ObjectHashMap<>();
+            }
+
             deferredOffsetCommits.put(offsetCommit.partitionOffset.offset, new DeferredOffsetCommit(offsetCommit, proxy));
         }
     }
