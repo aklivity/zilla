@@ -30,6 +30,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -41,7 +42,10 @@ public class CircuitBreakerIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(1000L);
+
     private final EngineRule engine = new EngineRule()
+        .clock(clock)
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
@@ -84,7 +88,7 @@ public class CircuitBreakerIT
     {
         k3po.start();
         k3po.awaitBarrier("REQUEST_3_COMPLETED");
-        Thread.sleep(1100);
+        clock.advanceBy(1100L);
         k3po.notifyBarrier("COOLDOWN_ELAPSED");
         k3po.finish();
     }
@@ -100,7 +104,7 @@ public class CircuitBreakerIT
     {
         k3po.start();
         k3po.awaitBarrier("REQUEST_3_COMPLETED");
-        Thread.sleep(1100);
+        clock.advanceBy(1100L);
         k3po.notifyBarrier("COOLDOWN_ELAPSED");
         k3po.finish();
     }
@@ -114,7 +118,7 @@ public class CircuitBreakerIT
     {
         k3po.start();
         k3po.awaitBarrier("REQUEST_2_COMPLETED");
-        Thread.sleep(1100);
+        clock.advanceBy(1100L);
         k3po.notifyBarrier("RETRY_AFTER_ELAPSED");
         k3po.finish();
     }
@@ -129,7 +133,7 @@ public class CircuitBreakerIT
     {
         k3po.start();
         k3po.awaitBarrier("REQUEST_2_COMPLETED");
-        Thread.sleep(1100);
+        clock.advanceBy(1100L);
         k3po.notifyBarrier("RETRY_AFTER_ELAPSED");
         k3po.finish();
     }

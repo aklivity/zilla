@@ -19,8 +19,8 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
-import static java.lang.System.currentTimeMillis;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
@@ -71,6 +71,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private static final int ERROR_NONE = 0;
     private static final long NO_OFFSET = -1L;
     private static final int KAFKA_FRAME_LENGTH_FIELD_OFFSET = 4;
+    private static final int KAFKA_RESPONSE_BYTES_MIN = KAFKA_FRAME_LENGTH_FIELD_OFFSET + Integer.BYTES;
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final int SIGNAL_STREAM_BEGIN = 0x80000001;
@@ -112,6 +114,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final KafkaConnectionClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaConnectionClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
     private final KafkaConnectionClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaStreamClientDecoder decodeRequestHeader = this::decodeRequestHeader;
+    private final KafkaStreamClientDecoder decodeRequestBody = this::decodeRequestBody;
+    private final KafkaStreamClientDecoder decodeRequestReject = this::decodeRequestReject;
+    private final KafkaStreamClientDecoder decodeRequestIgnoreAll = this::decodeRequestIgnoreAll;
+    private final KafkaConnectionClientDecoder decodeResponseHeader = this::decodeResponseHeader;
+    private final KafkaConnectionClientDecoder decodeResponseBody = this::decodeResponseBody;
     private final KafkaConnectionClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaConnectionClientDecoder decodeReject = this::decodeReject;
 
@@ -131,6 +139,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private final Long2ObjectHashMap<KafkaClientStream> streamsByInitialId;
     private final long connectionPoolCleanupMillis;
     private final KafkaEventContext event;
+    private final Clock clock;
 
     public KafkaClientConnectionPool(
         KafkaConfiguration config,
@@ -156,6 +165,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         this.streamsByInitialId = new Long2ObjectHashMap<>();
         this.connectionPoolCleanupMillis = config.clientConnectionPoolCleanupMillis();
         this.event = new KafkaEventContext(context);
+        this.clock = context.clock();
     }
 
     private MessageConsumer newStream(
@@ -204,6 +214,181 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         newStream = connection.newStream(msgTypeId, buffer, index, length, sender);
 
         return newStream;
+    }
+
+    private int decodeRequestHeader(
+        KafkaClientStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final RequestHeaderFW requestHeader = requestHeaderRO.tryWrap(buffer, progress, limit);
+
+        if (requestHeader != null)
+        {
+            final int requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+
+            if (requestBytes < requestHeader.sizeof() || stream.connection.requestBytes != 0)
+            {
+                stream.decoder = decodeRequestReject;
+            }
+            else
+            {
+                final int length = Math.min(requestBytes, limit - progress);
+                final long reservedBefore = (long) reserved * (progress - offset) / (limit - offset);
+                final long reservedAfter = (long) reserved * (progress - offset + length) / (limit - offset);
+
+                stream.initialSeqOffsets.add(stream.connection.initialSeq);
+                stream.nextRequestId++;
+                stream.requestBytes = requestBytes - length;
+                stream.decoder = stream.requestBytes == 0 ? decodeRequestHeader : decodeRequestBody;
+
+                stream.connection.doConnectionRequest(stream.initialId, traceId, authorization, budgetId, flags,
+                    (int) (reservedAfter - reservedBefore), requestHeader, buffer, progress + length);
+
+                progress += length;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeRequestBody(
+        KafkaClientStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = Math.min(stream.requestBytes, limit - progress);
+
+        if (length > 0)
+        {
+            final long reservedBefore = (long) reserved * (progress - offset) / (limit - offset);
+            final long reservedAfter = (long) reserved * (progress - offset + length) / (limit - offset);
+
+            stream.requestBytes -= length;
+            stream.decoder = stream.requestBytes == 0 ? decodeRequestHeader : decodeRequestBody;
+
+            stream.connection.doConnectionData(traceId, authorization, budgetId, flags,
+                (int) (reservedAfter - reservedBefore), buffer, progress, length);
+
+            progress += length;
+        }
+
+        return progress;
+    }
+
+    private int decodeRequestReject(
+        KafkaClientStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        stream.cleanup(traceId);
+        stream.decoder = decodeRequestIgnoreAll;
+        return limit;
+    }
+
+    private int decodeRequestIgnoreAll(
+        KafkaClientStream stream,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
+    private int decodeResponseHeader(
+        KafkaClientConnection client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
+
+        if (responseHeader != null)
+        {
+            client.responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+            client.decoder = client.responseBytes >= KAFKA_RESPONSE_BYTES_MIN && !client.responses.isEmpty()
+                ? decodeResponseBody
+                : decodeReject;
+        }
+
+        return progress;
+    }
+
+    private int decodeResponseBody(
+        KafkaClientConnection client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = Math.min(client.responseBytes, limit - progress);
+
+        if (length > 0)
+        {
+            final KafkaClientStream stream = streamsByInitialId.get(client.responses.peekLong());
+
+            if (stream != null)
+            {
+                final long reservedBefore = (long) reserved * (progress - offset) / (limit - offset);
+                final long reservedAfter = (long) reserved * (progress - offset + length) / (limit - offset);
+                final int streamReserved = (int) (reservedAfter - reservedBefore);
+                final long streamSequence = client.replySeq - reserved + reservedBefore;
+
+                client.responseBytes -= length;
+
+                if (client.responseBytes == 0)
+                {
+                    client.responses.removeLong();
+                    client.decoder = decodeResponseHeader;
+                }
+
+                stream.doStreamData(traceId, COMPLETE, streamSequence, streamReserved, buffer, progress, length, EMPTY_OCTETS);
+
+                progress += length;
+            }
+            else
+            {
+                client.decoder = decodeReject;
+            }
+        }
+
+        return progress;
     }
 
     private int decodeReject(
@@ -580,6 +765,22 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     }
 
     @FunctionalInterface
+    private interface KafkaStreamClientDecoder
+    {
+        int decode(
+            KafkaClientStream stream,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int progress,
+            int limit);
+    }
+
+    @FunctionalInterface
     private interface KafkaConnectionClientDecoder
     {
         int decode(
@@ -588,7 +789,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int progress,
             int limit);
@@ -739,7 +940,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private int requestBytes;
         private int responseBytes;
 
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int decodeSlotReserved;
+
         private int state;
+        private KafkaStreamClientDecoder decoder;
 
         private KafkaClientStream(
             KafkaClientConnection connection,
@@ -759,6 +965,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             this.initialSeqOffsets = new LongArrayQueue(NO_OFFSET);
             this.replySeqOffsets = new LongArrayQueue(NO_OFFSET);
             this.replyAckOffsets = new LongArrayQueue(NO_OFFSET);
+            this.decoder = decodeRequestHeader;
         }
 
         private void onStreamMessage(
@@ -821,46 +1028,107 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void onStreamData(
             DataFW data)
         {
-            final long initialId = data.streamId();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
             final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
             final int flags = data.flags();
             final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
 
-            if (requestBytes == 0)
-            {
-                initialSeqOffsets.add(connection.initialSeq);
-                nextRequestId++;
-
-                final DirectBufferEx buffer = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
-
-                RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
-                requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
-            }
-
-            requestBytes -= payload.sizeof();
-            connection.doConnectionData(initialId, traceId, authorization, budgetId,
-                flags, reserved, payload, extension);
-            assert requestBytes >= 0;
+            int reserved = data.reserved();
+            int offset = payload.offset();
+            int limit = payload.limit();
+            DirectBufferEx buffer = payload.buffer();
 
             initialSeq += reserved;
 
+            if (decodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                decodeBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
+                decodeSlotOffset += limit - offset;
+                decodeSlotReserved += reserved;
+
+                buffer = decodeBuffer;
+                offset = 0;
+                limit = decodeSlotOffset;
+                reserved = decodeSlotReserved;
+            }
+
+            decodeRequest(traceId, authorization, budgetId, flags, reserved, buffer, offset, limit);
+
             connection.doConnectionWindow(traceId, authorization, 0);
+        }
+
+        private void decodeRequest(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            KafkaStreamClientDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != decoder)
+            {
+                previous = decoder;
+                progress = decoder.decode(
+                    this, traceId, authorization, budgetId, flags, reserved, buffer, offset, progress, limit);
+            }
+
+            if (progress < limit)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    connection.cleanupConnection(traceId);
+                }
+                else
+                {
+                    final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    decodeBuffer.putBytes(0, buffer, progress, limit - progress);
+                    decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = reserved - (int) ((long) reserved * (progress - offset) / (limit - offset));
+                }
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+                decodeSlotReserved = 0;
+            }
         }
 
         private void onStreamEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
+            final boolean truncated = requestBytes != 0 || decodeSlot != NO_SLOT;
+
+            cleanupDecodeSlot();
 
             state = StreamState.closeInitial(state);
 
-            if (StreamState.closed(state))
+            if (truncated)
+            {
+                connection.cleanupConnection(traceId);
+            }
+            else if (StreamState.closed(state))
             {
                 connection.onStreamClosed(initialId);
             }
@@ -874,10 +1142,17 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+            final boolean truncated = requestBytes != 0 || decodeSlot != NO_SLOT;
+
+            cleanupDecodeSlot();
 
             state = StreamState.closeInitial(state);
 
-            if (StreamState.closed(state))
+            if (truncated)
+            {
+                connection.cleanupConnection(traceId);
+            }
+            else if (StreamState.closed(state))
             {
                 connection.onStreamClosed(initialId);
             }
@@ -974,6 +1249,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void doStreamData(
             long traceId,
             int flags,
+            long sequence,
             int reserved,
             DirectBufferEx payload,
             int offset,
@@ -982,7 +1258,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         {
             if (responseBytes == 0)
             {
-                replySeqOffsets.add(connection.replySeq - reserved);
+                replySeqOffsets.add(sequence);
                 nexResponseId++;
                 final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(payload, offset, offset + length);
                 responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
@@ -1006,19 +1282,13 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             else
             {
                 replySeq += reserved;
+                replyAck = replySeq;
 
-                // TODO: responseAckBytes == 0, remove if
-                if (responseBytes == 0)
+                flushStreamWindow(traceId);
+
+                if (responseBytes == 0 && StreamState.replyAborting(state))
                 {
-                    if (StreamState.replyAborting(state))
-                    {
-                        doStreamAbort(traceId);
-                    }
-                    else
-                    {
-                        replyAck = replySeq;
-                        flushStreamWindow(traceId);
-                    }
+                    doStreamAbort(traceId);
                 }
             }
         }
@@ -1032,8 +1302,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
                 assert replyAck >= connection.replyAck - replySeqOffsetPeek + replyAckSnapshot;
 
-                // TODO: && responseAckBytes == 0
-                if (replyAck == replySeq)
+                if (replyAck == replySeq && responseBytes == 0)
                 {
                     replyAckOffsets.add(replySeqOffsetPeek + replyAck - replyAckSnapshot);
 
@@ -1146,6 +1415,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         private void cleanup(
             long traceId)
         {
+            cleanupDecodeSlot();
             doStreamReset(traceId);
             doStreamAbort(traceId);
         }
@@ -1284,7 +1554,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             this.flushable = sasl == null;
 
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : null;
-            this.decoder = decodeReject;
+            this.decoder = flushable ? decodeResponseHeader : decodeReject;
         }
 
         private void doConnectionBegin(
@@ -1302,9 +1572,10 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                 initialBudId = NO_BUDGET_ID;
                 nextRequestId = 0;
                 nextResponseId = 0;
+                requestBytes = 0;
                 flushable = sasl == null;
                 this.encoder = sasl != null ? encodeSaslHandshakeRequest : null;
-                this.decoder = decodeReject;
+                this.decoder = flushable ? decodeResponseHeader : decodeReject;
             }
 
             if (!StreamState.initialOpening(state))
@@ -1322,60 +1593,63 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
         }
 
-        private void doConnectionData(
+        private void doConnectionRequest(
             long streamId,
             long traceId,
             long authorization,
             long budgetId,
             int flags,
             int reserved,
-            OctetsFW payload,
-            Flyweight extension)
+            RequestHeaderFW requestHeader,
+            DirectBufferEx buffer,
+            int limit)
         {
-            if (requestBytes == 0)
-            {
-                final int requestId = nextRequestId++;
+            final int requestId = nextRequestId++;
 
-                requests.add(streamId);
-                responses.add(streamId);
-                responseAcks.add(streamId);
+            requests.add(streamId);
+            responses.add(streamId);
+            responseAcks.add(streamId);
 
-                final DirectBufferEx buffer = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
+            final RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(encodeBuffer, 0, encodeBuffer.capacity())
+                .length(requestHeader.length())
+                .apiKey(requestHeader.apiKey())
+                .apiVersion(requestHeader.apiVersion())
+                .correlationId(requestId)
+                .clientId(requestHeader.clientId())
+                .build();
 
-                RequestHeaderFW requestHeader = requestHeaderRO.wrap(buffer, offset, limit);
-                requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
+            final int remaining = limit - requestHeader.limit();
+            encodeBuffer.putBytes(newRequestHeader.limit(), buffer, requestHeader.limit(), remaining);
 
-                int progress = 0;
-                RequestHeaderFW newRequestHeader = requestHeaderRW.wrap(encodeBuffer, 0, encodeBuffer.capacity())
-                    .length(requestHeader.length())
-                    .apiKey(requestHeader.apiKey())
-                    .apiVersion(requestHeader.apiVersion())
-                    .correlationId(requestId)
-                    .clientId(requestHeader.clientId())
-                    .build();
-                progress = newRequestHeader.limit();
+            final int length = newRequestHeader.limit() + remaining;
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                traceId, authorization, flags, budgetId, reserved, encodeBuffer, 0, length, EMPTY_OCTETS);
 
-                final int remaining = payload.sizeof() - progress;
-                encodeBuffer.putBytes(progress, buffer, requestHeader.limit(), remaining);
-
-                final int length = progress + remaining;
-                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, flags, budgetId, reserved, encodeBuffer, 0, length, extension);
-
-                requestBytes -= length;
-                assert requestBytes >= 0;
-            }
-            else
-            {
-                doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, flags, budgetId, reserved, payload, extension);
-                requestBytes -= payload.sizeof();
-            }
+            requestBytes = requestHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET - (limit - requestHeader.offset());
 
             initialSeq += reserved;
 
+            assert requestBytes >= 0;
+            assert initialSeq <= initialAck + initialMax;
+        }
+
+        private void doConnectionData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int flags,
+            int reserved,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                traceId, authorization, flags, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
+
+            requestBytes -= length;
+            initialSeq += reserved;
+
+            assert requestBytes >= 0;
             assert initialSeq <= initialAck + initialMax;
         }
 
@@ -1581,13 +1855,12 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
-            final int flags = data.flags();
             final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
 
             int reserved = data.reserved();
             int offset = payload.offset();
             int limit = payload.limit();
+            DirectBufferEx buffer = payload.buffer();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1597,63 +1870,20 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             assert replyAck <= replySeq;
             assert replySeq <= replyAck + replyMax;
 
-            if (!flushable)
+            if (decodeSlot != NO_SLOT)
             {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(initialId);
-                }
+                final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                decodeBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
+                decodeSlotOffset += limit - offset;
+                decodeSlotReserved += reserved;
 
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupConnection(traceId);
-                }
-                else
-                {
-                    final MutableDirectBufferEx buffer = decodePool.buffer(decodeSlot);
-                    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
-                    decodeSlotOffset += limit - offset;
-                    decodeSlotReserved += reserved;
-
-                    offset = 0;
-                    limit = decodeSlotOffset;
-                    reserved = decodeSlotReserved;
-
-                    decodeNetwork(traceId, authorization, initialBudId, reserved, buffer, offset, limit);
-                }
+                buffer = decodeBuffer;
+                offset = 0;
+                limit = decodeSlotOffset;
+                reserved = decodeSlotReserved;
             }
-            else
-            {
-                final DirectBufferEx buffer = payload.buffer();
-                int progress = payload.offset();
 
-                while (progress < limit)
-                {
-                    if (responseBytes == 0)
-                    {
-                        final ResponseHeaderFW responseHeader = responseHeaderRO.wrap(buffer, progress, limit);
-                        responseBytes = responseHeader.length() + KAFKA_FRAME_LENGTH_FIELD_OFFSET;
-                    }
-
-                    final int responseBytesMin = Math.min(responseBytes, payload.sizeof());
-                    responseBytes -= responseBytesMin;
-                    assert responseBytes >= 0;
-
-                    long initialId = responses.peekLong();
-
-                    KafkaClientStream stream = streamsByInitialId.get(initialId);
-
-                    stream.doStreamData(traceId, flags | COMPLETE,
-                        reserved, buffer, progress, responseBytesMin, extension);
-
-                    progress += responseBytesMin;
-
-                    if (responseBytes == 0)
-                    {
-                        responses.removeLong();
-                    }
-                }
-            }
+            decodeNetwork(traceId, authorization, initialBudId, reserved, buffer, offset, limit);
         }
 
         private void onConnectionEnd(
@@ -1699,6 +1929,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             requests.clear();
             responses.clear();
             responseAcks.clear();
+            requestBytes = 0;
             streams.forEach(s ->
             {
                 KafkaClientStream stream = streamsByInitialId.get(s);
@@ -1846,7 +2077,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             this.reconnectAt = signaler.delegate.signalAt(
-                currentTimeMillis() + connectionPoolCleanupMillis,
+                clock.millis() + connectionPoolCleanupMillis,
                 SIGNAL_CONNECTION_CLEANUP, this::onStreamCleanupSignal);
         }
 
@@ -2003,7 +2234,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             long authorization,
             long budgetId,
             int reserved,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int limit)
         {
@@ -2031,7 +2262,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
                     final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
+                    decodeSlotReserved = reserved - (int) ((long) reserved * (progress - offset) / (limit - offset));
                 }
 
                 doConnectionWindow(traceId, authorization, budgetId);
@@ -2098,6 +2329,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             {
             case ERROR_NONE:
                 flushable = true;
+                decoder = decodeResponseHeader;
                 flushStreamWindows(traceId, initialMax);
                 break;
             default:

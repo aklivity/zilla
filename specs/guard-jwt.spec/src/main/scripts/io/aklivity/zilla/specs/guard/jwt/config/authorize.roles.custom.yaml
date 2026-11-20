@@ -1,0 +1,45 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      roles: "realm_access.roles"
+      keys:
+        - kty: RSA
+          kid: "test"
+          alg: RS256
+          n: ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ
+          e: AQAB
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials: "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0IiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJkZWZhdWx0LXJvbGVzLWJhY2tlbmQiLCJvZmZsaW5lX2FjY2VzcyJdfX0.VMiVFLyihtKKSLol4tW1526kRn2tJl0DsSW-Aoye3tNGae-CPGslBJsz69JV8mnfdXAUHbQ87d0HpefvcWOwHbyhfxljGuiCsi3Rr7cTmVXPJ-fx4r8K294OY7WTUqFGzl5zw6m46jHNltdnqQOFA8lM4ZWEYZ-c17OfwYoK5lpf1z6QE4MCafxMvirjwWtLhmSLS2js3Xka45Fl5eYVyutwmG8z1Ij_sxeCBQFbnpk1QtCH6a602h80X-PtvbiU8jQZPeRdKKqQEXdlR7h7dnU2xzHcUDpkS7O7KPT1PBD61jeBgaDHQ2mx7-w9DJjXf6eJgge63YHo4tsS_YcFuw"
+          expectIdentity: "testSubject"
+    routes:
+      - guarded:
+          jwt0:
+            - "default-roles-backend"
+            - "offline_access"
+        exit: app0

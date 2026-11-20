@@ -371,6 +371,17 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.complete.after.acknowledge/client",
+        "${kafka}/publish.qos2.complete.after.acknowledge/server"})
+    public void shouldSendMessageQos2CompleteAfterAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2.no.prior.offsets/client",
         "${kafka}/publish.qos2.no.prior.offsets/server"})
     public void shouldSendMessageQos2NoPriorOffsets() throws Exception
@@ -415,7 +426,7 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/publish.qos2.abort/client",
+        "${mqtt}/publish.qos2.non.clean.abort/client",
         "${kafka}/publish.qos2.offset.fetch.abort/server"})
     public void shouldSessionReceiveQos2OffsetFetchSentAbort() throws Exception
     {

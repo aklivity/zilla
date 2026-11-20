@@ -332,10 +332,21 @@ public final class ProtobufSchema
             {
                 withWellKnown.putIfAbsent(typeName, ProtobufWellKnownTypes.wrapperMessage(typeName));
             }
+            List<ProtobufMessage> relink = new ArrayList<>(toRelink);
+            for (ProtobufMessage message : ProtobufWellKnownTypes.messages())
+            {
+                if (withWellKnown.putIfAbsent(message.name(), message) == null)
+                {
+                    relink.add(message);
+                }
+            }
+            Map<String, ProtobufEnum> withWellKnownEnums = new LinkedHashMap<>(enums);
+            ProtobufEnum nullValue = ProtobufWellKnownTypes.nullValue();
+            withWellKnownEnums.putIfAbsent(nullValue.name(), nullValue);
             Map<String, ProtobufMessage> resolvedMessages = Map.copyOf(withWellKnown);
-            Map<String, ProtobufEnum> resolvedEnums = Map.copyOf(enums);
+            Map<String, ProtobufEnum> resolvedEnums = Map.copyOf(withWellKnownEnums);
             Map<String, ProtobufService> resolvedServices = Map.copyOf(services);
-            for (ProtobufMessage message : toRelink)
+            for (ProtobufMessage message : relink)
             {
                 for (ProtobufField field : message.fields())
                 {

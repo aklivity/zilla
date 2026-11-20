@@ -27,6 +27,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -315,6 +316,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final Supplier<String> supplySessionId;
     private final Signaler signaler;
+    private final Clock clock;
     private final int mcpTypeId;
     private final int kafkaTypeId;
     private final BufferPool decodePool;
@@ -363,6 +365,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.supplySessionId = config.sessionIdSupplier();
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.bindings = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
@@ -3706,7 +3709,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             final boolean caughtUp = partition != null && partition.latestOffset() >= 0 &&
                 partition.partitionOffset() + 1 >= partition.latestOffset();
             final long deadlineMillis = caughtUp
-                ? Math.min(consumeDeadlineMillis, System.currentTimeMillis() + CONSUME_CAUGHT_UP_GRACE_MILLIS)
+                ? Math.min(consumeDeadlineMillis, clock.millis() + CONSUME_CAUGHT_UP_GRACE_MILLIS)
                 : consumeDeadlineMillis;
 
             if (deadlineMillis != consumeScheduledMillis)
@@ -3891,7 +3894,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 }
                 applyConsumeStatus(traceId, status);
                 pumpConsume(traceId);
-                consumeDeadlineMillis = System.currentTimeMillis() + consumeTimeoutMillis;
+                consumeDeadlineMillis = clock.millis() + consumeTimeoutMillis;
                 scheduleConsumeTimeout(traceId, consumeDeadlineMillis);
             }
         }
@@ -3908,7 +3911,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(p -> p
                     .deferred(0)
-                    .timestamp(System.currentTimeMillis())
+                    .timestamp(clock.millis())
                     .partition(pt -> pt.partitionId(-1).partitionOffset(-1))
                     .key(args::key)
                     .headers(args::headers)))

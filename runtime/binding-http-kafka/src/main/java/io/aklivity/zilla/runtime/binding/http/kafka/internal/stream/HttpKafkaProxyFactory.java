@@ -24,8 +24,8 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static io.aklivity.zilla.runtime.engine.util.Flags.init;
-import static java.time.Instant.now;
 
+import java.time.Clock;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -114,6 +114,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final Signaler signaler;
+    private final Clock clock;
     private final int httpTypeId;
     private final int kafkaTypeId;
 
@@ -142,6 +143,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
@@ -1406,7 +1408,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long timeout = resolved.timeout();
             if (timeout > 0L)
             {
-                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
+                cancelWait = signaler.signalAt(clock.millis() + timeout, originId, routedId, initialId,
                         traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
         }
@@ -1807,7 +1809,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .typeId(kafkaTypeId)
                         .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
-                            .timestamp(now().toEpochMilli())
+                            .timestamp(clock.millis())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(producer.resolved::key)
                             .headers(hs -> producer.resolved.headers(headers, hs))))
@@ -2252,7 +2254,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .typeId(kafkaTypeId)
                         .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
-                            .timestamp(now().toEpochMilli())
+                            .timestamp(clock.millis())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(delegate.resolved::key)
                             .headers(hs -> delegate.resolved.headers(contentType, hs))))
@@ -3383,7 +3385,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long timeout = resolved.timeout();
             if (timeout > 0L)
             {
-                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
+                cancelWait = signaler.signalAt(clock.millis() + timeout, originId, routedId, initialId,
                         traceId, SIGNAL_WAIT_EXPIRED, 0);
             }
             doKafkaWindow(traceId);
@@ -3779,7 +3781,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .typeId(kafkaTypeId)
                         .merged(m -> m.produce(mp -> mp
                             .deferred(deferred0)
-                            .timestamp(now().toEpochMilli())
+                            .timestamp(clock.millis())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
                             .key(producer.resolved::key)
                             .headers(hs -> producer.resolved.headers(headers, hs))))

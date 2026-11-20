@@ -32,6 +32,7 @@ import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -137,6 +138,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final int kafkaTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -164,6 +166,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -220,7 +223,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
             final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
-            final int leaderId = leadersByPartitionId.get(partitionId);
+            final int leaderId = KafkaCacheRoute.resolveLeaderId(leadersByPartitionId.get(partitionId), affinity);
             KafkaCacheServerProduceFan fan = cacheRoute.serverProduceFansByTopicPartition.get(partitionKey);
             if (fan == null)
             {
@@ -235,7 +238,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final String cacheName = String.format("%s.%s", supplyNamespace.apply(routedId), supplyLocalName.apply(routedId));
             final KafkaCache cache = supplyCache.apply(cacheName);
             final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-            final KafkaCachePartition partition = topic.supplyProducePartition(partitionId, remoteIndex);
+            final KafkaCachePartition partition = topic.supplyProducePartition(clock, partitionId, remoteIndex);
 
             newStream = new KafkaCacheServerProduceStream(
                     fan,
@@ -663,7 +666,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onServerFanoutSignal);
             }
@@ -839,7 +842,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     }
 
                     this.reconnectAt = signaler.signalAt(
-                            currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                            clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                             SIGNAL_RECONNECT,
                             this::onServerFanoutSignal);
                 }
@@ -1020,7 +1023,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     }
 
                     this.reconnectAt = signaler.signalAt(
-                            currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                            clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                             SIGNAL_RECONNECT,
                             this::onServerFanoutSignal);
                 }

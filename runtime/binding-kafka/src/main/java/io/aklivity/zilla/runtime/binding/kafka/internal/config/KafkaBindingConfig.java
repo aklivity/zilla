@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class KafkaBindingConfig
 {
@@ -45,6 +46,7 @@ public final class KafkaBindingConfig
     public final ToLongFunction<String> resolveId;
     public final List<KafkaTopicType> topicTypes;
     public final GuardHandler guard;
+    public final StoreHandler store;
 
     public KafkaBindingConfig(
         BindingConfig binding,
@@ -59,6 +61,7 @@ public final class KafkaBindingConfig
         this.topicTypes = options != null && options.topics != null
             ? options.topics.stream().map(t -> new KafkaTopicType(context, t)).collect(toList()) : Collections.emptyList();
         this.guard = resolveGuard(binding, options, context);
+        this.store = resolveStore(binding, options, context);
     }
 
     private static GuardHandler resolveGuard(
@@ -73,6 +76,20 @@ public final class KafkaBindingConfig
             guard = context.supplyGuard(guardId);
         }
         return guard;
+    }
+
+    private static StoreHandler resolveStore(
+        BindingConfig binding,
+        KafkaOptionsConfig options,
+        EngineContext context)
+    {
+        StoreHandler store = null;
+        if (options != null && options.store != null)
+        {
+            long storeId = binding.resolveId.applyAsLong(options.store);
+            store = context.supplyStore(storeId);
+        }
+        return store;
     }
 
     public KafkaRouteConfig resolve(

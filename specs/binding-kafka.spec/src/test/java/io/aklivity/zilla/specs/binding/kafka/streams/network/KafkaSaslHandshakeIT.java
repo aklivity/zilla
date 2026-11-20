@@ -54,4 +54,13 @@ public class KafkaSaslHandshakeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.authorized.scram/client",
+        "${net}/create.topics.v7.authorized.scram/server"})
+    public void shouldCreateTopicsV3WhenAuthenticatedWithScram() throws Exception
+    {
+        k3po.finish();
+    }
 }

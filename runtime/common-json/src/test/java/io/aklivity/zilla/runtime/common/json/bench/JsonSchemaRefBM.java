@@ -23,6 +23,7 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -37,6 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSchema.Draft;
 
 // validates an object whose every property refers to one shared definition, at two sizes, either with a
 // validating parser built per document (single use) or one validating parser reset per document
@@ -50,6 +52,9 @@ public class JsonSchemaRefBM
 {
     private static final int SMALL_PROPERTIES = 8;
     private static final int LARGE_PROPERTIES = 10_000;
+
+    @Param({"DRAFT_07", "DRAFT_2020_12"})
+    public String draft;
 
     private final DirectBufferInputStreamEx inputRO = new DirectBufferInputStreamEx();
     private final JsonParserEx parser = JsonEx.createParser(inputRO);
@@ -67,8 +72,9 @@ public class JsonSchemaRefBM
     @Setup
     public void init()
     {
-        smallSchema = JsonSchema.of(schema(SMALL_PROPERTIES));
-        largeSchema = JsonSchema.of(schema(LARGE_PROPERTIES));
+        final Draft version = Draft.valueOf(draft);
+        smallSchema = JsonSchema.of(schema(SMALL_PROPERTIES, version), version);
+        largeSchema = JsonSchema.of(schema(LARGE_PROPERTIES, version), version);
         smallValidator = (JsonParserEx) smallSchema.newParser(false, parser);
         largeValidator = (JsonParserEx) largeSchema.newParser(false, parser);
 
@@ -125,14 +131,16 @@ public class JsonSchemaRefBM
     }
 
     private static String schema(
-        int properties)
+        int properties,
+        Draft version)
     {
-        StringBuilder schema = new StringBuilder("{\"type\":\"object\",\"definitions\":{\"text\":{\"type\":\"string\"}}," +
-            "\"properties\":{");
+        final String definitions = version == Draft.DRAFT_07 ? "definitions" : "$defs";
+        StringBuilder schema = new StringBuilder("{\"type\":\"object\",\"" + definitions +
+            "\":{\"text\":{\"type\":\"string\"}},\"properties\":{");
         for (int index = 0; index < properties; index++)
         {
             schema.append(index == 0 ? "" : ",");
-            schema.append("\"k").append(index).append("\":{\"$ref\":\"#/definitions/text\"}");
+            schema.append("\"k").append(index).append("\":{\"$ref\":\"#/").append(definitions).append("/text\"}");
         }
         return schema.append("}}").toString();
     }

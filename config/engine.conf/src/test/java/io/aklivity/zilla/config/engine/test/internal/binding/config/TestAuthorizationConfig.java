@@ -26,6 +26,7 @@ public final class TestAuthorizationConfig
     public final String expectCredentials;
     public final Map<String, String> attributes;
     public final boolean releaseOnEnd;
+    public final TestSessionConfig session;
 
     public TestAuthorizationConfig(
         String name,
@@ -57,6 +58,20 @@ public final class TestAuthorizationConfig
         Map<String, String> attributes,
         boolean releaseOnEnd)
     {
+        this(name, credentials, callback, callbackParams, expectIdentity, expectCredentials, attributes, releaseOnEnd, null);
+    }
+
+    public TestAuthorizationConfig(
+        String name,
+        String credentials,
+        String callback,
+        Map<String, String> callbackParams,
+        String expectIdentity,
+        String expectCredentials,
+        Map<String, String> attributes,
+        boolean releaseOnEnd,
+        TestSessionConfig session)
+    {
         this.name = name;
         this.credentials = credentials;
         this.callback = callback;
@@ -65,5 +80,6 @@ public final class TestAuthorizationConfig
         this.expectCredentials = expectCredentials;
         this.attributes = attributes;
         this.releaseOnEnd = releaseOnEnd;
+        this.session = session;
     }
 }

@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
@@ -37,6 +38,10 @@ import io.aklivity.zilla.runtime.engine.test.EngineBench.FrameCounter;
  * Accepts streams routed to an external binding, grants request credit, counts the frames it receives and
  * replays a pre-built {@link Response} once the {@link Trigger} frame arrives, within the reply credit it is
  * granted. A {@code null} response withholds the reply so the request stays in flight.
+ * A response whose end extension is {@code null} leaves the reply open after its last section, as a long-lived
+ * stream does, and ends the reply when the request ends. An echoing response also replays every data frame it
+ * receives on the reply, with its extension, once the reply has begun, and every flush frame with its extension;
+ * an echoed data frame must fit the reply credit.
  * <p>
  * Extensions are opaque bytes, so the responder knows nothing about the protocol it replays. It does not
  * allocate in steady state: stream state is pooled and frames are built into a reused buffer.
@@ -59,6 +64,7 @@ public final class Responder implements BindingHandler
         private final DirectBufferEx[] sectionPayload;
         private final DirectBufferEx endEx;
         private final int fragmentLength;
+        private final boolean echo;
 
         public Response(
             byte[] beginEx,
@@ -67,11 +73,23 @@ public final class Responder implements BindingHandler
             byte[] endEx,
             int fragmentLength)
         {
+            this(beginEx, sectionEx, sectionPayload, endEx, fragmentLength, false);
+        }
+
+        public Response(
+            byte[] beginEx,
+            byte[][] sectionEx,
+            byte[][] sectionPayload,
+            byte[] endEx,
+            int fragmentLength,
+            boolean echo)
+        {
             this.beginEx = new UnsafeBufferEx(beginEx);
             this.sectionEx = wrap(sectionEx);
             this.sectionPayload = wrap(sectionPayload);
-            this.endEx = new UnsafeBufferEx(endEx);
+            this.endEx = endEx != null ? new UnsafeBufferEx(endEx) : null;
             this.fragmentLength = fragmentLength;
+            this.echo = echo;
         }
 
         private static DirectBufferEx[] wrap(
@@ -88,15 +106,18 @@ public final class Responder implements BindingHandler
         }
     }
 
+    private static final DirectBufferEx EMPTY_EXTENSION = new UnsafeBufferEx(new byte[0]);
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[WRITE_BUFFER_CAPACITY]);
@@ -200,11 +221,21 @@ public final class Responder implements BindingHandler
                 onTrigger(Trigger.BEGIN);
                 break;
             case DataFW.TYPE_ID:
-                initialSeq += dataRO.wrap(buffer, index, index + length).reserved();
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                initialSeq += data.reserved();
                 doInitialWindow();
+                if (response != null && response.echo && step != 0)
+                {
+                    doReplyEcho(data);
+                }
                 break;
             case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
                 onTrigger(Trigger.FLUSH);
+                if (response != null && response.echo && step != 0)
+                {
+                    doReplyFlushEcho(flush);
+                }
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW windowFW = windowRO.wrap(buffer, index, index + length);
@@ -219,6 +250,10 @@ public final class Responder implements BindingHandler
                 break;
             case EndFW.TYPE_ID:
                 onTrigger(Trigger.END);
+                if (response != null && response.endEx == null && step != 0 && !StreamState.replyClosed(state))
+                {
+                    doReplyEnd(EMPTY_EXTENSION);
+                }
                 closeInitial();
                 break;
             case AbortFW.TYPE_ID:
@@ -265,11 +300,11 @@ public final class Responder implements BindingHandler
                 }
             }
 
-            if (step == sections + 1)
+            if (step == sections + 1 && response.endEx != null)
             {
                 final boolean closed = StreamState.closed(state);
 
-                doReplyEnd();
+                doReplyEnd(response.endEx);
                 step++;
 
                 release(closed);
@@ -346,7 +381,61 @@ public final class Responder implements BindingHandler
             sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
         }
 
-        private void doReplyEnd()
+        private void doReplyEcho(
+            DataFW received)
+        {
+            final OctetsFW payload = received.payload();
+            final OctetsFW extension = received.extension();
+            final int payloadLength = payload != null ? payload.sizeof() : 0;
+
+            if (replyCredit() < payloadLength + replyPad)
+            {
+                throw new IllegalStateException("echoed data exceeds reply credit: " + replyCredit());
+            }
+
+            final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(routedId)
+                .routedId(originId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .state(state)
+                .maximum(0)
+                .flags(received.flags())
+                .budgetId(0L)
+                .reserved(payloadLength + replyPad)
+                .payload(payload != null ? payload.buffer() : null, payload != null ? payload.offset() : 0, payloadLength)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+            replySeq += data.reserved();
+
+            sender.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        }
+
+        private void doReplyFlushEcho(
+            FlushFW received)
+        {
+            final OctetsFW extension = received.extension();
+
+            final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(routedId)
+                .routedId(originId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .state(state)
+                .maximum(0)
+                .budgetId(0L)
+                .reserved(0)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+            sender.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+        }
+
+        private void doReplyEnd(
+            DirectBufferEx extension)
         {
             state = StreamState.closeReply(state);
 
@@ -358,7 +447,7 @@ public final class Responder implements BindingHandler
                 .acknowledge(replyAck)
                 .state(state)
                 .maximum(0)
-                .extension(response.endEx, 0, response.endEx.capacity())
+                .extension(extension, 0, extension.capacity())
                 .build();
 
             sender.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());

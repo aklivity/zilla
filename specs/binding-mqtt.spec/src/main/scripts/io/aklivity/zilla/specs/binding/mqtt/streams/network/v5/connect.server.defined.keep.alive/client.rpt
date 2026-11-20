@@ -35,5 +35,7 @@ read   [0x20 0x06]                   # CONNACK
        [0x03]                        # properties = server keep alive
        [0x13] 10s                    # server keep alive = 10s
 
+read notify CONNECTED
+
 read await WAIT_2_SECONDS
 

@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.ADVISORY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
-import static java.lang.System.currentTimeMillis;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.function.IntFunction;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
@@ -30,6 +30,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
 {
     private static final long OFFSET_LIVE = KafkaOffsetType.LIVE.value();
 
+    private final Clock clock;
     private final Path location;
     private final String name;
     private final int id;
@@ -53,12 +54,14 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     private KafkaTimestampType modifiedType = ADVISORY;
 
     public KafkaCacheSegment(
+        Clock clock,
         KafkaCacheSegment segment,
         KafkaCacheTopicConfig config,
         MutableDirectBufferEx appendBuf,
         IntFunction<long[]> sortSpaceRef)
     {
-        this(segment.location,
+        this(clock,
+                segment.location,
                 config,
                 segment.name,
                 segment.id,
@@ -68,6 +71,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     }
 
     public KafkaCacheSegment(
+        Clock clock,
         Path location,
         KafkaCacheTopicConfig config,
         String name,
@@ -76,12 +80,13 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         MutableDirectBufferEx appendBuf,
         IntFunction<long[]> sortSpaceRef)
     {
+        this.clock = clock;
         this.location = location;
         this.name = name;
         this.id = id;
         this.baseOffset = baseOffset;
         this.lastOffset = OFFSET_LIVE;
-        this.timestamp = currentTimeMillis();
+        this.timestamp = clock.millis();
         this.logFile = new KafkaCacheFile.Log(location, baseOffset, config.segmentBytes, appendBuf);
         this.deltaFile = new KafkaCacheFile.Delta(location, baseOffset, config.segmentBytes, appendBuf);
         this.indexFile = new KafkaCacheFile.Index(location, baseOffset, config.segmentIndexBytes, appendBuf);
@@ -91,6 +96,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     }
 
     public KafkaCacheSegment(
+        Clock clock,
         Path location,
         String name,
         int id,
@@ -98,6 +104,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         long lastOffset,
         long timestamp)
     {
+        this.clock = clock;
         this.location = location;
         this.name = name;
         this.id = id;
@@ -205,8 +212,8 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         nullsFile.freeze();
         keysFile.freeze();
 
-        final long frozenAt = modifiedType == AUTHORITATIVE ? modifiedAt : currentTimeMillis();
-        final KafkaCacheSegment frozen = new KafkaCacheSegment(location, name, id, baseOffset, lastOffset, frozenAt);
+        final long frozenAt = modifiedType == AUTHORITATIVE ? modifiedAt : clock.millis();
+        final KafkaCacheSegment frozen = new KafkaCacheSegment(clock, location, name, id, baseOffset, lastOffset, frozenAt);
 
         frozen.dirtySince = dirtySince;
         frozen.dirtyBytes = dirtyBytes;
@@ -246,7 +253,7 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
     {
         if (this.dirtyBytes == 0)
         {
-            this.dirtySince = currentTimeMillis();
+            this.dirtySince = clock.millis();
         }
 
         this.dirtyBytes += dirtyBytes;

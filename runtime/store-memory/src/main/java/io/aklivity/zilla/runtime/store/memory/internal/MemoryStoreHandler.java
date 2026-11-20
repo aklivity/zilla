@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.io.Closeable;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -34,17 +35,20 @@ final class MemoryStoreHandler implements StoreHandler
     private final ConcurrentMap<String, List<Watcher>> watchers;
     private final ConcurrentMap<String, LockEntry> locks;
     private final Consumer<Runnable> dispatcher;
+    private final Clock clock;
 
     MemoryStoreHandler(
         ConcurrentMap<String, MemoryEntry> entries,
         ConcurrentMap<String, List<Watcher>> watchers,
         ConcurrentMap<String, LockEntry> locks,
-        Consumer<Runnable> dispatcher)
+        Consumer<Runnable> dispatcher,
+        Clock clock)
     {
         this.entries = entries;
         this.watchers = watchers;
         this.locks = locks;
         this.dispatcher = Objects.requireNonNull(dispatcher);
+        this.clock = clock;
     }
 
     @Override
@@ -53,7 +57,7 @@ final class MemoryStoreHandler implements StoreHandler
         BiConsumer<String, String> completion)
     {
         final MemoryEntry entry = entries.get(key);
-        final String value = entry != null && !entry.expired() ? entry.value() : null;
+        final String value = entry != null && !entry.expired(clock.millis()) ? entry.value() : null;
         defer(() -> completion.accept(key, value));
     }
 
@@ -81,7 +85,7 @@ final class MemoryStoreHandler implements StoreHandler
         final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
         final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
         boolean stored = existing == null;
-        if (existing != null && existing.expired())
+        if (existing != null && existing.expired(clock.millis()))
         {
             stored = entries.replace(key, existing, newEntry);
         }
@@ -89,7 +93,7 @@ final class MemoryStoreHandler implements StoreHandler
         {
             notifyWatchers(key, value);
         }
-        final String result = existing != null && !existing.expired() ? existing.value() : null;
+        final String result = existing != null && !existing.expired(clock.millis()) ? existing.value() : null;
         defer(() -> completion.accept(result));
     }
 
@@ -112,7 +116,7 @@ final class MemoryStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         final MemoryEntry entry = entries.remove(key);
-        final String value = entry != null && !entry.expired() ? entry.value() : null;
+        final String value = entry != null && !entry.expired(clock.millis()) ? entry.value() : null;
         if (entry != null)
         {
             notifyWatchers(key, null);
@@ -140,7 +144,7 @@ final class MemoryStoreHandler implements StoreHandler
         for (int index = 0; index < values.length; index++)
         {
             final MemoryEntry entry = entries.get(keys.get(index));
-            values[index] = entry != null && !entry.expired() ? entry.value() : null;
+            values[index] = entry != null && !entry.expired(clock.millis()) ? entry.value() : null;
         }
         defer(() -> completion.accept(Arrays.asList(values)));
     }
@@ -157,7 +161,7 @@ final class MemoryStoreHandler implements StoreHandler
             if (entry != null)
             {
                 notifyWatchers(key, null);
-                if (!entry.expired())
+                if (!entry.expired(clock.millis()))
                 {
                     removed++;
                 }
@@ -189,7 +193,7 @@ final class MemoryStoreHandler implements StoreHandler
         Duration ttl,
         BiConsumer<String, String> completion)
     {
-        final long now = System.currentTimeMillis();
+        final long now = clock.millis();
         final long expiresAt = ttl == null ? Long.MAX_VALUE : now + ttl.toMillis();
         final String token = UUID.randomUUID().toString();
         final LockEntry candidate = new LockEntry(token, expiresAt);
@@ -208,7 +212,7 @@ final class MemoryStoreHandler implements StoreHandler
         String token,
         Consumer<String> completion)
     {
-        final long now = System.currentTimeMillis();
+        final long now = clock.millis();
         final LockEntry current = locks.get(key);
         final String result;
         if (current != null && current.expiresAt() > now && current.token().equals(token))
@@ -236,7 +240,7 @@ final class MemoryStoreHandler implements StoreHandler
         Duration ttl,
         Consumer<String> completion)
     {
-        final long now = System.currentTimeMillis();
+        final long now = clock.millis();
         final LockEntry current = locks.get(key);
         String result = null;
         if (current != null && current.expiresAt() > now && current.token().equals(token))
@@ -285,7 +289,7 @@ final class MemoryStoreHandler implements StoreHandler
         do
         {
             final MemoryEntry existing = entries.get(key);
-            final boolean live = existing != null && !existing.expired();
+            final boolean live = existing != null && !existing.expired(clock.millis());
             counter = (live ? Long.parseLong(existing.value()) : 0L) + delta;
             final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl));
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
@@ -306,7 +310,7 @@ final class MemoryStoreHandler implements StoreHandler
         do
         {
             final MemoryEntry existing = entries.get(key);
-            final boolean matches = existing != null && !existing.expired() && existing.value().equals(expected);
+            final boolean matches = existing != null && !existing.expired(clock.millis()) && existing.value().equals(expected);
             replaced = matches && entries.replace(key, existing, new MemoryEntry(value, expiresAt(ttl)));
             contended = matches && !replaced;
         }
@@ -334,10 +338,10 @@ final class MemoryStoreHandler implements StoreHandler
         dispatcher.accept(task);
     }
 
-    private static long expiresAt(
+    private long expiresAt(
         Duration ttl)
     {
-        return ttl == null ? Long.MAX_VALUE : System.currentTimeMillis() + ttl.toMillis();
+        return ttl == null ? Long.MAX_VALUE : clock.millis() + ttl.toMillis();
     }
 
     record Watcher(

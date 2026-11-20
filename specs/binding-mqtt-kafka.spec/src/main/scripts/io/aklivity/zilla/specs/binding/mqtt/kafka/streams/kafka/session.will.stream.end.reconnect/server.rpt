@@ -38,6 +38,7 @@ connected
 
 write close
 read closed
+read notify WILL_STREAM_CLOSED
 
 accepted
 

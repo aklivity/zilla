@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
@@ -33,8 +34,8 @@ public class KafkaCacheTopicTest
         Path location = config.cacheDirectory().resolve("cache");
         KafkaCacheTopic topic = new KafkaCacheTopic(location, config, "cache", new AtomicLong(0L), "test", long[]::new);
 
-        KafkaCachePartition partitionA = topic.supplyFetchPartition(0);
-        KafkaCachePartition partitionB = topic.supplyFetchPartition(0);
+        KafkaCachePartition partitionA = topic.supplyFetchPartition(Clock.systemUTC(), 0);
+        KafkaCachePartition partitionB = topic.supplyFetchPartition(Clock.systemUTC(), 0);
 
         assert partitionA == partitionB;
     }

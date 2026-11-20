@@ -139,6 +139,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.null
 
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 # cleanup session state
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -161,6 +174,19 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .partition(-1, -1)
                                .key("client-2#offsets")
                                .hashKey("client-2")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-2#expiry")
+                               .hashKey("client-2")
+                               .header("type", "expiry-signal")
                                .build()
                            .build()}
 read zilla:data.null
@@ -269,6 +295,7 @@ write notify RECEIVED_EXPIRE_LATER_SIGNAL
 
 # no session state
 # no migrate signals
+write await CLOCK_RESET
 write advise zilla:flush
 
 # expiry signal for client-1, expire at (now + delay)

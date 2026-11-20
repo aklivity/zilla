@@ -932,6 +932,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.complete.after.acknowledge/client",
+        "${mqtt}/publish.qos2.complete.after.acknowledge/server"})
+    public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${mqtt}/session.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStart() throws Exception
@@ -972,9 +982,39 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.abort.after.publish/client",
+        "${mqtt}/publish.qos2.abort.after.publish/server"})
+    public void shouldPublishQoS2MessageAbortAfterPublish() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.abort.after.pubrel/client",
+        "${mqtt}/publish.qos2.abort.after.pubrel/server"})
+    public void shouldPublishQoS2MessageAbortAfterPubrel() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.abort/client",
         "${mqtt}/publish.qos2.abort/server"})
     public void shouldSessionReceiveQos2Abort() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.non.clean.abort/client",
+        "${mqtt}/publish.qos2.non.clean.abort/server"})
+    public void shouldSessionReceiveQos2NonCleanAbort() throws Exception
     {
         k3po.start();
         k3po.finish();
@@ -1471,6 +1511,15 @@ public class MqttIT
         "${mqtt}/subscribe.shared.expire.message/client",
         "${mqtt}/subscribe.shared.expire.message/server"})
     public void shouldSubscribeSharedExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.shared.message.expiry.interval.reduced/client",
+        "${mqtt}/subscribe.shared.message.expiry.interval.reduced/server"})
+    public void shouldSubscribeSharedMessageExpiryIntervalReduced() throws Exception
     {
         k3po.finish();
     }

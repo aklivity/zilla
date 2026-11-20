@@ -247,6 +247,15 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/disconnect.after.guard.session.expired/client",
+        "${net}/disconnect.after.guard.session.expired/server"})
+    public void shouldDisconnectClientAfterGuardSessionExpired() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
     @Test
     @Specification({
@@ -471,6 +480,33 @@ public class ConnectionIT
         "${net}/connect.non.successful.disconnect/client",
         "${net}/connect.non.successful.disconnect/server"})
     public void shouldResetWithReasonCodeOnNonSuccessfulDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/client",
+        "${net}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonStringFromConnackWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/client",
+        "${net}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonAndUserPropertiesFromDisconnectWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connect.non.successful.disconnect.reason.within.maximum.packet.size/client",
+        "${net}/connect.non.successful.disconnect.reason.within.maximum.packet.size/server"})
+    public void shouldSendReasonAndUserPropertiesOnDisconnectWithinMaximumPacketSize() throws Exception
     {
         k3po.finish();
     }

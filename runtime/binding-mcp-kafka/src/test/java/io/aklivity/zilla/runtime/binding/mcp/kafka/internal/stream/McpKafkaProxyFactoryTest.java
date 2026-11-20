@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -118,6 +119,7 @@ public class McpKafkaProxyFactoryTest
         when(context.writeBuffer()).thenReturn(writeBuffer);
         when(context.streamFactory()).thenReturn(streamFactory);
         when(context.signaler()).thenReturn(signaler);
+        when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyTypeId("mcp")).thenReturn(MCP_TYPE_ID);
         when(context.supplyTypeId("kafka")).thenReturn(KAFKA_TYPE_ID);
         when(context.supplyInitialId(anyLong())).thenAnswer(inv -> supplyId.getAndIncrement());

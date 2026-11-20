@@ -75,6 +75,33 @@ public class ConnectionIT
 
     @Test
     @Specification({
+        "${app}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/client",
+        "${app}/connect.non.successful.connack.reason.string.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonStringFromConnackWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/client",
+        "${app}/connect.non.successful.disconnect.reason.exceeds.maximum.packet.size/server"})
+    public void shouldOmitReasonAndUserPropertiesFromDisconnectWhenExceedingMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connect.non.successful.disconnect.reason.within.maximum.packet.size/client",
+        "${app}/connect.non.successful.disconnect.reason.within.maximum.packet.size/server"})
+    public void shouldSendReasonAndUserPropertiesOnDisconnectWithinMaximumPacketSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/connect.delegate.connack.properties/client",
         "${app}/connect.delegate.connack.properties/server"})
     public void shouldDelegateConnackProperties() throws Exception

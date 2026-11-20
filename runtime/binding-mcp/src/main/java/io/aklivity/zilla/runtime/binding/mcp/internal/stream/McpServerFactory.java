@@ -26,6 +26,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -231,6 +232,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final long inactivityTimeoutMillis;
     private final EngineContext context;
     private final Signaler signaler;
+    private final Clock clock;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx eventBuffer;
@@ -293,6 +295,7 @@ public final class McpServerFactory implements McpStreamFactory
         this.inactivityTimeoutMillis = config.inactivityTimeout().toMillis();
         this.context = context;
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.eventBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity() + EVENT_RECORD_HEADER + 1024]);
@@ -3804,7 +3807,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void touch()
         {
-            lastActiveAt = System.currentTimeMillis();
+            lastActiveAt = clock.millis();
         }
 
         private void scheduleInactivity(
@@ -4082,7 +4085,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             final long shutdownAt = lastActiveAt + inactivityTimeoutMillis;
 
             if (shutdownAt <= now)

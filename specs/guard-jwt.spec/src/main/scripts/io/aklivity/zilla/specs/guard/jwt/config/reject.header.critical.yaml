@@ -1,0 +1,42 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          kid: "test"
+          alg: RS256
+          n: ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ
+          e: AQAB
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials: "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QiLCJjcml0IjpbImV4cCJdLCJleHAiOjF9.eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZS5jb20iLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsInN1YiI6InRlc3RTdWJqZWN0Iiwic2NvcGUiOiJyZWFkIHdyaXRlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDB9.NGcNMxnGGtmr7ja3YYQ-y_KkTri0ZmYVroPBBxgKsltBm411uDe_t5d_nTxHbqF0or9ObG3OqMs856cJpgyGE4SjK8IQw7MJVo41Pmg7Tuu0t-8o6UN2czalRngsu26SmGzWKPP8J7O3AGsbciNh5Ll0qmsWmbAlAeH607kGlrHtTw2qrVgL2bfinf1bndb746Y3PUpQ-ySNM4mwsU7lJpK8Zh8vH-DCiCv1O2KVOFWVZub6_wEDjy8FTwe2mqG1l7CzXGNE7U6PsNjfcuztl1YxlaZsCOBtewolQvV0RSnyyVrPYMNXSgoVaf2y7IjNToQH-6dsEXHwEGd_TQlgyw"
+    routes:
+      - guarded:
+          jwt0:
+            - "read"
+        exit: app0

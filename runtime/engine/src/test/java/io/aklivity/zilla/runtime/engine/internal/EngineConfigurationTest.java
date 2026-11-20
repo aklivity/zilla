@@ -30,6 +30,8 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_LOCAL_
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_NODE_INSTANCE_ID;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTER;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SERVICE_HOSTNAME;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMER_WHEEL_TICKS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMER_WHEEL_TICK_MILLIS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
@@ -43,6 +45,8 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_LOCAL_CONF
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_NODE_INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_SERVICE_HOSTNAME_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICKS_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -92,6 +96,8 @@ public class EngineConfigurationTest
         assertEquals(ENGINE_LOCAL_CONFIG_URI.name(), ENGINE_LOCAL_CONFIG_URI_NAME);
         assertEquals(ENGINE_WORKER_CAPACITY.name(), ENGINE_WORKER_CAPACITY_NAME);
         assertEquals(ENGINE_CLOCK.name(), ENGINE_CLOCK_NAME);
+        assertEquals(ENGINE_TIMER_WHEEL_TICK_MILLIS.name(), ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME);
+        assertEquals(ENGINE_TIMER_WHEEL_TICKS.name(), ENGINE_TIMER_WHEEL_TICKS_NAME);
         assertEquals(ENGINE_ROUTER.name(), ENGINE_ROUTER_NAME);
         assertEquals(ENGINE_SERVICE_HOSTNAME.name(), ENGINE_SERVICE_HOSTNAME_NAME);
         assertEquals(ENGINE_NODE_INSTANCE_ID.name(), ENGINE_NODE_INSTANCE_ID_NAME);

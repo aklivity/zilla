@@ -19,12 +19,13 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.TIME_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_STREAM_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -37,6 +38,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -48,6 +50,8 @@ public class MqttKafkaSessionProxyIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(999L);
+
     public final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
@@ -57,8 +61,8 @@ public class MqttKafkaSessionProxyIT
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
         .configure(INSTANCE_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyInstanceId")
-        .configure(TIME_NAME,
-            "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyTime")
+        .configure(ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, "1")
+        .clock(clock)
         .configure(LIFETIME_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplyLifetimeId")
         .configure(WILL_ID_NAME,
@@ -253,6 +257,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.discard.offsets/server"})
@@ -263,6 +268,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.negotiated/server"})
@@ -273,6 +279,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.partition.error/server"})
@@ -283,6 +290,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.group.not.found/server"})
@@ -293,6 +301,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available/server"})
@@ -303,6 +312,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.reset.group.offsets.broker.zero/server"})
@@ -331,7 +341,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.offsets.immediately/server"})
     public void shouldExpireSessionAndOffsetsImmediately() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -342,7 +358,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.reset.group.offsets/server"})
     public void shouldResetGroupOffsetsOnSessionExpiry() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -353,7 +375,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.reset.group.offsets/server"})
     public void shouldResetGroupOffsetsOnSessionExpiryWhenMessagesWithParams() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -364,7 +392,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.reset.group.offsets.small.window/server"})
     public void shouldResetGroupOffsetsOnSessionExpiryAfterSmallWindow() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -375,18 +409,41 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.reconnect.during.expire.reset.group.offsets/server"})
     public void shouldReconnectDuringSessionExpiryGroupOffsetsReset() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        clock.advanceTo(1001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.awaitBarrier("OFFSET_DELETE_RECEIVED");
+        }
+        clock.advanceTo(1000L);
+        k3po.notifyBarrier("CLOCK_RESET");
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1024")
     @Specification({
         "${mqtt}/session.close.expire.session.offsets.large.interval/client",
         "${kafka}/session.close.expire.session.offsets.large.interval/server"})
     public void shouldExpireSessionAndOffsetsAfterLargeInterval() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_LATER_SIGNAL");
+        clock.advanceTo(1000L);
+        k3po.notifyBarrier("CLOCK_RESET");
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(3000001000L + 3L * 1024L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1024L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -397,7 +454,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.state/server"})
     public void shouldExpireSessionOnClose() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -431,7 +494,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.close.expire.session.state/server"})
     public void shouldDiscardTicketsOnSessionExpiry() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -453,7 +522,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -479,21 +554,33 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
     public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -526,7 +613,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.abort.deliver.will/server"})
     public void shouldSendWillMessageOnAbort() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -537,7 +630,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.topic.trailing.empty.level/server"})
     public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -548,7 +647,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.abort.deliver.will.non.expiring/server"})
     public void shouldSendWillMessageOnAbortNonExpiring() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -570,7 +675,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.10k.abort.deliver.will/server"})
     public void shouldSendWillMessage10kOnAbort() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -619,6 +730,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.qos2.init.producer.reset/client",
         "${kafka}/session.qos2.init.producer.reset/server"})
@@ -629,6 +741,7 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/session.qos2.offset.fetch.reset/client",
         "${kafka}/session.qos2.offset.fetch.reset/server"})
@@ -668,7 +781,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.message.abort.deliver.will.retain/server"})
     public void shouldSaveWillMessageAsRetain() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -692,7 +811,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.stream.end.reconnect/server"})
     public void shouldReconnectWillStreamOnKafkaEnd() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("WILL_STREAM_CLOSED");
+        clock.advanceBy(1001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -703,7 +828,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.stream.abort.reconnect/server"})
     public void shouldReconnectWillStreamOnKafkaAbort() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("WILL_STREAM_CLOSED");
+        clock.advanceBy(1001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     @Test
@@ -714,7 +845,13 @@ public class MqttKafkaSessionProxyIT
         "${kafka}/session.will.stream.reset.reconnect/server"})
     public void shouldReconnectWillStreamOnKafkaReset() throws Exception
     {
-        k3po.finish();
+        k3po.start();
+        k3po.awaitBarrier("WILL_STREAM_CLOSED");
+        clock.advanceBy(1001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
     }
 
     public static String supplySessionId()
@@ -737,10 +874,6 @@ public class MqttKafkaSessionProxyIT
         return "zilla-1";
     }
 
-    public static long supplyTime()
-    {
-        return 1000L;
-    }
 
     @Test
     @Configuration("proxy.yaml")
@@ -946,9 +1079,32 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
     @Specification({
         "${kafka}/session.expiry.signal.replaced/server"})
     public void shouldReplaceSessionExpiryTimerForSameClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.abort.after.publish/client",
+        "${kafka}/publish.qos2.abort.after.publish/server"})
+    public void shouldRecoverMessageQos2AbortedAfterPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.abort.after.pubrel/client",
+        "${kafka}/publish.qos2.abort.after.pubrel/server"})
+    public void shouldRecoverMessageQos2AbortedAfterPubrel() throws Exception
     {
         k3po.finish();
     }

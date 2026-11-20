@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMethod;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufService;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWellKnownTypes;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2BaseListener;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2Lexer;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2Parser;
@@ -202,7 +203,9 @@ public final class ProtobufSourceCompiler
                 throw new ProtobufException("unresolved type " + field.typeToken);
             }
             typeName = resolved;
-            type = field.enumNames.contains(resolved) ? ProtobufType.ENUM : ProtobufType.MESSAGE;
+            type = field.enumNames.contains(resolved) || ProtobufWellKnownTypes.enumeration(resolved)
+                ? ProtobufType.ENUM
+                : ProtobufType.MESSAGE;
         }
 
         ProtobufField.Builder builder = ProtobufField.builder()
@@ -257,7 +260,7 @@ public final class ProtobufSourceCompiler
             while (!done)
             {
                 String candidate = prefix.isEmpty() ? token : prefix + "." + token;
-                if (names.contains(candidate))
+                if (names.contains(candidate) || ProtobufWellKnownTypes.defined(candidate))
                 {
                     result = candidate;
                     done = true;

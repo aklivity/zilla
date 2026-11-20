@@ -20,9 +20,9 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_I
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -75,6 +75,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
@@ -147,11 +148,14 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final UnaryOperator<KafkaSaslConfig> resolveSasl;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
+    private final LongFunction<String> supplyNamespace;
+    private final LongFunction<String> supplyLocalName;
     private final LongFunction<BudgetDebitor> supplyDebitor;
 
     public KafkaClientMetaFactory(
@@ -168,6 +172,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
+        this.clock = context.clock();
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
@@ -178,6 +183,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
         this.supplyDebitor = supplyDebitor;
+        this.supplyNamespace = context::supplyNamespace;
+        this.supplyLocalName = context::supplyLocalName;
     }
 
     @Override
@@ -213,6 +220,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = resolveSasl.apply(binding.sasl());
 
+            final String storeKey = KafkaClientBrokers.key(
+                supplyNamespace.apply(routedId), binding.name, supplyLocalName.apply(resolvedId));
+
             newStream = new KafkaMetaStream(
                     application,
                     originId,
@@ -223,7 +233,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     topicName,
                     binding.servers(),
                     sasl,
-                    binding.guard)::onApplication;
+                    binding.guard,
+                    binding.store,
+                    storeKey)::onApplication;
         }
 
         return newStream;
@@ -842,6 +854,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private final KafkaMetaClient client;
         private final KafkaClientRoute clientRoute;
         private final LongConsumer metaFlush;
+        private final StoreHandler store;
+        private final String storeKey;
 
         private int state;
 
@@ -865,7 +879,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             String topic,
             List<KafkaServerConfig> servers,
             KafkaSaslConfig sasl,
-            GuardHandler guard)
+            GuardHandler guard,
+            StoreHandler store,
+            String storeKey)
         {
             this.application = application;
             this.originId = originId;
@@ -873,6 +889,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
+            this.store = store;
+            this.storeKey = storeKey;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl, guard);
             this.metaFlush = client::doEncodeRequestIfNecessary;
@@ -1825,9 +1843,16 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             private void onDecodeBrokers()
             {
-                // TODO: share servers across cores
+                final String brokers = KafkaClientBrokers.encode(newServers);
+                final boolean changed = !brokers.equals(KafkaClientBrokers.encode(clientRoute.servers));
+
                 clientRoute.servers.clear();
                 clientRoute.servers.putAll(newServers);
+
+                if (store != null && changed)
+                {
+                    store.put(storeKey, brokers, null, v -> {});
+                }
             }
 
             private void onDecodeTopic(
@@ -1929,7 +1954,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 }
 
                 nextResponseId++;
-                nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis,
+                nextRequestAt = signaler.signalAt(clock.millis() + maxAgeMillis,
                         originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
 
                 clientRoute.metaRefreshed.accept(traceId);

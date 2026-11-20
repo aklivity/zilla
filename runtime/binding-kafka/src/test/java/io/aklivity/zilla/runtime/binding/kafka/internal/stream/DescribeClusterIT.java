@@ -56,4 +56,14 @@ public class DescribeClusterIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/cluster.brokers.info.concurrent/client",
+        "${net}/cluster.brokers.info.coalesced/server"})
+    public void shouldDecodeResponsesCoalescedInOneFrame() throws Exception
+    {
+        k3po.finish();
+    }
 }

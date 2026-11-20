@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientOffsetFetchIT
 {
@@ -74,6 +76,17 @@ public class ClientOffsetFetchIT
         "${app}/topic.offset.info.incomplete/client",
         "${net}/topic.offset.info.incomplete/server"})
     public void shouldReceiveTopicOffsetInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "512")
+    @Specification({
+        "${app}/abort.during.response/client",
+        "${net}/abort.during.response/server"})
+    public void shouldAbortDuringResponse() throws Exception
     {
         k3po.finish();
     }

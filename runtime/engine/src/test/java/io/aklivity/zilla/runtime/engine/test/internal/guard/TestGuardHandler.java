@@ -24,7 +24,6 @@ import static java.util.stream.Collectors.toMap;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -38,6 +37,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 
 public final class TestGuardHandler implements GuardHandler
 {
@@ -192,7 +192,7 @@ public final class TestGuardHandler implements GuardHandler
         {
             long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
                     ? EXPIRES_NEVER
-                    : Instant.now().toEpochMilli() + lifetime.toMillis();
+                    : TestClock.supply().millis() + lifetime.toMillis();
 
             sessionId = nextSessionId.value++;
             sessions.put(sessionId, expiresAt);

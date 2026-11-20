@@ -70,6 +70,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -401,6 +402,7 @@ public final class MqttClientFactory implements MqttStreamFactory
     private final MqttUtf8Validator utf8Validator;
 
     private final EngineContext context;
+    private final Clock clock;
 
     public MqttClientFactory(
         MqttConfiguration config,
@@ -421,6 +423,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.context = context;
+        this.clock = context.clock();
         this.droppedHandler = context.droppedFrameHandler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -435,7 +438,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.maximumPacketSize = writeBuffer.capacity();
         this.encodeBudgetMax = bufferPool.slotCapacity();
-        this.utf8Validator = new MqttUtf8Validator(writeBuffer.capacity());
+        this.utf8Validator = new MqttUtf8Validator();
         this.clients = new Long2ObjectHashMap<>();
     }
 
@@ -1739,7 +1742,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             if (now >= connackTimeoutAt)
             {
                 cleanupStreamsUsingAbort(traceId, authorization);
@@ -3197,7 +3200,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         {
             if (keepAliveMillis > 0)
             {
-                keepAliveTimeoutAt = System.currentTimeMillis() + keepAliveMillis;
+                keepAliveTimeoutAt = clock.millis() + keepAliveMillis;
 
                 if (keepAliveTimeoutId == NO_CANCEL_ID)
                 {
@@ -3211,7 +3214,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private void doSignalConnackTimeout(
             long traceId)
         {
-            connackTimeoutAt = System.currentTimeMillis() + connackTimeoutMillis;
+            connackTimeoutAt = clock.millis() + connackTimeoutMillis;
 
             if (connackTimeoutId == NO_CANCEL_ID)
             {
@@ -3223,7 +3226,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private void doSignalPingRespTimeout(
             long traceId)
         {
-            pingRespTimeoutAt = System.currentTimeMillis() + pingRespTimeoutMillis;
+            pingRespTimeoutAt = clock.millis() + pingRespTimeoutMillis;
 
             if (pingRespTimeoutId == NO_CANCEL_ID)
             {
@@ -4478,7 +4481,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
-            final long now = System.currentTimeMillis();
+            final long now = clock.millis();
             if (now >= publishExpiresAt)
             {
                 doPublishEnd(traceId, authorization);
@@ -4518,7 +4521,7 @@ public final class MqttClientFactory implements MqttStreamFactory
         private void doSignalPublishExpiration(
             long traceId)
         {
-            publishExpiresAt = System.currentTimeMillis() + publishTimeoutMillis;
+            publishExpiresAt = clock.millis() + publishTimeoutMillis;
 
             if (publishExpiresId == NO_CANCEL_ID)
             {

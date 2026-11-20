@@ -26,6 +26,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
+    private String store;
     private List<String> bootstrap;
     private List<KafkaTopicConfig> topics;
     private List<KafkaServerConfig> servers;
@@ -45,6 +46,13 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     protected Class<KafkaOptionsConfigBuilder<T>> thisType()
     {
         return (Class<KafkaOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public KafkaOptionsConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store;
+        return this;
     }
 
     public KafkaOptionsConfigBuilder<T> bootstrap(
@@ -114,6 +122,6 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
                 refs.addAll(topic.refs());
             }
         }
-        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, refs));
+        return mapper.apply(new KafkaOptionsConfig(store, bootstrap, topics, servers, authorization, refs));
     }
 }

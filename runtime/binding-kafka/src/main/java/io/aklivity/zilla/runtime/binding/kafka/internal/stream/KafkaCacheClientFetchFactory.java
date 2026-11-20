@@ -37,9 +37,9 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static io.aklivity.zilla.runtime.engine.util.Flags.skip;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -152,9 +152,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
+    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
@@ -178,9 +179,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
+        this.context = context;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
@@ -245,7 +247,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         String.format("%s.%s", supplyNamespace.apply(resolvedId), supplyLocalName.apply(resolvedId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCachePartition partition = topic.supplyFetchPartition(partitionId);
+                final KafkaCachePartition partition = topic.supplyFetchPartition(clock, partitionId);
                 final long defaultOffset = resolved.with != null
                     ? KafkaOffsetType.valueOf(resolved.with.defaultOffset.toUpperCase()).value()
                     : KafkaOffsetType.HISTORICAL.value();
@@ -257,6 +259,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                             affinity,
                             leadersByPartitionId,
                             partition,
+                            partitionKey,
                             defaultOffset);
 
                 cacheRoute.clientFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
@@ -556,6 +559,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final long authorization;
         private final Int2IntHashMap leadersByPartitionId;
         private final KafkaCachePartition partition;
+        private final long partitionKey;
         private final List<KafkaCacheClientFetchStream> members;
 
         private long leaderId;
@@ -586,6 +590,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long leaderId,
             Int2IntHashMap leadersByPartitionId,
             KafkaCachePartition partition,
+            long partitionKey,
             long defaultOffset)
         {
             this.originId = originId;
@@ -593,6 +598,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.authorization = authorization;
             this.leadersByPartitionId = leadersByPartitionId;
             this.partition = partition;
+            this.partitionKey = partitionKey;
             this.partitionOffset = defaultOffset;
             this.stableOffset = DEFAULT_STABLE_OFFSET;
             this.latestOffset = DEFAULT_LATEST_OFFSET;
@@ -710,7 +716,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onClientFanoutSignal);
             }
@@ -721,7 +727,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.initialId = context.supplyInitialId(routedId, context.resolveAffinityId(partitionKey));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onClientFanoutMessage,
@@ -922,7 +928,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                     SIGNAL_RECONNECT,
                     this::onClientFanoutSignal);
             }
@@ -1097,8 +1103,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.isolatedOffset = isolation == READ_COMMITTED ? () -> group.stableOffset : () -> group.latestOffset;
             this.initialGroupIsolatedOffset = isolation ==
                     READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
-            this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-            this.valueEnvelope = new KafkaCacheHeadersEnvelope();
+            final boolean transformsValue = topicType.valueModel != null;
+            this.transformBuffer = transformsValue ? new UnsafeBufferEx(new byte[writeBuffer.capacity()]) : null;
+            this.valueEnvelope = transformsValue ? new KafkaCacheHeadersEnvelope() : null;
             this.valueDecoder =
                 KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, valueEnvelope, transformBuffer);
         }
