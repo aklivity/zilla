@@ -106,6 +106,8 @@ public class MqttServerBM
     private static final int PUBACK_TYPE = 0x40;
     private static final int CONNECTED = 2_000;
     private static final int SUBACK_TYPE = 0x90;
+    private static final int PUBLISH_TYPE = 0x32;
+    private static final UnsafeBufferEx PUBACK = new UnsafeBufferEx(new byte[] {0x40, 0x02, 0x00, 0x01});
     private static final int UNSUBACK_TYPE = 0xb0;
     private static final int CLIENTS = 1_000;
     private static final int SUBSCRIBE_PACKET = 0x82;
@@ -149,6 +151,13 @@ public class MqttServerBM
         fixture.operate();
     }
 
+    @Benchmark
+    public void deliver(
+        Delivering fixture)
+    {
+        fixture.operate();
+    }
+
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
@@ -166,7 +175,7 @@ public class MqttServerBM
         private EngineBench bench;
         private Responder sessions;
         private Responder publications;
-        private Responder subscriptions;
+        Deliverer deliverer;
         private long netId;
         private byte[] packet;
         private UnsafeBufferEx connect;
@@ -188,8 +197,8 @@ public class MqttServerBM
 
             sessions = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
             publications = new Responder(Trigger.BEGIN, null);
-            subscriptions = new Responder(Trigger.BEGIN, new Response(new byte[0], new byte[0][], new byte[0][], null, 0));
-            bench.newServer("app0", new Application(sessions, publications, subscriptions));
+            deliverer = new Deliverer(bench.labelId("mqtt"));
+            bench.newServer("app0", new Application(sessions, publications, deliverer));
 
             prepare();
         }
@@ -282,6 +291,8 @@ public class MqttServerBM
             private final MessageConsumer awaitPuback = this::onAwaitPuback;
             private final MessageConsumer awaitSuback = this::onAwaitSuback;
             private final MessageConsumer awaitUnsuback = this::onAwaitUnsuback;
+            private final MessageConsumer awaitSubscribed = this::onAwaitSubscribed;
+            private final MessageConsumer awaitPublish = this::onAwaitPublish;
 
             int connection = -1;
             UnsafeBufferEx publication;
@@ -309,6 +320,17 @@ public class MqttServerBM
             {
                 stage = awaitSuback;
                 client.data(subscription, 0, subscription.capacity());
+            }
+
+            void subscribeOnly()
+            {
+                stage = awaitSubscribed;
+                client.data(subscription, 0, subscription.capacity());
+            }
+
+            void expectPublish()
+            {
+                stage = awaitPublish;
             }
 
             void finish()
@@ -398,6 +420,33 @@ public class MqttServerBM
                 if (arrived(msgTypeId, buffer, index, length, UNSUBACK_TYPE))
                 {
                     stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitSubscribed(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, SUBACK_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitPublish(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBLISH_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    client.data(PUBACK, 0, PUBACK.capacity());
                     completed.offer(this);
                 }
             }
@@ -507,7 +556,7 @@ public class MqttServerBM
     @State(Scope.Benchmark)
     public abstract static class Connected extends Fixture
     {
-        private final Queue<Handshake> ready = new ArrayDeque<>();
+        final Queue<Handshake> ready = new ArrayDeque<>();
         private final List<Handshake> connected = new ArrayList<>();
 
         @Override
@@ -522,12 +571,19 @@ public class MqttServerBM
 
             drain();
 
+            establish(clients);
+
             for (int client = 0; client < clients; client++)
             {
                 operate();
             }
 
             drain();
+        }
+
+        void establish(
+            int clients)
+        {
         }
 
         @TearDown(Level.Iteration)
@@ -617,6 +673,53 @@ public class MqttServerBM
             Handshake handshake)
         {
             handshake.subscribe();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Delivering extends Connected
+    {
+        @Param({"16", "1024"})
+        public int payload;
+
+        private int awaiting;
+
+        private final BooleanSupplier credited = () -> deliverer.credited(awaiting);
+
+        @Override
+        void establish(
+            int clients)
+        {
+            deliverer.payload(payload);
+
+            for (int client = 0; client < clients; client++)
+            {
+                await(hasCapacity);
+
+                ready.poll().subscribeOnly();
+                pending++;
+            }
+
+            drain();
+        }
+
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, connection));
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.expectPublish();
+
+            awaiting = handshake.connection;
+            await(credited);
+            deliverer.deliver(awaiting);
         }
     }
 
