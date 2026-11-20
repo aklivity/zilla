@@ -3916,6 +3916,10 @@
                                     },
                                     "options": {
                                         "properties": {
+                                            "store": {
+                                                "title": "Store Reference",
+                                                "type": "string"
+                                            },
                                             "servers": {
                                                 "title": "Servers",
                                                 "type": "array",
