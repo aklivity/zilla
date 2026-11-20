@@ -22,6 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
+
 public class ValidatorTest
 {
     private final MqttValidator validator = new MqttValidator();
@@ -339,5 +341,32 @@ public class ValidatorTest
     {
         assertEquals("$share/consumers/sensor/one", MqttValidator.topicFilter("consumers", "sensor/one"));
         assertEquals("sensor/one", MqttValidator.topicFilter(null, "sensor/one"));
+    }
+
+    @Test
+    public void shouldValidateTopicNameEncodedAsString16()
+    {
+        assertTrue(validator.isTopicNameValid(new String16FW("sensor/temperature")));
+        assertTrue(validator.isTopicNameValid(new String16FW("sensor/\u6e29\u5ea6")));
+        assertTrue(validator.isTopicNameValid(new String16FW("/")));
+    }
+
+    @Test
+    public void shouldRejectEmptyTopicNameEncodedAsString16()
+    {
+        assertFalse(validator.isTopicNameValid(new String16FW("")));
+    }
+
+    @Test
+    public void shouldRejectTopicNameEncodedAsString16WithWildcard()
+    {
+        assertFalse(validator.isTopicNameValid(new String16FW("sensor/#")));
+        assertFalse(validator.isTopicNameValid(new String16FW("sensor/+/temperature")));
+    }
+
+    @Test
+    public void shouldRejectTopicNameEncodedAsString16WithNullCharacter()
+    {
+        assertFalse(validator.isTopicNameValid(new String16FW("sensor\u0000temperature")));
     }
 }
