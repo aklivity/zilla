@@ -161,6 +161,17 @@ public class ClientMetaIT
     }
 
     @Test
+    @Configuration("client.store.meta.refresh.yaml")
+    @Specification({
+        "${app}/topic.partition.info.refresh/client",
+        "${net}/topic.partition.info.changed/server"})
+    @Configure(name = KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME, value = "30000")
+    public void shouldRefreshMetaOnApplicationFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.event.topic.authorization.failed.yaml")
     @Specification({
         "${app}/topic.authorization.failed/client",

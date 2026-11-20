@@ -114,6 +114,15 @@ public class MetaIT
 
     @Test
     @Specification({
+        "${app}/topic.partition.info.refresh/client",
+        "${app}/topic.partition.info.refresh/server"})
+    public void shouldReceiveTopicPartitionInfoRefresh() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/unsupported.sasl.mechanism/client",
         "${app}/unsupported.sasl.mechanism/server"})
     public void shouldHandleUnsupportedSaslMechanism() throws Exception
