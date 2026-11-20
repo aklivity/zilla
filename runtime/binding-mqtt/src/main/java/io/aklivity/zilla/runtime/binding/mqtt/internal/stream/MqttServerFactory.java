@@ -3139,6 +3139,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     // a will was set but no DISCONNECT was ever decoded, so this is not a clean
                     // disconnect per MQTT-3.14.4-3 - clean up as if the network had aborted
                     cleanupStreamsUsingAbort(traceId);
+                    doCancelTimeouts();
                     doReleaseOwnership(traceId);
                     decoder = decodeIgnoreAll;
                 }
@@ -3269,6 +3270,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
+            keepAliveTimeoutId = NO_CANCEL_ID;
+
             final long now = System.currentTimeMillis();
             if (now >= keepAliveTimeoutAt)
             {
@@ -3328,6 +3331,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = signal.traceId();
             final long authorization = signal.authorization();
 
+            connectTimeoutId = NO_CANCEL_ID;
+
             final long now = System.currentTimeMillis();
             if (now >= connectTimeoutAt)
             {
@@ -3344,6 +3349,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                 signaler.cancel(connectTimeoutId);
                 connectTimeoutId = NO_CANCEL_ID;
             }
+        }
+
+        private void doCancelKeepAliveTimeout()
+        {
+            if (keepAliveTimeoutId != NO_CANCEL_ID)
+            {
+                signaler.cancel(keepAliveTimeoutId);
+                keepAliveTimeoutId = NO_CANCEL_ID;
+            }
+        }
+
+        private void doCancelTimeouts()
+        {
+            doCancelConnectTimeout();
+            doCancelKeepAliveTimeout();
         }
 
         private byte decodeConnectProperties(
@@ -6834,6 +6854,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             cleanupStreamsUsingAbort(traceId);
 
+            doCancelTimeouts();
             doReleaseOwnership(traceId);
             doNetworkReset(traceId, authorization);
             doNetworkAbort(traceId, authorization);
@@ -6864,6 +6885,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 session.cleanupEnd(traceId);
             }
+            doCancelTimeouts();
             doReleaseOwnership(traceId);
             decoder = decodeIgnoreAll;
         }
