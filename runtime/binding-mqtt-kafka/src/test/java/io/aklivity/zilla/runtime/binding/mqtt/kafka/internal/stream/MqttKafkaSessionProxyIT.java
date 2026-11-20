@@ -554,6 +554,16 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.signal.stream.credit/server"})
+    public void shouldSessionSignalStreamCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
