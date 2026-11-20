@@ -127,8 +127,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private static final String SHARE_REGISTRY = "registry";
     private static final String GROUP_ID_DELIMITER = ":";
     private static final String GROUP_ID_SEPARATOR = ".";
-    private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
-    private static final String MQTT_MULTI_LEVEL_WILDCARD = "#";
+    private static final char MQTT_SINGLE_LEVEL_WILDCARD = '+';
+    private static final char MQTT_MULTI_LEVEL_WILDCARD = '#';
     private static final int MQTT_UTF8_STRING_MAX_LENGTH = 65535;
     private static final String MQTT_PARENT_LEVEL_WILDCARD_SUFFIX = "/#";
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
@@ -227,7 +227,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW());
 
     private final MutableDirectBufferEx topicLevelBuffer = new UnsafeBufferEx(new byte[MQTT_UTF8_STRING_MAX_LENGTH]);
-    private String[] filterLevels;
+    private String filterPattern;
     private int topicLevelLength;
     private final Consumer<KafkaHeadersFW.Builder> filterHeadersWriter = this::writeFilterHeaders;
     private final Consumer<KafkaValueMatchFW.Builder> singleLevelSkipWriter = vi -> vi
@@ -4952,7 +4952,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         KafkaConditionFW.Builder conditionBuilder,
         String pattern)
     {
-        filterLevels = pattern.split("/", -1);
+        filterPattern = pattern;
         conditionBuilder.headers(filterHeadersWriter);
     }
 
@@ -4961,22 +4961,39 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     {
         headersBuilder.nameLen(helper.kafkaFilterHeaderName.sizeof());
         headersBuilder.name(helper.kafkaFilterHeaderName);
-        for (String level : filterLevels)
+
+        final int patternLength = filterPattern.length();
+        int levelStart = 0;
+        int levelEnd;
+
+        do
         {
-            if (level.equals(MQTT_SINGLE_LEVEL_WILDCARD))
+            levelEnd = filterPattern.indexOf('/', levelStart);
+            if (levelEnd == -1)
+            {
+                levelEnd = patternLength;
+            }
+
+            final int levelLength = levelEnd - levelStart;
+            final char level = levelLength == 1 ? filterPattern.charAt(levelStart) : 0;
+
+            if (level == MQTT_SINGLE_LEVEL_WILDCARD)
             {
                 headersBuilder.valuesItem(singleLevelSkipWriter);
             }
-            else if (level.equals(MQTT_MULTI_LEVEL_WILDCARD))
+            else if (level == MQTT_MULTI_LEVEL_WILDCARD)
             {
                 headersBuilder.valuesItem(multiLevelSkipWriter);
             }
             else
             {
-                topicLevelLength = topicLevelBuffer.putStringWithoutLengthUtf8(0, level);
+                topicLevelLength = topicLevelBuffer.putStringWithoutLengthUtf8(0, filterPattern, levelStart, levelEnd);
                 headersBuilder.valuesItem(topicLevelValueWriter);
             }
+
+            levelStart = levelEnd + 1;
         }
+        while (levelStart <= patternLength);
     }
 
     private void doWindow(
