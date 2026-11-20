@@ -151,7 +151,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
     {
         memberOffsetConstant.addMember(name, typeName, unsignedTypeName, size, sizeName);
         memberSizeConstant.addMember(name, type, typeName, unsignedType, unsignedTypeName, size);
-        memberField.addMember(name, typeName, unsignedTypeName, size, sizeName, byteOrder, defaultValue);
+        memberField.addMember(name, type, typeName, unsignedTypeName, size, sizeName, byteOrder, defaultValue);
         memberAccessor.addMember(name, type, typeName, unsignedType, unsignedTypeName, byteOrder, size, sizeName, defaultValue);
         limitMethod.addMember(name, typeName, unsignedTypeName, size, sizeName);
         tryWrapMethod.addMember(name, type, typeName, unsignedType, unsignedTypeName, size, sizeName, defaultValue);
@@ -311,6 +311,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
 
         public MemberFieldGenerator addMember(
             String name,
+            AstType astType,
             TypeName type,
             TypeName unsignedType,
             int size,
@@ -324,13 +325,14 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             }
             else if (size != -1 || sizeName != null)
             {
-                addIntegerArrayMember(name, type, unsignedType, sizeName != null);
+                addIntegerArrayMember(name, astType, type, unsignedType, sizeName != null);
             }
             return this;
         }
 
         private void addIntegerArrayMember(
             String name,
+            AstType astType,
             TypeName type,
             TypeName unsignedType,
             boolean variableLength)
@@ -340,7 +342,13 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                 builder.addField(TypeName.INT, dynamicLimit(name), PRIVATE);
             }
             ClassName iteratorClass = iteratorClass(thisType, type, unsignedType);
-            builder.addField(iteratorClass, iterator(name), PRIVATE);
+            TypeName targetType = (unsignedType != null) ? unsignedType : type;
+            targetType = targetType == TypeName.LONG ? targetType : TypeName.INT;
+            CodeBlock.Builder accessor = CodeBlock.builder();
+            addBufferGet(accessor, targetType, astType, type, unsignedType, "o");
+            builder.addField(FieldSpec.builder(iteratorClass, iterator(name), PRIVATE, FINAL)
+                    .initializer("new $T($S, o -> $L)", iteratorClass, name, accessor.build())
+                    .build());
             TypeName generateType = (unsignedType != null) ? unsignedType : type;
             if (generateType == TypeName.LONG)
             {
@@ -411,23 +419,37 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                     .addModifiers(PRIVATE, FINAL)
                     .addSuperinterface(INT_ITERATOR_CLASS_NAME);
             builder.addField(String.class, "fieldName", PRIVATE, FINAL);
-            builder.addField(int.class, "offset", PRIVATE, FINAL);
-            builder.addField(int.class, "fieldSize", PRIVATE, FINAL);
-            builder.addField(int.class, "count", PRIVATE, FINAL);
+            builder.addField(int.class, "offset", PRIVATE);
+            builder.addField(int.class, "fieldSize", PRIVATE);
+            builder.addField(int.class, "count", PRIVATE);
             builder.addField(IntUnaryOperator.class, "accessor", PRIVATE, FINAL);
             builder.addField(int.class, "index", PRIVATE);
 
             builder.addMethod(constructorBuilder()
                     .addParameter(String.class, "fieldName")
+                    .addParameter(IntUnaryOperator.class, "accessor")
+                    .addStatement("this.fieldName = fieldName")
+                    .addStatement("this.accessor = accessor")
+                    .build());
+
+            builder.addMethod(MethodSpec.methodBuilder("wrap")
+                    .returns(intIterator)
                     .addParameter(int.class, "offset")
                     .addParameter(int.class, "fieldSize")
                     .addParameter(int.class, "count")
-                    .addParameter(IntUnaryOperator.class, "accessor")
-                    .addStatement("this.fieldName = fieldName")
                     .addStatement("this.offset = offset")
                     .addStatement("this.fieldSize = fieldSize")
                     .addStatement("this.count = count")
-                    .addStatement("this.accessor = accessor")
+                    .addStatement("this.index = 0")
+                    .addStatement("return this")
+                    .build());
+
+            builder.addMethod(MethodSpec.methodBuilder("rewind")
+                    .returns(intIterator)
+                    .beginControlFlow("if (count != -1)")
+                    .addStatement("index = 0")
+                    .endControlFlow()
+                    .addStatement("return count == -1 ? null : this")
                     .build());
 
             builder.addMethod(MethodSpec.methodBuilder("hasNext")
@@ -474,23 +496,37 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                     .addModifiers(PRIVATE, FINAL)
                     .addSuperinterface(LONG_ITERATOR_CLASS_NAME);
             builder.addField(String.class, "fieldName", PRIVATE, FINAL);
-            builder.addField(int.class, "offset", PRIVATE, FINAL);
-            builder.addField(int.class, "fieldSize", PRIVATE, FINAL);
-            builder.addField(int.class, "count", PRIVATE, FINAL);
+            builder.addField(int.class, "offset", PRIVATE);
+            builder.addField(int.class, "fieldSize", PRIVATE);
+            builder.addField(int.class, "count", PRIVATE);
             builder.addField(IntToLongFunction.class, "accessor", PRIVATE, FINAL);
             builder.addField(int.class, "index", PRIVATE);
 
             builder.addMethod(constructorBuilder()
                     .addParameter(String.class, "fieldName")
+                    .addParameter(IntToLongFunction.class, "accessor")
+                    .addStatement("this.fieldName = fieldName")
+                    .addStatement("this.accessor = accessor")
+                    .build());
+
+            builder.addMethod(MethodSpec.methodBuilder("wrap")
+                    .returns(longIterator)
                     .addParameter(int.class, "offset")
                     .addParameter(int.class, "fieldSize")
                     .addParameter(int.class, "count")
-                    .addParameter(IntToLongFunction.class, "accessor")
-                    .addStatement("this.fieldName = fieldName")
                     .addStatement("this.offset = offset")
                     .addStatement("this.fieldSize = fieldSize")
                     .addStatement("this.count = count")
-                    .addStatement("this.accessor = accessor")
+                    .addStatement("this.index = 0")
+                    .addStatement("return this")
+                    .build());
+
+            builder.addMethod(MethodSpec.methodBuilder("rewind")
+                    .returns(longIterator)
+                    .beginControlFlow("if (count != -1)")
+                    .addStatement("index = 0")
+                    .endControlFlow()
+                    .addStatement("return count == -1 ? null : this")
                     .build());
 
             builder.addMethod(MethodSpec.methodBuilder("hasNext")
@@ -584,10 +620,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             builder.addMethod(methodBuilder(methodName(name))
                     .addModifiers(PUBLIC)
                     .returns(generateType)
-                    .beginControlFlow("if ($L != null)", iterator(name))
-                    .addStatement("$L.index = 0", iterator(name))
-                    .endControlFlow()
-                    .addStatement("return $L",  iterator(name))
+                    .addStatement("return $L.rewind()", iterator(name))
                     .build());
             if (sizeName != null)
             {
@@ -912,26 +945,19 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             }
             else if (size != -1)
             {
-                addFixedIntegerArrayMember(name, type, typeName, unsignedType, unsignedTypeName, size);
+                addFixedIntegerArrayMember(name, size);
             }
             else if (sizeName != null)
             {
-                addVariableIntegerArrayMember(name, type, typeName, unsignedType, unsignedTypeName, sizeName);
+                addVariableIntegerArrayMember(name, sizeName);
             }
             return this;
         }
 
         private void addFixedIntegerArrayMember(
             String name,
-            AstType type,
-            TypeName typeName,
-            AstType unsignedType,
-            TypeName unsignedTypeName,
             int size)
         {
-            ClassName iteratorClass = iteratorClass(thisType, typeName, unsignedTypeName);
-            TypeName targetTypeName = (unsignedTypeName != null) ? unsignedTypeName : typeName;
-            targetTypeName = targetTypeName == TypeName.LONG ? targetTypeName : TypeName.INT;
             CodeBlock.Builder code = CodeBlock.builder();
             String offsetName;
             if (anchorLimit != null)
@@ -943,29 +969,17 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             {
                 offsetName = "offset + " + offset(name);
             }
-            code.add("$[")
-                .add("$L = new $T($S, $L, $L, $L, o -> ",
-                        iterator(name), iteratorClass, name, offsetName, size(name), arraySize(name));
-            addBufferGet(code, targetTypeName, type, typeName, unsignedTypeName, "o");
-            code.add(")")
-                .add(";\n$]");
+            code.addStatement("$L.wrap($L, $L, $L)", iterator(name), offsetName, size(name), arraySize(name));
 
             builder.addCode(code.build());
         }
 
         private void addVariableIntegerArrayMember(
             String name,
-            AstType type,
-            TypeName typeName,
-            AstType unsignedType,
-            TypeName unsignedTypeName,
             String sizeName)
         {
-            ClassName iteratorClass = iteratorClass(thisType, typeName, unsignedTypeName);
             String offsetName = "offset" + initCap(name);
             String limitName = "limit" + initCap(name);
-            TypeName targetType = (unsignedTypeName != null) ? unsignedTypeName : typeName;
-            targetType = targetType == TypeName.LONG ? targetType : TypeName.INT;
             CodeBlock.Builder code = CodeBlock.builder();
             if (anchorLimit != null)
             {
@@ -975,13 +989,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             {
                 code.addStatement("final int $L = offset + $L", offsetName, offset(name));
             }
-            code.add("$[")
-                .add("$L = $L() == -1 ? null :\n", iterator(name), methodName(sizeName))
-                .add("new $T($S, $L, $L, (int) $L(), o -> ",
-                    iteratorClass, name, offsetName, size(name), methodName(sizeName));
-            addBufferGet(code, targetType, type, typeName, unsignedTypeName, "o");
-            code.add(")")
-                .add(";\n$]")
+            code.addStatement("$L.wrap($L, $L, (int) $L())", iterator(name), offsetName, size(name), methodName(sizeName))
                 .addStatement("$L = $L() == -1 ? $L : $L + $L * (int) $L()", limitName, methodName(sizeName),
                         offsetName, offsetName, size(name), methodName(sizeName));
             builder.addCode(code.build());
@@ -1065,83 +1073,6 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             anchorLimit = name + "RO.limit()";
         }
 
-        private void addBufferGet(
-            CodeBlock.Builder codeBlock,
-            TypeName targetTypeName,
-            AstType type,
-            TypeName typeName,
-            TypeName unsignedTypeName,
-            String offset)
-        {
-            if (type.bits() == 24)
-            {
-                if (type.isUnsignedInt())
-                {
-                    codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
-                             .add("(buffer().getByte($L) & 0xff) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L + 2) & 0xff)", offset)
-                             .add(" : ")
-                             .add("(buffer().getByte($L + 2) & 0xff) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L) & 0xff)", offset);
-                }
-                else
-                {
-                    codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
-                             .add("buffer().getByte($L) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L + 2) & 0xff)", offset)
-                             .add(" : ")
-                             .add("buffer().getByte($L + 2) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L) & 0xff)", offset);
-                }
-            }
-            else
-            {
-                String getterName = GETTER_NAMES.get(typeName);
-                if (getterName == null)
-                {
-                    throw new IllegalStateException("member type not supported: " + typeName);
-                }
-                if (targetTypeName != typeName)
-                {
-                    codeBlock.add("($T)(", targetTypeName);
-                }
-
-                codeBlock.add("buffer().$L($L", getterName, offset);
-
-                if (targetTypeName != typeName  && unsignedTypeName != null)
-                {
-                    if (typeName == TypeName.BYTE)
-                    {
-                        codeBlock.add(") & 0xFF)");
-                    }
-                    else if (typeName == TypeName.SHORT)
-                    {
-                        codeBlock.add(") & 0xFFFF)", ByteOrder.class);
-                    }
-                    else if (typeName == TypeName.INT)
-                    {
-                        codeBlock.add(") & 0xFFFF_FFFFL)", ByteOrder.class);
-                    }
-                    else
-                    {
-                        codeBlock.add(")");
-                    }
-                }
-                else
-                {
-                    codeBlock.add(")");
-                }
-                if (targetTypeName != typeName && unsignedTypeName == null)
-                {
-                    codeBlock.add(")");
-                }
-            }
-        }
-
         @Override
         public MethodSpec generate()
         {
@@ -1192,25 +1123,19 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             }
             else if (size != -1)
             {
-                addFixedIntegerArrayMember(name, type, typeName, unsignedTypeName, size);
+                addFixedIntegerArrayMember(name, size);
             }
             else if (sizeName != null)
             {
-                addVariableIntegerArrayMember(name, type, typeName, unsignedTypeName, sizeName);
+                addVariableIntegerArrayMember(name, sizeName);
             }
             return this;
         }
 
         private void addFixedIntegerArrayMember(
             String name,
-            AstType type,
-            TypeName typeName,
-            TypeName unsignedTypeName,
             int size)
         {
-            ClassName iteratorClass = iteratorClass(thisType, typeName, unsignedTypeName);
-            TypeName targetType = (unsignedTypeName != null) ? unsignedTypeName : typeName;
-            targetType = targetType == TypeName.LONG ? targetType : TypeName.INT;
             CodeBlock.Builder code = CodeBlock.builder();
             String offsetName;
             if (anchorLimit != null)
@@ -1222,27 +1147,16 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             {
                 offsetName = "offset + " + offset(name);
             }
-            code.add("$[")
-                .add("$L = new $T($S, $L, $L, $L, o -> ",
-                        iterator(name), iteratorClass, name, offsetName, size(name), arraySize(name));
-            addBufferGet(code, targetType, type, typeName, unsignedTypeName, "o");
-            code.add(")")
-                .add(";\n$]");
+            code.addStatement("$L.wrap($L, $L, $L)", iterator(name), offsetName, size(name), arraySize(name));
             builder.addCode(code.build());
         }
 
         private void addVariableIntegerArrayMember(
             String name,
-            AstType type,
-            TypeName typeName,
-            TypeName unsignedTypeName,
             String sizeName)
         {
-            ClassName iteratorClass = iteratorClass(thisType, typeName, unsignedTypeName);
             String offsetName = "offset" + initCap(name);
             String limitName = "limit" + initCap(name);
-            TypeName targetType = (unsignedTypeName != null) ? unsignedTypeName : typeName;
-            targetType = targetType == TypeName.LONG ? targetType : TypeName.INT;
             CodeBlock.Builder code = CodeBlock.builder();
             if (anchorLimit != null)
             {
@@ -1252,13 +1166,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             {
                 code.addStatement("final int $L = offset + $L", offsetName, offset(name));
             }
-            code.add("$[")
-                .add("$L = $L() == -1 ? null :\n", iterator(name), methodName(sizeName))
-                .add("new $T($S, $L, $L, (int) $L(), o -> ",
-                    iteratorClass, name, offsetName, size(name), methodName(sizeName));
-            addBufferGet(code, targetType, type, typeName, unsignedTypeName, "o");
-            code.add(")")
-                .add(";\n$]")
+            code.addStatement("$L.wrap($L, $L, (int) $L())", iterator(name), offsetName, size(name), methodName(sizeName))
                 .addStatement("$L = $L() == -1 ? $L : $L + $L * (int) $L()", limitName, methodName(sizeName),
                         offsetName, offsetName, size(name), methodName(sizeName));
             builder.addCode(code.build());
@@ -1330,83 +1238,6 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                 }
             }
             anchorLimit = name + "RO.limit()";
-        }
-
-        private void addBufferGet(
-            CodeBlock.Builder codeBlock,
-            TypeName targetType,
-            AstType type,
-            TypeName typeName,
-            TypeName unsignedTypeName,
-            String offset)
-        {
-            if (type.bits() == 24)
-            {
-                if (type.isUnsignedInt())
-                {
-                    codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
-                             .add("(buffer().getByte($L) & 0xff) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L + 2) & 0xff)", offset)
-                             .add(" : ")
-                             .add("(buffer().getByte($L + 2) & 0xff) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L) & 0xff)", offset);
-                }
-                else
-                {
-                    codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
-                             .add("buffer().getByte($L) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L + 2) & 0xff)", offset)
-                             .add(" : ")
-                             .add("buffer().getByte($L + 2) << 16 |", offset)
-                             .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
-                             .add(" (buffer().getByte($L) & 0xff)", offset);
-                }
-            }
-            else
-            {
-                String getterName = GETTER_NAMES.get(typeName);
-                if (getterName == null)
-                {
-                    throw new IllegalStateException("member type not supported: " + typeName);
-                }
-                if (targetType != typeName)
-                {
-                    codeBlock.add("($T)(", targetType);
-                }
-
-                codeBlock.add("buffer().$L($L", getterName, offset);
-
-                if (targetType != typeName  && unsignedTypeName != null)
-                {
-                    if (typeName == TypeName.BYTE)
-                    {
-                        codeBlock.add(") & 0xFF)");
-                    }
-                    else if (typeName == TypeName.SHORT)
-                    {
-                        codeBlock.add(") & 0xFFFF)", ByteOrder.class);
-                    }
-                    else if (typeName == TypeName.INT)
-                    {
-                        codeBlock.add(") & 0xFFFF_FFFFL)", ByteOrder.class);
-                    }
-                    else
-                    {
-                        codeBlock.add(")");
-                    }
-                }
-                else
-                {
-                    codeBlock.add(")");
-                }
-                if (targetType != typeName && unsignedTypeName == null)
-                {
-                    codeBlock.add(")");
-                }
-            }
         }
 
         @Override
@@ -3551,6 +3382,83 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
     private static String dynamicLimit(String fieldName)
     {
         return "limit" + initCap(fieldName);
+    }
+
+    private static void addBufferGet(
+        CodeBlock.Builder codeBlock,
+        TypeName targetType,
+        AstType type,
+        TypeName typeName,
+        TypeName unsignedTypeName,
+        String offset)
+    {
+        if (type.bits() == 24)
+        {
+            if (type.isUnsignedInt())
+            {
+                codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
+                         .add("(buffer().getByte($L) & 0xff) << 16 |", offset)
+                         .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
+                         .add(" (buffer().getByte($L + 2) & 0xff)", offset)
+                         .add(" : ")
+                         .add("(buffer().getByte($L + 2) & 0xff) << 16 |", offset)
+                         .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
+                         .add(" (buffer().getByte($L) & 0xff)", offset);
+            }
+            else
+            {
+                codeBlock.add("$T.NATIVE_BYTE_ORDER == $T.BIG_ENDIAN ? ", BUFFER_UTIL_TYPE, ByteOrder.class)
+                         .add("buffer().getByte($L) << 16 |", offset)
+                         .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
+                         .add(" (buffer().getByte($L + 2) & 0xff)", offset)
+                         .add(" : ")
+                         .add("buffer().getByte($L + 2) << 16 |", offset)
+                         .add(" (buffer().getByte($L + 1) & 0xff) << 8 |", offset)
+                         .add(" (buffer().getByte($L) & 0xff)", offset);
+            }
+        }
+        else
+        {
+            String getterName = GETTER_NAMES.get(typeName);
+            if (getterName == null)
+            {
+                throw new IllegalStateException("member type not supported: " + typeName);
+            }
+            if (targetType != typeName)
+            {
+                codeBlock.add("($T)(", targetType);
+            }
+
+            codeBlock.add("buffer().$L($L", getterName, offset);
+
+            if (targetType != typeName  && unsignedTypeName != null)
+            {
+                if (typeName == TypeName.BYTE)
+                {
+                    codeBlock.add(") & 0xFF)");
+                }
+                else if (typeName == TypeName.SHORT)
+                {
+                    codeBlock.add(") & 0xFFFF)", ByteOrder.class);
+                }
+                else if (typeName == TypeName.INT)
+                {
+                    codeBlock.add(") & 0xFFFF_FFFFL)", ByteOrder.class);
+                }
+                else
+                {
+                    codeBlock.add(")");
+                }
+            }
+            else
+            {
+                codeBlock.add(")");
+            }
+            if (targetType != typeName && unsignedTypeName == null)
+            {
+                codeBlock.add(")");
+            }
+        }
     }
 
     private static String iterator(String fieldName)

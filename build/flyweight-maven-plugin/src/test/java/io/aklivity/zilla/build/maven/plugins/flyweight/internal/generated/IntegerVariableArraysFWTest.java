@@ -18,7 +18,9 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated.FlyweightTest.putMediumInt;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -423,5 +425,85 @@ public class IntegerVariableArraysFWTest
         flyweightRO.wrap(buffer, 0, 100);
         assertTrue(flyweightRO.toString().contains("unsigned64Array=[10, 1112345, 11234567]"));
         assertTrue(flyweightRO.toString().contains("signed16Array=[2, -500]"));
+    }
+
+    @Test
+    public void shouldReuseIteratorsAcrossWraps()
+    {
+        final int size = setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, size);
+        final PrimitiveIterator.OfLong unsigned64 = flyweightRO.unsigned64Array();
+        final PrimitiveIterator.OfInt signed16 = flyweightRO.signed16Array();
+        assertNotSame(unsigned64, signed16);
+        assertEquals(10L, unsigned64.nextLong());
+
+        flyweightRO.wrap(buffer, 0, size);
+
+        final PrimitiveIterator.OfLong rewrapped = flyweightRO.unsigned64Array();
+        assertSame(unsigned64, rewrapped);
+        assertSame(signed16, flyweightRO.signed16Array());
+        assertEquals(10L, rewrapped.nextLong());
+        assertEquals(112345L, rewrapped.nextLong());
+    }
+
+    @Test
+    public void shouldObserveNewContentWhenRewrapped()
+    {
+        final int size = setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, size);
+        final PrimitiveIterator.OfInt signed16 = flyweightRO.signed16Array();
+        assertEquals(2, signed16.nextInt());
+
+        final MutableDirectBufferEx other = new UnsafeBufferEx(allocateDirect(100));
+        setAllTestValues(other, 0);
+        other.putShort(42, (short) 33); // signed16Array first item
+        flyweightRO.wrap(other, 0, size);
+
+        final PrimitiveIterator.OfInt rewrapped = flyweightRO.signed16Array();
+        assertSame(signed16, rewrapped);
+        assertEquals(33, rewrapped.nextInt());
+        assertEquals(-500, rewrapped.nextInt());
+    }
+
+    @Test
+    public void shouldRestartIterationOnEachAccess()
+    {
+        final int size = setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, size);
+
+        final PrimitiveIterator.OfInt first = flyweightRO.signed16Array();
+        assertEquals(2, first.nextInt());
+        assertEquals(-500, first.nextInt());
+        assertFalse(first.hasNext());
+
+        final PrimitiveIterator.OfInt second = flyweightRO.signed16Array();
+        assertTrue(second.hasNext());
+        assertEquals(2, second.nextInt());
+        assertEquals(-500, second.nextInt());
+        assertFalse(second.hasNext());
+    }
+
+    @Test
+    public void shouldRestoreIteratorAfterAbsentArray()
+    {
+        final int size = setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, size);
+        final PrimitiveIterator.OfLong present = flyweightRO.unsigned64Array();
+        assertNotNull(present);
+
+        final MutableDirectBufferEx absent = new UnsafeBufferEx(allocateDirect(100));
+        final int absentLimit = flyweightRW.wrap(absent, 0, absent.capacity())
+            .appendSigned16Array((short) 5)
+            .appendSigned24Array((short) 6)
+            .build()
+            .limit();
+        flyweightRO.wrap(absent, 0, absentLimit);
+        assertNull(flyweightRO.unsigned64Array());
+        assertEquals(5, flyweightRO.signed16Array().nextInt());
+
+        final int restoredSize = setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, restoredSize);
+        assertSame(present, flyweightRO.unsigned64Array());
+        assertEquals(10L, flyweightRO.unsigned64Array().nextLong());
     }
 }
