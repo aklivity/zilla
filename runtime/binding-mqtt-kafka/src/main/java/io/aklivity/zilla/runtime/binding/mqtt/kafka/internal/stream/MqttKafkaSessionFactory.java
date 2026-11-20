@@ -2304,6 +2304,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             doKafkaTombstone(clientId, clientId);
             doKafkaTombstone(clientIdOffsets, clientId);
+            doKafkaExpirySignalTombstone(clientId);
 
             newGroupOffsetsReset(originId, routedId, clientId, messagesTopics, retainedTopic)
                 .doOpenMetas(supplyTraceId.get(), 0L);
@@ -2324,6 +2325,31 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         .value(key.value(), 0, key.length()))
                     .hashKey(b -> b.length(hashKey.length())
                         .value(hashKey.value(), 0, hashKey.length()))))
+                .build();
+
+            doKafkaData(supplyTraceId.get(), 0, tombstoneKafkaDataEx);
+        }
+
+        private void doKafkaExpirySignalTombstone(
+            String16FW clientId)
+        {
+            String16FW expirySignalKey = new String16FW(clientId.asString() + EXPIRY_SIGNAL_KEY_POSTFIX);
+            Flyweight tombstoneKafkaDataEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(m -> m.produce(mp -> mp
+                    .deferred(0)
+                    .timestamp(System.currentTimeMillis())
+                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                    .key(b -> b.length(expirySignalKey.length())
+                        .value(expirySignalKey.value(), 0, expirySignalKey.length()))
+                    .hashKey(b -> b.length(clientId.length())
+                        .value(clientId.value(), 0, clientId.length()))
+                    .headersItem(h ->
+                        h.nameLen(TYPE_HEADER_NAME_OCTETS.sizeof())
+                            .name(TYPE_HEADER_NAME_OCTETS)
+                            .valueLen(EXPIRY_SIGNAL_NAME_OCTETS.sizeof())
+                            .value(EXPIRY_SIGNAL_NAME_OCTETS))))
                 .build();
 
             doKafkaData(supplyTraceId.get(), 0, tombstoneKafkaDataEx);
