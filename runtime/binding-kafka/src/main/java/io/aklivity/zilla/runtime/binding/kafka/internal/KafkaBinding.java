@@ -58,13 +58,6 @@ public final class KafkaBinding implements Binding
     }
 
     @Override
-    public int workers(
-        KindConfig kind)
-    {
-        return kind == KindConfig.CACHE_SERVER ? 1 : Integer.MAX_VALUE;
-    }
-
-    @Override
     public KafkaBindingContext supply(
         EngineContext context)
     {

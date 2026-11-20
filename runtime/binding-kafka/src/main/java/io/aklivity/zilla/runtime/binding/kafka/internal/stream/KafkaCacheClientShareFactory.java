@@ -72,7 +72,7 @@ public final class KafkaCacheClientShareFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
+    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
@@ -85,7 +85,7 @@ public final class KafkaCacheClientShareFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
+        this.context = context;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
     }
@@ -448,7 +448,8 @@ public final class KafkaCacheClientShareFactory implements BindingHandler
 
                 assert state == 0;
 
-                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.initialId = context.supplyInitialId(routedId,
+                    context.resolveAffinityId(delegate.groupId.hashCode()));
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 state = StreamState.openingInitial(state);
                 this.receiver = newStream(this::onShareMessage,

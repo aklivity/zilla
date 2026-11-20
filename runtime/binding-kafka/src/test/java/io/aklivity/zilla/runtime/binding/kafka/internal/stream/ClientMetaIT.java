@@ -89,6 +89,16 @@ public class ClientMetaIT
     }
 
     @Test
+    @Configuration("client.store.brokers.yaml")
+    @Specification({
+        "${app}/topic.partition.info/client",
+        "${net}/topic.partition.info/server"})
+    public void shouldPublishBrokersToStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/topic.unknown/client",

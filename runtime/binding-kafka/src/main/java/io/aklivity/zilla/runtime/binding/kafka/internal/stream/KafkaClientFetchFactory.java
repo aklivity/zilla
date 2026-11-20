@@ -1845,7 +1845,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             state = StreamState.openingInitial(state);
 
-            if (client.topicPartitions.get(client.partitionId) != leaderId)
+            if (!KafkaClientRoute.leaderMatches(client.topicPartitions, client.partitionId, leaderId))
             {
                 client.network = MessageConsumer.NOOP;
                 cleanupApplication(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
@@ -3228,7 +3228,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 nextResponseId++;
 
-                if (topicPartitions.get(partitionId) == leaderId)
+                if (KafkaClientRoute.leaderMatches(topicPartitions, partitionId, leaderId))
                 {
                     doApplicationFlushIfNecessary(traceId, authorization);
                     signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);

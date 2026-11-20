@@ -92,7 +92,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
+    private final EngineContext context;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
@@ -111,7 +111,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
+        this.context = context;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
@@ -585,7 +585,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.initialId = context.supplyInitialId(routedId, context.resolveAffinityId(groupId.hashCode()));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onConsumerFanMessage,

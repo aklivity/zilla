@@ -104,6 +104,57 @@ public class KafkaOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithStore()
+    {
+        String yaml =
+                """
+                store: store0
+                bootstrap:
+                  - test
+                """;
+
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.store, equalTo("store0"));
+        assertThat(options.bootstrap, equalTo(singletonList("test")));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutStore()
+    {
+        String yaml =
+                """
+                bootstrap:
+                  - test
+                """;
+
+        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.store, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithStore()
+    {
+        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
+            .store("store0")
+            .bootstrap("test")
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                store: store0
+                bootstrap:
+                  - test
+                """));
+    }
+
+    @Test
     public void shouldWriteCatalogOptions()
     {
         KafkaOptionsConfig options = KafkaOptionsConfig.builder()

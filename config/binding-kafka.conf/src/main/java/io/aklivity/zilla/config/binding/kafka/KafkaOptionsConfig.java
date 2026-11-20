@@ -22,6 +22,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaOptionsConfig extends OptionsConfig
 {
+    public final String store;
     public final List<String> bootstrap;
     public final List<KafkaTopicConfig> topics;
     public final List<KafkaServerConfig> servers;
@@ -39,6 +40,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
     }
 
     KafkaOptionsConfig(
+        String store,
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,
@@ -46,6 +48,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
         List<Config.Reference> refs)
     {
         super(null, refs);
+        this.store = store;
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;

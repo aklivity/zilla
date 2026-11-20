@@ -266,6 +266,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.leader.from.affinity/client",
+        "${app}/message.value.leader.from.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueLeaderFromAffinity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

@@ -344,6 +344,18 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.leader.from.affinity/client",
+        "${app}/message.value.leader.from.affinity/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueLeaderFromAffinity() throws Exception
+    {
+        partition.append(10L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

@@ -49,6 +49,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final Int2ObjectHashMap<BindingHandler> factories;
     private final EngineContext context;
+    private final KafkaClientBrokers brokers;
+    private final LongFunction<KafkaClientRoute> supplyClientRoute;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -57,6 +59,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     {
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
+        final KafkaClientBrokers brokers = new KafkaClientBrokers();
 
         final KafkaClientConnectionPool connectionPool = new KafkaClientConnectionPool(
             config, context, bindings::get, accountant.creditor());
@@ -141,6 +144,8 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         this.factories = factories;
         this.bindings = bindings;
         this.context = context;
+        this.brokers = brokers;
+        this.supplyClientRoute = supplyClientRoute;
     }
 
     @Override
@@ -150,6 +155,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
 
+        if (kafkaBinding.store != null)
+        {
+            final String namespace = context.supplyNamespace(binding.id);
+            kafkaBinding.routes.forEach(route -> brokers.attach(binding.id, kafkaBinding.store,
+                KafkaClientBrokers.key(namespace, binding.name, context.supplyLocalName(route.id)),
+                supplyClientRoute.apply(route.id)));
+        }
+
         KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);
         clientGroupFactory.onAttached(binding.id);
     }
@@ -158,6 +171,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
     public void detach(
         long bindingId)
     {
+        brokers.detach(bindingId);
         bindings.remove(bindingId);
         KafkaClientGroupFactory clientGroupFactory = (KafkaClientGroupFactory) factories.get(KafkaBeginExFW.KIND_GROUP);
         clientGroupFactory.onDetached(bindingId);
