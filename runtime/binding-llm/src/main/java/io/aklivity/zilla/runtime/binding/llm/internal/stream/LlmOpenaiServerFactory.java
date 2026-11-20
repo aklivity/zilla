@@ -282,6 +282,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeTool = this::decodeTool;
     private final LlmOpenaiServerDecoder decodeBlockStart = this::decodeBlockStart;
     private final LlmOpenaiServerDecoder decodeText = this::decodeText;
+    private final LlmOpenaiServerDecoder decodeTextContinue = this::decodeTextContinue;
+    private final LlmOpenaiServerDecoder decodeTextHeld = this::decodeTextHeld;
     private final LlmOpenaiServerDecoder decodeTextTail = this::decodeTextTail;
     private final LlmOpenaiServerDecoder decodeRootEnd = this::decodeRootEnd;
     private final LlmOpenaiServerDecoder decodeSkip = this::decodeSkip;
@@ -292,6 +294,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
 
     private final SegmentTransferTarget pieceTarget = new SegmentTransferTarget();
+    private final MutableDirectBufferEx unitBuffer;
     private final JsonStringBody body = new JsonStringBody();
 
     public LlmOpenaiServerFactory(
@@ -300,6 +303,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.unitBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.replyEncodePool = context.bufferPool().duplicate();
         this.blockPool = context.bufferPool().duplicate();
@@ -1557,7 +1561,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int limit)
     {
         final JsonParserEx parser = server.parser;
-        final int eventFrom = server.position();
+
+        parser.mark();
 
         decode:
         if (parser.hasNextEvent())
@@ -1567,7 +1572,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case VALUE_STRING:
                 server.text(LlmSectionType.ASSISTANT_REFUSAL, null, decodeMessage);
-                progress = decodeTextValue(server, traceId, authorization, buffer, progress, limit, event, eventFrom);
+                parser.rewind();
+                server.decoder = decodeText;
                 break decode;
             case VALUE_NULL:
                 server.decoder = decodeMessage;
@@ -2689,6 +2695,146 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int progress,
         int limit)
     {
+        return server.textType == LlmSectionType.ASSISTANT_TEXT
+            ? decodeTextScanned(server, traceId, authorization, buffer, progress, limit)
+            : decodeTextPiece(server, traceId, authorization, decodeText);
+    }
+
+    private int decodeTextContinue(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeTextPiece(server, traceId, authorization, decodeTextContinue);
+    }
+
+    private int decodeTextHeld(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonStringView chars = server.textChars;
+
+        server.onDecodeUserText(traceId, authorization, chars);
+
+        int resume = progress;
+
+        if (server.textValueTaken == chars.length())
+        {
+            server.textValueTaken = 0;
+            server.textChars = null;
+            server.decoder = decodeTextTail;
+            resume = server.position();
+        }
+
+        return resume;
+    }
+
+    private int decodeTextPiece(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        LlmOpenaiServerDecoder state)
+    {
+        final JsonParserEx parser = server.parser;
+        final boolean first = state == decodeText;
+
+        int eventFrom = server.position();
+        boolean paused = false;
+
+        while (!paused && server.decoder == state)
+        {
+            if (first)
+            {
+                parser.mark();
+            }
+
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+                    final JsonStringView chars = parser.getStringView();
+                    final int length = chars.length();
+
+                    server.onDecodeUserText(traceId, authorization, chars);
+
+                    paused = server.textValueTaken < length;
+
+                    if (!paused && deferred)
+                    {
+                        parser.consumed(length);
+                        server.textValueTaken = 0;
+                        server.decoder = decodeTextContinue;
+                    }
+                    else if (!paused)
+                    {
+                        server.textValueTaken = 0;
+                        server.decoder = decodeTextTail;
+                    }
+                    else if (deferred)
+                    {
+                        parser.consumed(server.textValueTaken);
+                        server.textValueTaken = 0;
+                        server.decoder = decodeTextContinue;
+                    }
+                    else if (first && !server.pinned(eventFrom))
+                    {
+                        parser.rewind();
+                    }
+                    else
+                    {
+                        assert server.pinned(eventFrom);
+
+                        server.textHeldLimit = server.decodedWindowLimit;
+                        server.decoder = decodeTextHeld;
+                    }
+                }
+                else if (event == JsonEvent.VALUE_NULL && first && !server.textOpen)
+                {
+                    server.decoder = server.textThen;
+                }
+                else
+                {
+                    server.onDecodeParseError(traceId);
+                }
+
+                if (!paused)
+                {
+                    eventFrom = server.position();
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return paused && server.decoder == decodeTextHeld ? eventFrom : server.position();
+    }
+
+    private int decodeTextScanned(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
         final JsonParserEx parser = server.parser;
 
         int eventFrom = server.position();
@@ -2731,18 +2877,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final JsonStringView chars = parser.getStringView();
             final int length = chars.length();
             final int take = server.onDecodeText(traceId, authorization, chars, !deferred, eventFrom);
-            final boolean scanning = server.textType == LlmSectionType.ASSISTANT_TEXT;
 
-            if (!deferred && take == length && scanning)
+            if (!deferred && take == length)
             {
                 server.textOpen = false;
                 server.decoder = server.textThen;
             }
-            else if (!deferred && take == length)
-            {
-                server.decoder = decodeTextTail;
-            }
-            else if (take == length || !scanning && take >= 0)
+            else if (take == length)
             {
                 parser.consumed(take);
             }
@@ -3118,6 +3259,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private String textToolCallId;
         private boolean textOpen;
         private int textPrefixTaken;
+        private int textValueTaken;
+        private int textUnitTaken;
+        private int textHeldLimit;
+        private JsonStringView textChars;
         private int textTailTaken;
         private int optionsTaken;
 
@@ -3206,17 +3351,29 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             initialSeq = data.sequence() + reserved;
 
-            if (decodeSlot == NO_SLOT)
+            if (decodeSlot == NO_SLOT && decoder != decodeTextContinue)
             {
                 decodeNet(traceId, initialAuthorization, budgetId, reserved, payload.buffer(), payload.offset(), payload.limit());
             }
             else
             {
-                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                decodeSlotOffset += payload.sizeof();
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
 
-                decodeNet(traceId, initialAuthorization, budgetId);
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanup(traceId);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                    decodeSlotOffset += payload.sizeof();
+
+                    decodeNet(traceId, initialAuthorization, budgetId);
+                }
             }
         }
 
@@ -3261,6 +3418,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
+            final boolean fromSlot = decodeSlot != NO_SLOT;
+
             int progress = offset;
 
             if (offset < limit)
@@ -3298,7 +3457,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else
                 {
                     final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, buffer, progress, length);
+
+                    if (!fromSlot || progress > 0)
+                    {
+                        slot.putBytes(0, buffer, progress, length);
+                    }
+
                     decodeSlotOffset = length;
                 }
             }
@@ -3333,26 +3497,24 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             else
             {
                 final int window = stream == null ? limit - offset
-                    : decoder == decodeText && textType != LlmSectionType.ASSISTANT_TEXT
-                        ? Math.min(limit - offset, textWindow())
                     : exact() ? limit - offset
                     : (int) Math.min(limit - offset, decodeRoom());
 
-                if (decoder == decodeText && textType != LlmSectionType.ASSISTANT_TEXT && window == 0 && limit > offset)
+                if (window >= Math.min(MIN_WINDOW, limit - offset) || exact())
                 {
-                    decodedWindowLimit = offset;
-                    onDecodeTextPrefix(traceId, authorization);
-                }
-                else if (window >= Math.min(MIN_WINDOW, limit - offset) || exact())
-                {
-                    final int windowLimit = offset + window;
+                    final boolean held = decoder == decodeTextHeld;
+                    final int windowLimit = held ? textHeldLimit : offset + window;
                     final boolean windowLast = decodedLast && windowLimit == limit;
                     final LlmOpenaiServerDecoder previous = decoder;
 
                     decodedWindowLimit = windowLimit;
                     decodeTraceId = traceId;
                     decodeAuthorization = authorization;
-                    parser.wrap(buffer, offset, windowLimit, windowLast);
+
+                    if (!held)
+                    {
+                        parser.wrap(buffer, offset, windowLimit, windowLast);
+                    }
 
                     try
                     {
@@ -3409,28 +3571,16 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private int textWindow()
+        private boolean pinned(
+            int from)
         {
-            return Math.max(available() - (REASONING_PREFIX.length - textPrefixTaken), 0);
-        }
-
-        private void onDecodeTextPrefix(
-            long traceId,
-            long authorization)
-        {
-            final int take = Math.min(available(), REASONING_PREFIX.length - textPrefixTaken);
-
-            if (take > 0)
-            {
-                extBuffer.putBytes(0, REASONING_PREFIX_BUFFER, textPrefixTaken, take);
-                textPrefixTaken += take;
-                onDecodeData(traceId, authorization, extBuffer, 0, take, false);
-            }
+            return from == 0 && decodeSlot != NO_SLOT;
         }
 
         private boolean exact()
         {
-            final boolean text = decoder == decodeText || decoder == decodeTextTail;
+            final boolean text = decoder == decodeText || decoder == decodeTextContinue || decoder == decodeTextHeld ||
+                decoder == decodeTextTail;
 
             return text
                 ? textType != LlmSectionType.ASSISTANT_TEXT
@@ -3517,6 +3667,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             textThen = then;
             textOpen = false;
             textPrefixTaken = 0;
+            textValueTaken = 0;
+            textUnitTaken = 0;
             textTailTaken = 0;
 
             if (type != LlmSectionType.ASSISTANT_TEXT)
@@ -3752,7 +3904,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             scanAuthorization = authorization;
 
             final int length = chars.length();
-            final int take = scanning ? textAllowance(chars, fin) : writeText(chars);
+            final int take = textAllowance(chars, fin);
             final boolean finished = scanning && fin && take == length;
 
             if (scanning && take > 0)
@@ -3790,55 +3942,87 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private int writeText(
+        private void onDecodeUserText(
+            long traceId,
+            long authorization,
             JsonStringView chars)
         {
-            final int prefix = REASONING_PREFIX.length - textPrefixTaken;
-            final int room = available();
-            final int framing = Math.min(prefix, room);
-            final int take = framing == prefix ? fit(chars, room - framing) : 0;
+            textOpen = true;
+            textChars = chars;
+            scanTraceId = traceId;
+            scanAuthorization = authorization;
 
-            if (framing > 0 || take > 0)
-            {
-                extBuffer.putBytes(0, REASONING_PREFIX_BUFFER, textPrefixTaken, framing);
-
-                final int encoded = body.transfer(chars, 0, take,
-                    pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + framing));
-
-                textPrefixTaken += framing;
-                onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, framing + encoded, false);
-            }
-
-            return take;
-        }
-
-        private int fit(
-            JsonStringView chars,
-            int room)
-        {
             final int length = chars.length();
 
-            int cost = 0;
-            int take = 0;
-
-            while (take < length)
+            while (textValueTaken < length && available() > 0)
             {
-                final char c = chars.charAt(take);
-                final boolean pair = Character.isHighSurrogate(c) && take + 1 < length &&
-                    Character.isLowSurrogate(chars.charAt(take + 1));
-                final int width = pair ? 2 : 1;
-                final int next = cost + body.length(chars, take, take + width);
+                writeText(chars);
+            }
+        }
 
-                if (next > room)
+        private void writeText(
+            JsonStringView chars)
+        {
+            final int length = chars.length();
+            final int prefix = REASONING_PREFIX.length - textPrefixTaken;
+            final int framing = Math.min(prefix, available());
+
+            int room = available() - framing;
+            int written = framing;
+
+            extBuffer.putBytes(0, REASONING_PREFIX_BUFFER, textPrefixTaken, framing);
+            textPrefixTaken += framing;
+
+            if (framing == prefix)
+            {
+                while (textValueTaken < length && room > 0)
                 {
-                    break;
-                }
+                    final int width = unitWidth(chars, textValueTaken);
+                    final int encoded = body.length(chars, textValueTaken, textValueTaken + width);
 
-                cost = next;
-                take += width;
+                    if (textUnitTaken == 0 && encoded <= room)
+                    {
+                        body.transfer(chars, textValueTaken, textValueTaken + width,
+                            pieceTarget.wrap(extBuffer.segment(), extBuffer.wrapAdjustment() + written));
+                        textValueTaken += width;
+                        written += encoded;
+                        room -= encoded;
+                    }
+                    else
+                    {
+                        body.transfer(chars, textValueTaken, textValueTaken + width,
+                            pieceTarget.wrap(unitBuffer.segment(), unitBuffer.wrapAdjustment()));
+
+                        final int part = Math.min(encoded - textUnitTaken, room);
+
+                        extBuffer.putBytes(written, unitBuffer, textUnitTaken, part);
+                        textUnitTaken += part;
+                        written += part;
+                        room -= part;
+
+                        if (textUnitTaken == encoded)
+                        {
+                            textValueTaken += width;
+                            textUnitTaken = 0;
+                        }
+                    }
+                }
             }
 
-            return take;
+            if (written > 0)
+            {
+                onDecodeData(scanTraceId, scanAuthorization, extBuffer, 0, written, false);
+            }
+        }
+
+        private int unitWidth(
+            JsonStringView chars,
+            int index)
+        {
+            final boolean pair = Character.isHighSurrogate(chars.charAt(index)) && index + 1 < chars.length() &&
+                Character.isLowSurrogate(chars.charAt(index + 1));
+
+            return pair ? 2 : 1;
         }
 
         private void onDecodeTextTail()
