@@ -103,6 +103,11 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * offset, so a QoS 2 delivery is the whole exchange and not the acknowledgement alone. {@link KafkaStub} takes the
  * fetch stream with a group id whose lowest included QoS level equals {@code qos} as the delivery stream of a
  * subscription, so the proxy's other fetch streams are opened and answered but deliver nothing.
+ * <p>
+ * {@code handshake}, {@code publish} and {@code deliver} take a {@code sessions} count of {@code mqtt} sessions that
+ * are established, each with a clean start, a distinct client id and a distinct affinity, and kept open for the whole
+ * run. They are established before measurement starts and carry no traffic, so the benchmark shows how the cost of
+ * each operation changes with the number of sessions the proxy holds, including the maps it keeps per client.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -124,6 +129,8 @@ public class MqttKafkaProxyBM
     private static final String SHARE_NAME = "benchmark";
     private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
     private static final int QOS2_PACKET_ID = 1;
+    private static final String SESSION_ID_PREFIX = "session-";
+    private static final int SESSION_BATCH = 1000;
     private static final String FANOUT_TOPIC = "device/fanout";
 
     @Benchmark
@@ -178,6 +185,10 @@ public class MqttKafkaProxyBM
         @Param({"0", "5"})
         public long ackDelayMillis;
 
+        @Param({"1", "1000", "10000"})
+        public int sessions;
+
+        private final SessionPool sessionPool = new SessionPool();
         private final Queue<Handshake> established = new ArrayDeque<>();
         private final Queue<Handshake> idle = new ArrayDeque<>();
 
@@ -199,6 +210,8 @@ public class MqttKafkaProxyBM
 
             kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis);
             bench.newServer("kafka0", kafka);
+
+            sessionPool.establish(bench, kafka, sessions);
 
             mqttId = bench.bindingId("mqtt0");
             beginExTemplate = MqttFunctions.beginEx()
@@ -369,6 +382,10 @@ public class MqttKafkaProxyBM
         @Param({"0", "5"})
         public long ackDelayMillis;
 
+        @Param({"1", "1000", "10000"})
+        public int sessions;
+
+        private final SessionPool sessionPool = new SessionPool();
         private final Queue<Publisher> idle = new ArrayDeque<>();
         private final Queue<Publisher> acknowledged = new ArrayDeque<>();
         private final BooleanSupplier acknowledgedAvailable = () -> !acknowledged.isEmpty();
@@ -389,6 +406,8 @@ public class MqttKafkaProxyBM
 
             kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis);
             bench.newServer("kafka0", kafka);
+
+            sessionPool.establish(bench, kafka, sessions);
 
             final int mqttTypeId = bench.labelId("mqtt");
             final long mqttId = bench.bindingId("mqtt0");
@@ -776,6 +795,11 @@ public class MqttKafkaProxyBM
 
         abstract int qos();
 
+        int sessions()
+        {
+            return 0;
+        }
+
         abstract String configuration();
 
         String qosName()
@@ -804,6 +828,8 @@ public class MqttKafkaProxyBM
 
             kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, qos());
             bench.newServer("kafka0", kafka);
+
+            new SessionPool().establish(bench, kafka, sessions());
 
             committedAvailable = () -> (committed = kafka.committed()) != -1;
 
@@ -1002,10 +1028,19 @@ public class MqttKafkaProxyBM
         @Param({"1", "2"})
         public int qos;
 
+        @Param({"1", "1000", "10000"})
+        public int sessions;
+
         @Override
         int subscribers()
         {
             return subscribers;
+        }
+
+        @Override
+        int sessions()
+        {
+            return sessions;
         }
 
         @Override
@@ -1246,6 +1281,107 @@ public class MqttKafkaProxyBM
         }
 
         return fetch.build().build();
+    }
+
+    private static final class SessionPool
+    {
+        private final List<PooledSession> pooled = new ArrayList<>();
+
+        private int established;
+
+        private void establish(
+            EngineBench bench,
+            KafkaStub kafka,
+            int count)
+        {
+            final int mqttTypeId = bench.labelId("mqtt");
+            final long mqttId = bench.bindingId("mqtt0");
+
+            for (int session = 0; session < count; session++)
+            {
+                final byte[] beginEx = MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .flags("CLEAN_START")
+                        .expiry(1)
+                        .publishQosMax(2)
+                        .clientId(SESSION_ID_PREFIX + session)
+                        .build()
+                    .build();
+
+                final PooledSession connecting = new PooledSession(kafka);
+                connecting.begin(bench.newClient(mqttId, connecting), session + 1L, new UnsafeBufferEx(beginEx));
+                pooled.add(connecting);
+
+                await(bench, kafka, pooled.size() - SESSION_BATCH);
+            }
+
+            await(bench, kafka, count);
+        }
+
+        private void await(
+            EngineBench bench,
+            KafkaStub kafka,
+            int count)
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (established < count)
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "sessions established timed out, established %d of %d, unexpected kafka streams %d",
+                        established, count, kafka.unexpected()));
+                }
+            }
+        }
+
+        private final class PooledSession implements MessageConsumer
+        {
+            private final KafkaStub kafka;
+
+            private PooledSession(
+                KafkaStub kafka)
+            {
+                this.kafka = kafka;
+            }
+
+            private void begin(
+                Client client,
+                long affinity,
+                DirectBufferEx beginEx)
+            {
+                client.begin(affinity, beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    established++;
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "session stream rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     public static void main(
