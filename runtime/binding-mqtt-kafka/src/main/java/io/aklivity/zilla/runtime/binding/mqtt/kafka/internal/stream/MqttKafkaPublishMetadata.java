@@ -15,9 +15,12 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.PrimitiveIterator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
@@ -165,6 +168,8 @@ public class MqttKafkaPublishMetadata
         private final MutableDirectBufferEx offsetBuffer;
         private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeEntry = this::encodeEntry;
         private final IntConsumer appendPacketId = this::appendPacketId;
+        private final Map<String, String16FW> encodedTopics = new HashMap<>();
+        private final Function<String, String16FW> encodeTopic = String16FW::new;
 
         private KafkaOffsetMetadata encodingMetadata;
         private MqttKafkaSessionOffsetMetadataFW.Builder encodingItem;
@@ -218,7 +223,7 @@ public class MqttKafkaPublishMetadata
         {
             final KafkaOffsetMetadata metadata = encodingMetadata;
             encodingItem = item;
-            item.topic(metadata.topic);
+            item.topic(encodedTopics.computeIfAbsent(metadata.topic, encodeTopic));
             item.partitionId(metadata.partitionId);
             item.consumedOffset(metadata.sequence);
             item.producerId(metadata.producerId);
