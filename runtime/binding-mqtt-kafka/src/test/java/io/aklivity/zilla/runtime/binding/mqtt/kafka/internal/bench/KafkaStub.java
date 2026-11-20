@@ -26,10 +26,14 @@ import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.LongArrayQueue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -37,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
@@ -69,6 +74,13 @@ public final class KafkaStub implements BindingHandler
     private static final int STREAM_WINDOW = 8192;
     private static final int SESSION_SIGNALS = 2;
     private static final int PRODUCE_PARTITION = 0;
+    private static final int QOS_LEVELS = 3;
+    private static final int QOS_LEVELS_MASK = (1 << QOS_LEVELS) - 1;
+    private static final int NO_QOS = -1;
+    private static final long PROGRESS_OFFSET_MARKER = 0x1112131415161718L;
+    private static final long PROGRESS_CORRELATION_MARKER = 0x2122232425262728L;
+    private static final long NO_CORRELATION = -1L;
+    private static final String QOS_HEADER = "zilla:qos";
     private static final int PARTITION_FLUSH_CAPACITY = 1024;
 
     private static final byte[] FIND_COORDINATOR_RESPONSE =
@@ -137,7 +149,11 @@ public final class KafkaStub implements BindingHandler
     private final List<StubStream> deliverables = new ArrayList<>();
     private final IntArrayQueue committed = new IntArrayQueue(-1);
     private final int kafkaTypeId;
+    private final int deliveryQos;
     private final long delayNanos;
+    private final byte[] progressTemplate;
+    private final int progressOffsetPosition;
+    private final int progressCorrelationPosition;
 
     private final DirectBufferEx emptyEx = new UnsafeBufferEx(new byte[0]);
     private final DirectBufferEx describeBeginEx;
@@ -153,12 +169,22 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
     private int unexpected;
+    private int excludedQos;
 
     public KafkaStub(
         int kafkaTypeId,
         long delayMillis)
     {
+        this(kafkaTypeId, delayMillis, 1);
+    }
+
+    public KafkaStub(
+        int kafkaTypeId,
+        long delayMillis,
+        int deliveryQos)
+    {
         this.kafkaTypeId = kafkaTypeId;
+        this.deliveryQos = deliveryQos;
         this.delayNanos = MILLISECONDS.toNanos(delayMillis);
 
         this.describeBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
@@ -218,6 +244,16 @@ public final class KafkaStub implements BindingHandler
                 .port(9092)
                 .build()
             .build());
+        this.progressTemplate = KafkaFunctions.flushEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .consumer()
+                    .progress(PRODUCE_PARTITION, PROGRESS_OFFSET_MARKER)
+                    .correlationId(PROGRESS_CORRELATION_MARKER)
+                    .build()
+                .build();
+        this.progressOffsetPosition = indexOfLong(progressTemplate, PROGRESS_OFFSET_MARKER);
+        this.progressCorrelationPosition = indexOfLong(progressTemplate, PROGRESS_CORRELATION_MARKER);
         this.initProducerIdBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
             .typeId(kafkaTypeId)
             .initProducerId()
@@ -230,6 +266,29 @@ public final class KafkaStub implements BindingHandler
     public int unexpected()
     {
         return unexpected;
+    }
+
+    private static int indexOfLong(
+        byte[] array,
+        long value)
+    {
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(array);
+        int index = -1;
+
+        for (int offset = 0; index == -1 && offset + Long.BYTES <= array.length; offset++)
+        {
+            if (buffer.getLong(offset, ByteOrder.LITTLE_ENDIAN) == value)
+            {
+                index = offset;
+            }
+        }
+
+        if (index == -1)
+        {
+            throw new IllegalStateException("marker not found in consumer progress flush extension");
+        }
+
+        return index;
     }
 
     /**
@@ -342,7 +401,7 @@ public final class KafkaStub implements BindingHandler
             kind = switch (capabilities)
             {
             case FETCH_ONLY -> beginEx.merged().topic().equals(messagesTopicRO)
-                ? beginEx.merged().groupId().length() > 0 ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH
+                ? deliveryKind(beginEx.merged())
                 : Kind.OFFSET_FETCH;
             case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES : Kind.OFFSET_COMMIT;
             case PRODUCE_AND_FETCH -> Kind.SESSION;
@@ -355,6 +414,37 @@ public final class KafkaStub implements BindingHandler
         return kind;
     }
 
+    private Kind deliveryKind(
+        KafkaMergedBeginExFW merged)
+    {
+        return merged.groupId().length() > 0 && qosOf(merged) == deliveryQos ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH;
+    }
+
+    private int qosOf(
+        KafkaMergedBeginExFW merged)
+    {
+        excludedQos = 0;
+        merged.filters().forEach(filter -> filter.conditions().forEach(this::excludeQos));
+
+        final int included = ~excludedQos & QOS_LEVELS_MASK;
+
+        return included != 0 ? Integer.numberOfTrailingZeros(included) : NO_QOS;
+    }
+
+    private void excludeQos(
+        KafkaConditionFW condition)
+    {
+        if (condition.kind() == KafkaConditionFW.KIND_NOT && condition.not().condition().kind() == KafkaConditionFW.KIND_HEADER)
+        {
+            final KafkaHeaderFW header = condition.not().condition().header();
+
+            if (header.name().buffer().getStringWithoutLengthUtf8(header.name().offset(), header.nameLen()).equals(QOS_HEADER))
+            {
+                excludedQos |= 1 << (header.value().buffer().getByte(header.value().offset()) - '0');
+            }
+        }
+    }
+
     private final class StubStream
     {
         private final MessageConsumer consumer = this::onMessage;
@@ -363,6 +453,7 @@ public final class KafkaStub implements BindingHandler
         private final Runnable ackStep = this::doAck;
         private final Runnable deliverStep = this::doDeliverStep;
         private final Runnable partitionStep = this::doPartitionReply;
+        private final Runnable progressStep = this::doProgressReply;
         private final MutableDirectBufferEx partitionEx = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
 
         private MessageConsumer sender;
@@ -385,6 +476,7 @@ public final class KafkaStub implements BindingHandler
         private int deliverIndex;
         private int deliveries;
         private int partitionExLength;
+        private MutableDirectBufferEx progressEx;
         private long deliveryOffset;
         private byte[] deliveryBytes;
         private MutableDirectBufferEx deliveryEx;
@@ -441,7 +533,11 @@ public final class KafkaStub implements BindingHandler
                 doDeliver();
                 break;
             case FlushFW.TYPE_ID:
-                if (delivering())
+                if (kind == Kind.MESSAGES_DELIVER)
+                {
+                    onDeliveryFlush(flushRO.wrap(buffer, index, index + length));
+                }
+                else if (delivering())
                 {
                     committed.addInt(deliverIndex);
                 }
@@ -542,6 +638,48 @@ public final class KafkaStub implements BindingHandler
                 pending++;
                 schedule(partitionStep);
             }
+        }
+
+        private void onDeliveryFlush(
+            FlushFW flush)
+        {
+            final OctetsFW extension = flush.extension();
+            final KafkaFlushExFW flushEx = kafkaFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final KafkaMergedConsumerFlushExFW consumerFlushEx = flushEx != null &&
+                flushEx.kind() == KafkaFlushExFW.KIND_MERGED && flushEx.merged().kind() == KafkaMergedFlushExFW.KIND_CONSUMER
+                ? flushEx.merged().consumer()
+                : null;
+            final long correlationId = consumerFlushEx != null ? consumerFlushEx.correlationId() : NO_CORRELATION;
+
+            if (correlationId == NO_CORRELATION)
+            {
+                committed.addInt(deliverIndex);
+            }
+            else
+            {
+                if (progressEx == null)
+                {
+                    progressEx = new UnsafeBufferEx(progressTemplate.clone());
+                }
+
+                progressEx.putLong(progressOffsetPosition, consumerFlushEx.progress().partitionOffset(), ByteOrder.LITTLE_ENDIAN);
+                progressEx.putLong(progressCorrelationPosition, correlationId, ByteOrder.LITTLE_ENDIAN);
+
+                pending++;
+                schedule(progressStep);
+            }
+        }
+
+        private void doProgressReply()
+        {
+            pending--;
+
+            if (!StreamState.replyClosed(state))
+            {
+                doReplyFlush(progressEx, progressEx.capacity());
+            }
+
+            doEnd();
         }
 
         private void doPartitionReply()
