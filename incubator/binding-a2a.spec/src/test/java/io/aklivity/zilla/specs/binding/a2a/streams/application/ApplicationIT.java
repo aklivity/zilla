@@ -488,9 +488,81 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/send.message.task.failed/client",
+        "${app}/send.message.task.failed/server"})
+    public void shouldSendMessageTaskFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/send.message.task.input.required/client",
+        "${app}/send.message.task.input.required/server"})
+    public void shouldSendMessageTaskInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/stream.message/client",
         "${app}/stream.message/server"})
     public void shouldStreamMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.auth.required/client",
+        "${app}/stream.message.auth.required/server"})
+    public void shouldStreamMessageAuthRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.canceled/client",
+        "${app}/stream.message.canceled/server"})
+    public void shouldStreamMessageCanceled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.failed/client",
+        "${app}/stream.message.failed/server"})
+    public void shouldStreamMessageFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.input.required/client",
+        "${app}/stream.message.input.required/server"})
+    public void shouldStreamMessageInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.rejected/client",
+        "${app}/stream.message.rejected/server"})
+    public void shouldStreamMessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/stream.message.status.message/client",
+        "${app}/stream.message.status.message/server"})
+    public void shouldStreamMessageStatusMessage() throws Exception
     {
         k3po.finish();
     }

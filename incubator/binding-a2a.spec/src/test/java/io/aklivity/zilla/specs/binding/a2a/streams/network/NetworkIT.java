@@ -569,6 +569,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/discover.send.message.task.failed/client",
+        "${net}/discover.send.message.task.failed/server"})
+    public void shouldDiscoverSendMessageTaskFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.task.input.required/client",
+        "${net}/discover.send.message.task.input.required/server"})
+    public void shouldDiscoverSendMessageTaskInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/discover.send.message.tenant/client",
         "${net}/discover.send.message.tenant/server"})
     public void shouldDiscoverSendMessageTenant() throws Exception
@@ -599,6 +617,60 @@ public class NetworkIT
         "${net}/discover.stream.message.aborted/client",
         "${net}/discover.stream.message.aborted/server"})
     public void shouldDiscoverStreamMessageAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.auth.required/client",
+        "${net}/discover.stream.message.auth.required/server"})
+    public void shouldDiscoverStreamMessageAuthRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.canceled/client",
+        "${net}/discover.stream.message.canceled/server"})
+    public void shouldDiscoverStreamMessageCanceled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.failed/client",
+        "${net}/discover.stream.message.failed/server"})
+    public void shouldDiscoverStreamMessageFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.input.required/client",
+        "${net}/discover.stream.message.input.required/server"})
+    public void shouldDiscoverStreamMessageInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.rejected/client",
+        "${net}/discover.stream.message.rejected/server"})
+    public void shouldDiscoverStreamMessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.status.message/client",
+        "${net}/discover.stream.message.status.message/server"})
+    public void shouldDiscoverStreamMessageStatusMessage() throws Exception
     {
         k3po.finish();
     }
@@ -1064,6 +1136,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/send.message.task.failed/client",
+        "${net}/send.message.task.failed/server"})
+    public void shouldSendMessageTaskFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/send.message.task.input.required/client",
+        "${net}/send.message.task.input.required/server"})
+    public void shouldSendMessageTaskInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/send.message.v0.3/client",
         "${net}/send.message.v0.3/server"})
     public void shouldSendMessageV03() throws Exception
@@ -1094,6 +1184,60 @@ public class NetworkIT
         "${net}/stream.message.aborted/client",
         "${net}/stream.message.aborted/server"})
     public void shouldStreamMessageAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.auth.required/client",
+        "${net}/stream.message.auth.required/server"})
+    public void shouldStreamMessageAuthRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.canceled/client",
+        "${net}/stream.message.canceled/server"})
+    public void shouldStreamMessageCanceled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.failed/client",
+        "${net}/stream.message.failed/server"})
+    public void shouldStreamMessageFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.input.required/client",
+        "${net}/stream.message.input.required/server"})
+    public void shouldStreamMessageInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.rejected/client",
+        "${net}/stream.message.rejected/server"})
+    public void shouldStreamMessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.status.message/client",
+        "${net}/stream.message.status.message/server"})
+    public void shouldStreamMessageStatusMessage() throws Exception
     {
         k3po.finish();
     }
