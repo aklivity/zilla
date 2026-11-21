@@ -114,7 +114,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * {@code publish} takes a {@code retain} setting: when it is set each publish carries the retain flag, so the proxy
  * also produces it to the retained topic and the publish completes only when both the messages topic and the
  * retained topic have acknowledged it. {@link KafkaStub} acknowledges the produce stream on the retained topic the
- * same way as the one on the messages topic.
+ * same way as the one on the messages topic. It also takes an {@code expiry} setting: when it is set each publish
+ * carries a message expiry interval, which the proxy produces as a timeout header.
  * <p>
  * Each {@code retainedReplay} operation is one new subscription that is sent the retained message of its topic:
  * the peer opens an {@code mqtt} subscribe stream asking for retained messages, the stub answers the retained
@@ -163,6 +164,7 @@ public class MqttKafkaProxyBM
 {
     private static final String CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.yaml";
     private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
+    private static final int PUBLISH_EXPIRY_SECONDS = 15;
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final String CLIENT_ID_PREFIX = "client-";
     private static final int CLIENT_ID_DIGITS = 10;
@@ -463,6 +465,9 @@ public class MqttKafkaProxyBM
         @Param({"false", "true"})
         public boolean retain;
 
+        @Param({"false", "true"})
+        public boolean expiry;
+
         private final SessionPool sessionPool = new SessionPool();
         private final Queue<Publisher> idle = new ArrayDeque<>();
         private final Queue<Publisher> acknowledged = new ArrayDeque<>();
@@ -498,6 +503,7 @@ public class MqttKafkaProxyBM
                     .qos("AT_LEAST_ONCE")
                     .flags(publishFlags)
                     .packetId(1)
+                    .expiryInterval(expiry ? PUBLISH_EXPIRY_SECONDS : -1)
                     .build()
                 .build());
             message = new UnsafeBufferEx(new byte[payload]);
