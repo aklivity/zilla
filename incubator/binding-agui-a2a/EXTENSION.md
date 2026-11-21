@@ -97,7 +97,7 @@ A feature is an independent switch. A feature the agent did not list is never se
 | `reasoning` | agent to AG-UI | `reasoning` and `reasoning.encrypted` tags |
 | `steps` | agent to AG-UI | `step` tags |
 | `toolCalls` | agent to AG-UI | `toolCall` tags (client-executed and agent-executed) and agent-executed `toolResult` tags |
-| `subagents` | agent to AG-UI | `subagent` tags and the `subagentRunId` member on other tags |
+| `subagents` | agent to AG-UI | `subagent` tags, `text` tags and the `subagentRunId` member on other tags |
 | `interrupts` | agent to AG-UI | `interrupt` tag enrichment of an interrupt (`reason`, `responseSchema`, `toolCallId`) |
 | `custom` | agent to AG-UI | `custom` and `raw` tags |
 
@@ -192,6 +192,11 @@ A tag is the `agui` member of a part's `metadata`. It identifies the AG-UI event
 | `subagentRunId` | string, optional | the part belongs to that subagent run (needs `subagents`); the proxy puts it on the AG-UI event |
 | other members | by `event` | section 7 |
 
+The scope of a subagent is **explicit**: a part belongs to a subagent run only when its own tag carries `subagentRunId`.
+The proxy does not remember a `started` event and does not apply its id to the parts that follow, because the stream of
+one task may interleave the output of several subagents and a remembered scope would attribute a part to the wrong run.
+Without `subagents` enabled the member is ignored and the event is mapped without it.
+
 A part without a tag, or whose `metadata.agui` has no `event`, is not tagged. The tier 1 member `part` is the proxy's own
 request marker and is never read from an agent part.
 
@@ -225,6 +230,7 @@ non-authoritative** part and only to an agent that asked for it. A plain agent n
 | agent to AG-UI | `toolResult` | `toolCalls` | `data` | `TOOL_CALL_RESULT` (agent-executed) |
 | agent to AG-UI | `step` | `steps` | `data` | `STEP_STARTED`, `STEP_FINISHED` |
 | agent to AG-UI | `subagent` | `subagents` | `data` | `SUBAGENT_STARTED`, `SUBAGENT_FINISHED`, `SUBAGENT_ERROR` |
+| agent to AG-UI | `text` | `subagents` | `text` | a text message that carries `subagentRunId` |
 | agent to AG-UI | `interrupt` | `interrupts` | `data` | enriches the interrupt outcome |
 | agent to AG-UI | `custom` | `custom` | `data` | `CUSTOM` |
 | agent to AG-UI | `raw` | `custom` | `data` | `RAW` |
@@ -312,6 +318,17 @@ The part `data` is `{"type": "tool-call", "id": "<agent call id>", "name": "..."
 | `outcome`* | `success` or `suspended`, on `finished` |
 | `code`*, `message`* | on `error` |
 
+The part `data` is optional. On `finished` it is the result, a JSON value carried as the payload of the event; when it is
+absent the payload is empty. On `started` and `error` it is ignored. `suspended` maps to the AG-UI outcome `SUSPENDED` with
+an **empty** `interruptIds` list: interrupt ids on the AG-UI side are opaque handles the proxy issues and a client sends
+back in `resume[]`, so an id the agent defined could not be resolved by the proxy (409 `handle_unknown`). The interrupts of
+a suspended subagent are therefore not resumable by their own ids; the `INPUT_REQUIRED` interrupt of the enclosing task,
+with its handle, is the resume path.
+
+**`text`**: a `text` part; tag members `subagentRunId` (required) and `messageId`*. It maps to a text message like an
+untagged text part, whose `messageId` defaults to the artifact id or the A2A message id, and whose events carry
+`subagentRunId`. An untagged text part cannot carry a subagent id, which is why this tag exists.
+
 **`interrupt`**: tag members `reason`* (an open string; default `input`, or `authorization` for `AUTH_REQUIRED`),
 `toolCallId`*. The part `data`, when present, is the `responseSchema`*.
 
@@ -374,7 +391,7 @@ The proxy decodes the A2A event once, as it arrives, and finds a part's tag befo
    content of its `payload` member. Both members are carried as their JSON text, so a string payload keeps its quotes.
 3. `reasoning` and `reasoning.encrypted` map the `text` of the part; `step` maps no content.
 4. A tag for a feature that is not enabled is plain data (section 9). The features the proxy enables are the ones it
-   implements: `subagents` and `interrupts` are not enabled yet, so their tags map as `agent.data`. An unknown `event`
+   implements: `interrupts` is not enabled yet, so its tags map as `agent.data`. An unknown `event`
    is dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
 5. A `toolCall` with `executor` `client` (the default) maps to `TOOL_CALL_START`, `TOOL_CALL_ARGS` and `TOOL_CALL_END`
    with a handle as `toolCallId`. When the task then reaches `INPUT_REQUIRED` with no untagged text in its status message,
@@ -460,5 +477,7 @@ Where the source design was silent or contradicted itself, these decisions were 
 | 12 | The header name | `A2A-Extensions` (section 2) |
 | 13 | History part | one advisory `data` part with `metadata.agui.part` `history`, sent first, only to an agent that lists `history`, by default only when the run starts a new A2A context and never on a continuation (section 6.3) |
 | 14 | History yields | history is all-or-nothing and has the lowest priority: when retaining it would keep any other part of the request from being retained, or it cannot fit, it is omitted whole, never partial and never a rejection, and a Zilla event records the reason (section 6.3) |
+| 15 | Subagent scope | explicit only: a part carries its own `subagentRunId`, a `text` tag exists so that a text message can carry it, and a remembered scope is not used because subagents may interleave (section 6.2) |
+| 16 | Suspended subagent | `suspended` maps with an empty `interruptIds` list: agent-defined interrupt ids would not resolve through the opaque handles the proxy issues (section 7.3) |
 
 Unresolved: none.

@@ -323,4 +323,67 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.started.finished/client",
+        "${app}/extension.subagent.started.finished/server"})
+    public void shouldRunExtensionSubagentStartedFinished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.error/client",
+        "${app}/extension.subagent.error/server"})
+    public void shouldRunExtensionSubagentError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.suspended/client",
+        "${app}/extension.subagent.suspended/server"})
+    public void shouldRunExtensionSubagentSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.scoped.text/client",
+        "${app}/extension.subagent.scoped.text/server"})
+    public void shouldRunExtensionSubagentScopedText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.tool.call/client",
+        "${app}/extension.subagent.tool.call/server"})
+    public void shouldRunExtensionSubagentToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.not.enabled/client",
+        "${app}/extension.subagent.not.enabled/server"})
+    public void shouldRunExtensionSubagentNotEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.subagent.malformed/client",
+        "${app}/extension.subagent.malformed/server"})
+    public void shouldRunExtensionSubagentMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
