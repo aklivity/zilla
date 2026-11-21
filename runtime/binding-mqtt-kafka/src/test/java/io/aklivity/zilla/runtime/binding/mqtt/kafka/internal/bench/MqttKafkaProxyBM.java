@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.bench;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -139,6 +140,18 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * followed by the caught up flush, as the non clean start session scripts specify. The session stream is then ended
  * and the next resume begins, so {@code depth} sessions are kept resuming at once. {@code subscriptions} is the size
  * of the stored session state, which the proxy reads and reconciles on every resume.
+ * <p>
+ * Each {@code will} operation is one will message delivered to its topic after an abnormal disconnect: the peer opens
+ * an {@code mqtt} session stream with a will, a clean start is not asked for, sends its will once the stream's window
+ * opens, and aborts the session once the session is established. {@link KafkaStub} then plays the part of the
+ * sessions topic as the will scripts specify: it answers the will signal fetch with the caught up flush, and the
+ * session stream with the flush that says there is no session state, keeps the will message the proxy produces by its
+ * key, echoes each will signal the proxy produces back on the signal stream, and serves the will message on the fetch
+ * stream that the proxy opens for it. The will is delivered after its delay, which is one second, on the real clock,
+ * so the operation completes about a second after the disconnect, and the operation completes when the will message
+ * arrives on the messages topic. {@code depth} is the number of wills kept in flight, so the rate is bounded by
+ * {@code depth} operations a second, and {@code ackDelayMillis} the delay of every stub answer. The wills still in
+ * flight at the end of the run are delivered before the engine is closed.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -160,6 +173,8 @@ public class MqttKafkaProxyBM
     private static final String SHARE_NAME = "benchmark";
     private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
     private static final int QOS2_PACKET_ID = 1;
+    private static final long WILL_TIMEOUT_NANOS = SECONDS.toNanos(30L);
+    private static final long SETTLE_NANOS = SECONDS.toNanos(1L);
     private static final String SESSION_ID_PREFIX = "session-";
     private static final int SESSION_BATCH = 1000;
     private static final String RETAINED_TOPIC = "device/retained";
@@ -211,6 +226,13 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void deliver(
         DeliverFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void will(
+        WillFixture fixture)
     {
         fixture.complete();
     }
@@ -1143,6 +1165,214 @@ public class MqttKafkaProxyBM
                 default:
                     break;
                 }
+            }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class WillFixture
+    {
+        private static final String WILL_TOPIC = "obituaries";
+        private static final String WILL_MESSAGE = "disconnected abruptly";
+
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Dying> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private long mqttId;
+        private int mqttTypeId;
+        private DirectBufferEx willDataEx;
+        private DirectBufferEx will;
+        private int dyings;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .configure(PUBLISH_MAX_QOS_NAME, "1")
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+            kafka.willDelivery(WILL_TOPIC);
+            bench.newServer("kafka0", kafka);
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            willDataEx = new UnsafeBufferEx(MqttFunctions.dataEx()
+                .typeId(mqttTypeId)
+                .session()
+                    .kind("WILL")
+                    .build()
+                .build());
+
+            final byte[] willMessage = WILL_MESSAGE.getBytes(UTF_8);
+            final byte[] willHeader = MqttFunctions.will()
+                .topic(WILL_TOPIC)
+                .delay(1)
+                .expiryInterval(15)
+                .format("TEXT")
+                .responseTopic("responses/client1")
+                .correlation("info")
+                .payloadSize(willMessage.length)
+                .build();
+            final byte[] willBytes = new byte[willHeader.length + willMessage.length];
+            System.arraycopy(willHeader, 0, willBytes, 0, willHeader.length);
+            System.arraycopy(willMessage, 0, willBytes, willHeader.length, willMessage.length);
+            will = new UnsafeBufferEx(willBytes);
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            for (int outstanding = 0; outstanding < depth; outstanding++)
+            {
+                awaitDelivered();
+            }
+
+            final long settled = System.nanoTime() + SETTLE_NANOS;
+            while (System.nanoTime() < settled)
+            {
+                bench.poll();
+                kafka.release();
+            }
+
+            bench.close();
+        }
+
+        void complete()
+        {
+            awaitDelivered();
+            begin();
+        }
+
+        private void awaitDelivered()
+        {
+            final long deadline = System.nanoTime() + WILL_TIMEOUT_NANOS;
+
+            while (!kafka.willDelivered())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "will delivery timed out, unexpected kafka streams %d", kafka.unexpected()));
+                }
+            }
+        }
+
+        private void begin()
+        {
+            Dying dying = idle.poll();
+
+            if (dying == null)
+            {
+                dying = new Dying(++dyings);
+            }
+
+            dying.begin();
+        }
+
+        private final class Dying implements MessageConsumer
+        {
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+            private MessageConsumer decoder;
+
+            private Dying(
+                int number)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .flags("WILL")
+                        .expiry(1)
+                        .clientId(CLIENT_ID_PREFIX + String.format("%0" + CLIENT_ID_DIGITS + "d", number))
+                        .build()
+                    .build());
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+                decoder = this::decodeAwaitWindow;
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case AbortFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "will session rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    decoder.accept(msgTypeId, buffer, index, length);
+                    break;
+                }
+            }
+
+            private void decodeAwaitWindow(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == WindowFW.TYPE_ID)
+                {
+                    decoder = this::decodeAwaitEstablished;
+                    client.data(will, 0, will.capacity(), willDataEx, 0, willDataEx.capacity());
+                }
+            }
+
+            private void decodeAwaitEstablished(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    decoder = this::decodeIgnore;
+                    client.abort();
+                }
+            }
+
+            private void decodeIgnore(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
             }
         }
     }
