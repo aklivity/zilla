@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/run.client.routed/client",
+        "${app}/run.client.routed/server"})
+    public void shouldRunClientRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/run.text.chunks/client",
         "${app}/run.text.chunks/server"})
     public void shouldRunTextChunks() throws Exception

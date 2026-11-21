@@ -104,10 +104,48 @@ public class SchemaTest
         schema.validate("client.options.unknown.invalid.yaml");
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectClientRoutes()
+    @Test
+    public void shouldValidateClientRoutes()
     {
-        schema.validate("client.routes.invalid.yaml");
+        JsonObject config = schema.validate("client.routes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWhenAgentMissing()
+    {
+        schema.validate("client.route.when.agent.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWhenMultiple()
+    {
+        schema.validate("client.route.when.multiple.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWhenUnknown()
+    {
+        schema.validate("client.route.when.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWhenRequired()
+    {
+        schema.validate("client.route.when.required.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWithUnknown()
+    {
+        schema.validate("client.route.with.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteExitRequired()
+    {
+        schema.validate("client.route.exit.required.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
