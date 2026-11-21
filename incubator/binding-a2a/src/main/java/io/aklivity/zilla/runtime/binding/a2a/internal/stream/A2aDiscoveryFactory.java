@@ -169,7 +169,6 @@ public final class A2aDiscoveryFactory
         private DirectBufferEx replyBuffer;
         private int replyLimit;
         private int replyDelivered;
-        private boolean replyMessage;
 
         A2aDiscoveryStream(
             MessageConsumer sender,
@@ -247,7 +246,7 @@ public final class A2aDiscoveryFactory
                 initialMax = decodeMax;
                 doAppBegin(traceId, authorization);
                 doAppWindow(traceId, authorization);
-                doReply(traceId, authorization, A2aDiscoveryCard.BYTES, false);
+                doReply(traceId, authorization, A2aDiscoveryCard.BYTES);
                 break;
             case KIND_MESSAGE_SEND:
             case KIND_MESSAGE_STREAM:
@@ -320,7 +319,7 @@ public final class A2aDiscoveryFactory
             final long authorization = end.authorization();
 
             initialSeq = end.sequence();
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             if (decodeSlot != NO_SLOT)
             {
@@ -370,7 +369,7 @@ public final class A2aDiscoveryFactory
             AbortFW abort)
         {
             initialSeq = abort.sequence();
-            state = A2aState.closedReply(A2aState.closedInitial(state));
+            state = A2aState.closeReply(A2aState.closeInitial(state));
             cleanup();
         }
 
@@ -381,7 +380,7 @@ public final class A2aDiscoveryFactory
             replyMax = window.maximum();
             replyBud = window.budgetId();
             replyPad = window.padding();
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
 
             if (replyBuffer != null)
             {
@@ -392,7 +391,7 @@ public final class A2aDiscoveryFactory
         private void onAppReset(
             ResetFW reset)
         {
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             cleanup();
         }
 
@@ -403,7 +402,7 @@ public final class A2aDiscoveryFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                doReply(traceId, authorization, response, true);
+                doReply(traceId, authorization, response);
             }
         }
 
@@ -420,13 +419,11 @@ public final class A2aDiscoveryFactory
         private void doReply(
             long traceId,
             long authorization,
-            byte[] response,
-            boolean message)
+            byte[] response)
         {
             replyBuffer = new UnsafeBufferEx(response);
             replyLimit = response.length;
             replyDelivered = 0;
-            replyMessage = message;
 
             if (A2aState.replyOpened(state))
             {
@@ -445,7 +442,7 @@ public final class A2aDiscoveryFactory
             {
                 final int reserved = length + replyPad;
                 final int flags = (replyDelivered == 0 ? INIT : 0) | (replyDelivered + length == replyLimit ? FIN : 0);
-                final Flyweight extension = replyDelivered == 0 && replyMessage
+                final Flyweight extension = replyDelivered == 0 && kind != KIND_AGENT_CARD
                     ? a2aDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(a2aTypeId)
                         .message(m -> m.contextId((String) null))
@@ -492,7 +489,7 @@ public final class A2aDiscoveryFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -520,7 +517,7 @@ public final class A2aDiscoveryFactory
 
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
             }

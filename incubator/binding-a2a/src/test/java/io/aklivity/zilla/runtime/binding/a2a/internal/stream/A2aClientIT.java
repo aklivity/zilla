@@ -144,6 +144,16 @@ public class A2aClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/stream.message.parse.error/client",
+        "${net}/discover.stream.message.parse.error/server"})
+    public void shouldStreamMessageParseError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/stream.message.client.aborted/client",
         "${net}/discover.stream.message.client.aborted/server"})
     public void shouldStreamMessageClientAborted() throws Exception
