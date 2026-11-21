@@ -114,4 +114,54 @@ public class ClientDescribeIT
         k3po.notifyBarrier("CHANGE_TOPIC_CONFIG");
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.config.info.concurrent/client",
+        "${net}/topic.config.info.responses.coalesced/server"})
+    public void shouldReceiveTopicConfigInfoResponsesCoalesced() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.config.info.concurrent/client",
+        "${net}/topic.config.info.response.boundary/server"})
+    public void shouldReceiveTopicConfigInfoResponseBoundary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.config.info.concurrent/client",
+        "${net}/topic.config.info.response.header.split/server"})
+    public void shouldReceiveTopicConfigInfoResponseHeaderSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.config.info.failed/client",
+        "${net}/topic.config.info.response.malformed/server"})
+    public void shouldAbortWhenResponseMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/topic.config.info/client",
+        "${net}/topic.config.info.response.unexpected/server"})
+    public void shouldAbortWhenResponseUnexpected() throws Exception
+    {
+        k3po.finish();
+    }
 }

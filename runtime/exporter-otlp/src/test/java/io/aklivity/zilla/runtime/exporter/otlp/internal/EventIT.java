@@ -15,14 +15,8 @@
 package io.aklivity.zilla.runtime.exporter.otlp.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CLOCK_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,23 +28,27 @@ import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class EventIT
 {
     private static final String ENGINE_DIRECTORY = "target/zilla-itests";
+    private static final long EXPORT_INTERVAL_MILLIS = 1000L;
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("otlp", "io/aklivity/zilla/specs/exporter/otlp/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/exporter/otlp/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(2547527985000L);
+
     private final EngineRule engine = new EngineRule()
         .directory(ENGINE_DIRECTORY)
         .configure(ENGINE_WORKERS, 1)
-        .configure(ENGINE_CLOCK_NAME,
-            "io.aklivity.zilla.runtime.exporter.otlp.internal.EventIT::supplyClock")
+        .clock(clock)
         .configurationRoot("io/aklivity/zilla/specs/exporter/otlp/config")
         .external("app0")
         .clean();
@@ -61,93 +59,64 @@ public class EventIT
     @Test
     @Configuration("event.yaml")
     @Specification({
-        "${net}/handshake/client",
+        "${otlp}/handshake/client",
         "${net}/handshake/server",
         "${app}/event/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
     public void shouldPostEventLogToOtlpCollector() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("NETWORK_CONNECTED");
+        clock.advanceBy(EXPORT_INTERVAL_MILLIS);
         k3po.finish();
     }
 
     @Test
     @Configuration("event.with.quoted.message.yaml")
     @Specification({
-        "${net}/handshake/client",
+        "${otlp}/handshake/client",
         "${net}/handshake/server",
         "${app}/event.with.quoted.message/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
     public void shouldPostEventLogWithQuotedMessageToOtlpCollector() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("NETWORK_CONNECTED");
+        clock.advanceBy(EXPORT_INTERVAL_MILLIS);
         k3po.finish();
     }
 
     @Test
     @Configuration("secure/zilla.yaml")
     @Specification({
-        "${net}/handshake/client",
+        "${otlp}/handshake/client",
         "${net}/handshake/server",
         "${app}/event.with.authorization/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
     public void shouldPostEventLogWithAuthorization() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("NETWORK_CONNECTED");
+        clock.advanceBy(EXPORT_INTERVAL_MILLIS);
         k3po.finish();
     }
 
     @Test
     @Configuration("secure/mtls/zilla.yaml")
     @Specification({
-        "${net}/handshake/client",
+        "${otlp}/handshake/client",
         "${net}/handshake/server",
         "${app}/event.with.mtls.authorization/server"
     })
     @ScriptProperty("serverAddress \"zilla://streams/app0\"")
     public void shouldPostEventLogWithMtls() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("NETWORK_CONNECTED");
+        clock.advanceBy(EXPORT_INTERVAL_MILLIS);
         k3po.finish();
-    }
-
-    public static Clock supplyClock()
-    {
-        AtomicInteger iteration = new AtomicInteger(0);
-
-        return new Clock()
-        {
-            @Override
-            public ZoneId getZone()
-            {
-                return null;
-            }
-
-            @Override
-            public Clock withZone(
-                ZoneId zone)
-            {
-                return null;
-            }
-
-            @Override
-            public Instant instant()
-            {
-                return null;
-            }
-
-            @Override
-            public long millis()
-            {
-                try
-                {
-                    Thread.sleep(1000);
-                }
-                catch (InterruptedException e)
-                {
-                    throw new RuntimeException(e);
-                }
-                return 2547527985000L + iteration.getAndIncrement() * 1000L;
-            }
-        };
     }
 }

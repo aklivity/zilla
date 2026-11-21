@@ -73,8 +73,10 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .build()}
 
 read "test"
+read notify MESSAGE_TWO_RECEIVED
 
 read closed
+read notify PUBLISH_TIMED_OUT
 
 accepted
 

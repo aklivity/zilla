@@ -6467,7 +6467,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 System.out.printf("%s:%s %s: Skipping invalid response on method %s, path %s\n",
                     System.currentTimeMillis(), context.supplyNamespace(routedId),
-                    context.supplyLocalName(routedId), requestType.method, requestType.path);
+                    context.supplyLocalName(routedId),
+                    requestType != null ? requestType.method : null,
+                    requestType != null ? requestType.path : null);
             }
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS, HEADERS_502);

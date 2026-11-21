@@ -19,8 +19,8 @@ import static io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout.bu
 import static io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout.budgetRemainingOffset;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout.budgetWatchersOffset;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.budgetMask;
-import static java.lang.System.currentTimeMillis;
 
+import java.time.Clock;
 import java.util.function.LongSupplier;
 
 import org.agrona.collections.Hashing;
@@ -47,6 +47,7 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
     private final LongSupplier supplyBudgetId;
     private final LongObjectBiConsumer<Runnable> executor;
     private final long childCleanupLinger;
+    private final Clock clock;
     private final Long2LongHashMap budgetIndexById;
     private final Long2LongHashMap parentBudgetIds;
 
@@ -55,7 +56,7 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
         BudgetsLayout layout,
         BudgetFlusher flusher)
     {
-        this(ownerIndex, layout, flusher, null, null, 0L);
+        this(ownerIndex, layout, flusher, null, null, 0L, Clock.systemUTC());
     }
 
     public DefaultBudgetCreditor(
@@ -64,7 +65,8 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
         BudgetFlusher flusher,
         LongSupplier supplyBudgetId,
         LongObjectBiConsumer<Runnable> executor,
-        long childCleanupLinger)
+        long childCleanupLinger,
+        Clock clock)
     {
         this.budgetMask = budgetMask(ownerIndex);
         this.layout = layout;
@@ -74,6 +76,7 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
         this.supplyBudgetId = supplyBudgetId;
         this.executor = executor;
         this.childCleanupLinger = childCleanupLinger;
+        this.clock = clock;
         this.budgetIndexById = new Long2LongHashMap(NO_CREDITOR_INDEX);
         this.parentBudgetIds = new Long2LongHashMap(NO_BUDGET_ID);
     }
@@ -225,7 +228,7 @@ public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
             System.out.format("[%d] cleanupChild childBudgetId=%d budgetParentChildRelation=%s \n",
                 System.nanoTime(), budgetId, parentBudgetIds.toString());
         }
-        executor.accept(currentTimeMillis() + childCleanupLinger, () -> parentBudgetIds.remove(budgetId));
+        executor.accept(clock.millis() + childCleanupLinger, () -> parentBudgetIds.remove(budgetId));
     }
 
     long available(

@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.io.Closeable;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -41,6 +42,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     private final McpProxyCacheHydrater hydrater;
     private final McpProxyCache cache;
     private final Signaler signaler;
+    private final Clock clock;
     private final long[] hydrateBackoffMs;
     private final long[] hydrateRetryIds;
     private final Closeable[] watchHandles;
@@ -55,11 +57,13 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     McpProxyCacheManager(
         McpProxyCacheHydrater hydrater,
         McpProxyCache cache,
-        Signaler signaler)
+        Signaler signaler,
+        Clock clock)
     {
         this.hydrater = hydrater;
         this.cache = cache;
         this.signaler = signaler;
+        this.clock = clock;
         this.hydrateBackoffMs = new long[KIND_SLOTS];
         this.hydrateRetryIds = new long[KIND_SLOTS];
         this.watchHandles = new Closeable[KIND_SLOTS];
@@ -212,7 +216,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
             return;
         }
         refreshId = signaler.signalAt(
-            Instant.now().plus(cache.cacheTtl), 0, this::onRefreshed);
+            clock.instant().plus(cache.cacheTtl), 0, this::onRefreshed);
     }
 
     private void scheduleLifecycleRenew()
@@ -223,7 +227,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         cancelLifecycleRenew();
         renewId = signaler.signalAt(
-            Instant.now().plusMillis(cache.renewTtl.toMillis()), 0, this::onLifecycleRenew);
+            clock.instant().plusMillis(cache.renewTtl.toMillis()), 0, this::onLifecycleRenew);
     }
 
     private void onLifecycleRenew(
@@ -281,7 +285,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
-        final Instant retryAt = Instant.now().plusMillis(delay);
+        final Instant retryAt = clock.instant().plusMillis(delay);
         hydrateRetryIds[kind] = signaler.signalAt(retryAt, kind, this::onHydrateRetry);
         return retryAt.toEpochMilli();
     }
@@ -317,7 +321,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         sessionBackoffMs = delay;
         reconnectId = signaler.signalAt(
-            Instant.now().plusMillis(delay), 0, this::onReconnected);
+            clock.instant().plusMillis(delay), 0, this::onReconnected);
     }
 
     private void onReconnected(
@@ -373,19 +377,22 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     {
         private final McpProxyCacheHydrater hydrater;
         private final Signaler signaler;
+        private final Clock clock;
 
         public Factory(
             McpProxyCacheHydrater hydrater,
-            Signaler signaler)
+            Signaler signaler,
+            Clock clock)
         {
             this.hydrater = hydrater;
             this.signaler = signaler;
+            this.clock = clock;
         }
 
         public McpProxyCacheManager create(
             McpProxyCache cache)
         {
-            return new McpProxyCacheManager(hydrater, cache, signaler);
+            return new McpProxyCacheManager(hydrater, cache, signaler, clock);
         }
     }
 }

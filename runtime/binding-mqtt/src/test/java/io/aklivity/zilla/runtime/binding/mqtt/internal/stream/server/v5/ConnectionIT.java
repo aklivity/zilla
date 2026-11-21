@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationT
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_QOS_MAX_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -33,6 +34,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.TestClock;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -44,11 +46,15 @@ public class ConnectionIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final TestClock clock = TestClock.of(1000L);
+
     private final EngineRule engine = new EngineRule()
+        .clock(clock)
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
+        .configure(ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, "1")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config")
         .external("app0")
         .clean();
@@ -306,6 +312,22 @@ public class ConnectionIT
     @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
     public void shouldDisconnectClientAfterKeepAliveTimeout() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        clock.advanceBy(1500L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.credentials.username.expiring.yaml")
+    @Specification({
+        "${net}/disconnect.after.guard.session.expired/client",
+        "${app}/session.connect.authorization/server"})
+    public void shouldDisconnectClientAfterGuardSessionExpired() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        clock.advanceBy(1000L);
         k3po.finish();
     }
 
@@ -316,6 +338,9 @@ public class ConnectionIT
     @Configure(name = CONNECT_TIMEOUT_NAME, value = "1")
     public void shouldTimeoutBeforeConnect() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        clock.advanceBy(1000L);
         k3po.finish();
     }
 
@@ -477,7 +502,8 @@ public class ConnectionIT
     public void shouldConnectWithServerDefinedKeepAlive() throws Exception
     {
         k3po.start();
-        Thread.sleep(2000);
+        k3po.awaitBarrier("CONNECTED");
+        clock.advanceBy(2000L);
         k3po.notifyBarrier("WAIT_2_SECONDS");
         k3po.finish();
     }
@@ -848,6 +874,9 @@ public class ConnectionIT
         "${app}/session.keep.alive.timeout.before.connack/server"})
     public void shouldCloseWithoutConnackAfterKeepAliveTimeoutBeforeConnack() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("SESSION_OPENED");
+        clock.advanceBy(1500L);
         k3po.finish();
     }
 

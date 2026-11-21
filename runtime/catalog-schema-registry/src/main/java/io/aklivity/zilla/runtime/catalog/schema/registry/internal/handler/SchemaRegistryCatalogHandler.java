@@ -24,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -80,6 +81,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
     private final Int2ObjectCache<String> schemas;
     private final Int2ObjectCache<CachedSchemaId> schemaIds;
     private final long maxAgeMillis;
+    private final Clock clock;
     private final SchemaRegistryEventContext event;
     private final long catalogId;
     private final ConcurrentMap<Integer, CompletableFuture<CachedSchema>> cachedSchemas;
@@ -140,6 +142,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         this.schemaIds = new Int2ObjectCache<>(1, 1024, i -> {});
         this.maxAgeMillis = options.maxAge.toMillis();
         this.event = catalog.events;
+        this.clock = context.clock();
         this.catalogId = catalog.id;
         this.cachedSchemas = catalog.cache.schemas;
         this.cachedSchemaIds = catalog.cache.schemaIds;
@@ -263,7 +266,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
         int schemaId = NO_SCHEMA_ID;
 
         int schemaKey = generateCRC32C(subject, version);
-        if (schemaIds.containsKey(schemaKey) && !schemaIds.get(schemaKey).expired(maxAgeMillis))
+        if (schemaIds.containsKey(schemaKey) && !schemaIds.get(schemaKey).expired(clock.millis(), maxAgeMillis))
         {
             schemaId = schemaIds.get(schemaKey).id;
         }
@@ -290,8 +293,9 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                 }
             }
             CompletableFuture<CachedSchemaId> future = cachedSchemaIds.merge(schemaKey, newFuture, (v1, v2) ->
-                v1.getNow(IN_PROGRESS).retry() &&
-                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis)) ? v2 : v1);
+                v1.getNow(IN_PROGRESS).retry(clock.millis()) &&
+                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID ||
+                        v1.getNow(IN_PROGRESS).expired(clock.millis(), maxAgeMillis)) ? v2 : v1);
             if (future == newFuture)
             {
                 try
@@ -321,7 +325,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                         }
                         else
                         {
-                            newFuture.complete(new CachedSchemaId(System.currentTimeMillis(), NO_SCHEMA_ID,
+                            newFuture.complete(new CachedSchemaId(clock.millis(), NO_SCHEMA_ID,
                                 retryAttempts, retryAfter));
                         }
                     }
@@ -331,7 +335,7 @@ public class SchemaRegistryCatalogHandler implements CatalogHandler
                         {
                             event.onRetrievableSchemaSubjectVersion(catalogId, subject, version);
                         }
-                        newFuture.complete(new CachedSchemaId(System.currentTimeMillis(),
+                        newFuture.complete(new CachedSchemaId(clock.millis(),
                             registerRequest.resolveResponse(response), retryAttempts, retryAfter));
                     }
                 }

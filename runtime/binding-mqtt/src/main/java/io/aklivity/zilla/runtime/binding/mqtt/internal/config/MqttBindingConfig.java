@@ -41,7 +41,6 @@ import io.aklivity.zilla.config.binding.mqtt.MqttVersion;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -123,10 +122,15 @@ public final class MqttBindingConfig
         long authorization,
         String clientId)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSession(clientId))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesSession(clientId) ? route : null;
+        }
+
+        return resolved;
     }
 
     public MqttRouteConfig resolveSubscribe(
@@ -134,19 +138,22 @@ public final class MqttBindingConfig
         String shareName,
         String topic)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesSubscribe(authorization, shareName, topic))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesSubscribe(authorization, shareName, topic) ? route : null;
+        }
+
+        return resolved;
     }
 
     public int resolveSubscribeReasonCode(
         long authorization,
-        String topicFilter)
+        String shareName,
+        String topic)
     {
-        final String shareName = MqttValidator.shareName(topicFilter);
-        final String topic = shareName != null ? MqttValidator.sharePattern(topicFilter) : topicFilter;
-
         return resolveSubscribe(authorization, shareName, topic) != null ? SUCCESS : UNSPECIFIED_ERROR;
     }
 
@@ -154,10 +161,15 @@ public final class MqttBindingConfig
         long authorization,
         String topic)
     {
-        return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matchesPublish(authorization, topic))
-            .findFirst()
-            .orElse(null);
+        MqttRouteConfig resolved = null;
+
+        for (int index = 0; resolved == null && index < routes.size(); index++)
+        {
+            final MqttRouteConfig route = routes.get(index);
+            resolved = route.authorized(authorization) && route.matchesPublish(authorization, topic) ? route : null;
+        }
+
+        return resolved;
     }
 
     public ModelConfig supplyModelConfig(
@@ -178,6 +190,11 @@ public final class MqttBindingConfig
             }
         }
         return config;
+    }
+
+    public boolean hasTopicModels()
+    {
+        return !topics.isEmpty();
     }
 
     public ModelConfig supplyUserPropertyModelConfig(

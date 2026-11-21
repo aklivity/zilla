@@ -25,8 +25,8 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.time.Instant.now;
 
+import java.time.Clock;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -145,6 +145,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final MutableDirectBufferEx metadataBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
+    private final Clock clock;
     private final BindingHandler streamFactory;
     private final LongFunction<CatalogHandler> supplyCatalog;
     private final LongUnaryOperator supplyInitialId;
@@ -255,6 +256,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.streamFactory = context.streamFactory();
         this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;
@@ -525,7 +527,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long grpcTimeout = method.grpcTimeout;
             if (grpcTimeout > 0L)
             {
-                expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout,
+                expiringId = signaler.signalAt(clock.millis() + grpcTimeout,
                         originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
             }
         }

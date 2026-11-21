@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.StringReader;
 import java.lang.reflect.Field;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.LongFunction;
@@ -44,6 +45,7 @@ public class OtlpMetricsSerializerTest
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(
             List.of(),
             List.of(),
+            Clock.systemUTC(),
             name -> null);
 
         Field descriptorField = OtlpMetricsSerializer.class.getDeclaredField("descriptor");
@@ -61,6 +63,7 @@ public class OtlpMetricsSerializerTest
         OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(
             List.of(),
             List.of(),
+            Clock.systemUTC(),
             name -> null);
 
         Field descriptorField = OtlpMetricsSerializer.class.getDeclaredField("descriptor");
@@ -85,7 +88,8 @@ public class OtlpMetricsSerializerTest
         when(metric.kind()).thenReturn(Metric.Kind.HISTOGRAM);
         when(metric.unit()).thenReturn(Metric.Unit.NANOSECONDS);
         when(metric.description()).thenReturn("duration");
-        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(List.of(record), List.of(), name -> metric);
+        OtlpMetricsSerializer serializer = new OtlpMetricsSerializer(
+            List.of(record), List.of(), Clock.systemUTC(), name -> metric);
 
         JsonObject point = Json.createReader(new StringReader(serializer.serializeAll())).readObject()
             .getJsonArray("resourceMetrics").getJsonObject(0)

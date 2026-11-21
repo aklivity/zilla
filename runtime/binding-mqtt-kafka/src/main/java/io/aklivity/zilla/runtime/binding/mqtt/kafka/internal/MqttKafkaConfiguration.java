@@ -14,13 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal;
 
-import static java.time.Instant.now;
-
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.UUID;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -36,7 +33,6 @@ public class MqttKafkaConfiguration extends Configuration
     public static final PropertyDef<StringSupplier> WILL_ID;
     public static final PropertyDef<StringSupplier> LIFETIME_ID;
     public static final PropertyDef<StringSupplier> INSTANCE_ID;
-    public static final PropertyDef<LongSupplier> TIME;
     public static final BooleanPropertyDef WILL_AVAILABLE;
     public static final IntPropertyDef WILL_STREAM_RECONNECT_DELAY;
     public static final BooleanPropertyDef BOOTSTRAP_AVAILABLE;
@@ -56,8 +52,6 @@ public class MqttKafkaConfiguration extends Configuration
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultLifetimeId);
         INSTANCE_ID = config.property(StringSupplier.class, "instance.id",
             MqttKafkaConfiguration::decodeStringSupplier, MqttKafkaConfiguration::defaultInstanceId);
-        TIME = config.property(LongSupplier.class, "time",
-            MqttKafkaConfiguration::decodeLongSupplier, MqttKafkaConfiguration::defaultTime);
         WILL_AVAILABLE = config.property("will.available", true);
         WILL_STREAM_RECONNECT_DELAY = config.property("will.stream.reconnect", 2);
         BOOTSTRAP_AVAILABLE = config.property("bootstrap.available", true);
@@ -97,11 +91,6 @@ public class MqttKafkaConfiguration extends Configuration
     public Supplier<String> instanceId()
     {
         return INSTANCE_ID.get(this);
-    }
-
-    public LongSupplier time()
-    {
-        return TIME.get(this);
     }
 
     public boolean willAvailable()
@@ -180,41 +169,6 @@ public class MqttKafkaConfiguration extends Configuration
         return supplier;
     }
 
-    private static LongSupplier decodeLongSupplier(
-        String fullyQualifiedMethodName)
-    {
-        LongSupplier supplier = null;
-
-        try
-        {
-            MethodType signature = MethodType.methodType(long.class);
-            String[] parts = fullyQualifiedMethodName.split("::");
-            Class<?> ownerClass = Class.forName(parts[0]);
-            String methodName = parts[1];
-            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            supplier = () ->
-            {
-                long value = 0;
-                try
-                {
-                    value = (long) method.invoke();
-                }
-                catch (Throwable ex)
-                {
-                    LangUtil.rethrowUnchecked(ex);
-                }
-
-                return value;
-            };
-        }
-        catch (Throwable ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return supplier;
-    }
-
     private static String defaultInstanceId()
     {
         return String.format("%s-%s", "zilla", UUID.randomUUID());
@@ -233,10 +187,5 @@ public class MqttKafkaConfiguration extends Configuration
     private static String defaultLifetimeId()
     {
         return String.format("%s", UUID.randomUUID());
-    }
-
-    private static long defaultTime()
-    {
-        return now().toEpochMilli();
     }
 }

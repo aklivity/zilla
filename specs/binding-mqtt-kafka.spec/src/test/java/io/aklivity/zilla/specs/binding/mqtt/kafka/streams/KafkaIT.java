@@ -1129,6 +1129,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.complete.after.acknowledge/client",
+        "${kafka}/publish.qos2.complete.after.acknowledge/server"})
+    public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStart() throws Exception
@@ -1654,6 +1663,15 @@ public class KafkaIT
         "${kafka}/subscribe.shared.expire.message/client",
         "${kafka}/subscribe.shared.expire.message/server"})
     public void shouldSubscribeSharedExpireMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.shared.message.expiry.interval.reduced/client",
+        "${kafka}/subscribe.shared.message.expiry.interval.reduced/server"})
+    public void shouldSubscribeSharedMessageExpiryIntervalReduced() throws Exception
     {
         k3po.finish();
     }

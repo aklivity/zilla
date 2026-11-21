@@ -277,9 +277,13 @@ public final class HttpPath implements Path
                 HttpResponse<byte[]> response = client.send(request, BodyHandlers.ofByteArray());
                 success(response);
             }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+            }
             catch (Exception ex)
             {
-                failure(ex);
+                // a failed request is not a deletion, keep the last known body and etag
             }
         }
 
@@ -319,15 +323,6 @@ public final class HttpPath implements Path
         case HTTP_NOT_MODIFIED:
             break;
         }
-    }
-
-    Void failure(
-        Throwable ex)
-    {
-        body = HttpPath.EMPTY_BODY;
-        etag = null;
-        changeCount++;
-        return null;
     }
 
     int changeCount()

@@ -113,6 +113,7 @@ public final class Engine implements Collector, AutoCloseable
     private final EngineBoss boss;
     private final boolean readonly;
     private final EngineConfiguration config;
+    private final Clock clock;
     private final EngineManager manager;
     private final EngineDiagnosticsTask diagnostics;
     private final RouterConfig routerConfig;
@@ -141,6 +142,7 @@ public final class Engine implements Collector, AutoCloseable
         boolean readonly)
     {
         this.config = config;
+        this.clock = config.clock();
         this.nextTaskId = new AtomicInteger();
         this.factory = Executors.defaultThreadFactory();
 
@@ -490,7 +492,7 @@ public final class Engine implements Collector, AutoCloseable
 
     public Clock clock()
     {
-        return config.clock();
+        return clock;
     }
 
     public RouterConfig routerConfig()

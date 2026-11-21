@@ -18,11 +18,13 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
@@ -47,6 +49,10 @@ public class MqttKafkaHeaderHelper
 
     private static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
 
+    private static final String FORMAT_BINARY = "BINARY";
+    private static final String FORMAT_TEXT = "TEXT";
+    private static final String FORMAT_NONE = "NONE";
+
     public final OctetsFW kafkaFilterHeaderName;
     public final OctetsFW kafkaReplyFilterHeaderName;
     public final OctetsFW kafkaLocalHeaderName;
@@ -58,6 +64,9 @@ public class MqttKafkaHeaderHelper
     public final OctetsFW kafkaReplyToHeaderName;
     public final OctetsFW kafkaReplyKeyHeaderName;
     public final OctetsFW kafkaCorrelationHeaderName;
+    private final OctetsFW formatBinary;
+    private final OctetsFW formatText;
+    private final OctetsFW formatNone;
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     public final OctetsFW contentTypeRO = new OctetsFW();
     public final OctetsFW replyToRO = new OctetsFW();
@@ -65,13 +74,14 @@ public class MqttKafkaHeaderHelper
 
     public int timeout;
     public OctetsFW contentType;
-    public String format;
-    public String qos;
+    public MqttPayloadFormat format;
+    public int qos;
     public boolean retained;
     public OctetsFW replyTo;
     public OctetsFW replyKey;
     public OctetsFW correlation;
-    public IntArrayList userPropertiesOffsets;
+    public final IntArrayList userPropertiesOffsets = new IntArrayList();
+    private final Predicate<KafkaHeaderFW> dispatcher = this::dispatch;
 
     public MqttKafkaHeaderHelper()
     {
@@ -86,6 +96,9 @@ public class MqttKafkaHeaderHelper
         kafkaReplyToHeaderName = stringToOctets(KAFKA_REPLY_TO_HEADER_NAME);
         kafkaReplyKeyHeaderName = stringToOctets(KAFKA_REPLY_KEY_HEADER_NAME);
         kafkaCorrelationHeaderName = stringToOctets(KAFKA_CORRELATION_ID_HEADER_NAME);
+        formatBinary = stringToOctets(FORMAT_BINARY);
+        formatText = stringToOctets(FORMAT_TEXT);
+        formatNone = stringToOctets(FORMAT_NONE);
 
         visitors = new HashMap<>();
         visitors.put(kafkaFilterHeaderName, this::skip);
@@ -116,12 +129,12 @@ public class MqttKafkaHeaderHelper
         this.replyTo = null;
         this.replyKey = null;
         this.correlation = null;
-        this.qos = null;
+        this.qos = -1;
         this.retained = false;
-        this.userPropertiesOffsets = new IntArrayList();
+        this.userPropertiesOffsets.clear();
         if (headers != null)
         {
-            headers.matchFirst(this::dispatch);
+            headers.matchFirst(dispatcher);
         }
     }
 
@@ -142,7 +155,7 @@ public class MqttKafkaHeaderHelper
             format != null &&
             replyTo != null &&
             correlation != null &&
-            qos != null;
+            qos != -1;
     }
 
     private void skip(
@@ -159,13 +172,15 @@ public class MqttKafkaHeaderHelper
     private void visitFormat(
         OctetsFW value)
     {
-        format = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        format = value.equals(formatText) ? MqttPayloadFormat.TEXT :
+            value.equals(formatBinary) ? MqttPayloadFormat.BINARY :
+            value.equals(formatNone) ? MqttPayloadFormat.NONE : null;
     }
 
     private void visitQos(
         OctetsFW value)
     {
-        qos = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        qos = value.get((b, o, m) -> m - o == 1 && b.getByte(o) >= '0' && b.getByte(o) <= '2' ? b.getByte(o) - '0' : -1);
     }
 
     private void visitRetain(

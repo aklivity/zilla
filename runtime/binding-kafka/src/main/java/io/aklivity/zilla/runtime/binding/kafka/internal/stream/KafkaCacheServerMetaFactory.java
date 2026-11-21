@@ -16,9 +16,9 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
-import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -96,6 +96,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -122,6 +123,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -648,7 +650,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }
@@ -783,7 +785,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }
@@ -820,7 +822,7 @@ public final class KafkaCacheServerMetaFactory implements BindingHandler
                 }
 
                 this.reconnectAt = signaler.signalAt(
-                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        clock.millis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
                         SIGNAL_RECONNECT,
                         this::onMetaFanoutSignal);
             }

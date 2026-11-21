@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -137,6 +138,7 @@ public final class KafkaCachePartition
     private final MutableDirectBufferEx diffBuffer = new ExpandableArrayBufferEx();
     private final ExpandableDirectBufferOutputStream diffOut = new ExpandableDirectBufferOutputStream();
 
+    private final Clock clock;
     private final Path location;
     private final KafkaCacheTopicConfig config;
     private final String cache;
@@ -155,6 +157,7 @@ public final class KafkaCachePartition
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
 
     public KafkaCachePartition(
+        Clock clock,
         Path location,
         KafkaCacheTopicConfig config,
         String cache,
@@ -163,6 +166,7 @@ public final class KafkaCachePartition
         int appendCapacity,
         IntFunction<long[]> sortSpaceRef)
     {
+        this.clock = clock;
         this.location = createDirectories(location.resolve(String.format(FORMAT_FETCH_PARTITION_DIRECTORY, topic, id)));
         this.config = config;
         this.cache = cache;
@@ -177,6 +181,7 @@ public final class KafkaCachePartition
     }
 
     public KafkaCachePartition(
+        Clock clock,
         Path location,
         KafkaCacheTopicConfig config,
         String cache,
@@ -188,6 +193,7 @@ public final class KafkaCachePartition
         final Path directory = location.resolve(staging);
         IoUtil.delete(directory.toFile(), true);
 
+        this.clock = clock;
         this.location = createDirectories(directory);
         this.config = config;
         this.cache = cache;
@@ -202,6 +208,7 @@ public final class KafkaCachePartition
     }
 
     public KafkaCachePartition(
+        Clock clock,
         Path location,
         KafkaCacheTopicConfig config,
         String cache,
@@ -213,6 +220,7 @@ public final class KafkaCachePartition
         IntFunction<long[]> sortSpaceRef,
         int index)
     {
+        this.clock = clock;
         this.location = createDirectories(location.resolve(String.format(FORMAT_PRODUCE_PARTITION_DIRECTORY, topic, id, index)));
         this.config = config;
         this.cache = cache;
@@ -270,7 +278,7 @@ public final class KafkaCachePartition
 
         final Node head = sentinel.previous;
 
-        KafkaCacheSegment segment = new KafkaCacheSegment(location, config, topic, id, offset, appendBuf, sortSpaceRef);
+        KafkaCacheSegment segment = new KafkaCacheSegment(clock, location, config, topic, id, offset, appendBuf, sortSpaceRef);
         Node node = new Node(segment);
         node.previous = head;
         node.next = sentinel;
@@ -1092,13 +1100,13 @@ public final class KafkaCachePartition
             final double cleanableDirtyRatio = segment.cleanableDirtyRatio();
             if (cleanableDirtyRatio >= config.minCleanableDirtyRatio)
             {
-                final long now = System.currentTimeMillis();
+                final long now = clock.millis();
 
                 cleanableAt = Math.min(dirtySince + config.minCompactionLagMillis, now);
             }
             else if (cleanableDirtyRatio != 0.0 && config.maxCompactionLagMillis != Long.MAX_VALUE)
             {
-                final long now = System.currentTimeMillis();
+                final long now = clock.millis();
 
                 cleanableAt = Math.min(dirtySince + config.maxCompactionLagMillis, now);
             }
@@ -1256,7 +1264,7 @@ public final class KafkaCachePartition
                 // TODO: use temporary files plus move to avoid corrupted log on restart
                 segment.delete();
 
-                final KafkaCacheSegment appender = new KafkaCacheSegment(segment, config, appendBuf, sortSpaceRef);
+                final KafkaCacheSegment appender = new KafkaCacheSegment(clock, segment, config, appendBuf, sortSpaceRef);
                 final KafkaCacheFile logFile = segment.logFile();
                 final KafkaCacheFile deltaFile = segment.deltaFile();
 

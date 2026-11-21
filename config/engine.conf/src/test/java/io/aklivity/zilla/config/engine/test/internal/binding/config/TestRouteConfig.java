@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
@@ -27,6 +28,7 @@ public final class TestRouteConfig
 {
     public final long id;
     public final List<ConditionConfig> when;
+    public final List<GuardedConfig> guarded;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
@@ -35,6 +37,7 @@ public final class TestRouteConfig
     {
         this.id = route.id;
         this.when = route.when;
+        this.guarded = route.guarded;
         this.authorized = route.authorized;
     }
 

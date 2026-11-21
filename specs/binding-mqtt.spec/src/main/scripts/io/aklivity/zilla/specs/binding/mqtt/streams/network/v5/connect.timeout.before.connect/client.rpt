@@ -20,5 +20,6 @@ connect "zilla://streams/net0"
   option zilla:byteorder "network"
 
 connected
+write notify CONNECTED
 
 read closed      

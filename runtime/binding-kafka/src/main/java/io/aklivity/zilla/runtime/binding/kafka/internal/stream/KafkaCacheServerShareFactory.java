@@ -24,9 +24,9 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.lang.System.currentTimeMillis;
 
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -135,6 +135,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
+    private final Clock clock;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -162,6 +163,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
+        this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -251,7 +253,8 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
         final String staging = KafkaShareStaging.directory(context.index(), groupId, topic);
 
         final KafkaShareStaging stagingLog =
-            new KafkaShareStaging(context, cacheTopic.newShareStaging(stagingConfig, staging), routedId, writeBuffer.capacity());
+            new KafkaShareStaging(context, cacheTopic.newShareStaging(clock, stagingConfig, staging), routedId,
+                writeBuffer.capacity());
 
         return new KafkaCacheServerShareFanout(key, routedId, resolvedId, authorization, groupId, topic, filters, stagingLog);
     }
@@ -629,7 +632,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
         private void doShareFanoutDrain(
             long traceId)
         {
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
 
             KafkaShareRecord record = records.peekReady();
             while (record != null)
@@ -702,7 +705,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
             final long traceId = supplyTraceId.getAsLong();
 
             collected.clear();
-            records.collectExpired(currentTimeMillis(), collected);
+            records.collectExpired(clock.millis(), collected);
 
             for (int index = 0; index < collected.size(); index++)
             {
@@ -908,7 +911,7 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
             final int partitionId = acquiredEx.partitionId();
             final int lockTimeoutMillis = acquiredEx.lockTimeoutMillis();
             final Array32FW<KafkaShareAcquiredRangeFW> ranges = acquiredEx.ranges();
-            final long now = currentTimeMillis();
+            final long now = clock.millis();
             final long expiresAt = now + Math.max(lockTimeoutMillis, 0);
             final long deliverBy = expiresAt - (long) lockTimeoutMillis * lockMarginPercent / PERCENT_MAX;
 

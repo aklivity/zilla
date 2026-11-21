@@ -21,8 +21,8 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.time.Instant.now;
 
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.function.LongUnaryOperator;
 
@@ -144,6 +144,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final Signaler signaler;
+    private final Clock clock;
     private final int grpcTypeId;
     private final int kafkaTypeId;
 
@@ -161,6 +162,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
+        this.clock = context.clock();
         this.bindings = new Long2ObjectHashMap<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
@@ -1273,7 +1275,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(producer.result::key)
                         .headers(producer.result::headers)))
@@ -1786,7 +1788,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     .typeId(kafkaTypeId)
                     .merged(m -> m.produce(mp -> mp
                         .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
+                        .timestamp(clock.millis())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
                         .key(delegate.result::key)
                         .headers(delegate.result::headers)))
@@ -2354,7 +2356,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.produce(mp -> mp
-                    .timestamp(now().toEpochMilli())
+                    .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(result::key)
                     .headers(result::headers)))

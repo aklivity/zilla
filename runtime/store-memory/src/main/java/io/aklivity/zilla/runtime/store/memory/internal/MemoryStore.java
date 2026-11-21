@@ -52,7 +52,8 @@ final class MemoryStore implements Store
             this::supplyWatchers,
             this::supplyLocks,
             this::releaseEntries,
-            context::dispatch);
+            context::dispatch,
+            context.clock());
     }
 
     private ConcurrentMap<String, MemoryEntry> acquireEntries(

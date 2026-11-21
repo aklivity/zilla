@@ -348,28 +348,6 @@ public final class HttpWatchService implements WatchService
         private Void failure(
             Throwable ex)
         {
-            int changeCount = path.changeCount();
-            boolean exists = path.exists();
-
-            path.failure(ex);
-
-            if (path.changeCount() != changeCount)
-            {
-                if (exists == path.exists())
-                {
-                    signalEvent(ENTRY_MODIFY);
-                }
-                else if (exists)
-                {
-                    signalEvent(ENTRY_DELETE);
-                }
-                else
-                {
-                    signalEvent(ENTRY_CREATE);
-                }
-            }
-
-            // (back off)?
             watch();
 
             return null;

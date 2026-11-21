@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
@@ -50,8 +51,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCa
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
@@ -73,6 +77,31 @@ import io.aklivity.zilla.runtime.engine.test.RetainedHeapProfiler;
  * Each {@code leave} operation opens one connection, completes its handshake and leaves the connection open,
  * so the connected session stays live.
  * <p>
+ * Each {@code publish} operation sends one PUBLISH at QoS {@code qos}, retained if {@code retain} is set, with a
+ * payload of {@code payload} bytes, on one of the connected sessions, each with its own topic, and completes once
+ * the PUBACK has arrived for QoS 1, or, for QoS 2, once the PUBREC has arrived, the PUBREL has been sent and the
+ * PUBCOMP has arrived. The sessions are connected, and each has published once, before measurement starts. The
+ * application keeps every session open, and acknowledges the messages published on each topic. With MQTT 5 and
+ * {@code properties=all} each message also carries a content type, a response topic, correlation data and a user
+ * property.
+ * <p>
+ * Each {@code subscribe} operation subscribes one of the connected sessions to its own topic filter, waits for the
+ * SUBACK, then unsubscribes and waits for the UNSUBACK, so the session is back where it started for the next
+ * operation. The application echoes the session state it receives and accepts the subscription stream. With
+ * {@code filters=shared} every session subscribes to its own shared subscription, always over MQTT 5.
+ * <p>
+ * Each {@code deliver} operation has the application send one message of {@code payload} bytes on the QoS {@code qos}
+ * subscription of one of the connected sessions, each subscribed to its own topic filter, and completes once the
+ * client has received the PUBLISH and sent the PUBACK for QoS 1, or, for QoS 2, has sent the PUBREC, received the
+ * PUBREL and sent the PUBCOMP. With {@code retain} set the sessions subscribe with retain as published and the
+ * application sends each message flagged as retained, as it does when it replays a retained message, so each
+ * PUBLISH arrives with the retain flag set. Each {@code fanout} operation is the same with every session
+ * subscribed to one topic filter. Each {@code sharedsub} operation delivers to one of the five members of a shared
+ * subscription group in turn, always over MQTT 5.
+ * <p>
+ * The connected sessions that {@code publish}, {@code subscribe}, {@code deliver} and {@code fanout} operate on number
+ * {@code sessions}, or {@code inflight} if that is larger. {@code sharedsub} always has its five members.
+ * <p>
  * Read {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler for the allocation per handshake, and
  * {@code retained.heap.norm} (B/op) from {@link RetainedHeapProfiler} for {@code leave}. {@code leave} does not
  * depend on {@code version} or {@code inflight}, so run it with {@code -p version=5 -p inflight=256}.
@@ -89,7 +118,22 @@ public class MqttServerBM
     private static final int CLIENT_ID_DIGITS = 8;
     private static final int PACKET_SIZE_MAX = 33792;
     private static final int CONNACK_TYPE = 0x20;
+    private static final int PUBACK_TYPE = 0x40;
+    private static final int PUBREC_TYPE = 0x50;
+    private static final int PUBREL_TYPE = 0x62;
+    private static final int PUBCOMP_TYPE = 0x70;
     private static final int CONNECTED = 2_000;
+    private static final int SUBACK_TYPE = 0x90;
+    private static final int PUBLISH_TYPE = 0x30;
+    private static final int RETAIN_BIT = 0x01;
+    private static final int RETAIN_AS_PUBLISHED_OPTION = 0x08;
+    private static final UnsafeBufferEx PUBACK = new UnsafeBufferEx(new byte[] {0x40, 0x02, 0x00, 0x01});
+    private static final UnsafeBufferEx PUBREC = new UnsafeBufferEx(new byte[] {0x50, 0x02, 0x00, 0x01});
+    private static final UnsafeBufferEx PUBCOMP = new UnsafeBufferEx(new byte[] {0x70, 0x02, 0x00, 0x01});
+    private static final int UNSUBACK_TYPE = 0xb0;
+    private static final int GROUP_MEMBERS = 5;
+    private static final int SUBSCRIBE_PACKET = 0x82;
+    private static final int UNSUBSCRIBE_PACKET = 0xa2;
 
     @Benchmark
     public void handshake(
@@ -115,6 +159,41 @@ public class MqttServerBM
         fixture.drain();
     }
 
+    @Benchmark
+    public void publish(
+        Publishing fixture)
+    {
+        fixture.operate();
+    }
+
+    @Benchmark
+    public void subscribe(
+        Subscribing fixture)
+    {
+        fixture.operate();
+    }
+
+    @Benchmark
+    public void deliver(
+        Delivering fixture)
+    {
+        fixture.operate();
+    }
+
+    @Benchmark
+    public void fanout(
+        Fanning fixture)
+    {
+        fixture.operate();
+    }
+
+    @Benchmark
+    public void sharedsub(
+        Sharing fixture)
+    {
+        fixture.operate();
+    }
+
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
@@ -126,15 +205,17 @@ public class MqttServerBM
 
         private final Queue<Handshake> idle = new ArrayDeque<>();
         private final Queue<Handshake> completed = new ArrayDeque<>();
-        private final BooleanSupplier hasCapacity = () -> closeCompleted() < inflight;
+        final BooleanSupplier hasCapacity = () -> closeCompleted() < inflight;
         private final BooleanSupplier drained = () -> closeCompleted() == 0;
 
         private EngineBench bench;
-        private Responder responder;
+        private Responder sessions;
+        private Responder publications;
+        Deliverer deliverer;
         private long netId;
         private byte[] packet;
         private UnsafeBufferEx connect;
-        private int pending;
+        int pending;
         private int sequence;
         private boolean failed;
 
@@ -146,12 +227,15 @@ public class MqttServerBM
                 .external("app0")
                 .start(CONFIGURATION);
 
+            version = effectiveVersion(version);
             packet = connectPacket(version);
             connect = new UnsafeBufferEx(packet);
             netId = bench.bindingId("net0");
 
-            responder = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
-            bench.newServer("app0", responder);
+            sessions = new Responder(Trigger.BEGIN, sessionAccepted(bench.labelId("mqtt")));
+            publications = new Responder(Trigger.BEGIN, null);
+            deliverer = new Deliverer(bench.labelId("mqtt"));
+            bench.newServer("app0", new Application(sessions, publications, deliverer));
 
             prepare();
         }
@@ -164,14 +248,14 @@ public class MqttServerBM
         @TearDown(Level.Trial)
         public void destroy() throws Exception
         {
-            final int sessions = responder.counter().begins();
+            final int begins = sessions.counter().begins();
 
             disconnect();
             bench.close();
 
-            if (sessions == 0 || failed)
+            if (begins == 0 || failed)
             {
-                throw new IllegalStateException("sessions did not reach the application: " + sessions);
+                throw new IllegalStateException("sessions did not reach the application: " + begins);
             }
         }
 
@@ -180,6 +264,12 @@ public class MqttServerBM
 
         void prepare()
         {
+        }
+
+        int effectiveVersion(
+            int configured)
+        {
+            return configured;
         }
 
         void disconnect()
@@ -200,7 +290,7 @@ public class MqttServerBM
             pending++;
         }
 
-        private int closeCompleted()
+        int closeCompleted()
         {
             for (Handshake handshake = completed.poll(); handshake != null; handshake = completed.poll())
             {
@@ -211,15 +301,21 @@ public class MqttServerBM
             return pending;
         }
 
-        private void await(
+        void await(
             BooleanSupplier condition)
         {
             if (!bench.pollUntil(condition) || failed)
             {
                 throw new IllegalStateException("handshake did not complete: pending=" + pending + " failed=" + failed +
                     " started=" + sequence +
-                    " begins=" + responder.counter().begins() + " datas=" + responder.counter().datas() +
-                    " windows=" + responder.counter().windows() + " aborts=" + responder.counter().aborts());
+                    " begins=" + sessions.counter().begins() + " datas=" + sessions.counter().datas() +
+                    " windows=" + sessions.counter().windows() + " aborts=" + sessions.counter().aborts() +
+                    " publishes: begins=" + publications.counter().begins() + " datas=" + publications.counter().datas() +
+                    " aborts=" + publications.counter().aborts() + " resets=" + publications.counter().resets() +
+                    " sessions: ends=" + sessions.counter().ends() + " resets=" + sessions.counter().resets() +
+                    " subscribes: begins=" + deliverer.counter().begins() + " windows=" + deliverer.counter().windows() +
+                    " flushes=" + deliverer.counter().flushes() + " ends=" + deliverer.counter().ends() +
+                    " aborts=" + deliverer.counter().aborts() + " resets=" + deliverer.counter().resets());
             }
         }
 
@@ -238,6 +334,24 @@ public class MqttServerBM
             private final DataFW dataRO = new DataFW();
             private final MessageConsumer awaitWindow = this::onAwaitWindow;
             private final MessageConsumer awaitConnack = this::onAwaitConnack;
+            private final MessageConsumer awaitPuback = this::onAwaitPuback;
+            private final MessageConsumer awaitPubrec = this::onAwaitPubrec;
+            private final MessageConsumer awaitPubcomp = this::onAwaitPubcomp;
+            private final MessageConsumer awaitSuback = this::onAwaitSuback;
+            private final MessageConsumer awaitUnsuback = this::onAwaitUnsuback;
+            private final MessageConsumer awaitSubscribed = this::onAwaitSubscribed;
+            private final MessageConsumer awaitPublish = this::onAwaitPublish;
+            private final MessageConsumer awaitPublishQos2 = this::onAwaitPublishQos2;
+            private final MessageConsumer awaitPubrel = this::onAwaitPubrel;
+
+            int connection = -1;
+            int number;
+            UnsafeBufferEx publication;
+            UnsafeBufferEx release;
+            int deliveryQos = 1;
+            int publishType = PUBLISH_TYPE | 1 << 1;
+            UnsafeBufferEx subscription;
+            UnsafeBufferEx unsubscription;
 
             private Client client;
             private MessageConsumer stage;
@@ -248,6 +362,29 @@ public class MqttServerBM
                 client = bench.newClient(netId, this);
                 client.begin();
                 client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            void publish()
+            {
+                stage = release != null ? awaitPubrec : awaitPuback;
+                client.data(publication, 0, publication.capacity());
+            }
+
+            void subscribe()
+            {
+                stage = awaitSuback;
+                client.data(subscription, 0, subscription.capacity());
+            }
+
+            void subscribeOnly()
+            {
+                stage = awaitSubscribed;
+                client.data(subscription, 0, subscription.capacity());
+            }
+
+            void expectPublish()
+            {
+                stage = deliveryQos == 2 ? awaitPublishQos2 : awaitPublish;
             }
 
             void finish()
@@ -292,6 +429,7 @@ public class MqttServerBM
                 {
                     stage = awaitConnack;
                     nextClientId();
+                    number = sequence;
                     client.data(connect, 0, connect.capacity());
                 }
             }
@@ -309,6 +447,154 @@ public class MqttServerBM
                     if (data.length() > 0)
                     {
                         failed |= (data.payload().buffer().getByte(data.payload().offset()) & 0xff) != CONNACK_TYPE;
+                        stage = MessageConsumer.NOOP;
+                        completed.offer(this);
+                    }
+                }
+            }
+
+            private void onAwaitSuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, SUBACK_TYPE))
+                {
+                    stage = awaitUnsuback;
+                    client.data(unsubscription, 0, unsubscription.capacity());
+                }
+            }
+
+            private void onAwaitUnsuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, UNSUBACK_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitSubscribed(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, SUBACK_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitPublish(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, publishType))
+                {
+                    stage = MessageConsumer.NOOP;
+                    client.data(PUBACK, 0, PUBACK.capacity());
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitPublishQos2(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, publishType))
+                {
+                    stage = awaitPubrel;
+                    client.data(PUBREC, 0, PUBREC.capacity());
+                }
+            }
+
+            private void onAwaitPubrel(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBREL_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    client.data(PUBCOMP, 0, PUBCOMP.capacity());
+                    completed.offer(this);
+                }
+            }
+
+            private boolean arrived(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length,
+                int packetType)
+            {
+                boolean arrived = false;
+
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        failed |= (data.payload().buffer().getByte(data.payload().offset()) & 0xff) != packetType;
+                        arrived = true;
+                    }
+                }
+
+                return arrived;
+            }
+
+            private void onAwaitPubrec(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBREC_TYPE))
+                {
+                    stage = awaitPubcomp;
+                    client.data(release, 0, release.capacity());
+                }
+            }
+
+            private void onAwaitPubcomp(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (arrived(msgTypeId, buffer, index, length, PUBCOMP_TYPE))
+                {
+                    stage = MessageConsumer.NOOP;
+                    completed.offer(this);
+                }
+            }
+
+            private void onAwaitPuback(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        failed |= (data.payload().buffer().getByte(data.payload().offset()) & 0xff) != PUBACK_TYPE;
                         stage = MessageConsumer.NOOP;
                         completed.offer(this);
                     }
@@ -375,6 +661,425 @@ public class MqttServerBM
         }
     }
 
+    @State(Scope.Benchmark)
+    public abstract static class Connected extends Fixture
+    {
+        @Param({"1000", "10000"})
+        public int sessions;
+
+        final Queue<Handshake> ready = new ArrayDeque<>();
+        private final List<Handshake> connected = new ArrayList<>();
+        private final BooleanSupplier readyAvailable = () -> closeCompleted() >= 0 && !ready.isEmpty();
+
+        @Override
+        void prepare()
+        {
+            final int clients = clients();
+
+            for (int client = 0; client < clients; client++)
+            {
+                handshake();
+            }
+
+            drain();
+
+            establish(clients);
+
+            for (int client = 0; client < clients; client++)
+            {
+                operate();
+            }
+
+            drain();
+        }
+
+        int clients()
+        {
+            return Math.max(sessions, inflight);
+        }
+
+        void establish(
+            int clients)
+        {
+        }
+
+        @TearDown(Level.Iteration)
+        public void settle()
+        {
+            drain();
+        }
+
+        void operate()
+        {
+            await(hasCapacity);
+
+            if (ready.isEmpty())
+            {
+                await(readyAvailable);
+            }
+
+            exchange(ready.poll());
+            pending++;
+        }
+
+        abstract void attach(
+            Handshake handshake,
+            int connection);
+
+        abstract void exchange(
+            Handshake handshake);
+
+        @Override
+        void disconnect()
+        {
+            ready.clear();
+            connected.forEach(Handshake::finish);
+            connected.clear();
+        }
+
+        @Override
+        void release(
+            Handshake handshake)
+        {
+            if (handshake.connection == -1)
+            {
+                handshake.connection = connected.size();
+                attach(handshake, handshake.connection);
+                connected.add(handshake);
+            }
+
+            ready.offer(handshake);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Publishing extends Connected
+    {
+        @Param({"16", "1024"})
+        public int payload;
+
+        @Param({"none", "all"})
+        public String properties;
+
+        @Param({"1", "2"})
+        public int qos;
+
+        @Param({"false", "true"})
+        public boolean retain;
+
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            final boolean withProperties = "all".equals(properties);
+            handshake.publication =
+                new UnsafeBufferEx(publishPacket(version, connection, payload, withProperties, qos, retain));
+            handshake.release = qos == 2 ? new UnsafeBufferEx(pubrelPacket(version)) : null;
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.publish();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Subscribing extends Connected
+    {
+        @Param({"plain", "shared"})
+        public String filters;
+
+        @Override
+        int effectiveVersion(
+            int configured)
+        {
+            return "shared".equals(filters) ? 5 : configured;
+        }
+
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            final String filter = "shared".equals(filters) ? "$share/benchmark/device/" + connection : "device/" + connection;
+            handshake.subscription = new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter));
+            handshake.unsubscription = new UnsafeBufferEx(filterPacket(UNSUBSCRIBE_PACKET, version, filter));
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.subscribe();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Fanning extends Delivering
+    {
+        @Override
+        String filter(
+            int connection)
+        {
+            return "device/fanout";
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Sharing extends Delivering
+    {
+        @Override
+        int effectiveVersion(
+            int configured)
+        {
+            return 5;
+        }
+
+        @Override
+        int clients()
+        {
+            return GROUP_MEMBERS;
+        }
+
+        @Override
+        String filter(
+            int connection)
+        {
+            return "$share/benchmark/device/#";
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class Delivering extends Connected
+    {
+        @Param({"16", "1024"})
+        public int payload;
+
+        @Param({"1", "2"})
+        public int qos;
+
+        @Param({"false", "true"})
+        public boolean retain;
+
+        private int awaiting;
+
+        private final BooleanSupplier credited = () -> deliverer.credited(awaiting);
+
+        @Override
+        void establish(
+            int clients)
+        {
+            deliverer.payload(payload);
+            deliverer.qos(qos);
+            deliverer.retain(retain);
+
+            for (int client = 0; client < clients; client++)
+            {
+                await(hasCapacity);
+
+                ready.poll().subscribeOnly();
+                pending++;
+            }
+
+            drain();
+        }
+
+        @Override
+        void attach(
+            Handshake handshake,
+            int connection)
+        {
+            handshake.subscription =
+                new UnsafeBufferEx(filterPacket(SUBSCRIBE_PACKET, version, filter(connection), qos, retain));
+            handshake.deliveryQos = qos;
+            handshake.publishType = PUBLISH_TYPE | qos << 1 | (retain ? RETAIN_BIT : 0);
+        }
+
+        String filter(
+            int connection)
+        {
+            return "device/" + connection;
+        }
+
+        @Override
+        void exchange(
+            Handshake handshake)
+        {
+            handshake.expectPublish();
+
+            awaiting = handshake.number;
+            await(credited);
+            deliverer.deliver(awaiting);
+        }
+    }
+
+    private static final class Application implements BindingHandler
+    {
+        private final BeginFW beginRO = new BeginFW();
+        private final MqttBeginExFW beginExRO = new MqttBeginExFW();
+        private final BindingHandler sessions;
+        private final BindingHandler publications;
+        private final BindingHandler subscriptions;
+
+        private Application(
+            BindingHandler sessions,
+            BindingHandler publications,
+            BindingHandler subscriptions)
+        {
+            this.sessions = sessions;
+            this.publications = publications;
+            this.subscriptions = subscriptions;
+        }
+
+        @Override
+        public MessageConsumer newStream(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length,
+            MessageConsumer sender)
+        {
+            final OctetsFW extension = beginRO.wrap(buffer, index, index + length).extension();
+            final MqttBeginExFW beginEx = beginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+            final int kind = beginEx != null ? beginEx.kind() : MqttBeginExFW.KIND_PUBLISH;
+            final BindingHandler handler =
+                kind == MqttBeginExFW.KIND_SESSION ? sessions :
+                kind == MqttBeginExFW.KIND_SUBSCRIBE ? subscriptions :
+                publications;
+
+            return handler.newStream(msgTypeId, buffer, index, length, sender);
+        }
+    }
+
+    private static byte[] filterPacket(
+        int type,
+        int version,
+        String topicFilter)
+    {
+        return filterPacket(type, version, topicFilter, 1, false);
+    }
+
+    private static byte[] filterPacket(
+        int type,
+        int version,
+        String topicFilter,
+        int qos,
+        boolean retainAsPublished)
+    {
+        final byte[] filter = topicFilter.getBytes(US_ASCII);
+        final int properties = version == 5 ? 1 : 0;
+        final int options = type == SUBSCRIBE_PACKET ? 1 : 0;
+        final int remaining = 2 + properties + 2 + filter.length + options;
+        final byte[] packet = new byte[2 + remaining];
+
+        int offset = 0;
+        packet[offset++] = (byte) type;
+        packet[offset++] = (byte) remaining;
+        packet[offset++] = 0x00;
+        packet[offset++] = 0x01;
+        offset += properties;
+        packet[offset++] = 0x00;
+        packet[offset++] = (byte) filter.length;
+        System.arraycopy(filter, 0, packet, offset, filter.length);
+        offset += filter.length;
+        if (options != 0)
+        {
+            packet[offset] = (byte) (qos | (retainAsPublished ? RETAIN_AS_PUBLISHED_OPTION : 0));
+        }
+
+        return packet;
+    }
+
+    private static byte[] publishProperties(
+        int publisher)
+    {
+        final byte[] contentType = "application/json".getBytes(US_ASCII);
+        final byte[] responseTopic = ("reply/" + publisher).getBytes(US_ASCII);
+        final byte[] userKey = "trace".getBytes(US_ASCII);
+        final byte[] userValue = "abc123".getBytes(US_ASCII);
+        final byte[] properties = new byte[1 + 2 + contentType.length + 1 + 2 + responseTopic.length +
+            1 + 2 + 8 + 1 + 2 + userKey.length + 2 + userValue.length];
+
+        int offset = 0;
+        properties[offset++] = 0x03;
+        offset = putString(properties, offset, contentType);
+        properties[offset++] = 0x08;
+        offset = putString(properties, offset, responseTopic);
+        properties[offset++] = 0x09;
+        offset = putString(properties, offset, new byte[8]);
+        properties[offset++] = 0x26;
+        offset = putString(properties, offset, userKey);
+        putString(properties, offset, userValue);
+
+        return properties;
+    }
+
+    private static int putString(
+        byte[] packet,
+        int offset,
+        byte[] value)
+    {
+        packet[offset++] = (byte) (value.length >> 8);
+        packet[offset++] = (byte) value.length;
+        System.arraycopy(value, 0, packet, offset, value.length);
+
+        return offset + value.length;
+    }
+
+    private static byte[] pubrelPacket(
+        int version)
+    {
+        return version == 5
+            ? new byte[] {0x62, 0x04, 0x00, 0x01, 0x00, 0x00}
+            : new byte[] {0x62, 0x02, 0x00, 0x01};
+    }
+
+    private static byte[] publishPacket(
+        int version,
+        int publisher,
+        int payload,
+        boolean withProperties,
+        int qos,
+        boolean retain)
+    {
+        final byte[] topic = ("device/" + publisher).getBytes(US_ASCII);
+        final byte[] properties = version == 5 && withProperties ? publishProperties(publisher) : new byte[0];
+        final int propertiesLength = version == 5 ? 1 + properties.length : 0;
+        final int remaining = 2 + topic.length + 2 + propertiesLength + payload;
+        final int lengthBytes = remaining < 128 ? 1 : 2;
+        final byte[] packet = new byte[1 + lengthBytes + remaining];
+
+        int offset = 0;
+        packet[offset++] = (byte) (0x30 | qos << 1 | (retain ? 0x01 : 0x00));
+        if (lengthBytes == 1)
+        {
+            packet[offset++] = (byte) remaining;
+        }
+        else
+        {
+            packet[offset++] = (byte) (remaining & 0x7f | 0x80);
+            packet[offset++] = (byte) (remaining >> 7);
+        }
+        packet[offset++] = 0x00;
+        packet[offset++] = (byte) topic.length;
+        System.arraycopy(topic, 0, packet, offset, topic.length);
+        offset += topic.length;
+        packet[offset++] = 0x00;
+        packet[offset++] = 0x01;
+        if (version == 5)
+        {
+            packet[offset++] = (byte) properties.length;
+            System.arraycopy(properties, 0, packet, offset, properties.length);
+            offset += properties.length;
+        }
+        Arrays.fill(packet, offset, packet.length, (byte) 'x');
+
+        return packet;
+    }
+
     private static byte[] connectPacket(
         int version)
     {
@@ -425,7 +1130,7 @@ public class MqttServerBM
         final byte[] encoded = new byte[beginEx.sizeof()];
         buffer.getBytes(0, encoded);
 
-        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, new byte[0], 0);
+        return new Response(encoded, new byte[][] { new byte[0] }, new byte[][] { new byte[0] }, null, 0, true);
     }
 
     public static void main(

@@ -64,6 +64,7 @@ final class SemanticClassifierHandler implements ClassifierHandler
             embedding,
             requireNonNull(context.supplyStore(config.storeId), "store"),
             context.signaler(),
+            context.clock(),
             phrases,
             configuration.lockTtl(),
             configuration.timeout());

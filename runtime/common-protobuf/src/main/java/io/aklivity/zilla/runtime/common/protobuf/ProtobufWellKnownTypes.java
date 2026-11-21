@@ -14,19 +14,22 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * The nine {@code google.protobuf} well-known wrapper message types — {@code StringValue}, {@code BytesValue},
+ * The {@code google.protobuf} well-known types — the nine scalar wrappers ({@code StringValue}, {@code BytesValue},
  * {@code BoolValue}, {@code Int32Value}, {@code UInt32Value}, {@code Int64Value}, {@code UInt64Value},
- * {@code FloatValue}, {@code DoubleValue}. Each has a wire shape fixed by the protobuf spec itself — always
- * exactly one field, number 1 named {@code value}, of a fixed corresponding scalar type — so recognizing one
- * by its fully-qualified name and resolving its shape is a pure lookup, never a schema-import concern; a
- * schema referencing one of these types by name need not declare or import it.
+ * {@code FloatValue}, {@code DoubleValue}) plus {@code Timestamp}, {@code Duration}, {@code Empty},
+ * {@code FieldMask}, {@code Any}, {@code Struct}, {@code Value}, {@code ListValue} and the {@code NullValue}
+ * enum. Each has a wire shape fixed by the protobuf spec itself, so a schema referencing one by name need not
+ * declare it, and importing its {@code google/protobuf/*.proto} file needs no file resolution.
  */
 public final class ProtobufWellKnownTypes
 {
+    private static final String NULL_VALUE = "google.protobuf.NullValue";
+
     private static final Map<String, ProtobufType> VALUE_TYPES = Map.of(
         "google.protobuf.StringValue", ProtobufType.STRING,
         "google.protobuf.BytesValue", ProtobufType.BYTES,
@@ -38,6 +41,17 @@ public final class ProtobufWellKnownTypes
         "google.protobuf.FloatValue", ProtobufType.FLOAT,
         "google.protobuf.DoubleValue", ProtobufType.DOUBLE);
 
+    private static final Set<String> MESSAGE_NAMES = Set.of(
+        "google.protobuf.Timestamp",
+        "google.protobuf.Duration",
+        "google.protobuf.Empty",
+        "google.protobuf.FieldMask",
+        "google.protobuf.Any",
+        "google.protobuf.Struct",
+        "google.protobuf.Struct.FieldsEntry",
+        "google.protobuf.Value",
+        "google.protobuf.ListValue");
+
     /**
      * The fully-qualified names of all nine well-known wrapper types.
      */
@@ -46,6 +60,82 @@ public final class ProtobufWellKnownTypes
         return VALUE_TYPES.keySet();
     }
 
+    /**
+     * Whether {@code typeName} names any well-known message or enum type.
+     */
+    public static boolean defined(
+        String typeName)
+    {
+        return VALUE_TYPES.containsKey(typeName) || MESSAGE_NAMES.contains(typeName) || NULL_VALUE.equals(typeName);
+    }
+
+    /**
+     * Whether {@code typeName} names the well-known {@code NullValue} enum.
+     */
+    public static boolean enumeration(
+        String typeName)
+    {
+        return NULL_VALUE.equals(typeName);
+    }
+
+    /**
+     * The well-known {@code NullValue} enum.
+     */
+    public static ProtobufEnum nullValue()
+    {
+        return ProtobufEnum.builder(NULL_VALUE).value("NULL_VALUE", 0).build();
+    }
+
+    /**
+     * Freshly built descriptors for the well-known messages other than the wrappers; their message and enum
+     * fields are unresolved, so a schema links them like its own declared messages.
+     */
+    public static List<ProtobufMessage> messages()
+    {
+        return List.of(
+            ProtobufMessage.builder("google.protobuf.Timestamp")
+                .field(scalar(1, "seconds", ProtobufType.INT64))
+                .field(scalar(2, "nanos", ProtobufType.INT32))
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Duration")
+                .field(scalar(1, "seconds", ProtobufType.INT64))
+                .field(scalar(2, "nanos", ProtobufType.INT32))
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Empty")
+                .build(),
+            ProtobufMessage.builder("google.protobuf.FieldMask")
+                .field(ProtobufField.builder().number(1).name("paths").type(ProtobufType.STRING).repeated(true).build())
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Any")
+                .field(scalar(1, "type_url", ProtobufType.STRING))
+                .field(scalar(2, "value", ProtobufType.BYTES))
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Struct")
+                .field(ProtobufField.builder().number(1).name("fields").type(ProtobufType.MESSAGE).repeated(true)
+                    .typeName("google.protobuf.Struct.FieldsEntry").build())
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Struct.FieldsEntry")
+                .mapEntry(true)
+                .field(scalar(1, "key", ProtobufType.STRING))
+                .field(ProtobufField.builder().number(2).name("value").type(ProtobufType.MESSAGE)
+                    .typeName("google.protobuf.Value").build())
+                .build(),
+            ProtobufMessage.builder("google.protobuf.Value")
+                .field(ProtobufField.builder().number(1).name("null_value").type(ProtobufType.ENUM)
+                    .typeName(NULL_VALUE).oneof("kind").build())
+                .field(ProtobufField.builder().number(2).name("number_value").type(ProtobufType.DOUBLE).oneof("kind").build())
+                .field(ProtobufField.builder().number(3).name("string_value").type(ProtobufType.STRING).oneof("kind").build())
+                .field(ProtobufField.builder().number(4).name("bool_value").type(ProtobufType.BOOL).oneof("kind").build())
+                .field(ProtobufField.builder().number(5).name("struct_value").type(ProtobufType.MESSAGE)
+                    .typeName("google.protobuf.Struct").oneof("kind").build())
+                .field(ProtobufField.builder().number(6).name("list_value").type(ProtobufType.MESSAGE)
+                    .typeName("google.protobuf.ListValue").oneof("kind").build())
+                .build(),
+            ProtobufMessage.builder("google.protobuf.ListValue")
+                .field(ProtobufField.builder().number(1).name("values").type(ProtobufType.MESSAGE).repeated(true)
+                    .typeName("google.protobuf.Value").build())
+                .build());
+    }
     /**
      * Whether {@code typeName} is one of the nine well-known wrapper type names.
      */
@@ -69,6 +159,14 @@ public final class ProtobufWellKnownTypes
             : ProtobufMessage.builder(typeName)
                 .field(ProtobufField.builder().number(1).name("value").type(valueType).build())
                 .build();
+    }
+
+    private static ProtobufField scalar(
+        int number,
+        String name,
+        ProtobufType type)
+    {
+        return ProtobufField.builder().number(number).name(name).type(type).build();
     }
 
     private ProtobufWellKnownTypes()

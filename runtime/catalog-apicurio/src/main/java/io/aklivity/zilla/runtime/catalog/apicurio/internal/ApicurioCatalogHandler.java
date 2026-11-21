@@ -27,6 +27,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteOrder;
+import java.time.Clock;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,6 +74,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
     private final Int2ObjectCache<String> artifacts;
     private final Int2ObjectCache<CachedArtifactId> artifactIds;
     private final long maxAgeMillis;
+    private final Clock clock;
     private final ApicurioEventContext event;
     private final long catalogId;
     private final String groupId;
@@ -113,6 +115,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         this.encodePadding = BitUtil.SIZE_OF_BYTE + sizeofId;
         this.artifactPath = useId.equals(CONTENT_ID) ?  ARTIFACT_BY_CONTENT_ID_PATH : ARTIFACT_BY_GLOBAL_ID_PATH;
         this.event = new ApicurioEventContext(context);
+        this.clock = context.clock();
         this.catalogId = catalogId;
         this.cachedArtifacts = cache.artifacts;
         this.cachedArtifactIds = cache.artifactIds;
@@ -204,7 +207,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
         int artifactId = NO_SCHEMA_ID;
 
         int artifactKey = generateCRC32C(artifact, version);
-        if (artifactIds.containsKey(artifactKey) && !artifactIds.get(artifactKey).expired(maxAgeMillis))
+        if (artifactIds.containsKey(artifactKey) && !artifactIds.get(artifactKey).expired(clock.millis(), maxAgeMillis))
         {
             artifactId = artifactIds.get(artifactKey).id;
         }
@@ -231,8 +234,9 @@ public class ApicurioCatalogHandler implements CatalogHandler
                 }
             }
             CompletableFuture<CachedArtifactId> future = cachedArtifactIds.merge(artifactKey, newFuture, (v1, v2) ->
-                v1.getNow(IN_PROGRESS).retry() &&
-                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID || v1.getNow(IN_PROGRESS).expired(maxAgeMillis)) ? v2 : v1);
+                v1.getNow(IN_PROGRESS).retry(clock.millis()) &&
+                    (v1.getNow(IN_PROGRESS).id == NO_SCHEMA_ID ||
+                        v1.getNow(IN_PROGRESS).expired(clock.millis(), maxAgeMillis)) ? v2 : v1);
             if (future == newFuture)
             {
                 try
@@ -265,7 +269,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
                         }
                         else
                         {
-                            newFuture.complete(new CachedArtifactId(System.currentTimeMillis(), NO_SCHEMA_ID,
+                            newFuture.complete(new CachedArtifactId(clock.millis(), NO_SCHEMA_ID,
                                 retryAttempts, retryAfter));
                         }
                     }
@@ -275,7 +279,7 @@ public class ApicurioCatalogHandler implements CatalogHandler
                         {
                             event.onRetrievableArtifactSubjectVersion(catalogId, artifact, version);
                         }
-                        newFuture.complete(new CachedArtifactId(System.currentTimeMillis(), resolveId(response),
+                        newFuture.complete(new CachedArtifactId(clock.millis(), resolveId(response),
                             retryAttempts, retryAfter));
                     }
                 }

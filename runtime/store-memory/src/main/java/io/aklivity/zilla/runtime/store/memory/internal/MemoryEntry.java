@@ -18,8 +18,9 @@ record MemoryEntry(
     String value,
     long expiresAt)
 {
-    boolean expired()
+    boolean expired(
+        long now)
     {
-        return System.currentTimeMillis() > expiresAt;
+        return now > expiresAt;
     }
 }

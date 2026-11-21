@@ -208,6 +208,35 @@ public class ClientProduceIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/message.values.request.pending/client",
+        "${net}/message.values.request.pending/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "50")
+    public void shouldSendMessageValuesRequestPending() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECORD_WRITTEN");
+        Thread.sleep(250);
+        k3po.notifyBarrier("REQUEST_ENCODED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/message.value.fragmented.request.pending/client",
+        "${net}/message.value.fragmented.request.pending/server"})
+    public void shouldSendMessageValueFragmentedRequestPending() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FRAGMENTS_WRITTEN");
+        Thread.sleep(250);
+        k3po.notifyBarrier("REQUEST_ENCODED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/message.values.no.producer.id/client",
         "${net}/message.values.no.producer.id/server"})
     @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
