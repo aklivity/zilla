@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class AguiA2aBindingConfig
 {
@@ -27,11 +29,12 @@ public final class AguiA2aBindingConfig
     public final List<AguiA2aRouteConfig> routes;
 
     public AguiA2aBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        LongFunction<GuardHandler> supplyGuard)
     {
         this.id = binding.id;
         this.name = binding.name;
-        this.routes = binding.routes.stream().map(AguiA2aRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new AguiA2aRouteConfig(r, supplyGuard)).collect(toList());
     }
 
     public AguiA2aRouteConfig resolveRoute(
