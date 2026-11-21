@@ -134,6 +134,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.Window
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.StringView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -257,18 +258,19 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private MqttTopicFilterV1FW resolveFilterV1;
     private MqttTopicFilterV2FW resolveFilterV3;
     private String resolveShareName;
+    private final StringView patternView = StringView.of(UTF_8);
     private final Consumer<MqttTopicFilterV1FW.Builder> resolveSubscriptionV1Writer = f -> f
         .subscriptionId(resolveFilterV1.subscriptionId())
         .qos(resolveFilterV1.qos())
         .flags(resolveFilterV1.flags())
-        .reasonCode(resolveSubscribeReasonCode(resolveBinding, resolveAuthorization, resolveFilterV1.pattern().asString()))
+        .reasonCode(resolveSubscribeReasonCode(resolveBinding, resolveAuthorization, patternChars(resolveFilterV1.pattern())))
         .pattern(resolveFilterV1.pattern());
     private final Consumer<MqttTopicFilterV2FW.Builder> resolveSubscriptionV3Writer = f -> f
         .subscriptionId(resolveFilterV3.subscriptionId())
         .qos(grantedQos(resolveFilterV3, resolveShareName))
         .flags(resolveFilterV3.flags())
         .reasonCode(resolveSubscribeReasonCode(resolveBinding, resolveAuthorization,
-            resolveFilterV3.pattern().asString(), resolveShareName))
+            patternChars(resolveFilterV3.pattern()), resolveShareName))
         .pattern(resolveFilterV3.pattern())
         .shareName(resolveFilterV3.shareName());
     private final Consumer<MqttTopicFilterV1FW> resolveFilterV1Item = this::resolveSubscriptionV1;
@@ -552,10 +554,18 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         resolveStateV3.subscriptionsItem(resolveSubscriptionV3Writer);
     }
 
+    private CharSequence patternChars(
+        String16FW pattern)
+    {
+        final DirectBufferEx value = pattern.value();
+
+        return patternView.wrap(value.segment(), value.wrapAdjustment(), value.capacity());
+    }
+
     private int resolveSubscribeReasonCode(
         MqttKafkaBindingConfig binding,
         long authorization,
-        String topic)
+        CharSequence topic)
     {
         return resolveSubscribeReasonCode(binding, authorization, topic, null);
     }
@@ -563,7 +573,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private int resolveSubscribeReasonCode(
         MqttKafkaBindingConfig binding,
         long authorization,
-        String topic,
+        CharSequence topic,
         String share)
     {
         return binding != null

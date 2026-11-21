@@ -138,14 +138,14 @@ public class MqttKafkaBindingConfig
 
     public int resolveSubscribeReasonCode(
         long authorization,
-        String topic)
+        CharSequence topic)
     {
         return resolveSubscribeReasonCode(authorization, topic, null);
     }
 
     public int resolveSubscribeReasonCode(
         long authorization,
-        String topic,
+        CharSequence topic,
         String share)
     {
         int reasonCode = UNSPECIFIED_ERROR;
@@ -164,7 +164,7 @@ public class MqttKafkaBindingConfig
     private boolean subscribes(
         MqttKafkaRouteConfig route,
         long authorization,
-        String topic,
+        CharSequence topic,
         String share)
     {
         return route.authorized(authorization) && route.matches(topic, share, MqttKafkaConditionKind.SUBSCRIBE);
