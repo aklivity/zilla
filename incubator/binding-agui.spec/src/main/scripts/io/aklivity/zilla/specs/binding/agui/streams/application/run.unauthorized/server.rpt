@@ -13,10 +13,25 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-bindings:
-  net0:
-    type: agui
-    kind: client
-    exit: app0
+
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${agui:matchBeginEx()
+                       .typeId(zilla:id("agui"))
+                       .threadId("thread-1")
+                       .runId("run-1")
+                       .build()}
+
+connected
+
+write zilla:reset.ext ${agui:resetEx()
+                        .typeId(zilla:id("agui"))
+                        .status(401)
+                        .message("Unauthorized")
+                        .build()}
+
+read abort

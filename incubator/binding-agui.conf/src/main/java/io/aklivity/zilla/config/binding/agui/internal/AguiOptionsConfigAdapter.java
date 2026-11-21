@@ -26,6 +26,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class AguiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
+    private static final String SERVER_NAME = "server";
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
@@ -37,6 +38,11 @@ public final class AguiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
         AguiOptionsConfig aguiOptions = (AguiOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (aguiOptions.server != null)
+        {
+            object.add(SERVER_NAME, aguiOptions.server);
+        }
 
         if (aguiOptions.authorization != null && aguiOptions.authorization.name != null)
         {
@@ -57,6 +63,11 @@ public final class AguiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
         JsonObject object)
     {
         AguiOptionsConfigBuilder<AguiOptionsConfig> builder = AguiOptionsConfig.builder();
+
+        if (object.containsKey(SERVER_NAME))
+        {
+            builder.server(object.getString(SERVER_NAME));
+        }
 
         if (object.containsKey(AUTHORIZATION_NAME))
         {

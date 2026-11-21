@@ -23,6 +23,7 @@ public final class AguiOptionsConfigBuilder<T> extends ConfigBuilder<T, AguiOpti
 {
     private final Function<OptionsConfig, T> mapper;
 
+    private String server;
     private AguiAuthorizationConfig authorization;
 
     AguiOptionsConfigBuilder(
@@ -36,6 +37,13 @@ public final class AguiOptionsConfigBuilder<T> extends ConfigBuilder<T, AguiOpti
     protected Class<AguiOptionsConfigBuilder<T>> thisType()
     {
         return (Class<AguiOptionsConfigBuilder<T>>) getClass();
+    }
+
+    public AguiOptionsConfigBuilder<T> server(
+        String server)
+    {
+        this.server = server;
+        return this;
     }
 
     public AguiOptionsConfigBuilder<T> authorization(
@@ -53,6 +61,6 @@ public final class AguiOptionsConfigBuilder<T> extends ConfigBuilder<T, AguiOpti
     @Override
     public T build()
     {
-        return mapper.apply(new AguiOptionsConfig(authorization));
+        return mapper.apply(new AguiOptionsConfig(server, authorization));
     }
 }
