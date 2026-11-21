@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal;
 
+import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration.AGUI_A2A_HANDLE_ID;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration.AGUI_A2A_HANDLE_TTL;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration.AGUI_A2A_THREAD_CAPACITY;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration.AGUI_A2A_THREAD_TTL;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.time.Duration;
 import java.util.Properties;
@@ -31,6 +33,7 @@ public class AguiA2aConfigurationTest
     public static final String AGUI_A2A_THREAD_TTL_NAME = "zilla.binding.agui.a2a.thread.ttl";
     public static final String AGUI_A2A_THREAD_CAPACITY_NAME = "zilla.binding.agui.a2a.thread.capacity";
     public static final String AGUI_A2A_HANDLE_TTL_NAME = "zilla.binding.agui.a2a.handle.ttl";
+    public static final String AGUI_A2A_HANDLE_ID_NAME = "zilla.binding.agui.a2a.handle.id";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -38,6 +41,7 @@ public class AguiA2aConfigurationTest
         assertEquals(AGUI_A2A_THREAD_TTL.name(), AGUI_A2A_THREAD_TTL_NAME);
         assertEquals(AGUI_A2A_THREAD_CAPACITY.name(), AGUI_A2A_THREAD_CAPACITY_NAME);
         assertEquals(AGUI_A2A_HANDLE_TTL.name(), AGUI_A2A_HANDLE_TTL_NAME);
+        assertEquals(AGUI_A2A_HANDLE_ID.name(), AGUI_A2A_HANDLE_ID_NAME);
     }
 
     @Test
@@ -62,5 +66,40 @@ public class AguiA2aConfigurationTest
         assertEquals(Duration.ofMinutes(30L), config.threadTtl());
         assertEquals(128, config.threadCapacity());
         assertEquals(Duration.ofMinutes(5L), config.handleTtl());
+    }
+
+    @Test
+    public void shouldDefaultHandleIdToRandom()
+    {
+        final AguiA2aConfiguration config = new AguiA2aConfiguration();
+
+        final String handleId = config.handleIdSupplier().get();
+
+        assertEquals(32, handleId.length());
+        assertNotEquals(handleId, config.handleIdSupplier().get());
+    }
+
+    @Test
+    public void shouldConfigureHandleId()
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(AGUI_A2A_HANDLE_ID_NAME, "%s::handleId".formatted(AguiA2aConfigurationTest.class.getName()));
+        final AguiA2aConfiguration config = new AguiA2aConfiguration(new Configuration(properties));
+
+        assertEquals("h-1", config.handleIdSupplier().get());
+    }
+
+    @Test(expected = Throwable.class)
+    public void shouldRejectInvalidHandleIdReference()
+    {
+        final Properties properties = new Properties();
+        properties.setProperty(AGUI_A2A_HANDLE_ID_NAME, "not-a-valid-reference");
+
+        new AguiA2aConfiguration(new Configuration(properties)).handleIdSupplier();
+    }
+
+    public static String handleId()
+    {
+        return "h-1";
     }
 }

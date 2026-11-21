@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -251,6 +252,28 @@ public class AguiA2aRequestMappingTest
     }
 
     @Test
+    public void shouldSkipRestOfRequestAfterOversizeState() throws Exception
+    {
+        final String head = "{\"threadId\":\"t\",\"runId\":\"r\",\"state\":{\"blob\":\"" + "x".repeat(2 * SLOT);
+        final String tail = "\"},\"tools\":[{\"name\":\"n\"}],\"messages\":[{\"role\":\"user\",\"content\":\"x\"}]}";
+        final DefaultBufferPool pool = new DefaultBufferPool(SLOT, SLOT);
+        final AguiA2aRequestDecoder decoder =
+            new AguiA2aRequestDecoder(1L, "t", "r", null, new AguiA2aRetention(pool));
+
+        final byte[] first = head.getBytes(UTF_8);
+        final int progress = decoder.decode(new UnsafeBufferEx(first), 0, first.length, false);
+
+        assertThat(decoder.status(), equalTo(Status.PENDING));
+        assertThat(decoder.rejection(), equalTo(AguiA2aRejection.TOO_LARGE));
+
+        final byte[] second = (new String(first, progress, first.length - progress, UTF_8) + tail).getBytes(UTF_8);
+        decoder.decode(new UnsafeBufferEx(second), 0, second.length, true);
+
+        assertThat(decoder.status(), equalTo(Status.REJECTED));
+        assertThat(decoder.rejection(), equalTo(AguiA2aRejection.TOO_LARGE));
+    }
+
+    @Test
     public void shouldRejectOversizeTrailingMessage() throws Exception
     {
         assertRejected("{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[{\"role\":\"assistant\",\"content\":\"a\"}," +
@@ -373,6 +396,60 @@ public class AguiA2aRequestMappingTest
         final String body = assemble(decoder, "r", "c", null, null, true);
 
         assertThat(assembler.contentLength(), equalTo(body.getBytes(UTF_8).length));
+    }
+
+    @Test
+    public void shouldEmitBodyInWindows() throws Exception
+    {
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\\\"1\",\"state\":{\"s\":1},\"context\":[{\"a\":\"b\"}]," +
+            "\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"h\\u00e9llo\"}]}]," +
+            "\"forwardedProps\":{\"k\":\"v\"}}";
+        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r\"1", null);
+        final String body = assemble(decoder, "r\"1", "c\\1", "t\"1", null, true);
+
+        for (int window : new int[] {1, 3, 16, 100, 1 << 20})
+        {
+            final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
+                .wrap(decoder.retained(), "r\"1", "c\\1", "t\"1", null, true);
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            assertThat(assembler.contentLength(), equalTo(body.getBytes(UTF_8).length));
+
+            while (!assembler.emitted())
+            {
+                assembler.emit((buffer, offset, length) ->
+                {
+                    final byte[] bytes = new byte[length];
+                    buffer.getBytes(offset, bytes);
+                    out.write(bytes, 0, length);
+                }, window);
+            }
+
+            assertThat("window " + window, out.toString(UTF_8), equalTo(body));
+        }
+
+        assertThat(body, containsString("\"messageId\":\"r\\\"1\""));
+        assertThat(body, containsString("\"contextId\":\"c\\\\1\""));
+        assertThat(body, containsString("\"taskId\":\"t\\\"1\""));
+    }
+
+    @Test
+    public void shouldReportUnacceptedMediaType() throws Exception
+    {
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[{\"role\":\"user\",\"content\":[" +
+            "{\"type\":\"text\",\"text\":\"d\"},{\"type\":\"image\",\"source\":{\"type\":\"data\"," +
+            "\"value\":\"aGVsbG8=\",\"mimeType\":\"image/png\"}}]}]}";
+        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r", null);
+        final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
+            .wrap(decoder.retained(), "r", null, null, null, true)
+            .accepting("text/plain"::equals);
+
+        assembler.contentLength();
+
+        assertThat(assembler.unacceptedMediaType(), equalTo("image/png"));
+        assertThat(assembler.accepting("image/png"::equals).wrap(decoder.retained(), "r", null, null, null, true)
+            .contentLength() > 0, equalTo(true));
+        assertThat(assembler.unacceptedMediaType(), equalTo(null));
     }
 
     private static void assertScenario(

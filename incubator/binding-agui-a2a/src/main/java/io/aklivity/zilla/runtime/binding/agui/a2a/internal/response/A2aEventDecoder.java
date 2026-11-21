@@ -96,6 +96,11 @@ public final class A2aEventDecoder
     private final MutableDirectBufferEx slotBuffer;
     private final MutableDirectBufferEx textBuffer;
 
+    private final A2aEventDecoderState rootStart;
+    private final A2aEventDecoderState taskThen;
+    private final A2aEventKind rootKind;
+    private final int rootShift;
+
     private A2aEventDecoderState decoder = decodeIdle;
     private A2aEventDecoderState statusThen;
     private A2aEventDecoderState messageThen;
@@ -127,8 +132,20 @@ public final class A2aEventDecoder
         A2aEventSink sink,
         int maximum)
     {
+        this(sink, maximum, A2aEventRoot.EVENT);
+    }
+
+    public A2aEventDecoder(
+        A2aEventSink sink,
+        int maximum,
+        A2aEventRoot root)
+    {
         this.sink = sink;
         this.maximum = maximum;
+        this.rootStart = root == A2aEventRoot.TASK ? decodeTaskStart : decodeRootStart;
+        this.taskThen = root == A2aEventRoot.TASK ? decodeRootEnd : decodeRoot;
+        this.rootKind = root == A2aEventRoot.TASK ? A2aEventKind.TASK : null;
+        this.rootShift = root == A2aEventRoot.TASK ? 1 : 0;
         this.slotBuffer = new UnsafeBufferEx(new byte[maximum]);
         this.textBuffer = new UnsafeBufferEx(new byte[maximum + 4]);
     }
@@ -268,7 +285,7 @@ public final class A2aEventDecoder
     {
         parser.mark();
 
-        kind = null;
+        kind = rootKind;
         taskId = null;
         contextId = null;
         state = A2aTaskState.UNSPECIFIED;
@@ -294,7 +311,7 @@ public final class A2aEventDecoder
                 if (depth == 0)
                 {
                     append = append != null ? append : Boolean.FALSE;
-                    decoder = decodeRootStart;
+                    decoder = rootStart;
                 }
                 break;
             case KEY_NAME:
@@ -335,7 +352,7 @@ public final class A2aEventDecoder
 
             if (decoder == decodeLookahead && (windowLimit == maximum || windowLast))
             {
-                decoder = decodeRootStart;
+                decoder = rootStart;
             }
         }
 
@@ -346,9 +363,10 @@ public final class A2aEventDecoder
         int depth)
     {
         final CharSequence key = parser.getStringView();
+        final int level = depth + rootShift;
         String member = null;
 
-        if (depth == 1)
+        if (level == 1)
         {
             kind = kindOf(key);
 
@@ -357,23 +375,23 @@ public final class A2aEventDecoder
                 parser.skipValue();
             }
         }
-        else if (depth == 2)
+        else if (level == 2)
         {
             member = lookaheadEventMember(key);
         }
-        else if (depth == 3 && matches(key, "state") && kind != A2aEventKind.ARTIFACT_UPDATE)
+        else if (level == 3 && matches(key, "state") && kind != A2aEventKind.ARTIFACT_UPDATE)
         {
             member = "state";
         }
-        else if (depth == 3 && matches(key, "artifactId") && kind == A2aEventKind.ARTIFACT_UPDATE)
+        else if (level == 3 && matches(key, "artifactId") && kind == A2aEventKind.ARTIFACT_UPDATE)
         {
             member = "entityId";
         }
-        else if (depth == 3 && matches(key, "message") && kind != A2aEventKind.ARTIFACT_UPDATE)
+        else if (level == 3 && matches(key, "message") && kind != A2aEventKind.ARTIFACT_UPDATE)
         {
             member = null;
         }
-        else if (depth == 4 && matches(key, "messageId"))
+        else if (level == 4 && matches(key, "messageId"))
         {
             member = "entityId";
         }
@@ -653,7 +671,7 @@ public final class A2aEventDecoder
                 break;
             case END_OBJECT:
                 sink.eventEnded(lastChunk);
-                decoder = decodeRoot;
+                decoder = taskThen;
                 break;
             default:
                 fail(ERROR_MALFORMED);
