@@ -18,9 +18,11 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.Array
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.String32FW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.StringFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.EnumWithInt8;
+import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.StructWithMultipleString8DefaultsFW;
 import io.aklivity.zilla.build.maven.plugins.flyweight.internal.test.types.inner.VariantEnumKindOfStringFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -216,6 +219,82 @@ public class Array32FWTest
         final Array32FW<VariantEnumKindOfStringFW> array = flyweightRO.wrap(buffer,  0,  limit);
 
         assertAllTestValuesReadCaseVariantItems(array, 0);
+    }
+
+    @Test
+    public void shouldSetStructItemsUsingItemMethod() throws Exception
+    {
+        Array32FW.Builder<StructWithMultipleString8DefaultsFW.Builder, StructWithMultipleString8DefaultsFW> flyweightRW =
+            new Array32FW.Builder<>(
+                new StructWithMultipleString8DefaultsFW.Builder(),
+                new StructWithMultipleString8DefaultsFW());
+
+        Array32FW<StructWithMultipleString8DefaultsFW> flyweightRO =
+            new Array32FW<>(new StructWithMultipleString8DefaultsFW());
+
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .item(b -> b.field1("one").field2("two").field3("three"))
+            .item(b -> b.field1("a").field2("bb").field3("ccc"))
+            .build()
+            .limit();
+
+        final Array32FW<StructWithMultipleString8DefaultsFW> array = flyweightRO.wrap(buffer, 0, limit);
+
+        List<String> items = new ArrayList<>();
+        array.forEach(s -> items.add(s.field1().asString() + "," + s.field2().asString() + "," + s.field3().asString()));
+        assertEquals(2, array.fieldCount());
+        assertEquals("one,two,three", items.get(0));
+        assertEquals("a,bb,ccc", items.get(1));
+        assertEquals(limit, array.limit());
+    }
+
+    @Test
+    public void shouldRebuildMixedLengthVariantItemsToSharedKind() throws Exception
+    {
+        Array32FW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> flyweightRW =
+            new Array32FW.Builder<>(
+                new VariantEnumKindOfStringFW.Builder(),
+                new VariantEnumKindOfStringFW());
+
+        Array32FW<VariantEnumKindOfStringFW> flyweightRO = new Array32FW<>(new VariantEnumKindOfStringFW());
+
+        String shortItem = "a";
+        String longItem = String.format("%300s", "x");
+
+        int limit = flyweightRW.wrap(buffer, 0, buffer.capacity())
+            .item(b -> b.setAsString32(asStringFW(shortItem)))
+            .item(b -> b.setAsString32(asStringFW(longItem)))
+            .build()
+            .limit();
+
+        final Array32FW<VariantEnumKindOfStringFW> array = flyweightRO.wrap(buffer, 0, limit);
+
+        List<String> items = new ArrayList<>();
+        array.forEach(v -> items.add(v.get().asString()));
+        assertEquals(2, array.fieldCount());
+        assertEquals(shortItem, items.get(0));
+        assertEquals(longItem, items.get(1));
+        assertEquals(EnumWithInt8.TEN.value(), buffer.getByte(lengthSize + fieldCountSize));
+        assertEquals(fieldCountSize + Byte.BYTES + (Short.BYTES + shortItem.length()) +
+            (Short.BYTES + longItem.length()), array.length());
+    }
+
+    @Test
+    public void shouldNotRebuildItemsOfStringType()
+    {
+        assertFalse(new String32FW.Builder().rebuilds());
+    }
+
+    @Test
+    public void shouldNotRebuildItemsOfStructType()
+    {
+        assertFalse(new StructWithMultipleString8DefaultsFW.Builder().rebuilds());
+    }
+
+    @Test
+    public void shouldRebuildItemsOfVariantOfStringType()
+    {
+        assertTrue(new VariantEnumKindOfStringFW.Builder().rebuilds());
     }
 
     private static StringFW asStringFW(
