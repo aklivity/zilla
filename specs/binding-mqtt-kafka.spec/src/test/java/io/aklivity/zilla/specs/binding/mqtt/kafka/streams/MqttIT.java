@@ -754,6 +754,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.signal.buffer.reuse/client",
+        "${mqtt}/session.will.message.abort.deliver.will.signal.buffer.reuse/server"})
+    public void shouldSendWillMessageOnAbortAfterSignalBufferReuse() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.topic.trailing.empty.level/client",
         "${mqtt}/session.will.message.topic.trailing.empty.level/server"})
     public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
