@@ -168,7 +168,6 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline citationsFromOpenai;
     private LlmSectionPipeline controlAnthropicToCanonical;
     private LlmSectionPipeline controlAnthropicFromCanonical;
-    private LlmSectionPipeline controlOpenaiToCanonical;
     private LlmSectionPipeline controlOpenaiFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
     private LlmSectionPipeline citationsResponsesToCanonical;
@@ -219,7 +218,6 @@ public class LlmSectionPipelineBM
         citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical("openai/ccs"));
         controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
         controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
-        controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical("openai/ccs"));
         controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical("openai/ccs", true));
 
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
@@ -435,12 +433,6 @@ public class LlmSectionPipelineBM
     public int controlFromCanonicalAnthropic()
     {
         return run(controlAnthropicFromCanonical, none, controlAnthropicCanonical, controlAnthropicCanonical.capacity());
-    }
-
-    @Benchmark
-    public int controlToCanonicalOpenai()
-    {
-        return run(controlOpenaiToCanonical, none, controlNative, controlNative.capacity());
     }
 
     @Benchmark
