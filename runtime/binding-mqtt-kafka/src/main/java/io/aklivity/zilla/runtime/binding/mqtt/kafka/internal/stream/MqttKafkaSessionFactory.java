@@ -801,7 +801,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             if (publishQosMax == 2)
             {
                 doMqttWindow(authorization, traceId, 0, 0, 0);
-                this.metadata = new MqttKafkaPublishMetadata(new Long2ObjectHashMap<>(), new Int2ObjectHashMap<>(), leaderEpochs);
+                this.metadata = new MqttKafkaPublishMetadata(
+                    new Long2ObjectHashMap<>(), new MqttKafkaPacketPartitions(), leaderEpochs);
                 this.metadata.sessionsTopic = sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
@@ -1082,18 +1083,22 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             final OctetsFW extension = flush.extension();
-            final MqttFlushExFW mqttFlushEx = extension.get(mqttFlushExRO::tryWrap);
+            final MqttFlushExFW mqttFlushEx = mqttFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
 
             assert mqttFlushEx.kind() == MqttFlushExFW.KIND_SESSION;
             final MqttSessionFlushExFW mqttPublishFlushEx = mqttFlushEx.session();
 
             final int packetId = mqttPublishFlushEx.packetId();
 
-            final List<KafkaTopicPartition> partitions = metadata != null ? metadata.partitions.get(packetId) : null;
-            if (partitions != null)
+            int slot = metadata != null ? metadata.partitions.first(packetId) : MqttKafkaPacketPartitions.NO_SLOT;
+            if (slot != MqttKafkaPacketPartitions.NO_SLOT)
             {
-                partitions.forEach(partition ->
-                    doCommitOffsetComplete(traceId, authorization, partition.topic, partition.partitionId, packetId));
+                while (slot != MqttKafkaPacketPartitions.NO_SLOT)
+                {
+                    doCommitOffsetComplete(traceId, authorization,
+                        metadata.partitions.topic(slot), metadata.partitions.partitionId(slot), packetId);
+                    slot = metadata.partitions.next(slot);
+                }
             }
             else
             {
@@ -1496,7 +1501,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int reserved,
             int packetId)
         {
-            if (metadata == null || !metadata.partitions.containsKey(packetId))
+            if (metadata == null || !metadata.partitions.contains(packetId))
             {
                 final MqttFlushExFW mqttFlushEx =
                     mqttFlushExRW.wrap(extBuffer, FlushFW.FIELD_OFFSET_EXTENSION, extBuffer.capacity())
@@ -1702,8 +1707,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         final long partitionKey = partitionKey(entry.topic, entry.partitionId);
                         this.metadata.offsets.put(partitionKey, entry);
                         this.metadata.orderedOffsets.add(entry);
-                        entry.packetIds.forEach(p -> this.metadata.partitions.computeIfAbsent(p, ArrayList::new)
-                            .add(new KafkaTopicPartition(entry.topic, entry.partitionId)));
+                        entry.packetIds.forEach(p -> this.metadata.partitions.add(p, entry.topic, entry.partitionId));
                     });
                 }
 
@@ -1744,15 +1748,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 {
                     unackedSeqs.removeAt(0);
                     final int packetId = unackedPacketIds.remove();
-                    if (metadata.partitions.containsKey(packetId))
-                    {
-                        final List<KafkaTopicPartition> partitions = metadata.partitions.get(packetId);
-                        partitions.remove(0);
-                        if (partitions.isEmpty())
-                        {
-                            metadata.partitions.remove(packetId);
-                        }
-                    }
+                    metadata.partitions.removeFirst(packetId);
 
                     doMqttFlush(traceId, authorization, 0, 0, packetId);
                 }

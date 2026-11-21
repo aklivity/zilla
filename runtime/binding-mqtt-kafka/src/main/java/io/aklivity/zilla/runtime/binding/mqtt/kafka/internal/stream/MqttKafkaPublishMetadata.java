@@ -24,7 +24,6 @@ import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -40,7 +39,7 @@ public class MqttKafkaPublishMetadata
 {
     final Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
     final List<KafkaOffsetMetadata> orderedOffsets;
-    final Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
+    final MqttKafkaPacketPartitions partitions;
     final Long2LongHashMap leaderEpochs;
 
     String16FW sessionsTopic;
@@ -48,7 +47,7 @@ public class MqttKafkaPublishMetadata
 
     public MqttKafkaPublishMetadata(
         Long2ObjectHashMap<KafkaOffsetMetadata> offsets,
-        Int2ObjectHashMap<List<KafkaTopicPartition>> partitions,
+        MqttKafkaPacketPartitions partitions,
         Long2LongHashMap leaderEpochs)
     {
         this.offsets = offsets;
