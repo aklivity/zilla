@@ -2180,11 +2180,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 final long deliverAtResolved =
                     deliverAt == MqttTime.UNKNOWN.value() ? clock.millis() + delay : deliverAt;
 
+                final String16FW clientId = new String16FW(willClientId.asString());
+
                 KafkaFetchWillStream willFetcher =
-                    new KafkaFetchWillStream(originId, routedId, this, sessionsTopic, willClientId,
+                    new KafkaFetchWillStream(originId, routedId, this, sessionsTopic, clientId,
                         willId.asString(), lifetimeId.asString(), deliverAtResolved);
                 willFetcher.doKafkaBegin(traceId, authorization, 0, lifetimeId);
-                willFetchers.put(new String16FW(willClientId.asString()), willFetcher);
+                willFetchers.put(clientId, willFetcher);
             }
 
             return !local;
