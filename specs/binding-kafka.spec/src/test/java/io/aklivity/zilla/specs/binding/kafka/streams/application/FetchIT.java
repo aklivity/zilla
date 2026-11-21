@@ -441,6 +441,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.headers.two.streams/client",
+        "${app}/filter.headers.two.streams/server"})
+    public void shouldFilterHeadersTwoStreams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.extracted.header/client",
         "${app}/filter.extracted.header/server"})
     public void shouldReceiveMessagesWithExtractedHeaderFilter() throws Exception
@@ -743,6 +752,15 @@ public class FetchIT
         "${app}/isolation.read.committed.committing/client",
         "${app}/isolation.read.committed.committing/server"})
     public void shouldReceiveIsolationReadCommittedWhenCommitting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.committed.filter.committing/client",
+        "${app}/isolation.read.committed.filter.committing/server"})
+    public void shouldIsolationReadCommittedFilterCommitting() throws Exception
     {
         k3po.finish();
     }
