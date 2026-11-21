@@ -44,7 +44,6 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBin
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaSessionOffsetsHelper;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaTopicPartition;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
@@ -161,6 +160,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
+    private OctetsFW headerKey;
+    private OctetsFW headerValue;
+    private final Consumer<KafkaHeaderFW.Builder> headerWriter = h -> h
+        .nameLen(headerKey.sizeof())
+        .name(headerKey)
+        .valueLen(headerValue.sizeof())
+        .value(headerValue);
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -303,7 +309,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private KafkaOffsetCommitStream offsetCommit;
         private Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
         private List<KafkaOffsetMetadata> orderedOffsets;
-        private Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
+        private MqttKafkaPacketPartitions partitions;
         private Long2LongHashMap leaderEpochs;
 
         private final Consumer<KafkaKeyFW.Builder> commitOffsetKey = b -> b
@@ -556,7 +562,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             MqttDataExFW mqttDataEx = null;
             if (extension.sizeof() > 0)
             {
-                mqttDataEx = extension.get(mqttDataExRO::tryWrap);
+                mqttDataEx = mqttDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
             }
 
             int deferred;
@@ -1045,7 +1051,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 .merged(commitOffsetMerged)
                 .build();
 
-            partitions.computeIfAbsent(packetId, ArrayList::new).add(new KafkaTopicPartition(topic, partitionId));
+            partitions.add(packetId, topic, partitionId);
             offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
             offsetCommit.unfinishedKafkas.add(kafka);
             offsetCommit.unfinishedSeqs.addLong(offsetCommit.initialSeq);
@@ -1094,13 +1100,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         OctetsFW key,
         OctetsFW value)
     {
-        kafkaHeadersRW.item(h ->
-        {
-            h.nameLen(key.sizeof());
-            h.name(key);
-            h.valueLen(value.sizeof());
-            h.value(value);
-        });
+        headerKey = key;
+        headerValue = value;
+        kafkaHeadersRW.item(headerWriter);
     }
 
     private void addHeader(
