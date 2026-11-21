@@ -160,6 +160,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
+    private final MutableDirectBufferEx expiryBuffer = new UnsafeBufferEx(new byte[Integer.BYTES]);
+    private final OctetsFW expiryRO = new OctetsFW();
     private OctetsFW headerKey;
     private OctetsFW headerValue;
     private final Consumer<KafkaHeaderFW.Builder> headerWriter = h -> h
@@ -581,15 +583,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 if (mqttPublishDataEx.expiryInterval() != -1)
                 {
-                    final MutableDirectBufferEx expiryBuffer = new UnsafeBufferEx(new byte[4]);
                     expiryBuffer.putInt(0, mqttPublishDataEx.expiryInterval(), ByteOrder.BIG_ENDIAN);
-                    kafkaHeadersRW.item(h ->
-                    {
-                        h.nameLen(helper.kafkaTimeoutHeaderName.sizeof());
-                        h.name(helper.kafkaTimeoutHeaderName);
-                        h.valueLen(4);
-                        h.value(expiryBuffer, 0, expiryBuffer.capacity());
-                    });
+                    addHeader(helper.kafkaTimeoutHeaderName, expiryRO.wrap(expiryBuffer, 0, expiryBuffer.capacity()));
                 }
 
                 if (mqttPublishDataEx.contentType().length() != -1)
