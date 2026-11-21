@@ -10094,6 +10094,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.response.controls.padded/client",
+        "${app}/gemini.response.controls.padded/server"})
+    public void shouldGeminiResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.request.tool.call.100k/client",
         "${app}/gemini.request.tool.call.100k/server"})
     public void shouldForwardGeminiRequestToolCall100k() throws Exception
@@ -10175,9 +10184,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.usage.padded/client",
+        "${app}/gemini.usage.padded/server"})
+    public void shouldGeminiUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.request.text.100k/client",
         "${app}/gemini.request.text.100k/server"})
     public void shouldForwardGeminiRequestText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.usage.padded/client",
+        "${app}/gemini.streaming.usage.padded/server"})
+    public void shouldGeminiStreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }
@@ -10193,9 +10220,153 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.section.tool.call.history.10k/client",
+        "${app}/gemini.section.tool.call.history.10k/server"})
+    public void shouldGeminiSectionToolCallHistory10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.streaming.window.deferred/client",
         "${app}/gemini.streaming.window.deferred/server"})
     public void shouldForwardGeminiStreamingWindowDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.tool.call.history.100k/client",
+        "${app}/gemini.section.tool.call.history.100k/server"})
+    public void shouldGeminiSectionToolCallHistory100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.tool.call.10k/client",
+        "${app}/gemini.response.tool.call.10k/server"})
+    public void shouldGeminiResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.tool.call.100k/client",
+        "${app}/gemini.response.tool.call.100k/server"})
+    public void shouldGeminiResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.server.tool.call.100k/client",
+        "${app}/gemini.response.server.tool.call.100k/server"})
+    public void shouldGeminiResponseServerToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.server.tool.call.fragmented/client",
+        "${app}/gemini.response.server.tool.call.fragmented/server"})
+    public void shouldGeminiResponseServerToolCallFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.stop.window/client",
+        "${app}/gemini.request.stop.window/server"})
+    public void shouldForwardGeminiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.stop.straddle/client",
+        "${app}/gemini.request.stop.straddle/server"})
+    public void shouldForwardGeminiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.service.tier.straddle/client",
+        "${app}/gemini.request.service.tier.straddle/server"})
+    public void shouldForwardGeminiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.effort.window/client",
+        "${app}/gemini.request.reasoning.effort.window/server"})
+    public void shouldForwardGeminiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.window/client",
+        "${app}/gemini.request.reasoning.budget.window/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.straddle/client",
+        "${app}/gemini.request.reasoning.budget.straddle/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.type.window/client",
+        "${app}/gemini.request.response.format.type.window/server"})
+    public void shouldForwardGeminiRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.type.straddle/client",
+        "${app}/gemini.request.response.format.type.straddle/server"})
+    public void shouldForwardGeminiRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.call.close.pending/client",
+        "${app}/gemini.request.tool.call.close.pending/server"})
+    public void shouldForwardGeminiRequestToolCallClosePending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.server.tool.call.close.pending/client",
+        "${app}/gemini.request.server.tool.call.close.pending/server"})
+    public void shouldForwardGeminiRequestServerToolCallClosePending() throws Exception
     {
         k3po.finish();
     }
