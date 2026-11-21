@@ -2160,6 +2160,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         }
                     }
                 }
+
+                replyAck = replySeq;
+                doKafkaWindow(traceId, authorization, 0, 0, 0);
             }
         }
 
