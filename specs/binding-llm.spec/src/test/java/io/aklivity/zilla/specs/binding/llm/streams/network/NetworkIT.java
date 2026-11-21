@@ -1155,6 +1155,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.rejected.output.config.format.type/client",
+        "${net}/anthropic.section.rejected.output.config.format.type/server"})
+    public void shouldAnthropicSectionRejectedOutputConfigFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.rejected.part.type.last/client",
         "${net}/anthropic.section.rejected.part.type.last/server"})
     public void shouldAnthropicSectionRejectedPartTypeLast() throws Exception
@@ -1932,6 +1941,60 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.tool.call.100k/client",
         "${net}/anthropic.section.assistant.tool.call.100k/server"})
     public void shouldAnthropicSectionAssistantToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast100k() throws Exception
     {
         k3po.finish();
     }
@@ -2793,6 +2856,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.transform.response.tool.call.10k/client",
+        "${net}/anthropic.transform.response.tool.call.10k/server"})
+    public void shouldAnthropicTransformResponseToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${net}/anthropic.transform.response.tool.call.100k/server"})
+    public void shouldAnthropicTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.text.100k/client",
         "${net}/openai.transform.response.text.100k/server"})
     public void shouldOpenaiTransformResponseText100k() throws Exception
@@ -2868,6 +2949,24 @@ public class NetworkIT
         "${net}/anthropic.transform.response.streaming.reasoning/client",
         "${net}/anthropic.transform.response.streaming.reasoning/server"})
     public void shouldAnthropicTransformResponseStreamingReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.redacted.100k/client",
+        "${net}/anthropic.transform.response.streaming.reasoning.redacted.100k/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningRedacted100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.signature.100k/client",
+        "${net}/anthropic.transform.response.streaming.reasoning.signature.100k/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningSignature100k() throws Exception
     {
         k3po.finish();
     }

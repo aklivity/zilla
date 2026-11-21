@@ -373,6 +373,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.rejected.output.config.format.type/client",
+        "${app}/anthropic.section.rejected.output.config.format.type/server"})
+    public void shouldDecodeAnthropicSectionRejectedOutputConfigFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.rejected.part.type.last/client",
         "${app}/anthropic.section.rejected.part.type.last/server"})
     public void shouldDecodeAnthropicSectionRejectedPartTypeLast() throws Exception
@@ -924,6 +934,132 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdNone100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast12kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.tool.definition.100k/client",
         "${app}/anthropic.section.tool.definition.100k/server"})
     public void shouldDecodeAnthropicSectionToolDefinition100k() throws Exception
@@ -1252,6 +1388,52 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
+        "${net}/anthropic.transform.response.tool.call.10k/client",
+        "${app}/transform.response.tool.call.10k/server"})
+    public void shouldTransformResponseToolCall10kFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text.100k/client",
+        "${app}/transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.100k/client",
+        "${app}/transform.response.tool.call.100k/server"})
+    public void shouldTransformResponseToolCall100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
         "${net}/anthropic.transform.response.text.multibyte/client",
         "${app}/transform.response.text.multibyte/server"})
     public void shouldTransformResponseTextMultibyteFromAnthropic() throws Exception
@@ -1299,6 +1481,30 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.transform.response.streaming.reasoning/client",
         "${app}/anthropic.transform.response.streaming.reasoning/server"})
     public void shouldTransformResponseStreamingReasoningFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.redacted.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.redacted.100k/server"})
+    public void shouldTransformResponseStreamingReasoningRedacted100kFromAnthropicWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.signature.100k/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.signature.100k/server"})
+    public void shouldTransformResponseStreamingReasoningSignature100kFromAnthropicWithSmallSlots() throws Exception
     {
         k3po.finish();
     }
