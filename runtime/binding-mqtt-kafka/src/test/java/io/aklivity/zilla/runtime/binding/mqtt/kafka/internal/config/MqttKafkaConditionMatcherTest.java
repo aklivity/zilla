@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -21,6 +22,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.StringView;
 
 public class MqttKafkaConditionMatcherTest
 {
@@ -248,5 +251,62 @@ public class MqttKafkaConditionMatcherTest
 
         assertTrue(matcher.matches("device/one", "consumers"));
         assertEquals("one", matcher.parameter("id"));
+    }
+
+    @Test
+    public void shouldMatchTopicViewOverBufferBytes()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("/some/hierarchical/topic/name")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches(topicView("/some/hierarchical/topic/name")));
+        assertTrue(matcher.matches(topicView("/some/+/topic/+")));
+        assertTrue(matcher.matches(topicView("/some/hierarchical/#")));
+        assertFalse(matcher.matches(topicView("/some/hierarchical/+")));
+        assertFalse(matcher.matches(topicView("/some/hierarchical/topic/name/something")));
+    }
+
+    @Test
+    public void shouldMatchMultiByteTopicViewOverBufferBytes()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("/caf\u00e9/\u20ac/name")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches(topicView("/caf\u00e9/\u20ac/name")));
+        assertTrue(matcher.matches(topicView("/caf\u00e9/+/name")));
+        assertFalse(matcher.matches(topicView("/cafe/\u20ac/name")));
+    }
+
+    @Test
+    public void shouldMatchTopicViewWithShareOverBufferBytes()
+    {
+        MqttKafkaConditionConfig condition = MqttKafkaConditionConfig.builder()
+            .subscribe()
+                .topic("/some/topic")
+                .share("group-*")
+                .build()
+            .build();
+        MqttKafkaConditionMatcher matcher = new MqttKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matches(topicView("/some/topic"), "group-1"));
+        assertFalse(matcher.matches(topicView("/some/topic"), "other"));
+    }
+
+    private static CharSequence topicView(
+        String topic)
+    {
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        final int offset = 3;
+        final int length = buffer.putStringWithoutLengthUtf8(offset, topic);
+
+        return StringView.of(UTF_8).wrap(buffer.segment(), buffer.wrapAdjustment() + offset, length);
     }
 }

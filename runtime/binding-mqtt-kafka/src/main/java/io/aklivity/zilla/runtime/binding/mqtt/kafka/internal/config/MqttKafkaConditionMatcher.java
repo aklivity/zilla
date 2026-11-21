@@ -42,7 +42,7 @@ public class MqttKafkaConditionMatcher
     }
 
     public boolean matches(
-        String topic)
+        CharSequence topic)
     {
         boolean match = false;
         for (TopicMatcher candidate : matchers)
@@ -59,7 +59,7 @@ public class MqttKafkaConditionMatcher
     }
 
     public boolean matches(
-        String topic,
+        CharSequence topic,
         String share)
     {
         boolean match = false;
@@ -116,7 +116,7 @@ public class MqttKafkaConditionMatcher
         }
 
         private boolean matchesTopic(
-            String topic)
+            CharSequence topic)
         {
             return matchesTopic.reset(topic).matches();
         }
