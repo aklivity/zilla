@@ -1,0 +1,44 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${a2a:beginEx()
+                           .typeId(zilla:id("a2a"))
+                           .messageSend()
+                               .contentLength(106)
+                               .build()
+                           .build()}
+
+connected
+
+write '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"text":"what is the weather in paris today"}]}}'
+
+read zilla:data.ext ${a2a:matchDataEx()
+                         .typeId(zilla:id("a2a"))
+                         .task()
+                             .taskId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                             .contextId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                             .state("REJECTED")
+                             .build()
+                         .build()}
+read '{"task":{"id":"5ca1ab1e-c0de-4a11-5e55-000100000000","contextId":"5ca1ab1e-c0de-4a11-5e55-000100000000","status":{"state":"TASK_STATE_REJECTED","message":{"messageId":"5ca1ab1e-c0de-4a11-5e55-000100000000-status","role":"ROLE_AGENT","taskId":"5ca1ab1e-c0de-4a11-5e55-000100000000","contextId":"5ca1ab1e-c0de-4a11-5e55-000100000000","parts":[{"text":"No matching skill. Available skills: get_item: Look up an item by id; create_item: Create a new item; search_items: Search items by keyword"}]}}}}'
+
+read closed
+
+write close
