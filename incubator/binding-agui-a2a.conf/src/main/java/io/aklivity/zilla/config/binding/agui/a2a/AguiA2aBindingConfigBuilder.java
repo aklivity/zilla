@@ -43,6 +43,11 @@ public final class AguiA2aBindingConfigBuilder<T>
         return (Class<AguiA2aBindingConfigBuilder<T>>) getClass();
     }
 
+    public AguiA2aOptionsConfigBuilder<AguiA2aBindingConfigBuilder<T>> options()
+    {
+        return new AguiA2aOptionsConfigBuilder<>(this::options);
+    }
+
     @Override
     protected AguiA2aRouteConfigBuilder<AguiA2aBindingConfigBuilder<T>> newRoute()
     {

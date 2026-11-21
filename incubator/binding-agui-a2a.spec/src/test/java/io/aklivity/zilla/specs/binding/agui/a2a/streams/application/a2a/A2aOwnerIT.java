@@ -98,4 +98,13 @@ public class A2aOwnerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/restored.context/client",
+        "${app}/restored.context/server"})
+    public void shouldRestoreContext() throws Exception
+    {
+        k3po.finish();
+    }
 }

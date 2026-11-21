@@ -107,4 +107,22 @@ public class AguiInterruptIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/restored.interrupt.resume/client",
+        "${app}/restored.interrupt.resume/server"})
+    public void shouldRestoreInterruptResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/restored.interrupt.resume.consumed/client",
+        "${app}/restored.interrupt.resume.consumed/server"})
+    public void shouldRestoreInterruptResumeConsumed() throws Exception
+    {
+        k3po.finish();
+    }
 }
