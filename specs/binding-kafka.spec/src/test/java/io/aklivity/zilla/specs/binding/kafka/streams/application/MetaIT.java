@@ -75,6 +75,15 @@ public class MetaIT
 
     @Test
     @Specification({
+        "${app}/topic.partition.info.shared/client",
+        "${app}/topic.partition.info.shared/server"})
+    public void shouldReceiveTopicPartitionInfoShared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.partition.info.window.before.begin/client",
         "${app}/topic.partition.info.window.before.begin/server"})
     public void shouldTopicPartitionInfoWindowBeforeBegin() throws Exception
@@ -100,6 +109,15 @@ public class MetaIT
         k3po.start();
         k3po.awaitBarrier("RECEIVED_FIRST_META");
         k3po.notifyBarrier("SEND_SECOND_META");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/topic.partition.info.refresh/client",
+        "${app}/topic.partition.info.refresh/server"})
+    public void shouldReceiveTopicPartitionInfoRefresh() throws Exception
+    {
         k3po.finish();
     }
 
