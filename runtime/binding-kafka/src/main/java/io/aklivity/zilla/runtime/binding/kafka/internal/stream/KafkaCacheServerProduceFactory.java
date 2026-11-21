@@ -135,6 +135,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final OctetsFW valueFragmentRO = new OctetsFW();
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
+    private final EngineContext context;
     private final int kafkaTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -163,6 +164,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
+        this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -1207,6 +1209,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             else
             {
                 state = StreamState.openingInitial(state);
+
+                KafkaCacheServerMetaWatch.open(context, supplyCacheRoute.apply(fan.routedId), fan.originId, fan.originId,
+                    authorization, fan.partionTopic,
+                    context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(fan.partionTopic, fan.partitionId)), traceId);
 
                 fan.onServerFanMemberOpening(traceId, this);
             }
