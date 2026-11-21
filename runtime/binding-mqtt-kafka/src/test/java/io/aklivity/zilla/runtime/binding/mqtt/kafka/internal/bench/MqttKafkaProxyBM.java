@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
 
+import org.agrona.collections.IntArrayQueue;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -122,6 +123,22 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * its Kafka streams, and the next subscription begins. {@code depth} is the number of subscriptions kept
  * outstanding, {@code payload} the size of the retained message and {@code ackDelayMillis} the delay of every stub
  * answer.
+ * <p>
+ * {@code deliverLagged} is {@code deliver} with a subscriber that acknowledges late: it holds each acknowledgement
+ * back until {@code ackLag} newer messages have been delivered on the same subscribe stream, so the proxy tracks
+ * {@code ackLag} unacknowledged messages for every active subscription. Each subscription is primed with
+ * {@code ackLag} plus one messages and each acknowledgement it commits is answered by delivering the next message to
+ * the same subscription, which keeps {@code ackLag} messages outstanding in steady state. Subscriptions are primed
+ * one at a time so the stub never writes more than one subscription's messages ahead of the proxy; an
+ * {@code ackLag} of 0 acknowledges every message at once and is the baseline.
+ * <p>
+ * Each {@code resume} operation is one persistent session that reconnects and resumes: the peer opens an
+ * {@code mqtt} session stream without a clean start, with a client id it used before, and the operation completes
+ * when the stored session state reaches it. {@link KafkaStub} answers the session stream of a client with the stored
+ * state, a session state of {@code subscriptions} subscriptions in a fetch data extension keyed by the client id,
+ * followed by the caught up flush, as the non clean start session scripts specify. The session stream is then ended
+ * and the next resume begins, so {@code depth} sessions are kept resuming at once. {@code subscriptions} is the size
+ * of the stored session state, which the proxy reads and reconciles on every resume.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -194,6 +211,20 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void deliver(
         DeliverFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void resume(
+        ResumeFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void deliverLagged(
+        LaggedDeliverFixture fixture)
     {
         fixture.complete();
     }
@@ -964,6 +995,158 @@ public class MqttKafkaProxyBM
         }
     }
 
+    @State(Scope.Benchmark)
+    public static class ResumeFixture
+    {
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"1", "100"})
+        public int subscriptions;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Resumption> established = new ArrayDeque<>();
+        private final Queue<Resumption> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private long mqttId;
+        private int mqttTypeId;
+        private int resumptions;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+
+            final MqttFunctions.MqttSessionStateBuilder sessionState = MqttFunctions.session();
+            for (int subscription = 0; subscription < subscriptions; subscription++)
+            {
+                sessionState.subscription("device/" + subscription, subscription + 1);
+            }
+            kafka.sessionState(CLIENT_ID_PREFIX.length() + CLIENT_ID_DIGITS, new UnsafeBufferEx(sessionState.build()));
+            bench.newServer("kafka0", kafka);
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            bench.close();
+        }
+
+        void complete()
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (established.isEmpty())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "session resume timed out, unexpected kafka streams %d", kafka.unexpected()));
+                }
+            }
+
+            established.poll().end();
+            begin();
+        }
+
+        private void begin()
+        {
+            Resumption resumption = idle.poll();
+
+            if (resumption == null)
+            {
+                resumption = new Resumption(++resumptions);
+            }
+
+            resumption.begin();
+        }
+
+        private final class Resumption implements MessageConsumer
+        {
+            private final DataFW dataRO = new DataFW();
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+
+            private Resumption(
+                int number)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .expiry(1)
+                        .clientId(CLIENT_ID_PREFIX + String.format("%0" + CLIENT_ID_DIGITS + "d", number))
+                        .build()
+                    .build());
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void end()
+            {
+                client.end();
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        established.add(this);
+                    }
+                    break;
+                case EndFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "session resume rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
     public abstract static class SubscribeFixture
     {
         static final int ACK_PACKET_ID_MARKER = 0x7e57;
@@ -992,6 +1175,11 @@ public class MqttKafkaProxyBM
         abstract int qos();
 
         int sessions()
+        {
+            return 0;
+        }
+
+        int ackLag()
         {
             return 0;
         }
@@ -1138,6 +1326,8 @@ public class MqttKafkaProxyBM
             private final MqttFlushExFW flushExRO = new MqttFlushExFW();
             private final byte[] ackBytes = new byte[ackEx.capacity()];
             private final MutableDirectBufferEx ack = new UnsafeBufferEx(ackBytes);
+            private final IntArrayQueue unacknowledged = new IntArrayQueue();
+            private final int ackLag = ackLag();
             private final byte[] completeBytes = new byte[completeEx != null ? completeEx.capacity() : 0];
             private final MutableDirectBufferEx complete = new UnsafeBufferEx(completeBytes);
             private final int index;
@@ -1182,8 +1372,13 @@ public class MqttKafkaProxyBM
                     final DataFW data = dataRO.wrap(buffer, index, index + length);
                     final MqttDataExFW mqttDataEx = dataExRO.wrap(data.extension().buffer(), data.extension().offset(),
                         data.extension().limit());
-                    ack.putShort(ackPacketIdOffset, (short) mqttDataEx.subscribe().packetId(), ByteOrder.LITTLE_ENDIAN);
-                    client.flush(ack, 0, ack.capacity());
+                    unacknowledged.addInt(mqttDataEx.subscribe().packetId());
+
+                    if (unacknowledged.size() > ackLag)
+                    {
+                        ack.putShort(ackPacketIdOffset, (short) unacknowledged.pollInt(), ByteOrder.LITTLE_ENDIAN);
+                        client.flush(ack, 0, ack.capacity());
+                    }
                     break;
                 case FlushFW.TYPE_ID:
                     final FlushFW flush = flushRO.wrap(buffer, index, index + length);
@@ -1297,6 +1492,43 @@ public class MqttKafkaProxyBM
 
             idle.add(opened.get(committed));
             kafka.deliver(idle.poll().index);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class LaggedDeliverFixture extends DeliverFixture
+    {
+        @Param({"0", "100", "1000"})
+        public int ackLag;
+
+        @Override
+        int ackLag()
+        {
+            return ackLag;
+        }
+
+        @Override
+        void prime()
+        {
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                final int subscriber = idle.poll().index;
+
+                for (int message = 0; message <= ackLag; message++)
+                {
+                    kafka.deliver(subscriber);
+                }
+
+                complete();
+            }
+        }
+
+        @Override
+        void complete()
+        {
+            await(committedAvailable, "message delivered and acknowledged");
+
+            kafka.deliver(committed);
         }
     }
 
