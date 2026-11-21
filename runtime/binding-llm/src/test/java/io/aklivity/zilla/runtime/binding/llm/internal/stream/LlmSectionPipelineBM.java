@@ -119,11 +119,8 @@ public class LlmSectionPipelineBM
     private final LlmSectionAttributes none = new LlmSectionAttributes();
 
     private LlmSectionPipeline toolCallOpenaiToCanonical;
-    private LlmSectionPipeline toolDefinitionGeminiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiFromCanonical;
-    private LlmSectionPipeline toolCallGeminiToCanonical;
     private LlmSectionPipeline toolCallGeminiFromCanonical;
-    private LlmSectionPipeline imageGeminiToCanonical;
     private LlmSectionPipeline imageGeminiFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
     private LlmSectionPipeline citationsResponsesToCanonical;
@@ -146,11 +143,8 @@ public class LlmSectionPipelineBM
     public void init()
     {
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
-        toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
         toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical(true));
-        toolCallGeminiToCanonical = pipeline(new LlmGeminiToolCallToCanonical());
         toolCallGeminiFromCanonical = pipeline(new LlmGeminiToolCallFromCanonical(true));
-        imageGeminiToCanonical = pipeline(LlmGeminiMediaToCanonical.image());
         imageGeminiFromCanonical = pipeline(LlmGeminiMediaFromCanonical.image(true));
 
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
@@ -189,12 +183,6 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int toolDefinitionToCanonicalGemini()
-    {
-        return run(toolDefinitionGeminiToCanonical, none, toolDefinitionGeminiNative, toolDefinitionGeminiNative.capacity());
-    }
-
-    @Benchmark
     public int toolDefinitionFromCanonicalGemini()
     {
         return run(toolDefinitionGeminiFromCanonical, none, toolDefinitionGeminiCanonical,
@@ -202,34 +190,10 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int toolCallToCanonicalGemini()
-    {
-        return run(toolCallGeminiToCanonical, toolCallAttributes, toolCallGeminiNative, toolCallGeminiNative.capacity());
-    }
-
-    @Benchmark
-    public int toolCallToCanonicalGeminiFragmented()
-    {
-        return run(toolCallGeminiToCanonical, toolCallAttributes, toolCallGeminiNative, WINDOW);
-    }
-
-    @Benchmark
     public int toolCallFromCanonicalGemini()
     {
         return run(toolCallGeminiFromCanonical, toolCallAttributes, toolCallGeminiCanonical,
             toolCallGeminiCanonical.capacity());
-    }
-
-    @Benchmark
-    public int imageInlineToCanonicalGemini()
-    {
-        return run(imageGeminiToCanonical, imageAttributes, imageGeminiNative, imageGeminiNative.capacity());
-    }
-
-    @Benchmark
-    public int imageInlineToCanonicalGeminiFragmented()
-    {
-        return run(imageGeminiToCanonical, imageAttributes, imageGeminiNative, WINDOW);
     }
 
     @Benchmark
