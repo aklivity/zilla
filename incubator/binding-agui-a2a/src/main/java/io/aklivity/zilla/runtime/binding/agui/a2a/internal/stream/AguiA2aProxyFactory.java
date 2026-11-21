@@ -613,8 +613,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             long traceId)
         {
             final AguiA2aRetained retained = requestDecoder.retained();
-            final AguiA2aMessageAssembler resolver = new AguiA2aMessageAssembler();
-            final int resumes = resolver.resumeCount(retained);
+            final int resumes = retained.resumeCount();
 
             boolean cancelled = false;
             boolean rejected = false;
@@ -623,14 +622,14 @@ public final class AguiA2aProxyFactory implements BindingHandler
             {
                 for (int index = 0; resumeTaskId == null && index < resumes; index++)
                 {
-                    final String interruptId = resolver.resumeInterruptId(retained, index);
+                    final String interruptId = retained.resumeInterruptId(index);
                     final String taskId = owners.resolveHandle(key, AguiA2aHandleKind.INTERRUPT, interruptId);
 
                     if (taskId != null)
                     {
                         resumeTaskId = taskId;
                         resumeInterruptId = interruptId;
-                        cancelled = resolver.resumeStatus(retained, index) == ResumeStatus.CANCELLED;
+                        cancelled = retained.resumeStatus(index) == ResumeStatus.CANCELLED;
                     }
                 }
 
@@ -649,7 +648,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             }
             else
             {
-                this.assembler = resolver;
+                this.assembler = new AguiA2aMessageAssembler();
                 openReply(cancelled);
 
                 if (cancelled)
