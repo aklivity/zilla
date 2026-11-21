@@ -547,24 +547,36 @@ Each direction of a stream has its own credit, and each side of a binding has
 its own decode and encode slot buffers, so the credit on one side is
 independent of the credit on the other. Honor it exactly; never emit more than
 the downstream credit allows and never rely on headroom or on rejecting an
-overshoot.
+overshoot. Flow control is streaming: write what the credit allows, record
+where processing stopped, and resume from that point when more credit arrives.
 
-- Consume input only as far as the downstream credit allows. Size the decode
-  window from the downstream credit (see `windowFor` and `available()` in the
-  llm server factories), leave the rest in the decode slot, and re-run decode
-  when the downstream WINDOW arrives.
-- For a transform whose output can be larger than its input, divide the
-  available credit by the worst-case growth of that transform when sizing the
-  window, so the output cannot exceed the credit. Derive the growth from the
-  transform, not from a guess.
-- When a condition that changes how the window is sized flips mid-window, end
-  the window there so the next window is sized for the new condition. The
-  `gated` check on stream creation in `decodeWindow` is the existing example.
+- Consume input only as far as the exact downstream credit allows. Write into
+  the encode slot until it is full or the credit is spent, leave the rest of
+  the input in the decode slot, record the resume point in the decoder state
+  and its named fields (for example the `taken` offset or a partially written
+  piece), and resume from that point when the downstream WINDOW arrives. A
+  piece larger than the credit is written in parts; it is never rejected and
+  never held back whole until the credit covers it.
+- Never pre-compute worst-case output growth. Do not divide the credit by an
+  expansion or growth factor, subtract a fixed slack or headroom, or test that
+  the output will fit before consuming input. The cost of a write is what the
+  write appended; consume exactly the input that the output written under
+  credit covers, so a transform whose output is larger than its input
+  (escaping, framing, key renaming) consumes less input per window.
+- When a condition that changes how the next write is produced flips
+  mid-window, stop consuming there and resume on the next pass under the new
+  condition. The `gated` check on stream creation in `decodeWindow` is the
+  existing example.
 - Derive the upstream credit you grant from the room in your own slot, as the
-  client factories do with the encode slot, so buffering on one side never
-  leaks into the other.
-- Do not use fixed slack, a fraction of the credit, or a reject-on-overshoot
-  guard as a substitute for sizing by credit.
+  client factories do with the encode slot, and grant it again as soon as
+  consumed input frees room, so buffering on one side never leaks into the
+  other and the upstream never waits while room exists.
+- Do not use fixed slack, a fraction of the credit, a growth divisor, a
+  worst-case reserve, a fits-before-consume check, or a reject-on-overshoot
+  guard as a substitute for writing under exact credit. When the credit runs
+  out mid-piece, pause; do not fail.
+- Count the downstream padding per frame as each frame is written; never
+  reserve it ahead for frames that are not yet written.
 
 ---
 
@@ -630,7 +642,9 @@ project — see [../specs/AGENTS.md](../specs/AGENTS.md).
 - Run with: `./mvnw test -pl runtime/binding-<n>`
 
 Stream handler state machines are covered exhaustively — every state
-transition, every error path, every flow-control edge case — by k3po-based
+transition, every error path, every flow-control edge case (partial credit,
+one-byte and exact-size windows, padded windows, credit withheld then released)
+— by k3po-based
 integration tests (`*IT.java`) driven by `.rpt` scripts against a live engine.
 This is the source of truth for protocol behaviour and the only place stream
 handler coverage should be exercised; see [../specs/AGENTS.md](../specs/AGENTS.md)
