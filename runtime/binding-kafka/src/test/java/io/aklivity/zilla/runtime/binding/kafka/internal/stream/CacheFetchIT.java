@@ -362,6 +362,9 @@ public class CacheFetchIT
     public void shouldReceiveMessageValueMetaWatch() throws Exception
     {
         partition.append(10L);
+        k3po.start();
+        k3po.awaitBarrier("META_WATCH_OPENED");
+        k3po.notifyBarrier("OPEN_META");
         k3po.finish();
     }
 

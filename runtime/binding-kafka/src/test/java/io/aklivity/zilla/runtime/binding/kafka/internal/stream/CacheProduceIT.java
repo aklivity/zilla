@@ -282,6 +282,9 @@ public class CacheProduceIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueMetaWatch() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("META_WATCH_OPENED");
+        k3po.notifyBarrier("OPEN_META");
         k3po.finish();
     }
 

@@ -58,6 +58,8 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read notify META_WATCH_OPENED
+
 connected
 
 write zilla:begin.ext ${kafka:beginEx()
