@@ -339,6 +339,7 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                 .addMethod(wrapWithArrayMethod())
                 .addMethod(iterateMethod())
                 .addMethod(rebuildMethod())
+                .addMethod(rebuildsMethod())
                 .addMethod(setMethod())
                 .addType(visitorInterface())
                 .build();
@@ -546,6 +547,15 @@ public final class FlyweightGenerator extends ClassSpecGenerator
                     .addStatement("iterable.forEach(action)")
                     .addStatement("return this")
                     .build();
+        }
+
+        private MethodSpec rebuildsMethod()
+        {
+            return methodBuilder("rebuilds")
+                .addModifiers(PUBLIC)
+                .returns(boolean.class)
+                .addStatement("return false")
+                .build();
         }
 
         private MethodSpec rebuildMethod()
