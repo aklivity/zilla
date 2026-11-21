@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.quote;
 
 import java.util.function.Consumer;
 
@@ -29,31 +28,6 @@ public class LlmCacheBreakpointDropTest
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
     private final Consumer<LlmSectionAttributes> both = id.andThen(name);
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiToolCall()
-    {
-        assertTransforms(new LlmOpenaiToolCallFromCanonical("openai/ccs"), both, null,
-            json("{" + BREAKPOINT + ",'arguments':{'city':'Paris'}}"),
-            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
-                quote(json("{'city':'Paris'}")) + "}}");
-    }
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiToolDefinition()
-    {
-        assertTransforms(new LlmOpenaiToolDefinitionFromCanonical("openai/ccs"),
-            json("{'type':'function','function':{'name':'ping','strict':true," + BREAKPOINT + "}}"),
-            json("{'type':'function','function':{'name':'ping','strict':true}}"));
-    }
-
-    @Test
-    public void shouldDropBreakpointFromOpenaiImage()
-    {
-        assertTransforms(LlmOpenaiMediaFromCanonical.image("openai/ccs"),
-            json("{'type':'image_url'," + BREAKPOINT + ",'image_url':{'url':'https://example.com/a.png'}}"),
-            json("{'type':'image_url','image_url':{'url':'https://example.com/a.png'}}"));
-    }
 
     @Test
     public void shouldDropBreakpointFromGeminiToolCall()

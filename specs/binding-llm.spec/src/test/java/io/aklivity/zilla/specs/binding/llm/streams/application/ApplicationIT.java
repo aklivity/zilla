@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
 public class ApplicationIT
 {
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/llm/streams/application");
 
@@ -2130,78 +2131,6 @@ public class ApplicationIT
         "${app}/openai.section.tool.definition.name.last/client",
         "${app}/openai.section.tool.definition.name.last/server"})
     public void shouldOpenaiSectionToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.definition.name.last.12k/client",
-        "${app}/openai.section.tool.definition.name.last.12k/server"})
-    public void shouldOpenaiSectionToolDefinitionNameLast12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.no.id.12k/client",
-        "${app}/openai.section.tool.call.no.id.12k/server"})
-    public void shouldOpenaiSectionToolCallNoId12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.id.last.12k/client",
-        "${app}/openai.section.tool.call.id.last.12k/server"})
-    public void shouldOpenaiSectionToolCallIdLast12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.name.last.12k/client",
-        "${app}/openai.section.tool.call.name.last.12k/server"})
-    public void shouldOpenaiSectionToolCallNameLast12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.definition.name.last.100k/client",
-        "${app}/openai.section.tool.definition.name.last.100k/server"})
-    public void shouldOpenaiSectionToolDefinitionNameLast100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.no.id.100k/client",
-        "${app}/openai.section.tool.call.no.id.100k/server"})
-    public void shouldOpenaiSectionToolCallNoId100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.id.last.100k/client",
-        "${app}/openai.section.tool.call.id.last.100k/server"})
-    public void shouldOpenaiSectionToolCallIdLast100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.call.name.last.100k/client",
-        "${app}/openai.section.tool.call.name.last.100k/server"})
-    public void shouldOpenaiSectionToolCallNameLast100k() throws Exception
     {
         k3po.finish();
     }
@@ -9211,6 +9140,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.response.controls.padded/client",
+        "${app}/openai.response.controls.padded/server"})
+    public void shouldOpenaiResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.response.controls.many.stream/client",
         "${app}/openai.response.controls.many.stream/server"})
     public void shouldOpenaiResponseControlsManyStream() throws Exception
@@ -9817,6 +9755,168 @@ public class ApplicationIT
         "${app}/transform.response.tool.call.100k/client",
         "${app}/transform.response.tool.call.100k/server"})
     public void shouldForwardTransformResponseToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.user.straddle/client",
+        "${app}/openai.request.user.straddle/server"})
+    public void shouldForwardOpenaiRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.effort.straddle/client",
+        "${app}/openai.request.reasoning.effort.straddle/server"})
+    public void shouldForwardOpenaiRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier.window/client",
+        "${app}/openai.request.service.tier.window/server"})
+    public void shouldForwardOpenaiRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.user.window/client",
+        "${app}/openai.request.user.window/server"})
+    public void shouldForwardOpenaiRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier.straddle/client",
+        "${app}/openai.request.service.tier.straddle/server"})
+    public void shouldForwardOpenaiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.stop.straddle/client",
+        "${app}/openai.request.stop.straddle/server"})
+    public void shouldForwardOpenaiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.stop.window/client",
+        "${app}/openai.request.stop.window/server"})
+    public void shouldForwardOpenaiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.budget.straddle/client",
+        "${app}/openai.request.reasoning.budget.straddle/server"})
+    public void shouldForwardOpenaiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.effort.window/client",
+        "${app}/openai.request.reasoning.effort.window/server"})
+    public void shouldForwardOpenaiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.reasoning.budget.window/client",
+        "${app}/openai.request.reasoning.budget.window/server"})
+    public void shouldForwardOpenaiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.definition.name.last.12k/client",
+        "${app}/openai.section.tool.definition.name.last.12k/server"})
+    public void shouldOpenaiSectionToolDefinitionNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.no.id.12k/client",
+        "${app}/openai.section.tool.call.no.id.12k/server"})
+    public void shouldOpenaiSectionToolCallNoId12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.id.last.12k/client",
+        "${app}/openai.section.tool.call.id.last.12k/server"})
+    public void shouldOpenaiSectionToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.name.last.12k/client",
+        "${app}/openai.section.tool.call.name.last.12k/server"})
+    public void shouldOpenaiSectionToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.definition.name.last.100k/client",
+        "${app}/openai.section.tool.definition.name.last.100k/server"})
+    public void shouldOpenaiSectionToolDefinitionNameLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.no.id.100k/client",
+        "${app}/openai.section.tool.call.no.id.100k/server"})
+    public void shouldOpenaiSectionToolCallNoId100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.id.last.100k/client",
+        "${app}/openai.section.tool.call.id.last.100k/server"})
+    public void shouldOpenaiSectionToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.name.last.100k/client",
+        "${app}/openai.section.tool.call.name.last.100k/server"})
+    public void shouldOpenaiSectionToolCallNameLast100k() throws Exception
     {
         k3po.finish();
     }

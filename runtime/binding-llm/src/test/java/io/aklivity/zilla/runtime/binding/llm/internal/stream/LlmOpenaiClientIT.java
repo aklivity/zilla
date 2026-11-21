@@ -521,6 +521,17 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.section.user.text.100k.parts/client",
+        "${net}/openai.section.user.text.100k.parts/server"})
+    public void shouldEncodeOpenaiSectionUserText100kWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.section.tool.result.100k.parts/client",
         "${net}/openai.section.tool.result.100k.parts/server"})
@@ -850,6 +861,17 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.tool.call.100k/client",
         "${net}/openai.section.tool.call.100k/server"})
     public void shouldEncodeOpenaiSectionToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.section.tool.call.100k/client",
+        "${net}/openai.section.tool.call.100k/server"})
+    public void shouldEncodeOpenaiSectionToolCall100kWithSmallSlots() throws Exception
     {
         k3po.finish();
     }
@@ -2977,6 +2999,16 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.controls.padded/client",
+        "${net}/openai.response.controls.many/server"})
+    public void shouldDecodeOpenaiResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
     @Specification({
@@ -3003,6 +3035,106 @@ public class LlmOpenaiClientIT
         "${app}/openai.circuit.other.model/client",
         "${net}/openai.circuit.other.model/server"})
     public void shouldScopeCircuitToOtherModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.user.straddle/client",
+        "${net}/openai.request.user.straddle/server"})
+    public void shouldEncodeOpenaiRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.effort.straddle/client",
+        "${net}/openai.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeOpenaiRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.service.tier.window/client",
+        "${net}/openai.request.service.tier.window/server"})
+    public void shouldEncodeOpenaiRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.user.window/client",
+        "${net}/openai.request.user.window/server"})
+    public void shouldEncodeOpenaiRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.service.tier.straddle/client",
+        "${net}/openai.request.service.tier.straddle/server"})
+    public void shouldEncodeOpenaiRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.stop.straddle/client",
+        "${net}/openai.request.stop.straddle/server"})
+    public void shouldEncodeOpenaiRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.stop.window/client",
+        "${net}/openai.request.stop.window/server"})
+    public void shouldEncodeOpenaiRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.budget.straddle/client",
+        "${net}/openai.request.reasoning.budget.straddle/server"})
+    public void shouldEncodeOpenaiRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.effort.window/client",
+        "${net}/openai.request.reasoning.effort.window/server"})
+    public void shouldEncodeOpenaiRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.reasoning.budget.window/client",
+        "${net}/openai.request.reasoning.budget.window/server"})
+    public void shouldEncodeOpenaiRequestReasoningBudgetWindow() throws Exception
     {
         k3po.finish();
     }
