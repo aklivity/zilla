@@ -14,38 +14,55 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
-import org.agrona.collections.Int2ObjectHashMap;
+import java.util.Arrays;
 
-final class MqttKafkaPacketIds<T>
+import org.agrona.collections.Int2IntHashMap;
+
+final class MqttKafkaPacketIds
 {
     static final int NO_PACKET_ID = 0;
     static final int MAXIMUM_PACKET_ID = 0xFFFF;
 
-    private final Int2ObjectHashMap<T> inflight;
+    private static final int NO_SLOT = -1;
+    private static final int INITIAL_CAPACITY = 16;
 
+    private final Int2IntHashMap slots;
+
+    private long[] topicKeys;
+    private int[] partitionIds;
+    private long[] offsets;
+    private int[] freeSlots;
+    private int freeCount;
+    private int slotCount;
     private int nextPacketId;
 
     MqttKafkaPacketIds()
     {
-        this.inflight = new Int2ObjectHashMap<>();
+        this.slots = new Int2IntHashMap(NO_SLOT);
+        this.topicKeys = new long[INITIAL_CAPACITY];
+        this.partitionIds = new int[INITIAL_CAPACITY];
+        this.offsets = new long[INITIAL_CAPACITY];
+        this.freeSlots = new int[INITIAL_CAPACITY];
         this.nextPacketId = 1;
     }
 
     int allocate(
-        T value)
+        long topicKey,
+        int partitionId,
+        long offset)
     {
         int packetId = NO_PACKET_ID;
 
-        if (inflight.size() < MAXIMUM_PACKET_ID)
+        if (slots.size() < MAXIMUM_PACKET_ID)
         {
-            while (inflight.containsKey(nextPacketId))
+            while (slots.containsKey(nextPacketId))
             {
                 nextPacketId = advance(nextPacketId);
             }
 
             packetId = nextPacketId;
             nextPacketId = advance(nextPacketId);
-            inflight.put(packetId, value);
+            store(packetId, topicKey, partitionId, offset);
         }
 
         return packetId;
@@ -53,21 +70,82 @@ final class MqttKafkaPacketIds<T>
 
     void reserve(
         int packetId,
-        T value)
+        long topicKey,
+        int partitionId,
+        long offset)
     {
-        inflight.put(packetId, value);
+        store(packetId, topicKey, partitionId, offset);
     }
 
-    T get(
+    boolean contains(
         int packetId)
     {
-        return inflight.get(packetId);
+        return slots.containsKey(packetId);
     }
 
-    T release(
+    long topicKey(
         int packetId)
     {
-        return inflight.remove(packetId);
+        return topicKeys[slots.get(packetId)];
+    }
+
+    int partitionId(
+        int packetId)
+    {
+        return partitionIds[slots.get(packetId)];
+    }
+
+    long offset(
+        int packetId)
+    {
+        return offsets[slots.get(packetId)];
+    }
+
+    boolean release(
+        int packetId)
+    {
+        final int slot = slots.remove(packetId);
+        final boolean released = slot != NO_SLOT;
+
+        if (released)
+        {
+            freeSlots[freeCount++] = slot;
+        }
+
+        return released;
+    }
+
+    private void store(
+        int packetId,
+        long topicKey,
+        int partitionId,
+        long offset)
+    {
+        int slot = slots.get(packetId);
+
+        if (slot == NO_SLOT)
+        {
+            slot = freeCount > 0 ? freeSlots[--freeCount] : newSlot();
+            slots.put(packetId, slot);
+        }
+
+        topicKeys[slot] = topicKey;
+        partitionIds[slot] = partitionId;
+        offsets[slot] = offset;
+    }
+
+    private int newSlot()
+    {
+        if (slotCount == topicKeys.length)
+        {
+            final int capacity = slotCount << 1;
+            topicKeys = Arrays.copyOf(topicKeys, capacity);
+            partitionIds = Arrays.copyOf(partitionIds, capacity);
+            offsets = Arrays.copyOf(offsets, capacity);
+            freeSlots = Arrays.copyOf(freeSlots, capacity);
+        }
+
+        return slotCount++;
     }
 
     private static int advance(
