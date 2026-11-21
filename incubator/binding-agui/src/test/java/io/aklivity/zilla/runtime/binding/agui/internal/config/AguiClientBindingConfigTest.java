@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.agui.AguiBindingConfig;
 import io.aklivity.zilla.config.binding.agui.AguiOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
@@ -71,6 +72,71 @@ public class AguiClientBindingConfigTest
 
         assertThat(config.guard, nullValue());
         assertThat(config.authorizationOf(1L), nullValue());
+    }
+
+    @Test
+    public void shouldResolveRouteByAgent()
+    {
+        final AguiClientBindingConfig config = routed();
+
+        assertThat(config.resolve("agent-0", 1L).path, equalTo("/agents/agent-0"));
+        assertThat(config.resolve("agent-1", 1L).path, equalTo("/routed"));
+        assertThat(config.resolve("agent-2", 1L), nullValue());
+    }
+
+    @Test
+    public void shouldResolveRouteWithoutWithToServerPath()
+    {
+        final BindingConfig binding = AguiBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.CLIENT)
+            .options()
+                .server("http://localhost:8080/agent")
+                .build()
+            .route()
+                .exit("net1")
+                .build()
+            .build();
+
+        binding.routes.forEach(r -> r.authorized = (a, f) -> true);
+        final AguiClientBindingConfig config = new AguiClientBindingConfig(binding, null);
+
+        assertThat(config.resolve("any", 1L).path, equalTo("/agent"));
+    }
+
+    private static AguiClientBindingConfig routed()
+    {
+        final BindingConfig binding = AguiBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.CLIENT)
+            .options()
+                .server("http://localhost:8080/agent")
+                .build()
+            .route()
+                .exit("net1")
+                .when()
+                    .agent("agent-0")
+                    .build()
+                .with()
+                    .path("/agents/agent-0")
+                    .build()
+                .build()
+            .route()
+                .exit("net2")
+                .when()
+                    .agent("agent-1")
+                    .build()
+                .with()
+                    .path("/routed")
+                    .build()
+                .build()
+            .build();
+
+        binding.routes.forEach(r -> r.authorized = (a, f) -> true);
+
+        return new AguiClientBindingConfig(binding, null);
     }
 
     private static AguiClientBindingConfig config(

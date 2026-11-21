@@ -31,9 +31,9 @@ public final class AguiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonO
     public JsonObject adaptToJson(
         WithConfig with)
     {
-        final AguiWithConfig aguiWith = (AguiWithConfig) with;
+        AguiWithConfig aguiWith = (AguiWithConfig) with;
 
-        final JsonObjectBuilder object = Json.createObjectBuilder();
+        JsonObjectBuilder object = Json.createObjectBuilder();
 
         if (aguiWith.agent != null)
         {
@@ -52,17 +52,9 @@ public final class AguiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonO
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        final String agent = object.containsKey(AGENT_NAME)
-            ? object.getString(AGENT_NAME)
-            : null;
-
-        final String path = object.containsKey(PATH_NAME)
-            ? object.getString(PATH_NAME)
-            : null;
-
         return AguiWithConfig.builder()
-            .agent(agent)
-            .path(path)
+            .agent(object.containsKey(AGENT_NAME) ? object.getString(AGENT_NAME) : null)
+            .path(object.containsKey(PATH_NAME) ? object.getString(PATH_NAME) : null)
             .build();
     }
 }

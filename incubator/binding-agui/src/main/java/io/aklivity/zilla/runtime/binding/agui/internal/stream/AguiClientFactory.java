@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiEventDecoder;
 import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiEventSink;
 import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiRunInputEncoder;
 import io.aklivity.zilla.runtime.binding.agui.internal.config.AguiClientBindingConfig;
-import io.aklivity.zilla.runtime.binding.agui.internal.config.AguiRouteConfig;
+import io.aklivity.zilla.runtime.binding.agui.internal.config.AguiClientRouteConfig;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AbortFW;
@@ -194,11 +194,11 @@ public final class AguiClientFactory implements AguiStreamFactory
         MessageConsumer newStream = null;
 
         final AguiClientBindingConfig binding = bindings.get(routedId);
-        final AguiRouteConfig route = binding != null ? binding.resolve(authorization) : null;
-        final AguiBeginExFW beginEx = route != null ? begin.extension().get(aguiBeginExRO::tryWrap) : null;
-        if (beginEx != null)
+        final AguiBeginExFW beginEx = binding != null ? begin.extension().get(aguiBeginExRO::tryWrap) : null;
+        final AguiClientRouteConfig route = beginEx != null ? binding.resolve(beginEx.agent().asString(), authorization) : null;
+        if (route != null)
         {
-            newStream = new AguiClient(sender, originId, routedId, initialId, authorization, route.id, binding,
+            newStream = new AguiClient(sender, originId, routedId, initialId, authorization, route.id, route.path, binding,
                 beginEx.threadId().asString(), beginEx.runId().asString(), beginEx.parentRunId().asString())::onAppMessage;
         }
 
@@ -223,6 +223,7 @@ public final class AguiClientFactory implements AguiStreamFactory
         private final long replyId;
         private final long authorization;
         private final long resolvedId;
+        private final String path;
         private final AguiClientBindingConfig binding;
         private final String threadId;
         private final String runId;
@@ -277,6 +278,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long initialId,
             long authorization,
             long resolvedId,
+            String path,
             AguiClientBindingConfig binding,
             String threadId,
             String runId,
@@ -289,6 +291,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.resolvedId = resolvedId;
+            this.path = path;
             this.binding = binding;
             this.threadId = threadId;
             this.runId = runId;
@@ -524,7 +527,7 @@ public final class AguiClientFactory implements AguiStreamFactory
                     .headersItem(h -> h.name(HTTP_HEADER_METHOD).value(HTTP_METHOD_POST))
                     .headersItem(h -> h.name(HTTP_HEADER_SCHEME).value(binding.serverScheme))
                     .headersItem(h -> h.name(HTTP_HEADER_AUTHORITY).value(binding.serverAuthority))
-                    .headersItem(h -> h.name(HTTP_HEADER_PATH).value(binding.serverPath))
+                    .headersItem(h -> h.name(HTTP_HEADER_PATH).value(path))
                     .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .headersItem(h -> h.name(HTTP_HEADER_ACCEPT).value(CONTENT_TYPE_EVENT_STREAM))
                     .headersItem(h -> h.name(HTTP_HEADER_AUTHORIZATION).value(credentials))
