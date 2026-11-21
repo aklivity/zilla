@@ -39,6 +39,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
+                            .header("a2a-extensions", "https://example.com/ext/v1")
                             .build()}
 write flush
 

@@ -68,6 +68,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
+                           .header("a2a-extensions", "https://example.com/ext/v1")
                            .build()}
 
 read '{"jsonrpc":"2.0","id":1,"result":{"message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}}}'
