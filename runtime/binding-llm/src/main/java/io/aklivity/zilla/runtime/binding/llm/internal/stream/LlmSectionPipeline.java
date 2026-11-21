@@ -49,7 +49,8 @@ final class LlmSectionPipeline
 
     private byte[] window;
     private int tailLength;
-    private int unconsumedLength;
+    private int consumedLength;
+    private int producedLength;
     private int held = LlmEdgeTrim.BEFORE;
     private Output edgeTarget;
     private Output edgeOutput;
@@ -103,7 +104,7 @@ final class LlmSectionPipeline
         boolean last,
         Output output)
     {
-        return feed(buffer, offset, length, last, output, true);
+        return feedWindow(buffer, offset, length, last, output);
     }
 
     // Forwards what the pipeline produces without its first and last bytes, such as the braces of an object. The
@@ -122,21 +123,33 @@ final class LlmSectionPipeline
 
         edgeTarget = output;
 
-        return feed(buffer, offset, length, last, edgeOutput, true);
+        return feedWindow(buffer, offset, length, last, edgeOutput);
     }
 
-    // The bytes the parser has not consumed are kept for the next feed unless the caller holds them, in which
-    // case unconsumed() reports how many of the last bytes fed it should present again.
-    boolean feed(
+    // The caller owns the input and its offsets. The window [offset, limit) is presented again, unchanged, after
+    // SUSPENDED, which is returned when the output limit is used up or the output buffer could not hold the next
+    // piece. After STARVED the caller presents the bytes from offset + consumed() at the front of the next window.
+    Status advance(
         DirectBufferEx buffer,
         int offset,
-        int length,
+        int limit,
         boolean last,
         Output output,
+        int outputLimit)
+    {
+        return advance(buffer, offset, limit, last, output, outputLimit, false);
+    }
+
+    private Status advance(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        boolean last,
+        Output output,
+        int outputLimit,
         boolean retain)
     {
-        final int windowLength = tailLength + length;
-        unconsumedLength = 0;
+        Status status;
 
         if (completed)
         {
@@ -146,52 +159,55 @@ final class LlmSectionPipeline
                 closed = true;
             }
 
-            return true;
+            consumedLength = limit - offset;
+            status = Status.COMPLETED;
         }
-
-        DirectBufferEx input = buffer;
-        int progress = offset;
-        int limit = offset + length;
-
-        if (tailLength > 0)
+        else
         {
-            reserve(windowLength);
-            buffer.getBytes(offset, window, tailLength, length);
-            windowBuffer.wrap(window, 0, windowLength);
+            int progress = offset;
+            int remaining = outputLimit;
+            int produced;
 
-            input = windowBuffer;
-            progress = 0;
-            limit = windowLength;
-        }
+            producedLength = 0;
 
-        Status status;
-
-        do
-        {
-            final JsonPipelineResult result = pipeline.transform(input, progress, limit, last,
-                outputBuffer, 0, outputBuffer.capacity());
-            status = result.status();
-            progress += result.consumed();
-
-            // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
-            // slot, so what the parser has not consumed is kept before the output is put
-            unconsumedLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
-            tailLength = retain ? unconsumedLength : 0;
-            retain(input, progress);
-
-            final boolean done = status == Status.COMPLETED && last;
-
-            if (result.produced() > 0 || done)
+            do
             {
-                output.put(outputBuffer, 0, result.produced(), done);
-                closed |= done;
+                final JsonPipelineResult result = pipeline.transform(buffer, progress, limit, last,
+                    outputBuffer, 0, Math.min(outputBuffer.capacity(), remaining));
+                status = result.status();
+                progress += result.consumed();
+                produced = result.produced();
+                remaining -= produced;
+                producedLength += produced;
+
+                // the input may be a pool slot's shared buffer, which the output callback can re-wrap onto another
+                // slot, so what the parser has not consumed is kept before the output is put
+                if (retain)
+                {
+                    tailLength = status == Status.STARVED || status == Status.ADVANCED ? limit - progress : 0;
+                    retain(buffer, progress);
+                }
+
+                final boolean done = status == Status.COMPLETED && last;
+
+                if (produced > 0 || done)
+                {
+                    output.put(outputBuffer, 0, produced, done);
+                    closed |= done;
+                }
             }
+            while (status == Status.SUSPENDED && produced > 0 && remaining > 0);
+
+            completed = status == Status.COMPLETED;
+            consumedLength = switch (status)
+            {
+            case STARVED, ADVANCED -> progress - offset;
+            case SUSPENDED -> 0;
+            default -> limit - offset;
+            };
         }
-        while (status == Status.SUSPENDED);
 
-        completed = status == Status.COMPLETED;
-
-        return status != Status.REJECTED;
+        return status;
     }
 
     // Drives the next value of the source parser this pipeline was built over, which keeps the window, the
@@ -226,9 +242,14 @@ final class LlmSectionPipeline
         return completed;
     }
 
-    int unconsumed()
+    int consumed()
     {
-        return unconsumedLength;
+        return consumedLength;
+    }
+
+    int produced()
+    {
+        return producedLength;
     }
 
     private void putEdges(
@@ -238,6 +259,37 @@ final class LlmSectionPipeline
         boolean last)
     {
         held = LlmEdgeTrim.put(held, edgeTarget, buffer, offset, length, last);
+    }
+
+    // Copies the input after the bytes kept from the previous feed into a window of this pipeline, so an output
+    // callback that re-wraps the caller's buffer cannot disturb what the parser has not consumed.
+    private boolean feedWindow(
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last,
+        Output output)
+    {
+        final int windowLength = tailLength + length;
+
+        DirectBufferEx input = buffer;
+        int from = offset;
+        int limit = offset + length;
+
+        if (tailLength > 0)
+        {
+            reserve(windowLength);
+            buffer.getBytes(offset, window, tailLength, length);
+            windowBuffer.wrap(window, 0, windowLength);
+
+            input = windowBuffer;
+            from = 0;
+            limit = windowLength;
+        }
+
+        final Status status = advance(input, from, limit, last, output, Integer.MAX_VALUE, true);
+
+        return status != Status.REJECTED;
     }
 
     private void retain(

@@ -219,6 +219,16 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.response.controls.padded/client",
+        "${net}/openai.responses.response.controls.many/server"})
+    public void shouldRestoreOpenaiResponsesResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.response.controls.stream/client",
         "${net}/openai.responses.response.controls.stream/server"})
     public void shouldRestoreOpenaiResponsesResponseControlsStream() throws Exception

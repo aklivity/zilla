@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 
 final class LlmToolChoice
 {
@@ -185,6 +186,46 @@ final class LlmToolChoice
         }
 
         return transform.endLoop(loopBit);
+    }
+
+    void emitCanonical(
+        JsonGeneratorEx generator)
+    {
+        switch (kind)
+        {
+        case MODE:
+            generator.write(mode);
+            break;
+        case FUNCTION:
+            generator.writeStartObject()
+                .write(TYPE, FUNCTION_MEMBER)
+                .writeStartObject(FUNCTION_MEMBER)
+                .write(NAME, name)
+                .writeEnd()
+                .writeEnd();
+            break;
+        case ALLOWED:
+            generator.writeStartObject()
+                .write(TYPE, ALLOWED_TOOLS)
+                .writeStartObject(ALLOWED_TOOLS)
+                .write(MODE_MEMBER, mode)
+                .writeStartArray(TOOLS);
+
+            for (int index = 0; index < names.size(); index++)
+            {
+                generator.writeStartObject()
+                    .write(TYPE, FUNCTION_MEMBER)
+                    .writeStartObject(FUNCTION_MEMBER)
+                    .write(NAME, names.get(index))
+                    .writeEnd()
+                    .writeEnd();
+            }
+
+            generator.writeEnd().writeEnd().writeEnd();
+            break;
+        default:
+            break;
+        }
     }
 
     boolean emitResponses(
