@@ -24,6 +24,8 @@ public final class A2aState
     private static final int REPLY_OPENING = 0x02;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
+    private static final int REPLY_ABORTING = 0x100;
+    private static final int REPLY_FRAMING = 0x200;
 
     public static int openingInitial(
         int state)
@@ -107,6 +109,30 @@ public final class A2aState
         int state)
     {
         return state | REPLY_CLOSED;
+    }
+
+    public static int abortingReply(
+        int state)
+    {
+        return state | REPLY_ABORTING;
+    }
+
+    public static boolean replyAborting(
+        int state)
+    {
+        return (state & REPLY_ABORTING) != 0;
+    }
+
+    public static int framingReply(
+        int state)
+    {
+        return state | REPLY_FRAMING;
+    }
+
+    public static boolean replyFraming(
+        int state)
+    {
+        return (state & REPLY_FRAMING) != 0;
     }
 
     public static boolean replyClosing(
