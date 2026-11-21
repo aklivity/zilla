@@ -88,8 +88,12 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionSignalFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateV1FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateV2FW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateV3FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSessionStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTime;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttWillSignalFW;
@@ -244,6 +248,35 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttSessionStateFW mqttSessionStateRO = new MqttSessionStateFW();
     private final MqttSessionStateFW.Builder mqttSessionStateRW = new MqttSessionStateFW.Builder();
+
+    private MqttKafkaBindingConfig resolveBinding;
+    private long resolveAuthorization;
+    private MqttSessionStateV1FW.Builder resolveStateV1;
+    private MqttSessionStateV2FW.Builder resolveStateV2;
+    private MqttSessionStateV3FW.Builder resolveStateV3;
+    private MqttTopicFilterV1FW resolveFilterV1;
+    private MqttTopicFilterV2FW resolveFilterV3;
+    private String resolveShareName;
+    private final Consumer<MqttTopicFilterV1FW.Builder> resolveSubscriptionV1Writer = f -> f
+        .subscriptionId(resolveFilterV1.subscriptionId())
+        .qos(resolveFilterV1.qos())
+        .flags(resolveFilterV1.flags())
+        .reasonCode(resolveSubscribeReasonCode(resolveBinding, resolveAuthorization, resolveFilterV1.pattern().asString()))
+        .pattern(resolveFilterV1.pattern());
+    private final Consumer<MqttTopicFilterV2FW.Builder> resolveSubscriptionV3Writer = f -> f
+        .subscriptionId(resolveFilterV3.subscriptionId())
+        .qos(grantedQos(resolveFilterV3, resolveShareName))
+        .flags(resolveFilterV3.flags())
+        .reasonCode(resolveSubscribeReasonCode(resolveBinding, resolveAuthorization,
+            resolveFilterV3.pattern().asString(), resolveShareName))
+        .pattern(resolveFilterV3.pattern())
+        .shareName(resolveFilterV3.shareName());
+    private final Consumer<MqttTopicFilterV1FW> resolveFilterV1Item = this::resolveSubscriptionV1;
+    private final Consumer<MqttTopicFilterV1FW> resolveFilterV2Item = this::resolveSubscriptionV2;
+    private final Consumer<MqttTopicFilterV2FW> resolveFilterV3Item = this::resolveSubscriptionV3;
+    private final Consumer<MqttSessionStateV1FW.Builder> resolveSessionStateV1Writer = this::resolveSessionStateV1;
+    private final Consumer<MqttSessionStateV2FW.Builder> resolveSessionStateV2Writer = this::resolveSessionStateV2;
+    private final Consumer<MqttSessionStateV3FW.Builder> resolveSessionStateV3Writer = this::resolveSessionStateV3;
     private final MqttSessionSignalFW mqttSessionSignalRO = new MqttSessionSignalFW();
     private final MqttWillMessageFW mqttWillRO = new MqttWillMessageFW();
     private final OctetsFW payloadRO = new OctetsFW();
@@ -470,9 +503,72 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     }
 
     private int grantedQos(
+        MqttTopicFilterV2FW filter,
+        String shareName)
+    {
+        return shareName != null ? Math.min(filter.qos(), SHARED_SUBSCRIBE_QOS_MAX) : filter.qos();
+    }
+
+    private void resolveSessionStateV1(
+        MqttSessionStateV1FW.Builder state)
+    {
+        resolveStateV1 = state;
+        mqttSessionStateRO.sessionStateV1().subscriptions().forEach(resolveFilterV1Item);
+    }
+
+    private void resolveSessionStateV2(
+        MqttSessionStateV2FW.Builder state)
+    {
+        resolveStateV2 = state;
+        mqttSessionStateRO.sessionStateV2().subscriptions().forEach(resolveFilterV2Item);
+    }
+
+    private void resolveSessionStateV3(
+        MqttSessionStateV3FW.Builder state)
+    {
+        resolveStateV3 = state;
+        mqttSessionStateRO.sessionStateV3().subscriptions().forEach(resolveFilterV3Item);
+    }
+
+    private void resolveSubscriptionV1(
+        MqttTopicFilterV1FW filter)
+    {
+        resolveFilterV1 = filter;
+        resolveStateV1.subscriptionsItem(resolveSubscriptionV1Writer);
+    }
+
+    private void resolveSubscriptionV2(
+        MqttTopicFilterV1FW filter)
+    {
+        resolveFilterV1 = filter;
+        resolveStateV2.subscriptionsItem(resolveSubscriptionV1Writer);
+    }
+
+    private void resolveSubscriptionV3(
         MqttTopicFilterV2FW filter)
     {
-        return filter.shareName().asString() != null ? Math.min(filter.qos(), SHARED_SUBSCRIBE_QOS_MAX) : filter.qos();
+        resolveFilterV3 = filter;
+        resolveShareName = filter.shareName().asString();
+        resolveStateV3.subscriptionsItem(resolveSubscriptionV3Writer);
+    }
+
+    private int resolveSubscribeReasonCode(
+        MqttKafkaBindingConfig binding,
+        long authorization,
+        String topic)
+    {
+        return resolveSubscribeReasonCode(binding, authorization, topic, null);
+    }
+
+    private int resolveSubscribeReasonCode(
+        MqttKafkaBindingConfig binding,
+        long authorization,
+        String topic,
+        String share)
+    {
+        return binding != null
+            ? binding.resolveSubscribeReasonCode(authorization, topic, share)
+            : MqttKafkaBindingConfig.UNSPECIFIED_ERROR;
     }
 
     private final class MqttSessionProxy implements GroupOffsetsResetDelegate
@@ -1344,64 +1440,27 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization,
             OctetsFW payload)
         {
-            final MqttKafkaBindingConfig binding = supplyBinding.apply(routedId);
             final MqttSessionStateFW sessionState = mqttSessionStateRO.wrap(payload.buffer(), payload.offset(), payload.limit());
             final MqttSessionStateFW.Builder resolvedState =
                 mqttSessionStateRW.wrap(sessionStateBuffer, 0, sessionStateBuffer.capacity());
 
+            resolveBinding = supplyBinding.apply(routedId);
+            resolveAuthorization = authorization;
+
             switch (sessionState.kind())
             {
             case V1:
-                resolvedState.sessionStateV1(s -> sessionState.sessionStateV1().subscriptions().forEach(filter ->
-                    s.subscriptionsItem(f -> f
-                        .subscriptionId(filter.subscriptionId())
-                        .qos(filter.qos())
-                        .flags(filter.flags())
-                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
-                        .pattern(filter.pattern()))));
+                resolvedState.sessionStateV1(resolveSessionStateV1Writer);
                 break;
             case V2:
-                resolvedState.sessionStateV2(s -> sessionState.sessionStateV2().subscriptions().forEach(filter ->
-                    s.subscriptionsItem(f -> f
-                        .subscriptionId(filter.subscriptionId())
-                        .qos(filter.qos())
-                        .flags(filter.flags())
-                        .reasonCode(resolveSubscribeReasonCode(binding, authorization, filter.pattern().asString()))
-                        .pattern(filter.pattern()))));
+                resolvedState.sessionStateV2(resolveSessionStateV2Writer);
                 break;
             case V3:
-                resolvedState.sessionStateV3(s -> sessionState.sessionStateV3().subscriptions().forEach(filter ->
-                    s.subscriptionsItem(f -> f
-                        .subscriptionId(filter.subscriptionId())
-                        .qos(grantedQos(filter))
-                        .flags(filter.flags())
-                        .reasonCode(resolveSubscribeReasonCode(binding, authorization,
-                            filter.pattern().asString(), filter.shareName().asString()))
-                        .pattern(filter.pattern())
-                        .shareName(filter.shareName()))));
+                resolvedState.sessionStateV3(resolveSessionStateV3Writer);
                 break;
             }
 
             return resolvedState.build();
-        }
-
-        private int resolveSubscribeReasonCode(
-            MqttKafkaBindingConfig binding,
-            long authorization,
-            String topic)
-        {
-            return resolveSubscribeReasonCode(binding, authorization, topic, null);
-        }
-
-        private int resolveSubscribeReasonCode(
-            MqttKafkaBindingConfig binding,
-            long authorization,
-            String topic,
-            String share)
-        {
-            return binding != null
-                ? binding.resolveSubscribeReasonCode(authorization, topic, share)
-                : MqttKafkaBindingConfig.UNSPECIFIED_ERROR;
         }
 
         private void doMqttData(
