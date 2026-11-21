@@ -17,9 +17,12 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.UUID;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute;
 
 public class KafkaCacheTest
 {
@@ -33,6 +36,26 @@ public class KafkaCacheTest
         KafkaCacheTopic topic2 = cache.supplyTopic("test");
 
         assert topic1 == topic2;
+    }
+
+    @Test
+    public void shouldKeepTopicKeyStableWhileTopicIsCached() throws Exception
+    {
+        KafkaConfiguration config = new KafkaConfiguration();
+        KafkaCache cache = new KafkaCache(config, "cache");
+        char[] name = ("topic-" + UUID.randomUUID()).toCharArray();
+
+        String interned = new String(name);
+        int topicKey = KafkaCacheRoute.topicKey(interned);
+        cache.supplyTopic(new String(name));
+        interned = null;
+
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            System.gc();
+        }
+
+        assertEquals(topicKey, KafkaCacheRoute.topicKey(new String(name)));
     }
 
     @Test
