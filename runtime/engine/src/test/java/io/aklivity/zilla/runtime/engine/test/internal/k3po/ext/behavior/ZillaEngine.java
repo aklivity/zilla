@@ -305,7 +305,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         Runnable task,
         boolean immediateIfAligned)
     {
-        if (immediateIfAligned && thread.get() == Thread.currentThread())
+        if (immediateIfAligned && thread.get() == Thread.currentThread() && taskQueue.isEmpty())
         {
             task.run();
         }
