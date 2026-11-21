@@ -1033,4 +1033,70 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.declared/client",
+        "${agent}/extension.tools.declared/server"})
+    public void shouldRunExtensionToolsDeclared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.disabled/client",
+        "${agent}/extension.tools.disabled/server"})
+    public void shouldRunExtensionToolsDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.handle.unknown/client",
+        "${agent}/extension.tools.handle.unknown/server"})
+    public void shouldRunExtensionToolsHandleUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.call/client",
+        "${agent}/extension.tools.call/server"})
+    public void shouldRunExtensionToolsCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.call.text/client",
+        "${agent}/extension.tools.call.text/server"})
+    public void shouldRunExtensionToolsCallText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.round.trip/client",
+        "${agent}/extension.tools.round.trip/server"})
+    public void shouldRunExtensionToolsRoundTrip() throws Exception
+    {
+        k3po.finish();
+    }
 }

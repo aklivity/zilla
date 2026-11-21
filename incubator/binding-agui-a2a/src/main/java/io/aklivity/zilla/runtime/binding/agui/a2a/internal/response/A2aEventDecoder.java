@@ -1140,10 +1140,6 @@ public final class A2aEventDecoder
         {
             next = decodePartStart;
         }
-        else if (tag.clientExecuted())
-        {
-            next = decodeDroppedPartStart;
-        }
         else if (tag.problem() != null)
         {
             next = decodeMalformedPartStart;
