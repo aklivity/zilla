@@ -2836,7 +2836,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
             assert initialAck <= initialSeq;
 
             final OctetsFW extension = flush.extension();
-            final MqttFlushExFW mqttFlushEx = extension.get(mqttFlushExRO::tryWrap);
+            final MqttFlushExFW mqttFlushEx = mqttFlushExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
 
             assert mqttFlushEx.kind() == MqttFlushExFW.KIND_SUBSCRIBE;
             final MqttSubscribeFlushExFW mqttSubscribeFlushEx = mqttFlushEx.subscribe();
@@ -3344,9 +3344,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 final int flags = data.flags();
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx =
-                    dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+                final ExtensionFW dataEx = extensionRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+                final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId
+                    ? kafkaDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                    : null;
                 final KafkaShareDataExFW kafkaShareDataEx =
                     kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_SHARE ? kafkaDataEx.share() : null;
 
