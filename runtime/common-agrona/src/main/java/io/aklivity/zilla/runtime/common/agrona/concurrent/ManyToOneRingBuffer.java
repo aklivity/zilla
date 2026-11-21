@@ -590,7 +590,7 @@ public class ManyToOneRingBuffer implements RingBufferEx
         long tail;
         int tailIndex;
         int padding;
-        do
+        while (true)
         {
             tail = buffer.getLongVolatile(tailPositionIndex);
             final int availableCapacity = capacity - (int)(tail - head);
@@ -621,7 +621,12 @@ public class ManyToOneRingBuffer implements RingBufferEx
                     headIndex = (int)head & mask;
                     if (requiredCapacity > headIndex)
                     {
-                        return INSUFFICIENT_CAPACITY;
+                        if (tail == buffer.getLongVolatile(tailPositionIndex))
+                        {
+                            return INSUFFICIENT_CAPACITY;
+                        }
+
+                        continue;
                     }
 
                     buffer.putLongOrdered(headCachePositionIndex, head);
@@ -629,8 +634,12 @@ public class ManyToOneRingBuffer implements RingBufferEx
 
                 padding = toBufferEndLength;
             }
+
+            if (buffer.compareAndSetInt(lengthOffset(tailIndex), 0, -recordLength))
+            {
+                break;
+            }
         }
-        while (!buffer.compareAndSetInt(lengthOffset(tailIndex), 0, -recordLength));
 
         VarHandle.releaseFence();
 
