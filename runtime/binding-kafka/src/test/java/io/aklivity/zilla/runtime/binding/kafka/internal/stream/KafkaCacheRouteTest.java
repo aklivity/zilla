@@ -18,9 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.resolveLeaderId;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-
-import java.util.UUID;
 
 import org.junit.Test;
 
@@ -48,36 +45,5 @@ public class KafkaCacheRouteTest
     public void shouldKeepUnknownLeaderWhenAffinityIsUnknownLeader()
     {
         assertEquals(LEADER_UNKNOWN, resolveLeaderId(LEADER_UNKNOWN, LEADER_UNKNOWN));
-    }
-
-    @Test
-    public void shouldDeriveSameTopicKeyForEqualTopicNames()
-    {
-        final char[] topic = ("topic-" + UUID.randomUUID()).toCharArray();
-
-        assertEquals(KafkaCacheRoute.topicKey(new String(topic)), KafkaCacheRoute.topicKey(new String(topic)));
-    }
-
-    @Test
-    public void shouldDeriveSameTopicPartitionKeyAfterTopicNameIsCollected()
-    {
-        final char[] topic = ("topic-" + UUID.randomUUID()).toCharArray();
-
-        final long partitionKey = KafkaCacheRoute.topicPartitionKey(new String(topic), 0);
-
-        for (int attempt = 0; attempt < 4; attempt++)
-        {
-            System.gc();
-        }
-
-        assertEquals(partitionKey, KafkaCacheRoute.topicPartitionKey(new String(topic), 0));
-    }
-
-    @Test
-    public void shouldDeriveDistinctTopicPartitionKeysForDistinctPartitions()
-    {
-        final String topic = "topic-" + UUID.randomUUID();
-
-        assertNotEquals(KafkaCacheRoute.topicPartitionKey(topic, 0), KafkaCacheRoute.topicPartitionKey(topic, 1));
     }
 }

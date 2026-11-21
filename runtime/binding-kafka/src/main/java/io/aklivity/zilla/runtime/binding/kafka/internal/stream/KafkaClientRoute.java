@@ -114,6 +114,7 @@ public final class KafkaClientRoute
     public Int2IntHashMap supplyPartitions(
         String topic)
     {
-        return partitions.computeIfAbsent(KafkaCacheRoute.topicKey(topic), k -> new Int2IntHashMap(LEADER_UNKNOWN));
+        int topicKey = System.identityHashCode(topic.intern());
+        return partitions.computeIfAbsent(topicKey, k -> new Int2IntHashMap(LEADER_UNKNOWN));
     }
 }

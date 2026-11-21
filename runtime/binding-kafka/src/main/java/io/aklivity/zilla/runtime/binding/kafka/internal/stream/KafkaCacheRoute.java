@@ -81,7 +81,7 @@ public final class KafkaCacheRoute
     public static int topicKey(
         String topic)
     {
-        return topic.hashCode();
+        return System.identityHashCode(topic.intern());
     }
 
     public static long topicPartitionKey(
