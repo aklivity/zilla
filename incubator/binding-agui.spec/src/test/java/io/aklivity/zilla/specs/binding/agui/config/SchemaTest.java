@@ -128,10 +128,36 @@ public class SchemaTest
         schema.validate("server.options.unknown.invalid.yaml");
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectServerRoutes()
+    @Test
+    public void shouldValidateServerRoutes()
     {
-        schema.validate("server.routes.invalid.yaml");
+        JsonObject config = schema.validate("server.routes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutesWhenPathInvalid()
+    {
+        schema.validate("server.routes.when.path.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutesWhenMethod()
+    {
+        schema.validate("server.routes.when.method.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutesWithAgentMissing()
+    {
+        schema.validate("server.routes.with.agent.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutesWithUnknown()
+    {
+        schema.validate("server.routes.with.unknown.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
