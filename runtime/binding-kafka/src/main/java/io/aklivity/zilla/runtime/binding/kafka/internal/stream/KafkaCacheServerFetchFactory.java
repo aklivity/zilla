@@ -1497,6 +1497,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             else
             {
                 state = StreamState.openingInitial(state);
+
+                KafkaCacheServerMetaWatch.open(context, supplyCacheRoute.apply(group.routedId), group.originId, group.originId,
+                    authorization, group.partition.topic(),
+                    context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(group.partition.topic(), group.partition.id())),
+                    traceId);
+
                 group.onServerFanoutMemberOpening(traceId, this);
             }
         }

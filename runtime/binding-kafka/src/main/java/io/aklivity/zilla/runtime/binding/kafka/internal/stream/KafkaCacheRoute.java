@@ -44,6 +44,7 @@ public final class KafkaCacheRoute
     public final Long2ObjectHashMap<KafkaCacheServerProduceFan> serverProduceFansByTopicPartition;
     public final Long2ObjectHashMap<KafkaCacheClientBudget> clientBudgetsByTopic;
     public final Int2ObjectHashMap<Int2IntHashMap> leadersByPartitionId;
+    public final Int2ObjectHashMap<KafkaCacheServerMetaWatch> serverMetaWatchesByTopic;
 
 
     public KafkaCacheRoute(
@@ -60,6 +61,7 @@ public final class KafkaCacheRoute
         this.serverProduceFansByTopicPartition = new Long2ObjectHashMap<>();
         this.clientBudgetsByTopic = new Long2ObjectHashMap<>();
         this.leadersByPartitionId = new Int2ObjectHashMap<>();
+        this.serverMetaWatchesByTopic = new Int2ObjectHashMap<>();
     }
 
     public static int resolveLeaderId(

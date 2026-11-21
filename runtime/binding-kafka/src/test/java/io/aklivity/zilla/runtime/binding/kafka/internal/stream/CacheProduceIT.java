@@ -277,6 +277,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.meta.watch/client",
+        "${app}/message.value.meta.watch/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueMetaWatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
