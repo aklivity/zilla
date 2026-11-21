@@ -67,6 +67,7 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .taskId("t-1")
                              .contextId("c-1")
                              .state("COMPLETED")
+                             .messageId("m-2")
                              .build()
                          .build()}
 read '{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_COMPLETED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}}}}'
@@ -77,6 +78,7 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .taskId("t-1")
                              .contextId("c-1")
                              .state("COMPLETED")
+                             .messageId("m-2")
                              .build()
                          .build()}
 read '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_COMPLETED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}},"artifacts":[{"artifactId":"a-1","parts":[{"text":"Partly cloudy, 72F"}]}]}}'

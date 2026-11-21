@@ -24,6 +24,7 @@ import java.util.Map;
 
 import jakarta.json.stream.JsonParser.Event;
 
+import io.aklivity.zilla.runtime.binding.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -42,6 +43,9 @@ public final class A2aResultInspector
     public String contextId;
     public String state;
     public String artifactId;
+    public String messageId;
+    public A2aFlag append;
+    public A2aFlag lastChunk;
 
     public boolean inspect(
         int operation,
@@ -54,6 +58,9 @@ public final class A2aResultInspector
         contextId = null;
         state = null;
         artifactId = null;
+        messageId = null;
+        append = A2aFlag.UNSPECIFIED;
+        lastChunk = A2aFlag.UNSPECIFIED;
 
         final boolean wrapped = operation == KIND_MESSAGE_SEND ||
             operation == KIND_MESSAGE_STREAM ||
@@ -73,6 +80,7 @@ public final class A2aResultInspector
             int depth = 0;
             String inner = null;
             String member = null;
+            String leaf = null;
 
             while (parser.hasNext())
             {
@@ -108,22 +116,56 @@ public final class A2aResultInspector
                     {
                         member = key;
                     }
+                    else if (depth == 3 + base)
+                    {
+                        leaf = key;
+                    }
+                    break;
+                case VALUE_TRUE:
+                case VALUE_FALSE:
+                    if (depth == 1 + base && kind == A2aDataExFW.KIND_ARTIFACT_UPDATE)
+                    {
+                        final A2aFlag flag = event == Event.VALUE_TRUE ? A2aFlag.TRUE : A2aFlag.FALSE;
+                        switch (inner)
+                        {
+                        case "append":
+                            append = flag;
+                            break;
+                        case "lastChunk":
+                            lastChunk = flag;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
                     break;
                 case VALUE_STRING:
-                    if (depth == 1 + base && kind != A2aDataExFW.KIND_MESSAGE)
+                    if (depth == 1 + base)
                     {
                         final String value = parser.getString();
                         switch (inner)
                         {
                         case "id":
+                            taskId = kind != A2aDataExFW.KIND_MESSAGE ? value : taskId;
+                            break;
                         case "taskId":
                             taskId = value;
                             break;
                         case "contextId":
                             contextId = value;
                             break;
+                        case "messageId":
+                            messageId = kind == A2aDataExFW.KIND_MESSAGE ? value : messageId;
+                            break;
                         default:
                             break;
+                        }
+                    }
+                    else if (depth == 3 + base && kind != A2aDataExFW.KIND_MESSAGE)
+                    {
+                        if ("status".equals(inner) && "message".equals(member) && "messageId".equals(leaf))
+                        {
+                            messageId = parser.getString();
                         }
                     }
                     else if (depth == 2 + base && kind != A2aDataExFW.KIND_MESSAGE)

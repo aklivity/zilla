@@ -41,7 +41,7 @@ public final class A2aDiscoveryResponse
         final JsonArrayBuilder agents = Json.createArrayBuilder();
         matches.forEach(match -> agents.add(agent(match)));
 
-        final String messageId = requestMessageId != null ? MESSAGE_ID_PREFIX + requestMessageId : MESSAGE_ID_DEFAULT;
+        final String messageId = messageIdOf(requestMessageId);
 
         return Json.createObjectBuilder()
             .add("message", Json.createObjectBuilder()
@@ -53,6 +53,12 @@ public final class A2aDiscoveryResponse
             .build()
             .toString()
             .getBytes(UTF_8);
+    }
+
+    public static String messageIdOf(
+        String requestMessageId)
+    {
+        return requestMessageId != null ? MESSAGE_ID_PREFIX + requestMessageId : MESSAGE_ID_DEFAULT;
     }
 
     private static String summary(
