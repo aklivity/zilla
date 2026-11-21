@@ -73,6 +73,8 @@ public final class KafkaStub implements BindingHandler
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
     private static final int STREAM_WINDOW = 8192;
     private static final int SESSION_SIGNALS = 2;
+    public static final int NO_DELIVERY = -2;
+
     private static final int PRODUCE_PARTITION = 0;
     private static final int QOS_LEVELS = 3;
     private static final int QOS_LEVELS_MASK = (1 << QOS_LEVELS) - 1;
@@ -120,6 +122,8 @@ public final class KafkaStub implements BindingHandler
         OFFSET_FETCH,
         OFFSET_COMMIT,
         MESSAGES,
+        RETAINED,
+        RETAINED_REPLAY,
         MESSAGES_FETCH,
         MESSAGES_DELIVER,
         SHARE,
@@ -164,12 +168,16 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx offsetDeleteBeginEx;
     private final DirectBufferEx initProducerIdBeginEx;
     private final DirectBufferEx messagesFetchBeginEx;
+    private final DirectBufferEx retainedFetchBeginEx;
     private final DirectBufferEx shareBeginEx;
     private final DirectBufferEx findCoordinatorResponse = new UnsafeBufferEx(FIND_COORDINATOR_RESPONSE);
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
+    private DirectBufferEx retainedReplayDataEx;
+    private DirectBufferEx retainedReplayPayload;
     private int unexpected;
     private int excludedQos;
+    private int replayCommits;
 
     public KafkaStub(
         int kafkaTypeId,
@@ -235,6 +243,14 @@ public final class KafkaStub implements BindingHandler
                 .partition(0, 0, 1, 1)
                 .build()
             .build());
+        this.retainedFetchBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .capabilities("FETCH_ONLY")
+                .topic("mqtt-retained")
+                .partition(0, 0, 1, 1)
+                .build()
+            .build());
         this.shareBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
             .typeId(kafkaTypeId)
             .share()
@@ -289,6 +305,44 @@ public final class KafkaStub implements BindingHandler
         }
 
         return index;
+    }
+
+    /**
+     * Makes the fetch stream with a group id on the retained topic replay one retained message with the key
+     * {@code topic} and {@code payload}, as the retained replay scripts specify. Without it that stream only
+     * answers the begin and the caught up flush.
+     */
+    public void retainedReplay(
+        String topic,
+        DirectBufferEx payload)
+    {
+        this.retainedReplayDataEx = new UnsafeBufferEx(KafkaFunctions.dataEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .fetch()
+                    .timestamp(1L)
+                    .filters(1L)
+                    .partition(0, 2L, 2L)
+                    .key(topic)
+                    .header("zilla:qos", "1")
+                    .build()
+                .build());
+        this.retainedReplayPayload = payload;
+    }
+
+    /**
+     * Returns whether the offset commit of a replayed retained message has arrived, consuming it.
+     */
+    public boolean replayCommitted()
+    {
+        final boolean available = replayCommits > 0;
+
+        if (available)
+        {
+            replayCommits--;
+        }
+
+        return available;
     }
 
     /**
@@ -402,8 +456,9 @@ public final class KafkaStub implements BindingHandler
             {
             case FETCH_ONLY -> beginEx.merged().topic().equals(messagesTopicRO)
                 ? deliveryKind(beginEx.merged())
-                : Kind.OFFSET_FETCH;
-            case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES : Kind.OFFSET_COMMIT;
+                : retainedReplayKind(beginEx.merged());
+            case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES :
+                beginEx.merged().topic().equals(retainedTopicRO) ? Kind.RETAINED : Kind.OFFSET_COMMIT;
             case PRODUCE_AND_FETCH -> Kind.SESSION;
             };
             break;
@@ -418,6 +473,14 @@ public final class KafkaStub implements BindingHandler
         KafkaMergedBeginExFW merged)
     {
         return merged.groupId().length() > 0 && qosOf(merged) == deliveryQos ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH;
+    }
+
+    private Kind retainedReplayKind(
+        KafkaMergedBeginExFW merged)
+    {
+        return retainedReplayDataEx != null && merged.topic().equals(retainedTopicRO)
+            ? merged.groupId().length() > 0 ? Kind.RETAINED_REPLAY : Kind.OFFSET_FETCH
+            : Kind.OFFSET_FETCH;
     }
 
     private int qosOf(
@@ -531,9 +594,10 @@ public final class KafkaStub implements BindingHandler
                 state = StreamState.openReply(state);
                 doReply();
                 doDeliver();
+                doReplay();
                 break;
             case FlushFW.TYPE_ID:
-                if (kind == Kind.MESSAGES_DELIVER)
+                if (kind == Kind.MESSAGES_DELIVER || kind == Kind.RETAINED_REPLAY)
                 {
                     onDeliveryFlush(flushRO.wrap(buffer, index, index + length));
                 }
@@ -610,6 +674,7 @@ public final class KafkaStub implements BindingHandler
                 break;
             case OFFSET_COMMIT:
             case MESSAGES:
+            case RETAINED:
             case SESSION:
                 pending++;
                 schedule(ackStep);
@@ -651,12 +716,17 @@ public final class KafkaStub implements BindingHandler
                 : null;
             final long correlationId = consumerFlushEx != null ? consumerFlushEx.correlationId() : NO_CORRELATION;
 
-            if (correlationId == NO_CORRELATION)
+            if (correlationId == NO_CORRELATION && kind == Kind.MESSAGES_DELIVER)
             {
                 committed.addInt(deliverIndex);
             }
-            else
+            else if (consumerFlushEx != null)
             {
+                if (kind == Kind.RETAINED_REPLAY && correlationId == NO_CORRELATION)
+                {
+                    replayCommits++;
+                }
+
                 if (progressEx == null)
                 {
                     progressEx = new UnsafeBufferEx(progressTemplate.clone());
@@ -712,14 +782,34 @@ public final class KafkaStub implements BindingHandler
                 case OFFSET_FETCH:
                     doReplyFlush(emptyEx, 0);
                     break;
+                case RETAINED_REPLAY:
+                    deliveries = 1;
+                    break;
                 default:
                     break;
                 }
 
                 doReply();
+                doReplay();
             }
 
             doEnd();
+        }
+
+        private void doReplay()
+        {
+            if (kind == Kind.RETAINED_REPLAY && deliveries > 0 && StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
+            {
+                final int reserved = retainedReplayPayload.capacity() + replyPad;
+
+                if (replyAck + replyMax - replySeq >= reserved)
+                {
+                    doReplyData(retainedReplayPayload, retainedReplayDataEx, reserved);
+                    doReplyFlush(emptyEx, 0);
+                    deliveries--;
+                }
+            }
         }
 
         private void doReply()
@@ -892,6 +982,7 @@ public final class KafkaStub implements BindingHandler
             case OFFSET_DELETE -> offsetDeleteBeginEx;
             case INIT_PRODUCER_ID -> initProducerIdBeginEx;
             case MESSAGES_FETCH, MESSAGES_DELIVER -> messagesFetchBeginEx;
+            case RETAINED_REPLAY -> retainedFetchBeginEx;
             case SHARE -> shareBeginEx;
             default -> emptyEx;
             };
