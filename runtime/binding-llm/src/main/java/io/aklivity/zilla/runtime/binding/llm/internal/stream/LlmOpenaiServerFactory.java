@@ -2839,7 +2839,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                         parser.consumed(server.textValueTaken);
                         server.textValueTaken = 0;
-                        server.textHeldLimit = server.decodedWindowLimit;
                         server.decoder = decodeTextHeld;
                     }
                 }
@@ -3303,7 +3302,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int textPrefixTaken;
         private int textValueTaken;
         private int textUnitTaken;
-        private int textHeldLimit;
         private int textTailTaken;
         private int optionsTaken;
 
@@ -3555,7 +3553,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (window >= Math.min(MIN_WINDOW, limit - offset) || exact())
                 {
                     final boolean held = decoder == decodeTextHeld;
-                    final int windowLimit = held ? textHeldLimit : offset + window;
+                    final int windowLimit = held ? decodedWindowLimit : offset + window;
                     final boolean windowLast = decodedLast && windowLimit == limit;
 
                     decodedWindowLast = windowLast;
