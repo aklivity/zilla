@@ -220,6 +220,17 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.meta.watch/client",
+        "${app}/message.value.meta.watch/server"})
+    public void shouldReceiveMessageValueMetaWatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("OPEN_META");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     public void shouldReceiveMessageValueEmpty() throws Exception
