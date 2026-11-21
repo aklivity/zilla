@@ -109,6 +109,13 @@ public class AguiA2aEventTest
     }
 
     @Test
+    public void shouldFormatTagDropped()
+    {
+        assertThat(format(e -> e.tagDropped(1L, 42L, "agent0", "task1", "subagent")),
+            equalTo("Tag (subagent) dropped for agent (agent0) task (task1)."));
+    }
+
+    @Test
     public void shouldFormatNullFieldsAsEmpty()
     {
         assertThat(format(e -> e.runRouted(1L, 42L, "agent0", null)),

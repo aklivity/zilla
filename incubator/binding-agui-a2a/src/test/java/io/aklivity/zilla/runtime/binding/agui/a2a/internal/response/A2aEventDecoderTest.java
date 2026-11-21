@@ -406,6 +406,34 @@ public class A2aEventDecoderTest
         }
 
         @Override
+        public void tagStarted(
+            A2aPartTag tag)
+        {
+            log.add("tag " + tag.event);
+        }
+
+        @Override
+        public void tagEnded()
+        {
+            log.add("tagEnded");
+        }
+
+        @Override
+        public void tagDropped(
+            String event)
+        {
+            log.add("tagDropped " + event);
+        }
+
+        @Override
+        public void tagMalformed(
+            String event,
+            String detail)
+        {
+            log.add("tagMalformed " + event);
+        }
+
+        @Override
         public void artifactEnded()
         {
             log.add("artifactEnded");

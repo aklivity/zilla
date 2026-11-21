@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRu
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunFinishedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunRedirectedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunRoutedExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aTagDroppedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -86,6 +87,13 @@ public final class AguiA2aEventFormatter implements EventFormatterSpi
             AguiA2aHandleRejectedExFW ex = extension.handleRejected();
             result = String.format("Handle rejected for agent (%s) with code (%s).",
                 asString(ex.agent()), asString(ex.code()));
+            break;
+        }
+        case TAG_DROPPED:
+        {
+            AguiA2aTagDroppedExFW ex = extension.tagDropped();
+            result = String.format("Tag (%s) dropped for agent (%s) task (%s).",
+                asString(ex.tag()), asString(ex.agent()), asString(ex.taskId()));
             break;
         }
         }
