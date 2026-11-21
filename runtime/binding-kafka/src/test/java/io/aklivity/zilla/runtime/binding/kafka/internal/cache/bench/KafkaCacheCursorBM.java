@@ -27,6 +27,8 @@ import java.time.Clock;
 import java.util.Arrays;
 
 import org.agrona.IoUtil;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.IntArrayList;
 import org.agrona.collections.MutableInteger;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -82,6 +84,7 @@ public class KafkaCacheCursorBM
 {
     private static final int ACTIVE_SUBSCRIBERS = 200;
     private static final int WARM_MESSAGES = 5;
+    private static final int FILTER_LEVELS = 3;
     private static final int VALUE_SIZE = 256;
     private static final int SEGMENT_BYTES = 64 * 1024 * 1024;
     private static final int SEGMENT_INDEX_BYTES = 1024 * 1024;
@@ -96,6 +99,9 @@ public class KafkaCacheCursorBM
     @Param({"none", "leading"})
     public String leaf;
 
+    @Param({"scan", "inverted"})
+    public String dispatch;
+
     private final KafkaCacheCursorFactory cursorFactory = new KafkaCacheCursorFactory(65536);
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
     private final KafkaCacheKeyEnvelope keyEnvelope = new KafkaCacheKeyEnvelope();
@@ -104,6 +110,8 @@ public class KafkaCacheCursorBM
     private final MutableInteger valueMark = new MutableInteger();
     private final KafkaKeyFW[] keys = new KafkaKeyFW[ACTIVE_SUBSCRIBERS];
     private final Array32FW<?>[] headers = new Array32FW<?>[ACTIVE_SUBSCRIBERS];
+    private final int[][] termHashes = new int[ACTIVE_SUBSCRIBERS][];
+    private final Int2ObjectHashMap<IntArrayList> subscribersByTerm = new Int2ObjectHashMap<>();
 
     private OctetsFW value;
     private Path location;
@@ -111,6 +119,7 @@ public class KafkaCacheCursorBM
     private Node head;
     private KafkaCacheCursor[] cursors;
     private long nextOffset;
+    private int appendedIndex;
 
     @Setup(Level.Trial)
     public void validate() throws IOException
@@ -156,6 +165,13 @@ public class KafkaCacheCursorBM
             cursors[i].init(head, 0L, -1L);
         }
 
+        subscribersByTerm.clear();
+        for (int i = 0; i < subscribers; i++)
+        {
+            final String selective = Integer.toString(i);
+            subscribersByTerm.computeIfAbsent(termHash(selective.getBytes(UTF_8)), h -> new IntArrayList()).addInt(i);
+        }
+
         for (int i = 0; i < WARM_MESSAGES; i++)
         {
             appendMessage();
@@ -184,6 +200,7 @@ public class KafkaCacheCursorBM
     private void appendMessage()
     {
         final int index = (int) (nextOffset % ACTIVE_SUBSCRIBERS);
+        appendedIndex = index;
         final KafkaKeyFW key = keys[index];
         @SuppressWarnings("unchecked")
         final Array32FW<KafkaHeaderFW> messageHeaders = (Array32FW<KafkaHeaderFW>) headers[index];
@@ -199,21 +216,51 @@ public class KafkaCacheCursorBM
         int[] hitsByCursor)
     {
         int hits = 0;
-        for (int i = 0; i < cursors.length; i++)
+        if ("inverted".equals(dispatch))
         {
-            final KafkaCacheCursor cursor = cursors[i];
-            KafkaCacheEntryFW entry;
-            while ((entry = cursor.next(entryRO)) != null)
+            final int[] hashes = termHashes[appendedIndex];
+            for (int h = 0; h < FILTER_LEVELS; h++)
             {
-                hits++;
-                if (hitsByCursor != null)
+                final IntArrayList candidates = subscribersByTerm.get(hashes[h]);
+                for (int c = 0; candidates != null && c < candidates.size(); c++)
                 {
-                    hitsByCursor[i]++;
+                    hits += drainCursor(candidates.getInt(c), hitsByCursor);
                 }
-                cursor.advance(entry.offset$() + 1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < cursors.length; i++)
+            {
+                hits += drainCursor(i, hitsByCursor);
             }
         }
         return hits;
+    }
+
+    private int drainCursor(
+        int index,
+        int[] hitsByCursor)
+    {
+        int hits = 0;
+        final KafkaCacheCursor cursor = cursors[index];
+        KafkaCacheEntryFW entry;
+        while ((entry = cursor.next(entryRO)) != null)
+        {
+            hits++;
+            if (hitsByCursor != null)
+            {
+                hitsByCursor[index]++;
+            }
+            cursor.advance(entry.offset$() + 1);
+        }
+        return hits;
+    }
+
+    private static int termHash(
+        byte[] term)
+    {
+        return Arrays.hashCode(term);
     }
 
     private Array32FW<KafkaFilterFW> newFilters(
@@ -287,6 +334,8 @@ public class KafkaCacheCursorBM
                 .value(k -> k.set(topic))
                 .build();
 
+            termHashes[i] = new int[] {termHash("device".getBytes(UTF_8)), termHash("1".getBytes(UTF_8)),
+                termHash(lastLevel), termHash(client), termHash("1".getBytes(UTF_8))};
             keys[i] = key;
             headers[i] = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(buffer, key.limit(), buffer.capacity())
