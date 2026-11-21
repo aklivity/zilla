@@ -34,6 +34,7 @@ final class LlmSharedMembers
     static final String SERVICE_TIER = "service_tier";
     static final String SIGNATURE = "signature";
     static final String REDACTED_DATA = "redacted_data";
+    static final String BREAKPOINT = "prompt_cache_breakpoint";
 
     private static final String NATIVE_STOP_SEQUENCES = "stop_sequences";
     private static final String NATIVE_SAFETY_IDENTIFIER = "safety_identifier";

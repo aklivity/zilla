@@ -39,6 +39,77 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.request.user.straddle/client",
+        "${app}/openai.responses.request.user.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.effort.straddle/client",
+        "${app}/openai.responses.request.reasoning.effort.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier.window/client",
+        "${app}/openai.responses.request.service.tier.window/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.user.window/client",
+        "${app}/openai.responses.request.user.window/server"})
+    public void shouldForwardOpenaiResponsesRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier.straddle/client",
+        "${app}/openai.responses.request.service.tier.straddle/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.tool.call.breakpoint/client",
+        "${app}/openai.responses.section.tool.call.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolCallBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.tool.definition.breakpoint/client",
+        "${app}/openai.responses.section.tool.definition.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.user.image.breakpoint/client",
+        "${app}/openai.responses.section.user.image.breakpoint/server"})
+    public void shouldOpenaiResponsesSectionUserImageBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
         "${app}/openai.response.invalid.content.type/client",
         "${app}/openai.response.invalid.content.type/server"})
     public void shouldAbortResponseWithInvalidContentType() throws Exception
@@ -5484,6 +5555,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.stream.options.shared.dropped/client",
+        "${app}/openai.responses.text.stream.options.shared.dropped/server"})
+    public void shouldOpenaiResponsesTextStreamOptionsSharedDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens/client",
         "${app}/openai.responses.incomplete.max.output.tokens/server"})
     public void shouldOpenaiResponsesIncompleteMaxOutputTokens() throws Exception
@@ -5550,6 +5630,15 @@ public class ApplicationIT
         "${app}/openai.responses.section.user.text.parts/client",
         "${app}/openai.responses.section.user.text.parts/server"})
     public void shouldOpenaiResponsesSectionUserTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.section.user.text.100k/client",
+        "${app}/openai.responses.section.user.text.100k/server"})
+    public void shouldOpenaiResponsesSectionUserText100k() throws Exception
     {
         k3po.finish();
     }
@@ -6450,6 +6539,15 @@ public class ApplicationIT
         "${app}/openai.responses.text.citations.members/client",
         "${app}/openai.responses.text.citations.members/server"})
     public void shouldOpenaiResponsesTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.citations.members.small.window/client",
+        "${app}/openai.responses.text.citations.members.small.window/server"})
+    public void shouldOpenaiResponsesTextCitationsMembersSmallWindow() throws Exception
     {
         k3po.finish();
     }
@@ -7485,6 +7583,24 @@ public class ApplicationIT
         "${app}/openai.responses.text.citations.long/client",
         "${app}/openai.responses.text.citations.long/server"})
     public void shouldOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling/client",
+        "${app}/openai.responses.text.citations.straddling/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling.small.window/client",
+        "${app}/openai.responses.text.citations.straddling.small.window/server"})
+    public void shouldOpenaiResponsesTextCitationsStraddlingSmallWindow() throws Exception
     {
         k3po.finish();
     }
