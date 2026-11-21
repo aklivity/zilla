@@ -35,6 +35,11 @@ public final class A2aPartTag
         "subtype", "entityId", "executor", "parentMessageId", "source", "replace", "subagentRunId", "description",
         "parentSubagentRunId", "parentToolCallId", "outcome", "code", "message");
     public static final Set<String> DATA_MEMBERS = Set.of("id", "name", "toolCallId");
+    public static final Set<String> OPERATION_KEYS = Set.of("createSurface", "updateComponents", "updateDataModel",
+        "deleteSurface", "beginRendering", "surfaceUpdate", "dataModelUpdate");
+
+    private static final String MEDIA_TYPE_A2UI = "application/a2ui+json";
+    private static final String MEDIA_TYPE_A2UI_DEPRECATED = "application/json+a2ui";
 
     private static final Map<String, String> FEATURES = Map.ofEntries(
         Map.entry(EVENT_STATE, "state"),
@@ -68,6 +73,9 @@ public final class A2aPartTag
     public String outcome;
     public String code;
     public String message;
+    public String mediaType;
+    public String mimeType;
+    public String surfaceId;
     public Boolean replace;
     public String callId;
     public String callName;
@@ -93,6 +101,9 @@ public final class A2aPartTag
         outcome = null;
         code = null;
         message = null;
+        mediaType = null;
+        mimeType = null;
+        surfaceId = null;
         replace = null;
         callId = null;
         callName = null;
@@ -142,6 +153,17 @@ public final class A2aPartTag
 
     private void ignore()
     {
+    }
+
+    public boolean a2uiPart()
+    {
+        return isA2ui(mediaType) || isA2ui(mimeType);
+    }
+
+    private static boolean isA2ui(
+        String type)
+    {
+        return MEDIA_TYPE_A2UI.equals(type) || MEDIA_TYPE_A2UI_DEPRECATED.equals(type);
     }
 
     public boolean tagged()

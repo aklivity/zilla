@@ -413,6 +413,13 @@ public class A2aEventDecoderTest
         }
 
         @Override
+        public void surfaceStarted(
+            String surfaceId)
+        {
+            log.add("surface " + surfaceId);
+        }
+
+        @Override
         public void tagEnded()
         {
             log.add("tagEnded");

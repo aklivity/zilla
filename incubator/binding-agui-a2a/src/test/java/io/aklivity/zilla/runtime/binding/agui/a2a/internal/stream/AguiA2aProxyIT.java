@@ -1253,4 +1253,147 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.surface/client",
+        "${agent}/a2ui.surface/server"})
+    public void shouldRunA2uiSurface() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.two.surfaces/client",
+        "${agent}/a2ui.two.surfaces/server"})
+    public void shouldRunA2uiTwoSurfaces() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.media.type/client",
+        "${agent}/a2ui.media.type/server"})
+    public void shouldRunA2uiMediaType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.v08/client",
+        "${agent}/a2ui.v08/server"})
+    public void shouldRunA2uiV08() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.both.uris/client",
+        "${agent}/a2ui.both.uris/server"})
+    public void shouldRunA2uiBothUris() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.no.capabilities/client",
+        "${agent}/a2ui.no.capabilities/server"})
+    public void shouldRunA2uiNoCapabilities() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.not.declared/client",
+        "${agent}/a2ui.not.declared/server"})
+    public void shouldRunA2uiNotDeclared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.no.surface.id/client",
+        "${agent}/a2ui.no.surface.id/server"})
+    public void shouldRunA2uiNoSurfaceId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.with.agui/client",
+        "${agent}/a2ui.with.agui/server"})
+    public void shouldRunA2uiWithAgui() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.client.v08/client",
+        "${agent}/a2ui.client.v08/server"})
+    public void shouldRunA2uiClientV08() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.no.overlap/client",
+        "${agent}/a2ui.no.overlap/server"})
+    public void shouldRunA2uiNoOverlap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.capabilities.no.version/client",
+        "${agent}/a2ui.capabilities.no.version/server"})
+    public void shouldRunA2uiCapabilitiesNoVersion() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/a2ui.data.model.only/client",
+        "${agent}/a2ui.data.model.only/server"})
+    public void shouldRunA2uiDataModelOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }
