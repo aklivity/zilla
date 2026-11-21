@@ -677,6 +677,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/discover.stream.message.client.aborted/client",
+        "${net}/discover.stream.message.client.aborted/server"})
+    public void shouldDiscoverStreamMessageClientAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/discover.stream.message.v0.3/client",
         "${net}/discover.stream.message.v0.3/server"})
     public void shouldDiscoverStreamMessageV03() throws Exception
@@ -1238,6 +1247,15 @@ public class NetworkIT
         "${net}/stream.message.status.message/client",
         "${net}/stream.message.status.message/server"})
     public void shouldStreamMessageStatusMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/stream.message.client.aborted/client",
+        "${net}/stream.message.client.aborted/server"})
+    public void shouldStreamMessageClientAborted() throws Exception
     {
         k3po.finish();
     }
