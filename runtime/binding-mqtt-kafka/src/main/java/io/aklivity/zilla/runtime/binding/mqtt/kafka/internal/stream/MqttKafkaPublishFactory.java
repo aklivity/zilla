@@ -298,6 +298,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private KafkaKeyFW hashKey;
 
         private Array32FW<String16FW> topicNameHeaders;
+        private DirectBufferEx constantHeaderItems;
+        private int constantHeaderCount;
+        private int constantHeaderMaxLength;
         private OctetsFW clientIdOctets;
         private String16FW clientId;
         private String16FW clientIdOffsets;
@@ -465,6 +468,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 topicNameHeadersRW.item(h -> h.set(topicHeader));
             }
             this.topicNameHeaders = topicNameHeadersRW.build();
+            encodeConstantHeaders();
 
             final DirectBufferEx topicNameBuffer = mqttPublishBeginEx.topic().value();
             final MutableDirectBufferEx keyBuffer = new UnsafeBufferEx(new byte[topicNameBuffer.capacity() + 4]);
@@ -572,10 +576,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 assert mqttDataEx.kind() == MqttDataExFW.KIND_PUBLISH;
                 final MqttPublishDataExFW mqttPublishDataEx = mqttDataEx.publish();
                 kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
-
-                topicNameHeaders.forEach(filterHeaderWriter);
-
-                addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
+                kafkaHeadersRW.items(constantHeaderItems, 0, constantHeaderItems.capacity(),
+                    constantHeaderCount, constantHeaderMaxLength);
 
                 if (mqttPublishDataEx.expiryInterval() != -1)
                 {
@@ -1029,6 +1031,22 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 }
             }
             return clientHashKey;
+        }
+
+        private void encodeConstantHeaders()
+        {
+            kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
+            topicNameHeaders.forEach(filterHeaderWriter);
+            addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
+
+            final Array32FW<KafkaHeaderFW> headers = kafkaHeadersRW.build();
+            final DirectBufferEx items = headers.items();
+            final MutableDirectBufferEx encoded = new UnsafeBufferEx(new byte[items.capacity()]);
+            encoded.putBytes(0, items, 0, items.capacity());
+
+            constantHeaderItems = encoded;
+            constantHeaderCount = headers.fieldCount();
+            headers.forEach(header -> constantHeaderMaxLength = Math.max(constantHeaderMaxLength, header.sizeof()));
         }
 
         private void doCommitOffsetIncomplete(
