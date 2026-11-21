@@ -250,7 +250,7 @@ public final class A2aHttpBindingConfig
             }
             object.add("version", card != null && card.version != null ? card.version : DEFAULT_CARD_VERSION);
             object.add("capabilities", Json.createObjectBuilder()
-                .add("streaming", true)
+                .add("streaming", card == null || card.streaming)
                 .add("pushNotifications", false));
             object.add("defaultInputModes", strings(card != null ? card.defaultInputModes : null, DEFAULT_INPUT_MODES));
             object.add("defaultOutputModes", strings(card != null ? card.defaultOutputModes : null, DEFAULT_OUTPUT_MODES));

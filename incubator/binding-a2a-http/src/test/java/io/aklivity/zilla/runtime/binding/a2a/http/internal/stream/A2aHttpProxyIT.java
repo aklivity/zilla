@@ -203,6 +203,15 @@ public class A2aHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.card.streaming.disabled.yaml")
+    @Specification({
+        "${app}/card.streaming.disabled/client"})
+    public void shouldGenerateAgentCardWithoutStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.sse.yaml")
     @Specification({
         "${app}/stream.sse/client",
