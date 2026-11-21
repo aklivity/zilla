@@ -49,6 +49,7 @@ import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Int2IntHashMap;
+import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -146,7 +147,14 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
 
     private final OctetsFW valueFragmentRO = new OctetsFW();
+    private static final ArrayFW<KafkaFilterFW> NO_FILTERS =
+        new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+            .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
+            .build();
+
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
+    private final KafkaCacheEntryFW dispatchEntryRO = new KafkaCacheEntryFW();
+    private final KafkaFilterTerms filterTerms = new KafkaFilterTerms();
 
     private final int kafkaTypeId;
     private final MutableDirectBufferEx writeBuffer;
@@ -270,6 +278,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);
+            final IntArrayList selectiveTerms = new IntArrayList();
+            if (maximumOffset == HISTORICAL || !filterTerms.collect(filters, selectiveTerms))
+            {
+                selectiveTerms.clear();
+            }
             final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheClientFetchStream(
@@ -285,7 +298,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     maximumOffset,
                     deltaType,
                     isolation,
-                    topicType)::onClientMessage;
+                    topicType,
+                    selectiveTerms)::onClientMessage;
         }
 
         return newStream;
@@ -552,6 +566,119 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    private final class KafkaCacheClientFetchDispatch
+    {
+        private final KafkaCacheFanoutIndex<KafkaCacheClientFetchStream> index = new KafkaCacheFanoutIndex<>();
+        private final Consumer<KafkaCacheClientFetchStream> waker = this::wake;
+        private final Consumer<KafkaHeaderFW> headerWaker = this::wakeHeader;
+        private final KafkaCacheClientFetchFanout group;
+        private final LongSupplier isolatedOffset;
+
+        private KafkaCacheCursor cursor;
+        private long walkOffset;
+        private long traceId;
+
+        private KafkaCacheClientFetchDispatch(
+            KafkaCacheClientFetchFanout group,
+            LongSupplier isolatedOffset)
+        {
+            this.group = group;
+            this.isolatedOffset = isolatedOffset;
+        }
+
+        private void register(
+            KafkaCacheClientFetchStream member)
+        {
+            if (!member.terms.isEmpty() && !index.hasIndexed())
+            {
+                walkOffset = bound();
+            }
+
+            index.register(member, member.terms);
+        }
+
+        private void unregister(
+            KafkaCacheClientFetchStream member)
+        {
+            index.unregister(member);
+
+            if (!index.hasIndexed())
+            {
+                closeCursor();
+            }
+        }
+
+        private void clear()
+        {
+            index.clear();
+            closeCursor();
+        }
+
+        private void dispatch(
+            long traceId)
+        {
+            this.traceId = traceId;
+
+            index.forEachWildcard(waker);
+
+            if (index.hasIndexed())
+            {
+                final long bound = bound();
+
+                if (cursor == null && walkOffset < bound)
+                {
+                    Node segmentNode = group.partition.seekNotAfter(walkOffset + 1);
+                    if (segmentNode.sentinel())
+                    {
+                        segmentNode = segmentNode.next();
+                    }
+
+                    final KafkaFilterCondition all = cursorFactory.asCondition(NO_FILTERS, KafkaEvaluation.EAGER);
+                    cursor = cursorFactory.newCursor(all, KafkaDeltaType.NONE);
+                    cursor.init(segmentNode, walkOffset + 1, group.latestOffset);
+                }
+
+                KafkaCacheEntryFW entry;
+                while (cursor != null && (entry = cursor.next(dispatchEntryRO)) != null && entry.offset$() <= bound)
+                {
+                    walkOffset = entry.offset$();
+
+                    index.beginEntry();
+                    index.wake(KafkaFilterTerms.hashKey(entry.paddedKey().key().value()), waker);
+                    entry.headers().forEach(headerWaker);
+
+                    cursor.advance(entry.offset$() + 1);
+                }
+            }
+        }
+
+        private long bound()
+        {
+            return Math.min(group.partitionOffset, isolatedOffset.getAsLong());
+        }
+
+        private void wake(
+            KafkaCacheClientFetchStream member)
+        {
+            member.doClientReplyDataIfNecessary(traceId);
+        }
+
+        private void wakeHeader(
+            KafkaHeaderFW header)
+        {
+            index.wake(KafkaFilterTerms.hashHeader(header.name(), header.value()), waker);
+        }
+
+        private void closeCursor()
+        {
+            if (cursor != null)
+            {
+                cursor.close();
+                cursor = null;
+            }
+        }
+    }
+
     final class KafkaCacheClientFetchFanout
     {
         private final long originId;
@@ -561,6 +688,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final KafkaCachePartition partition;
         private final long partitionKey;
         private final List<KafkaCacheClientFetchStream> members;
+        private final KafkaCacheClientFetchDispatch dispatchUncommitted;
+        private final KafkaCacheClientFetchDispatch dispatchCommitted;
 
         private long leaderId;
         private long initialId;
@@ -603,6 +732,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.stableOffset = DEFAULT_STABLE_OFFSET;
             this.latestOffset = DEFAULT_LATEST_OFFSET;
             this.members = new ArrayList<>();
+            this.dispatchUncommitted = new KafkaCacheClientFetchDispatch(this, () -> this.latestOffset);
+            this.dispatchCommitted = new KafkaCacheClientFetchDispatch(this, () -> this.stableOffset);
             this.leaderId = leaderId;
             this.receiver = NO_RECEIVER;
         }
@@ -619,9 +750,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
                 members.forEach(m -> m.cleanupClient(traceId, ERROR_NOT_LEADER_FOR_PARTITION));
                 members.clear();
+                clearDispatch();
             }
 
             members.add(member);
+            dispatchOf(member).register(member);
 
             assert !members.isEmpty();
 
@@ -638,6 +771,25 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             }
         }
 
+        private KafkaCacheClientFetchDispatch dispatchOf(
+            KafkaCacheClientFetchStream member)
+        {
+            return member.isolation == READ_COMMITTED ? dispatchCommitted : dispatchUncommitted;
+        }
+
+        private void dispatchMembers(
+            long traceId)
+        {
+            dispatchUncommitted.dispatch(traceId);
+            dispatchCommitted.dispatch(traceId);
+        }
+
+        private void clearDispatch()
+        {
+            dispatchUncommitted.clear();
+            dispatchCommitted.clear();
+        }
+
         private boolean isFanoutReplyOpened()
         {
             return StreamState.replyOpened(state);
@@ -648,6 +800,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaCacheClientFetchStream member)
         {
             members.remove(member);
+            dispatchOf(member).unregister(member);
 
             if (members.isEmpty())
             {
@@ -867,7 +1020,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.stableOffset = stableOffset;
             this.latestOffset = latestOffset;
 
-            members.forEach(s -> s.doClientReplyDataIfNecessary(traceId));
+            dispatchMembers(traceId);
 
             // defer reply window credit until next tick
             assert reserved == SIZE_OF_FLUSH_WITH_EXTENSION;
@@ -882,6 +1035,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             members.forEach(s -> s.doClientReplyEndIfNecessary(traceId));
             members.forEach(s -> s.doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS));
             members.clear();
+            clearDispatch();
 
             state = StreamState.closeReply(state);
 
@@ -896,6 +1050,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             members.forEach(s -> s.doClientReplyAbortIfNecessary(traceId));
             members.forEach(s -> s.doClientInitialResetIfNecessary(traceId, EMPTY_OCTETS));
             members.clear();
+            clearDispatch();
 
             state = StreamState.closeReply(state);
 
@@ -937,6 +1092,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 members.forEach(s -> s.doClientInitialResetIfNecessary(traceId, extension));
                 members.forEach(s -> s.doClientReplyAbortIfNecessary(traceId));
                 members.clear();
+                clearDispatch();
             }
         }
 
@@ -1027,6 +1183,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
     private final class KafkaCacheClientFetchStream
     {
+        private final IntArrayList terms;
         private final KafkaCacheClientFetchFanout group;
         private final MessageConsumer sender;
         private final long originId;
@@ -1085,8 +1242,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaOffsetType maximumOffset,
             KafkaDeltaType deltaType,
             KafkaIsolation isolation,
-            KafkaTopicType topicType)
+            KafkaTopicType topicType,
+            IntArrayList selectiveTerms)
         {
+            this.terms = selectiveTerms;
             this.group = group;
             this.sender = sender;
             this.originId = originId;
