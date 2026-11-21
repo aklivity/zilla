@@ -2754,18 +2754,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int progress,
         int limit)
     {
-        final JsonStringView chars = server.textChars;
+        final JsonParserEx parser = server.parser;
+        final JsonStringView chars = parser.getStringView();
+        final int length = chars.length();
 
         server.onDecodeUserText(traceId, authorization, chars);
 
+        final int taken = server.textValueTaken;
+
+        server.textValueTaken = 0;
+
         int resume = progress;
 
-        if (server.textValueTaken == chars.length())
+        if (taken == length)
         {
-            server.textValueTaken = 0;
-            server.textChars = null;
             server.decoder = decodeTextTail;
             resume = server.position();
+        }
+        else
+        {
+            parser.consumed(taken);
         }
 
         return resume;
@@ -2829,6 +2837,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     {
                         assert server.pinned(eventFrom);
 
+                        parser.consumed(server.textValueTaken);
+                        server.textValueTaken = 0;
                         server.textHeldLimit = server.decodedWindowLimit;
                         server.decoder = decodeTextHeld;
                     }
@@ -3294,7 +3304,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int textValueTaken;
         private int textUnitTaken;
         private int textHeldLimit;
-        private JsonStringView textChars;
         private int textTailTaken;
         private int optionsTaken;
 
@@ -4011,7 +4020,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             JsonStringView chars)
         {
             textOpen = true;
-            textChars = chars;
             scanTraceId = traceId;
             scanAuthorization = authorization;
 
