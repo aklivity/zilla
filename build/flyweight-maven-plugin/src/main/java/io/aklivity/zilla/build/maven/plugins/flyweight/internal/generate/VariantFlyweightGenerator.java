@@ -4428,6 +4428,12 @@ public final class VariantFlyweightGenerator extends ClassSpecGenerator
                         .endControlFlow()
                         .addStatement("return newItem")
                         .build());
+                    builder.addMethod(methodBuilder("rebuilds")
+                        .addAnnotation(Override.class)
+                        .addModifiers(PUBLIC)
+                        .returns(boolean.class)
+                        .addStatement("return true")
+                        .build());
                 }
             }
         }
