@@ -62,9 +62,12 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditio
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeadersFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaValueFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttQoS;
@@ -124,8 +127,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private static final String SHARE_REGISTRY = "registry";
     private static final String GROUP_ID_DELIMITER = ":";
     private static final String GROUP_ID_SEPARATOR = ".";
-    private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
-    private static final String MQTT_MULTI_LEVEL_WILDCARD = "#";
+    private static final char MQTT_SINGLE_LEVEL_WILDCARD = '+';
+    private static final char MQTT_MULTI_LEVEL_WILDCARD = '#';
+    private static final int MQTT_UTF8_STRING_MAX_LENGTH = 65535;
     private static final String MQTT_PARENT_LEVEL_WILDCARD_SUFFIX = "/#";
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
     private static final int SEND_RETAIN_FLAG = 1 << SEND_RETAINED.ordinal();
@@ -221,6 +225,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
 
     private final Array32FW.Builder<Varint32FW.Builder, Varint32FW> subscriptionIdsRW =
         new Array32FW.Builder<>(new Varint32FW.Builder(), new Varint32FW());
+
+    private final MutableDirectBufferEx topicLevelBuffer = new UnsafeBufferEx(new byte[MQTT_UTF8_STRING_MAX_LENGTH]);
+    private String filterPattern;
+    private int topicLevelLength;
+    private final Consumer<KafkaHeadersFW.Builder> filterHeadersWriter = this::writeFilterHeaders;
+    private final Consumer<KafkaValueMatchFW.Builder> singleLevelSkipWriter = vi -> vi
+        .skip(sb -> sb.set(KafkaSkip.SKIP));
+    private final Consumer<KafkaValueMatchFW.Builder> multiLevelSkipWriter = vi -> vi
+        .skip(sb -> sb.set(KafkaSkip.SKIP_MANY));
+    private final Consumer<KafkaValueFW.Builder> topicLevelWriter = vb -> vb
+        .length(topicLevelLength)
+        .value(topicLevelBuffer, 0, topicLevelLength);
+    private final Consumer<KafkaValueMatchFW.Builder> topicLevelValueWriter = vi -> vi.value(topicLevelWriter);
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -4935,30 +4952,48 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         KafkaConditionFW.Builder conditionBuilder,
         String pattern)
     {
-        String[] headers = pattern.split("/", -1);
-        conditionBuilder.headers(hb ->
-        {
-            hb.nameLen(helper.kafkaFilterHeaderName.sizeof());
-            hb.name(helper.kafkaFilterHeaderName);
-            for (String header : headers)
-            {
-                if (header.equals(MQTT_SINGLE_LEVEL_WILDCARD))
-                {
-                    hb.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP)));
-                }
-                else if (header.equals(MQTT_MULTI_LEVEL_WILDCARD))
-                {
-                    hb.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP_MANY)));
-                }
-                else
-                {
-                    final DirectBufferEx valueBuffer = new String16FW(header).value();
-                    hb.valuesItem(vi -> vi.value(vb -> vb.length(valueBuffer.capacity())
-                        .value(valueBuffer, 0, valueBuffer.capacity())));
+        filterPattern = pattern;
+        conditionBuilder.headers(filterHeadersWriter);
+    }
 
-                }
+    private void writeFilterHeaders(
+        KafkaHeadersFW.Builder headersBuilder)
+    {
+        headersBuilder.nameLen(helper.kafkaFilterHeaderName.sizeof());
+        headersBuilder.name(helper.kafkaFilterHeaderName);
+
+        final int patternLength = filterPattern.length();
+        int levelStart = 0;
+        int levelEnd;
+
+        do
+        {
+            levelEnd = filterPattern.indexOf('/', levelStart);
+            if (levelEnd == -1)
+            {
+                levelEnd = patternLength;
             }
-        });
+
+            final int levelLength = levelEnd - levelStart;
+            final char level = levelLength == 1 ? filterPattern.charAt(levelStart) : 0;
+
+            if (level == MQTT_SINGLE_LEVEL_WILDCARD)
+            {
+                headersBuilder.valuesItem(singleLevelSkipWriter);
+            }
+            else if (level == MQTT_MULTI_LEVEL_WILDCARD)
+            {
+                headersBuilder.valuesItem(multiLevelSkipWriter);
+            }
+            else
+            {
+                topicLevelLength = topicLevelBuffer.putStringWithoutLengthUtf8(0, filterPattern, levelStart, levelEnd);
+                headersBuilder.valuesItem(topicLevelValueWriter);
+            }
+
+            levelStart = levelEnd + 1;
+        }
+        while (levelStart <= patternLength);
     }
 
     private void doWindow(
@@ -5276,13 +5311,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     {
         private static final int INITIAL_CAPACITY = 16;
 
-        final Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
+        private Long2ObjectHashMap<DeferredOffsetCommit> deferredOffsetCommits;
         private long[] unacknowledged;
         private int unacknowledgedCount;
 
         OffsetHighWaterMark()
         {
-            this.deferredOffsetCommits = new Long2ObjectHashMap<>();
             this.unacknowledged = new long[INITIAL_CAPACITY];
         }
 
@@ -5329,18 +5363,28 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
                 unacknowledgedCount--;
             }
 
-            deferredOffsetCommits.remove(offset);
+            if (deferredOffsetCommits != null)
+            {
+                deferredOffsetCommits.remove(offset);
+            }
         }
 
         public DeferredOffsetCommit nextDeferred()
         {
-            return unacknowledgedCount == 0 ? null : deferredOffsetCommits.get(unacknowledged[0]);
+            return unacknowledgedCount == 0 || deferredOffsetCommits == null
+                ? null
+                : deferredOffsetCommits.get(unacknowledged[0]);
         }
 
         public void deferOffsetCommit(
             OffsetCommit offsetCommit,
             KafkaProxy proxy)
         {
+            if (deferredOffsetCommits == null)
+            {
+                deferredOffsetCommits = new Long2ObjectHashMap<>();
+            }
+
             deferredOffsetCommits.put(offsetCommit.partitionOffset.offset, new DeferredOffsetCommit(offsetCommit, proxy));
         }
     }
