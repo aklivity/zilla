@@ -280,6 +280,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_SERVER = new String8FW("server");
     private static final String8FW HEADER_STATUS = new String8FW(":status");
+    private static final int STATUS_OFFSET = "HTTP/1.1 ".length();
+    private static final int STATUS_LENGTH = 3;
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
     private static final String8FW HEADER_VARY = new String8FW("vary");
@@ -1241,6 +1243,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 final HttpRequestHeaders headers = requestHeaders;
                 headers.reset(beginEx.headers());
+                server.requestDecoded = true;
 
                 HttpBindingConfig binding = server.binding;
                 GuardHandler guard = server.guard;
@@ -1319,6 +1322,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                             if (!headersValid)
                             {
                                 error = response400;
+                            }
+                            else
+                            {
+                                server.requestDecoded = false;
                             }
                         }
                         else
@@ -2117,6 +2124,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final class HttpServer
     {
         private final HttpBindingConfig binding;
+        private long decodedAt;
+        private boolean requestDecoded;
         private final MessageConsumer network;
         private final long originId;
         private final long routedId;
@@ -2272,6 +2281,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void onNetworkData(
             DataFW data)
         {
+            decodedAt = data.timestamp();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
@@ -2798,6 +2808,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             DirectBufferEx error)
         {
+            final Function<String, String> request = requestDecoded ? requestHeaders::get : name -> null;
+            binding.rejections.record(error.getStringWithoutLengthAscii(STATUS_OFFSET, STATUS_LENGTH), request, decodedAt);
+            requestDecoded = false;
+
             replyCloseOnFlush = true;
 
             doNetworkData(traceId, authorization, 0L, error.capacity() + replyPad, error, 0, error.capacity());
@@ -4942,6 +4956,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final MutableBoolean expectDynamicTableSizeUpdate = new MutableBoolean(true);
 
         private final HttpBindingConfig binding;
+        private long decodedAt;
         private final MessageConsumer network;
         private final long originId;
         private final long routedId;
@@ -5115,6 +5130,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void onNetworkData(
             DataFW data)
         {
+            decodedAt = data.timestamp();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
@@ -6147,7 +6163,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 if (!endRequest)
                 {
-                    doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                    doEncodeRejection(traceId, authorization, streamId, headers400, headers::get);
                 }
                 else
                 {
@@ -6156,7 +6172,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else if (!isCorsRequestAllowed(binding, headers))
             {
-                doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+                doEncodeRejection(traceId, authorization, streamId, headers403, headers::get);
             }
             else
             {
@@ -6200,7 +6216,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             guard != null && (exchangeAuth & MASK_AUTHORIZED) == 0
                                 ? credentialsMatch != null ? headers403 : headers401
                                 : headers404;
-                        doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
+                        doEncodeRejection(traceId, authorization, streamId, headers40x, headers::get);
                     }
                     else
                     {
@@ -6244,11 +6260,23 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                            doEncodeRejection(traceId, authorization, streamId, headers400, headers::get);
                         }
                     }
                 }
             }
+        }
+
+        private void doEncodeRejection(
+            long traceId,
+            long authorization,
+            int streamId,
+            Array32FW<HttpHeaderFW> headers,
+            Function<String, String> request)
+        {
+            final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
+            binding.rejections.record(status.value().asString(), request, decodedAt);
+            doEncodeHeaders(traceId, authorization, streamId, headers, true);
         }
 
         private void onDecodeCorsPreflight(
@@ -6262,7 +6290,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (!access.allowPreflight(headers))
             {
-                doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+                doEncodeRejection(traceId, authorization, streamId, headers403, headers::get);
             }
             else
             {
@@ -6501,7 +6529,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         if (!StreamState.replyOpening(exchange.state))
                         {
-                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
+                            doEncodeRejection(traceId, authorization, streamId, headers400, name -> null);
                         }
                         doEncodeRstStream(traceId, streamId, Http2ErrorCode.CANCEL);
                         exchange.doRequestAbort(traceId, EMPTY_OCTETS);

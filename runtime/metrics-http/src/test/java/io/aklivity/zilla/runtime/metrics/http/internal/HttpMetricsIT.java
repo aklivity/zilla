@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -32,19 +34,40 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class HttpMetricsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_SERVER_HEADER, "Zilla")
         .configurationRoot("io/aklivity/zilla/specs/metrics/http/config")
         .external("app1")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+
+    @Test
+    @Configuration("server.reject.credentials.missing.yaml")
+    @Specification({
+        "${net}/rfc7230/authorization/reject.credentials.missing/client" })
+    public void shouldRecordRequestRejectedByServer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.h2.reject.credentials.missing.yaml")
+    @Specification({
+        "${net}/rfc7540/authorization/reject.credentials.missing/client" })
+    public void shouldRecordStreamRejectedByServer() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("request.with.content.length.yaml")
