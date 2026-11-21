@@ -265,9 +265,29 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.text.citations.filtered/client",
+        "${net}/anthropic.section.assistant.text.citations.filtered/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextCitationsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.arguments.default/client",
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallArgumentsDefault() throws Exception
     {
         k3po.finish();
     }
@@ -328,6 +348,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.tool.definition/client",
         "${net}/anthropic.section.tool.definition/server"})
     public void shouldEncodeAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.definition.defaults/client",
+        "${net}/anthropic.section.tool.definition.defaults/server"})
+    public void shouldEncodeAnthropicSectionToolDefinitionDefaults() throws Exception
     {
         k3po.finish();
     }
@@ -616,6 +646,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.user.image.inline/client",
         "${net}/anthropic.section.user.image.inline/server"})
     public void shouldEncodeAnthropicSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.inline.fragmented/client",
+        "${net}/anthropic.section.user.image.inline/server"})
+    public void shouldEncodeAnthropicSectionUserImageInlineFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -1199,6 +1239,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.reordered/client",
+        "${net}/anthropic.section.assistant.reasoning.reordered/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.reasoning.signature.first/client",
         "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
     public void shouldEncodeAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
@@ -1299,6 +1349,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.tool.call.cache.control/client",
         "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control.duplicate/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallCacheControlDuplicate() throws Exception
     {
         k3po.finish();
     }
@@ -2072,6 +2132,17 @@ public class LlmAnthropicClientIT
         "${app}/transform.rejected.tool.choice.allowed/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
     public void shouldRejectRequestToolChoiceAllowedFromAnthropicAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.call.member/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolCallMemberFromOpenaiAsAnthropicNamingSectionAndDialects() throws Exception
     {
         k3po.finish();
     }
@@ -3071,6 +3142,26 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.residue.large/client",
+        "${net}/anthropic.request.residue.large/server"})
+    public void shouldEncodeAnthropicRequestResidueLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.residue.sections/client",
+        "${net}/anthropic.request.residue.sections/server"})
+    public void shouldEncodeAnthropicRequestResidueSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
     @ScriptProperty({"tier \"default\"", "wire \"standard_only\""})
     @Specification({
         "${app}/anthropic.request.service.tier/client",
@@ -3128,6 +3219,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.user.document.citations/client",
         "${net}/anthropic.section.user.document.citations/server"})
     public void shouldEncodeAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.document.citations.keys/client",
+        "${net}/anthropic.section.user.document.citations.keys/server"})
+    public void shouldEncodeAnthropicSectionUserDocumentCitationsKeys() throws Exception
     {
         k3po.finish();
     }
@@ -3502,6 +3603,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.response.controls.padded/client",
+        "${net}/anthropic.response.controls.many/server"})
+    public void shouldDecodeAnthropicResponseControlsPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.rejected.reset/client",
         "${net}/anthropic.rejected.reset/server"})
     public void shouldResetAnthropicRequestWhenUpstreamResets() throws Exception
@@ -3547,6 +3658,126 @@ public class LlmAnthropicClientIT
         "${app}/anthropic/client",
         "${net}/anthropic.circuit/server"})
     public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.user.straddle/client",
+        "${net}/anthropic.request.user.straddle/server"})
+    public void shouldEncodeAnthropicRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.straddle/client",
+        "${net}/anthropic.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeAnthropicRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.service.tier.window/client",
+        "${net}/anthropic.request.service.tier.window/server"})
+    public void shouldEncodeAnthropicRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.user.window/client",
+        "${net}/anthropic.request.user.window/server"})
+    public void shouldEncodeAnthropicRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.service.tier.straddle/client",
+        "${net}/anthropic.request.service.tier.straddle/server"})
+    public void shouldEncodeAnthropicRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.stop.straddle/client",
+        "${net}/anthropic.request.stop.straddle/server"})
+    public void shouldEncodeAnthropicRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.stop.window/client",
+        "${net}/anthropic.request.stop.window/server"})
+    public void shouldEncodeAnthropicRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.straddle/client",
+        "${net}/anthropic.request.reasoning.budget.straddle/server"})
+    public void shouldEncodeAnthropicRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.window/client",
+        "${net}/anthropic.request.reasoning.effort.window/server"})
+    public void shouldEncodeAnthropicRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.window/client",
+        "${net}/anthropic.request.reasoning.budget.window/server"})
+    public void shouldEncodeAnthropicRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.type.window/client",
+        "${net}/anthropic.request.response.format.type.window/server"})
+    public void shouldEncodeAnthropicRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.type.straddle/client",
+        "${net}/anthropic.request.response.format.type.straddle/server"})
+    public void shouldEncodeAnthropicRequestResponseFormatTypeStraddle() throws Exception
     {
         k3po.finish();
     }

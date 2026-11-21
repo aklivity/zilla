@@ -45,34 +45,19 @@ final class LlmTextPipeline
     LlmTextPipeline(
         CharOutput output)
     {
-        this(output, false, null);
+        this(output, false);
     }
 
     LlmTextPipeline(
         CharOutput output,
         boolean optional)
     {
-        this(output, optional, null);
-    }
-
-    LlmTextPipeline(
-        CharOutput output,
-        LlmCacheBreakpoint breakpoints)
-    {
-        this(output, false, breakpoints);
-    }
-
-    private LlmTextPipeline(
-        CharOutput output,
-        boolean optional,
-        LlmCacheBreakpoint breakpoints)
-    {
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
-        this.transform = new LlmTextTransform(optional, breakpoints);
+        this.transform = new LlmTextTransform(optional);
         this.pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(transform)
-            .into(new LlmTextSink(output, breakpoints == null));
+            .into(new LlmTextSink(output));
     }
 
     boolean completed()
@@ -83,16 +68,6 @@ final class LlmTextPipeline
     boolean extracted()
     {
         return transform.extracted();
-    }
-
-    boolean marked()
-    {
-        return transform.marked();
-    }
-
-    String markedTtl()
-    {
-        return transform.markedTtl();
     }
 
     void begin()

@@ -63,22 +63,6 @@ public class LlmSectionPipelineBM
     private static final String DATA = "QUJD".repeat(1024);
     private static final String TEXT = "The quick brown fox jumps over the lazy dog, \"twice\".\n".repeat(32);
 
-    private static final String TOOL_DEFINITION_NATIVE =
-        "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\"," +
-        "\"properties\":{\"city\":{\"type\":\"string\"},\"unit\":{\"type\":\"string\",\"enum\":[\"c\",\"f\"]}}," +
-        "\"required\":[\"city\"]},\"cache_control\":{\"type\":\"ephemeral\"}}";
-    private static final String TOOL_DEFINITION_CANONICAL =
-        "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\"," +
-        "\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"unit\":" +
-        "{\"type\":\"string\",\"enum\":[\"c\",\"f\"]}},\"required\":[\"city\"]}," +
-        "\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}}";
-
-    private static final String TOOL_CALL_NATIVE =
-        "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"," +
-        "\"unit\":\"c\",\"days\":[1,2,3]},\"cache_control\":{\"type\":\"ephemeral\"}}";
-    private static final String TOOL_CALL_CANONICAL =
-        "{\"arguments\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}," +
-        "\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}";
     private static final String TOOL_CALL_OPENAI_NATIVE =
         "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":" +
         "\"{\\\"city\\\":\\\"Paris\\\",\\\"unit\\\":\\\"c\\\",\\\"days\\\":[1,2,3]}\"}}";
@@ -102,20 +86,8 @@ public class LlmSectionPipelineBM
     private static final String IMAGE_GEMINI_NATIVE =
         "{\"inlineData\":{\"mimeType\":\"image/png\",\"data\":\"" + DATA + "\"}}";
 
-    private static final String IMAGE_NATIVE =
-        "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"" + DATA + "\"}}";
     private static final String IMAGE_CANONICAL =
         "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," + DATA + "\"}}";
-
-    private static final String CITATIONS_NATIVE =
-        "[{\"type\":\"web_search_result_location\",\"url\":\"https://example.com\",\"title\":\"Example\"," +
-        "\"encrypted_index\":\"idx\",\"cited_text\":\"blue\"},{\"type\":\"char_location\",\"cited_text\":\"blue\"," +
-        "\"document_index\":0,\"start_char_index\":0,\"end_char_index\":4}]";
-    private static final String CITATIONS_CANONICAL =
-        "[{\"type\":\"url_citation\",\"url_citation\":{\"url\":\"https://example.com\",\"title\":\"Example\"}," +
-        "\"anthropic:encrypted_index\":\"idx\",\"anthropic:cited_text\":\"blue\"},{\"anthropic:type\":" +
-        "\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0," +
-        "\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]";
 
     private static final String REASONING_RESPONSES_CANONICAL =
         "{\"text\":\"Let me think about it\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"" + DATA + "\"}";
@@ -128,7 +100,6 @@ public class LlmSectionPipelineBM
 
     private static final String CONTROL_VALUE =
         "{\"user_id\":\"u_1\",\"tags\":[\"a\",\"b\",\"c\"],\"nested\":{\"k\":\"v\",\"n\":[1,2,3]}}";
-    private static final String CONTROL_ANTHROPIC_CANONICAL = "{\"anthropic:metadata\":" + CONTROL_VALUE + "}";
     private static final String CONTROL_OPENAI_CANONICAL = "{\"openai:metadata\":" + CONTROL_VALUE + "}";
 
     private static final String TEXT_OBJECT = "{\"text\":\"" + TEXT.replace("\\", "\\\\").replace("\"", "\\\"")
@@ -147,8 +118,6 @@ public class LlmSectionPipelineBM
     private final LlmSectionAttributes imageAttributes = new LlmSectionAttributes();
     private final LlmSectionAttributes none = new LlmSectionAttributes();
 
-    private LlmSectionPipeline toolDefinitionFromAnthropic;
-    private LlmSectionPipeline toolCallFromCanonical;
     private LlmSectionPipeline toolCallOpenaiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiToCanonical;
     private LlmSectionPipeline toolDefinitionGeminiFromCanonical;
@@ -156,16 +125,9 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline toolCallGeminiFromCanonical;
     private LlmSectionPipeline imageGeminiToCanonical;
     private LlmSectionPipeline imageGeminiFromCanonical;
-    private LlmSectionPipeline imageFromAnthropic;
-    private LlmSectionPipeline citationsFromAnthropic;
-    private LlmSectionPipeline controlAnthropicFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
     private LlmSectionPipeline citationsResponsesToCanonical;
 
-    private UnsafeBufferEx toolDefinitionNative;
-    private UnsafeBufferEx toolDefinitionCanonical;
-    private UnsafeBufferEx toolCallNative;
-    private UnsafeBufferEx toolCallCanonical;
     private UnsafeBufferEx toolCallOpenaiNative;
     private UnsafeBufferEx toolCallOpenaiCanonical;
     private UnsafeBufferEx toolDefinitionGeminiNative;
@@ -173,11 +135,7 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx toolCallGeminiNative;
     private UnsafeBufferEx toolCallGeminiCanonical;
     private UnsafeBufferEx imageGeminiNative;
-    private UnsafeBufferEx imageNative;
     private UnsafeBufferEx imageCanonical;
-    private UnsafeBufferEx citationsNative;
-    private UnsafeBufferEx citationsCanonical;
-    private UnsafeBufferEx controlAnthropicCanonical;
     private UnsafeBufferEx controlOpenaiCanonical;
     private UnsafeBufferEx textObject;
     private UnsafeBufferEx reasoningResponsesCanonical;
@@ -187,8 +145,6 @@ public class LlmSectionPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical(true));
-        toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use", true));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
         toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
         toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical(true));
@@ -196,9 +152,6 @@ public class LlmSectionPipelineBM
         toolCallGeminiFromCanonical = pipeline(new LlmGeminiToolCallFromCanonical(true));
         imageGeminiToCanonical = pipeline(LlmGeminiMediaToCanonical.image());
         imageGeminiFromCanonical = pipeline(LlmGeminiMediaFromCanonical.image(true));
-        imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
-        citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
-        controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
 
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
         citationsResponsesToCanonical = pipeline(LlmOpenaiResponsesCitationsToCanonical.array());
@@ -208,10 +161,6 @@ public class LlmSectionPipelineBM
         imageAttributes.source(LlmSectionAttributes.SOURCE_INLINE);
         imageAttributes.mediaType("image/png");
 
-        toolDefinitionNative = buffer(TOOL_DEFINITION_NATIVE);
-        toolDefinitionCanonical = buffer(TOOL_DEFINITION_CANONICAL);
-        toolCallNative = buffer(TOOL_CALL_NATIVE);
-        toolCallCanonical = buffer(TOOL_CALL_CANONICAL);
         toolCallOpenaiNative = buffer(TOOL_CALL_OPENAI_NATIVE);
         toolCallOpenaiCanonical = buffer(TOOL_CALL_OPENAI_CANONICAL);
         toolDefinitionGeminiNative = buffer(TOOL_DEFINITION_GEMINI_NATIVE);
@@ -219,34 +168,12 @@ public class LlmSectionPipelineBM
         toolCallGeminiNative = buffer(TOOL_CALL_GEMINI_NATIVE);
         toolCallGeminiCanonical = buffer(TOOL_CALL_GEMINI_CANONICAL);
         imageGeminiNative = buffer(IMAGE_GEMINI_NATIVE);
-        imageNative = buffer(IMAGE_NATIVE);
         imageCanonical = buffer(IMAGE_CANONICAL);
-        citationsNative = buffer(CITATIONS_NATIVE);
-        citationsCanonical = buffer(CITATIONS_CANONICAL);
-        controlAnthropicCanonical = buffer(CONTROL_ANTHROPIC_CANONICAL);
         controlOpenaiCanonical = buffer(CONTROL_OPENAI_CANONICAL);
         textObject = buffer(TEXT_OBJECT);
         reasoningResponsesCanonical = buffer(REASONING_RESPONSES_CANONICAL);
         imageResponsesNative = buffer(IMAGE_RESPONSES_NATIVE);
         citationsResponsesNative = buffer(CITATIONS_RESPONSES_NATIVE);
-    }
-
-    @Benchmark
-    public int toolDefinitionFromCanonicalAnthropic()
-    {
-        return run(toolDefinitionFromAnthropic, none, toolDefinitionCanonical, toolDefinitionCanonical.capacity());
-    }
-
-    @Benchmark
-    public int toolCallFromCanonical()
-    {
-        return run(toolCallFromCanonical, toolCallAttributes, toolCallCanonical, toolCallCanonical.capacity());
-    }
-
-    @Benchmark
-    public int toolCallFromCanonicalFragmented()
-    {
-        return run(toolCallFromCanonical, toolCallAttributes, toolCallCanonical, WINDOW);
     }
 
     @Benchmark
@@ -259,12 +186,6 @@ public class LlmSectionPipelineBM
     public int toolCallToCanonicalOpenaiFragmented()
     {
         return run(toolCallOpenaiToCanonical, toolCallAttributes, toolCallOpenaiNative, WINDOW);
-    }
-
-    @Benchmark
-    public int imageInlineFromCanonicalAnthropic()
-    {
-        return run(imageFromAnthropic, imageAttributes, imageCanonical, imageCanonical.capacity());
     }
 
     @Benchmark
@@ -318,12 +239,6 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int citationsFromCanonicalAnthropic()
-    {
-        return run(citationsFromAnthropic, none, citationsCanonical, citationsCanonical.capacity());
-    }
-
-    @Benchmark
     public int imageToCanonicalResponses()
     {
         return run(imageResponsesToCanonical, none, imageResponsesNative, imageResponsesNative.capacity());
@@ -333,12 +248,6 @@ public class LlmSectionPipelineBM
     public int citationsToCanonicalResponses()
     {
         return run(citationsResponsesToCanonical, none, citationsResponsesNative, citationsResponsesNative.capacity());
-    }
-
-    @Benchmark
-    public int controlFromCanonicalAnthropic()
-    {
-        return run(controlAnthropicFromCanonical, none, controlAnthropicCanonical, controlAnthropicCanonical.capacity());
     }
 
     @Benchmark

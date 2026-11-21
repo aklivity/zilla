@@ -993,6 +993,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.reordered/client",
+        "${net}/anthropic.section.assistant.reasoning.reordered/server"})
+    public void shouldAnthropicSectionAssistantReasoningReordered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.reasoning.signature.first/client",
         "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
     public void shouldAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
@@ -1101,9 +1110,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.text.citations.filtered/client",
+        "${net}/anthropic.section.assistant.text.citations.filtered/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldAnthropicSectionAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/client",
+        "${net}/anthropic.section.assistant.tool.call.arguments.default/server"})
+    public void shouldAnthropicSectionAssistantToolCallArgumentsDefault() throws Exception
     {
         k3po.finish();
     }
@@ -1239,6 +1266,15 @@ public class NetworkIT
         "${net}/anthropic.section.tool.definition/client",
         "${net}/anthropic.section.tool.definition/server"})
     public void shouldAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.definition.defaults/client",
+        "${net}/anthropic.section.tool.definition.defaults/server"})
+    public void shouldAnthropicSectionToolDefinitionDefaults() throws Exception
     {
         k3po.finish();
     }
@@ -1941,60 +1977,6 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.tool.call.100k/client",
         "${net}/anthropic.section.assistant.tool.call.100k/server"})
     public void shouldAnthropicSectionAssistantToolCall100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
-        "${net}/anthropic.section.assistant.tool.call.id.none.12k/server"})
-    public void shouldAnthropicSectionAssistantToolCallIdNone12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
-        "${net}/anthropic.section.assistant.tool.call.id.none.100k/server"})
-    public void shouldAnthropicSectionAssistantToolCallIdNone100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
-        "${net}/anthropic.section.assistant.tool.call.id.last.12k/server"})
-    public void shouldAnthropicSectionAssistantToolCallIdLast12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
-        "${net}/anthropic.section.assistant.tool.call.id.last.100k/server"})
-    public void shouldAnthropicSectionAssistantToolCallIdLast100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
-        "${net}/anthropic.section.assistant.tool.call.name.last.12k/server"})
-    public void shouldAnthropicSectionAssistantToolCallNameLast12k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
-        "${net}/anthropic.section.assistant.tool.call.name.last.100k/server"})
-    public void shouldAnthropicSectionAssistantToolCallNameLast100k() throws Exception
     {
         k3po.finish();
     }
@@ -3282,6 +3264,15 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.tool.call.cache.control/client",
         "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
     public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control.duplicate/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControlDuplicate() throws Exception
     {
         k3po.finish();
     }
@@ -8940,6 +8931,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.request.residue.large/client",
+        "${net}/anthropic.request.residue.large/server"})
+    public void shouldForwardAnthropicRequestResidueLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.residue.sections/client",
+        "${net}/anthropic.request.residue.sections/server"})
+    public void shouldForwardAnthropicRequestResidueSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.request.service.tier/client",
         "${net}/anthropic.request.service.tier/server"})
     public void shouldForwardAnthropicRequestServiceTier() throws Exception
@@ -9033,6 +9042,15 @@ public class NetworkIT
         "${net}/anthropic.section.user.document.citations/client",
         "${net}/anthropic.section.user.document.citations/server"})
     public void shouldForwardAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.document.citations.keys/client",
+        "${net}/anthropic.section.user.document.citations.keys/server"})
+    public void shouldAnthropicSectionUserDocumentCitationsKeys() throws Exception
     {
         k3po.finish();
     }
@@ -10456,6 +10474,168 @@ public class NetworkIT
         "${net}/openai.request.reasoning.budget.window/client",
         "${net}/openai.request.reasoning.budget.window/server"})
     public void shouldOpenaiRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user.straddle/client",
+        "${net}/anthropic.request.user.straddle/server"})
+    public void shouldAnthropicRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.effort.straddle/client",
+        "${net}/anthropic.request.reasoning.effort.straddle/server"})
+    public void shouldAnthropicRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier.window/client",
+        "${net}/anthropic.request.service.tier.window/server"})
+    public void shouldAnthropicRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user.window/client",
+        "${net}/anthropic.request.user.window/server"})
+    public void shouldAnthropicRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier.straddle/client",
+        "${net}/anthropic.request.service.tier.straddle/server"})
+    public void shouldAnthropicRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.stop.straddle/client",
+        "${net}/anthropic.request.stop.straddle/server"})
+    public void shouldAnthropicRequestStopStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.stop.window/client",
+        "${net}/anthropic.request.stop.window/server"})
+    public void shouldAnthropicRequestStopWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.straddle/client",
+        "${net}/anthropic.request.reasoning.budget.straddle/server"})
+    public void shouldAnthropicRequestReasoningBudgetStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.effort.window/client",
+        "${net}/anthropic.request.reasoning.effort.window/server"})
+    public void shouldAnthropicRequestReasoningEffortWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.window/client",
+        "${net}/anthropic.request.reasoning.budget.window/server"})
+    public void shouldAnthropicRequestReasoningBudgetWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.type.window/client",
+        "${net}/anthropic.request.response.format.type.window/server"})
+    public void shouldAnthropicRequestResponseFormatTypeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.type.straddle/client",
+        "${net}/anthropic.request.response.format.type.straddle/server"})
+    public void shouldAnthropicRequestResponseFormatTypeStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.none.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.none.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdNone100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.id.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallIdLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/client",
+        "${net}/anthropic.section.assistant.tool.call.name.last.12k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast12k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/client",
+        "${net}/anthropic.section.assistant.tool.call.name.last.100k/server"})
+    public void shouldAnthropicSectionAssistantToolCallNameLast100k() throws Exception
     {
         k3po.finish();
     }

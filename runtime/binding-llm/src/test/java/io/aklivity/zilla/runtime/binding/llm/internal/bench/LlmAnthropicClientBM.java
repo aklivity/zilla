@@ -91,6 +91,7 @@ public class LlmAnthropicClientBM
     private static final int IN_FLIGHT = 5_000;
     private static final int SMALL_LENGTH = 400;
     private static final int LARGE_LENGTH = 10_000;
+    private static final int HUGE_LENGTH = 1_000_000;
     private static final int FRAME_BUFFER_CAPACITY = 64 * 1024;
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
@@ -127,13 +128,13 @@ public class LlmAnthropicClientBM
     @State(Scope.Benchmark)
     public abstract static class Fixture
     {
-        @Param({"small", "10k"})
+        @Param({"small", "10k", "1m"})
         public String size;
 
         @Param({"false", "true"})
         public boolean streaming;
 
-        @Param({"text", "toolCall"})
+        @Param({"text", "toolCall", "schema"})
         public String request;
 
         @Param({"text", "toolCall"})
@@ -162,7 +163,7 @@ public class LlmAnthropicClientBM
         @Setup(Level.Trial)
         public void init() throws Exception
         {
-            textLength = "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
+            textLength = "1m".equals(size) ? HUGE_LENGTH : "10k".equals(size) ? LARGE_LENGTH : SMALL_LENGTH;
 
             final String text = base64(textLength);
 
@@ -185,7 +186,12 @@ public class LlmAnthropicClientBM
                 add(exs, payloads, controlEx(llmTypeId), "{\"stream\":true}");
             }
 
-            if ("toolCall".equals(request))
+            if ("schema".equals(request))
+            {
+                add(exs, payloads, controlEx(llmTypeId), responseFormat(textLength));
+                add(exs, payloads, userTextEx(llmTypeId), "{\"text\":\"Hello\"}");
+            }
+            else if ("toolCall".equals(request))
             {
                 add(exs, payloads, toolCallEx(llmTypeId), String.format("{\"arguments\":{\"query\":\"%s\"}}", text));
             }
@@ -493,6 +499,22 @@ public class LlmAnthropicClientBM
                 .attribute("tool-name", "lookup")
                 .attribute("tool-call-id", "call_1")
                 .build();
+        }
+
+        private static String responseFormat(
+            int length)
+        {
+            final StringBuilder properties = new StringBuilder();
+
+            for (int index = 0; properties.length() < length || index == 0; index++)
+            {
+                properties.append(index > 0 ? "," : "")
+                    .append(String.format("\"field%d\":{\"type\":\"string\",\"description\":\"The value of field %d\"}",
+                        index, index));
+            }
+
+            return "{\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\"," +
+                "\"schema\":{\"type\":\"object\",\"properties\":{" + properties + "}},\"strict\":true}}}";
         }
 
         private static String base64(

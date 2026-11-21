@@ -40,9 +40,33 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
     private static final int RECORD_LENGTH_OFFSET = Byte.BYTES;
     private static final int RECORD_HEADER = Byte.BYTES + Integer.BYTES;
 
+    interface Store
+    {
+        int length();
+
+        boolean append(
+            DirectBufferEx source,
+            int offset,
+            int length);
+
+        void trim(
+            int length);
+
+        void clear();
+
+        DirectBufferEx buffer();
+
+        int base();
+
+        void patchLength(
+            int recordOffset,
+            int length);
+    }
+
     private final String[] containers;
     private final LlmMembersOutput.Members members;
-    private final Supplier<MutableDirectBufferEx> store;
+    private final Store store;
+    private final MutableDirectBufferEx header;
     private final byte[] head;
     private final DirectBufferEx headBuffer;
 
@@ -55,17 +79,25 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
     private boolean emitted;
     private int container;
     private int recordOffset;
-    private int heldLength;
     private String overflow;
 
     LlmMemberCollector(
         String[] containers,
         LlmMembersOutput.Members members,
-        Supplier<MutableDirectBufferEx> store)
+        Supplier<MutableDirectBufferEx> slot)
+    {
+        this(containers, members, new SlotStore(slot));
+    }
+
+    private LlmMemberCollector(
+        String[] containers,
+        LlmMembersOutput.Members members,
+        Store store)
     {
         this.containers = containers;
         this.members = members;
         this.store = store;
+        this.header = new UnsafeBufferEx(new byte[RECORD_HEADER]);
         this.head = new byte[HEAD_CAPACITY];
         this.headBuffer = new UnsafeBufferEx(head);
         this.state = KEY_WAIT;
@@ -92,7 +124,7 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
         state = KEY_WAIT;
         headLength = 0;
         emitted = false;
-        heldLength = 0;
+        store.clear();
         overflow = null;
     }
 
@@ -108,23 +140,25 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
 
     int held()
     {
-        return heldLength;
+        return store.length();
     }
 
     boolean holds(
         int index)
     {
         boolean holds = false;
+        final int heldLength = store.length();
 
         if (heldLength > 0)
         {
-            final DirectBufferEx held = store.get();
+            final DirectBufferEx held = store.buffer();
+            final int base = store.base();
             int offset = 0;
 
             while (!holds && offset < heldLength)
             {
-                holds = held.getByte(offset) == index;
-                offset += RECORD_HEADER + held.getInt(offset + RECORD_LENGTH_OFFSET);
+                holds = held.getByte(base + offset) == index;
+                offset += RECORD_HEADER + held.getInt(base + offset + RECORD_LENGTH_OFFSET);
             }
         }
 
@@ -135,18 +169,21 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
         int index,
         LlmMembersOutput.Members sink)
     {
+        final int heldLength = store.length();
+
         if (heldLength > 0)
         {
-            final DirectBufferEx held = store.get();
+            final DirectBufferEx held = store.buffer();
+            final int base = store.base();
             int offset = 0;
 
             while (offset < heldLength)
             {
-                final int length = held.getInt(offset + RECORD_LENGTH_OFFSET);
+                final int length = held.getInt(base + offset + RECORD_LENGTH_OFFSET);
 
-                if (held.getByte(offset) == index && length > 0)
+                if (held.getByte(base + offset) == index && length > 0)
                 {
-                    sink.put(held, offset + RECORD_HEADER, length);
+                    sink.put(held, base + offset + RECORD_HEADER, length);
                 }
 
                 offset += RECORD_HEADER + length;
@@ -363,14 +400,14 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
 
     private void openRecord()
     {
-        final MutableDirectBufferEx held = store.get();
+        header.putByte(0, (byte) container);
+        header.putInt(RECORD_LENGTH_OFFSET, 0);
 
-        if (held != null && heldLength + RECORD_HEADER <= held.capacity())
+        final int opened = store.length();
+
+        if (store.append(header, 0, RECORD_HEADER))
         {
-            held.putByte(heldLength, (byte) container);
-            held.putInt(heldLength + RECORD_LENGTH_OFFSET, 0);
-            recordOffset = heldLength;
-            heldLength += RECORD_HEADER;
+            recordOffset = opened;
             depth = 1;
             inString = false;
             escaped = false;
@@ -389,20 +426,10 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
     {
         final int length = to - from;
 
-        if (length > 0)
+        if (length > 0 && !store.append(buffer, from, length))
         {
-            final MutableDirectBufferEx held = store.get();
-
-            if (heldLength + length <= held.capacity())
-            {
-                held.putBytes(heldLength, buffer, from, length);
-                heldLength += length;
-            }
-            else
-            {
-                heldLength = recordOffset;
-                exhaust();
-            }
+            store.trim(recordOffset);
+            exhaust();
         }
     }
 
@@ -410,7 +437,7 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
     {
         if (state != OVERFLOWED)
         {
-            store.get().putInt(recordOffset + RECORD_LENGTH_OFFSET, heldLength - recordOffset - RECORD_HEADER);
+            store.patchLength(recordOffset, store.length() - recordOffset - RECORD_HEADER);
         }
     }
 
@@ -424,5 +451,75 @@ final class LlmMemberCollector implements LlmMembersOutput.Members
         byte value)
     {
         return value == ' ' || value == '\t' || value == '\r' || value == '\n';
+    }
+
+    private static final class SlotStore implements Store
+    {
+        private final Supplier<MutableDirectBufferEx> slot;
+
+        private int length;
+
+        private SlotStore(
+            Supplier<MutableDirectBufferEx> slot)
+        {
+            this.slot = slot;
+        }
+
+        @Override
+        public int length()
+        {
+            return length;
+        }
+
+        @Override
+        public boolean append(
+            DirectBufferEx source,
+            int offset,
+            int length)
+        {
+            final MutableDirectBufferEx held = slot.get();
+            final boolean appended = held != null && this.length + length <= held.capacity();
+
+            if (appended)
+            {
+                held.putBytes(this.length, source, offset, length);
+                this.length += length;
+            }
+
+            return appended;
+        }
+
+        @Override
+        public void trim(
+            int length)
+        {
+            this.length = length;
+        }
+
+        @Override
+        public void clear()
+        {
+            length = 0;
+        }
+
+        @Override
+        public DirectBufferEx buffer()
+        {
+            return slot.get();
+        }
+
+        @Override
+        public int base()
+        {
+            return 0;
+        }
+
+        @Override
+        public void patchLength(
+            int recordOffset,
+            int length)
+        {
+            slot.get().putInt(recordOffset + RECORD_LENGTH_OFFSET, length);
+        }
     }
 }
