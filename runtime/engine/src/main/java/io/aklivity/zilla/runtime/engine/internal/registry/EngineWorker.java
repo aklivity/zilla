@@ -154,6 +154,7 @@ import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersCountMetri
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersBoundMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersListenersUnboundMetric;
 import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageMetric;
+import io.aklivity.zilla.runtime.engine.internal.metrics.EngineWorkersUsageRebalancedMetric;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
 import io.aklivity.zilla.runtime.engine.internal.stream.Target;
@@ -281,6 +282,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Supplier<MessageReader> supplyEventReader;
     private final EventFormatterFactory eventFormatterFactory;
     private final LongSupplier usageMetric;
+    private final LongConsumer rebalancedMetric;
     private final boolean readonly;
     private final int maxIdleCount;
 
@@ -484,6 +486,8 @@ public class EngineWorker implements EngineContext, Agent
         this.poller = new Poller(
             supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersBoundMetricId, 0, null),
             supplyMetricWriter(COUNTER, NO_NAMESPACED_ID, listenersUnboundMetricId, 0, null));
+        this.rebalancedMetric = supplyMetricWriter(COUNTER, NO_NAMESPACED_ID,
+            router.supplyLabelId(EngineWorkersUsageRebalancedMetric.NAME), 0, null);
     }
 
     public static int indexOfId(
@@ -903,6 +907,12 @@ public class EngineWorker implements EngineContext, Agent
         final int metricId = router.supplyLabelId(EngineWorkersUsageMetric.NAME);
 
         return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId, 0, null);
+    }
+
+    @Override
+    public LongConsumer supplyRebalancedMetric()
+    {
+        return rebalancedMetric;
     }
 
     @Override

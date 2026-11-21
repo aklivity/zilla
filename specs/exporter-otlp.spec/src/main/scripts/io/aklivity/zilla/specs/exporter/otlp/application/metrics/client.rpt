@@ -19,7 +19,7 @@ connected
 write http:method "POST"
 write http:version "HTTP/1.1"
 write http:header "Host" "localhost:4318"
-write http:header "Content-Length" "2972"
+write http:header "Content-Length" "3205"
 write
 '{'
   '"resourceMetrics":[{'
@@ -51,6 +51,19 @@ write
         '"name":"engine.workers.listeners.unbound",'
         '"unit":"",'
         '"description":"Engine workers listeners unbound",'
+        '"sum":{'
+          '"dataPoints":[{'
+            '"asInt":0,'
+            '"timeUnixNano":0123456789123456789,'
+            '"attributes":[]'
+          '}],'
+          '"aggregationTemporality":2,'
+          '"isMonotonic":true'
+        '}'
+      '},{'
+        '"name":"engine.workers.usage.rebalanced",'
+        '"unit":"",'
+        '"description":"Engine workers usage rebalanced",'
         '"sum":{'
           '"dataPoints":[{'
             '"asInt":0,'

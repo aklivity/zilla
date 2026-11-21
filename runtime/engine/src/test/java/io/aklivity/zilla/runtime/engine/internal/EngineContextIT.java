@@ -161,4 +161,14 @@ public class EngineContextIT
             assertThat(engine.context().counter(null, null, "engine.workers.listeners.unbound", worker).getAsLong(), equalTo(0L));
         }
     }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldReadUsageRebalancedCounterPerWorkerWithoutRebalancing()
+    {
+        for (int worker = 0; worker < engine.context().workers(); worker++)
+        {
+            assertThat(engine.context().counter(null, null, "engine.workers.usage.rebalanced", worker).getAsLong(), equalTo(0L));
+        }
+    }
 }

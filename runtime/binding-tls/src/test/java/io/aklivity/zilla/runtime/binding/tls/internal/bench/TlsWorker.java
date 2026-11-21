@@ -457,6 +457,12 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public LongConsumer supplyRebalancedMetric()
+    {
+        return null;
+    }
+
+    @Override
     public Path resolvePath(
         String location)
     {
