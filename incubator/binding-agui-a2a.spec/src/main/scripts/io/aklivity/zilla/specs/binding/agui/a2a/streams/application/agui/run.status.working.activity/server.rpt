@@ -39,21 +39,27 @@ write zilla:begin.ext ${agui:beginEx()
                         .build()}
 write flush
 
-write option zilla:flags "init"
 write zilla:data.ext ${agui:dataEx()
                        .typeId(zilla:id("agui"))
-                       .text()
-                           .messageId("m-3")
-                           .role("ASSISTANT")
+                       .activity()
+                           .type("SNAPSHOT")
+                           .messageId("m-2")
+                           .activityType("status")
                            .build()
                        .build()}
-write 'Partly cloudy, 72F'
+write '{"text":"Looking up the forecast"}'
 write flush
 
-write option zilla:flags "fin"
-write zilla:data.empty
+write zilla:data.ext ${agui:dataEx()
+                       .typeId(zilla:id("agui"))
+                       .activity()
+                           .type("SNAPSHOT")
+                           .messageId("m-2")
+                           .activityType("status")
+                           .build()
+                       .build()}
+write '{"text":"Partly cloudy, 72F"}'
 write flush
-write option zilla:flags "auto"
 
 write zilla:end.ext ${agui:endEx()
                       .typeId(zilla:id("agui"))

@@ -36,18 +36,25 @@ read zilla:begin.ext ${agui:matchBeginEx()
                        .runId("run-1")
                        .build()}
 
-read option zilla:flags "init"
 read zilla:data.ext ${agui:matchDataEx()
                       .typeId(zilla:id("agui"))
-                      .text()
-                          .messageId("m-3")
-                          .role("ASSISTANT")
+                      .activity()
+                          .type("SNAPSHOT")
+                          .messageId("m-2")
+                          .activityType("status")
                           .build()
                       .build()}
-read 'Partly cloudy, 72F'
+read '{"text":"Looking up the forecast"}'
 
-read option zilla:flags "fin"
-read zilla:data.empty
+read zilla:data.ext ${agui:matchDataEx()
+                      .typeId(zilla:id("agui"))
+                      .activity()
+                          .type("SNAPSHOT")
+                          .messageId("m-2")
+                          .activityType("status")
+                          .build()
+                      .build()}
+read '{"text":"Partly cloudy, 72F"}'
 
 read zilla:end.ext ${agui:matchEndEx()
                      .typeId(zilla:id("agui"))

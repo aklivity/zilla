@@ -32,6 +32,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiEventMetaFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutcomeType;
@@ -53,6 +54,8 @@ public final class AguiResponseMapper implements A2aEventSink
 
     public static final String CUSTOM_DATA = "agent.data";
     public static final String CUSTOM_FILE = "agent.file";
+
+    public static final String ACTIVITY_STATUS = "status";
 
     public static final String REASON_INPUT = "input";
     public static final String REASON_AUTHORIZATION = "authorization";
@@ -99,7 +102,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private final int maximum;
     private final MutableDirectBufferEx exBuffer = new UnsafeBufferEx(new byte[EX_MAX]);
     private final MutableDirectBufferEx statusBuffer;
-    private final MutableDirectBufferEx fileBuffer;
+    private final MutableDirectBufferEx jsonBuffer;
     private final DirectBufferEx emptyBuffer = new UnsafeBufferEx(new byte[0]);
     private final AguiDataExFW.Builder dataExRW = new AguiDataExFW.Builder();
     private final MessageDigest digest = digest();
@@ -135,8 +138,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private int statusLength;
     private String statusMessageId;
     private String statusText;
-    private String pendingReplyId;
-    private String pendingReplyText;
+    private String activityId;
 
     public AguiResponseMapper(
         AguiFrameSink sink,
@@ -149,7 +151,7 @@ public final class AguiResponseMapper implements A2aEventSink
         this.aguiTypeId = aguiTypeId;
         this.maximum = maximum;
         this.statusBuffer = new UnsafeBufferEx(new byte[maximum]);
-        this.fileBuffer = new UnsafeBufferEx(new byte[maximum]);
+        this.jsonBuffer = new UnsafeBufferEx(new byte[maximum]);
         this.digestBytes = new byte[maximum];
     }
 
@@ -730,9 +732,9 @@ public final class AguiResponseMapper implements A2aEventSink
         }
         else
         {
-            fileBuffer.putBytes(0, json);
+            jsonBuffer.putBytes(0, json);
             closing.run();
-            custom(CUSTOM_FILE, INIT | FIN, fileBuffer, 0, json.length);
+            custom(CUSTOM_FILE, INIT | FIN, jsonBuffer, 0, json.length);
         }
     }
 
@@ -790,6 +792,34 @@ public final class AguiResponseMapper implements A2aEventSink
         sink.message(FIN, null, emptyBuffer, 0, 0);
 
         finished.add(hash(text));
+    }
+
+    private void emitActivity(
+        String id,
+        String text)
+    {
+        final byte[] json = Json.createObjectBuilder().add("text", text).build().toString().getBytes(UTF_8);
+
+        if (json.length > maximum)
+        {
+            tooLarge();
+        }
+        else
+        {
+            closing.run();
+            ensureSnapshot();
+
+            activityId = activityId != null ? activityId : unique(id);
+
+            final AguiDataExFW dataEx = dataExRW.wrap(exBuffer, 0, exBuffer.capacity())
+                .typeId(aguiTypeId)
+                .activity(a -> a.meta(this::meta).type(t -> t.set(AguiActivityType.SNAPSHOT)).messageId(activityId)
+                    .activityType(ACTIVITY_STATUS))
+                .build();
+
+            jsonBuffer.putBytes(0, json);
+            sink.message(INIT | FIN, dataEx, jsonBuffer, 0, json.length);
+        }
     }
 
     private void custom(
@@ -882,8 +912,7 @@ public final class AguiResponseMapper implements A2aEventSink
         case SUBMITTED:
             if (text != null)
             {
-                pendingReplyId = statusMessageId;
-                pendingReplyText = text;
+                emitActivity(statusMessageId, text);
             }
             break;
         default:
@@ -949,11 +978,6 @@ public final class AguiResponseMapper implements A2aEventSink
         AguiOutcomeType outcome)
     {
         closing.run();
-
-        if (outcome == AguiOutcomeType.SUCCESS && finished.isEmpty() && pendingReplyText != null)
-        {
-            emitWhole(pendingReplyId, pendingReplyText.getBytes(UTF_8));
-        }
 
         ensureSnapshot();
 

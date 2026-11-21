@@ -342,7 +342,7 @@ A tag in a tier 1 run is never a tool call: `tool` messages are ignored there.
 5. **Run end.** The outcome is derived from the last task state. The `INPUT_REQUIRED` rules of section 7.4 apply once the status
    is seen; tagged parts in the same `status.message` are processed first.
 6. **Working status.** Tagged parts of a `WORKING` `status.message` map like artifact parts. Untagged working text keeps the
-   tier 1 behavior (retained as the fallback reply, or an activity once that mapping exists).
+   tier 1 behavior, an `ACTIVITY_SNAPSHOT` of type `status`.
 
 ## 9. Error handling
 
@@ -372,7 +372,7 @@ No A2A id, task state, extension URI or tag name is placed on the AG-UI client s
 | `system` / `developer` messages | dropped | dropped (section 12) |
 | `STATE_SNAPSHOT`, `STATE_DELTA` | none; data parts are `agent.data` | `state` tag |
 | `MESSAGES_SNAPSHOT` | proxy-originated only, on an implicit context reset | also agent-originated (`state` tag, `messages`) |
-| `ACTIVITY_*` | none (a working-status mapping is a separate follow-up) | `activity` tag |
+| `ACTIVITY_*` | `ACTIVITY_SNAPSHOT` `status` for the text of a `WORKING` status message, never a transcript message | `activity` tag |
 | `REASONING_*` | none | `reasoning`, `reasoning.encrypted` tags |
 | `STEP_*` | none | `step` tag |
 | agent-side `TOOL_CALL_*` | none | `toolCall`, `toolResult` tags |
@@ -394,7 +394,7 @@ The extension gives each deferred item a place; it does not specify the implemen
 
 | Follow-up | Place in this document |
 | --- | --- |
-| #2885 working status messages as activity | tier 1 behavior of an untagged `WORKING` message; in tier 2 the `activity` and `step` tags |
+| #2885 working status messages as activity | tier 1 behavior of an untagged `WORKING` message, an `ACTIVITY_SNAPSHOT` `status` that replaces the earlier fallback reply; in tier 2 the `activity` and `step` tags |
 | #2886 A2UI content plug-in | not part of this extension. A plug-in is its own A2A extension owned by its content type; it adds its media type to `acceptedOutputModes` and its URI to `A2A-Extensions` when the card declares it, and maps to an AG-UI activity type. Adding one needs no change to this carrier |
 | #2887 durable state tier | not part of the protocol: handles and contexts stay owner-local on the proxy, behind the state interface |
 | #2888 frontend tools through the extension | features `tools` and `toolCalls`; `metadata.agui.tools`; `toolCall` and `toolResult` tags; section 7.4 |
