@@ -29,6 +29,8 @@ import io.aklivity.zilla.config.binding.a2a.A2aDiscoverySearchConfigBuilder;
 import io.aklivity.zilla.config.binding.a2a.A2aKeywordSearchIndexConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aSearchIndexConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class A2aDiscoverySearchConfigAdapter extends ConfigAdapter<A2aDiscoverySearchConfig, JsonObject>
 {
@@ -40,7 +42,13 @@ public final class A2aDiscoverySearchConfigAdapter extends ConfigAdapter<A2aDisc
     private static final String TYPE_NAME = "type";
     private static final String INDEX_NAME = "index";
 
-    private final A2aSearchIndexConfigAdapter index = new A2aSearchIndexConfigAdapter();
+    private final A2aSearchIndexConfigAdapter index;
+
+    public A2aDiscoverySearchConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.index = new A2aSearchIndexConfigAdapter(extensions);
+    }
 
     @Override
     public JsonObject adaptToJson(

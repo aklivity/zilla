@@ -110,6 +110,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
 
     private final Long2ObjectHashMap<A2aProxyBindingConfig> bindings = new Long2ObjectHashMap<>();
     private final Long2ObjectHashMap<A2aAgentCache> caches = new Long2ObjectHashMap<>();
+    private final A2aDiscoveryFactory discovery;
 
     public A2aProxyFactory(
         A2aConfiguration config,
@@ -126,6 +127,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         this.affinity = context.affinity();
         this.a2aTypeId = context.supplyTypeId(A2A_TYPE_NAME);
         this.decodeMax = decodePool.slotCapacity();
+        this.discovery = new A2aDiscoveryFactory(config, context);
     }
 
     public A2aAgentCards cards(
@@ -146,6 +148,11 @@ public final class A2aProxyFactory implements A2aStreamFactory
             final A2aAgentCache cache = new A2aAgentCache(binding, attached, config, context, this::hydrate);
             caches.put(binding.id, cache);
             cache.start();
+
+            if (attached.discovery != null)
+            {
+                discovery.attach(attached, cache);
+            }
         }
     }
 
@@ -154,6 +161,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+        discovery.detach(bindingId);
 
         final A2aAgentCache cache = caches.remove(bindingId);
         if (cache != null)
@@ -188,19 +196,28 @@ public final class A2aProxyFactory implements A2aStreamFactory
             if (beginEx != null)
             {
                 final String agent = agentOf(beginEx);
-                final A2aProxyResolution resolution = binding.resolve(agent, authorization);
-                final A2aAgentCache cache = caches.get(routedId);
-                final A2aAgentEntry entry = beginEx.kind() == KIND_AGENT_CARD && cache != null ? cache.entryOf(agent) : null;
 
-                final A2aProxyStream stream = switch (resolution.outcome)
+                if (binding.discovers(agent))
                 {
-                case ROUTED -> entry != null && entry.route == resolution.route
-                    ? new A2aCardServer(sender, originId, routedId, initialId, binding, cache, entry)
-                    : new A2aRelayServer(sender, originId, routedId, initialId, resolution.route);
-                default -> new A2aRejectServer(sender, originId, routedId, initialId, resolution);
-                };
+                    newStream = discovery.newStream(beginEx, begin, sender);
+                }
+                else
+                {
+                    final A2aProxyResolution resolution = binding.resolve(agent, authorization);
+                    final A2aAgentCache cache = caches.get(routedId);
+                    final A2aAgentEntry entry =
+                        beginEx.kind() == KIND_AGENT_CARD && cache != null ? cache.entryOf(agent) : null;
 
-                newStream = stream::onAppMessage;
+                    final A2aProxyStream stream = switch (resolution.outcome)
+                    {
+                    case ROUTED -> entry != null && entry.route == resolution.route
+                        ? new A2aCardServer(sender, originId, routedId, initialId, binding, cache, entry)
+                        : new A2aRelayServer(sender, originId, routedId, initialId, resolution.route);
+                    default -> new A2aRejectServer(sender, originId, routedId, initialId, resolution);
+                    };
+
+                    newStream = stream::onAppMessage;
+                }
             }
         }
 

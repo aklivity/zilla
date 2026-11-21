@@ -16,13 +16,14 @@ package io.aklivity.zilla.config.binding.a2a;
 
 import static java.util.function.Function.identity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 
-public final class A2aDiscoverySearchConfig extends Config
+public final class A2aDiscoverySearchConfig extends Config.Extensible
 {
     public final int limit;
     public final List<String> fields;
@@ -46,9 +47,23 @@ public final class A2aDiscoverySearchConfig extends Config
         Map<String, Double> weights,
         List<A2aSearchIndexConfig> indexes)
     {
+        super(null, withIndexes(indexes));
         this.limit = limit;
         this.fields = fields;
         this.weights = weights;
         this.indexes = indexes;
+    }
+
+    private static List<Config.Reference> withIndexes(
+        List<A2aSearchIndexConfig> indexes)
+    {
+        final List<Config.Reference> refs = new ArrayList<>();
+
+        if (indexes != null)
+        {
+            indexes.forEach(index -> refs.addAll(index.refs()));
+        }
+
+        return refs;
     }
 }
