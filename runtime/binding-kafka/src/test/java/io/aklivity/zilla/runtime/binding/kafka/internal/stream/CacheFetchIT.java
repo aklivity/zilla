@@ -356,6 +356,21 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.meta.watch/client",
+        "${app}/message.value.meta.watch/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueMetaWatch() throws Exception
+    {
+        partition.append(10L);
+        k3po.start();
+        k3po.awaitBarrier("META_WATCH_OPENED");
+        k3po.notifyBarrier("OPEN_META");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
