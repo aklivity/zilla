@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 
 import org.junit.Test;
 
@@ -36,6 +37,19 @@ public class LlmMembersOutputTest
         {
             assertThat("split " + split, trim(json.substring(0, split), json.substring(split)),
                 equalTo("\"a\":1,\"b\":{\"c\":[2]}"));
+        }
+    }
+
+    @Test
+    public void shouldTrimObjectBracesAtEveryByteBoundaryOfMultibyteMembers()
+    {
+        final byte[] json = "{\"a\":\"\u00e9\u20ac\ud83d\ude00\",\"b\":\"\u00ff\"}".getBytes(UTF_8);
+
+        for (int split = 0; split <= json.length; split++)
+        {
+            assertThat("split " + split,
+                trimBytes(Arrays.copyOfRange(json, 0, split), Arrays.copyOfRange(json, split, json.length)),
+                equalTo("\"a\":\"\u00e9\u20ac\ud83d\ude00\",\"b\":\"\u00ff\""));
         }
     }
 
@@ -77,6 +91,21 @@ public class LlmMembersOutputTest
         put(output, "{\"b\":2}", true);
 
         assertThat(collected.toString(UTF_8), equalTo("\"a\":1\"b\":2"));
+    }
+
+    private static String trimBytes(
+        byte[]... chunks)
+    {
+        final ByteArrayOutputStream collected = new ByteArrayOutputStream();
+        final LlmMembersOutput output = new LlmMembersOutput(
+            (buffer, offset, length) -> collect(collected, buffer, offset, length));
+
+        for (int index = 0; index < chunks.length; index++)
+        {
+            output.put(new UnsafeBufferEx(chunks[index]), 0, chunks[index].length, index == chunks.length - 1);
+        }
+
+        return collected.toString(UTF_8);
     }
 
     private static String trim(
