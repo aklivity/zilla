@@ -623,6 +623,14 @@ public interface EngineContext
     LongConsumer supplyUtilizationMetric();
 
     /**
+     * Returns a {@link LongConsumer} that adds each accepted delta to this worker's counter of
+     * utilization handed to another worker.
+     *
+     * @return the rebalanced metric writer
+     */
+    LongConsumer supplyRebalancedMetric();
+
+    /**
      * Resolves a path string relative to the engine's configured data directory.
      *
      * @param location  the relative or absolute path string

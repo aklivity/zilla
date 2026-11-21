@@ -61,7 +61,7 @@ final class TcpBindingContext implements BindingContext
         this.factories = factories;
     }
 
-    private boolean spill(
+    boolean spill(
         long bindingId,
         SocketChannel channel)
     {
@@ -70,6 +70,7 @@ final class TcpBindingContext implements BindingContext
 
         if (peer != null)
         {
+            usage.rebalanced();
             peer.dispatch.accept(() -> peer.spilled(bindingId, channel));
         }
 

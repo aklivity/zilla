@@ -20,7 +20,7 @@ connected
 read http:method "POST"
 read http:version "HTTP/1.1"
 read http:header "Host" "localhost:4318"
-read http:header "Content-Length" "2972"
+read http:header "Content-Length" "3205"
 read
 '{'
   '"resourceMetrics":[{'
@@ -52,6 +52,19 @@ read
         '"name":"engine.workers.listeners.unbound",'
         '"unit":"",'
         '"description":"Engine workers listeners unbound",'
+        '"sum":{'
+          '"dataPoints":[{'
+            '"asInt":0,'
+            '"timeUnixNano":' [0..19] ','
+            '"attributes":[]'
+          '}],'
+          '"aggregationTemporality":2,'
+          '"isMonotonic":true'
+        '}'
+      '},{'
+        '"name":"engine.workers.usage.rebalanced",'
+        '"unit":"",'
+        '"description":"Engine workers usage rebalanced",'
         '"sum":{'
           '"dataPoints":[{'
             '"asInt":0,'

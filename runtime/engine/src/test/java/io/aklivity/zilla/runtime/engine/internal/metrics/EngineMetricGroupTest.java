@@ -36,7 +36,8 @@ public class EngineMetricGroupTest
             "engine.workers.capacity",
             "engine.workers.count",
             "engine.workers.listeners.bound",
-            "engine.workers.listeners.unbound"));
+            "engine.workers.listeners.unbound",
+            "engine.workers.usage.rebalanced"));
     }
 
     @Test
@@ -55,6 +56,16 @@ public class EngineMetricGroupTest
         Metric metric = group.supply("engine.workers.listeners.unbound");
 
         assertThat(metric.name(), equalTo("engine.workers.listeners.unbound"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+    }
+
+    @Test
+    public void shouldSupplyUsageRebalancedCounter()
+    {
+        Metric metric = group.supply("engine.workers.usage.rebalanced");
+
+        assertThat(metric.name(), equalTo("engine.workers.usage.rebalanced"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
     }
