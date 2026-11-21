@@ -92,6 +92,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/agent.card.push/client",
+        "${net}/agent.card.push/server"})
+    public void shouldAgentCardPush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/agent.card.slug/client",
         "${net}/agent.card.slug/server"})
     public void shouldAgentCardSlug() throws Exception
@@ -176,6 +185,51 @@ public class NetworkIT
         "${net}/cancel.task.v0.3/client",
         "${net}/cancel.task.v0.3/server"})
     public void shouldCancelTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.push.config.create/client",
+        "${net}/chain.push.config.create/server"})
+    public void shouldChainPushConfigCreate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.push.config.get/client",
+        "${net}/chain.push.config.get/server"})
+    public void shouldChainPushConfigGet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.push.deliver/client",
+        "${net}/chain.push.deliver/server"})
+    public void shouldChainPushDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.push.deliver.100k/client",
+        "${net}/chain.push.deliver.100k/server"})
+    public void shouldChainPushDeliver100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.push.message.send/client",
+        "${net}/chain.push.message.send/server"})
+    public void shouldChainPushMessageSend() throws Exception
     {
         k3po.finish();
     }
@@ -722,6 +776,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/push.config.create.blocked.slug/client",
+        "${net}/push.config.create.blocked.slug/server"})
+    public void shouldPushConfigCreateBlockedSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.config.create.slug/client",
+        "${net}/push.config.create.slug/server"})
+    public void shouldPushConfigCreateSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.config.create.slug.v0.3/client",
+        "${net}/push.config.create.slug.v0.3/server"})
+    public void shouldPushConfigCreateSlugV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.config.create.too.long.slug/client",
+        "${net}/push.config.create.too.long.slug/server"})
+    public void shouldPushConfigCreateTooLongSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/push.config.create.v0.3/client",
         "${net}/push.config.create.v0.3/server"})
     public void shouldPushConfigCreateV03() throws Exception
@@ -752,6 +842,15 @@ public class NetworkIT
         "${net}/push.config.get/client",
         "${net}/push.config.get/server"})
     public void shouldPushConfigGet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.config.get.slug/client",
+        "${net}/push.config.get.slug/server"})
+    public void shouldPushConfigGetSlug() throws Exception
     {
         k3po.finish();
     }
@@ -794,6 +893,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/push.deliver.100k/client",
+        "${net}/push.deliver.100k/server"})
+    public void shouldPushDeliver100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.deliver.ordered/client",
+        "${net}/push.deliver.ordered/server"})
+    public void shouldPushDeliverOrdered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/push.deliver.retry/client",
         "${net}/push.deliver.retry/server"})
     public void shouldPushDeliverRetry() throws Exception
@@ -803,9 +920,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/push.deliver.slots/client",
+        "${net}/push.deliver.slots/server"})
+    public void shouldPushDeliverSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/push.deliver.unreachable/client",
         "${net}/push.deliver.unreachable/server"})
     public void shouldPushDeliverUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.message.send.slug/client",
+        "${net}/push.message.send.slug/server"})
+    public void shouldPushMessageSendSlug() throws Exception
     {
         k3po.finish();
     }
@@ -824,6 +959,42 @@ public class NetworkIT
         "${net}/push.notify.rejected/client",
         "${net}/push.notify.rejected/server"})
     public void shouldPushNotifyRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.notify.sealed/client",
+        "${net}/push.notify.sealed/server"})
+    public void shouldPushNotifySealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.notify.sealed.100k/client",
+        "${net}/push.notify.sealed.100k/server"})
+    public void shouldPushNotifySealed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.notify.sealed.rejected/client",
+        "${net}/push.notify.sealed.rejected/server"})
+    public void shouldPushNotifySealedRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/push.notify.sealed.token.missing/client",
+        "${net}/push.notify.sealed.token.missing/server"})
+    public void shouldPushNotifySealedTokenMissing() throws Exception
     {
         k3po.finish();
     }

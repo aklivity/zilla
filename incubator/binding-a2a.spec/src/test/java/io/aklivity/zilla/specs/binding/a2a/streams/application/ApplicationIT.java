@@ -56,6 +56,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/agent.card.push/client",
+        "${app}/agent.card.push/server"})
+    public void shouldAgentCardPush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/agent.card.slug/client",
         "${app}/agent.card.slug/server"})
     public void shouldAgentCardSlug() throws Exception
@@ -182,6 +191,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.create.blocked/client",
+        "${app}/push.config.create.blocked/server"})
+    public void shouldPushConfigCreateBlocked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.create.sealed/client",
+        "${app}/push.config.create.sealed/server"})
+    public void shouldPushConfigCreateSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.create.slug/client",
+        "${app}/push.config.create.slug/server"})
+    public void shouldPushConfigCreateSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.create.too.long/client",
+        "${app}/push.config.create.too.long/server"})
+    public void shouldPushConfigCreateTooLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.delete/client",
         "${app}/push.config.delete/server"})
     public void shouldPushConfigDelete() throws Exception
@@ -200,9 +245,45 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.get.sealed/client",
+        "${app}/push.config.get.sealed/server"})
+    public void shouldPushConfigGetSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.get.slug/client",
+        "${app}/push.config.get.slug/server"})
+    public void shouldPushConfigGetSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.list/client",
         "${app}/push.config.list/server"})
     public void shouldPushConfigList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.list.sealed/client",
+        "${app}/push.config.list.sealed/server"})
+    public void shouldPushConfigListSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.list.slug/client",
+        "${app}/push.config.list.slug/server"})
+    public void shouldPushConfigListSlug() throws Exception
     {
         k3po.finish();
     }
@@ -218,6 +299,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.deliver.100k/client",
+        "${app}/push.deliver.100k/server"})
+    public void shouldPushDeliver100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.blocked/client",
+        "${app}/push.deliver.blocked/server"})
+    public void shouldPushDeliverBlocked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.blocked.resolved/client",
+        "${app}/push.deliver.blocked.resolved/server"})
+    public void shouldPushDeliverBlockedResolved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.ordered/client",
+        "${app}/push.deliver.ordered/server"})
+    public void shouldPushDeliverOrdered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.deliver.retry/client",
         "${app}/push.deliver.retry/server"})
     public void shouldPushDeliverRetry() throws Exception
@@ -227,9 +344,36 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.deliver.slots/client",
+        "${app}/push.deliver.slots/server"})
+    public void shouldPushDeliverSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.deliver.unreachable/client",
         "${app}/push.deliver.unreachable/server"})
     public void shouldPushDeliverUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.message.send/client",
+        "${app}/push.message.send/server"})
+    public void shouldPushMessageSend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.message.send.sealed/client",
+        "${app}/push.message.send.sealed/server"})
+    public void shouldPushMessageSendSealed() throws Exception
     {
         k3po.finish();
     }
@@ -248,6 +392,42 @@ public class ApplicationIT
         "${app}/push.notify.rejected/client",
         "${app}/push.notify.rejected/server"})
     public void shouldPushNotifyRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed/client",
+        "${app}/push.notify.sealed/server"})
+    public void shouldPushNotifySealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed.100k/client",
+        "${app}/push.notify.sealed.100k/server"})
+    public void shouldPushNotifySealed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed.rejected/client",
+        "${app}/push.notify.sealed.rejected/server"})
+    public void shouldPushNotifySealedRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed.token.missing/client",
+        "${app}/push.notify.sealed.token.missing/server"})
+    public void shouldPushNotifySealedTokenMissing() throws Exception
     {
         k3po.finish();
     }
