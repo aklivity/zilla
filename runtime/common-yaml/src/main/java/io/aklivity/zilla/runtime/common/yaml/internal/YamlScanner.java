@@ -66,6 +66,10 @@ public final class YamlScanner
     private static final Pattern HEX_INTEGER_PATTERN = Pattern.compile("-?0x[0-9a-fA-F]+");
     private static final Pattern FLOW_FOLD_PATTERN = Pattern.compile("[ \\t]*\\R[ \\t]*");
 
+    // a byte order mark opens the stream rather than the first line, so the stream's first character is the one
+    // after it and it takes no indentation column; it is only a mark in that position, so one further in is content
+    private static final char BYTE_ORDER_MARK = '\ufeff';
+
     private static final Bail BAIL = new Bail();
 
     private Matcher numberMatcher;
@@ -3745,7 +3749,7 @@ public final class YamlScanner
     private static int firstContent(
         String text)
     {
-        int at = 0;
+        int at = text.length() > 0 && text.charAt(0) == BYTE_ORDER_MARK ? 1 : 0;
         while (at < text.length() && Character.isWhitespace(text.charAt(at)))
         {
             at++;
@@ -3774,13 +3778,18 @@ public final class YamlScanner
             int lineRawEnd = eol == -1 ? length : eol;
             int trimmedEnd = lineRawEnd > start && text.charAt(lineRawEnd - 1) == '\r' ? lineRawEnd - 1 : lineRawEnd;
 
-            int cs = start;
-            while (cs < trimmedEnd && isSpace(text.charAt(cs)))
+            int at = start;
+            if (at == 0 && at < trimmedEnd && text.charAt(at) == BYTE_ORDER_MARK)
             {
-                cs++;
+                at++;
             }
-            int indent = cs - start;
-            boolean spaceOnly = cs == trimmedEnd;
+            int indentAt = at;
+            while (at < trimmedEnd && isSpace(text.charAt(at)))
+            {
+                at++;
+            }
+            int indent = at - indentAt;
+            boolean spaceOnly = at == trimmedEnd;
 
             // a multi-line flow collection's interior lines are not block entries; the flow scanner validates
             // them, so the feasibility pre-filter skips them rather than mistaking flow content for a mapping
@@ -3801,19 +3810,19 @@ public final class YamlScanner
 
             if (!skip)
             {
-                int comment = commentIndex(cs, trimmedEnd);
+                int comment = commentIndex(at, trimmedEnd);
                 int ce = comment == -1 ? trimmedEnd : comment;
-                while (ce > cs && isSpace(text.charAt(ce - 1)))
+                while (ce > at && isSpace(text.charAt(ce - 1)))
                 {
                     ce--;
                 }
-                if (cs < ce)
+                if (at < ce)
                 {
-                    blockSkipIndent = feasibleLine(cs, ce, indent);
+                    blockSkipIndent = feasibleLine(at, ce, indent);
                 }
             }
 
-            flowDepth = flowDepthAfter(cs, trimmedEnd, flowDepth);
+            flowDepth = flowDepthAfter(at, trimmedEnd, flowDepth);
             start = eol == -1 ? length : eol + 1;
         }
     }
@@ -4038,7 +4047,11 @@ public final class YamlScanner
             int rawEnd = eol == -1 ? text.length() : eol;
             int trimmedEnd = rawEnd > start && text.charAt(rawEnd - 1) == '\r' ? rawEnd - 1 : rawEnd;
 
-            int indent = start;
+            // the mark opens the stream, so it is not a column of the first line's indentation
+            int base = line == 0 && start < trimmedEnd && text.charAt(start) == BYTE_ORDER_MARK
+                ? start + 1
+                : start;
+            int indent = base;
             while (indent < trimmedEnd && isSpace(text.charAt(indent)))
             {
                 indent++;
@@ -4052,7 +4065,7 @@ public final class YamlScanner
             }
 
             lineStart[line] = start;
-            lineIndent[line] = indent - start;
+            lineIndent[line] = indent - base;
             contentStart[line] = indent;
             contentEnd[line] = end;
 
