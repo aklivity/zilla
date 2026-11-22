@@ -114,7 +114,7 @@ public abstract class KafkaClientSaslHandshaker
         this.clientIdSupplier = KafkaClientIdSupplier.instantiate(config);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
         this.nonceSupplier = config.nonceSupplier();
         this.clientIdsByServer = new Object2ObjectHashMap<>();
         this.event = new KafkaEventContext(context);

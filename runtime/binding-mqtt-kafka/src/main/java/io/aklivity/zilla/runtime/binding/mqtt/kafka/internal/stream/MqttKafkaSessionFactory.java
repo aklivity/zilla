@@ -366,16 +366,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
     {
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.sessionStateBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.willMessageBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.willKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.sessionSignalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.signalKeyBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.sessionExtBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
+        this.sessionStateBuffer = context.writeBuffer("sessionState");
+        this.kafkaHeadersBuffer = context.writeBuffer("kafkaHeaders");
+        this.willMessageBuffer = context.writeBuffer("willMessage");
+        this.sessionSignalBuffer = context.writeBuffer("sessionSignal");
+        this.willKeyBuffer = context.writeBuffer("willKey");
+        this.sessionSignalKeyBuffer = context.writeBuffer("sessionSignalKey");
+        this.signalKeyBuffer = context.writeBuffer("signalKey");
+        this.sessionExtBuffer = context.writeBuffer("sessionExtension");
         this.bufferPool = context.bufferPool();
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();

@@ -221,7 +221,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
