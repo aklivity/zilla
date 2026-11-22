@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -46,9 +48,11 @@ public class KafkaCacheFileTest
         try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
         {
             file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8)));
-        }
 
-        assertEquals("Hello, world", new String(Files.readAllBytes(location), UTF_8));
+            byte[] appended = new byte[file.capacity()];
+            file.buffer().getBytes(0, appended);
+            assertEquals("Hello, world", new String(appended, UTF_8));
+        }
     }
 
     @Test
@@ -67,6 +71,152 @@ public class KafkaCacheFileTest
         }
 
         assertEquals("Hello, world", new String(Files.readAllBytes(location), UTF_8));
+    }
+
+    @Test
+    public void shouldAppendWithinOneAppendBufferFillWithSingleChannelWrite() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            assertEquals(0, file.appendCount());
+
+            file.appendBytes(new UnsafeBufferEx("Hello".getBytes(UTF_8)));
+            file.appendInt(1);
+            file.appendLong(2L);
+
+            assertEquals(1, file.appendCount());
+            assertEquals(5 + Integer.BYTES + Long.BYTES, file.capacity());
+            assertEquals(1, file.readInt(5));
+            assertEquals(2L, file.readLong(5 + Integer.BYTES));
+        }
+    }
+
+    @Test
+    public void shouldAppendOneChannelWritePerAppendBufferFill() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(64));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            for (int index = 0; index < 20; index++)
+            {
+                file.appendLong(index);
+            }
+
+            assertEquals(160, file.capacity());
+            assertEquals(3, file.appendCount());
+            for (int index = 0; index < 20; index++)
+            {
+                assertEquals(index, file.readLong(index * Long.BYTES));
+            }
+        }
+    }
+
+    @Test
+    public void shouldAdvanceWithSingleChannelWriteWithinAppendBuffer() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(512));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            file.advance(512);
+
+            assertEquals(512, file.capacity());
+            assertEquals(1, file.appendCount());
+        }
+    }
+
+    @Test
+    public void shouldAdvanceWithOneChannelWritePerAppendBufferFill() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            file.advance(600);
+
+            assertEquals(600, file.capacity());
+            assertEquals(3, file.appendCount());
+        }
+    }
+
+    @Test
+    public void shouldZeroFillAdvancedBytesRegardlessOfAppendBufferContents() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+        appendBuf.setMemory(0, appendBuf.capacity(), (byte) 0x7f);
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            file.advance(300);
+
+            for (int index = 0; index < 300; index++)
+            {
+                assertEquals(0, file.buffer().getByte(index));
+            }
+        }
+    }
+
+    @Test
+    public void shouldNotExtendBeyondMaxCapacity() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 300;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            file.advance(280);
+
+            assertEquals(300, Files.size(location));
+        }
+    }
+
+    @Test
+    public void shouldNotAppendBeyondMaxCapacity() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 8;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            assertTrue(file.appendLong(1L));
+            assertFalse(file.appendInt(2));
+
+            assertEquals(8, file.capacity());
+        }
+    }
+
+    @Test
+    public void shouldTruncateToAppendedBytesWhenFrozen() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        int capacity = 1024;
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(256));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, capacity, appendBuf))
+        {
+            file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8)));
+            assertTrue(Files.size(location) >= file.capacity());
+
+            file.freeze();
+
+            assertEquals(12, Files.size(location));
+            assertEquals("Hello, world", new String(Files.readAllBytes(location), UTF_8));
+        }
     }
 
     @Test

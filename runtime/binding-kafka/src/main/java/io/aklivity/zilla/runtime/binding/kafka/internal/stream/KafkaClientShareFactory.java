@@ -383,7 +383,7 @@ public final class KafkaClientShareFactory extends KafkaClientSaslHandshaker imp
         this.signaler = context.signaler();
         this.clock = context.clock();
         this.streamFactory = context.streamFactory();
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.decodeMaxBytes = decodePool.slotCapacity();
         this.encodePool = context.bufferPool();

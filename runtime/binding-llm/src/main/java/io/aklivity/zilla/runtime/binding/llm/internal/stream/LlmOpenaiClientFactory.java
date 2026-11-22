@@ -267,7 +267,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.stagePool = decodePool.duplicate();

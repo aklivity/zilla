@@ -190,8 +190,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.transformBuffer = context.writeBuffer("transform");
         this.bufferPool = context.bufferPool();
         this.clock = context.clock();
         this.signaler = context.signaler();

@@ -220,8 +220,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
@@ -2112,9 +2112,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeProgress += headerItemsSize;
                 }
 
-                final byte[] encodeByteBuf = encodeBuffer.byteArray();
+                final ByteBuffer encodeByteBuf = encodeBuffer.byteBuffer();
+                encodeByteBuf.clear();
+                encodeByteBuf.limit(encodeProgress);
                 crc32c.reset();
-                crc32c.update(encodeByteBuf, 0, encodeProgress);
+                crc32c.update(encodeByteBuf);
 
                 headersChecksum = crc32c.getValue();
                 headersSize = encodeProgress;

@@ -167,7 +167,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -1131,6 +1131,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
         private int messageOffset;
         private long flushedAckPartitionOffset = -1L;
+        private long flushedPartitionOffset = DEFAULT_LATEST_OFFSET;
 
         private boolean isProgressing = true;
 
@@ -1588,17 +1589,22 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 final long flushOffset = error == NO_ERROR ? Math.min(partitionOffset, cursor.offset - 1) : partitionOffset;
                 final long ackOffset = fan.ackPartitionOffset;
                 final long ackTimestamp = fan.ackTimestamp;
-                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
-                        traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                                                            .typeId(kafkaTypeId)
-                                                            .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                            .partitionOffset(flushOffset))
-                                                                           .error(error)
-                                                                           .timestamp(ackTimestamp)
-                                                                           .ackOffset(ackOffset))
-                                                            .build()
-                                                            .sizeof()));
+
+                if (KafkaProduceFlush.required(error != NO_ERROR, flushOffset, flushedPartitionOffset))
+                {
+                    doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                            traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
+                        ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                                                                .typeId(kafkaTypeId)
+                                                                .produce(f -> f.partition(p -> p.partitionId(partition.id())
+                                                                                                .partitionOffset(flushOffset))
+                                                                               .error(error)
+                                                                               .timestamp(ackTimestamp)
+                                                                               .ackOffset(ackOffset))
+                                                                .build()
+                                                                .sizeof()));
+                    flushedPartitionOffset = flushOffset;
+                }
 
                 if (fan.ackPartitionOffset >= 0)
                 {

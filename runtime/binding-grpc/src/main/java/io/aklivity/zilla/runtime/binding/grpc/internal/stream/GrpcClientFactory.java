@@ -137,8 +137,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.metadataBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.metadataBuffer = context.writeBuffer("metadata");
+        this.extBuffer = context.writeBuffer("extension");
         this.streamFactory = context.streamFactory();
         this.supplyCatalog = context::supplyCatalog;
         this.supplyInitialId = context::supplyInitialId;

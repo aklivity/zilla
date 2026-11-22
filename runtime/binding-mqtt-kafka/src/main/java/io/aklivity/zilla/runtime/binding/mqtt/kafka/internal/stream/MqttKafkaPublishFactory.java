@@ -158,6 +158,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private final MqttResetExFW.Builder mqttResetExRW = new MqttResetExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
     private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
+    private final MqttKafkaOffsetHex offsetHex = new MqttKafkaOffsetHex();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
     private final MutableDirectBufferEx expiryBuffer = new UnsafeBufferEx(new byte[Integer.BYTES]);
@@ -197,10 +198,10 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.clock = context.clock();
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.offsetBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
+        this.kafkaHeadersBuffer = context.writeBuffer("kafkaHeaders");
+        this.offsetBuffer = context.writeBuffer("offset");
         this.helper = new MqttKafkaHeaderHelper();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -215,7 +216,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(2, new String16FW("2"));
         this.supplyClientMetadata = supplyClientMetadata;
         this.sessionOffsetsHelper =
-            new KafkaSessionOffsetsHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
+            new KafkaSessionOffsetsHelper(context.writeBuffer("sessionOffsets"));
     }
 
     @Override
@@ -2283,8 +2284,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             metadata.packetIds.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
         }
         final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-        return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
-            offsetMetadata.offset(), offsetMetadata.limit()));
+        return offsetHex.toHex(offsetMetadata.buffer(), offsetMetadata.offset(), offsetMetadata.sizeof());
     }
 
     private static long offsetKey(

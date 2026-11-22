@@ -592,16 +592,16 @@ public final class MqttServerFactory implements MqttStreamFactory
         InstanceId instanceId)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.flushExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.sessionExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.willMessageBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.willUserPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.dataExtBuffer = context.writeBuffer("dataExtension");
+        this.flushExtBuffer = context.writeBuffer("flushExtension");
+        this.propertyBuffer = context.writeBuffer("property");
+        this.userPropertiesBuffer = context.writeBuffer("userProperties");
+        this.payloadBuffer = context.writeBuffer("payload");
+        this.sessionExtBuffer = context.writeBuffer("sessionExtension");
+        this.sessionStateBuffer = context.writeBuffer("sessionState");
+        this.willMessageBuffer = context.writeBuffer("willMessage");
+        this.willUserPropertiesBuffer = context.writeBuffer("willUserProperties");
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.droppedHandler = context.droppedFrameHandler();
@@ -632,8 +632,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_4, this::decodePacketTypeV4);
         this.decodePacketTypeByVersion.put(MQTT_PROTOCOL_VERSION_5, this::decodePacketTypeV5);
         this.supplyModel = context::supplyModel;
-        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.userPropertyValueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.modelBuffer = context.writeBuffer("model");
+        this.userPropertyValueBuffer = context.writeBuffer("userPropertyValue");
         this.events = new MqttEventContext(context);
         this.instanceId = instanceId;
         this.sessionLease = config.sessionLease();

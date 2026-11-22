@@ -139,6 +139,7 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetCredit;
 import io.aklivity.zilla.runtime.engine.internal.budget.FacadeBudgetDebit;
+import io.aklivity.zilla.runtime.engine.internal.buffer.WriteBuffers;
 import io.aklivity.zilla.runtime.engine.internal.event.io.EventWriter;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BindingsLayout;
@@ -234,6 +235,7 @@ public class EngineWorker implements EngineContext, Agent
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBufferEx streamsBuffer;
     private final MutableDirectBufferEx writeBuffer;
+    private final WriteBuffers writeBuffers;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
@@ -404,6 +406,7 @@ public class EngineWorker implements EngineContext, Agent
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
         this.writeBuffer = new UnsafeBufferEx(ByteBuffer.allocateDirect(config.bufferSlotCapacity() + 1024)).asNative();
+        this.writeBuffers = new WriteBuffers(writeBuffer.capacity());
         this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
@@ -752,6 +755,13 @@ public class EngineWorker implements EngineContext, Agent
     public MutableDirectBufferEx writeBuffer()
     {
         return writeBuffer;
+    }
+
+    @Override
+    public MutableDirectBufferEx writeBuffer(
+        String name)
+    {
+        return writeBuffers.supply(name);
     }
 
     @Override

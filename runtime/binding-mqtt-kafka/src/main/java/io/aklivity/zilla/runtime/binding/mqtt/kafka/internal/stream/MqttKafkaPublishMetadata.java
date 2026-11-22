@@ -120,6 +120,7 @@ public class MqttKafkaPublishMetadata
 
         private final MqttPublishOffsetMetadataFW mqttOffsetMetadataRO = new MqttPublishOffsetMetadataFW();
         private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
+        private final MqttKafkaOffsetHex offsetHex = new MqttKafkaOffsetHex();
         private final MutableDirectBufferEx offsetBuffer;
 
         KafkaOffsetMetadataHelper(
@@ -154,8 +155,7 @@ public class MqttKafkaPublishMetadata
                 metadata.packetIds.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
             }
             final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-            return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
-                offsetMetadata.offset(), offsetMetadata.limit()));
+            return offsetHex.toHex(offsetMetadata.buffer(), offsetMetadata.offset(), offsetMetadata.sizeof());
         }
     }
 

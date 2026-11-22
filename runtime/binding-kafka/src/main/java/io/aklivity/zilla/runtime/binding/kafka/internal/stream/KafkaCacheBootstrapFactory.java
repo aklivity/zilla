@@ -58,7 +58,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.StreamState;
@@ -122,7 +121,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
         this.streamFactory = context.streamFactory();
         this.context = context;
         this.supplyInitialId = context::supplyInitialId;
@@ -1559,7 +1558,8 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
             bootstrap.onPartitionLeaderReady(traceId, partitionId);
 
-            doFetchReplyWindow(traceId, 0, 8192); // TODO: consider 0 to avoid receiving FLUSH frames
+            // bootstrap only keeps the fetch alive, granting no credit means the cache server sends it no flush
+            doFetchReplyWindow(traceId, 0, 0);
         }
 
         private void onFetchReplyFlush(

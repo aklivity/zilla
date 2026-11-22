@@ -291,6 +291,99 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldWriteProduceEntryWithPinnedFileContents() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        writeProduceEntry(partition, head);
+
+        assertEquals(
+            "0b00000000000000d20400000000000007000000000000000000000000000000ffffffffffffffff000000000000ffff" +
+            "ffffffffffffffffffffffffffff02000000ffffffff0000046b31000000000500000068656c6c6f0000000010000000" +
+            "020000000468310476310468320476320400000000000000180000000000000000000000000000000000000000000000" +
+            "000000000000000000000000000000000000000000000000000000000000000000000000",
+            hex(head.segment().logFile()));
+        assertEquals("0000000001000000", hex(head.segment().indexFile()));
+    }
+
+    @Test
+    public void shouldWriteProduceEntryWithSingleChannelWritePerFile() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        writeProduceEntry(partition, head);
+
+        assertEquals(1, head.segment().logFile().appendCount());
+        assertEquals(1, head.segment().indexFile().appendCount());
+    }
+
+    @Test
+    public void shouldAmortizeChannelWritesAcrossManyProduceEntries() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        for (int index = 0; index < 100; index++)
+        {
+            writeProduceEntry(partition, head, 11L + index);
+        }
+
+        assertEquals(1, head.segment().logFile().appendCount());
+        assertEquals(1, head.segment().indexFile().appendCount());
+    }
+
+    @Test
+    public void shouldAmortizeChannelWritesAcrossManyEntries() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        for (int index = 0; index < 100; index++)
+        {
+            writeEntry(partition, 11L + index);
+        }
+
+        assertEquals(1, head.segment().logFile().appendCount());
+        assertEquals(1, head.segment().hashFile().appendCount());
+        assertEquals(1, head.segment().keysFile().appendCount());
+        assertEquals(1, head.segment().indexFile().appendCount());
+    }
+
+    @Test
+    public void shouldWriteEntryWithPinnedFileContents() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        writeEntry(partition);
+
+        assertEquals(
+            "0b00000000000000d2040000000000000700000000000000000000000000000000000000000000000000ffffffffffff" +
+            "ffffffffffffffffffffffffffff00000000ffffffff0000046b31000000000500000068656c6c6f0000000010000000" +
+            "02000000046831047631046832047632040000000000000000000000",
+            hex(head.segment().logFile()));
+        assertEquals("00000000f5835d1500000000867b8565000000004b01f714", hex(head.segment().hashFile()));
+        assertEquals("00000000f5835d15", hex(head.segment().keysFile()));
+        assertEquals("0000000001000000", hex(head.segment().indexFile()));
+    }
+
+    @Test
+    public void shouldWriteEntryWithSingleChannelWritePerFile() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        writeEntry(partition);
+
+        assertEquals(1, head.segment().logFile().appendCount());
+        assertEquals(1, head.segment().hashFile().appendCount());
+        assertEquals(1, head.segment().keysFile().appendCount());
+        assertEquals(1, head.segment().indexFile().appendCount());
+    }
+
+    @Test
     public void shouldStreamTransformedValueDirectlyIntoLogFileForProduce() throws Exception
     {
         KafkaCachePartition partition = newPartition();
@@ -1164,6 +1257,87 @@ public class KafkaCachePartitionTest
             .length(bytes.length)
             .value(k -> k.set(bytes))
             .build();
+    }
+
+    private void writeProduceEntry(
+        KafkaCachePartition partition,
+        Node head)
+    {
+        writeProduceEntry(partition, head, 11L);
+    }
+
+    private void writeProduceEntry(
+        KafkaCachePartition partition,
+        Node head,
+        long offset)
+    {
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableInteger valueLimit = new MutableInteger(0);
+        MutableInteger trailersClaimMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        partition.writeProduceEntryStart(1L, 1L, 0L, offset, head, entryMark, valueMark, valueLimit, trailersClaimMark,
+            1234L, 7L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, 5, 0, headers, 32, value,
+            KafkaCacheModel.NONE, KafkaCacheModel.NONE);
+        partition.writeProduceEntryContinue(1L, 1L, 0L, COMPLETE, head, entryMark, valueMark, valueLimit, value,
+            KafkaCacheModel.NONE, 0);
+        partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noHeaders(buffer, 0), false);
+    }
+
+    private void writeEntry(
+        KafkaCachePartition partition)
+    {
+        writeEntry(partition, 11L);
+    }
+
+    private void writeEntry(
+        KafkaCachePartition partition,
+        long offset)
+    {
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        partition.writeEntry(null, 1L, 1L, 0L, offset, entryMark, valueMark, 1234L, KafkaTimestampType.ADVISORY, 7L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, KafkaCacheModel.NONE,
+            new KafkaCacheKeyEnvelope(), new KafkaCacheTrailerEnvelope(), 32, false);
+    }
+
+    private static String hex(
+        KafkaCacheFile file)
+    {
+        final StringBuilder hex = new StringBuilder();
+        for (int index = 0; index < file.capacity(); index++)
+        {
+            hex.append(String.format("%02x", file.buffer().getByte(index)));
+        }
+        return hex.toString();
+    }
+
+    private static Array32FW<KafkaHeaderFW> headers(
+        MutableDirectBufferEx buffer,
+        int offset,
+        String... namesAndValues)
+    {
+        final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
+            new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                .wrap(buffer, offset, buffer.capacity());
+        for (int index = 0; index < namesAndValues.length; index += 2)
+        {
+            final byte[] name = namesAndValues[index].getBytes(UTF_8);
+            final byte[] value = namesAndValues[index + 1].getBytes(UTF_8);
+            builder.item(h -> h.nameLen(name.length).name(n -> n.set(name)).valueLen(value.length).value(v -> v.set(value)));
+        }
+        return builder.build();
     }
 
     private static Array32FW<KafkaHeaderFW> noHeaders(

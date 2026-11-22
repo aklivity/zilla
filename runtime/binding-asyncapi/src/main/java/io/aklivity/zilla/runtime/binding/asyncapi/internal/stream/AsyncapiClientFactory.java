@@ -114,9 +114,9 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.httpExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.sseExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.httpExtBuffer = context.writeBuffer("httpExtension");
+        this.sseExtBuffer = context.writeBuffer("sseExtension");
         this.bindings = new Long2ObjectHashMap<>();
         this.serverIndexes = new Object2IntHashMap<>(-1);
         this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);

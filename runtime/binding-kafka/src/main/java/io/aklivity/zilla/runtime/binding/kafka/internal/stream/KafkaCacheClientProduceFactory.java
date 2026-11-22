@@ -196,10 +196,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.event = new KafkaEventContext(context);
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.transformBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.trailersMergeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
+        this.transformBuffer = context.writeBuffer("transform");
+        this.trailersMergeBuffer = context.writeBuffer("trailersMerge");
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.clock = context.clock();

@@ -74,6 +74,8 @@ public class KafkaCacheFile implements AutoCloseable
     private volatile int maxCapacity;
     private volatile int capacity;   // only ever increases
     private int markValue;
+    private int extent;
+    private int appendCount;
 
     public KafkaCacheFile(
         Path location,
@@ -121,6 +123,11 @@ public class KafkaCacheFile implements AutoCloseable
     public int available()
     {
         return maxCapacity - capacity;
+    }
+
+    public int appendCount()
+    {
+        return appendCount;
     }
 
     public void mark()
@@ -196,17 +203,13 @@ public class KafkaCacheFile implements AutoCloseable
         int position)
     {
         assert position >= capacity;
-        int remaining = position - capacity;
+        assert position - capacity <= maxCapacity;
 
-        assert remaining <= maxCapacity;
-
-        while (remaining > 0)
+        if (position <= maxCapacity)
         {
-            final int length = Math.min(remaining, appendBuf.capacity());
-            appendBytes(appendBuf, 0, length);
-            remaining -= length;
+            extend(position);
+            capacity = position;
         }
-
     }
 
     public boolean appendBytes(
@@ -226,42 +229,13 @@ public class KafkaCacheFile implements AutoCloseable
         int srcIndex,
         int length)
     {
-        final int available = available();
-        final boolean writable = available >= length;
+        final boolean writable = available() >= length;
 
         if (writable)
         {
-            try
-            {
-                final int appendableBytes = appendBuf.capacity();
-
-                int remainingBytes = length;
-                while (remainingBytes > 0)
-                {
-                    final int fragmentBytes = Math.min(remainingBytes, appendableBytes);
-                    appendByteBuf.clear();
-                    appendBuf.putBytes(0, srcBuffer, srcIndex, fragmentBytes);
-                    appendByteBuf.limit(fragmentBytes);
-
-                    int writtenBytes = 0;
-                    while (writtenBytes < fragmentBytes)
-                    {
-                        writtenBytes += appender.write(appendByteBuf);
-                    }
-                    assert writtenBytes == fragmentBytes : String.format("%d == %d", writtenBytes, fragmentBytes);
-
-                    capacity += writtenBytes;
-                    remainingBytes -= fragmentBytes;
-                    srcIndex += fragmentBytes;
-
-                    assert remainingBytes >= 0;
-                }
-                assert capacity <= maxCapacity;
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
+            extend(capacity + length);
+            mappedBuf.putBytes(capacity, srcBuffer, srcIndex, length);
+            capacity += length;
         }
 
         return writable;
@@ -270,27 +244,13 @@ public class KafkaCacheFile implements AutoCloseable
     public boolean appendLong(
         long value)
     {
-        final int available = available();
-        final boolean writable = available >= Long.BYTES;
+        final boolean writable = available() >= Long.BYTES;
 
         if (writable)
         {
-            try
-            {
-                appendByteBuf.clear();
-                appendBuf.putLong(0, value);
-                appendByteBuf.limit(Long.BYTES);
-
-                final int written = appender.write(appendByteBuf);
-                assert written == Long.BYTES;
-
-                capacity += written;
-                assert capacity <= maxCapacity;
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
+            extend(capacity + Long.BYTES);
+            mappedBuf.putLong(capacity, value);
+            capacity += Long.BYTES;
         }
 
         return writable;
@@ -299,27 +259,13 @@ public class KafkaCacheFile implements AutoCloseable
     public boolean appendInt(
         int value)
     {
-        final int available = available();
-        final boolean writable = available >= Integer.BYTES;
+        final boolean writable = available() >= Integer.BYTES;
 
         if (writable)
         {
-            try
-            {
-                appendByteBuf.clear();
-                appendBuf.putInt(0, value);
-                appendByteBuf.limit(Integer.BYTES);
-
-                final int written = appender.write(appendByteBuf);
-                assert written == Integer.BYTES;
-
-                capacity += written;
-                assert capacity <= maxCapacity;
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
+            extend(capacity + Integer.BYTES);
+            mappedBuf.putInt(capacity, value);
+            capacity += Integer.BYTES;
         }
 
         return writable;
@@ -331,6 +277,11 @@ public class KafkaCacheFile implements AutoCloseable
         {
             if (appender != null)
             {
+                if (appender.isOpen() && extent > capacity)
+                {
+                    appender.truncate(capacity);
+                    extent = capacity;
+                }
                 appender.close();
                 maxCapacity = capacity;
             }
@@ -368,6 +319,41 @@ public class KafkaCacheFile implements AutoCloseable
     public void close()
     {
         IoUtil.unmap(mappedByteBuf);
+    }
+
+    private void extend(
+        int end)
+    {
+        if (end > extent)
+        {
+            final int step = appendBuf.capacity();
+            final int target = Math.min((end + step - 1) / step * step, maxCapacity);
+
+            appendBuf.setMemory(0, step, (byte) 0);
+
+            try
+            {
+                while (extent < target)
+                {
+                    final int length = Math.min(target - extent, step);
+                    appendByteBuf.clear();
+                    appendByteBuf.limit(length);
+
+                    int written = 0;
+                    while (written < length)
+                    {
+                        written += appender.write(appendByteBuf);
+                        appendCount++;
+                    }
+
+                    extent += length;
+                }
+            }
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
     }
 
     private static MappedByteBuffer mapCreateAppend(
