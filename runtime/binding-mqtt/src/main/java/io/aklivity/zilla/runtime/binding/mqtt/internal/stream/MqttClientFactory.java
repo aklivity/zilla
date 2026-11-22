@@ -409,17 +409,17 @@ public final class MqttClientFactory implements MqttStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.dataExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.sessionStateBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.propertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.userPropertiesBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.subscriptionIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.filterIdsBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.payloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.connectPayloadBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.passwordBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.willPropertyBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.dataExtBuffer = context.writeBuffer("dataExtension");
+        this.sessionStateBuffer = context.writeBuffer("sessionState");
+        this.propertyBuffer = context.writeBuffer("property");
+        this.userPropertiesBuffer = context.writeBuffer("userProperties");
+        this.subscriptionIdsBuffer = context.writeBuffer("subscriptionIds");
+        this.filterIdsBuffer = context.writeBuffer("filterIds");
+        this.payloadBuffer = context.writeBuffer("payload");
+        this.connectPayloadBuffer = context.writeBuffer("connectPayload");
+        this.passwordBuffer = context.writeBuffer("password");
+        this.willPropertyBuffer = context.writeBuffer("willProperty");
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.context = context;
