@@ -165,6 +165,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
     private final MqttSubscribeMessageFW.Builder mqttSubscribeMessageRW = new MqttSubscribeMessageFW.Builder();
     private final MqttSubscribeFrameFW.Builder mqttSubscribeFrameRW = new MqttSubscribeFrameFW.Builder();
     private final MqttSubscribeOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttSubscribeOffsetMetadataFW.Builder();
+    private final MqttKafkaOffsetHex offsetHex = new MqttKafkaOffsetHex();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -290,7 +291,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         this.extBuffer = context.writeBuffer("extension");
         this.subscriptionIdsBuffer = context.writeBuffer("subscriptionIds");
         this.filterBuffer = context.writeBuffer("filter");
-        this.offsetBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.offsetBuffer = context.writeBuffer("offset");
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();
         this.bufferPool = context.bufferPool();
@@ -2018,8 +2019,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory, MqttKa
         mqttOffsetMetadataRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
         mqttOffsetMetadataRW.subscribeMetadataV2(m -> metadataList.forEach(p -> m.appendPacketIds(p.shortValue())));
         final MqttSubscribeOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-        return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
-            offsetMetadata.offset(), offsetMetadata.limit()));
+        return offsetHex.toHex(offsetMetadata.buffer(), offsetMetadata.offset(), offsetMetadata.sizeof());
     }
 
     final class KafkaRetainedProxy extends KafkaProxy

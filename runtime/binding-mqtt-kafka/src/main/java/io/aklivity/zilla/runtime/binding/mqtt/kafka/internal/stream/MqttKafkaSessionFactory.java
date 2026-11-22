@@ -404,8 +404,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
         this.qosLevels.put(1, new String16FW("1"));
         this.qosLevels.put(2, new String16FW("2"));
         this.clientMetadata = clientMetadata;
-        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
-        this.sessionOffsetsHelper = new KafkaSessionOffsetsHelper(new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]));
+        this.offsetMetadataHelper = new KafkaOffsetMetadataHelper(context.writeBuffer("offset"));
+        this.sessionOffsetsHelper = new KafkaSessionOffsetsHelper(context.writeBuffer("sessionOffsets"));
         this.groupIdPrefixFormat = config.groupIdPrefixFormat();
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
