@@ -72,7 +72,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
  * with one value per topic level, followed by a negated {@code zilla:qos} header condition. One operation
  * appends one message, then drains every cursor, so the score is the per-message cost of the scan across
  * all subscribers. With {@code leaf=leading} each filter is preceded by a plain header condition on the
- * last topic level.
+ * last topic level. With {@code topology=broadcast} every subscriber has the same filter and every message
+ * is published to that one topic, so each message is delivered to every subscriber. With
+ * {@code filters=none} the cursors have no filter conditions, which isolates the cursor cost from the
+ * filter evaluation.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
@@ -86,6 +89,7 @@ public class KafkaCacheCursorBM
     private static final int WARM_MESSAGES = 5;
     private static final int FILTER_LEVELS = 3;
     private static final int VALUE_SIZE = 256;
+    private static final String BROADCAST_LAST_LEVEL = "all";
     private static final int SEGMENT_BYTES = 64 * 1024 * 1024;
     private static final int SEGMENT_INDEX_BYTES = 1024 * 1024;
 
@@ -101,6 +105,12 @@ public class KafkaCacheCursorBM
 
     @Param({"scan", "inverted"})
     public String dispatch;
+
+    @Param({"distinct", "broadcast"})
+    public String topology;
+
+    @Param({"topic", "none"})
+    public String filters;
 
     private final KafkaCacheCursorFactory cursorFactory = new KafkaCacheCursorFactory(65536);
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
@@ -135,11 +145,15 @@ public class KafkaCacheCursorBM
             appendMessage();
             final int hits = drain(hitsByCursor);
 
-            if (hits != 1 || hitsByCursor[expected] != 1)
+            final boolean valid = broadcast()
+                ? hits == subscribers && Arrays.stream(hitsByCursor).allMatch(h -> h == 1)
+                : hits == 1 && hitsByCursor[expected] == 1;
+
+            if (!valid)
             {
                 throw new IllegalStateException(String.format(
-                    "invalid benchmark: message %d hits %d, expected cursor %d, by cursor %s",
-                    message, hits, expected, Arrays.toString(hitsByCursor)));
+                    "invalid benchmark: message %d hits %d, expected %s, by cursor %s",
+                    message, hits, broadcast() ? "every cursor once" : "cursor " + expected, Arrays.toString(hitsByCursor)));
             }
         }
 
@@ -168,7 +182,7 @@ public class KafkaCacheCursorBM
         subscribersByTerm.clear();
         for (int i = 0; i < subscribers; i++)
         {
-            final String selective = Integer.toString(i);
+            final String selective = broadcast() ? BROADCAST_LAST_LEVEL : Integer.toString(i);
             subscribersByTerm.computeIfAbsent(termHash(selective.getBytes(UTF_8)), h -> new IntArrayList()).addInt(i);
         }
 
@@ -257,6 +271,11 @@ public class KafkaCacheCursorBM
         return hits;
     }
 
+    private boolean broadcast()
+    {
+        return "broadcast".equals(topology);
+    }
+
     private static int termHash(
         byte[] term)
     {
@@ -266,16 +285,24 @@ public class KafkaCacheCursorBM
     private Array32FW<KafkaFilterFW> newFilters(
         int subscriber)
     {
-        final String[] levels = subscriber < ACTIVE_SUBSCRIBERS
-            ? new String[] {"device", "1", Integer.toString(subscriber)}
-            : new String[] {"device", "idle" + (subscriber - ACTIVE_SUBSCRIBERS), Integer.toString(subscriber)};
+        final String[] levels = broadcast()
+            ? new String[] {"device", "broadcast", BROADCAST_LAST_LEVEL}
+            : subscriber < ACTIVE_SUBSCRIBERS
+                ? new String[] {"device", "1", Integer.toString(subscriber)}
+                : new String[] {"device", "idle" + (subscriber - ACTIVE_SUBSCRIBERS), Integer.toString(subscriber)};
         final boolean leading = "leading".equals(leaf);
         final MutableDirectBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocate(2048));
 
-        return new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
-            .wrap(buffer, 0, buffer.capacity())
-            .item(f -> buildFilter(f, levels, leading))
-            .build();
+        final Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder =
+            new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                .wrap(buffer, 0, buffer.capacity());
+
+        if (!"none".equals(filters))
+        {
+            builder.item(f -> buildFilter(f, levels, leading));
+        }
+
+        return builder.build();
     }
 
     private static void buildFilter(
@@ -323,8 +350,8 @@ public class KafkaCacheCursorBM
 
         for (int i = 0; i < ACTIVE_SUBSCRIBERS; i++)
         {
-            final byte[] topic = ("device/1/" + i).getBytes(UTF_8);
-            final byte[] lastLevel = Integer.toString(i).getBytes(UTF_8);
+            final byte[] topic = (broadcast() ? "device/broadcast/" + BROADCAST_LAST_LEVEL : "device/1/" + i).getBytes(UTF_8);
+            final byte[] lastLevel = (broadcast() ? BROADCAST_LAST_LEVEL : Integer.toString(i)).getBytes(UTF_8);
             final byte[] client = ("client" + i).getBytes(UTF_8);
             final MutableDirectBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
 
@@ -334,13 +361,14 @@ public class KafkaCacheCursorBM
                 .value(k -> k.set(topic))
                 .build();
 
-            termHashes[i] = new int[] {termHash("device".getBytes(UTF_8)), termHash("1".getBytes(UTF_8)),
+            termHashes[i] = new int[] {termHash("device".getBytes(UTF_8)),
+                termHash((broadcast() ? "broadcast" : "1").getBytes(UTF_8)),
                 termHash(lastLevel), termHash(client), termHash("1".getBytes(UTF_8))};
             keys[i] = key;
             headers[i] = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(buffer, key.limit(), buffer.capacity())
                 .item(h -> buildHeader(h, FILTER_HEADER_NAME, "device".getBytes(UTF_8)))
-                .item(h -> buildHeader(h, FILTER_HEADER_NAME, "1".getBytes(UTF_8)))
+                .item(h -> buildHeader(h, FILTER_HEADER_NAME, (broadcast() ? "broadcast" : "1").getBytes(UTF_8)))
                 .item(h -> buildHeader(h, FILTER_HEADER_NAME, lastLevel))
                 .item(h -> buildHeader(h, LOCAL_HEADER_NAME, client))
                 .item(h -> buildHeader(h, QOS_HEADER_NAME, "1".getBytes(UTF_8)))
