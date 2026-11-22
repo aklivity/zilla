@@ -155,7 +155,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.readBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.errorBuffer = new UnsafeBufferEx(new byte[1]);
         this.directoryBuffer = new UnsafeBufferEx();

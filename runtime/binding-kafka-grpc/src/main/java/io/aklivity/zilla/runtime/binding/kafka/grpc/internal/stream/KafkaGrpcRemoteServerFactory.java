@@ -161,8 +161,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.metaBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.metaBuffer = context.writeBuffer("meta");
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;

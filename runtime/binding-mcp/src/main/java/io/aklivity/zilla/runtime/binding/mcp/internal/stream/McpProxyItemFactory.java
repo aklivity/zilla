@@ -220,8 +220,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         int kind)
     {
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = context.writeBuffer("codec");
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = decodePool.duplicate();
         this.streamFactory = context.streamFactory();

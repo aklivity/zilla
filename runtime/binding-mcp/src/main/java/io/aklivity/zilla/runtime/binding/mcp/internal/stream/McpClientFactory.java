@@ -265,8 +265,8 @@ public final class McpClientFactory implements McpStreamFactory
         this.config = config;
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
+        this.codecBuffer = context.writeBuffer("codec");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.streamFactory = context.streamFactory();

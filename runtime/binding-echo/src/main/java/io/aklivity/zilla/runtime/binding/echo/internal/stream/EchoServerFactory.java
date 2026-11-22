@@ -91,7 +91,7 @@ public final class EchoServerFactory implements BindingHandler
         EchoRouter router)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.modelBuffer = context.writeBuffer("model");
         this.supplyReplyId = context::supplyReplyId;
         this.context = context;
         this.router = router;

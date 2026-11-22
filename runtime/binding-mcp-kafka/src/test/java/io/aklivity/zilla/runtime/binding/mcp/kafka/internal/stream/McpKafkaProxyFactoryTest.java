@@ -117,6 +117,7 @@ public class McpKafkaProxyFactoryTest
     public void setup() throws Exception
     {
         when(context.writeBuffer()).thenReturn(writeBuffer);
+        when(context.writeBuffer("extension")).thenReturn(new UnsafeBufferEx(new byte[65536]));
         when(context.streamFactory()).thenReturn(streamFactory);
         when(context.signaler()).thenReturn(signaler);
         when(context.clock()).thenReturn(Clock.systemUTC());

@@ -164,10 +164,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
         LlmRetentionBudget retentionBudget)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.guardExtBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity() / 2]);
-        this.guardrailBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.guardrailBuffer = context.writeBuffer("guardrail");
+        this.transformBuffer = context.writeBuffer("transform");
         this.requestEnvelope = new LlmGuardEnvelope(DIRECTION_REQUEST);
         this.replyEnvelope = new LlmGuardEnvelope(DIRECTION_RESPONSE);
         this.heldPool = context.bufferPool();
