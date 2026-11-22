@@ -1559,7 +1559,8 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
 
             bootstrap.onPartitionLeaderReady(traceId, partitionId);
 
-            doFetchReplyWindow(traceId, 0, 8192); // TODO: consider 0 to avoid receiving FLUSH frames
+            // bootstrap only keeps the fetch alive, granting no credit means the cache server sends it no flush
+            doFetchReplyWindow(traceId, 0, 0);
         }
 
         private void onFetchReplyFlush(
