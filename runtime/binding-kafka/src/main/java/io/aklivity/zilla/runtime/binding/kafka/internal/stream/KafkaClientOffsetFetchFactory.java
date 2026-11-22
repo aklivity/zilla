@@ -163,8 +163,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;

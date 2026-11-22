@@ -124,9 +124,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
         LongFunction<McpBindingConfig> supplyBinding)
     {
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.flushExBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.challengeExBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = context.writeBuffer("codec");
+        this.flushExBuffer = context.writeBuffer("flushEx");
+        this.challengeExBuffer = context.writeBuffer("challengeEx");
         this.aggregateBuffer = new UnsafeBufferEx(new byte[AGGREGATE_BUFFER_CAPACITY]);
         this.streamFactory = context.streamFactory();
         this.signaler = context.signaler();

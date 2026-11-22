@@ -48,6 +48,8 @@ public class MqttKafkaSessionProxyIT
         .addScriptRoot("mqtt", "io/aklivity/zilla/specs/binding/mqtt/kafka/streams/mqtt")
         .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/mqtt/kafka/streams/kafka");
 
+    private static final String ENGINE_STREAMS_BUFFER_CAPACITY_NAME = "zilla.engine.streams.buffer.capacity";
+
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final TestClock clock = TestClock.of(999L);
@@ -554,6 +556,16 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${kafka}/session.signal.stream.credit/server"})
+    public void shouldSessionSignalStreamCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
@@ -677,6 +689,25 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.start();
         k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_STREAMS_BUFFER_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${mqtt}/session.will.message.abort.deliver.will.signal.buffer.reuse/client",
+        "${kafka}/session.will.message.abort.deliver.will.signal.buffer.reuse/server"})
+    public void shouldSendWillMessageOnAbortAfterSignalBufferReuse() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        k3po.awaitBarrier("RECEIVED_WILL_SIGNAL_TOMBSTONES");
         clock.advanceTo(2001L);
         try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
         {

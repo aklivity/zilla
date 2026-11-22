@@ -135,6 +135,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final OctetsFW valueFragmentRO = new OctetsFW();
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
+    private final EngineContext context;
     private final int kafkaTypeId;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -163,9 +164,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
+        this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.clock = context.clock();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -1129,6 +1131,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
         private int messageOffset;
         private long flushedAckPartitionOffset = -1L;
+        private long flushedPartitionOffset = DEFAULT_LATEST_OFFSET;
 
         private boolean isProgressing = true;
 
@@ -1207,6 +1210,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             else
             {
                 state = StreamState.openingInitial(state);
+
+                KafkaCacheServerMetaWatch.open(context, supplyCacheRoute.apply(fan.routedId), fan.originId, fan.originId,
+                    authorization, fan.partionTopic,
+                    context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(fan.partionTopic, fan.partitionId)), traceId);
 
                 fan.onServerFanMemberOpening(traceId, this);
             }
@@ -1582,17 +1589,22 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 final long flushOffset = error == NO_ERROR ? Math.min(partitionOffset, cursor.offset - 1) : partitionOffset;
                 final long ackOffset = fan.ackPartitionOffset;
                 final long ackTimestamp = fan.ackTimestamp;
-                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
-                        traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                                                            .typeId(kafkaTypeId)
-                                                            .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                            .partitionOffset(flushOffset))
-                                                                           .error(error)
-                                                                           .timestamp(ackTimestamp)
-                                                                           .ackOffset(ackOffset))
-                                                            .build()
-                                                            .sizeof()));
+
+                if (KafkaProduceFlush.required(error != NO_ERROR, flushOffset, flushedPartitionOffset))
+                {
+                    doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                            traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
+                        ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                                                                .typeId(kafkaTypeId)
+                                                                .produce(f -> f.partition(p -> p.partitionId(partition.id())
+                                                                                                .partitionOffset(flushOffset))
+                                                                               .error(error)
+                                                                               .timestamp(ackTimestamp)
+                                                                               .ackOffset(ackOffset))
+                                                                .build()
+                                                                .sizeof()));
+                    flushedPartitionOffset = flushOffset;
+                }
 
                 if (fan.ackPartitionOffset >= 0)
                 {

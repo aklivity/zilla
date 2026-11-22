@@ -271,7 +271,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.holdPool = context.bufferPool().duplicate();

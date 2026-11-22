@@ -72,7 +72,7 @@ public final class KafkaCache
     private KafkaCacheTopic newTopic(
         String topic)
     {
-        return new KafkaCacheTopic(location, config, name, produceCapacity, topic, this::supplySortSpace);
+        return new KafkaCacheTopic(location, config, name, produceCapacity, topic.intern(), this::supplySortSpace);
     }
 
     private long[] supplySortSpace(

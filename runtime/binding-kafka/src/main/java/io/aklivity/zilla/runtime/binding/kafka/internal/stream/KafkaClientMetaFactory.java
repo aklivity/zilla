@@ -22,14 +22,19 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.util.Objects.requireNonNull;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongLongConsumer;
@@ -83,6 +88,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private static final int ERROR_UNKNOWN_TOPIC = 3;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
+    private static final int SIGNAL_REFRESH = 2;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -155,6 +161,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final LongFunction<String> supplyNamespace;
+    private final LongSupplier supplyTraceId;
+    private final Signaler engineSignaler;
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<BudgetDebitor> supplyDebitor;
 
@@ -176,14 +184,16 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         this.signaler = signaler;
         this.streamFactory = streamFactory;
         this.resolveSasl = resolveSasl;
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
         this.supplyDebitor = supplyDebitor;
         this.supplyNamespace = context::supplyNamespace;
+        this.supplyTraceId = context::supplyTraceId;
+        this.engineSignaler = context.signaler();
         this.supplyLocalName = context::supplyLocalName;
     }
 
@@ -235,7 +245,9 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                     sasl,
                     binding.guard,
                     binding.store,
-                    storeKey)::onApplication;
+                    storeKey,
+                    KafkaClientBrokers.metaKey(supplyNamespace.apply(routedId), binding.name,
+                        supplyLocalName.apply(resolvedId), topicName))::onApplication;
         }
 
         return newStream;
@@ -856,6 +868,10 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private final LongConsumer metaFlush;
         private final StoreHandler store;
         private final String storeKey;
+        private final String metaKey;
+        private final String lockKey;
+
+        private Closeable metaWatch;
 
         private int state;
 
@@ -881,7 +897,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             KafkaSaslConfig sasl,
             GuardHandler guard,
             StoreHandler store,
-            String storeKey)
+            String storeKey,
+            String metaKey)
         {
             this.application = application;
             this.originId = originId;
@@ -891,9 +908,11 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.affinity = affinity;
             this.store = store;
             this.storeKey = storeKey;
+            this.metaKey = metaKey;
+            this.lockKey = metaKey + ":lock";
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl, guard);
-            this.metaFlush = client::doEncodeRequestIfNecessary;
+            this.metaFlush = store != null ? client::doRefreshMeta : client::doEncodeRequestIfNecessary;
         }
 
         private void onApplication(
@@ -932,8 +951,22 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onApplicationReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onApplicationSignal(signal);
+                break;
             default:
                 break;
+            }
+        }
+
+        private void onApplicationSignal(
+            SignalFW signal)
+        {
+            if (signal.signalId() == SIGNAL_REFRESH)
+            {
+                client.nextRequestAt = NO_CANCEL_ID;
+                client.doLoadMeta(signal.traceId());
             }
         }
 
@@ -946,7 +979,33 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             state = StreamState.openingInitial(state);
             clientRoute.registerMetaFlush(metaFlush);
 
-            client.doNetworkBegin(traceId, authorization, affinity);
+            if (store != null)
+            {
+                client.authorization = authorization;
+                metaWatch = store.watch(metaKey, (k, value) -> client.onWatchMeta(value));
+                client.doLoadMeta(traceId);
+            }
+            else
+            {
+                client.doNetworkBegin(traceId, authorization, affinity);
+            }
+        }
+
+        private void cleanupMetaWatch()
+        {
+            if (metaWatch != null)
+            {
+                try
+                {
+                    metaWatch.close();
+                }
+                catch (IOException ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                metaWatch = null;
+            }
         }
 
         private void onApplicationData(
@@ -965,6 +1024,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = StreamState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush, traceId);
+            cleanupMetaWatch();
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -976,6 +1036,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             state = StreamState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush, traceId);
+            cleanupMetaWatch();
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -985,7 +1046,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             final long traceId = flush.traceId();
 
-            client.doEncodeRequestIfNecessary(traceId);
+            metaFlush.accept(traceId);
         }
 
         private void onApplicationWindow(
@@ -1117,6 +1178,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         {
             state = StreamState.closeInitial(state);
             clientRoute.unregisterMetaFlush(metaFlush, traceId);
+            cleanupMetaWatch();
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
@@ -1168,7 +1230,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
             private final LongLongConsumer encodeMetaRequest = this::doEncodeMetaRequest;
 
-            private MessageConsumer network;
+            private MessageConsumer network = MessageConsumer.NOOP;
             private final String topic;
             private final Int2IntHashMap topicPartitions;
 
@@ -1200,6 +1262,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             private int nextResponseId;
             private long nextRequestAt = NO_CANCEL_ID;
+            private String lockToken;
 
             private KafkaMetaClientDecoder decoder;
             private LongLongConsumer encoder;
@@ -1624,7 +1687,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 if (nextRequestAt != NO_CANCEL_ID)
                 {
-                    signaler.cancel(nextRequestAt);
+                    (store != null ? engineSignaler : signaler).cancel(nextRequestAt);
                     nextRequestAt = NO_CANCEL_ID;
                 }
             }
@@ -1921,7 +1984,140 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
             }
 
+            private void doLoadMeta(
+                long traceId)
+            {
+                store.get(metaKey, (k, value) -> onMetaLoaded(traceId, value));
+            }
+
+            private void onMetaLoaded(
+                long traceId,
+                String value)
+            {
+                if (!StreamState.initialClosed(KafkaMetaStream.this.state))
+                {
+                    if (value != null && onStoreMeta(value))
+                    {
+                        clientRoute.metaRefreshed.accept(traceId);
+                    }
+                    else
+                    {
+                        doRefreshMeta(traceId);
+                    }
+                }
+            }
+
+            private void doRefreshMeta(
+                long traceId)
+            {
+                if (lockToken == null && nextRequestId == nextResponseId)
+                {
+                    store.lock(lockKey, Duration.ofMillis(maxAgeMillis), (k, token) -> onMetaLocked(traceId, token));
+                }
+            }
+
+            private void onMetaLocked(
+                long traceId,
+                String token)
+            {
+                if (token != null && !StreamState.initialClosed(KafkaMetaStream.this.state))
+                {
+                    lockToken = token;
+
+                    if (StreamState.initialOpening(state))
+                    {
+                        doEncodeRequestIfNecessary(traceId);
+                    }
+                    else
+                    {
+                        doNetworkBegin(traceId, authorization, affinity);
+                    }
+                }
+                else if (token == null)
+                {
+                    armNextRequest(traceId);
+                }
+            }
+
+            private void onWatchMeta(
+                String value)
+            {
+                if (value != null && onStoreMeta(value))
+                {
+                    clientRoute.metaRefreshed.accept(supplyTraceId.getAsLong());
+                }
+            }
+
+            private boolean onStoreMeta(
+                String value)
+            {
+                final long traceId = supplyTraceId.getAsLong();
+                final long expiresAt = KafkaClientBrokers.decodePartitions(value, newPartitions);
+                final boolean fresh = expiresAt > clock.millis();
+
+                if (fresh)
+                {
+                    deliverMeta(traceId);
+                    armNextRequestAt(traceId, expiresAt);
+                }
+
+                return fresh;
+            }
+
+            private void armNextRequest(
+                long traceId)
+            {
+                armNextRequestAt(traceId, clock.millis() + maxAgeMillis);
+            }
+
+            private void armNextRequestAt(
+                long traceId,
+                long at)
+            {
+                cancelNextRequestSignal();
+
+                if (store != null)
+                {
+                    nextRequestAt = engineSignaler.signalAt(at,
+                            KafkaMetaStream.this.originId, KafkaMetaStream.this.routedId, KafkaMetaStream.this.initialId,
+                            traceId, SIGNAL_REFRESH, 0);
+                }
+                else
+                {
+                    nextRequestAt = signaler.signalAt(at, originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
+                }
+            }
+
             private void onDecodeMetaResponse(
+                long traceId)
+            {
+                deliverMeta(traceId);
+
+                nextResponseId++;
+
+                final long expiresAt = clock.millis() + maxAgeMillis;
+                armNextRequestAt(traceId, expiresAt);
+
+                if (store != null && !StreamState.initialClosed(KafkaMetaStream.this.state))
+                {
+                    store.put(metaKey, KafkaClientBrokers.encodePartitions(expiresAt, newPartitions),
+                        Duration.ofMillis(maxAgeMillis), v -> {});
+                    unlockMeta();
+                }
+
+                clientRoute.metaRefreshed.accept(traceId);
+            }
+
+            private void unlockMeta()
+            {
+                if (lockToken != null)
+                {
+                    store.unlock(lockKey, lockToken, v -> {});
+                    lockToken = null;
+                }
+            }
+
+            private void deliverMeta(
                 long traceId)
             {
                 doApplicationWindow(traceId, 0L, 0, 0, 0);
@@ -1952,18 +2148,17 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                     doApplicationData(traceId, authorization, kafkaDataEx);
                 }
-
-                nextResponseId++;
-                nextRequestAt = signaler.signalAt(clock.millis() + maxAgeMillis,
-                        originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
-
-                clientRoute.metaRefreshed.accept(traceId);
             }
 
             private void cleanupNetwork(
                 long traceId)
             {
                 cancelNextRequestSignal();
+
+                if (store != null)
+                {
+                    unlockMeta();
+                }
 
                 doNetworkResetIfNecessary(traceId);
                 doNetworkAbortIfNecessary(traceId);

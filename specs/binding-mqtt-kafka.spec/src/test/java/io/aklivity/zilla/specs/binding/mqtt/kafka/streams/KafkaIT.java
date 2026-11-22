@@ -904,6 +904,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.abort.deliver.will.signal.buffer.reuse/client",
+        "${kafka}/session.will.message.abort.deliver.will.signal.buffer.reuse/server"})
+    public void shouldSendWillMessageOnAbortAfterSignalBufferReuse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.topic.trailing.empty.level/client",
         "${kafka}/session.will.message.topic.trailing.empty.level/server"})
     public void shouldSendWillMessageWithTrailingEmptyLevelTopic() throws Exception
@@ -1087,6 +1096,15 @@ public class KafkaIT
         "${kafka}/session.expiry.after.signal.stream.restart/client",
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.signal.stream.credit/client",
+        "${kafka}/session.signal.stream.credit/server"})
+    public void shouldSessionSignalStreamCredit() throws Exception
     {
         k3po.finish();
     }

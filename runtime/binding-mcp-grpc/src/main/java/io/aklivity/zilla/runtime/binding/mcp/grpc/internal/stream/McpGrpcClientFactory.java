@@ -135,7 +135,7 @@ public final class McpGrpcClientFactory implements BindingHandler
     {
         this.context = context;
         this.writeBuffer = context.writeBuffer();
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.transformBuffer = new UnsafeBufferEx(new byte[context.bufferPool().slotCapacity()]);

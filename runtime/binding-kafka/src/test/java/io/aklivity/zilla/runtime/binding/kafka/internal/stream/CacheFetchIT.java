@@ -356,6 +356,21 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.meta.watch/client",
+        "${app}/message.value.meta.watch/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueMetaWatch() throws Exception
+    {
+        partition.append(10L);
+        k3po.start();
+        k3po.awaitBarrier("META_WATCH_OPENED");
+        k3po.notifyBarrier("OPEN_META");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -681,6 +696,21 @@ public class CacheFetchIT
         "${app}/filter.none/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeaderFilter() throws Exception
+    {
+        partition.append(1L);
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE_2");
+        k3po.notifyBarrier("SEND_MESSAGE_3");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/filter.headers.two.streams/client",
+        "${app}/filter.none/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldFilterHeadersTwoStreams() throws Exception
     {
         partition.append(1L);
         k3po.start();
@@ -1035,6 +1065,20 @@ public class CacheFetchIT
         "${app}/isolation.read.uncommitted.committing/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithIsolationReadCommittedWhenCommitting() throws Exception
+    {
+        partition.append(1L);
+        k3po.start();
+        k3po.notifyBarrier("SEND_COMMIT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/isolation.read.committed.filter.committing/client",
+        "${app}/isolation.read.uncommitted.committing/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldIsolationReadCommittedFilterCommitting() throws Exception
     {
         partition.append(1L);
         k3po.start();

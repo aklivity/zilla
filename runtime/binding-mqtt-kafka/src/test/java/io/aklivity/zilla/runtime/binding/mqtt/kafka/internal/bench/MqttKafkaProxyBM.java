@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.bench;
 
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.function.BooleanSupplier;
 
+import org.agrona.collections.IntArrayQueue;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -108,6 +110,49 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.MqttFunctions;
  * are established, each with a clean start, a distinct client id and a distinct affinity, and kept open for the whole
  * run. They are established before measurement starts and carry no traffic, so the benchmark shows how the cost of
  * each operation changes with the number of sessions the proxy holds, including the maps it keeps per client.
+ * <p>
+ * {@code publish} takes a {@code retain} setting: when it is set each publish carries the retain flag, so the proxy
+ * also produces it to the retained topic and the publish completes only when both the messages topic and the
+ * retained topic have acknowledged it. {@link KafkaStub} acknowledges the produce stream on the retained topic the
+ * same way as the one on the messages topic. It also takes an {@code expiry} setting: when it is set each publish
+ * carries a message expiry interval, which the proxy produces as a timeout header.
+ * <p>
+ * Each {@code retainedReplay} operation is one new subscription that is sent the retained message of its topic:
+ * the peer opens an {@code mqtt} subscribe stream asking for retained messages, the stub answers the retained
+ * fetch streams the way the {@code subscribe.replay.retained.message.qos1} scripts specify, with the retained
+ * message on the fetch stream with a group id followed by the caught up flush, the peer acknowledges the message,
+ * and the operation completes when the proxy commits its offset. The subscribe stream is then ended, which closes
+ * its Kafka streams, and the next subscription begins. {@code depth} is the number of subscriptions kept
+ * outstanding, {@code payload} the size of the retained message and {@code ackDelayMillis} the delay of every stub
+ * answer.
+ * <p>
+ * {@code deliverLagged} is {@code deliver} with a subscriber that acknowledges late: it holds each acknowledgement
+ * back until {@code ackLag} newer messages have been delivered on the same subscribe stream, so the proxy tracks
+ * {@code ackLag} unacknowledged messages for every active subscription. Each subscription is primed with
+ * {@code ackLag} plus one messages and each acknowledgement it commits is answered by delivering the next message to
+ * the same subscription, which keeps {@code ackLag} messages outstanding in steady state. Subscriptions are primed
+ * one at a time so the stub never writes more than one subscription's messages ahead of the proxy; an
+ * {@code ackLag} of 0 acknowledges every message at once and is the baseline.
+ * <p>
+ * Each {@code resume} operation is one persistent session that reconnects and resumes: the peer opens an
+ * {@code mqtt} session stream without a clean start, with a client id it used before, and the operation completes
+ * when the stored session state reaches it. {@link KafkaStub} answers the session stream of a client with the stored
+ * state, a session state of {@code subscriptions} subscriptions in a fetch data extension keyed by the client id,
+ * followed by the caught up flush, as the non clean start session scripts specify. The session stream is then ended
+ * and the next resume begins, so {@code depth} sessions are kept resuming at once. {@code subscriptions} is the size
+ * of the stored session state, which the proxy reads and reconciles on every resume.
+ * <p>
+ * Each {@code will} operation is one will message delivered to its topic after an abnormal disconnect: the peer opens
+ * an {@code mqtt} session stream with a will, a clean start is not asked for, sends its will once the stream's window
+ * opens, and aborts the session once the session is established. {@link KafkaStub} then plays the part of the
+ * sessions topic as the will scripts specify: it answers the will signal fetch with the caught up flush, and the
+ * session stream with the flush that says there is no session state, keeps the will message the proxy produces by its
+ * key, echoes each will signal the proxy produces back on the signal stream, and serves the will message on the fetch
+ * stream that the proxy opens for it. The will is delivered after its delay, which is one second, on the real clock,
+ * so the operation completes about a second after the disconnect, and the operation completes when the will message
+ * arrives on the messages topic. {@code depth} is the number of wills kept in flight, so the rate is bounded by
+ * {@code depth} operations a second, and {@code ackDelayMillis} the delay of every stub answer. The wills still in
+ * flight at the end of the run are delivered before the engine is closed.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -119,6 +164,7 @@ public class MqttKafkaProxyBM
 {
     private static final String CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.yaml";
     private static final int STREAMS_BUFFER_CAPACITY = 16 * 1024 * 1024;
+    private static final int PUBLISH_EXPIRY_SECONDS = 15;
     private static final long TIMEOUT_NANOS = SECONDS.toNanos(10L);
     private static final String CLIENT_ID_PREFIX = "client-";
     private static final int CLIENT_ID_DIGITS = 10;
@@ -129,8 +175,11 @@ public class MqttKafkaProxyBM
     private static final String SHARE_NAME = "benchmark";
     private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
     private static final int QOS2_PACKET_ID = 1;
+    private static final long WILL_TIMEOUT_NANOS = SECONDS.toNanos(30L);
+    private static final long SETTLE_NANOS = SECONDS.toNanos(1L);
     private static final String SESSION_ID_PREFIX = "session-";
     private static final int SESSION_BATCH = 1000;
+    private static final String RETAINED_TOPIC = "device/retained";
     private static final String FANOUT_TOPIC = "device/fanout";
 
     @Benchmark
@@ -143,6 +192,13 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void publish(
         PublishFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void retainedReplay(
+        RetainedReplayFixture fixture)
     {
         fixture.complete();
     }
@@ -172,6 +228,27 @@ public class MqttKafkaProxyBM
     @Benchmark
     public void deliver(
         DeliverFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void will(
+        WillFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void resume(
+        ResumeFixture fixture)
+    {
+        fixture.complete();
+    }
+
+    @Benchmark
+    public void deliverLagged(
+        LaggedDeliverFixture fixture)
     {
         fixture.complete();
     }
@@ -385,6 +462,12 @@ public class MqttKafkaProxyBM
         @Param({"1", "1000", "10000"})
         public int sessions;
 
+        @Param({"false", "true"})
+        public boolean retain;
+
+        @Param({"false", "true"})
+        public boolean expiry;
+
         private final SessionPool sessionPool = new SessionPool();
         private final Queue<Publisher> idle = new ArrayDeque<>();
         private final Queue<Publisher> acknowledged = new ArrayDeque<>();
@@ -412,11 +495,15 @@ public class MqttKafkaProxyBM
             final int mqttTypeId = bench.labelId("mqtt");
             final long mqttId = bench.bindingId("mqtt0");
 
+            final String[] publishFlags = retain ? new String[] {"RETAIN"} : new String[0];
+
             dataEx = new UnsafeBufferEx(MqttFunctions.dataEx()
                 .typeId(mqttTypeId)
                 .publish()
                     .qos("AT_LEAST_ONCE")
+                    .flags(publishFlags)
                     .packetId(1)
+                    .expiryInterval(expiry ? PUBLISH_EXPIRY_SECONDS : -1)
                     .build()
                 .build());
             message = new UnsafeBufferEx(new byte[payload]);
@@ -428,6 +515,7 @@ public class MqttKafkaProxyBM
                     .publish()
                         .clientId(CLIENT_ID_PREFIX + publisher)
                         .topic("device/" + publisher)
+                        .flags(publishFlags)
                         .qos(1)
                         .build()
                     .build();
@@ -768,9 +856,536 @@ public class MqttKafkaProxyBM
         }
     }
 
+    @State(Scope.Benchmark)
+    public static class RetainedReplayFixture
+    {
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"16", "1024"})
+        public int payload;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Replay> acknowledged = new ArrayDeque<>();
+        private final Queue<Replay> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private BooleanSupplier replayCommitted;
+        private long mqttId;
+        private int mqttTypeId;
+        private DirectBufferEx ackEx;
+        private int ackPacketIdOffset;
+        private int replays;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+            kafka.retainedReplay(RETAINED_TOPIC, new UnsafeBufferEx(new byte[payload]));
+            bench.newServer("kafka0", kafka);
+
+            replayCommitted = kafka::replayCommitted;
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            final byte[] ackTemplate = MqttFunctions.flushEx()
+                .typeId(mqttTypeId)
+                .subscribe()
+                    .qos("AT_LEAST_ONCE")
+                    .packetId(SubscribeFixture.ACK_PACKET_ID_MARKER)
+                    .build()
+                .build();
+            ackPacketIdOffset = SubscribeFixture.indexOfShort(ackTemplate, (short) SubscribeFixture.ACK_PACKET_ID_MARKER);
+            ackEx = new UnsafeBufferEx(ackTemplate);
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            bench.close();
+        }
+
+        void complete()
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (!replayCommitted.getAsBoolean())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "retained message replay timed out, acknowledged %d, unexpected kafka streams %d",
+                        acknowledged.size(), kafka.unexpected()));
+                }
+            }
+
+            acknowledged.poll().end();
+            begin();
+        }
+
+        private void begin()
+        {
+            Replay replay = idle.poll();
+
+            if (replay == null)
+            {
+                replay = new Replay(++replays);
+            }
+
+            replay.begin();
+        }
+
+        private final class Replay implements MessageConsumer
+        {
+            private final DataFW dataRO = new DataFW();
+            private final MqttDataExFW dataExRO = new MqttDataExFW();
+            private final byte[] ackBytes = new byte[ackEx.capacity()];
+            private final MutableDirectBufferEx ack = new UnsafeBufferEx(ackBytes);
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+
+            private Replay(
+                int index)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .subscribe()
+                        .clientId(CLIENT_ID_PREFIX + index)
+                        .qos("AT_LEAST_ONCE")
+                        .filter(RETAINED_TOPIC, 1, "AT_LEAST_ONCE", "SEND_RETAINED", "RETAIN_AS_PUBLISHED")
+                        .build()
+                    .build());
+                ackEx.getBytes(0, ackBytes);
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void end()
+            {
+                client.end();
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+                    final MqttDataExFW mqttDataEx = dataExRO.wrap(data.extension().buffer(), data.extension().offset(),
+                        data.extension().limit());
+                    ack.putShort(ackPacketIdOffset, (short) mqttDataEx.subscribe().packetId(), ByteOrder.LITTLE_ENDIAN);
+                    client.flush(ack, 0, ack.capacity());
+                    acknowledged.add(this);
+                    break;
+                case EndFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "retained subscribe stream rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class ResumeFixture
+    {
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"1", "100"})
+        public int subscriptions;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Resumption> established = new ArrayDeque<>();
+        private final Queue<Resumption> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private long mqttId;
+        private int mqttTypeId;
+        private int resumptions;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+
+            final MqttFunctions.MqttSessionStateBuilder sessionState = MqttFunctions.session();
+            for (int subscription = 0; subscription < subscriptions; subscription++)
+            {
+                sessionState.subscription("device/" + subscription, subscription + 1);
+            }
+            kafka.sessionState(CLIENT_ID_PREFIX.length() + CLIENT_ID_DIGITS, new UnsafeBufferEx(sessionState.build()));
+            bench.newServer("kafka0", kafka);
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            bench.close();
+        }
+
+        void complete()
+        {
+            final long deadline = System.nanoTime() + TIMEOUT_NANOS;
+
+            while (established.isEmpty())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "session resume timed out, unexpected kafka streams %d", kafka.unexpected()));
+                }
+            }
+
+            established.poll().end();
+            begin();
+        }
+
+        private void begin()
+        {
+            Resumption resumption = idle.poll();
+
+            if (resumption == null)
+            {
+                resumption = new Resumption(++resumptions);
+            }
+
+            resumption.begin();
+        }
+
+        private final class Resumption implements MessageConsumer
+        {
+            private final DataFW dataRO = new DataFW();
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+
+            private Resumption(
+                int number)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .expiry(1)
+                        .clientId(CLIENT_ID_PREFIX + String.format("%0" + CLIENT_ID_DIGITS + "d", number))
+                        .build()
+                    .build());
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            private void end()
+            {
+                client.end();
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+
+                    if (data.length() > 0)
+                    {
+                        established.add(this);
+                    }
+                    break;
+                case EndFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case AbortFW.TYPE_ID:
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "session resume rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class WillFixture
+    {
+        private static final String WILL_TOPIC = "obituaries";
+        private static final String WILL_MESSAGE = "disconnected abruptly";
+
+        @Param({"1", "256"})
+        public int depth;
+
+        @Param({"0", "5"})
+        public long ackDelayMillis;
+
+        private final Queue<Dying> idle = new ArrayDeque<>();
+
+        private EngineBench bench;
+        private KafkaStub kafka;
+        private long mqttId;
+        private int mqttTypeId;
+        private DirectBufferEx willDataEx;
+        private DirectBufferEx will;
+        private int dyings;
+
+        @Setup(Level.Trial)
+        public void init() throws Exception
+        {
+            bench = new EngineBench()
+                .directory("target/zilla-bench")
+                .external("kafka0")
+                .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
+                .configure(PUBLISH_MAX_QOS_NAME, "1")
+                .start(CONFIGURATION);
+
+            kafka = new KafkaStub(bench.labelId("kafka"), ackDelayMillis, KafkaStub.NO_DELIVERY);
+            kafka.willDelivery(WILL_TOPIC);
+            bench.newServer("kafka0", kafka);
+
+            mqttId = bench.bindingId("mqtt0");
+            mqttTypeId = bench.labelId("mqtt");
+
+            willDataEx = new UnsafeBufferEx(MqttFunctions.dataEx()
+                .typeId(mqttTypeId)
+                .session()
+                    .kind("WILL")
+                    .build()
+                .build());
+
+            final byte[] willMessage = WILL_MESSAGE.getBytes(UTF_8);
+            final byte[] willHeader = MqttFunctions.will()
+                .topic(WILL_TOPIC)
+                .delay(1)
+                .expiryInterval(15)
+                .format("TEXT")
+                .responseTopic("responses/client1")
+                .correlation("info")
+                .payloadSize(willMessage.length)
+                .build();
+            final byte[] willBytes = new byte[willHeader.length + willMessage.length];
+            System.arraycopy(willHeader, 0, willBytes, 0, willHeader.length);
+            System.arraycopy(willMessage, 0, willBytes, willHeader.length, willMessage.length);
+            will = new UnsafeBufferEx(willBytes);
+
+            for (int slot = 0; slot < depth; slot++)
+            {
+                begin();
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void destroy() throws Exception
+        {
+            for (int outstanding = 0; outstanding < depth; outstanding++)
+            {
+                awaitDelivered();
+            }
+
+            final long settled = System.nanoTime() + SETTLE_NANOS;
+            while (System.nanoTime() < settled)
+            {
+                bench.poll();
+                kafka.release();
+            }
+
+            bench.close();
+        }
+
+        void complete()
+        {
+            awaitDelivered();
+            begin();
+        }
+
+        private void awaitDelivered()
+        {
+            final long deadline = System.nanoTime() + WILL_TIMEOUT_NANOS;
+
+            while (!kafka.willDelivered())
+            {
+                if (bench.poll() + kafka.release() == 0)
+                {
+                    Thread.onSpinWait();
+                }
+
+                if (System.nanoTime() > deadline)
+                {
+                    throw new IllegalStateException(String.format(
+                        "will delivery timed out, unexpected kafka streams %d", kafka.unexpected()));
+                }
+            }
+        }
+
+        private void begin()
+        {
+            Dying dying = idle.poll();
+
+            if (dying == null)
+            {
+                dying = new Dying(++dyings);
+            }
+
+            dying.begin();
+        }
+
+        private final class Dying implements MessageConsumer
+        {
+            private final DirectBufferEx beginEx;
+
+            private Client client;
+            private MessageConsumer decoder;
+
+            private Dying(
+                int number)
+            {
+                this.beginEx = new UnsafeBufferEx(MqttFunctions.beginEx()
+                    .typeId(mqttTypeId)
+                    .session()
+                        .flags("WILL")
+                        .expiry(1)
+                        .clientId(CLIENT_ID_PREFIX + String.format("%0" + CLIENT_ID_DIGITS + "d", number))
+                        .build()
+                    .build());
+            }
+
+            private void begin()
+            {
+                client = bench.newClient(mqttId, this);
+                decoder = this::decodeAwaitWindow;
+
+                client.begin(beginEx, 0, beginEx.capacity());
+                client.replyWindow(DEFAULT_WINDOW);
+            }
+
+            @Override
+            public void accept(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case AbortFW.TYPE_ID:
+                    idle.add(this);
+                    break;
+                case ResetFW.TYPE_ID:
+                    throw new IllegalStateException(String.format(
+                        "will session rejected, unexpected kafka streams %d", kafka.unexpected()));
+                default:
+                    decoder.accept(msgTypeId, buffer, index, length);
+                    break;
+                }
+            }
+
+            private void decodeAwaitWindow(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == WindowFW.TYPE_ID)
+                {
+                    decoder = this::decodeAwaitEstablished;
+                    client.data(will, 0, will.capacity(), willDataEx, 0, willDataEx.capacity());
+                }
+            }
+
+            private void decodeAwaitEstablished(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    decoder = this::decodeIgnore;
+                    client.abort();
+                }
+            }
+
+            private void decodeIgnore(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+            }
+        }
+    }
+
     public abstract static class SubscribeFixture
     {
-        private static final int ACK_PACKET_ID_MARKER = 0x7e57;
+        static final int ACK_PACKET_ID_MARKER = 0x7e57;
 
         @Param({"16", "1024"})
         public int payload;
@@ -796,6 +1411,11 @@ public class MqttKafkaProxyBM
         abstract int qos();
 
         int sessions()
+        {
+            return 0;
+        }
+
+        int ackLag()
         {
             return 0;
         }
@@ -916,7 +1536,7 @@ public class MqttKafkaProxyBM
             }
         }
 
-        private static int indexOfShort(
+        static int indexOfShort(
             byte[] array,
             short value)
         {
@@ -942,6 +1562,8 @@ public class MqttKafkaProxyBM
             private final MqttFlushExFW flushExRO = new MqttFlushExFW();
             private final byte[] ackBytes = new byte[ackEx.capacity()];
             private final MutableDirectBufferEx ack = new UnsafeBufferEx(ackBytes);
+            private final IntArrayQueue unacknowledged = new IntArrayQueue();
+            private final int ackLag = ackLag();
             private final byte[] completeBytes = new byte[completeEx != null ? completeEx.capacity() : 0];
             private final MutableDirectBufferEx complete = new UnsafeBufferEx(completeBytes);
             private final int index;
@@ -986,8 +1608,13 @@ public class MqttKafkaProxyBM
                     final DataFW data = dataRO.wrap(buffer, index, index + length);
                     final MqttDataExFW mqttDataEx = dataExRO.wrap(data.extension().buffer(), data.extension().offset(),
                         data.extension().limit());
-                    ack.putShort(ackPacketIdOffset, (short) mqttDataEx.subscribe().packetId(), ByteOrder.LITTLE_ENDIAN);
-                    client.flush(ack, 0, ack.capacity());
+                    unacknowledged.addInt(mqttDataEx.subscribe().packetId());
+
+                    if (unacknowledged.size() > ackLag)
+                    {
+                        ack.putShort(ackPacketIdOffset, (short) unacknowledged.pollInt(), ByteOrder.LITTLE_ENDIAN);
+                        client.flush(ack, 0, ack.capacity());
+                    }
                     break;
                 case FlushFW.TYPE_ID:
                     final FlushFW flush = flushRO.wrap(buffer, index, index + length);
@@ -1101,6 +1728,43 @@ public class MqttKafkaProxyBM
 
             idle.add(opened.get(committed));
             kafka.deliver(idle.poll().index);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class LaggedDeliverFixture extends DeliverFixture
+    {
+        @Param({"0", "100", "1000"})
+        public int ackLag;
+
+        @Override
+        int ackLag()
+        {
+            return ackLag;
+        }
+
+        @Override
+        void prime()
+        {
+            for (int slot = 0; slot < inflight; slot++)
+            {
+                final int subscriber = idle.poll().index;
+
+                for (int message = 0; message <= ackLag; message++)
+                {
+                    kafka.deliver(subscriber);
+                }
+
+                complete();
+            }
+        }
+
+        @Override
+        void complete()
+        {
+            await(committedAvailable, "message delivered and acknowledged");
+
+            kafka.deliver(committed);
         }
     }
 

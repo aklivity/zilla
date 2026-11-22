@@ -15,13 +15,15 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.PrimitiveIterator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 import org.agrona.BitUtil;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntArrayList;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -37,7 +39,7 @@ public class MqttKafkaPublishMetadata
 {
     final Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
     final List<KafkaOffsetMetadata> orderedOffsets;
-    final Int2ObjectHashMap<List<KafkaTopicPartition>> partitions;
+    final MqttKafkaPacketPartitions partitions;
     final Long2LongHashMap leaderEpochs;
 
     String16FW sessionsTopic;
@@ -45,7 +47,7 @@ public class MqttKafkaPublishMetadata
 
     public MqttKafkaPublishMetadata(
         Long2ObjectHashMap<KafkaOffsetMetadata> offsets,
-        Int2ObjectHashMap<List<KafkaTopicPartition>> partitions,
+        MqttKafkaPacketPartitions partitions,
         Long2LongHashMap leaderEpochs)
     {
         this.offsets = offsets;
@@ -118,6 +120,7 @@ public class MqttKafkaPublishMetadata
 
         private final MqttPublishOffsetMetadataFW mqttOffsetMetadataRO = new MqttPublishOffsetMetadataFW();
         private final MqttPublishOffsetMetadataFW.Builder mqttOffsetMetadataRW = new MqttPublishOffsetMetadataFW.Builder();
+        private final MqttKafkaOffsetHex offsetHex = new MqttKafkaOffsetHex();
         private final MutableDirectBufferEx offsetBuffer;
 
         KafkaOffsetMetadataHelper(
@@ -152,8 +155,7 @@ public class MqttKafkaPublishMetadata
                 metadata.packetIds.forEach(p -> mqttOffsetMetadataRW.appendPacketIds(p.shortValue()));
             }
             final MqttPublishOffsetMetadataFW offsetMetadata = mqttOffsetMetadataRW.build();
-            return new String16FW(BitUtil.toHex(offsetMetadata.buffer().byteArray(),
-                offsetMetadata.offset(), offsetMetadata.limit()));
+            return offsetHex.toHex(offsetMetadata.buffer(), offsetMetadata.offset(), offsetMetadata.sizeof());
         }
     }
 
@@ -165,6 +167,8 @@ public class MqttKafkaPublishMetadata
         private final MutableDirectBufferEx offsetBuffer;
         private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeEntry = this::encodeEntry;
         private final IntConsumer appendPacketId = this::appendPacketId;
+        private final Map<String, String16FW> encodedTopics = new HashMap<>();
+        private final Function<String, String16FW> encodeTopic = String16FW::new;
 
         private KafkaOffsetMetadata encodingMetadata;
         private MqttKafkaSessionOffsetMetadataFW.Builder encodingItem;
@@ -218,7 +222,7 @@ public class MqttKafkaPublishMetadata
         {
             final KafkaOffsetMetadata metadata = encodingMetadata;
             encodingItem = item;
-            item.topic(metadata.topic);
+            item.topic(encodedTopics.computeIfAbsent(metadata.topic, encodeTopic));
             item.partitionId(metadata.partitionId);
             item.consumedOffset(metadata.sequence);
             item.producerId(metadata.producerId);

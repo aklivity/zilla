@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.LongConsumer;
 
 import org.agrona.collections.ArrayUtil;
@@ -34,6 +36,7 @@ public final class KafkaClientRoute
     public final long resolvedId;
     public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
+    private final Set<String> topics;
     public final LongConsumer metaFlush = this::flushMeta;
     public final LongConsumer metaRefreshed = this::refreshedMeta;
 
@@ -46,6 +49,7 @@ public final class KafkaClientRoute
         this.resolvedId = resolvedId;
         this.servers = new Long2ObjectHashMap<>();
         this.partitions = new Int2ObjectHashMap<>();
+        this.topics = new HashSet<>();
     }
 
     public void registerMetaFlush(
@@ -114,7 +118,10 @@ public final class KafkaClientRoute
     public Int2IntHashMap supplyPartitions(
         String topic)
     {
-        int topicKey = System.identityHashCode(topic.intern());
-        return partitions.computeIfAbsent(topicKey, k -> new Int2IntHashMap(LEADER_UNKNOWN));
+        final String canonical = topic.intern();
+
+        topics.add(canonical);
+
+        return partitions.computeIfAbsent(System.identityHashCode(canonical), k -> new Int2IntHashMap(LEADER_UNKNOWN));
     }
 }

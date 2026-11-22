@@ -160,8 +160,8 @@ public final class KafkaCacheServerShareFactory implements BindingHandler
         this.config = config;
         this.context = context;
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
-        this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.writeBuffer = context.writeBuffer("write");
+        this.extBuffer = context.writeBuffer("extension");
         this.bufferPool = context.bufferPool();
         this.clock = context.clock();
         this.signaler = context.signaler();

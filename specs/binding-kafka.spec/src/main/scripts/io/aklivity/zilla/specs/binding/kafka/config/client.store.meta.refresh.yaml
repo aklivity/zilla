@@ -24,6 +24,17 @@ stores:
         - op: put
           key: "zilla:test-app0:brokers:net0"
           value: '{"brokers":{"1":"broker1.example.com:9092","2":"broker2.example.com:9092"}}'
+        - op: put
+          key: "zilla:test-app0:meta:net0:test"
+          value: '{"expiresAt":31064,"partitions":{"0":1,"1":2}}'
+          ttl: PT30S
+        - op: put
+          key: "zilla:test-app0:brokers:net0"
+          value: '{"brokers":{"1":"broker1.example.com:9092","2":"broker2.example.com:9092","3":"broker3.example.com:9092"}}'
+        - op: put
+          key: "zilla:test-app0:meta:net0:test"
+          value: '{"expiresAt":31064,"partitions":{"0":1,"1":2,"2":3}}'
+          ttl: PT30S
 bindings:
   app0:
     type: kafka

@@ -18,7 +18,9 @@ package io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated;
 import static io.aklivity.zilla.build.maven.plugins.flyweight.internal.generated.FlyweightTest.putMediumInt;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -470,5 +472,60 @@ public class IntegerFixedArraysFWTest
         assertTrue(flyweight.toString().contains("int16Array=[2, -1]"));
         assertTrue(flyweight.toString().contains("uint24Array=[3, 1, 16777215]"));
         assertTrue(flyweight.toString().contains("int24Array=[3, -1, -1]"));
+    }
+
+    @Test
+    public void shouldReuseIteratorsAcrossWraps()
+    {
+        setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, buffer.capacity());
+        final PrimitiveIterator.OfInt int16 = flyweightRO.int16Array();
+        final PrimitiveIterator.OfLong int64 = flyweightRO.int64Array();
+        assertNotSame(int16, int64);
+        assertEquals(2, int16.nextInt());
+
+        buffer.putShort(96, (short) 7); // int16Array[0]
+        flyweightRO.wrap(buffer, 0, buffer.capacity());
+
+        assertSame(int16, flyweightRO.int16Array());
+        assertSame(int64, flyweightRO.int64Array());
+        assertEquals(7, flyweightRO.int16Array().nextInt());
+    }
+
+    @Test
+    public void shouldObserveNewBufferWhenRewrapped()
+    {
+        final MutableDirectBufferEx other = new UnsafeBufferEx(allocateDirect(199));
+        setAllTestValues(buffer, 0);
+        setAllTestValues(other, 0);
+        other.putInt(14, 99); // uint32Array[0]
+
+        flyweightRO.wrap(buffer, 0, buffer.capacity());
+        final PrimitiveIterator.OfLong first = flyweightRO.uint32Array();
+        assertEquals(4L, first.nextLong());
+
+        flyweightRO.wrap(other, 0, other.capacity());
+        final PrimitiveIterator.OfLong second = flyweightRO.uint32Array();
+        assertSame(first, second);
+        assertEquals(99L, second.nextLong());
+        assertEquals(0xFFFF_FFFFL, second.nextLong());
+    }
+
+    @Test
+    public void shouldRestartIterationOnEachAccess()
+    {
+        setAllTestValues(buffer, 0);
+        flyweightRO.wrap(buffer, 0, buffer.capacity());
+
+        final PrimitiveIterator.OfInt first = flyweightRO.int16Array();
+        assertEquals(2, first.nextInt());
+        assertEquals(-1, first.nextInt());
+        assertFalse(first.hasNext());
+
+        final PrimitiveIterator.OfInt second = flyweightRO.int16Array();
+        assertTrue(second.hasNext());
+        assertEquals(2, second.nextInt());
+        assertEquals(-1, second.nextInt());
+        assertFalse(second.hasNext());
     }
 }

@@ -297,11 +297,11 @@ public final class McpServerFactory implements McpStreamFactory
         this.signaler = context.signaler();
         this.clock = context.clock();
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = context.writeBuffer("codec");
         this.eventBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity() + EVENT_RECORD_HEADER + 1024]);
         this.eventExBuffer = new UnsafeBufferEx(new byte[1024]);
         this.eventIdBuffer = new UnsafeBufferEx(new byte[512]);
-        this.schemeStaging = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.schemeStaging = context.writeBuffer("schemeStaging");
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyInitialIdAffinity = context::supplyInitialId;

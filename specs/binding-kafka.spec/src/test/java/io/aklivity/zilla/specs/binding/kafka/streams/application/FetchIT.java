@@ -220,6 +220,17 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.meta.watch/client",
+        "${app}/message.value.meta.watch/server"})
+    public void shouldReceiveMessageValueMetaWatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("OPEN_META");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
     public void shouldReceiveMessageValueEmpty() throws Exception
@@ -424,6 +435,15 @@ public class FetchIT
         "${app}/filter.header/client",
         "${app}/filter.header/server"})
     public void shouldReceiveMessagesWithHeaderFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.headers.two.streams/client",
+        "${app}/filter.headers.two.streams/server"})
+    public void shouldFilterHeadersTwoStreams() throws Exception
     {
         k3po.finish();
     }
@@ -732,6 +752,15 @@ public class FetchIT
         "${app}/isolation.read.committed.committing/client",
         "${app}/isolation.read.committed.committing/server"})
     public void shouldReceiveIsolationReadCommittedWhenCommitting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.committed.filter.committing/client",
+        "${app}/isolation.read.committed.filter.committing/server"})
+    public void shouldIsolationReadCommittedFilterCommitting() throws Exception
     {
         k3po.finish();
     }

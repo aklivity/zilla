@@ -168,8 +168,8 @@ public final class SseServerFactory implements SseStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
-        this.challengeBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.challengeBuffer = context.writeBuffer("challenge");
+        this.extBuffer = context.writeBuffer("extension");
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -182,7 +182,7 @@ public final class SseServerFactory implements SseStreamFactory
         this.setHttpResponseHeaders = this::setHttpResponseHeaders;
         this.challengeEventType = new String8FW(config.challengeEventType());
         this.supplyModel = context::supplyModel;
-        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.modelBuffer = context.writeBuffer("model");
     }
 
     @Override

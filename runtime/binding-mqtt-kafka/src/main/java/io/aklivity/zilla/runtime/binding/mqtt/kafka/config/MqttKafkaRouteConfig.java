@@ -77,7 +77,7 @@ public class MqttKafkaRouteConfig
     }
 
     public boolean matches(
-        String topic,
+        CharSequence topic,
         MqttKafkaConditionKind kind)
     {
         return when.isEmpty() || when.stream()
@@ -86,7 +86,7 @@ public class MqttKafkaRouteConfig
     }
 
     public boolean matches(
-        String topic,
+        CharSequence topic,
         String share,
         MqttKafkaConditionKind kind)
     {

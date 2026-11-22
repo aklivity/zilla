@@ -17,24 +17,32 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.bench;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.function.Consumer;
 
 import org.agrona.collections.IntArrayQueue;
 import org.agrona.collections.LongArrayQueue;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedConsumerFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaMergedProduceDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -73,6 +81,8 @@ public final class KafkaStub implements BindingHandler
     private static final int WRITE_BUFFER_CAPACITY = 64 * 1024;
     private static final int STREAM_WINDOW = 8192;
     private static final int SESSION_SIGNALS = 2;
+    public static final int NO_DELIVERY = -2;
+
     private static final int PRODUCE_PARTITION = 0;
     private static final int QOS_LEVELS = 3;
     private static final int QOS_LEVELS_MASK = (1 << QOS_LEVELS) - 1;
@@ -81,6 +91,10 @@ public final class KafkaStub implements BindingHandler
     private static final long PROGRESS_CORRELATION_MARKER = 0x2122232425262728L;
     private static final long NO_CORRELATION = -1L;
     private static final String QOS_HEADER = "zilla:qos";
+    private static final byte[] WILL_KEY_POSTFIX = "#will".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] EXPIRY_KEY_POSTFIX = "#expiry".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SIGNAL_TYPE_NAME = "type".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] WILL_SIGNAL_NAME = "will-signal".getBytes(StandardCharsets.UTF_8);
     private static final int PARTITION_FLUSH_CAPACITY = 1024;
 
     private static final byte[] FIND_COORDINATOR_RESPONSE =
@@ -120,10 +134,17 @@ public final class KafkaStub implements BindingHandler
         OFFSET_FETCH,
         OFFSET_COMMIT,
         MESSAGES,
+        RETAINED,
+        RETAINED_REPLAY,
         MESSAGES_FETCH,
         MESSAGES_DELIVER,
         SHARE,
         SESSION,
+        SESSION_STATE,
+        WILL_SIGNALS,
+        WILL_SIGNAL,
+        WILL_SESSION,
+        WILL_FETCH,
         UNEXPECTED
     }
 
@@ -133,7 +154,9 @@ public final class KafkaStub implements BindingHandler
     private final WindowFW windowRO = new WindowFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
+    private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final String16FW retainedTopicRO = new String16FW("mqtt-retained");
     private final String16FW messagesTopicRO = new String16FW("mqtt-messages");
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -155,6 +178,7 @@ public final class KafkaStub implements BindingHandler
     private final int progressOffsetPosition;
     private final int progressCorrelationPosition;
 
+    private final MutableDirectBufferEx echoBuffer = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
     private final DirectBufferEx emptyEx = new UnsafeBufferEx(new byte[0]);
     private final DirectBufferEx describeBeginEx;
     private final DirectBufferEx describeDataEx;
@@ -164,12 +188,25 @@ public final class KafkaStub implements BindingHandler
     private final DirectBufferEx offsetDeleteBeginEx;
     private final DirectBufferEx initProducerIdBeginEx;
     private final DirectBufferEx messagesFetchBeginEx;
+    private final DirectBufferEx retainedFetchBeginEx;
     private final DirectBufferEx shareBeginEx;
     private final DirectBufferEx findCoordinatorResponse = new UnsafeBufferEx(FIND_COORDINATOR_RESPONSE);
     private final DirectBufferEx offsetDeleteResponse = new UnsafeBufferEx(OFFSET_DELETE_RESPONSE);
 
+    private byte[] sessionStateTemplate;
+    private int sessionStateKeyPosition;
+    private int sessionStateKeyLength;
+    private DirectBufferEx sessionStatePayload;
+    private DirectBufferEx retainedReplayDataEx;
+    private DirectBufferEx retainedReplayPayload;
     private int unexpected;
     private int excludedQos;
+    private int replayCommits;
+    private int willDeliveries;
+    private String willTopic;
+    private byte[] willTopicBytes;
+    private StubStream willSignalStream;
+    private final Map<String, byte[]> willMessages = new HashMap<>();
 
     public KafkaStub(
         int kafkaTypeId,
@@ -235,6 +272,14 @@ public final class KafkaStub implements BindingHandler
                 .partition(0, 0, 1, 1)
                 .build()
             .build());
+        this.retainedFetchBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .capabilities("FETCH_ONLY")
+                .topic("mqtt-retained")
+                .partition(0, 0, 1, 1)
+                .build()
+            .build());
         this.shareBeginEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
             .typeId(kafkaTypeId)
             .share()
@@ -289,6 +334,123 @@ public final class KafkaStub implements BindingHandler
         }
 
         return index;
+    }
+
+    /**
+     * Makes the fetch stream with a group id on the retained topic replay one retained message with the key
+     * {@code topic} and {@code payload}, as the retained replay scripts specify. Without it that stream only
+     * answers the begin and the caught up flush.
+     */
+    public void retainedReplay(
+        String topic,
+        DirectBufferEx payload)
+    {
+        this.retainedReplayDataEx = new UnsafeBufferEx(KafkaFunctions.dataEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .fetch()
+                    .timestamp(1L)
+                    .filters(1L)
+                    .partition(0, 2L, 2L)
+                    .key(topic)
+                    .header("zilla:qos", "1")
+                    .build()
+                .build());
+        this.retainedReplayPayload = payload;
+    }
+
+    /**
+     * Makes the session stream of a client with a stored session state send {@code payload} as that state, in a
+     * fetch data extension keyed by the client id, which is {@code keyLength} bytes long, as the non clean start
+     * session scripts specify. Without it the session stream answers as for a clean start.
+     */
+    public void sessionState(
+        int keyLength,
+        DirectBufferEx payload)
+    {
+        final String keyMarker = "k".repeat(keyLength);
+
+        this.sessionStateTemplate = KafkaFunctions.dataEx()
+            .typeId(kafkaTypeId)
+            .merged()
+                .fetch()
+                    .deferred(0)
+                    .partition(-1, -1)
+                    .key(keyMarker)
+                    .build()
+                .build();
+        this.sessionStateKeyLength = keyLength;
+        this.sessionStateKeyPosition = indexOfBytes(sessionStateTemplate, keyMarker.getBytes(StandardCharsets.UTF_8));
+        this.sessionStatePayload = payload;
+    }
+
+    private static int indexOfBytes(
+        byte[] array,
+        byte[] pattern)
+    {
+        int index = -1;
+
+        for (int offset = 0; index == -1 && offset + pattern.length <= array.length; offset++)
+        {
+            int length = 0;
+            while (length < pattern.length && array[offset + length] == pattern[length])
+            {
+                length++;
+            }
+
+            if (length == pattern.length)
+            {
+                index = offset;
+            }
+        }
+
+        if (index == -1)
+        {
+            throw new IllegalStateException("key marker not found in session state data extension");
+        }
+
+        return index;
+    }
+
+    /**
+     * Makes the stub answer the streams a session with a will opens, as the session will scripts specify, and
+     * count each will message delivered to {@code topic}.
+     */
+    public void willDelivery(
+        String topic)
+    {
+        this.willTopic = topic;
+        this.willTopicBytes = topic.getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns whether a will message has been delivered to its topic, consuming it.
+     */
+    public boolean willDelivered()
+    {
+        final boolean available = willDeliveries > 0;
+
+        if (available)
+        {
+            willDeliveries--;
+        }
+
+        return available;
+    }
+
+    /**
+     * Returns whether the offset commit of a replayed retained message has arrived, consuming it.
+     */
+    public boolean replayCommitted()
+    {
+        final boolean available = replayCommits > 0;
+
+        if (available)
+        {
+            replayCommits--;
+        }
+
+        return available;
     }
 
     /**
@@ -402,9 +564,15 @@ public final class KafkaStub implements BindingHandler
             {
             case FETCH_ONLY -> beginEx.merged().topic().equals(messagesTopicRO)
                 ? deliveryKind(beginEx.merged())
-                : Kind.OFFSET_FETCH;
-            case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES : Kind.OFFSET_COMMIT;
-            case PRODUCE_AND_FETCH -> Kind.SESSION;
+                : retainedReplayKind(beginEx.merged());
+            case PRODUCE_ONLY -> beginEx.merged().topic().equals(messagesTopicRO) ? Kind.MESSAGES :
+                beginEx.merged().topic().equals(retainedTopicRO) ? Kind.RETAINED :
+                willTopic != null && hasKeyFilter(beginEx.merged()) ? Kind.WILL_SESSION : Kind.OFFSET_COMMIT;
+            case PRODUCE_AND_FETCH -> sessionStateTemplate != null && hasKeyFilter(beginEx.merged())
+                ? Kind.SESSION_STATE
+                : willTopic == null ? Kind.SESSION
+                : hasWillKeyFilter(beginEx.merged()) ? Kind.WILL_SIGNALS
+                : hasKeyFilter(beginEx.merged()) ? Kind.SESSION : Kind.WILL_SIGNAL;
             };
             break;
         default:
@@ -418,6 +586,59 @@ public final class KafkaStub implements BindingHandler
         KafkaMergedBeginExFW merged)
     {
         return merged.groupId().length() > 0 && qosOf(merged) == deliveryQos ? Kind.MESSAGES_DELIVER : Kind.MESSAGES_FETCH;
+    }
+
+    private boolean hasKeyFilter(
+        KafkaMergedBeginExFW merged)
+    {
+        return merged.filters().anyMatch(filter -> filter.conditions().anyMatch(c -> c.kind() == KafkaConditionFW.KIND_KEY));
+    }
+
+    private boolean hasWillKeyFilter(
+        KafkaMergedBeginExFW merged)
+    {
+        return merged.filters().anyMatch(filter -> filter.conditions().anyMatch(c -> c.kind() == KafkaConditionFW.KIND_KEY &&
+            endsWith(c.key(), WILL_KEY_POSTFIX)));
+    }
+
+    private static byte[] copyOf(
+        OctetsFW octets)
+    {
+        final byte[] copy = new byte[octets.sizeof()];
+        octets.buffer().getBytes(octets.offset(), copy);
+        return copy;
+    }
+
+    private static byte[] copyOf(
+        DirectBufferEx buffer,
+        int length)
+    {
+        final byte[] copy = new byte[length];
+        buffer.getBytes(0, copy);
+        return copy;
+    }
+
+    private static boolean endsWith(
+        KafkaKeyFW key,
+        byte[] postfix)
+    {
+        boolean matches = key.length() >= postfix.length;
+
+        for (int index = 0; matches && index < postfix.length; index++)
+        {
+            final int position = key.value().offset() + key.length() - postfix.length + index;
+            matches = key.value().buffer().getByte(position) == postfix[index];
+        }
+
+        return matches;
+    }
+
+    private Kind retainedReplayKind(
+        KafkaMergedBeginExFW merged)
+    {
+        return retainedReplayDataEx != null && merged.topic().equals(retainedTopicRO)
+            ? merged.groupId().length() > 0 ? Kind.RETAINED_REPLAY : Kind.OFFSET_FETCH
+            : willTopic != null && hasKeyFilter(merged) ? Kind.WILL_FETCH : Kind.OFFSET_FETCH;
     }
 
     private int qosOf(
@@ -454,6 +675,13 @@ public final class KafkaStub implements BindingHandler
         private final Runnable deliverStep = this::doDeliverStep;
         private final Runnable partitionStep = this::doPartitionReply;
         private final Runnable progressStep = this::doProgressReply;
+        private final Runnable sessionStateStep = this::doNoSessionState;
+        private final Queue<DirectBufferEx> echoPayloads = new ArrayDeque<>();
+        private final Queue<DirectBufferEx> echoExtensions = new ArrayDeque<>();
+        private final Consumer<KafkaConditionFW> keyCapture = this::captureSessionKey;
+        private final Consumer<KafkaConditionFW> willKeyCapture = this::captureWillKey;
+        private final Consumer<KafkaFilterFW> willFilterCapture = filter -> filter.conditions().forEach(willKeyCapture);
+        private final Consumer<KafkaFilterFW> filterCapture = filter -> filter.conditions().forEach(keyCapture);
         private final MutableDirectBufferEx partitionEx = new UnsafeBufferEx(new byte[PARTITION_FLUSH_CAPACITY]);
 
         private MessageConsumer sender;
@@ -477,6 +705,10 @@ public final class KafkaStub implements BindingHandler
         private int deliveries;
         private int partitionExLength;
         private MutableDirectBufferEx progressEx;
+        private MutableDirectBufferEx sessionStateEx;
+        private DirectBufferEx willFetchPayload;
+        private DirectBufferEx willFetchEx;
+        private byte[] willFetchKey;
         private long deliveryOffset;
         private byte[] deliveryBytes;
         private MutableDirectBufferEx deliveryEx;
@@ -501,6 +733,7 @@ public final class KafkaStub implements BindingHandler
             this.requestBytes = 0;
             this.acks = 0;
             this.deliveries = 0;
+            this.willFetchPayload = null;
             this.deliveryOffset = 2L;
             return consumer;
         }
@@ -531,9 +764,11 @@ public final class KafkaStub implements BindingHandler
                 state = StreamState.openReply(state);
                 doReply();
                 doDeliver();
+                doReplay();
+                doEchoes();
                 break;
             case FlushFW.TYPE_ID:
-                if (kind == Kind.MESSAGES_DELIVER)
+                if (kind == Kind.MESSAGES_DELIVER || kind == Kind.RETAINED_REPLAY)
                 {
                     onDeliveryFlush(flushRO.wrap(buffer, index, index + length));
                 }
@@ -544,6 +779,11 @@ public final class KafkaStub implements BindingHandler
                 else if (kind == Kind.MESSAGES)
                 {
                     onProduceFlush(flushRO.wrap(buffer, index, index + length));
+                }
+                else if (kind == Kind.WILL_SESSION)
+                {
+                    pending++;
+                    schedule(sessionStateStep);
                 }
                 break;
             case AbortFW.TYPE_ID:
@@ -586,6 +826,26 @@ public final class KafkaStub implements BindingHandler
                     deliverables.add(this);
                 }
 
+                if (kind == Kind.WILL_SIGNAL)
+                {
+                    willSignalStream = this;
+                }
+
+                if (kind == Kind.WILL_FETCH)
+                {
+                    beginEx.merged().filters().forEach(willFilterCapture);
+                }
+
+                if (kind == Kind.SESSION_STATE)
+                {
+                    if (sessionStateEx == null)
+                    {
+                        sessionStateEx = new UnsafeBufferEx(sessionStateTemplate.clone());
+                    }
+
+                    beginEx.merged().filters().forEach(filterCapture);
+                }
+
                 doInitialWindow();
                 pending++;
                 schedule(openStep);
@@ -597,6 +857,11 @@ public final class KafkaStub implements BindingHandler
         {
             initialSeq += data.reserved();
             requestBytes += data.payload() != null ? data.payload().sizeof() : 0;
+
+            if (kind == Kind.WILL_SIGNAL)
+            {
+                forgetWillMessage(data);
+            }
 
             switch (kind)
             {
@@ -610,7 +875,20 @@ public final class KafkaStub implements BindingHandler
                 break;
             case OFFSET_COMMIT:
             case MESSAGES:
+            case RETAINED:
             case SESSION:
+            case SESSION_STATE:
+            case WILL_SESSION:
+                if (kind == Kind.WILL_SESSION)
+                {
+                    onWillSessionData(data);
+                }
+
+                if (kind == Kind.MESSAGES && willTopic != null)
+                {
+                    onMessagesData(data);
+                }
+
                 pending++;
                 schedule(ackStep);
                 break;
@@ -651,12 +929,17 @@ public final class KafkaStub implements BindingHandler
                 : null;
             final long correlationId = consumerFlushEx != null ? consumerFlushEx.correlationId() : NO_CORRELATION;
 
-            if (correlationId == NO_CORRELATION)
+            if (correlationId == NO_CORRELATION && kind == Kind.MESSAGES_DELIVER)
             {
                 committed.addInt(deliverIndex);
             }
-            else
+            else if (consumerFlushEx != null)
             {
+                if (kind == Kind.RETAINED_REPLAY && correlationId == NO_CORRELATION)
+                {
+                    replayCommits++;
+                }
+
                 if (progressEx == null)
                 {
                     progressEx = new UnsafeBufferEx(progressTemplate.clone());
@@ -670,6 +953,136 @@ public final class KafkaStub implements BindingHandler
             }
         }
 
+        private void onMessagesData(
+            DataFW data)
+        {
+            final KafkaDataExFW dataEx = data.extension().get(kafkaDataExRO::tryWrap);
+
+            if (dataEx != null && dataEx.kind() == KafkaDataExFW.KIND_MERGED &&
+                dataEx.merged().kind() == KafkaMergedDataExFW.KIND_PRODUCE &&
+                dataEx.merged().produce().key().length() == willTopicBytes.length)
+            {
+                final KafkaKeyFW key = dataEx.merged().produce().key();
+
+                if (endsWith(key, willTopicBytes))
+                {
+                    willDeliveries++;
+                }
+            }
+        }
+
+        private void doNoSessionState()
+        {
+            pending--;
+
+            if (!StreamState.replyClosed(state))
+            {
+                doReplyFlush(emptyEx, 0);
+            }
+
+            doEnd();
+        }
+
+        private void forgetWillMessage(
+            DataFW data)
+        {
+            final KafkaDataExFW dataEx = data.extension().get(kafkaDataExRO::tryWrap);
+
+            if (dataEx != null && dataEx.kind() == KafkaDataExFW.KIND_MERGED &&
+                dataEx.merged().kind() == KafkaMergedDataExFW.KIND_PRODUCE && data.payload() == null)
+            {
+                final KafkaKeyFW key = dataEx.merged().produce().key();
+
+                if (!endsWith(key, WILL_KEY_POSTFIX) && !endsWith(key, EXPIRY_KEY_POSTFIX))
+                {
+                    final byte[] keyBytes = new byte[key.length()];
+                    key.value().buffer().getBytes(key.value().offset(), keyBytes);
+                    willMessages.remove(new String(keyBytes, StandardCharsets.UTF_8));
+                }
+            }
+        }
+
+        private void onWillSessionData(
+            DataFW data)
+        {
+            final KafkaDataExFW dataEx = data.extension().get(kafkaDataExRO::tryWrap);
+
+            if (dataEx != null && dataEx.kind() == KafkaDataExFW.KIND_MERGED &&
+                dataEx.merged().kind() == KafkaMergedDataExFW.KIND_PRODUCE && willSignalStream != null)
+            {
+                final KafkaMergedProduceDataExFW produce = dataEx.merged().produce();
+
+                if (!endsWith(produce.key(), WILL_KEY_POSTFIX) && !endsWith(produce.key(), EXPIRY_KEY_POSTFIX))
+                {
+                    final byte[] keyBytes = new byte[produce.key().length()];
+                    produce.key().value().buffer().getBytes(produce.key().value().offset(), keyBytes);
+                    final String willKey = new String(keyBytes, StandardCharsets.UTF_8);
+
+                    if (data.payload() != null)
+                    {
+                        willMessages.put(willKey, copyOf(data.payload()));
+                    }
+                    else
+                    {
+                        willMessages.remove(willKey);
+                    }
+                }
+
+                if (endsWith(produce.key(), WILL_KEY_POSTFIX))
+                {
+                    final int echoLength = kafkaDataExRW.wrap(echoBuffer, 0, echoBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .merged(m -> m.fetch(f -> f
+                            .deferred(0)
+                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                            .key(k -> k.length(produce.key().length())
+                                .value(produce.key().value().buffer(), produce.key().value().offset(), produce.key().length()))
+                            .headersItem(h -> h
+                                .nameLen(SIGNAL_TYPE_NAME.length)
+                                .name(new UnsafeBufferEx(SIGNAL_TYPE_NAME), 0, SIGNAL_TYPE_NAME.length)
+                                .valueLen(WILL_SIGNAL_NAME.length)
+                                .value(new UnsafeBufferEx(WILL_SIGNAL_NAME), 0, WILL_SIGNAL_NAME.length))))
+                        .build()
+                        .sizeof();
+
+                    final DirectBufferEx echoPayload = data.payload() != null
+                        ? new UnsafeBufferEx(copyOf(data.payload())) : null;
+
+                    final DirectBufferEx echoExtension = new UnsafeBufferEx(copyOf(echoBuffer, echoLength));
+
+                    schedule(() -> willSignalStream.doEcho(echoPayload, echoExtension));
+                }
+            }
+        }
+
+        private void doEcho(
+            DirectBufferEx payload,
+            DirectBufferEx extension)
+        {
+            echoPayloads.add(payload != null ? payload : emptyEx);
+            echoExtensions.add(extension);
+            doEchoes();
+        }
+
+        private void doEchoes()
+        {
+            while (!echoPayloads.isEmpty() && StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            {
+                final DirectBufferEx payload = echoPayloads.peek();
+                final boolean tombstone = payload == emptyEx;
+                final int reserved = (tombstone ? 0 : payload.capacity()) + replyPad;
+
+                if (replyAck + replyMax - replySeq < reserved)
+                {
+                    break;
+                }
+
+                doReplyData(tombstone ? null : payload, echoExtensions.peek(), reserved);
+                echoPayloads.poll();
+                echoExtensions.poll();
+            }
+        }
+
         private void doProgressReply()
         {
             pending--;
@@ -680,6 +1093,83 @@ public final class KafkaStub implements BindingHandler
             }
 
             doEnd();
+        }
+
+        private DirectBufferEx replayPayload()
+        {
+            return switch (kind)
+            {
+            case SESSION_STATE -> sessionStatePayload;
+            case WILL_FETCH -> willFetchPayload();
+            default -> retainedReplayPayload;
+            };
+        }
+
+        private DirectBufferEx replayExtension()
+        {
+            return switch (kind)
+            {
+            case SESSION_STATE -> sessionStateEx;
+            case WILL_FETCH -> willFetchEx;
+            default -> retainedReplayDataEx;
+            };
+        }
+
+        private DirectBufferEx willFetchPayload()
+        {
+            if (willFetchPayload == null)
+            {
+                final byte[] message = willMessages.get(new String(willFetchKey, StandardCharsets.UTF_8));
+
+                if (message == null)
+                {
+                    throw new IllegalStateException("will message not found for fetch");
+                }
+
+                willFetchPayload = new UnsafeBufferEx(message);
+                final int extensionLength = kafkaDataExRW.wrap(echoBuffer, 0, echoBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m.fetch(f -> f
+                        .deferred(0)
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(k -> k.length(willFetchKey.length)
+                            .value(new UnsafeBufferEx(willFetchKey), 0, willFetchKey.length))))
+                    .build()
+                    .sizeof();
+                final byte[] extension = copyOf(echoBuffer, extensionLength);
+                willFetchEx = new UnsafeBufferEx(extension);
+            }
+
+            return willFetchPayload;
+        }
+
+        private void captureWillKey(
+            KafkaConditionFW condition)
+        {
+            if (condition.kind() == KafkaConditionFW.KIND_KEY)
+            {
+                final KafkaKeyFW key = condition.key();
+                willFetchKey = new byte[key.length()];
+                key.value().buffer().getBytes(key.value().offset(), willFetchKey);
+                willFetchPayload = null;
+            }
+        }
+
+        private void captureSessionKey(
+            KafkaConditionFW condition)
+        {
+            if (condition.kind() == KafkaConditionFW.KIND_KEY)
+            {
+                final KafkaKeyFW key = condition.key();
+
+                if (key.length() != sessionStateKeyLength)
+                {
+                    throw new IllegalStateException(String.format(
+                        "session key length %d, expected %d", key.length(), sessionStateKeyLength));
+                }
+
+                sessionStateEx.putBytes(sessionStateKeyPosition, key.value().buffer(), key.value().offset(), key.length());
+            }
         }
 
         private void doPartitionReply()
@@ -710,16 +1200,46 @@ public final class KafkaStub implements BindingHandler
                     replyDue = true;
                     break;
                 case OFFSET_FETCH:
+                case WILL_SIGNALS:
                     doReplyFlush(emptyEx, 0);
+                    break;
+                case RETAINED_REPLAY:
+                case SESSION_STATE:
+                case WILL_FETCH:
+                    deliveries = 1;
                     break;
                 default:
                     break;
                 }
 
                 doReply();
+                doReplay();
             }
 
             doEnd();
+        }
+
+        private void doReplay()
+        {
+            if ((kind == Kind.RETAINED_REPLAY || kind == Kind.SESSION_STATE || kind == Kind.WILL_FETCH) && deliveries > 0 &&
+                StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            {
+                final DirectBufferEx payload = replayPayload();
+                final DirectBufferEx extension = replayExtension();
+                final int reserved = payload.capacity() + replyPad;
+
+                if (replyAck + replyMax - replySeq >= reserved)
+                {
+                    doReplyData(payload, extension, reserved);
+
+                    if (kind != Kind.WILL_FETCH)
+                    {
+                        doReplyFlush(emptyEx, 0);
+                    }
+
+                    deliveries--;
+                }
+            }
         }
 
         private void doReply()
@@ -858,8 +1378,9 @@ public final class KafkaStub implements BindingHandler
 
         private void doRecycle()
         {
-            if (pending == 0 && StreamState.closed(state))
+            if (sender != null && pending == 0 && StreamState.closed(state))
             {
+                sender = null;
                 idleStreams.offer(this);
             }
         }
@@ -892,6 +1413,7 @@ public final class KafkaStub implements BindingHandler
             case OFFSET_DELETE -> offsetDeleteBeginEx;
             case INIT_PRODUCER_ID -> initProducerIdBeginEx;
             case MESSAGES_FETCH, MESSAGES_DELIVER -> messagesFetchBeginEx;
+            case RETAINED_REPLAY -> retainedFetchBeginEx;
             case SHARE -> shareBeginEx;
             default -> emptyEx;
             };
@@ -916,7 +1438,7 @@ public final class KafkaStub implements BindingHandler
             DirectBufferEx extension,
             int reserved)
         {
-            final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(routedId)
                 .routedId(originId)
                 .streamId(replyId)
@@ -926,8 +1448,11 @@ public final class KafkaStub implements BindingHandler
                 .maximum(0)
                 .flags(FLAGS_COMPLETE)
                 .budgetId(0L)
-                .reserved(reserved)
-                .payload(payload, 0, payload.capacity())
+                .reserved(reserved);
+            final DataFW.Builder withPayload = payload != null
+                ? builder.payload(payload, 0, payload.capacity())
+                : builder.payload((OctetsFW) null);
+            final DataFW data = withPayload
                 .extension(extension, 0, extension.capacity())
                 .build();
 

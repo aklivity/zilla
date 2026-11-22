@@ -2642,7 +2642,7 @@ final class TestBindingFactory implements BindingHandler
         long authorization,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
         BindingHandler streamFactory = context.streamFactory();
 
         BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -2685,7 +2685,7 @@ final class TestBindingFactory implements BindingHandler
         long authorization,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2726,7 +2726,7 @@ final class TestBindingFactory implements BindingHandler
         OctetsFW extension,
         long authorization)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2765,7 +2765,7 @@ final class TestBindingFactory implements BindingHandler
         long traceId,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         EndFW.Builder builder = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2799,7 +2799,7 @@ final class TestBindingFactory implements BindingHandler
         long traceId,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         AbortFW.Builder builder = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2836,7 +2836,7 @@ final class TestBindingFactory implements BindingHandler
         int reserved,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         FlushFW.Builder builder = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2873,7 +2873,7 @@ final class TestBindingFactory implements BindingHandler
         long traceId,
         OctetsFW extension)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         ResetFW.Builder builder = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2909,7 +2909,7 @@ final class TestBindingFactory implements BindingHandler
         int padding,
         int capabilities)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -2939,7 +2939,7 @@ final class TestBindingFactory implements BindingHandler
         int maximum,
         long traceId)
     {
-        MutableDirectBufferEx writeBuffer = context.writeBuffer();
+        MutableDirectBufferEx writeBuffer = context.writeBuffer("test");
 
         ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)

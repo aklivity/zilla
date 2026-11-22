@@ -32,7 +32,8 @@ public class EngineMetricGroup implements MetricGroup
         EngineWorkersCapacityMetric.NAME, EngineWorkersCapacityMetric::new,
         EngineWorkersCountMetric.NAME, EngineWorkersCountMetric::new,
         EngineWorkersListenersBoundMetric.NAME, EngineWorkersListenersBoundMetric::new,
-        EngineWorkersListenersUnboundMetric.NAME, EngineWorkersListenersUnboundMetric::new
+        EngineWorkersListenersUnboundMetric.NAME, EngineWorkersListenersUnboundMetric::new,
+        EngineWorkersUsageRebalancedMetric.NAME, EngineWorkersUsageRebalancedMetric::new
     );
 
     public EngineMetricGroup(

@@ -160,7 +160,7 @@ abstract class McpProxyListFactory implements BindingHandler
         int kind)
     {
         this.writeBuffer = context.writeBuffer();
-        this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.codecBuffer = context.writeBuffer("codec");
         this.streamFactory = context.streamFactory();
         this.bufferPool = context.bufferPool();
         this.decodeMax = bufferPool.slotCapacity();

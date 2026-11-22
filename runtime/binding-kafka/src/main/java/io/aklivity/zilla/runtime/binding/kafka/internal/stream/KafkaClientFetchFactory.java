@@ -229,7 +229,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.extBuffer = context.writeBuffer("extension");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();

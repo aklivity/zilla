@@ -25,6 +25,7 @@ public final class TcpUsageTracker
 {
     private final int capacity;
     private final LongConsumer recordUsage;
+    private final LongConsumer recordRebalanced;
 
     private int usage;
 
@@ -34,6 +35,7 @@ public final class TcpUsageTracker
     {
         this.capacity = ENGINE_WORKER_CAPACITY_LIMIT.getAsInt(config);
         this.recordUsage = context.supplyUtilizationMetric();
+        this.recordRebalanced = context.supplyRebalancedMetric();
     }
 
     public int available()
@@ -52,6 +54,11 @@ public final class TcpUsageTracker
         assert newUsage <= capacity : "newUsage = %d, capacity = %d".formatted(newUsage, capacity);
 
         recordUsage.accept(1L);
+    }
+
+    public void rebalanced()
+    {
+        recordRebalanced.accept(1L);
     }
 
     public void released()
