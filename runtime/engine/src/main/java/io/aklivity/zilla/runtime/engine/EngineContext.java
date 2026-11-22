@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine;
 
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -27,6 +28,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
@@ -395,6 +397,25 @@ public interface EngineContext
      * @return the mutable write buffer
      */
     MutableDirectBufferEx writeBuffer();
+
+    /**
+     * Returns the per-thread write buffer registered under the given name, with the same
+     * capacity as the default {@link #writeBuffer() write buffer} and backed by native memory.
+     * <p>
+     * Every caller on this thread that asks for the same name receives the same buffer, so the
+     * contents are only valid until the next call that can write to a buffer of that name, and
+     * must not be retained across calls. Use distinct names for buffers whose lifetimes overlap.
+     * The buffer is exclusively owned by this thread.
+     *
+     * @param name  the name identifying the buffer
+     *
+     * @return the mutable write buffer registered under the name
+     */
+    default MutableDirectBufferEx writeBuffer(
+        String name)
+    {
+        return new UnsafeBufferEx(ByteBuffer.allocateDirect(writeBuffer().capacity())).asNative();
+    }
 
     /**
      * Returns the shared {@link BufferPool} for this thread, used to temporarily hold
