@@ -548,6 +548,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long replyAck;
         private int replyMax;
 
+        private final Consumer<KafkaOffsetFW.Builder> flushPartitionWriter = this::writeFlushPartition;
+        private final Consumer<KafkaProduceFlushExFW.Builder> flushProduceWriter = f -> f.partition(flushPartitionWriter);
+        private final Flyweight.Builder.Visitor flushExtensionVisitor = this::writeFlushExtension;
+        private final Consumer<OctetsFW.Builder> flushExtension = ex -> ex.set(flushExtensionVisitor);
+
         private long lastAckOffsetHighWatermark;
         private long offsetHighWatermark = DEFAULT_LATEST_OFFSET;
         private int partitionOffset;
@@ -924,14 +929,26 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION)
             {
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                        traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                    ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                                        .typeId(kafkaTypeId)
-                                        .produce(f -> f.partition(p -> p.partitionId(partitionId)
-                                                              .partitionOffset(offsetHighWatermark)))
-                                        .build()
-                                        .sizeof()));
+                        traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION, flushExtension);
             }
+        }
+
+        private int writeFlushExtension(
+            MutableDirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            return kafkaFlushExRW.wrap(buffer, offset, limit)
+                .typeId(kafkaTypeId)
+                .produce(flushProduceWriter)
+                .build()
+                .sizeof();
+        }
+
+        private void writeFlushPartition(
+            KafkaOffsetFW.Builder partition)
+        {
+            partition.partitionId(partitionId).partitionOffset(offsetHighWatermark);
         }
 
         private void doClientFanInitialAbortIfNecessary(
@@ -1290,6 +1307,16 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     private final class KafkaCacheClientProduceStream
     {
+        private long ackPartitionOffset;
+        private long ackTimestamp;
+
+        private final Consumer<KafkaOffsetFW.Builder> ackPartitionWriter = this::writeAckPartition;
+        private final Consumer<KafkaProduceFlushExFW.Builder> ackProduceWriter = p -> p
+            .partition(ackPartitionWriter)
+            .timestamp(ackTimestamp);
+        private final Flyweight.Builder.Visitor ackExtensionVisitor = this::writeAckExtension;
+        private final Consumer<OctetsFW.Builder> ackExtension = ex -> ex.set(ackExtensionVisitor);
+
         private final KafkaCacheCursor cursor;
         private final MutableInteger entryMark;
         private final MutableInteger valueLimit;
@@ -1608,17 +1635,29 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long partitionOffset,
             long timestamp)
         {
+            this.ackPartitionOffset = partitionOffset;
+            this.ackTimestamp = timestamp;
+
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
-                    traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .produce(p -> p
-                            .partition(par -> par
-                                .partitionId(fan.partition.id())
-                                .partitionOffset(partitionOffset))
-                            .timestamp(timestamp))
-                        .build()
-                        .sizeof()));
+                    traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION, ackExtension);
+        }
+
+        private int writeAckExtension(
+            MutableDirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            return kafkaFlushExRW.wrap(buffer, offset, limit)
+                .typeId(kafkaTypeId)
+                .produce(ackProduceWriter)
+                .build()
+                .sizeof();
+        }
+
+        private void writeAckPartition(
+            KafkaOffsetFW.Builder partition)
+        {
+            partition.partitionId(fan.partition.id()).partitionOffset(ackPartitionOffset);
         }
 
         private void doClientReplyEnd(
