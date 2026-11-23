@@ -58,6 +58,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.KafkaFunctions;
  * {@code gc.alloc.rate.norm} (B/op) from the {@code gc} profiler is the allocation per record, taken over every thread,
  * the stub and the harness included, which allocate nothing per record.
  * <p>
+ * Set {@code -Dzilla.bench.directory} to run several benchmark JVMs side by side, one engine worker each.
+ * <p>
  * The stub stands in for the client binding and the broker, so the cost of encoding the Kafka protocol is not in the
  * figure; this benchmark isolates the cache server.
  */
@@ -111,7 +113,7 @@ public class KafkaCacheServerBM
             payload = new UnsafeBufferEx(new byte[payloadBytes]);
 
             bench = new EngineBench()
-                .directory("target/zilla-bench")
+                .directory(System.getProperty("zilla.bench.directory", "target/zilla-bench"))
                 .external("app1")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
                 .configure(KAFKA_CACHE_SEGMENT_BYTES, SEGMENT_BYTES)
