@@ -936,6 +936,8 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
 
             members.entrySet().removeIf(m -> !memberIds.contains(m.getKey()));
 
+            streams.forEach(s -> s.offsetCommit.onOffsetCommitJoined(traceId));
+
             doPartitionAssignment(traceId, authorization);
         }
 
@@ -1787,7 +1789,10 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             int leaderEpoch,
             long correlationId)
         {
-            doOffsetCommitInitialBegin(traceId, 0);
+            if (delegate.fanout.memberId != null)
+            {
+                doOffsetCommitInitialBegin(traceId, 0);
+            }
 
             KafkaPartitionOffset commit = new KafkaPartitionOffset(
                 delegate.topic,
@@ -1811,6 +1816,15 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             commitRequests.add(commit);
 
             doOffsetCommit(traceId, authorization);
+        }
+
+        private void onOffsetCommitJoined(
+            long traceId)
+        {
+            if (!commitRequests.isEmpty())
+            {
+                doOffsetCommitInitialBegin(traceId, 0);
+            }
         }
 
         private void onOffsetCommitResponse(
