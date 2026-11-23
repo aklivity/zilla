@@ -1111,6 +1111,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.expiry.signal.fragmented.local.ignored/client",
+        "${kafka}/session.expiry.signal.fragmented.local.ignored/server"})
+    public void shouldDecodeSessionSignalAfterFragmentedLocalSignalIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.expiry.signal.malformed.dropped/client",
+        "${kafka}/session.expiry.signal.malformed.dropped/server"})
+    public void shouldDropMalformedSessionSignal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.ignore.non.fetch.signal.stream.flush/client",
         "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
     public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
