@@ -580,6 +580,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.subscribe.hash.key/client",
+        "${mqtt}/session.subscribe.hash.key/server"})
+    public void shouldSaveSessionStateWithHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.reject.non.compacted.sessions.topic/client",
         "${mqtt}/session.reject.non.compacted.sessions.topic/server"})
     public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
@@ -592,6 +601,15 @@ public class MqttIT
         "${mqtt}/session.subscribe.via.session.state/client",
         "${mqtt}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/client",
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/server"})
+    public void shouldRestoreSessionStateFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }

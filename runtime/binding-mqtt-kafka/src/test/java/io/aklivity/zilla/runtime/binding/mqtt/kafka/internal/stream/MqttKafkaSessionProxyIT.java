@@ -102,6 +102,18 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.hash.key/client",
+        "${kafka}/session.subscribe.hash.key/server"})
+    public void shouldSaveSessionStateWithHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.log.event.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
@@ -133,6 +145,18 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/client",
+        "${kafka}/session.subscribe.via.session.state.multiple.partitions/server"})
+    public void shouldRestoreSessionStateFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }
@@ -570,6 +594,22 @@ public class MqttKafkaSessionProxyIT
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
+    @Specification({
+        "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/server"})
+    public void shouldExpireSessionAfterSignalStreamRestartFromMultiplePartitions() throws Exception
     {
         k3po.start();
         clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);

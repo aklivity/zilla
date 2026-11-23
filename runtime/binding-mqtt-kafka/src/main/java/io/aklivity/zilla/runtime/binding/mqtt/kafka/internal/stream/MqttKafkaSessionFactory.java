@@ -1056,6 +1056,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     .timestamp(clock.millis())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
                     .key(b -> b.length(clientId.length())
+                        .value(clientId.value(), 0, clientId.length()))
+                    .hashKey(b -> b.length(clientId.length())
                         .value(clientId.value(), 0, clientId.length()))))
                 .build();
 
