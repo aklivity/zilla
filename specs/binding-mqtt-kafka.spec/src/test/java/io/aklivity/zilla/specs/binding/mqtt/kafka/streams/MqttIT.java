@@ -795,6 +795,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.persistent.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.persistent.subscribe.qos.max.1/server"})
+    public void shouldSessionStorePersistentSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/server"})
+    public void shouldSessionStorePersistentCloseReconnectNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
