@@ -717,6 +717,16 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
+        "${app}/merged.produce.and.fetch.invalid.partition.fragments/client",
+        "${app}/unmerged.produce.and.fetch.invalid.partition.fragments/server"})
+    public void shouldIgnoreMessageFragmentsAfterRejectedFirstFragment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
         "${app}/merged.group.produce.message.value/client",
         "${app}/unmerged.group.produce.message.value/server"})
     public void shouldProduceMergedMessageValue() throws Exception
