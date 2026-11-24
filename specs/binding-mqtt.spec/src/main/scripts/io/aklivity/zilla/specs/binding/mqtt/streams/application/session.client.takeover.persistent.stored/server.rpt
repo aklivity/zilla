@@ -61,10 +61,8 @@ write ${mqtt:session()
                .build()}
 write flush
 
-read await CLIENT_TAKEOVER
-
-write close
 read closed
+write close
 
 
 accepted
@@ -105,8 +103,6 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .build()}
 
 connected
-
-write notify CLIENT_TAKEOVER
 
 write zilla:data.empty
 write flush

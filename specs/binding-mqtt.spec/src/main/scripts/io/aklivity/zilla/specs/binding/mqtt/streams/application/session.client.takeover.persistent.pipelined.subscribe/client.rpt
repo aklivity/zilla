@@ -59,8 +59,8 @@ read ${mqtt:session()
 
 write notify FIRST_CONNECTED
 
-read closed
 write close
+read closed
 
 connect await FIRST_CONNECTED
         "zilla://streams/app0"

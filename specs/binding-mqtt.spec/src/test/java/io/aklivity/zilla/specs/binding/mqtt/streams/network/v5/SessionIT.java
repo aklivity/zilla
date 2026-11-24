@@ -95,6 +95,17 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.inbound.state/client",
+        "${net}/session.inbound.state/server"})
+    public void shouldSessionInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
         "${net}/session.client.takeover.persistent.pipelined.subscribe/server"})
     public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
@@ -503,6 +514,26 @@ public class SessionIT
         "${net}/session.connect.non.clean.start.store.empty.state/client",
         "${net}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.inbound.state.oversize/client",
+        "${net}/session.inbound.state.oversize/server"})
+    public void shouldSessionInboundStateOversize() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.inbound.state.abort/client",
+        "${net}/session.inbound.state.abort/server"})
+    public void shouldSessionInboundStateAbort() throws Exception
     {
         k3po.finish();
     }

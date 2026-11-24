@@ -355,6 +355,22 @@ public class SessionIT
 
     @Test
     @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state/client",
+        "${app}/session.inbound.state/server"})
+    public void shouldCarryInboundStateAcrossSessions() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
@@ -702,6 +718,35 @@ public class SessionIT
         "${net}/session.connect.non.clean.start.store.empty.state/client",
         "${app}/session.connect.non.clean.start.store.held.state/server"})
     public void shouldConnectNonCleanStartStoreHeldState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.oversize.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state.oversize/client",
+        "${app}/session.inbound.state.oversize/server"})
+    public void shouldDropStoredInboundStateThatExceedsSessionBegin() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state.abort/client",
+        "${app}/session.inbound.state.abort/server"})
+    public void shouldStoreInboundStateSentAfterNetworkAbort() throws Exception
     {
         k3po.finish();
     }
