@@ -831,6 +831,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.will.message.subscribe/client",
+        "${mqtt}/session.store.will.message.subscribe/server"})
+    public void shouldSessionStoreWillMessageSubscribe() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
