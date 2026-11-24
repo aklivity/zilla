@@ -405,6 +405,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.key.sync/client",
+        "${app}/filter.key.sync/server"})
+    public void shouldFetchFilterKeySync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.key/client",
         "${app}/filter.key/server"})
     public void shouldReceiveMessagesWithKeyFilter() throws Exception

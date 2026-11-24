@@ -530,11 +530,8 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            client.decodeableResponseBytes = responseHeader.length();
-
-            final OffsetFetchResponseFW offsetFetchResponse = offsetFetchResponseRO.tryWrap(buffer, progress, limit);
+            final OffsetFetchResponseFW offsetFetchResponse =
+                offsetFetchResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (offsetFetchResponse == null)
             {
                 break decode;
@@ -542,7 +539,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
 
             progress = offsetFetchResponse.limit();
 
-            client.decodeableResponseBytes -= offsetFetchResponse.sizeof();
+            client.decodeableResponseBytes = responseHeader.length() - offsetFetchResponse.sizeof();
             assert client.decodeableResponseBytes >= 0;
 
             client.decodeableTopics = offsetFetchResponse.topicCount();

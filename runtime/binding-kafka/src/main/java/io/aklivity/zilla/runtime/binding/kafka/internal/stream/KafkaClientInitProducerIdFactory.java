@@ -504,9 +504,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            final InitProducerIdResponseFW initProducerIdResponse = initProducerrIdResponseRO.tryWrap(buffer, progress, limit);
+            final InitProducerIdResponseFW initProducerIdResponse =
+                initProducerrIdResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (initProducerIdResponse == null)
             {
                 break decode;

@@ -48,6 +48,15 @@ public class OffsetFetchIT
 
     @Test
     @Specification({
+        "${net}/topic.offset.info.fragmented/client",
+        "${net}/topic.offset.info.fragmented/server"})
+    public void shouldFetchTopicOffsetInfoFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/topic.offset.no.partition/client",
         "${net}/topic.offset.no.partition/server"})
     public void shouldRejectTopicOffsetOnNoPartition() throws Exception
