@@ -748,6 +748,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             return isSubscriptionStateStored() && !isSetWillFlag(sessionFlags);
         }
 
+        // A persistent QoS 2 session still couples the credit of the session stream to the offset commit stream,
+        // so its early credit waits until those offsets move to the store.
+        private boolean isInboundWindowEarly()
+        {
+            return isSessionStreamOmitted() && (publishQosMax != 2 || isSessionStateStored());
+        }
+
         private boolean isSessionReady()
         {
             return readySeq != NO_SEQUENCE;
@@ -821,6 +828,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 this.metadata.sessionsTopic = isSessionStateStored() ? null : sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
+            }
+
+            if (isInboundWindowEarly())
+            {
+                doMqttWindowInbound(traceId, authorization);
             }
 
             if (isSessionStateStored())
@@ -946,7 +958,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final MqttSessionDataExFW mqttSessionDataEx =
                 mqttDataEx != null && mqttDataEx.kind() == MqttDataExFW.KIND_SESSION ? mqttDataEx.session() : null;
             MqttSessionDataKind kind = mqttSessionDataEx != null ? mqttSessionDataEx.kind().get() : null;
-            if (isSubscriptionStateStored() && isSessionReady())
+            if (isSubscriptionStateStored() && kind == MqttSessionDataKind.INBOUND)
+            {
+                onMqttInboundData(traceId, authorization, flags);
+            }
+            else if (isSubscriptionStateStored() && isSessionReady())
             {
                 if (kind == MqttSessionDataKind.STATE && hasInit(flags) && hasFin(flags))
                 {
@@ -1593,7 +1609,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int capabilities)
         {
             initialAck = Math.min(mqttAck, initialSeq);
-            initialMax = session.initialMax;
+            initialMax = isSubscriptionStateStored() ? Math.max(initialMax, session.initialMax) : session.initialMax;
 
             doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, budgetId, willPadding, 0, capabilities);
@@ -1604,10 +1620,40 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long authorization)
         {
             initialAck = Math.max(initialAck, initialSeq - (replySeq - replyAck));
-            initialMax = Math.min(sessionStateBuffer.capacity(), replyMax);
+            initialMax = Math.max(initialMax, Math.min(sessionStateBuffer.capacity(), replyMax));
 
             doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                 traceId, authorization, 0L, replyPad, 0, 0);
+        }
+
+        // A session without a will has no Kafka stream, so nothing it receives is forwarded and no forwarded frame
+        // can be outstanding: a locally consumed frame is complete when it arrives and the acknowledge can pass it.
+        // A session with a will forwards its will frames to Kafka, so a locally consumed frame is accepted only after
+        // the session is ready, when every forwarded frame has been acknowledged.
+        private void onMqttInboundData(
+            long traceId,
+            long authorization,
+            int flags)
+        {
+            if (hasInit(flags) && hasFin(flags) && (isInboundWindowEarly() || isSessionReady()))
+            {
+                doMqttWindowInbound(traceId, authorization);
+            }
+            else
+            {
+                doMqttReset(traceId);
+            }
+        }
+
+        private void doMqttWindowInbound(
+            long traceId,
+            long authorization)
+        {
+            initialAck = initialSeq;
+            initialMax = Math.max(initialMax, sessionStateBuffer.capacity());
+
+            doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
+                traceId, authorization, 0L, 0, 0, 0);
         }
 
         private void doMqttSessionStateStored(
