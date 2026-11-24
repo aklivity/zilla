@@ -105,4 +105,5 @@ read zilla:data.ext ${mqtt:matchDataEx()
                                 .build()
                             .build()}
 read "message2"
+read notify RECEIVED_COMMIT_TWO
 

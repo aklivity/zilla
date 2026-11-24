@@ -1192,6 +1192,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.pipelined.abort/client",
+        "${kafka}/publish.qos2.pipelined.abort/server"})
+    public void shouldPublishQoS2MessagesPipelinedAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.pipelined.exhausted/client",
+        "${kafka}/publish.qos2.pipelined.exhausted/server"})
+    public void shouldPublishQoS2MessagesPipelinedExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.offset.commit.credit.window/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
     public void shouldPublishQoS2MessageOffsetCommitCreditWindow() throws Exception

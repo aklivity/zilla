@@ -1749,9 +1749,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
@@ -1764,9 +1761,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
@@ -2238,9 +2232,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization);
@@ -2253,9 +2244,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                initialSeq = delegate.initialSeq;
-                initialAck = delegate.initialAck;
-                initialMax = delegate.initialMax;
                 state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
