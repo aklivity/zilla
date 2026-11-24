@@ -879,6 +879,39 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSendWillMessageQos2OnAbortWithoutExpirySignalWhenSessionStateStore() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSendWillMessageQos2OnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_STREAMS_BUFFER_CAPACITY_NAME, value = "8192")
     @Specification({

@@ -994,6 +994,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionStoreWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.store.subscribe.qos.max.1/client",
         "${kafka}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception
