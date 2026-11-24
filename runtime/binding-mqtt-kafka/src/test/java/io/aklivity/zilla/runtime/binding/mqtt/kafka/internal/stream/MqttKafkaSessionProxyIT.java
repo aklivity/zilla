@@ -376,7 +376,7 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
-        "${kafka}/session.clean.start.discard.offsets/server"})
+        "${kafka}/session.store.persistent.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStore() throws Exception
     {
         k3po.finish();
@@ -389,7 +389,7 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
         "${mqtt}/session.clean.start.qos.max.1/client",
-        "${kafka}/session.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
     public void shouldResetGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
     {
         k3po.finish();
@@ -413,8 +413,8 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
-        "${mqtt}/session.close.reconnect.non.expiring/client",
-        "${kafka}/session.close.reconnect.non.expiring/server"})
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/server"})
     public void shouldReconnectNonExpiringSessionWhenSessionStateStore() throws Exception
     {
         k3po.finish();
