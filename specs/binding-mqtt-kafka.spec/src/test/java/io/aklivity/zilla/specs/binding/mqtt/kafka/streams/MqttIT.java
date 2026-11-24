@@ -961,6 +961,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.pipelined/client",
+        "${mqtt}/publish.qos2.pipelined/server"})
+    public void shouldPublishQoS2MessagesPipelined() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.complete.after.acknowledge/client",
         "${mqtt}/publish.qos2.complete.after.acknowledge/server"})
     public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
