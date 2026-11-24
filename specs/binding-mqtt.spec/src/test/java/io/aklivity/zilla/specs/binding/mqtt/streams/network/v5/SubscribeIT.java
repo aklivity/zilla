@@ -1485,4 +1485,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.incomplete.message/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2IncompleteMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }
