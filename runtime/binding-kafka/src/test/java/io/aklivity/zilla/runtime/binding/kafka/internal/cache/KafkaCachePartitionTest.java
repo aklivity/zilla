@@ -301,7 +301,7 @@ public class KafkaCachePartitionTest
         assertEquals(
             "0b00000000000000d20400000000000007000000000000000000000000000000ffffffffffffffff000000000000ffff" +
             "ffffffffffffffffffffffffffff02000000ffffffff0000046b31000000000500000068656c6c6f0000000010000000" +
-            "020000000468310476310468320476320400000000000000180000000000000000000000000000000000000000000000" +
+            "020000000468310476310468320476320400000000000000380000000000000000000000000000000000000000000000" +
             "000000000000000000000000000000000000000000000000000000000000000000000000",
             hex(head.segment().logFile()));
         assertEquals("0000000001000000", hex(head.segment().indexFile()));
@@ -317,6 +317,25 @@ public class KafkaCachePartitionTest
 
         assertEquals(1, head.segment().logFile().appendCount());
         assertEquals(1, head.segment().indexFile().appendCount());
+    }
+
+    @Test
+    public void shouldDelimitProduceEntriesByLimit() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+
+        writeProduceEntry(partition, head, 11L);
+        writeProduceEntry(partition, head, 12L);
+
+        final KafkaCacheFile logFile = head.segment().logFile();
+        final KafkaCacheEntryFW first = logFile.readBytes(0, new KafkaCacheEntryFW()::wrap);
+        assertEquals(logFile.capacity(), first.limit() * 2);
+        final KafkaCacheEntryFW second = logFile.readBytes(first.limit(), new KafkaCacheEntryFW()::wrap);
+
+        assertEquals(11L, first.offset$());
+        assertEquals(12L, second.offset$());
+        assertEquals(logFile.capacity(), second.limit());
     }
 
     @Test
