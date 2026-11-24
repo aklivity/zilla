@@ -20,3 +20,6 @@ connect "zilla://streams/net0"
 connected
 
 read advised zilla:flush
+
+# the binding flushes once when its store assertions complete, and once more for each expiry notification
+read advised zilla:flush

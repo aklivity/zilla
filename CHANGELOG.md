@@ -16,6 +16,7 @@
 - mqtt: the server ignores the client's Receive Maximum and sends more unacknowledged QoS 1 and 2 PUBLISH packets than it allows [\#3352](https://github.com/aklivity/zilla/issues/3352) ([ankitk-me](https://github.com/ankitk-me))
 - kafka: engine stops with IndexOutOfBoundsException in KafkaClientConnectionPool while reading a Kafka response header [\#3424](https://github.com/aklivity/zilla/issues/3424) ([ankitk-me](https://github.com/ankitk-me))
 - mqtt-kafka: a few clients never get CONNACK \(2.8.0-rc5\) [\#3517](https://github.com/aklivity/zilla/issues/3517) ([ankitk-me](https://github.com/ankitk-me))
+- kafka cache: JVM crashes with SIGSEGV in `KafkaCachePartition.Node.clean` during produce-side segment compaction \(2.8.0-rc6\) [\#3536](https://github.com/aklivity/zilla/issues/3536) ([ankitk-me](https://github.com/ankitk-me))
 
 **Closed issues:**
 
@@ -261,6 +262,9 @@
 - fix\(binding-kafka\): ignore the remaining fragments of a merged produce message rejected on its first fragment [\#3532](https://github.com/aklivity/zilla/pull/3532) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add mandatory expire to StoreHandler [\#3533](https://github.com/aklivity/zilla/pull/3533) ([jfallows](https://github.com/jfallows))
 - refactor\(binding-mqtt\): move shared subscription state from mqtt-kafka to the mqtt binding's store [\#3534](https://github.com/aklivity/zilla/pull/3534) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): index active segment hash entries by key for ancestor lookup [\#3537](https://github.com/aklivity/zilla/pull/3537) ([jfallows](https://github.com/jfallows))
+- test\(engine\): gate store.expire and store.watch scripts on the delivered notification [\#3538](https://github.com/aklivity/zilla/pull/3538) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): fold produce entry claim block into trailing padding [\#3540](https://github.com/aklivity/zilla/pull/3540) ([jfallows](https://github.com/jfallows))
 
 ## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
 

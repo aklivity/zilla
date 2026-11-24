@@ -19,10 +19,12 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.RETRY_SEGMENT_VALUE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursor;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorIndex;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.SIZEOF_INDEX_RECORD;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.indexEntry;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.indexKey;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.indexValue;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteOrder.nativeOrder;
 import static java.nio.file.StandardOpenOption.APPEND;
@@ -30,11 +32,14 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,6 +47,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class KafkaCacheIndexFileTest
 {
@@ -320,6 +327,145 @@ public class KafkaCacheIndexFileTest
                     assert indexKey >= previousIndexKey;
                     previousIndexKey = indexKey;
                 }
+            }
+        }
+    }
+
+    public static class SortedByValueAppendTest
+    {
+        @Rule
+        public TemporaryFolder tempFolder = new TemporaryFolder();
+
+        @Test
+        public void shouldLookupLastWithoutScanningEveryEntry() throws Exception
+        {
+            final int entries = 8192;
+            final ReadCountingSortedByValue indexFile = newIndexFile(entries);
+
+            for (int index = 0; index < entries; index++)
+            {
+                final int hash = index * 0x9E3779B1;
+                assertEquals(NEXT_SEGMENT_VALUE, cursorValue(indexFile.last(hash)));
+                indexFile.appendLong(indexEntry(hash, index));
+            }
+
+            assertTrue(String.format("%d reads for %d entries", indexFile.reads, entries), indexFile.reads <= 4L * entries);
+        }
+
+        @Test
+        public void shouldLookupLowerWithoutScanningEveryEntry() throws Exception
+        {
+            final int entries = 8192;
+            final int keys = 64;
+            final ReadCountingSortedByValue indexFile = newIndexFile(entries);
+
+            for (int index = 0; index < entries; index++)
+            {
+                final int hash = index % keys;
+                long cursor = indexFile.last(hash);
+                while (cursorValue(cursor) != NEXT_SEGMENT_VALUE && cursorIndex(cursor) > index - keys * 2)
+                {
+                    cursor = indexFile.lower(hash, cursor);
+                }
+                indexFile.appendLong(indexEntry(hash, index));
+            }
+
+            assertTrue(String.format("%d reads for %d entries", indexFile.reads, entries), indexFile.reads <= 8L * entries);
+        }
+
+        @Test
+        public void shouldMatchScanOverDuplicateKeys() throws Exception
+        {
+            final Random random = new Random(0x5eed);
+            final int entries = 2048;
+            final int keys = 48;
+            final ReadCountingSortedByValue indexFile = newIndexFile(entries);
+            final List<Long> appended = new ArrayList<>();
+
+            for (int index = 0; index < entries; index++)
+            {
+                final int hash = random.nextInt(keys) - keys / 2;
+
+                final long expectedLast = scanLast(appended, hash);
+                assertEquals(expectedLast, indexFile.last(hash));
+
+                long cursor = expectedLast;
+                while (cursorValue(cursor) != NEXT_SEGMENT_VALUE)
+                {
+                    final long expectedLower = scanLower(appended, hash, cursor);
+                    assertEquals(expectedLower, indexFile.lower(hash, cursor));
+                    cursor = expectedLower;
+                }
+
+                final long probe = cursor(random.nextInt(appended.size() + 2) - 1, random.nextInt(entries));
+                final int probeKey = random.nextInt(keys) - keys / 2;
+                assertEquals(scanLower(appended, probeKey, probe), indexFile.lower(probeKey, probe));
+
+                final long entry = indexEntry(hash, index * 3);
+                indexFile.appendLong(entry);
+                appended.add(entry);
+            }
+        }
+
+        private ReadCountingSortedByValue newIndexFile(
+            int entries) throws Exception
+        {
+            final Path location = tempFolder.newFolder().toPath().resolve("hscan");
+            return new ReadCountingSortedByValue(location, entries * SIZEOF_INDEX_RECORD);
+        }
+
+        private static long scanLast(
+            List<Long> appended,
+            int key)
+        {
+            long last = cursor(-1, NEXT_SEGMENT_VALUE);
+            for (int index = appended.size() - 1; index >= 0; index--)
+            {
+                if (indexKey(appended.get(index)) == key)
+                {
+                    last = cursor(index, indexValue(appended.get(index)));
+                    break;
+                }
+            }
+            return last;
+        }
+
+        private static long scanLower(
+            List<Long> appended,
+            int key,
+            long cursor)
+        {
+            long lower = cursor(-1, NEXT_SEGMENT_VALUE);
+            for (int index = cursorIndex(cursor); 0 <= index && index < appended.size(); index--)
+            {
+                final long entry = appended.get(index);
+                if (indexKey(entry) == key && (cursorRetryValue(cursor) ||
+                    Integer.compareUnsigned(indexValue(entry), cursorValue(cursor)) < 0))
+                {
+                    lower = cursor(index, indexValue(entry));
+                    break;
+                }
+            }
+            return lower;
+        }
+
+        private static final class ReadCountingSortedByValue extends KafkaCacheIndexFile.SortedByValue
+        {
+            private long reads;
+
+            private ReadCountingSortedByValue(
+                Path location,
+                int capacity)
+            {
+                super(location, capacity, new UnsafeBufferEx(ByteBuffer.allocate(1024)), long[]::new);
+            }
+
+            @Override
+            public long readLong(
+                int position)
+            {
+                reads++;
+                return super.readLong(position);
             }
         }
     }
