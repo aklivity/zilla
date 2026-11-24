@@ -958,6 +958,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.will.message.clean.start/client",
+        "${kafka}/session.store.will.message.clean.start/server"})
+    public void shouldSessionStoreWillMessageCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.store.subscribe.qos.max.1/client",
         "${kafka}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception

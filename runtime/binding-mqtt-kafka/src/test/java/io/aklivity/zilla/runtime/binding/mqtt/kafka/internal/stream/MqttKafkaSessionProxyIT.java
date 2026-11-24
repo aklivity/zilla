@@ -401,7 +401,7 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
         "${mqtt}/session.will.message.clean.start/client",
-        "${kafka}/session.will.message.clean.start/server"})
+        "${kafka}/session.store.will.message.clean.start/server"})
     public void shouldGenerateLifeTimeIdOnCleanStartWithWillWhenSessionStateStore() throws Exception
     {
         k3po.finish();
