@@ -949,15 +949,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.store.persistent.clean.start.discard.offsets/client",
-        "${kafka}/session.store.persistent.clean.start.discard.offsets/server"})
-    public void shouldSessionStorePersistentCleanStartDiscardOffsets() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/client",
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
     public void shouldSessionStorePersistentCleanStartNoOffsetsTopic() throws Exception

@@ -753,6 +753,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             return readySeq != NO_SEQUENCE;
         }
 
+        private boolean isInboundStored()
+        {
+            return sessionStateStoreEnabled && publishQosMax == 2;
+        }
+
         private boolean isSessionStateStored()
         {
             return sessionStateStoreEnabled &&
@@ -818,9 +823,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doMqttWindow(authorization, traceId, 0, 0, 0);
                 this.metadata = new MqttKafkaPublishMetadata(
                     new Long2ObjectHashMap<>(), new MqttKafkaPacketPartitions(), leaderEpochs);
-                this.metadata.sessionsTopic = isSessionStateStored() ? null : sessionsTopic;
+                this.metadata.sessionsTopic = isInboundStored() ? null : sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
+
+                final OctetsFW inbound = mqttSessionBeginEx.inbound();
+                if (isInboundStored() && inbound != null && inbound.sizeof() > 0)
+                {
+                    restoreInbound(inbound);
+                }
             }
 
             if (isSessionStateStored())
@@ -1173,6 +1184,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            doMqttSessionInbound(traceId, authorization);
             applyEndSessionExpiry(end.extension());
 
             cancelAwaitedReset();
@@ -1281,6 +1293,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            doMqttSessionInbound(traceId, authorization);
             applyEndSessionExpiry(abort.extension());
 
             cancelAwaitedReset();
@@ -1537,6 +1550,25 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void doMqttSessionInbound(
+            long traceId,
+            long authorization)
+        {
+            if (isInboundStored() && sessionExpiry != 0 && StreamState.replyOpening(state) && !StreamState.replyClosed(state))
+            {
+                final MqttKafkaSessionOffsetsFW inbound = sessionOffsetsHelper.encodeAcknowledged(metadata.orderedOffsets);
+
+                final MqttFlushExFW mqttFlushEx =
+                    mqttFlushExRW.wrap(extBuffer, FlushFW.FIELD_OFFSET_EXTENSION, extBuffer.capacity())
+                        .typeId(mqttTypeId)
+                        .session(s -> s.inbound(i -> i.set(inbound.buffer(), inbound.offset(), inbound.sizeof())))
+                        .build();
+
+                doFlush(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    0L, 0, mqttFlushEx);
+            }
+        }
+
         private void doMqttAbort(
             long traceId,
             long authorization)
@@ -1676,8 +1708,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             else
             {
-                offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this);
-                offsetCommit.doKafkaBegin(traceId, authorization, 0);
+                if (!isInboundStored())
+                {
+                    offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this);
+                    offsetCommit.doKafkaBegin(traceId, authorization, 0);
+                }
 
                 if (isSetCleanStart(sessionFlags))
                 {
@@ -1688,10 +1723,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                     producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
                     producerInit.doKafkaBegin(traceId, authorization, 0);
                 }
-                else
+                else if (!isInboundStored())
                 {
                     offsetFetch = new KafkaOffsetFetchStream(routedId, resolvedId, this);
                     offsetFetch.doKafkaBegin(traceId, authorization, 0);
+                }
+                else if (producerId == 0L)
+                {
+                    producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
+                    producerInit.doKafkaBegin(traceId, authorization, 0);
                 }
             }
         }
@@ -1785,18 +1825,35 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }
                 else
                 {
-                    entries.forEach(entry ->
-                    {
-                        final long partitionKey = partitionKey(entry.topic, entry.partitionId);
-                        this.metadata.offsets.put(partitionKey, entry);
-                        this.metadata.orderedOffsets.add(entry);
-                        entry.packetIds.forEach(p -> this.metadata.partitions.add(p, entry.topic, entry.partitionId));
-                    });
+                    entries.forEach(this::restoreOffsets);
                 }
 
                 doAdvanceSession(traceId, authorization);
                 this.metadata.onOffsetsAvailable(traceId, authorization);
             }
+        }
+
+        private void restoreInbound(
+            OctetsFW inbound)
+        {
+            final MqttKafkaSessionOffsetsFW sessionOffsets =
+                sessionOffsetsRO.wrap(inbound.buffer(), inbound.offset(), inbound.limit());
+
+            sessionOffsetsHelper.decode(sessionOffsets).forEach(entry ->
+            {
+                restoreOffsets(entry);
+                this.producerId = entry.producerId;
+                this.producerEpoch = entry.producerEpoch;
+            });
+        }
+
+        private void restoreOffsets(
+            KafkaOffsetMetadata entry)
+        {
+            final long partitionKey = partitionKey(entry.topic, entry.partitionId);
+            this.metadata.offsets.put(partitionKey, entry);
+            this.metadata.orderedOffsets.add(entry);
+            entry.packetIds.forEach(p -> this.metadata.partitions.add(p, entry.topic, entry.partitionId));
         }
 
         private void onProducerInit(
@@ -1906,14 +1963,25 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         doDeleteGroupOffsets(traceId, authorization);
                     }
 
-                    if (isSessionOffsetsSeedable())
+                    if (isInboundStored())
                     {
-                        doSeedSessionOffsets(traceId, authorization);
+                        if (isInboundEstablishable())
+                        {
+                            seedProducerOffsets();
+                            doCreateSessionStream(traceId, authorization);
+                        }
                     }
-
-                    if (isSessionEstablishable())
+                    else
                     {
-                        doCreateSessionStream(traceId, authorization);
+                        if (isSessionOffsetsSeedable())
+                        {
+                            doSeedSessionOffsets(traceId, authorization);
+                        }
+
+                        if (isSessionEstablishable())
+                        {
+                            doCreateSessionStream(traceId, authorization);
+                        }
                     }
                 }
             }
@@ -1965,6 +2033,16 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             return !StreamState.replyOpening(state) && isMetasDone() && isProducerInitDone();
         }
 
+        private boolean isInboundEstablishable()
+        {
+            return !isSessionEstablished() && isMetasDone() && isProducerInitDone() && isGroupOffsetsSettled();
+        }
+
+        private boolean isSessionEstablished()
+        {
+            return isSessionStreamOmitted() ? StreamState.replyOpening(state) : session instanceof KafkaSessionStateProxy;
+        }
+
         private boolean isSessionEstablishable()
         {
             return !(session instanceof KafkaSessionStateProxy) && offsetCommit != null &&
@@ -2002,10 +2080,13 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             fetchedPartitions.forEach(kp ->
             {
                 final long partitionKey = partitionKey(kp.topic, kp.partitionId);
-                final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(kp.topic, producerId, producerEpoch);
-                metadata.partitionId = kp.partitionId;
-                this.metadata.offsets.put(partitionKey, metadata);
-                this.metadata.orderedOffsets.add(metadata);
+                if (!this.metadata.offsets.containsKey(partitionKey))
+                {
+                    final KafkaOffsetMetadata metadata = new KafkaOffsetMetadata(kp.topic, producerId, producerEpoch);
+                    metadata.partitionId = kp.partitionId;
+                    this.metadata.offsets.put(partitionKey, metadata);
+                    this.metadata.orderedOffsets.add(metadata);
+                }
             });
         }
 
@@ -2038,7 +2119,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             offsetMetadata.packetIds.remove((Integer) packetId);
             offsetMetadata.sequence++;
 
-            if (isSessionStateStored())
+            if (isInboundStored())
             {
                 metadata.partitions.removeFirst(packetId);
                 doMqttFlush(traceId, authorization, 0, 0, packetId);
